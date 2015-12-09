@@ -33,9 +33,10 @@ from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import (
-    ExpressionCoroutineBody,
-    ExpressionCoroutineCreation
+    ExpressionCoroutineObjectBody,
+    ExpressionMakeCoroutineObject
 )
+from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
@@ -64,30 +65,26 @@ from .Helpers import (
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
-def _insertFinalReturnStatement(function_statements_body, source_ref):
+def _insertFinalReturnStatement(function_statements_body, return_class,
+                                source_ref):
+    return_statement = return_class(
+        expression = ExpressionConstantRef(
+            constant      = None,
+            user_provided = True,
+            source_ref    = source_ref
+        ),
+        source_ref = source_ref
+    )
+
     if function_statements_body is None:
         function_statements_body = makeStatementsSequenceFromStatement(
-            statement = StatementReturn(
-                expression = ExpressionConstantRef(
-                    constant      = None,
-                    user_provided = True,
-                    source_ref    = source_ref
-                ),
-                source_ref = source_ref
-            )
+            statement = return_statement,
         )
     elif not function_statements_body.isStatementAborting():
         function_statements_body.setStatements(
             function_statements_body.getStatements() +
             (
-                StatementReturn(
-                    expression = ExpressionConstantRef(
-                        constant      = None,
-                        user_provided = True,
-                        source_ref    = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
+                return_statement,
             )
         )
 
@@ -193,6 +190,7 @@ def buildFunctionNode(provider, node, source_ref):
         # TODO: Generators might have to raise GeneratorExit instead.
         function_statements_body = _insertFinalReturnStatement(
             function_statements_body = function_statements_body,
+            return_class             = StatementReturn,
             source_ref               = source_ref
         )
 
@@ -286,7 +284,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         has_stardict  = parameters.getStarDictArgumentName() is not None
     )
 
-    function_body = ExpressionCoroutineBody(
+    function_body = ExpressionCoroutineObjectBody(
         provider   = creator_function_body,
         name       = node.name,
         source_ref = source_ref
@@ -313,6 +311,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_statements_body = _insertFinalReturnStatement(
         function_statements_body = function_statements_body,
+        return_class             = StatementGeneratorReturn,
         source_ref               = source_ref
     )
 
@@ -337,9 +336,13 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     creator_function_body.setBody(
         makeStatementsSequenceFromStatement(
             statement = StatementReturn(
-                expression = ExpressionCoroutineCreation(
-                    coroutine_body = function_body,
-                    source_ref     = source_ref
+                expression = ExpressionMakeCoroutineObject(
+                    coroutine_ref = ExpressionFunctionRef(
+                        function_body = function_body,
+                        source_ref    = source_ref
+                    ),
+                    code_object   = code_object,
+                    source_ref    = source_ref
                 ),
                 source_ref = source_ref
             )

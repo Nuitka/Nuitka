@@ -349,19 +349,19 @@ def buildStatementsNode(provider, nodes, source_ref, code_object = None):
                 code_object = code_object,
                 source_ref  = source_ref
             )
-        elif provider.isExpressionFunctionBody():
-            result = StatementsFrame(
-                statements  = statements,
-                guard_mode  = "full",
-                code_object = code_object,
-                source_ref  = source_ref
-            )
-        elif provider.isExpressionCoroutineBody():
+        elif provider.isExpressionCoroutineObjectBody():
             # TODO: That might be wrong
 
             result = StatementsFrame(
                 statements  = statements,
                 guard_mode  = "generator",
+                code_object = code_object,
+                source_ref  = source_ref
+            )
+        elif provider.isExpressionFunctionBody():
+            result = StatementsFrame(
+                statements  = statements,
+                guard_mode  = "full",
                 code_object = code_object,
                 source_ref  = source_ref
             )

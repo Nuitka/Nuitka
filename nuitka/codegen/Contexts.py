@@ -741,18 +741,6 @@ class PythonFunctionDirectContext(PythonFunctionContext):
     def isForCreatedFunction(self):
         return False
 
-
-class PythonFunctionCoroutineContext(PythonFunctionContext):
-    def isForDirectCall(self):
-        return False
-
-    def isForCrossModuleUsage(self):
-        return self.function.isCrossModuleUsed()
-
-    def isForCreatedFunction(self):
-        return False
-
-
 class PythonGeneratorObjectContext(PythonFunctionContext):
     def isForDirectCall(self):
         return False
@@ -762,6 +750,10 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
 
     def isForCreatedFunction(self):
         return False
+
+
+class PythonCoroutineObjectContext(PythonGeneratorObjectContext):
+    pass
 
 
 class PythonFunctionCreatedContext(PythonFunctionContext):

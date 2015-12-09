@@ -57,7 +57,8 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     old_frame_handle = context.getFrameHandle()
 
     if guard_mode != "pass_through":
-        if provider.isExpressionGeneratorObjectBody():
+        if provider.isExpressionGeneratorObjectBody() or \
+           provider.isExpressionCoroutineObjectBody():
             context.setFrameHandle("generator->m_frame")
         elif provider.isExpressionFunctionBody():
             context.setFrameHandle("frame_function")
@@ -104,7 +105,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         frame_return_exit = None
 
     if guard_mode == "generator":
-        assert provider.isExpressionGeneratorObjectBody()
+        assert provider.isExpressionGeneratorObjectBody() or provider.isExpressionCoroutineObjectBody()
 
         # TODO: This case should care about "needs_preserve", as for
         # Python3 it is actually not a stub of empty code.

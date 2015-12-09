@@ -38,12 +38,12 @@ from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.CoroutineNodes import ExpressionAwait
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTracebackRef,
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef
 )
-from nuitka.nodes.ReturnNodes import ExpressionAwait
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence

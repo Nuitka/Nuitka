@@ -701,3 +701,36 @@ PyTypeObject Nuitka_CoroutineWrapper_Type = {
     0,                                          /* tp_new */
     PyObject_Del,                               /* tp_free */
 };
+
+extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
+extern PyObject *const_str_plain_send;
+
+PyObject *AWAIT_COROUTINE( PyObject *awaitable )
+{
+    PyObject *coroutine = _PyCoro_GetAwaitableIter( awaitable );
+
+    if (unlikely( coroutine == NULL ))
+    {
+        return NULL;
+    }
+
+    PyObject *retval;
+
+    if ( PyGen_CheckExact( coroutine ) || PyCoro_CheckExact( coroutine ) )
+    {
+        retval = PyGen_Send( (PyGenObject *)coroutine, Py_None );
+    }
+    else if ( Py_TYPE( coroutine )->tp_iternext != NULL )
+    {
+        // TODO: That's probably not allowed anyway.
+        retval = Py_TYPE( coroutine )->tp_iternext( coroutine );
+    }
+    else
+    {
+        retval = PyObject_CallMethodObjArgs( coroutine, const_str_plain_send, Py_None, NULL );
+    }
+
+    Py_DECREF( coroutine );
+
+    return retval;
+}

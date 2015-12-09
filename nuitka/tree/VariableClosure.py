@@ -176,7 +176,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             # TODO: Then this may not even have to be here at all.
             if python_version >= 340:
                 self._handleQualnameSetup(node)
-        elif node.isExpressionCoroutineBody():
+        elif node.isExpressionCoroutineObjectBody():
             self._handleNonLocal(node)
 
             # TODO: Then this may not even have to be here at all.

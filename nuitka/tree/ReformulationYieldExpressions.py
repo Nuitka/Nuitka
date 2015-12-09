@@ -41,7 +41,7 @@ def _markAsGenerator(provider, node, source_ref):
             None if Utils.python_version < 300 else node.col_offset
         )
 
-    if provider.isExpressionCoroutineBody():
+    if provider.isExpressionCoroutineObjectBody():
         SyntaxErrors.raiseSyntaxError(
             "'%s' inside async function" % (
                 "yield" if node.__class__ is ast.Yield else "yield from",

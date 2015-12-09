@@ -15,91 +15,64 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Nodes for coroutine objects and their creations.
+
+Coroutines are turned into normal functions that create generator objects,
+whose implementation lives here. The creation itself also lives here.
+
+"""
+
 from nuitka.utils import Utils
 
 from .Checkers import checkStatementsSequenceOrNone
 from .FunctionNodes import ExpressionFunctionBodyBase
-from .NodeBases import ChildrenHavingMixin, ExpressionMixin, NodeBase
 from .IndicatorMixins import (
     MarkLocalsDictIndicator,
     MarkUnoptimizedFunctionIndicator
 )
+from .NodeBases import (
+    ChildrenHavingMixin,
+    ExpressionChildrenHavingBase,
+)
 
 
-class ExpressionCoroutineCreation(NodeBase, ExpressionMixin):
-    kind = "EXPRESSION_COROUTINE_CREATION"
+class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_MAKE_COROUTINE_OBJECT"
 
-    def __init__(self, coroutine_body, source_ref):
-        assert coroutine_body.isExpressionCoroutineBody()
+    named_children = (
+        "coroutine_ref",
+    )
 
-        NodeBase.__init__(
+    getCoroutineRef = ExpressionChildrenHavingBase.childGetter("coroutine_ref")
+
+    def __init__(self, coroutine_ref, code_object, source_ref):
+        assert coroutine_ref.getFunctionBody().isExpressionCoroutineObjectBody()
+
+        ExpressionChildrenHavingBase.__init__(
             self,
+            values     = {
+                "coroutine_ref" : coroutine_ref,
+            },
             source_ref = source_ref
         )
 
-        self.coroutine_body = coroutine_body
-
-    def getName(self):
-        return self.coroutine_body.getName()
+        self.code_object = code_object
 
     def getDetails(self):
         return {
-            "coroutine_body" : self.coroutine_body
+            "code_object" : self.code_object
         }
+
+    def getCodeObject(self):
+        return self.code_object
 
     def getDetailsForDisplay(self):
         return {
             "coroutine" : self.coroutine_body.getCodeName()
         }
 
-    def getCoroutineBody(self):
-        return self.coroutine_body
-
-    def computeExpressionRaw(self, constraint_collection):
-        function_body = self.getCoroutineBody()
-
-        owning_module = function_body.getParentModule()
-
-        # Make sure the owning module is added to the used set. This is most
-        # important for helper functions, or modules, which otherwise have
-        # become unused.
-        from nuitka.ModuleRegistry import addUsedModule
-        addUsedModule(owning_module)
-
-        owning_module.addUsedFunction(function_body)
-
-        from nuitka.optimizations.TraceCollections import \
-            ConstraintCollectionFunction
-
-        # TODO: Doesn't this mean, we can do this multiple times by doing it
-        # in the reference. We should do it in the body, and there we should
-        # limit us to only doing it once per module run, e.g. being based on
-        # presence in used functions of the module already.
-        old_collection = function_body.constraint_collection
-
-        function_body.constraint_collection = ConstraintCollectionFunction(
-            parent        = constraint_collection,
-            function_body = function_body
-        )
-
-        statements_sequence = function_body.getBody()
-
-        if statements_sequence is not None and \
-           not statements_sequence.getStatements():
-            function_body.setStatements(None)
-            statements_sequence = None
-
-        if statements_sequence is not None:
-            result = statements_sequence.computeStatementsSequence(
-                constraint_collection = function_body.constraint_collection
-            )
-
-            if result is not statements_sequence:
-                function_body.setBody(result)
-
-        function_body.constraint_collection.updateFromCollection(old_collection)
-
-        # TODO: Function collection may now know something.
+    def computeExpression(self, constraint_collection):
+        # TODO: Coroutine body may know something too.
         return self, None, None
 
     def mayRaiseException(self, exception_type):
@@ -109,10 +82,12 @@ class ExpressionCoroutineCreation(NodeBase, ExpressionMixin):
         return False
 
 
-class ExpressionCoroutineBody(ExpressionFunctionBodyBase,
-                              MarkLocalsDictIndicator,
-                              MarkUnoptimizedFunctionIndicator):
-    kind = "EXPRESSION_COROUTINE_BODY"
+class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
+                                    MarkLocalsDictIndicator,
+                                    MarkUnoptimizedFunctionIndicator):
+    # We really want these many ancestors, as per design, we add properties via
+    # base class mix-ins a lot, pylint: disable=R0901
+    kind = "EXPRESSION_COROUTINE_OBJECT_BODY"
 
     named_children = (
         "body",
@@ -143,6 +118,8 @@ class ExpressionCoroutineBody(ExpressionFunctionBodyBase,
 
         MarkUnoptimizedFunctionIndicator.__init__(self)
 
+        self.needs_generator_return_exit = False
+
     def getFunctionName(self):
         return self.name
 
@@ -153,9 +130,42 @@ class ExpressionCoroutineBody(ExpressionFunctionBodyBase,
     def isExpressionFunctionBody():
         return True
 
+    def markAsNeedsGeneratorReturnHandling(self, value):
+        self.needs_generator_return_exit = max(
+            self.needs_generator_return_exit,
+            value
+        )
+
+    def needsGeneratorReturnHandling(self):
+        return self.needs_generator_return_exit == 2
+
+    def needsGeneratorReturnExit(self):
+        return bool(self.needs_generator_return_exit)
+
     @staticmethod
     def needsCreation():
         return False
 
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
+
+
+class ExpressionAwait(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_AWAIT"
+
+    named_children = ("expression",)
+
+    def __init__(self, expression, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "expression" : expression
+            },
+            source_ref = source_ref
+        )
+
+    def computeExpression(self, constraint_collection):
+        # TODO: Might be predictable based awaitable analysis or for constants.
+        return self, None, None
+
+    getValue = ChildrenHavingMixin.childGetter("expression")

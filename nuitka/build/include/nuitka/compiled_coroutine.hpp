@@ -23,8 +23,8 @@
 
 #if PYTHON_VERSION >= 350
 
-extern PyObject *Nuitka_Coroutine_New( yielder_func code, PyCellObject **closure, Py_ssize_t closure_given );
-extern PyObject *Nuitka_Coroutine_New( yielder_func code );
+extern PyObject *Nuitka_Coroutine_New( yielder_func code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
+
 
 // The Nuitka_GeneratorObject is the storage associated with a compiled
 // generator object instance of which there can be many for each code.
@@ -70,6 +70,8 @@ typedef struct {
 } Nuitka_CoroutineWrapperObject;
 
 extern PyTypeObject Nuitka_CoroutineWrapper_Type;
+
+PyObject *AWAIT_COROUTINE( PyObject *awaitable );
 
 #endif
 

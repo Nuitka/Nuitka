@@ -57,6 +57,7 @@ from .ClassCodes import getSelectMetaclassCode
 from .ComparisonCodes import getComparisonExpressionCode
 from .ConditionalCodes import generateConditionCode, getConditionCheckTrueCode
 from .ConstantCodes import generateConstantReferenceCode, getConstantCode
+from .CoroutineCodes import generateAwaitCode, generateMakeCoroutineObjectCode
 from .DictCodes import (
     generateDictionaryCreationCode,
     generateDictOperationUpdateCode,
@@ -85,15 +86,16 @@ from .FrameCodes import (
     getFrameRestoreExceptionCode
 )
 from .FunctionCodes import (
-    generateCoroutineCreationCode,
     generateFunctionCreationCode,
     generateFunctionDeclCode,
-    generateGeneratorEntryCode,
-    generateMakeGeneratorObjectCode,
     getDirectFunctionCallCode,
     getExportScopeCode,
     getFunctionCode,
-    getFunctionDirectDecl,
+    getFunctionDirectDecl
+)
+from .GeneratorCodes import (
+    generateGeneratorEntryCode,
+    generateMakeGeneratorObjectCode,
     getGeneratorObjectCode
 )
 from .GlobalsLocalsCodes import (
@@ -275,6 +277,11 @@ def generateFunctionBodyCode(function_body, context):
             parent   = context,
             function = function_body
         )
+    elif function_body.isExpressionCoroutineObjectBody():
+        function_context = Contexts.PythonCoroutineObjectContext(
+            parent   = context,
+            function = function_body
+        )
     elif function_body.needsCreation():
         function_context = Contexts.PythonFunctionCreatedContext(
             parent   = context,
@@ -298,6 +305,16 @@ def generateFunctionBodyCode(function_body, context):
     needs_exception_exit = function_body.mayRaiseException(BaseException)
 
     if function_body.isExpressionGeneratorObjectBody():
+        function_code = getGeneratorObjectCode(
+            context                = function_context,
+            function_identifier    = function_identifier,
+            user_variables         = function_body.getUserLocalVariables(),
+            temp_variables         = function_body.getTempVariables(),
+            function_codes         = function_codes.codes,
+            needs_exception_exit   = needs_exception_exit,
+            needs_generator_return = function_body.needsGeneratorReturnExit()
+        )
+    elif function_body.isExpressionCoroutineObjectBody():
         function_code = getGeneratorObjectCode(
             context                = function_context,
             function_identifier    = function_identifier,
@@ -3095,6 +3112,7 @@ Helpers.setExpressionDispatchDict(
         "LIST_OPERATION_POP"        : generateListOperationPopCode,
         "MODULE_FILE_ATTRIBUTE_REF" : generateModuleFileAttributeCode,
         "MAKE_GENERATOR_OBJECT"     : generateMakeGeneratorObjectCode,
+        "MAKE_COROUTINE_OBJECT"     : generateMakeCoroutineObjectCode,
         "OPERATION_BINARY"          : generateOperationBinaryCode,
         "OPERATION_BINARY_INPLACE"  : generateOperationBinaryCode,
         "OPERATION_UNARY"           : generateOperationUnaryCode,
@@ -3107,6 +3125,6 @@ Helpers.setExpressionDispatchDict(
         "VARIABLE_REF"              : generateVariableReferenceCode,
         "YIELD"                     : generateYieldCode,
         "YIELD_FROM"                : generateYieldFromCode,
-        "COROUTINE_CREATION"        : generateCoroutineCreationCode
+        "AWAIT"                     : generateAwaitCode,
     }
 )

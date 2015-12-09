@@ -21,23 +21,44 @@
 
 template_make_coroutine_without_context_template = """
 %(to_name)s = Nuitka_Coroutine_New(
-    %(code_identifier)s
+    %(coroutine_identifier)s_context,
+    self->m_name,
+    self->m_qualname,
+    %(code_identifier)s,
+    NULL,
+    0
 );
 """
 
 template_make_coroutine_with_context_template = """
 {
-    // Copy the parameter default values and closure values over.
-%(context_copy)s
+%(closure_making)s
 
     %(to_name)s = Nuitka_Coroutine_New(
+        %(coroutine_identifier)s_context,
+        self->m_name,
+        self->m_qualname,
         %(code_identifier)s,
-        context,
+        closure,
         %(closure_count)d
     );
 }
 """
 
+template_coroutine_await = """
+{
+    PyObject *awaitable = _PyCoro_GetAwaitableIter( %(value)s );
+
+    if (likely( awaitable != NULL ))
+    {
+        %(to_name) = COROUTINE_AWAIT( awaitable );
+    }
+    else
+    {
+        %(to_name) = NULL;
+    }
+}
+"""
 
 from . import TemplateDebugWrapper # isort:skip
 TemplateDebugWrapper.checkDebug(globals())

@@ -15,6 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Nodes for generator objects and their creations.
+
+Generators are turned into normal functions that create generator objects,
+whose implementation lives here. The creation itself also lives here.
+
+"""
 
 from nuitka.utils import Utils
 
@@ -25,6 +31,7 @@ from .IndicatorMixins import (
     MarkUnoptimizedFunctionIndicator
 )
 from .NodeBases import ChildrenHavingMixin, ExpressionChildrenHavingBase
+from .ReturnNodes import StatementReturn
 
 
 class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
@@ -62,6 +69,9 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
+        return False
+
+    def mayHaveSideEffects(self):
         return False
 
 
@@ -128,3 +138,14 @@ class ExpressionGeneratorObjectBody(ExpressionFunctionBodyBase,
 
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
+
+
+class StatementGeneratorReturn(StatementReturn):
+    kind = "STATEMENT_GENERATOR_RETURN"
+
+    def __init__(self, expression, source_ref):
+        StatementReturn.__init__(
+            self,
+            expression = expression,
+            source_ref = source_ref
+        )

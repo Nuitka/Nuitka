@@ -20,12 +20,7 @@
 This one exits functions. The only other exit is the default exit of functions with 'None' value, if no return is done.
 """
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    ExpressionMixin,
-    NodeBase,
-    StatementChildrenHavingBase
-)
+from .NodeBases import ExpressionMixin, NodeBase, StatementChildrenHavingBase
 
 
 class StatementReturn(StatementChildrenHavingBase):
@@ -76,17 +71,6 @@ Return statement raises in returned expression, removed return."""
         return self, None, None
 
 
-class StatementGeneratorReturn(StatementReturn):
-    kind = "STATEMENT_GENERATOR_RETURN"
-
-    def __init__(self, expression, source_ref):
-        StatementReturn.__init__(
-            self,
-            expression = expression,
-            source_ref = source_ref
-        )
-
-
 class ExpressionReturnedValueRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_RETURNED_VALUE_REF"
 
@@ -106,22 +90,3 @@ class ExpressionReturnedValueRef(NodeBase, ExpressionMixin):
 
     def mayRaiseException(self, exception_type):
         return False
-
-
-class ExpressionAwait(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_AWAIT"
-
-    named_children = ("expression",)
-
-    def __init__(self, expression, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "expression" : expression
-            },
-            source_ref = source_ref
-        )
-
-    def computeExpression(self, constraint_collection):
-        # TODO: Might be predictable based awaitable analysis or for constants.
-        return self, None, None

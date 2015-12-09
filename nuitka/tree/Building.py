@@ -66,7 +66,9 @@ from nuitka.nodes.ConditionalNodes import (
     StatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.CoroutineNodes import ExpressionAwait
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
     ExpressionImportName
@@ -83,11 +85,7 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
     ExpressionOperationUnary
 )
-from nuitka.nodes.ReturnNodes import (
-    ExpressionAwait,
-    StatementGeneratorReturn,
-    StatementReturn
-)
+from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.PythonVersions import python_version

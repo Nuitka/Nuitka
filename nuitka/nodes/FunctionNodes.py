@@ -25,7 +25,8 @@ only be used to be called directly, while knowing exactly what it is. So
 the "ExpressionFunctionCreation" might be used to provide that kind of
 CPython reference, and may escape.
 
-
+Coroutines and generators live in their dedicated module and share base
+classes.
 """
 
 from nuitka import Options, VariableRegistry, Variables

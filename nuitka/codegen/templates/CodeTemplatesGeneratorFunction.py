@@ -28,7 +28,7 @@ template_genfunc_yielder_body_template = """
 static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
     CHECK_OBJECT( (PyObject *)generator );
-    assert( Nuitka_Generator_Check( (PyObject *)generator ) );
+    assert( Nuitka_Generator_Check( (PyObject *)generator ) || Nuitka_Coroutine_Check( generator ) );
 
     // Local variable initialization
 %(function_var_inits)s
@@ -39,8 +39,6 @@ static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 %(generator_exit)s
 }
 """
-
-
 
 template_generator_exception_exit = """\
     RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
