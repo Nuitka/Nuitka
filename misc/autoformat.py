@@ -184,6 +184,10 @@ for node in red.find_all("CommentNode"):
         node.help(deep = True, with_formatting = True)
         raise
 
+if False:
+    while len(red) > 2 and red[0].type == "string" and red[1].type == "endl" and red[2].type == "endl":
+        del red[1]
+
 
 new_code = red.dumps()
 
