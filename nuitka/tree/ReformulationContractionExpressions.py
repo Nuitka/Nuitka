@@ -45,7 +45,9 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef,
+    ExpressionFunctionRef
+)
+from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
     ExpressionMakeGeneratorObject
 )

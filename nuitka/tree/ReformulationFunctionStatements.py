@@ -32,12 +32,16 @@ from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.FunctionNodes import (
+from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineBody,
-    ExpressionCoroutineCreation,
+    ExpressionCoroutineCreation
+)
+from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef,
+    ExpressionFunctionRef
+)
+from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
     ExpressionMakeGeneratorObject
 )

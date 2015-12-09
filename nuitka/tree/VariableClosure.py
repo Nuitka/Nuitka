@@ -173,11 +173,14 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             # Python3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
 
-            # TODO: Is this even meaningful for generator objects, or is it
-            # only for their creating functions.
             # TODO: Then this may not even have to be here at all.
             if python_version >= 340:
                 self._handleQualnameSetup(node)
+        elif node.isExpressionCoroutineBody():
+            self._handleNonLocal(node)
+
+            # TODO: Then this may not even have to be here at all.
+            self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():
             self._handleNonLocal(node)
 

@@ -36,7 +36,9 @@ from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef,
+    ExpressionFunctionRef
+)
+from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
     ExpressionMakeGeneratorObject
 )
