@@ -36,7 +36,6 @@ from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
     ExpressionMakeCoroutineObject
 )
-from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCreation,
@@ -44,7 +43,8 @@ from nuitka.nodes.FunctionNodes import (
 )
 from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
-    ExpressionMakeGeneratorObject
+    ExpressionMakeGeneratorObject,
+    StatementGeneratorReturn
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn

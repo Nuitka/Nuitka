@@ -19,30 +19,94 @@
 
 """
 
+from .ErrorCodes import (
+    getErrorVariableDeclarations,
+    getExceptionKeeperVariableNames,
+    getExceptionPreserverVariableNames
+)
 from .Indentation import indented
 from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesCoroutines import (
+    template_coroutine_exception_exit,
+    template_coroutine_noexception_exit,
+    template_coroutine_object_body_template,
+    template_coroutine_object_decl_template,
+    template_coroutine_return_exit,
     template_make_coroutine_with_context_template,
     template_make_coroutine_without_context_template
 )
 from .templates.CodeTemplatesFunction import (
+    function_dict_setup,
     template_function_closure_making
 )
-from .VariableCodes import getVariableCode
+from .VariableCodes import getLocalVariableInitCode, getVariableCode
 
 
-def generateAwaitCode(to_name, expression, emit, context):
-    generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "AWAIT_COROUTINE",
-        arg_desc   = (
-            ("await_arg", expression.getValue()),
-        ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
-    )
+def getCoroutineObjectDeclCode(function_identifier):
+    return template_coroutine_object_decl_template % {
+        "function_identifier" : function_identifier,
+    }
+
+def getCoroutineObjectCode(context, function_identifier, user_variables,
+                           temp_variables, function_codes, needs_exception_exit,
+                           needs_generator_return):
+    function_locals = []
+
+    for user_variable in user_variables + temp_variables:
+        function_locals.append(
+            getLocalVariableInitCode(
+                variable = user_variable,
+            )
+        )
+
+    if context.hasLocalsDict():
+        function_locals += function_dict_setup.split('\n')
+
+    if context.needsExceptionVariables():
+        function_locals.extend(getErrorVariableDeclarations())
+
+    for keeper_index in range(1, context.getKeeperVariableCount()+1):
+        function_locals.extend(getExceptionKeeperVariableNames(keeper_index))
+
+    for preserver_id in context.getExceptionPreserverCounts():
+        function_locals.extend(getExceptionPreserverVariableNames(preserver_id))
+
+    function_locals += [
+        "%s%s%s;" % (
+            tmp_type,
+            ' ' if not tmp_type.endswith('*') else "",
+            tmp_name
+        )
+        for tmp_name, tmp_type in
+        context.getTempNameInfos()
+    ]
+
+    function_locals += context.getFrameDeclarations()
+
+    # TODO: Could avoid this unless try/except or try/finally with returns
+    # occur.
+    if context.hasTempName("generator_return"):
+        function_locals.append("tmp_generator_return = false;")
+    if context.hasTempName("return_value"):
+        function_locals.append("tmp_return_value = NULL;")
+    for tmp_name, tmp_type in context.getTempNameInfos():
+        if tmp_name.startswith("tmp_outline_return_value_"):
+            function_locals.append("%s = NULL;" % tmp_name)
+
+    if needs_exception_exit:
+        generator_exit = template_coroutine_exception_exit % {}
+    else:
+        generator_exit = template_coroutine_noexception_exit % {}
+
+    if needs_generator_return:
+        generator_exit += template_coroutine_return_exit % {}
+
+    return template_coroutine_object_body_template % {
+        "function_identifier" : function_identifier,
+        "function_body"       : indented(function_codes),
+        "function_var_inits"  : indented(function_locals),
+        "coroutine_exit"      : generator_exit
+    }
 
 
 def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
@@ -107,3 +171,39 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
                 "code_identifier"      : code_identifier,
             }
         )
+
+
+
+def generateAwaitCode(to_name, expression, emit, context):
+    value_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    emit(
+        "%s = %s( coroutine, %s );" % (
+            to_name,
+            "AWAIT_COROUTINE",
+            value_name
+              if context.needsCleanup(value_name) else
+            "INCREASE_REFCOUNT( %s )" % value_name
+        )
+    )
+
+    if not context.needsCleanup(value_name):
+        context.addCleanupTempName(value_name)
+
+    getReleaseCode(
+        release_name = value_name,
+        emit         = emit,
+        context      = context
+    )
+
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
+
+    context.addCleanupTempName(to_name)

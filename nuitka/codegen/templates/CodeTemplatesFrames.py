@@ -252,6 +252,51 @@ Py_DECREF( generator->m_frame );
 goto %(no_exception_exit)s;
 """
 
+# Frame in a coroutine
+template_frame_guard_coroutine = """\
+MAKE_OR_REUSE_FRAME( %(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s );
+coroutine->m_frame = %(frame_cache_identifier)s;
+Py_INCREF( coroutine->m_frame );
+
+coroutine->m_frame->f_gen = (PyObject *)coroutine;
+
+Py_CLEAR( coroutine->m_frame->f_back );
+
+coroutine->m_frame->f_back = PyThreadState_GET()->frame;
+Py_INCREF( coroutine->m_frame->f_back );
+
+PyThreadState_GET()->frame = coroutine->m_frame;
+Py_INCREF( coroutine->m_frame );
+
+coroutine->m_frame->f_executing += 1;
+
+// Accept currently existing exception as the one to publish again when we
+// yield or yield from.
+
+PyThreadState *thread_state = PyThreadState_GET();
+
+coroutine->m_frame->f_exc_type = thread_state->exc_type;
+if ( coroutine->m_frame->f_exc_type == Py_None ) coroutine->m_frame->f_exc_type = NULL;
+Py_XINCREF( coroutine->m_frame->f_exc_type );
+coroutine->m_frame->f_exc_value = thread_state->exc_value;
+Py_XINCREF( coroutine->m_frame->f_exc_value );
+coroutine->m_frame->f_exc_traceback = thread_state->exc_traceback;
+Py_XINCREF( coroutine->m_frame->f_exc_traceback );
+
+// Framed code:
+%(codes)s
+
+coroutine->m_frame->f_executing -= 1;
+
+Py_CLEAR( coroutine->m_frame->f_exc_type );
+Py_CLEAR( coroutine->m_frame->f_exc_value );
+Py_CLEAR( coroutine->m_frame->f_exc_traceback );
+
+Py_DECREF( coroutine->m_frame );
+goto %(no_exception_exit)s;
+"""
+
+
 # TODO: This cannot happen, can it?
 template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;

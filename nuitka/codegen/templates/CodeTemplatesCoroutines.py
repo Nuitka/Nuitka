@@ -19,9 +19,66 @@
 
 """
 
+template_coroutine_object_decl_template = """\
+static void %(function_identifier)s( Nuitka_CoroutineObject *coroutine );
+"""
+
+template_coroutine_object_body_template = """
+static void %(function_identifier)s( Nuitka_CoroutineObject *coroutine )
+{
+    CHECK_OBJECT( (PyObject *)coroutine );
+    assert( Nuitka_Coroutine_Check( (PyObject *)coroutine ) );
+
+    // Local variable initialization
+%(function_var_inits)s
+
+    // Actual function code.
+%(function_body)s
+
+%(coroutine_exit)s
+}
+"""
+
+template_coroutine_exception_exit = """\
+    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
+    Py_INCREF( PyExc_StopIteration );
+
+    coroutine->m_yielded = NULL;
+    return;
+
+    function_exception_exit:
+    assert( exception_type );
+    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+    coroutine->m_yielded = NULL;
+    return;
+"""
+
+template_coroutine_noexception_exit = """\
+    // Return statement must be present.
+    NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
+
+    coroutine->m_yielded = NULL;
+    return;
+"""
+
+template_coroutine_return_exit = """\
+    // The above won't return, but we need to make it clear to the compiler
+    // as well, or else it will complain and/or generate inferior code.
+    assert(false);
+    return;
+
+    function_return_exit:
+    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, tmp_return_value, NULL );
+
+    Py_INCREF( PyExc_StopIteration );
+    coroutine->m_yielded = NULL;
+    return;
+"""
+
+
 template_make_coroutine_without_context_template = """
 %(to_name)s = Nuitka_Coroutine_New(
-    %(coroutine_identifier)s_context,
+    %(coroutine_identifier)s,
     self->m_name,
     self->m_qualname,
     %(code_identifier)s,
@@ -35,7 +92,7 @@ template_make_coroutine_with_context_template = """
 %(closure_making)s
 
     %(to_name)s = Nuitka_Coroutine_New(
-        %(coroutine_identifier)s_context,
+        %(coroutine_identifier)s,
         self->m_name,
         self->m_qualname,
         %(code_identifier)s,

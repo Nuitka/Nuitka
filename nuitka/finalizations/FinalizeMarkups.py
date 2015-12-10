@@ -106,7 +106,8 @@ class FinalizeMarkups(FinalizationVisitorBase):
             # containing the "return" statement.
             search = search.getParentReturnConsumer()
 
-            if search.isExpressionGeneratorObjectBody():
+            if search.isExpressionGeneratorObjectBody() or \
+               search.isExpressionCoroutineObjectBody():
                 if in_tried_block:
                     search.markAsNeedsGeneratorReturnHandling(2)
                 else:

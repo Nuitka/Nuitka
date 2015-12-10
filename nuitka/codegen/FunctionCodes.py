@@ -22,6 +22,7 @@
 from nuitka.utils import Utils
 
 from .ConstantCodes import getConstantCode
+from .CoroutineCodes import getCoroutineObjectDeclCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitCode,
@@ -644,7 +645,7 @@ def generateFunctionDeclCode(function_body):
             function_identifier = function_body.getCodeName(),
         )
     elif function_body.isExpressionCoroutineObjectBody():
-        return getGeneratorObjectDeclCode(
+        return getCoroutineObjectDeclCode(
             function_identifier = function_body.getCodeName(),
         )
     elif function_body.needsDirectCall():

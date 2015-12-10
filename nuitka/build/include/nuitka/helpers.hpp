@@ -21,6 +21,7 @@
 #define _DEBUG_FRAME 0
 #define _DEBUG_REFRAME 0
 #define _DEBUG_EXCEPTIONS 0
+#define _DEBUG_COROUTINE 0
 
 extern PyObject *const_tuple_empty;
 extern PyObject *const_str_plain___dict__;

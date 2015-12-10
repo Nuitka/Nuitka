@@ -57,7 +57,11 @@ from .ClassCodes import getSelectMetaclassCode
 from .ComparisonCodes import getComparisonExpressionCode
 from .ConditionalCodes import generateConditionCode, getConditionCheckTrueCode
 from .ConstantCodes import generateConstantReferenceCode, getConstantCode
-from .CoroutineCodes import generateAwaitCode, generateMakeCoroutineObjectCode
+from .CoroutineCodes import (
+    generateAwaitCode,
+    generateMakeCoroutineObjectCode,
+    getCoroutineObjectCode
+)
 from .DictCodes import (
     generateDictionaryCreationCode,
     generateDictOperationUpdateCode,
@@ -315,7 +319,7 @@ def generateFunctionBodyCode(function_body, context):
             needs_generator_return = function_body.needsGeneratorReturnExit()
         )
     elif function_body.isExpressionCoroutineObjectBody():
-        function_code = getGeneratorObjectCode(
+        function_code = getCoroutineObjectCode(
             context                = function_context,
             function_identifier    = function_identifier,
             user_variables         = function_body.getUserLocalVariables(),

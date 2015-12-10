@@ -113,8 +113,18 @@ static int Nuitka_Coroutine_set_frame( Nuitka_CoroutineObject *coroutine, PyObje
 }
 
 
-static void Nuitka_Coroutine_release_parameters( Nuitka_CoroutineObject *coroutine )
+static void Nuitka_Coroutine_release_closure( Nuitka_CoroutineObject *coroutine )
 {
+    if ( coroutine->m_closure )
+    {
+        for( Py_ssize_t i = 0; i < coroutine->m_closure_given; i++ )
+        {
+            Py_DECREF( coroutine->m_closure[ i ] );
+        }
+
+        free( coroutine->m_closure );
+        coroutine->m_closure = NULL;
+    }
 }
 
 static PyObject *Nuitka_Coroutine_send( Nuitka_CoroutineObject *coroutine, PyObject *value )
@@ -213,7 +223,7 @@ static PyObject *Nuitka_Coroutine_send( Nuitka_CoroutineObject *coroutine, PyObj
             Py_XDECREF( coroutine->m_frame );
             coroutine->m_frame = NULL;
 
-            Nuitka_Coroutine_release_parameters( coroutine );
+            Nuitka_Coroutine_release_closure( coroutine );
 
             assert( ERROR_OCCURRED() );
 
@@ -455,16 +465,7 @@ static void Nuitka_Coroutine_tp_dealloc( Nuitka_CoroutineObject *coroutine )
         Py_DECREF( close_result );
     }
 
-    Nuitka_Coroutine_release_parameters( coroutine );
-
-    if ( coroutine->m_closure_given )
-    {
-        for( Py_ssize_t i = 0; i < coroutine->m_closure_given; i++ )
-        {
-            Py_DECREF( coroutine->m_closure[ i ] );
-        }
-        free( coroutine->m_closure );
-    }
+    Nuitka_Coroutine_release_closure( coroutine );
 
     Py_XDECREF( coroutine->m_frame );
 
@@ -512,6 +513,10 @@ static long Nuitka_Coroutine_tp_traverse( PyObject *coroutine, visitproc visit, 
 
 static PyObject *Nuitka_Coroutine_await( Nuitka_CoroutineObject *coroutine )
 {
+#if _DEBUG_COROUTINE
+    puts("Nuitka_Coroutine_await enter");
+#endif
+
     Nuitka_CoroutineWrapperObject *result = PyObject_GC_New(Nuitka_CoroutineWrapperObject, &Nuitka_CoroutineWrapper_Type);
 
     if (unlikely(result == NULL))
@@ -558,62 +563,62 @@ static PyMemberDef Nuitka_Coroutine_members[] =
 
 static PyAsyncMethods coro_as_async =
 {
-    (unaryfunc)Nuitka_Coroutine_await,          /* am_await */
-    0,                                          /* am_aiter */
-    0                                           /* am_anext */
+    (unaryfunc)Nuitka_Coroutine_await,  /* am_await */
+    0,                                  /* am_aiter */
+    0                                   /* am_anext */
 };
 
 PyTypeObject Nuitka_Coroutine_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    "compiled_coroutine",                       /* tp_name */
-    sizeof(Nuitka_CoroutineObject),             /* tp_basicsize */
-    0,                                          /* tp_itemsize */
-    (destructor)Nuitka_Coroutine_tp_dealloc,    /* tp_dealloc */
-    0,                                          /* tp_print */
-    0,                                          /* tp_getattr */
-    0,                                          /* tp_setattr */
-    &coro_as_async,                             /* tp_as_async */
-    (reprfunc)Nuitka_Coroutine_tp_repr,         /* tp_repr */
-    0,                                          /* tp_as_number */
-    0,                                          /* tp_as_sequence */
-    0,                                          /* tp_as_mapping */
-    0,                                          /* tp_hash */
-    0,                                          /* tp_call */
-    0,                                          /* tp_str */
-    PyObject_GenericGetAttr,                    /* tp_getattro */
-    0,                                          /* tp_setattro */
-    0,                                          /* tp_as_buffer */
+    "compiled_coroutine",                            /* tp_name */
+    sizeof(Nuitka_CoroutineObject),                  /* tp_basicsize */
+    0,                                               /* tp_itemsize */
+    (destructor)Nuitka_Coroutine_tp_dealloc,         /* tp_dealloc */
+    0,                                               /* tp_print */
+    0,                                               /* tp_getattr */
+    0,                                               /* tp_setattr */
+    &coro_as_async,                                  /* tp_as_async */
+    (reprfunc)Nuitka_Coroutine_tp_repr,              /* tp_repr */
+    0,                                               /* tp_as_number */
+    0,                                               /* tp_as_sequence */
+    0,                                               /* tp_as_mapping */
+    0,                                               /* tp_hash */
+    0,                                               /* tp_call */
+    0,                                               /* tp_str */
+    PyObject_GenericGetAttr,                         /* tp_getattro */
+    0,                                               /* tp_setattro */
+    0,                                               /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC |
-        Py_TPFLAGS_HAVE_FINALIZE,               /* tp_flags */
-    0,                                          /* tp_doc */
-    (traverseproc)Nuitka_Coroutine_tp_traverse, /* tp_traverse */
-    0,                                          /* tp_clear */
-    0,                                          /* tp_richcompare */
+        Py_TPFLAGS_HAVE_FINALIZE,                    /* tp_flags */
+    0,                                               /* tp_doc */
+    (traverseproc)Nuitka_Coroutine_tp_traverse,      /* tp_traverse */
+    0,                                               /* tp_clear */
+    0,                                               /* tp_richcompare */
     offsetof( Nuitka_CoroutineObject, m_weakrefs ),  /* tp_weaklistoffset */
-    0,                                          /* tp_iter */
-    0,                                          /* tp_iternext */
-    Nuitka_Coroutine_methods,                   /* tp_methods */
-    Nuitka_Coroutine_members,                   /* tp_members */
-    Nuitka_Coroutine_getsetlist,                /* tp_getset */
-    0,                                          /* tp_base */
-    0,                                          /* tp_dict */
-    0,                                          /* tp_descr_get */
-    0,                                          /* tp_descr_set */
-    0,                                          /* tp_dictoffset */
-    0,                                          /* tp_init */
-    0,                                          /* tp_alloc */
-    0,                                          /* tp_new */
-    0,                                          /* tp_free */
-    0,                                          /* tp_is_gc */
-    0,                                          /* tp_bases */
-    0,                                          /* tp_mro */
-    0,                                          /* tp_cache */
-    0,                                          /* tp_subclasses */
-    0,                                          /* tp_weaklist */
-    (destructor)Nuitka_Coroutine_tp_del,        /* tp_del */
-    0,                                          /* tp_version_tag */
+    0,                                               /* tp_iter */
+    0,                                               /* tp_iternext */
+    Nuitka_Coroutine_methods,                        /* tp_methods */
+    Nuitka_Coroutine_members,                        /* tp_members */
+    Nuitka_Coroutine_getsetlist,                     /* tp_getset */
+    0,                                               /* tp_base */
+    0,                                               /* tp_dict */
+    0,                                               /* tp_descr_get */
+    0,                                               /* tp_descr_set */
+    0,                                               /* tp_dictoffset */
+    0,                                               /* tp_init */
+    0,                                               /* tp_alloc */
+    0,                                               /* tp_new */
+    0,                                               /* tp_free */
+    0,                                               /* tp_is_gc */
+    0,                                               /* tp_bases */
+    0,                                               /* tp_mro */
+    0,                                               /* tp_cache */
+    0,                                               /* tp_subclasses */
+    0,                                               /* tp_weaklist */
+    (destructor)Nuitka_Coroutine_tp_del,             /* tp_del */
+    0,                                               /* tp_version_tag */
     /* TODO: Check out the merits of tp_finalize vs. tp_del */
-    0,                                          /* tp_finalize */
+    0,                                               /* tp_finalize */
 };
 
 static void Nuitka_CoroutineWrapper_tp_dealloc( Nuitka_CoroutineWrapperObject *cw )
@@ -663,74 +668,359 @@ static PyMethodDef Nuitka_CoroutineWrapper_methods[] =
 PyTypeObject Nuitka_CoroutineWrapper_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     "compiled_coroutine_wrapper",
-    sizeof(Nuitka_CoroutineWrapperObject),      /* tp_basicsize */
-    0,                                          /* tp_itemsize */
-    (destructor)Nuitka_CoroutineWrapper_tp_dealloc,           /* tp_dealloc */
-    0,                                          /* tp_print */
-    0,                                          /* tp_getattr */
-    0,                                          /* tp_setattr */
-    0,                                          /* tp_as_async */
-    0,                                          /* tp_repr */
-    0,                                          /* tp_as_number */
-    0,                                          /* tp_as_sequence */
-    0,                                          /* tp_as_mapping */
-    0,                                          /* tp_hash */
-    0,                                          /* tp_call */
-    0,                                          /* tp_str */
-    PyObject_GenericGetAttr,                    /* tp_getattro */
-    0,                                          /* tp_setattro */
-    0,                                          /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,    /* tp_flags */
-    0,                                          /* tp_doc */
-    (traverseproc)Nuitka_CoroutineWrapper_tp_traverse,        /* tp_traverse */
-    0,                                          /* tp_clear */
-    0,                                          /* tp_richcompare */
-    0,                                          /* tp_weaklistoffset */
-    PyObject_SelfIter,                          /* tp_iter */
-    (iternextfunc)Nuitka_CoroutineWrapper_tp_iternext,        /* tp_iternext */
-    Nuitka_CoroutineWrapper_methods,                       /* tp_methods */
-    0,                                          /* tp_members */
-    0,                                          /* tp_getset */
-    0,                                          /* tp_base */
-    0,                                          /* tp_dict */
-    0,                                          /* tp_descr_get */
-    0,                                          /* tp_descr_set */
-    0,                                          /* tp_dictoffset */
-    0,                                          /* tp_init */
-    0,                                          /* tp_alloc */
-    0,                                          /* tp_new */
-    PyObject_Del,                               /* tp_free */
+    sizeof(Nuitka_CoroutineWrapperObject),             /* tp_basicsize */
+    0,                                                 /* tp_itemsize */
+    (destructor)Nuitka_CoroutineWrapper_tp_dealloc,    /* tp_dealloc */
+    0,                                                 /* tp_print */
+    0,                                                 /* tp_getattr */
+    0,                                                 /* tp_setattr */
+    0,                                                 /* tp_as_async */
+    0,                                                 /* tp_repr */
+    0,                                                 /* tp_as_number */
+    0,                                                 /* tp_as_sequence */
+    0,                                                 /* tp_as_mapping */
+    0,                                                 /* tp_hash */
+    0,                                                 /* tp_call */
+    0,                                                 /* tp_str */
+    PyObject_GenericGetAttr,                           /* tp_getattro */
+    0,                                                 /* tp_setattro */
+    0,                                                 /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,           /* tp_flags */
+    0,                                                 /* tp_doc */
+    (traverseproc)Nuitka_CoroutineWrapper_tp_traverse, /* tp_traverse */
+    0,                                                 /* tp_clear */
+    0,                                                 /* tp_richcompare */
+    0,                                                 /* tp_weaklistoffset */
+    PyObject_SelfIter,                                 /* tp_iter */
+    (iternextfunc)Nuitka_CoroutineWrapper_tp_iternext, /* tp_iternext */
+    Nuitka_CoroutineWrapper_methods,                   /* tp_methods */
+    0,                                                 /* tp_members */
+    0,                                                 /* tp_getset */
+    0,                                                 /* tp_base */
+    0,                                                 /* tp_dict */
+    0,                                                 /* tp_descr_get */
+    0,                                                 /* tp_descr_set */
+    0,                                                 /* tp_dictoffset */
+    0,                                                 /* tp_init */
+    0,                                                 /* tp_alloc */
+    0,                                                 /* tp_new */
+    PyObject_Del,                                      /* tp_free */
 };
+
+PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )
+{
+    Nuitka_CoroutineObject *result = PyObject_GC_New( Nuitka_CoroutineObject, &Nuitka_Coroutine_Type );
+    assert( result != NULL );
+
+    result->m_code = (void *)code;
+
+    CHECK_OBJECT( name );
+    result->m_name = name;
+    Py_INCREF( name );
+
+    CHECK_OBJECT( qualname );
+
+    result->m_qualname = qualname;
+    Py_INCREF( qualname );
+
+    // TODO: Makes no sense with coroutines maybe?
+    result->m_yieldfrom = NULL;
+
+    // We take ownership of those and received the reference count from the
+    // caller.
+    result->m_closure = closure;
+    result->m_closure_given = closure_given;
+
+    result->m_weakrefs = NULL;
+
+    result->m_status = status_Unused;
+    result->m_running = false;
+
+    result->m_exception_type = NULL;
+    result->m_exception_value = NULL;
+    result->m_exception_tb = NULL;
+
+    result->m_yielded = NULL;
+
+    result->m_frame = NULL;
+    result->m_code_object = code_object;
+
+    initFiber( &result->m_yielder_context );
+
+    Nuitka_GC_Track( result );
+    return (PyObject *)result;
+}
 
 extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
 extern PyObject *const_str_plain_send;
 
-PyObject *AWAIT_COROUTINE( PyObject *awaitable )
+static int gen_is_coroutine(PyObject *o)
 {
-    PyObject *coroutine = _PyCoro_GetAwaitableIter( awaitable );
+    if ( PyGen_CheckExact(o) )
+    {
+        PyCodeObject *code = (PyCodeObject *)((PyGenObject*)o)->gi_code;
 
-    if (unlikely( coroutine == NULL ))
+        if ( code->co_flags & CO_ITERABLE_COROUTINE )
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+static PyObject *PyCoro_GetAwaitableIter( PyObject *o )
+{
+    unaryfunc getter = NULL;
+    PyTypeObject *ot;
+
+    if ( PyCoro_CheckExact(o) || gen_is_coroutine(o) )
+    {
+        Py_INCREF( o );
+        return o;
+    }
+
+    ot = Py_TYPE( o );
+    if ( ot->tp_as_async != NULL )
+    {
+        getter = ot->tp_as_async->am_await;
+    }
+
+    if ( getter != NULL )
+    {
+        PyObject *res = (*getter)( o );
+        if ( res != NULL )
+        {
+            if (PyCoro_CheckExact( res ) || gen_is_coroutine( res ) || Nuitka_Coroutine_Check( res ))
+            {
+                PyErr_Format(
+                    PyExc_TypeError,
+                    "__await__() returned a coroutine"
+                );
+
+                Py_DECREF( res );
+                return NULL;
+            }
+            else if (!PyIter_Check(res))
+            {
+                PyErr_Format(
+                    PyExc_TypeError,
+                     "__await__() returned non-iterator of type '%s'",
+                     Py_TYPE(res)->tp_name
+                );
+
+                Py_DECREF( res );
+                return NULL;
+            }
+        }
+
+        return res;
+    }
+
+    PyErr_Format(
+        PyExc_TypeError,
+        "object %s can't be used in 'await' expression",
+        ot->tp_name
+    );
+
+    return NULL;
+}
+
+static void RAISE_GENERATOR_EXCEPTION( Nuitka_CoroutineObject *generator )
+{
+    CHECK_OBJECT( generator->m_exception_type );
+
+    RESTORE_ERROR_OCCURRED(
+        generator->m_exception_type,
+        generator->m_exception_value,
+        generator->m_exception_tb
+    );
+
+    generator->m_exception_type = NULL;
+    generator->m_exception_value = NULL;
+    generator->m_exception_tb = NULL;
+}
+
+extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
+
+extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
+
+static PyObject *yieldFromCoroutine( Nuitka_CoroutineObject *generator, PyObject *value )
+{
+    // This is the value, propagated back and forth the sub-generator and the
+    // yield from consumer.
+    PyObject *send_value = Py_None;
+
+    while( 1 )
+    {
+        // Send iteration value to the sub-generator, which may be a CPython
+        // generator object, something with an iterator next, or a send method,
+        // where the later is only required if values other than "None" need to
+        // be passed in.
+        PyObject *retval;
+
+        // Exception, was thrown into us, need to send that to sub-generator.
+        if ( generator->m_exception_type )
+        {
+            // The yielding generator is being closed, but we also are tasked to
+            // immediately close the currently running sub-generator.
+            if ( EXCEPTION_MATCH_BOOL_SINGLE( generator->m_exception_type, PyExc_GeneratorExit ) )
+            {
+                PyObject *close_method = PyObject_GetAttr( value, const_str_plain_close );
+
+                if ( close_method )
+                {
+                    PyObject *close_value = PyObject_Call( close_method, const_tuple_empty, NULL );
+                    Py_DECREF( close_method );
+
+                    if (unlikely( close_value == NULL ))
+                    {
+                        return NULL;
+                    }
+
+                    Py_DECREF( close_value );
+                }
+                else
+                {
+                    PyObject *error = GET_ERROR_OCCURRED();
+
+                    if ( error != NULL && !EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_AttributeError ) )
+                    {
+                        PyErr_WriteUnraisable( (PyObject *)value );
+                    }
+                }
+
+                RAISE_GENERATOR_EXCEPTION( generator );
+
+                return NULL;
+            }
+
+            PyObject *throw_method = PyObject_GetAttr( value, const_str_plain_throw );
+
+            if ( throw_method )
+            {
+                retval = PyObject_CallFunctionObjArgs( throw_method, generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb, NULL );
+                Py_DECREF( throw_method );
+
+                if (unlikely( send_value == NULL ))
+                {
+                    if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) )
+                    {
+                        return ERROR_GET_STOP_ITERATION_VALUE();
+                    }
+
+                    return NULL;
+                }
+
+                generator->m_exception_type = NULL;
+                generator->m_exception_value = NULL;
+                generator->m_exception_tb = NULL;
+            }
+            else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
+            {
+                CLEAR_ERROR_OCCURRED();
+
+                RAISE_GENERATOR_EXCEPTION( generator );
+
+                return NULL;
+            }
+            else
+            {
+                assert( ERROR_OCCURRED() );
+
+                Py_CLEAR( generator->m_exception_type );
+                Py_CLEAR( generator->m_exception_value );
+                Py_CLEAR( generator->m_exception_tb );
+
+                return NULL;
+            }
+
+        }
+        else if ( PyGen_CheckExact( value ) || PyCoro_CheckExact( value ) )
+        {
+            retval = PyGen_Send( (PyGenObject *)value, Py_None );
+        }
+        else if ( send_value == Py_None && Py_TYPE( value )->tp_iternext != NULL )
+        {
+            retval = Py_TYPE( value )->tp_iternext( value );
+        }
+        else
+        {
+            // Bug compatibility here, before 3.3 tuples were unrolled in calls, which is what
+            // PyObject_CallMethod does.
+#if PYTHON_VERSION >= 340
+            retval = PyObject_CallMethodObjArgs( value, const_str_plain_send, send_value, NULL );
+#else
+            retval = PyObject_CallMethod( value, (char *)"send", (char *)"O", send_value );
+#endif
+        }
+
+        // Check the sub-generator result
+        if ( retval == NULL )
+        {
+            PyObject *error = GET_ERROR_OCCURRED();
+            if ( error == NULL )
+            {
+                return INCREASE_REFCOUNT( Py_None ) ;
+            }
+
+            // The sub-generator has given an exception. In case of
+            // StopIteration, we need to check the value, as it is going to be
+            // the expression value of this "yield from", and we are done. All
+            // other errors, we need to raise.
+            if (likely( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) ))
+            {
+                return ERROR_GET_STOP_ITERATION_VALUE();
+            }
+
+            return NULL;
+        }
+        else
+        {
+            generator->m_yielded = retval;
+
+#if PYTHON_VERSION >= 350
+            generator->m_yieldfrom = value;
+#endif
+            // Return to the calling context.
+            swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+
+#if PYTHON_VERSION >= 350
+            generator->m_yieldfrom = NULL;
+#endif
+
+            send_value = generator->m_yielded;
+
+            CHECK_OBJECT( send_value );
+        }
+    }
+}
+
+
+PyObject *AWAIT_COROUTINE( Nuitka_CoroutineObject *coroutine, PyObject *awaitable )
+{
+#if _DEBUG_COROUTINE
+    puts("AWAIT entry:");
+
+    PRINT_ITEM( awaitable );
+    PRINT_NEW_LINE();
+#endif
+
+    PyObject *awaitable_iter = PyCoro_GetAwaitableIter( awaitable );
+
+    if (unlikely( awaitable_iter == NULL ))
     {
         return NULL;
     }
 
-    PyObject *retval;
+    PyObject *retval = yieldFromCoroutine( coroutine, awaitable_iter );
 
-    if ( PyGen_CheckExact( coroutine ) || PyCoro_CheckExact( coroutine ) )
-    {
-        retval = PyGen_Send( (PyGenObject *)coroutine, Py_None );
-    }
-    else if ( Py_TYPE( coroutine )->tp_iternext != NULL )
-    {
-        // TODO: That's probably not allowed anyway.
-        retval = Py_TYPE( coroutine )->tp_iternext( coroutine );
-    }
-    else
-    {
-        retval = PyObject_CallMethodObjArgs( coroutine, const_str_plain_send, Py_None, NULL );
-    }
+    Py_DECREF( awaitable_iter );
 
-    Py_DECREF( coroutine );
+#if _DEBUG_COROUTINE
+puts("AWAIT exit");
+PRINT_ITEM( retval );
+PRINT_NEW_LINE();
+#endif
 
     return retval;
 }

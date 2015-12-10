@@ -97,11 +97,11 @@ class ExpressionGeneratorObjectBody(ExpressionFunctionBodyBase,
     def __init__(self, provider, name, source_ref):
         ExpressionFunctionBodyBase.__init__(
             self,
-            provider     = provider,
-            name         = name,
-            is_class     = False,
-            code_prefix  = "genexpr" if name == "<genexpr>" else "genobj",
-            source_ref   = source_ref
+            provider    = provider,
+            name        = name,
+            is_class    = False,
+            code_prefix = "genexpr" if name == "<genexpr>" else "genobj",
+            source_ref  = source_ref
         )
 
         MarkLocalsDictIndicator.__init__(self)

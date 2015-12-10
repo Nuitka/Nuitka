@@ -294,11 +294,11 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
 
         ExpressionFunctionBodyBase.__init__(
             self,
-            provider     = provider,
-            name         = name,
-            code_prefix  = code_prefix,
-            is_class     = is_class,
-            source_ref   = source_ref
+            provider    = provider,
+            name        = name,
+            code_prefix = code_prefix,
+            is_class    = is_class,
+            source_ref  = source_ref
         )
 
         MarkLocalsDictIndicator.__init__(self)

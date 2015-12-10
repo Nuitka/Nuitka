@@ -25,8 +25,7 @@
 // Compiled generator function type.
 
 // Another cornerstone of the integration into CPython. Try to behave as well as
-// normal generator function objects do or even better.
-
+// normal generator objects do or even better.
 
 #include "fibers.hpp"
 
@@ -77,12 +76,12 @@ typedef struct {
 
 extern PyTypeObject Nuitka_Generator_Type;
 
-typedef void (*yielder_func)( Nuitka_GeneratorObject * );
+typedef void (*generator_code)( Nuitka_GeneratorObject * );
 
 #if PYTHON_VERSION < 350
-extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
 #else
-extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
 #endif
 
 static inline bool Nuitka_Generator_Check( PyObject *object )

@@ -46,6 +46,11 @@ from .templates.CodeTemplatesGeneratorFunction import (
 from .VariableCodes import getLocalVariableInitCode, getVariableCode
 
 
+def getGeneratorObjectDeclCode(function_identifier):
+    return template_genfunc_yielder_decl_template % {
+        "function_identifier" : function_identifier,
+    }
+
 def getGeneratorObjectCode(context, function_identifier, user_variables,
                            temp_variables, function_codes, needs_exception_exit,
                            needs_generator_return):
@@ -154,17 +159,22 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
             # Generators might not use them, but they still need to be put there.
             # TODO: But they don't have to be cells.
             if not variable.isSharedTechnically():
-                variable_code = "PyCell_NEW0( %s )" % variable_code
-
-            closure_copy.append(
-                "closure[%d] = %s;" % (
-                    count,
-                    variable_code
+                closure_copy.append(
+                    "closure[%d] = PyCell_NEW0( %s );" % (
+                        count,
+                        variable_code
+                    )
                 )
-            )
-            closure_copy.append(
-                "Py_INCREF( closure[%d] );" % count
-            )
+            else:
+                closure_copy.append(
+                    "closure[%d] = %s;" % (
+                        count,
+                        variable_code
+                    )
+                )
+                closure_copy.append(
+                    "Py_INCREF( closure[%d] );" % count
+                )
 
         closure_making = template_function_closure_making % {
             "closure_copy"  : indented(closure_copy),
@@ -205,8 +215,3 @@ def generateGeneratorEntryCode(statement, emit, context):
             "set_error_line_number" : getErrorLineNumberUpdateCode(context)
         }
     )
-
-def getGeneratorObjectDeclCode(function_identifier):
-    return template_genfunc_yielder_decl_template % {
-        "function_identifier" : function_identifier,
-    }

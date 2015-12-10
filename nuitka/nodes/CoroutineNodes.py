@@ -30,10 +30,7 @@ from .IndicatorMixins import (
     MarkLocalsDictIndicator,
     MarkUnoptimizedFunctionIndicator
 )
-from .NodeBases import (
-    ChildrenHavingMixin,
-    ExpressionChildrenHavingBase,
-)
+from .NodeBases import ChildrenHavingMixin, ExpressionChildrenHavingBase
 
 
 class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):

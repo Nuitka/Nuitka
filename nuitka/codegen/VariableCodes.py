@@ -131,10 +131,14 @@ def _getLocalVariableCode(context, variable):
 
         return result, variable.isSharedTechnically()
     elif context.isForDirectCall():
-        if user.isExpressionGeneratorObjectBody() or user.isExpressionCoroutineObjectBody():
+        if user.isExpressionGeneratorObjectBody():
             closure_index = user.getClosureVariables().index(variable)
 
             return "generator->m_closure[%d]" % closure_index, True
+        elif user.isExpressionCoroutineObjectBody():
+            closure_index = user.getClosureVariables().index(variable)
+
+            return "coroutine->m_closure[%d]" % closure_index, True
         else:
             result = getVariableCodeName(
                 in_context = True,
@@ -145,8 +149,10 @@ def _getLocalVariableCode(context, variable):
     else:
         closure_index = user.getClosureVariables().index(variable)
 
-        if user.isExpressionGeneratorObjectBody()  or user.isExpressionCoroutineObjectBody():
+        if user.isExpressionGeneratorObjectBody():
             return "generator->m_closure[%d]" % closure_index, True
+        elif user.isExpressionCoroutineObjectBody():
+            return "coroutine->m_closure[%d]" % closure_index, True
         else:
             return "self->m_closure[%d]" % closure_index, True
 

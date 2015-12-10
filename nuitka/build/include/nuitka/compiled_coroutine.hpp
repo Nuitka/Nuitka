@@ -19,12 +19,12 @@
 #ifndef __NUITKA_COMPILED_COROUTINE_H__
 #define __NUITKA_COMPILED_COROUTINE_H__
 
-#include "nuitka/compiled_generator.hpp"
+// Compiled coroutine type.
+
+// Another cornerstone of the integration into CPython. Try to behave as well as
+// normal coroutine objects do or even better.
 
 #if PYTHON_VERSION >= 350
-
-extern PyObject *Nuitka_Coroutine_New( yielder_func code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
-
 
 // The Nuitka_GeneratorObject is the storage associated with a compiled
 // generator object instance of which there can be many for each code.
@@ -64,6 +64,15 @@ typedef struct {
 
 extern PyTypeObject Nuitka_Coroutine_Type;
 
+typedef void (*coroutine_code)( Nuitka_CoroutineObject * );
+
+extern PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
+
+static inline bool Nuitka_Coroutine_Check( PyObject *object )
+{
+    return Py_TYPE( object ) == &Nuitka_Coroutine_Type;
+}
+
 typedef struct {
     PyObject_HEAD
     Nuitka_CoroutineObject *m_coroutine;
@@ -71,7 +80,7 @@ typedef struct {
 
 extern PyTypeObject Nuitka_CoroutineWrapper_Type;
 
-PyObject *AWAIT_COROUTINE( PyObject *awaitable );
+PyObject *AWAIT_COROUTINE( Nuitka_CoroutineObject *coroutine, PyObject *awaitable );
 
 #endif
 

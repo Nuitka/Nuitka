@@ -47,7 +47,7 @@ static long Nuitka_Generator_tp_traverse( Nuitka_GeneratorObject *generator, vis
     return 0;
 }
 
-static void Nuitka_Generator_release_parameters( Nuitka_GeneratorObject *generator )
+static void Nuitka_Generator_release_closure( Nuitka_GeneratorObject *generator )
 {
     if ( generator->m_closure )
     {
@@ -81,7 +81,7 @@ static void Nuitka_Generator_entry_point( int generator_address_1, int generator
 static void Nuitka_Generator_entry_point( Nuitka_GeneratorObject *generator )
 {
 #endif
-    ((yielder_func)generator->m_code)( generator );
+    ((generator_code)generator->m_code)( generator );
 
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 }
@@ -182,7 +182,7 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
             Py_XDECREF( generator->m_frame );
             generator->m_frame = NULL;
 
-            Nuitka_Generator_release_parameters( generator );
+            Nuitka_Generator_release_closure( generator );
 
             assert( ERROR_OCCURRED() );
 
@@ -450,7 +450,7 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
         Py_DECREF( close_result );
     }
 
-    Nuitka_Generator_release_parameters( generator );
+    Nuitka_Generator_release_closure( generator );
 
     Py_XDECREF( generator->m_frame );
 
@@ -673,9 +673,9 @@ PyTypeObject Nuitka_Generator_Type =
 };
 
 #if PYTHON_VERSION < 350
-PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )
 #else
-PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )
 #endif
 {
     Nuitka_GeneratorObject *result = PyObject_GC_New( Nuitka_GeneratorObject, &Nuitka_Generator_Type );
@@ -1081,6 +1081,7 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
                 }
 
                 RAISE_GENERATOR_EXCEPTION( generator );
+
                 return NULL;
             }
 
