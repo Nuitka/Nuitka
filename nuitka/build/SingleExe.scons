@@ -836,20 +836,25 @@ if win_from_source_mode:
 
 
 def getWindowsPythonDLLPath():
+    dll_filename = "python%s%s.dll" % (
+        python_version.replace('.', ""),
+        "_d" if python_debug else ""
+    )
+
     if uninstalled_python:
         return os.path.join(
             python_prefix,
-            "python" + python_version.replace('.', "") + ".dll"
+            dll_filename
         )
     elif target_arch == "x86_64":
         return "%s\SysWOW64\python%s.dll" % (
             os.environ["WINDIR"],
-            python_version.replace('.', "")
+            dll_filename
         )
     else:
         return "%s\python%s.dll" % (
             os.environ["WINDIR"],
-            python_version.replace('.', "")
+            dll_filename
         )
 
 if win_target:
