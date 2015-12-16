@@ -1375,6 +1375,17 @@ class ExpressionMixin:
 
         return iter_node, None, None
 
+    def computeExpressionAsyncIter(self, iter_node, constraint_collection):
+        self.onContentEscapes(constraint_collection)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return iter_node, None, None
+
     def computeExpressionOperationNot(self, not_node, constraint_collection):
         # Virtual method, pylint: disable=R0201
 

@@ -58,7 +58,9 @@ from .ComparisonCodes import getComparisonExpressionCode
 from .ConditionalCodes import generateConditionCode, getConditionCheckTrueCode
 from .ConstantCodes import generateConstantReferenceCode, getConstantCode
 from .CoroutineCodes import (
-    generateAwaitCode,
+    generateAsyncIterCode,
+    generateAsyncNextCode,
+    generateAsyncWaitCode,
     generateMakeCoroutineObjectCode,
     getCoroutineObjectCode
 )
@@ -120,8 +122,8 @@ from .IndexCodes import (
     getMinIndexCode
 )
 from .IteratorCodes import (
+    generateBuiltinNext1Code,
     getBuiltinLoopBreakNextCode,
-    getBuiltinNext1Code,
     getUnpackCheckCode,
     getUnpackNextCode
 )
@@ -608,20 +610,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             outline_body = expression,
             emit         = emit,
             context      = context
-        )
-    elif expression.isExpressionBuiltinNext1():
-        value_name = context.allocateTempName("next1_arg")
-
-        makeExpressionCode(
-            to_name    = value_name,
-            expression = expression.getValue()
-        )
-
-        getBuiltinNext1Code(
-            to_name = to_name,
-            value   = value_name,
-            emit    = emit,
-            context = context
         )
     elif expression.isExpressionBuiltinNext2():
         generateCAPIObjectCode(
@@ -3105,6 +3093,7 @@ Helpers.setExpressionDispatchDict(
         "BUILTIN_SLICE"             : generateBuiltinSliceCode,
         "BUILTIN_HASH"              : generateBuiltinHashCode,
         "BUILTIN_ID"                : generateBuiltinIdCode,
+        "BUILTIN_NEXT1"             : generateBuiltinNext1Code,
         "CALL_EMPTY"                : generateCallCode,
         "CALL_KEYWORDS_ONLY"        : generateCallCode,
         "CALL_NO_KEYWORDS"          : generateCallCode,
@@ -3129,6 +3118,8 @@ Helpers.setExpressionDispatchDict(
         "VARIABLE_REF"              : generateVariableReferenceCode,
         "YIELD"                     : generateYieldCode,
         "YIELD_FROM"                : generateYieldFromCode,
-        "AWAIT"                     : generateAwaitCode,
+        "ASYNC_WAIT"                : generateAsyncWaitCode,
+        "ASYNC_ITER"                : generateAsyncIterCode,
+        "ASYNC_NEXT"                : generateAsyncNextCode,
     }
 )

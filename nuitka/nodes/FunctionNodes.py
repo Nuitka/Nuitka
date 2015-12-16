@@ -259,6 +259,14 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         # Function body is quite irreplaceable.
         return self, None, None
 
+    def mayRaiseException(self, exception_type):
+        body = self.getBody()
+
+        if body is None:
+            return False
+        else:
+            return self.getBody().mayRaiseException(exception_type)
+
 
 class ExpressionFunctionBody(ExpressionFunctionBodyBase,
                              MarkLocalsDictIndicator,

@@ -29,6 +29,8 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
+    ExpressionAsyncIter,
+    ExpressionAsyncNext,
     ExpressionBuiltinIter1,
     ExpressionBuiltinNext1
 )
@@ -53,11 +55,13 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
-def buildForLoopNode(provider, node, source_ref):
+def _buildForLoopNode(provider, node, sync, source_ref):
     # The for loop is re-formulated according to developer manual. An iterator
     # is created, and looped until it gives StopIteration. The else block is
     # taken if a for loop exits normally, i.e. because of iterator
     # exhaustion. We do this by introducing an indicator variable.
+
+    # We handle async and sync both here, leading to cases, pylint: disable=R0914
 
     source = buildNode(provider, node.iter, source_ref)
 
@@ -113,6 +117,23 @@ def buildForLoopNode(provider, node, source_ref):
         source_ref = source_ref
     )
 
+    if sync:
+        next_node = ExpressionBuiltinNext1(
+            value      = ExpressionTempVariableRef(
+                variable   = tmp_iter_variable,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
+    else:
+        next_node = ExpressionAsyncNext(
+            value      = ExpressionTempVariableRef(
+                variable   = tmp_iter_variable,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
+
     statements = (
         makeTryExceptSingleHandlerNode(
             tried          = StatementAssignmentVariable(
@@ -120,16 +141,10 @@ def buildForLoopNode(provider, node, source_ref):
                     variable   = tmp_value_variable,
                     source_ref = source_ref
                 ),
-                source       = ExpressionBuiltinNext1(
-                    value      = ExpressionTempVariableRef(
-                        variable   = tmp_iter_variable,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
+                source       = next_node,
                 source_ref   = source_ref
             ),
-            exception_name = "StopIteration",
+            exception_name = "StopIteration" if sync else "StopAsyncIteration",
             handler_body   = handler_body,
             source_ref     = source_ref
         ),
@@ -188,6 +203,17 @@ def buildForLoopNode(provider, node, source_ref):
     else:
         statements = []
 
+    if sync:
+        iter_source = ExpressionBuiltinIter1(
+            value      = source,
+            source_ref = source.getSourceReference()
+        )
+    else:
+        iter_source = ExpressionAsyncIter(
+            value      = source,
+            source_ref = source.getSourceReference()
+        )
+
     statements += [
         # First create the iterator and store it.
         StatementAssignmentVariable(
@@ -195,10 +221,7 @@ def buildForLoopNode(provider, node, source_ref):
                 variable   = tmp_iter_variable,
                 source_ref = source_ref
             ),
-            source       = ExpressionBuiltinIter1(
-                value      = source,
-                source_ref = source.getSourceReference()
-            ),
+            source       = iter_source,
             source_ref   = source_ref
         ),
         makeTryFinallyStatement(
@@ -250,6 +273,14 @@ def buildForLoopNode(provider, node, source_ref):
     return makeStatementsSequenceFromStatements(
         *statements
     )
+
+
+def buildForLoopNode(provider, node, source_ref):
+    return _buildForLoopNode(provider, node, True, source_ref)
+
+
+def buildAsyncForLoopNode(provider, node, source_ref):
+    return _buildForLoopNode(provider, node, False, source_ref)
 
 
 def buildWhileLoopNode(provider, node, source_ref):

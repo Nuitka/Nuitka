@@ -127,11 +127,38 @@ static void Nuitka_Coroutine_release_closure( Nuitka_CoroutineObject *coroutine 
     }
 }
 
+
+// For the coroutine object fiber entry point, we may need to follow what
+// "makecontext" will support and that is only a list of integers, but we will need
+// to push a pointer through it, and so it's two of them, which might be fully
+// sufficient.
+
+#ifdef _NUITKA_MAKECONTEXT_INTS
+static void Nuitka_Coroutine_entry_point( int address_1, int address_2 )
+{
+    // Restore the pointer from integers should it be necessary, depending on
+    // the platform. This requires pointers to be no larger that to "int" value.
+    int addresses[2] = {
+        address_1,
+        address_2
+    };
+
+    Nuitka_CoroutineObject *coroutine = (Nuitka_CoroutineObject *)*(uintptr_t *)&addresses[0];
+#else
+static void Nuitka_Coroutine_entry_point( Nuitka_CoroutineObject *coroutine )
+{
+#endif
+    ((coroutine_code)coroutine->m_code)( coroutine );
+
+    swapFiber( &coroutine->m_yielder_context, &coroutine->m_caller_context );
+}
+
+
 static PyObject *Nuitka_Coroutine_send( Nuitka_CoroutineObject *coroutine, PyObject *value )
 {
     if ( coroutine->m_status == status_Unused && value != NULL && value != Py_None )
     {
-        PyErr_Format( PyExc_TypeError, "can't send non-None value to a just-started generator" );
+        PyErr_Format( PyExc_TypeError, "can't send non-None value to a just-started coroutine" );
         return NULL;
     }
 
@@ -150,14 +177,14 @@ static PyObject *Nuitka_Coroutine_send( Nuitka_CoroutineObject *coroutine, PyObj
 
         if ( coroutine->m_running )
         {
-            PyErr_Format( PyExc_ValueError, "generator already executing" );
+            PyErr_Format( PyExc_ValueError, "coroutine already executing" );
             return NULL;
         }
 
         if ( coroutine->m_status == status_Unused )
         {
             // Prepare the generator context to run.
-            int res = prepareFiber( &coroutine->m_yielder_context, coroutine->m_code, (uintptr_t)coroutine );
+            int res = prepareFiber( &coroutine->m_yielder_context, (void *)Nuitka_Coroutine_entry_point, (uintptr_t)coroutine );
 
             if ( res != 0 )
             {
@@ -500,7 +527,6 @@ static PyObject *Nuitka_Coroutine_tp_repr( Nuitka_CoroutineObject *coroutine )
     );
 }
 
-
 static long Nuitka_Coroutine_tp_traverse( PyObject *coroutine, visitproc visit, void *arg )
 {
     // TODO: Identify the impact of not visiting owned objects and/or if it
@@ -510,7 +536,6 @@ static long Nuitka_Coroutine_tp_traverse( PyObject *coroutine, visitproc visit, 
     // works might be needed.
     return 0;
 }
-
 static PyObject *Nuitka_Coroutine_await( Nuitka_CoroutineObject *coroutine )
 {
 #if _DEBUG_COROUTINE
@@ -768,29 +793,28 @@ static int gen_is_coroutine(PyObject *o)
 
     return 0;
 }
-static PyObject *PyCoro_GetAwaitableIter( PyObject *o )
+
+static PyObject *PyCoro_GetAwaitableIter( PyObject *value )
 {
     unaryfunc getter = NULL;
-    PyTypeObject *ot;
 
-    if ( PyCoro_CheckExact(o) || gen_is_coroutine(o) )
+    if ( PyCoro_CheckExact( value ) || gen_is_coroutine( value ) )
     {
-        Py_INCREF( o );
-        return o;
+        Py_INCREF( value );
+        return value;
     }
 
-    ot = Py_TYPE( o );
-    if ( ot->tp_as_async != NULL )
+    if ( Py_TYPE( value )->tp_as_async != NULL )
     {
-        getter = ot->tp_as_async->am_await;
+        getter = Py_TYPE( value )->tp_as_async->am_await;
     }
 
     if ( getter != NULL )
     {
-        PyObject *res = (*getter)( o );
+        PyObject *res = (*getter)( value );
         if ( res != NULL )
         {
-            if (PyCoro_CheckExact( res ) || gen_is_coroutine( res ) || Nuitka_Coroutine_Check( res ))
+            if (unlikely( PyCoro_CheckExact( res ) || gen_is_coroutine( res ) || Nuitka_Coroutine_Check( res ) ))
             {
                 PyErr_Format(
                     PyExc_TypeError,
@@ -800,7 +824,7 @@ static PyObject *PyCoro_GetAwaitableIter( PyObject *o )
                 Py_DECREF( res );
                 return NULL;
             }
-            else if (!PyIter_Check(res))
+            else if (unlikely( !PyIter_Check( res ) ))
             {
                 PyErr_Format(
                     PyExc_TypeError,
@@ -809,6 +833,7 @@ static PyObject *PyCoro_GetAwaitableIter( PyObject *o )
                 );
 
                 Py_DECREF( res );
+
                 return NULL;
             }
         }
@@ -819,7 +844,7 @@ static PyObject *PyCoro_GetAwaitableIter( PyObject *o )
     PyErr_Format(
         PyExc_TypeError,
         "object %s can't be used in 'await' expression",
-        ot->tp_name
+        Py_TYPE( value )->tp_name
     );
 
     return NULL;
@@ -999,7 +1024,7 @@ static PyObject *yieldFromCoroutine( Nuitka_CoroutineObject *generator, PyObject
 PyObject *AWAIT_COROUTINE( Nuitka_CoroutineObject *coroutine, PyObject *awaitable )
 {
 #if _DEBUG_COROUTINE
-    puts("AWAIT entry:");
+    PRINT_STRING("AWAIT entry:");
 
     PRINT_ITEM( awaitable );
     PRINT_NEW_LINE();
@@ -1017,7 +1042,136 @@ PyObject *AWAIT_COROUTINE( Nuitka_CoroutineObject *coroutine, PyObject *awaitabl
     Py_DECREF( awaitable_iter );
 
 #if _DEBUG_COROUTINE
-puts("AWAIT exit");
+    PRINT_STRING("AWAIT exit");
+
+    PRINT_ITEM( retval );
+    PRINT_NEW_LINE();
+#endif
+
+    return retval;
+}
+
+PyObject *MAKE_ASYNC_ITERATOR( Nuitka_CoroutineObject *coroutine, PyObject *value )
+{
+#if _DEBUG_COROUTINE
+    PRINT_STRING("AITER entry:");
+
+    PRINT_ITEM( value );
+    PRINT_NEW_LINE();
+#endif
+
+    unaryfunc getter = NULL;
+
+    if ( Py_TYPE( value )->tp_as_async )
+    {
+        getter = Py_TYPE( value )->tp_as_async->am_aiter;
+    }
+
+    if (unlikely( getter == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async for' requires an object with __aiter__ method, got %s",
+            Py_TYPE( value )->tp_name
+        );
+
+        return NULL;
+    }
+
+    PyObject *iter = (*getter)( value );
+
+    if (unlikely( iter == NULL ))
+    {
+        return NULL;
+    }
+
+    PyObject *awaitable_iter = PyCoro_GetAwaitableIter( iter );
+
+    if (unlikely( awaitable_iter == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async for' received an invalid object from __aiter__: %s",
+            Py_TYPE( iter )->tp_name
+        );
+
+        Py_DECREF( iter );
+
+        return NULL;
+    }
+
+    Py_DECREF( iter );
+
+    PyObject *retval = yieldFromCoroutine( coroutine, awaitable_iter );
+
+    Py_DECREF( awaitable_iter );
+
+#if _DEBUG_COROUTINE
+    PRINT_STRING("AITER exit");
+    PRINT_ITEM( retval );
+    PRINT_NEW_LINE();
+#endif
+
+    return retval;
+}
+
+PyObject *ASYNC_ITERATOR_NEXT( Nuitka_CoroutineObject *coroutine, PyObject *value )
+{
+#if _DEBUG_COROUTINE
+    PRINT_STRING("ANEXT entry:");
+
+    PRINT_ITEM( value );
+    PRINT_NEW_LINE();
+#endif
+
+    unaryfunc getter = NULL;
+
+    if ( Py_TYPE( value )->tp_as_async )
+    {
+        getter = Py_TYPE( value )->tp_as_async->am_anext;
+    }
+
+    if (unlikely( getter == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async for' requires an iterator with __anext__ method, got %s",
+            Py_TYPE( value )->tp_name
+        );
+
+        return NULL;
+    }
+
+    PyObject *next_value = (*getter)( value );
+
+    if (unlikely( next_value == NULL ))
+    {
+        return NULL;
+    }
+
+    PyObject *awaitable_iter = PyCoro_GetAwaitableIter( next_value );
+
+    if (unlikely( awaitable_iter == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async for' received an invalid object from __anext__: %s",
+            Py_TYPE( next_value )->tp_name
+        );
+
+        Py_DECREF( next_value );
+
+        return NULL;
+    }
+
+    Py_DECREF( next_value );
+
+    PyObject *retval = yieldFromCoroutine( coroutine, awaitable_iter );
+
+    Py_DECREF( awaitable_iter );
+
+#if _DEBUG_COROUTINE
+PRINT_STRING("ANEXT exit");
 PRINT_ITEM( retval );
 PRINT_NEW_LINE();
 #endif

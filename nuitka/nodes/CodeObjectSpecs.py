@@ -66,8 +66,8 @@ class CodeObjectSpec:
 
         return result
 
-    def isGenerator(self):
-        return self.code_kind == "Generator"
+    def getKind(self):
+        return self.code_kind
 
     def updateLocalNames(self, local_names):
         """ Add detected local variables after closure has been decided.

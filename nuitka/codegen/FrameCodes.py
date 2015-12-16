@@ -45,7 +45,7 @@ from .templates.CodeTemplatesFrames import (
 def generateStatementsFrameCode(statement_sequence, emit, context):
     # This is a wrapper that provides also handling of frames, which got a
     # lot of variants and details, therefore lots of branches.
-    # pylint: disable=R0912
+    # pylint: disable=R0912,R0915
 
     context = Contexts.PythonStatementCContext(context)
 

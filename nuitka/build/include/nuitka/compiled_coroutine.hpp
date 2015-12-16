@@ -80,7 +80,10 @@ typedef struct {
 
 extern PyTypeObject Nuitka_CoroutineWrapper_Type;
 
-PyObject *AWAIT_COROUTINE( Nuitka_CoroutineObject *coroutine, PyObject *awaitable );
+extern PyObject *AWAIT_COROUTINE( Nuitka_CoroutineObject *coroutine, PyObject *awaitable );
+
+extern PyObject *MAKE_ASYNC_ITERATOR( Nuitka_CoroutineObject *coroutine, PyObject *value );
+extern PyObject *ASYNC_ITERATOR_NEXT( Nuitka_CoroutineObject *coroutine, PyObject *value );
 
 #endif
 

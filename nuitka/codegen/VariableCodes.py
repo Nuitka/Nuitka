@@ -119,7 +119,8 @@ def getVariableCodeName(in_context, variable):
 
 
 def _getLocalVariableCode(context, variable):
-    # Now must be local or temporary variable.
+    # Now must be local or temporary variable, we return in each case-
+    # pylint: disable=R0911
     user = context.getOwner()
     owner = variable.getOwner()
 

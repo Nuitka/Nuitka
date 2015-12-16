@@ -66,7 +66,7 @@ from nuitka.nodes.ConditionalNodes import (
     StatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.CoroutineNodes import ExpressionAwait
+from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
 from nuitka.nodes.ImportNodes import (
@@ -135,7 +135,11 @@ from .ReformulationImportStatements import (
     checkFutureImportsOnlyAtStart
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
-from .ReformulationLoopStatements import buildForLoopNode, buildWhileLoopNode
+from .ReformulationLoopStatements import (
+    buildAsyncForLoopNode,
+    buildForLoopNode,
+    buildWhileLoopNode
+)
 from .ReformulationNamespacePackages import (
     createNamespacePackage,
     createPathAssignment
@@ -448,7 +452,8 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
     # ourselves here. The AST parsing doesn't catch it, but we can do it here.
     parameter_provider = provider
 
-    while parameter_provider.isExpressionGeneratorObjectBody():
+    while parameter_provider.isExpressionGeneratorObjectBody() or \
+          parameter_provider.isExpressionCoroutineObjectBody():
         parameter_provider = parameter_provider.getParentVariableProvider()
 
     parameter_names = parameter_provider.getParameters().getParameterNames()
@@ -660,11 +665,13 @@ def buildConditionalExpressionNode(provider, node, source_ref):
         source_ref     = source_ref
     )
 
+
 def buildAwaitNode(provider, node, source_ref):
-    return ExpressionAwait(
+    return ExpressionAsyncWait(
         expression = buildNode(provider, node.value, source_ref),
         source_ref = source_ref
     )
+
 
 setBuildingDispatchers(
     path_args3 = {
@@ -676,6 +683,7 @@ setBuildingDispatchers(
         "If"                : buildConditionNode,
         "While"             : buildWhileLoopNode,
         "For"               : buildForLoopNode,
+        "AsyncFor"          : buildAsyncForLoopNode,
         "Compare"           : buildComparisonNode,
         "ListComp"          : buildListContractionNode,
         "DictComp"          : buildDictContractionNode,

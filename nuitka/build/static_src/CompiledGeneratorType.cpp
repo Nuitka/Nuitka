@@ -67,16 +67,16 @@ static void Nuitka_Generator_release_closure( Nuitka_GeneratorObject *generator 
 // sufficient.
 
 #ifdef _NUITKA_MAKECONTEXT_INTS
-static void Nuitka_Generator_entry_point( int generator_address_1, int generator_address_2 )
+static void Nuitka_Generator_entry_point( int address_1, int address_2 )
 {
     // Restore the pointer from integers should it be necessary, depending on
     // the platform. This requires pointers to be no larger that to "int" value.
-    int generator_addresses[2] = {
-        generator_address_1,
-        generator_address_2
+    int addresses[2] = {
+        address_1,
+        address_2
     };
 
-    Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)*(uintptr_t *)&generator_addresses[0];
+    Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)*(uintptr_t *)&addresses[0];
 #else
 static void Nuitka_Generator_entry_point( Nuitka_GeneratorObject *generator )
 {

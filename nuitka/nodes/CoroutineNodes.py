@@ -65,7 +65,7 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
 
     def getDetailsForDisplay(self):
         return {
-            "coroutine" : self.coroutine_body.getCodeName()
+            "coroutine" : self.getCoroutineRef().getFunctionBody().getCodeName()
         }
 
     def computeExpression(self, constraint_collection):
@@ -147,8 +147,8 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
     setBody = ChildrenHavingMixin.childSetter("body")
 
 
-class ExpressionAwait(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_AWAIT"
+class ExpressionAsyncWait(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_ASYNC_WAIT"
 
     named_children = ("expression",)
 

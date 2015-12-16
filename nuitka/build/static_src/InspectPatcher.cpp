@@ -67,16 +67,67 @@ static PyObject *_inspect_getgeneratorstate_replacement( PyObject *self, PyObjec
         return old_getgeneratorstate->ob_type->tp_call( old_getgeneratorstate, args, kwds );
     }
 }
+
+#if PYTHON_VERSION >= 350
+static PyObject *old_getcoroutinestate = NULL;
+
+static PyObject *_inspect_getcoroutinestate_replacement( PyObject *self, PyObject *args, PyObject *kwds )
+{
+    PyObject *object;
+
+    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:getcoroutinestate", kwlist, &object, NULL ))
+    {
+        return NULL;
+    }
+
+    if ( Nuitka_Coroutine_Check( object ) )
+    {
+        Nuitka_CoroutineObject *coroutine = (Nuitka_CoroutineObject *)object;
+
+        if ( coroutine->m_running )
+        {
+            return PyObject_GetAttrString( module_inspect, "CORO_RUNNING" );
+        }
+        else if ( coroutine->m_status == status_Finished )
+        {
+            return PyObject_GetAttrString( module_inspect, "CORO_CLOSED" );
+        }
+        else if ( coroutine->m_status == status_Unused )
+        {
+            return PyObject_GetAttrString( module_inspect, "CORO_CREATED" );
+        }
+        else
+        {
+           return PyObject_GetAttrString( module_inspect, "CORO_SUSPENDED" );
+        }
+    }
+    else
+    {
+        return old_getcoroutinestate->ob_type->tp_call( old_getcoroutinestate, args, kwds );
+    }
+}
+#endif
+
 #endif
 
 #if PYTHON_VERSION >= 300
 static PyMethodDef _method_def_inspect_getgeneratorstate_replacement =
 {
-    "isframe",
+    "getgeneratorstate",
     (PyCFunction)_inspect_getgeneratorstate_replacement,
     METH_VARARGS | METH_KEYWORDS,
     NULL
 };
+
+#if PYTHON_VERSION >= 350
+static PyMethodDef _method_def_inspect_getcoroutinestate_replacement =
+{
+    "getcoroutinestate",
+    (PyCFunction)_inspect_getcoroutinestate_replacement,
+    METH_VARARGS | METH_KEYWORDS,
+    NULL
+};
+#endif
 
 // Replace inspect functions with ones that accept compiled types too.
 static void patchInspectModule( void )
@@ -117,6 +168,21 @@ static void patchInspectModule( void )
 
         PyObject_SetAttrString( module_inspect, "getgeneratorstate", inspect_getgeneratorstate_replacement );
     }
+
+#if PYTHON_VERSION >= 350
+    // Patch "inspect.getcoroutinestate" unless it is already patched.
+    old_getcoroutinestate = PyObject_GetAttrString( module_inspect, "getcoroutinestate" );
+    CHECK_OBJECT( old_getcoroutinestate );
+
+    if ( PyFunction_Check( old_getcoroutinestate ) )
+    {
+        PyObject *inspect_getcoroutinestate_replacement = PyCFunction_New( &_method_def_inspect_getcoroutinestate_replacement, NULL );
+        CHECK_OBJECT( inspect_getcoroutinestate_replacement );
+
+        PyObject_SetAttrString( module_inspect, "getcoroutinestate", inspect_getcoroutinestate_replacement );
+    }
+#endif
+
 #endif
 
 }

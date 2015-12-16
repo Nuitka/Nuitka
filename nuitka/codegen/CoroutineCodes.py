@@ -20,12 +20,14 @@
 """
 
 from .ErrorCodes import (
+    getErrorExitCode,
     getErrorVariableDeclarations,
     getExceptionKeeperVariableNames,
-    getExceptionPreserverVariableNames
+    getExceptionPreserverVariableNames,
+    getReleaseCode
 )
+from .Helpers import generateChildExpressionsCode
 from .Indentation import indented
-from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesCoroutines import (
     template_coroutine_exception_exit,
     template_coroutine_noexception_exit,
@@ -46,6 +48,7 @@ def getCoroutineObjectDeclCode(function_identifier):
     return template_coroutine_object_decl_template % {
         "function_identifier" : function_identifier,
     }
+
 
 def getCoroutineObjectCode(context, function_identifier, user_variables,
                            temp_variables, function_codes, needs_exception_exit,
@@ -96,7 +99,9 @@ def getCoroutineObjectCode(context, function_identifier, user_variables,
     if needs_exception_exit:
         generator_exit = template_coroutine_exception_exit % {}
     else:
-        generator_exit = template_coroutine_noexception_exit % {}
+        generator_exit = template_coroutine_noexception_exit % {
+            "function_identifier" : function_identifier,
+        }
 
     if needs_generator_return:
         generator_exit += template_coroutine_return_exit % {}
@@ -172,9 +177,10 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
             }
         )
 
+    context.addCleanupTempName(to_name)
 
 
-def generateAwaitCode(to_name, expression, emit, context):
+def generateAsyncWaitCode(to_name, expression, emit, context):
     value_name, = generateChildExpressionsCode(
         expression = expression,
         emit       = emit,
@@ -204,6 +210,65 @@ def generateAwaitCode(to_name, expression, emit, context):
         check_name = to_name,
         emit       = emit,
         context    = context
+    )
+
+    context.addCleanupTempName(to_name)
+
+
+def generateAsyncIterCode(to_name, expression, emit, context):
+    value_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    emit(
+        "%s = MAKE_ASYNC_ITERATOR( coroutine, %s );" % (
+            to_name,
+            value_name
+        )
+    )
+
+    getReleaseCode(
+        release_name = value_name,
+        emit         = emit,
+        context      = context
+    )
+
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
+
+    context.addCleanupTempName(to_name)
+
+
+def generateAsyncNextCode(to_name, expression, emit, context):
+    value_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    emit(
+        "%s = ASYNC_ITERATOR_NEXT( coroutine, %s );" % (
+            to_name,
+            value_name,
+        )
+    )
+
+    getReleaseCode(
+        release_name = value_name,
+        emit         = emit,
+        context      = context
+    )
+
+    getErrorExitCode(
+        check_name      = to_name,
+        quick_exception = "StopAsyncIteration",
+        emit            = emit,
+        context         = context
     )
 
     context.addCleanupTempName(to_name)
