@@ -26,6 +26,11 @@ Bug Fixes
 - Don't drop positional arguments when called with ``--run``, also make it an
   error if they are present without that option.
 
+New Features
+------------
+
+- Added full support for Python3.5, coroutines work now too.
+
 Optimization
 ------------
 
@@ -50,12 +55,13 @@ Optimization
 Organizational
 --------------
 
-- Added support for Python3.5 except coroutines.
-
 - Updated the key for the Debian/Ubuntu repositories to remain valid for 2 more
   years.
 
 - Added support for Fedora 23.
+
+- MinGW32 is no more supported, use MinGW64 in the 32 bits variant, which has
+  less issues.
 
 Cleanups
 --------
