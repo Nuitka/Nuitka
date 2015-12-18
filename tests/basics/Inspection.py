@@ -92,6 +92,15 @@ def f():
 
 f()
 
+def g():
+    yield("Generator object locals", sys._getframe().f_locals)
+    yield("Generator object flags", sys._getframe().f_code.co_flags)
+
+for line in g():
+    print(*line)
+
+print("Generator function flags", g.__code__.co_flags)
+
 def displayDict(d):
     if "__loader__" in d:
         d = dict(d)
