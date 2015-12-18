@@ -19,7 +19,7 @@ requirements, credits, etc.
 
 Nuitka is **the** Python compiler. It is a seamless replacement or extension
 to the Python interpreter and compiles **every** construct that CPython 2.6,
-2.7, 3.2, 3.3, and 3.4 have. It then executed uncompiled code, and compiled
+2.7, 3.2, 3.3, 3.4, and 3.5 have. It then executed uncompiled code, and compiled
 code together in an extremely compatible manner.
 
 You can use all Python library modules or and all extension modules freely. It
@@ -45,11 +45,11 @@ Requirements
   * The clang compiler on MacOS X or FreeBSD, based on LLVM version 3.2
     or higher.
 
-  * The MinGW [#]_ or MinGW64 [#]_ compiler on Windows
+  * The MinGW64 [#]_ compiler on Windows
 
   * Visual Studio 2015 or higher on Windows [#]_
 
-- Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4 (yes, but read below)
+- Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4, 3.5 (yes, but read below)
 
   .. admonition:: Python3, yes but Python2 *compile time* dependency
 
@@ -97,13 +97,9 @@ Requirements
        C++ compiler you encounter. Nuitka used to have higher requirements in
        the past, but it changed.
 
-.. [#] Download MinGW from http://www.mingw.org/category/wiki/download but
-       beware that 32 bits Python must be used with it, and that it may not
-       work for very large programs. Use MinGW64 and 64 bits Python if you
-       have the choice.
-
-.. [#] Download MinGW64 from here and choose the "win32" and "seh" variant
-       for best results.
+.. [#] Download MinGW64 from here http://mingw-w64.org/ and choose 64 or 32
+       bits matching your Python. Use both MinGW64 and 64 bits Python if you
+       have the choice of which Python to use.
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
