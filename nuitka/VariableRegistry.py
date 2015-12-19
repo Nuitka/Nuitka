@@ -66,6 +66,28 @@ def isSharedLogically(variable):
     return len(variable_info.users) > 1
 
 
+def isSharedAmongScopes(variable):
+    variable_info = variable_registry[variable]
+
+    if not variable.isParameterVariable():
+        return len(variable_info.users) > 1
+
+    count = 0
+
+    for user in variable_info.users:
+        if user.isExpressionGeneratorObjectBody() or \
+           user.isExpressionCoroutineObjectBody():
+            if variable.getOwner() is user.getParentVariableProvider():
+                continue
+
+        count += 1
+
+        if count > 1:
+            return True
+
+    return False
+
+
 def isSharedTechnically(variable):
     variable_info = variable_registry[variable]
 
