@@ -102,7 +102,9 @@ blacklist = (
 def compilePath(path):
     global active
 
-    for root, _dirnames, filenames in os.walk(path):
+    for root, dirnames, filenames in os.walk(path):
+        dirnames.sort()
+
         filenames = [
             filename
             for filename in filenames
