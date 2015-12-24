@@ -89,6 +89,11 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.PythonVersions import python_version
+from nuitka.tree.ReformulationForLoopStatements import (
+    buildAsyncForLoopNode,
+    buildForLoopNode
+)
+from nuitka.tree.ReformulationWhileLoopStatements import buildWhileLoopNode
 from nuitka.utils import Utils
 from nuitka.VariableRegistry import addVariableUsage
 
@@ -135,11 +140,6 @@ from .ReformulationImportStatements import (
     checkFutureImportsOnlyAtStart
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
-from .ReformulationLoopStatements import (
-    buildAsyncForLoopNode,
-    buildForLoopNode,
-    buildWhileLoopNode
-)
 from .ReformulationNamespacePackages import (
     createNamespacePackage,
     createPathAssignment
