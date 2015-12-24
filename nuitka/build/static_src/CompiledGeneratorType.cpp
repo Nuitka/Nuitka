@@ -887,7 +887,7 @@ extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
 
 extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
 
-PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
+static PyObject *_YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
 {
     // This is the value, propagated back and forth the sub-generator and the
     // yield from consumer.
@@ -1038,10 +1038,47 @@ PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value )
     }
 }
 
+PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *target )
+{
+    PyObject *value;
+
+#if PYTHON_VERSION >= 350
+    if ( PyCoro_CheckExact( target ) || Nuitka_Coroutine_Check( target ))
+    {
+        if (unlikely( (generator->m_code_object->co_flags & CO_ITERABLE_COROUTINE) == 0 ))
+        {
+            PyErr_SetString(
+                PyExc_TypeError,
+                "cannot 'yield from' a coroutine object in a non-coroutine generator"
+            );
+            return NULL;
+        }
+
+        return _YIELD_FROM( generator, target );
+    }
+    else
+#endif
+    {
+        value = MAKE_ITERATOR( target );
+
+        if (unlikely( value == NULL ))
+        {
+            return NULL;
+        }
+
+        PyObject *result = _YIELD_FROM( generator, value );
+
+        Py_DECREF( value );
+
+        return result;
+    }
+}
+
 // Note: This is copy if YIELD_FROM with changes only at the end. As it's not
 // easy to split up, we are going to tolerate the copy.
-PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value )
+static PyObject *_YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value )
 {
+
     // This is the value, propagated back and forth the sub-generator and the
     // yield from consumer.
     PyObject *send_value = Py_None;
@@ -1214,6 +1251,42 @@ PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *va
 
             CHECK_OBJECT( send_value );
         }
+    }
+}
+
+PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *target )
+{
+    PyObject *value;
+
+#if PYTHON_VERSION >= 350
+    if ( PyCoro_CheckExact( target ) || Nuitka_Coroutine_Check( target ))
+    {
+        if (unlikely( (generator->m_code_object->co_flags & CO_ITERABLE_COROUTINE) == 0 ))
+        {
+            PyErr_SetString(
+                PyExc_TypeError,
+                "cannot 'yield from' a coroutine object in a non-coroutine generator"
+            );
+            return NULL;
+        }
+
+        return _YIELD_FROM_IN_HANDLER( generator, target );
+    }
+    else
+#endif
+    {
+        value = MAKE_ITERATOR( target );
+
+        if (unlikely( value == NULL ))
+        {
+            return NULL;
+        }
+
+        PyObject *result = _YIELD_FROM_IN_HANDLER( generator, value );
+
+        Py_DECREF( value );
+
+        return result;
     }
 }
 
