@@ -40,11 +40,8 @@ static void %(function_identifier)s( Nuitka_CoroutineObject *coroutine )
 """
 
 template_coroutine_exception_exit = """\
-    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
-    Py_INCREF( PyExc_StopIteration );
-
-    coroutine->m_yielded = NULL;
-    return;
+    // Return statement must be present.
+    NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
 
     function_exception_exit:
     assert( exception_type );
@@ -62,16 +59,8 @@ template_coroutine_noexception_exit = """\
 """
 
 template_coroutine_return_exit = """\
-    // The above won't return, but we need to make it clear to the compiler
-    // as well, or else it will complain and/or generate inferior code.
-    assert(false);
-    return;
-
-    function_return_exit:
-    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, tmp_return_value, NULL );
-
-    Py_INCREF( PyExc_StopIteration );
-    coroutine->m_yielded = NULL;
+    function_return_exit:;
+    coroutine->m_returned = tmp_return_value;
     return;
 """
 

@@ -301,7 +301,10 @@ class PythonChildContextBase(PythonContextBase):
 
 
 def _getConstantDefaultPopulation():
-    result = (
+    # Note: Can't work with set here, because we need to put in some values that
+    # cannot be hashed.
+
+    result = [
         # Basic values that the helper code uses all the times.
         (),
         {},
@@ -333,53 +336,54 @@ def _getConstantDefaultPopulation():
         # Patched module name.
         "inspect",
 
-        # Names of builtins used in helper code.
+        # Names of built-ins used in helper code.
         "compile",
         "range",
         "open",
-        "__import__",
-    )
+        "__import__"
+    ]
 
     # For Python3 modules
     if python_version >= 300:
-        result += (
-            "__cached__",
+        result.append(
+            "__cached__"
         )
 
     # For Python3 print
     if python_version >= 300:
-        result += (
+        result += [
             "print",
             "end",
-            "file",
-        )
+            "file"
+        ]
 
     if python_version >= 330:
-        result += (
+        result.append(
             # Modules have that attribute.
-            "__loader__",
+            "__loader__"
         )
 
     if python_version >= 340:
-        result += (
+        result.append(
             # YIELD_FROM uses this starting 3.4, with 3.3 other code is used.
-            "send",
+            "send"
         )
+
     if python_version >= 330:
-        result += (
+        result += [
             # YIELD_FROM uses this
             "throw",
             "close",
-        )
+        ]
 
 
     # For patching Python2 internal class type
     if python_version < 300:
-        result += (
+        result += [
             "__getattr__",
             "__setattr__",
             "__delattr__",
-        )
+        ]
 
     # For patching Python2 sys attributes for current exception
     if python_version < 300:
@@ -391,41 +395,47 @@ def _getConstantDefaultPopulation():
 
     # The xrange built-in is Python2 only.
     if python_version < 300:
-        result += (
-            "xrange",
+        result.append(
+            "xrange"
         )
 
     # Executables only
     if not Options.shallMakeModule():
-        result += (
-            "__main__",
+        result.append(
+            "__main__"
         )
 
         # The "site" module is referenced in inspect patching.
-        result += (
-            "site",
+        result.append(
+            "site"
         )
 
     # Builtin original values
     if not Options.shallMakeModule():
-        result += (
+        result += [
             "type",
             "len",
             "range",
             "repr",
             "int",
             "iter",
-        )
+        ]
 
         if python_version < 300:
-            result += (
+            result.append(
                 "long",
             )
 
     # Disabling warnings at startup
     if "no_warnings" in Options.getPythonFlags():
-        result += (
-            "ignore",
+        result.append(
+            "ignore"
+        )
+
+    if python_version >= 350:
+        # Patching the types module.
+        result.append(
+            "types"
         )
 
     return result

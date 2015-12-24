@@ -57,7 +57,22 @@ class I:
 def raisy():
     raise TypeError
 
+
 def simpleFunction1():
+    async def foo():
+        return
+
+    run_async(foo())
+
+
+def simpleFunction2():
+    async def foo():
+        return 7
+
+    run_async(foo())
+
+
+def simpleFunction3():
     aiter = I()
 
     async def foo():
@@ -71,6 +86,17 @@ def simpleFunction1():
         run_async(foo())
     except TypeError:
         pass
+
+
+def simpleFunction4():
+    async def foo():
+        raise StopIteration
+
+    try:
+        run_async(foo())
+    except RuntimeError:
+        pass
+
 
 # These need stderr to be wrapped.
 tests_stderr = ()

@@ -47,6 +47,8 @@ typedef struct {
     void *m_code;
 
     PyObject *m_yielded;
+    PyObject *m_returned;
+
     PyObject *m_exception_type, *m_exception_value;
     PyTracebackObject *m_exception_tb;
 

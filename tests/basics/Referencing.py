@@ -847,6 +847,14 @@ def simpleFunction102():
     SomeClassWithAttributeAccess().use()
     SomeClassWithAttributeAccess().use()
 
+def getInt():
+    return 3
+
+def simpleFunction103():
+    try:
+        raise getInt()
+    except TypeError:
+        pass
 
 
 # These need stderr to be wrapped.

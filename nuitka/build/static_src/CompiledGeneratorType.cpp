@@ -215,7 +215,6 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
                     &exception_tb,
                     saved_exception_value
                 );
-                PyException_SetContext( exception_value, saved_exception_value );
 
                 RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
             }
@@ -400,15 +399,15 @@ static void Nuitka_Generator_tp_del( Nuitka_GeneratorObject *generator )
 
     FETCH_ERROR_OCCURRED( &error_type, &error_value, &error_traceback );
 
-    PyObject *result = Nuitka_Generator_close( generator, NULL );
+    PyObject *close_result = Nuitka_Generator_close( generator, NULL );
 
-    if (unlikely( result == NULL ))
+    if (unlikely( close_result == NULL ))
     {
         PyErr_WriteUnraisable( (PyObject *)generator );
     }
     else
     {
-        Py_DECREF( result );
+        Py_DECREF( close_result );
     }
 
     /* Restore the saved exception. */
