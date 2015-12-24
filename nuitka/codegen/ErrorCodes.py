@@ -199,7 +199,7 @@ def getExceptionKeeperVariableNames(keeper_index):
         ),
         "NUITKA_MAY_BE_UNUSED int exception_keeper_lineno_%d%s;" % (
             keeper_index,
-            "= -1" if debug else ""
+            " = -1" if debug else ""
         )
     )
 

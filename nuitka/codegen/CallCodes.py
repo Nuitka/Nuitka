@@ -189,7 +189,7 @@ def generateCallCode(to_name, expression, emit, context):
 
 
 def getCallCodeNoArgs(to_name, called_name, needs_check, emit, context):
-    emitLineNumberUpdateCode(context, emit)
+    emitLineNumberUpdateCode(emit, context)
 
     emit(
         "%s = CALL_FUNCTION_NO_ARGS( %s );" % (
@@ -227,7 +227,7 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
     # For 0 arguments, NOARGS is supposed to be used.
     assert arg_size > 0
 
-    emitLineNumberUpdateCode(context, emit)
+    emitLineNumberUpdateCode(emit, context)
 
     emit(
         "%s = CALL_FUNCTION_WITH_ARGS%d( %s, %s );" % (
@@ -255,7 +255,7 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
 
 
 def getCallCodePosArgs(to_name, called_name, args_name, emit, context):
-    emitLineNumberUpdateCode(context, emit)
+    emitLineNumberUpdateCode(emit, context)
 
     emit(
         "%s = CALL_FUNCTION_WITH_POSARGS( %s, %s );" % (
@@ -281,7 +281,7 @@ def getCallCodePosArgs(to_name, called_name, args_name, emit, context):
 
 
 def getCallCodeKeywordArgs(to_name, called_name, call_kw_name, emit, context):
-    emitLineNumberUpdateCode(context, emit)
+    emitLineNumberUpdateCode(emit, context)
 
     emit(
         "%s = CALL_FUNCTION_WITH_KEYARGS( %s, %s );" % (
@@ -308,7 +308,7 @@ def getCallCodeKeywordArgs(to_name, called_name, call_kw_name, emit, context):
 
 def getCallCodePosKeywordArgs(to_name, called_name, call_args_name,
                               call_kw_name, emit, context):
-    emitLineNumberUpdateCode(context, emit)
+    emitLineNumberUpdateCode(emit, context)
 
     emit(
         "%s = CALL_FUNCTION( %s, %s, %s );" % (

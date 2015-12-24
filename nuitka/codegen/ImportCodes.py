@@ -35,7 +35,7 @@ from .ModuleCodes import getModuleAccessCode
 def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
                          import_list_name, level_name, emit, context):
 
-    emitLineNumberUpdateCode(context, emit)
+    emitLineNumberUpdateCode(emit, context)
 
     emit(
         "%s = IMPORT_MODULE( %s, %s, %s, %s, %s );" % (
