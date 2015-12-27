@@ -1129,8 +1129,12 @@ PyObject *MAKE_ASYNC_ITERATOR( Nuitka_CoroutineObject *coroutine, PyObject *valu
             Py_TYPE( iter )->tp_name
         );
 
+        Py_DECREF( iter );
+
         return NULL;
     }
+
+    Py_DECREF( iter );
 
     PyObject *retval = yieldFromCoroutine( coroutine, awaitable_iter );
 
