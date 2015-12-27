@@ -510,7 +510,15 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
         context             = context,
     )
 
-    function_parameter_decl = [
+    function_locals = []
+
+    if context.hasLocalsDict():
+        function_locals += function_dict_setup.split('\n')
+        function_cleanup = "Py_DECREF( locals_dict );\n"
+    else:
+        function_cleanup = ""
+
+    function_locals += [
         getLocalVariableInitCode(
             variable  = variable,
             init_from = "_python_par_" + variable.getCodeName()
@@ -519,9 +527,8 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
         parameter_variables
     ]
 
-
     # User local variable initializations
-    local_var_inits = [
+    function_locals += [
         getLocalVariableInitCode(
             variable = variable,
         )
@@ -534,15 +541,15 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     ]
 
     if context.needsExceptionVariables():
-        local_var_inits.extend(getErrorVariableDeclarations())
+        function_locals.extend(getErrorVariableDeclarations())
 
     for keeper_index in range(1, context.getKeeperVariableCount()+1):
-        local_var_inits.extend(getExceptionKeeperVariableNames(keeper_index))
+        function_locals.extend(getExceptionKeeperVariableNames(keeper_index))
 
     for preserver_id in context.getExceptionPreserverCounts():
-        local_var_inits.extend(getExceptionPreserverVariableNames(preserver_id))
+        function_locals.extend(getExceptionPreserverVariableNames(preserver_id))
 
-    local_var_inits += [
+    function_locals += [
         "%s%s%s;" % (
             tmp_type,
             ' ' if not tmp_type.endswith('*') else "",
@@ -552,30 +559,20 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
         context.getTempNameInfos()
     ]
 
-    local_var_inits += context.getFrameDeclarations()
+    function_locals += context.getFrameDeclarations()
 
     # TODO: Could avoid this unless try/except or try/finally with returns
     # occur.
     if context.hasTempName("return_value"):
-        local_var_inits.append("tmp_return_value = NULL;")
+        function_locals.append("tmp_return_value = NULL;")
     for tmp_name, tmp_type in context.getTempNameInfos():
         if tmp_name.startswith("tmp_outline_return_value_"):
-            local_var_inits.append("%s = NULL;" % tmp_name)
+            function_locals.append("%s = NULL;" % tmp_name)
 
     function_doc = getConstantCode(
         context  = context,
         constant = function_doc
     )
-
-    function_locals = []
-
-    if context.hasLocalsDict():
-        function_locals += function_dict_setup.split('\n')
-        function_cleanup = "Py_DECREF( locals_dict );\n"
-    else:
-        function_cleanup = ""
-
-    function_locals += function_parameter_decl + local_var_inits
 
     result = ""
 

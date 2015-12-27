@@ -255,7 +255,7 @@ def getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit,
     )
     getReferenceExportCode2(raise_type_name, emit, context)
 
-    emit("exception_value = NULL;");
+    emit("exception_value = NULL;")
 
     getReferenceExportCode2(raise_cause_name, emit, context)
 

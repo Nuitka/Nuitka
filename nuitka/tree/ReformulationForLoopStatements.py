@@ -63,13 +63,14 @@ def _buildForLoopNode(provider, node, sync, source_ref):
 
     source = buildNode(provider, node.iter, source_ref)
 
+    # Temporary variables, we need one for the iterator, and one for the current
+    # value.
     temp_scope = provider.allocateTempScope("for_loop")
 
     tmp_iter_variable = provider.allocateTempVariable(
         temp_scope = temp_scope,
         name       = "for_iterator"
     )
-
     tmp_value_variable = provider.allocateTempVariable(
         temp_scope = temp_scope,
         name       = "iter_value"
