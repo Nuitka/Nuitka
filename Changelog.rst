@@ -1,7 +1,10 @@
 Nuitka Release 0.5.17 (Draft)
 =============================
 
-This release is not done yet.
+This release is a major feature release, as it adds full support for Python3.5
+and its coroutines. In addition, in order to properly support coroutines, the
+generator implementation got enhanced. On top of that, there is the usual range
+of corrections.
 
 Bug Fixes
 ---------
@@ -113,7 +116,8 @@ was the major driving force, while at the same time removing obstacles to the
 changes that were needed for coroutine support.
 
 With Python3.5 sorted out, it will be time to focus on general optimization
-again.
+again, but there is more technical debt related to classes, so the cleanup
+has to continue.
 
 
 Nuitka Release 0.5.16
