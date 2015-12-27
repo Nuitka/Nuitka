@@ -152,9 +152,6 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
             source_ref = source_ref
         )
 
-    def getDetails(self):
-        return {}
-
     def computeExpression(self, constraint_collection):
         # TODO: Predict iteration result if possible via SSA variable trace of
         # the iterator state.
@@ -310,4 +307,93 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     def computeExpression(self, constraint_collection):
         # TODO: The "iterator" should be investigated here, if it is iterable,
         # or if the default is raising.
+        return self, None, None
+
+
+class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
+    kind = "EXPRESSION_ASYNC_ITER"
+
+    def computeExpression(self, constraint_collection):
+        value = self.getValue()
+
+        return value.computeExpressionAsyncIter(
+            iter_node             = self,
+            constraint_collection = constraint_collection
+        )
+
+    # TODO: Questionable optimization based on this. Better to this in the slot
+    # iteration.
+    def isIteratorMaking(self):
+        return True
+
+    def isKnownToBeIterable(self, count):
+        if count is None:
+            return True
+
+        # TODO: Should ask value if it is.
+        return None
+
+    def getIterationLength(self):
+        return self.getValue().getIterationLength()
+
+    def extractSideEffects(self):
+        # Iterator making is the side effect itself.
+        if self.getValue().isCompileTimeConstant():
+            return ()
+        else:
+            return (self,)
+
+    def mayHaveSideEffects(self):
+        if self.getValue().isCompileTimeConstant():
+            return self.getValue().isKnownToBeIterable(None)
+
+        return True
+
+    def mayRaiseException(self, exception_type):
+        value = self.getValue()
+
+        if value.mayRaiseException(exception_type):
+            return True
+
+        if value.isKnownToBeIterable(None):
+            return False
+
+        return True
+
+    def isKnownToBeIterableAtMin(self, count):
+        assert type(count) is int
+
+        iter_length = self.getValue().getIterationMinLength()
+        return iter_length is not None and iter_length < count
+
+    def isKnownToBeIterableAtMax(self, count):
+        assert type(count) is int
+
+        iter_length = self.getValue().getIterationMaxLength()
+
+        return iter_length is not None and count <= iter_length
+
+    def onRelease(self, constraint_collection):
+        # print "onRelease", self
+        pass
+
+
+class ExpressionAsyncNext(ExpressionBuiltinSingleArgBase):
+    kind = "EXPRESSION_ASYNC_NEXT"
+
+    def __init__(self, value, source_ref):
+        ExpressionBuiltinSingleArgBase.__init__(
+            self,
+            value      = value,
+            source_ref = source_ref
+        )
+
+    def computeExpression(self, constraint_collection):
+        # TODO: Predict iteration result if possible via SSA variable trace of
+        # the iterator state.
+
+        # Assume exception is possible. TODO: We might query the next from the
+        # source with a computeExpressionAsyncNext slot, but we delay that.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None

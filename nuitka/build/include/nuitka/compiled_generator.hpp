@@ -25,10 +25,7 @@
 // Compiled generator function type.
 
 // Another cornerstone of the integration into CPython. Try to behave as well as
-// normal generator function objects do or even better.
-
-
-// *** Nuitka_Generator type begin
+// normal generator objects do or even better.
 
 #include "fibers.hpp"
 
@@ -72,10 +69,6 @@ typedef struct {
     PyCellObject **m_closure;
     Py_ssize_t m_closure_given;
 
-    // Parameter variable values given, if any.
-    PyObject **m_parameters;
-    Py_ssize_t m_parameters_given;
-
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
@@ -83,19 +76,12 @@ typedef struct {
 
 extern PyTypeObject Nuitka_Generator_Type;
 
-// For the yielder func, we may need to follow what makecontext will support and
-// that is only a list of ints, but we will need to push a pointer through it,
-// and so it's two of them, which might be sufficient.
-#ifdef _NUITKA_MAKECONTEXT_INTS
-typedef void (*yielder_func)( int, int );
-#else
-typedef void (*yielder_func)( Nuitka_GeneratorObject * );
-#endif
+typedef void (*generator_code)( Nuitka_GeneratorObject * );
 
 #if PYTHON_VERSION < 350
-extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given );
+extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
 #else
-extern PyObject *Nuitka_Generator_New( yielder_func code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given, PyObject **parameters, Py_ssize_t parameters_given );
+extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
 #endif
 
 static inline bool Nuitka_Generator_Check( PyObject *object )
@@ -227,8 +213,8 @@ static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyO
 #endif
 
 #if PYTHON_VERSION >= 330
-extern PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *value );
-extern PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value );
+extern PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *target );
+extern PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *target );
 #endif
 
 #endif

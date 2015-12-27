@@ -1639,77 +1639,76 @@ extern "C" wchar_t* _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t siz
 #include <locale.h>
 
 #if PYTHON_VERSION >= 300
-static wchar_t **argv_copy = NULL;
+argv_type_t convertCommandLineParameters( int argc, char **argv )
+{
+#if _WIN32
+    int new_argc;
+
+    argv_type_t result = CommandLineToArgvW( GetCommandLineW(), &new_argc );
+    printf("argc %d %d\n", argc, new_argc);
+    assert( new_argc == argc );
+    return result;
+#else
+    // Originally taken from CPython3: There seems to be no sane way to use
+    static wchar_t **argv_copy;
+    argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*) * argc);
+
+    // Temporarily disable locale for conversions to not use it.
+    char *oldloc = strdup( setlocale( LC_ALL, NULL ) );
+    setlocale( LC_ALL, "" );
+
+    for ( int i = 0; i < argc; i++ )
+    {
+#ifdef __APPLE__
+        argv_copy[i] = _Py_DecodeUTF8_surrogateescape( argv[ i ], strlen( argv[ i ] ) );
+#elif PYTHON_VERSION < 350
+        argv_copy[i] = _Py_char2wchar( argv[ i ], NULL );
+#else
+        argv_copy[i] = Py_DecodeLocale( argv[ i ], NULL );
 #endif
 
-bool setCommandLineParameters( int *argc, char *argv[], bool initial )
+        assert ( argv_copy[ i ] );
+    }
+
+    setlocale( LC_ALL, oldloc );
+    free( oldloc );
+
+    return argv_copy;
+#endif
+}
+#endif
+
+bool setCommandLineParameters( int argc, argv_type_t argv, bool initial )
 {
     bool is_multiprocessing_fork = false;
 
-    // We need to skip what multiprocessing has told Python otherwise.
-    for ( int i = 1; i < *argc; i++ )
+    if ( initial )
     {
-        if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i+1 < *argc))
+        // We need to skip what multiprocessing has told Python otherwise.
+        for ( int i = 1; i < argc; i++ )
         {
-            is_multiprocessing_fork = true;
-            break;
+#if PYTHON_VERSION < 300
+            if ((strcmp(argv[i], "--multiprocessing-fork")) == 0 && (i+1 < argc))
+#else
+            wchar_t constant_buffer[100];
+            mbstowcs( constant_buffer, "--multiprocessing-fork", 100 );
+            if ((wcscmp(argv[i], constant_buffer )) == 0 && (i+1 < argc))
+#endif
+            {
+                is_multiprocessing_fork = true;
+                break;
+            }
         }
     }
 
-#if PYTHON_VERSION < 300
     if ( initial )
     {
         Py_SetProgramName( argv[0] );
     }
     else
     {
-        PySys_SetArgv( *argc, argv );
+        PySys_SetArgv( argc, argv );
     }
-#else
-    if ( initial )
-    {
-        // Originally taken from CPython3: There seems to be no sane way to use
-        argv_copy = (wchar_t **)PyMem_Malloc(sizeof(wchar_t*) * (*argc));
-
-#ifdef __FreeBSD__
-        // 754 requires that FP exceptions run in "no stop" mode by default, and
-        // until C vendors implement C99's ways to control FP exceptions, Python
-        // requires non-stop mode.  Alas, some platforms enable FP exceptions by
-        // default.  Here we disable them.
-
-        fp_except_t m;
-
-        m = fpgetmask();
-        fpsetmask( m & ~FP_X_OFL );
-#endif
-        char *oldloc = strdup( setlocale( LC_ALL, NULL ) );
-        setlocale( LC_ALL, "" );
-
-        for ( int i = 0; i < *argc; i++ )
-        {
-#ifdef __APPLE__
-            argv_copy[i] = _Py_DecodeUTF8_surrogateescape( argv[ i ], strlen( argv[ i ] ) );
-#elif PYTHON_VERSION < 350
-            argv_copy[i] = _Py_char2wchar( argv[ i ], NULL );
-#else
-            argv_copy[i] = Py_DecodeLocale( argv[ i ], NULL );
-#endif
-            assert ( argv_copy[ i ] );
-        }
-
-        setlocale( LC_ALL, oldloc );
-        free( oldloc );
-    }
-
-    if ( initial )
-    {
-        Py_SetProgramName( argv_copy[0] );
-    }
-    else
-    {
-        PySys_SetArgv( *argc, argv_copy );
-    }
-#endif
 
     return is_multiprocessing_fork;
 }

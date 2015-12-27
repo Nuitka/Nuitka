@@ -38,6 +38,7 @@ from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTracebackRef,
     ExpressionCaughtExceptionTypeRef,
@@ -65,9 +66,8 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
-                   source_ref):
+                   sync, source_ref):
     # Many details, pylint: disable=R0914
-
     with_source = buildNode(provider, context_expr, source_ref)
 
     if Options.isFullCompat():
@@ -132,6 +132,67 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
     else:
         attribute_lookup_class = ExpressionAttributeLookupSpecial
 
+    enter_value = ExpressionCallEmpty(
+        called     = attribute_lookup_class(
+            source         = ExpressionTempVariableRef(
+                variable   = tmp_source_variable,
+                source_ref = source_ref
+            ),
+            attribute_name = "__enter__" if sync else "__aenter__",
+            source_ref     = source_ref
+        ),
+        source_ref = source_ref
+    )
+
+    exit_value_exception = ExpressionCallNoKeywords(
+        called     = ExpressionTempVariableRef(
+            variable   = tmp_exit_variable,
+            source_ref = with_exit_source_ref
+        ),
+        args       = ExpressionMakeTuple(
+            elements   = (
+                ExpressionCaughtExceptionTypeRef(
+                    source_ref = with_exit_source_ref
+                ),
+                ExpressionCaughtExceptionValueRef(
+                    source_ref = with_exit_source_ref
+                ),
+                ExpressionCaughtExceptionTracebackRef(
+                    source_ref = source_ref
+                ),
+            ),
+            source_ref = source_ref
+        ),
+        source_ref = with_exit_source_ref
+    )
+
+    exit_value_no_exception = ExpressionCallNoKeywords(
+        called     = ExpressionTempVariableRef(
+            variable   = tmp_exit_variable,
+            source_ref = source_ref
+        ),
+        args       = ExpressionConstantRef(
+            constant   = (None, None, None),
+            source_ref = source_ref
+        ),
+        source_ref = with_exit_source_ref
+    )
+
+    # For "async with", await the entered value and exit value must be awaited.
+    if not sync:
+        enter_value = ExpressionAsyncWait(
+            expression = enter_value,
+            source_ref = source_ref
+        )
+        exit_value_exception = ExpressionAsyncWait(
+            expression = exit_value_exception,
+            source_ref = source_ref
+        )
+        exit_value_no_exception = ExpressionAsyncWait(
+            expression = exit_value_no_exception,
+            source_ref = source_ref
+        )
+
     statements = [
         # First assign the with context to a temporary variable.
         StatementAssignmentVariable(
@@ -154,7 +215,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                     variable   = tmp_source_variable,
                     source_ref = source_ref
                 ),
-                attribute_name = "__exit__",
+                attribute_name = "__exit__" if sync else "__aexit__",
                 source_ref     = source_ref
             ),
             source_ref   = source_ref
@@ -164,17 +225,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                 variable   = tmp_enter_variable,
                 source_ref = source_ref
             ),
-            source       = ExpressionCallEmpty(
-                called     = attribute_lookup_class(
-                    source         = ExpressionTempVariableRef(
-                        variable   = tmp_source_variable,
-                        source_ref = source_ref
-                    ),
-                    attribute_name = "__enter__",
-                    source_ref     = source_ref
-                ),
-                source_ref = source_ref
-            ),
+            source       = enter_value,
             source_ref   = source_ref
         ),
         StatementAssignmentVariable(
@@ -213,27 +264,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                             source_ref   = source_ref
                         ),
                         makeConditionalStatement(
-                            condition  = ExpressionCallNoKeywords(
-                                called     = ExpressionTempVariableRef(
-                                    variable   = tmp_exit_variable,
-                                    source_ref = with_exit_source_ref
-                                ),
-                                args       = ExpressionMakeTuple(
-                                    elements   = (
-                                        ExpressionCaughtExceptionTypeRef(
-                                            source_ref = with_exit_source_ref
-                                        ),
-                                        ExpressionCaughtExceptionValueRef(
-                                            source_ref = with_exit_source_ref
-                                        ),
-                                        ExpressionCaughtExceptionTracebackRef(
-                                            source_ref = source_ref
-                                        ),
-                                    ),
-                                    source_ref = source_ref
-                                ),
-                                source_ref = with_exit_source_ref
-                            ),
+                            condition  = exit_value_exception,
                             no_branch  = makeReraiseExceptionStatement(
                                 source_ref = with_exit_source_ref
                             ),
@@ -260,17 +291,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                 ),
                 yes_branch = makeStatementsSequenceFromStatement(
                     statement = StatementExpressionOnly(
-                        expression = ExpressionCallNoKeywords(
-                            called     = ExpressionTempVariableRef(
-                                variable   = tmp_exit_variable,
-                                source_ref = source_ref
-                            ),
-                            args       = ExpressionConstantRef(
-                                constant   = (None, None, None),
-                                source_ref = source_ref
-                            ),
-                            source_ref = with_exit_source_ref
-                        ),
+                        expression = exit_value_no_exception,
                         source_ref = source_ref
                     )
                 ),
@@ -333,7 +354,7 @@ def buildWithNode(provider, node, source_ref):
     # For compatibility, we need to gather a line number for the body here
     # already, but only the full compatibility mode will use it.
     terminal_statement = node.body[-1]
-    while getKind(terminal_statement) == "With":
+    while getKind(terminal_statement) in ("With", "AsyncWith"):
         terminal_statement = terminal_statement.body[-1]
     body_lineno = terminal_statement.lineno
 
@@ -344,6 +365,46 @@ def buildWithNode(provider, node, source_ref):
             body_lineno   = body_lineno,
             context_expr  = context_expr,
             assign_target = assign_target,
+            sync          = True,
+            source_ref    = source_ref
+        )
+
+    return body
+
+
+def buildAsyncWithNode(provider, node, source_ref):
+    # "with" statements are re-formulated as described in the developer
+    # manual. Catches exceptions, and provides them to "__exit__", while making
+    # the "__enter__" value available under a given name.
+
+    # Before Python3.3, multiple context managers are not visible in the parse
+    # tree, now we need to handle it ourselves.
+    context_exprs = [item.context_expr for item in node.items]
+    assign_targets = [item.optional_vars for item in node.items]
+
+    # The body for the first context manager is the other things.
+    body = buildStatementsNode(provider, node.body, source_ref)
+
+    assert len(context_exprs) > 0 and len(context_exprs) == len(assign_targets)
+
+    context_exprs.reverse()
+    assign_targets.reverse()
+
+    # For compatibility, we need to gather a line number for the body here
+    # already, but only the full compatibility mode will use it.
+    terminal_statement = node.body[-1]
+    while getKind(terminal_statement) in ("With", "AsyncWith"):
+        terminal_statement = terminal_statement.body[-1]
+    body_lineno = terminal_statement.lineno
+
+    for context_expr, assign_target in zip(context_exprs, assign_targets):
+        body = _buildWithNode(
+            provider      = provider,
+            body          = body,
+            body_lineno   = body_lineno,
+            context_expr  = context_expr,
+            assign_target = assign_target,
+            sync          = False,
             source_ref    = source_ref
         )
 

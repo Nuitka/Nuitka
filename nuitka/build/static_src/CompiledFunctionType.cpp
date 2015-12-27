@@ -989,8 +989,7 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
 void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
                            PyObject **kw_vars )
 {
-    char const *function_name =
-       Nuitka_String_AsString( function->m_name );
+    char const *function_name = Nuitka_String_AsString( function->m_name );
 
     PyCodeObject *code_object = function->m_code_object;
 

@@ -45,6 +45,7 @@ def getLineNumberUpdateCode(context):
     else:
         return ""
 
+
 def getErrorLineNumberUpdateCode(context):
     lineno_value = getCurrentLineNumberCode(context)
 
@@ -56,7 +57,14 @@ def getErrorLineNumberUpdateCode(context):
         return ""
 
 
-def emitLineNumberUpdateCode(context, emit):
+def emitErrorLineNumberUpdateCode(emit, context):
+    update_code = getErrorLineNumberUpdateCode(context)
+
+    if update_code:
+        emit(update_code)
+
+
+def emitLineNumberUpdateCode(emit, context):
     code = getLineNumberUpdateCode(context)
 
     if code:

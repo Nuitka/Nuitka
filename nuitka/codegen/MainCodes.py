@@ -38,18 +38,13 @@ def generateMainCode(main_module, codes, context):
 
     if context.mayRaiseException():
         code_identifier = context.getCodeObjectHandle(
-            filename      = main_module.getRunTimeFilename(),
-            var_names     = (),
-            arg_count     = 0,
-            kw_only_count = 0,
-            line_number   = 0,
-            code_name     = "<module>",
-            is_generator  = False,
-            is_optimized  = False,
-            has_starlist  = False,
-            has_stardict  = False,
-            has_closure   = False,
-            future_flags  = main_module.getSourceReference().getFutureSpec().\
+            code_object  = main_module.getCodeObject(),
+            filename     = main_module.getRunTimeFilename(),
+            line_number  = 1,
+            is_optimized = False,
+            new_locals   = False,
+            has_closure  = False,
+            future_flags = main_module.getSourceReference().getFutureSpec().\
                               asFlags()
         )
     else:

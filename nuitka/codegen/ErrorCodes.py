@@ -199,7 +199,7 @@ def getExceptionKeeperVariableNames(keeper_index):
         ),
         "NUITKA_MAY_BE_UNUSED int exception_keeper_lineno_%d%s;" % (
             keeper_index,
-            "= -1" if debug else ""
+            " = -1" if debug else ""
         )
     )
 
@@ -268,13 +268,15 @@ def getMustNotGetHereCode(reason, context, emit):
         }
     )
 
-    if provider.isExpressionFunctionBody() and not provider.isGenerator():
+    if provider.isExpressionGeneratorObjectBody():
+        emit("return;")
+    elif provider.isExpressionCoroutineObjectBody():
+        emit("return;")
+    elif provider.isExpressionFunctionBody():
         emit("return NULL;")
     elif provider.isCompiledPythonModule():
-        emit("PyErr_SetObject( PyExc_RuntimeError, Py_None );")
         emit("return MOD_RETURN_VALUE( NULL );")
     else:
-        emit("PyErr_SetObject( PyExc_RuntimeError, Py_None );")
         emit("return;")
 
 

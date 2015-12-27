@@ -39,7 +39,6 @@ def convertFunctionCallToOutline(provider, function_ref, values):
     outline_body = ExpressionOutlineBody(
         provider   = provider,
         name       = "inline",
-        body       = None,
         source_ref = source_ref
 
     )

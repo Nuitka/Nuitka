@@ -151,6 +151,12 @@ win_from_source_mode = win_target and \
                        os.path.exists(os.path.join(python_prefix, "PCBuild"))
 
 
+if "CXX" in os.environ:
+    cxx_dirname = os.path.dirname(os.environ["CXX"])
+
+    if os.path.isdir(cxx_dirname):
+        os.environ["PATH"] = os.pathsep.join([ cxx_dirname ] + os.environ["PATH"].split(os.pathsep))
+
 def getExecutablePath(filename, initial):
     """ Find an execute in either normal PATH, or Scons detected PATH. """
 
@@ -720,14 +726,20 @@ if win_target:
                 LINKFLAGS = ["-Wl,--subsystem,windows"]
             )
 
+    if win_disable_console:
+        env.Append(
+            CPPDEFINES = ["_NUITKA_WINMAIN_ENTRY_POINT"]
+        )
+
     # This is used for "PathRemoveFileSpec" used in Windows code.
     env.Append(
         LIBS = ["Shlwapi"]
     )
 
-    if win_disable_console:
+    # This is used for "GetCommandLineW" used in Windows code for Python3.
+    if python_version >= "3":
         env.Append(
-            CPPDEFINES = ["_NUITKA_WINMAIN_ENTRY_POINT"]
+            LIBS = ["Shell32"]
         )
 
 if python_debug:
@@ -830,20 +842,26 @@ if win_from_source_mode:
 
 
 def getWindowsPythonDLLPath():
+    dll_filename = "python%s%s.dll" % (
+        python_version.replace('.', ""),
+        "_d" if python_debug else ""
+    )
+
     if uninstalled_python:
         return os.path.join(
             python_prefix,
-            "python" + python_version.replace('.', "") + ".dll"
+            dll_filename
         )
     elif target_arch == "x86_64":
-        return "%s\SysWOW64\python%s.dll" % (
+        return os.path.join(
             os.environ["WINDIR"],
-            python_version.replace('.', "")
+            "SysWOW64",
+            dll_filename
         )
     else:
-        return "%s\python%s.dll" % (
+        return os.path.join(
             os.environ["WINDIR"],
-            python_version.replace('.', "")
+            dll_filename
         )
 
 if win_target:
@@ -880,14 +898,17 @@ if win_target:
 
         startupinfo.dwFlags |= STARTF_USESHOWWINDOW
 
-        proc = subprocess.Popen(
-            command,
-            stdin       = subprocess.PIPE,
-            stdout      = defs_file,
-            stderr      = subprocess.PIPE,
-            startupinfo = startupinfo,
-            shell       = False
-        )
+        try:
+            proc = subprocess.Popen(
+                command,
+                stdin       = subprocess.PIPE,
+                stdout      = defs_file,
+                stderr      = subprocess.PIPE,
+                startupinfo = startupinfo,
+                shell       = False
+            )
+        except WindowsError:
+            sys.exit("Error, cannot find gendefs.exe which is required though.")
 
         data, err = proc.communicate()
         rv = proc.wait()
@@ -1174,8 +1195,10 @@ def discoverSourceFiles():
         return os.path.join(static_src, sub_path.replace('/', os.path.sep))
 
     result.append(getStatic("CompiledFunctionType.cpp"))
-    result.append(getStatic("CompiledGeneratorType.cpp"))
     result.append(getStatic("CompiledMethodType.cpp"))
+    result.append(getStatic("CompiledGeneratorType.cpp"))
+    if python_version >= "3.5":
+        result.append(getStatic("CompiledCoroutineType.cpp"))
     result.append(getStatic("CompiledFrameType.cpp"))
     result.append(getStatic("CompiledCodeHelpers.cpp"))
     result.append(getStatic("InspectPatcher.cpp"))
@@ -1277,15 +1300,19 @@ Error, call to 'mt.exe' (%s) to extract manifest failed (error code %d.""" % (
                         )
                     )
             else:
-                result = subprocess.call(
-                    (
-                        env["RC"],
-                        "--input", python_exe,
-                        "--output", manifest_filename,
-                        "--output-format", "rc"
-                    ),
-                    stdout = subprocess.PIPE
-                )
+                try:
+                    result = subprocess.call(
+                        (
+                            "windres.exe",
+                            "--input", python_exe,
+                            "--output", manifest_filename,
+                            "--output-format", "rc"
+                        ),
+                        stdout = subprocess.PIPE
+                    )
+                except WindowsError:
+                    sys.exit("Error, cannot find 'windres.exe' but it is required.")
+
 
                 if result != 0:
                     sys.exit("Error, call to 'windres.exe' to extract manifest failed.")

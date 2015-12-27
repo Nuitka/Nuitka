@@ -18,12 +18,12 @@
 #ifndef __NUITKA_FRAME_STACK_H__
 #define __NUITKA_FRAME_STACK_H__
 
-#define MAKE_OR_REUSE_FRAME( cache_identifier, code_identifier, module_identifier ) \
-    if ( isFrameUnusable( cache_identifier ) )                                \
-    {                                                                         \
-        Py_XDECREF( cache_identifier );                                       \
-        cache_identifier = MAKE_FRAME( code_identifier, module_identifier );  \
-    }                                                                         \
+#define MAKE_OR_REUSE_FRAME( cache_identifier, code_identifier, module_identifier )    \
+    if ( isFrameUnusable( cache_identifier ) )                                         \
+    {                                                                                  \
+        Py_XDECREF( cache_identifier );                                                \
+        cache_identifier = MAKE_FUNCTION_FRAME( code_identifier, module_identifier );  \
+    }                                                                                  \
 
 inline static void assertCodeObject( PyCodeObject *code_object )
 {

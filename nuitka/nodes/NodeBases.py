@@ -623,7 +623,7 @@ class CodeNodeBase(NodeBase):
             assert isinstance(self, CodeNodeBase)
 
             if self.name:
-                name = uid + '_' + self.name
+                name = uid + '_' + self.name.strip("<>")
             else:
                 name = uid
 
@@ -633,11 +633,11 @@ class CodeNodeBase(NodeBase):
 
     def getChildUID(self, node):
         if node.kind not in self.uids:
-            self.uids[ node.kind ] = 0
+            self.uids[node.kind] = 0
 
-        self.uids[ node.kind ] += 1
+        self.uids[node.kind] += 1
 
-        return self.uids[ node.kind ]
+        return self.uids[node.kind]
 
 
 class ChildrenHavingMixin:
@@ -836,7 +836,6 @@ class ChildrenHavingMixin:
             print("Problem cloning", self.__class__)
 
             raise
-
 
         effective_source_ref = self.getCompatibleSourceReference()
 
@@ -1366,6 +1365,17 @@ class ExpressionMixin:
         return call_node, None, None
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
+        self.onContentEscapes(constraint_collection)
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return iter_node, None, None
+
+    def computeExpressionAsyncIter(self, iter_node, constraint_collection):
         self.onContentEscapes(constraint_collection)
 
         # Any code could be run, note that.

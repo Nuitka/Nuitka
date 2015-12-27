@@ -130,7 +130,7 @@ def namifyConstant(constant):
 
                 return "tuple_" + result + "_tuple"
             except ExceptionCannotNamify:
-                warning("Couldn't namify '%r'" % constant)
+                warning("Couldn't namify '%r'" % (constant,))
 
                 return "tuple_" + _digest(repr(constant))
     elif type(constant) is list:

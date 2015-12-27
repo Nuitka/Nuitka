@@ -27,11 +27,16 @@ template_function_direct_declaration = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s );
 """
 
+template_function_closure_making = """\
+    PyCellObject **closure = (PyCellObject **)malloc(%(closure_count)d * sizeof(PyCellObject *));
+%(closure_copy)s
+"""
+
 template_make_function_with_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     // Copy the parameter default values and closure values over.
-%(context_copy)s
+%(closure_making)s
 
     PyObject *result = Nuitka_Function_New(
         %(fparse_function_identifier)s,

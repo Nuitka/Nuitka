@@ -26,11 +26,10 @@ complete.
 
 from nuitka import PythonVersions, Variables
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
-from nuitka.nodes.ReturnNodes import StatementGeneratorReturn
 from nuitka.Options import isFullCompat
 from nuitka.tree import SyntaxErrors
 from nuitka.utils.Utils import python_version
-from nuitka.VariableRegistry import addVariableUsage, isSharedLogically
+from nuitka.VariableRegistry import addVariableUsage, isSharedAmongScopes
 
 from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
@@ -66,8 +65,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     variable_name = non_local_name
                 )
 
-                node.registerProvidedVariable(variable)
-
                 if variable.isModuleVariable():
                     SyntaxErrors.raiseSyntaxError(
                         "no binding for nonlocal '%s' found" % (
@@ -82,6 +79,9 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         display_line = not isFullCompat() or \
                                        python_version >= 340
                     )
+
+                node.registerProvidedVariable(variable)
+
 
     @staticmethod
     def _handleQualnameSetup(node):
@@ -168,9 +168,21 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         node.getVariable()
                     )
                 )
+        elif node.isExpressionGeneratorObjectBody():
+            self._handleNonLocal(node)
+            # Python3.4 allows for class declarations to be made global, even
+            # after they were declared, so we need to fix this up.
+
+            # TODO: Then this may not even have to be here at all.
+            if python_version >= 340:
+                self._handleQualnameSetup(node)
+        elif node.isExpressionCoroutineObjectBody():
+            self._handleNonLocal(node)
+
+            # TODO: Then this may not even have to be here at all.
+            self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():
-            if python_version >= 300:
-                self._handleNonLocal(node)
+            self._handleNonLocal(node)
 
             for variable in node.getParameters().getAllVariables():
                 addVariableUsage(variable, node)
@@ -248,34 +260,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 if current.isStatementLoop():
                     break
 
-    def onLeaveNode(self, node):
-        # Return statements in generators are not really that, instead they are
-        # exception raises, fix that up now. Doing it right from the onset,
-        # would be a bit more difficult, as the knowledge that something is a
-        # generator, requires a second pass.
-        if node.isStatementReturn():
-            return_consumer = node.getParentReturnConsumer()
-
-            if return_consumer.isExpressionFunctionBody() and \
-               return_consumer.isGenerator():
-                return_value = node.getExpression()
-
-                if python_version < 330:
-                    if not return_value.isExpressionReturnedValueRef() and \
-                       (not return_value.isExpressionConstantRef() or \
-                        return_value.getConstant() is not None):
-                        SyntaxErrors.raiseSyntaxError(
-                            "'return' with argument inside generator",
-                            source_ref = node.getSourceReference(),
-                        )
-
-                node.replaceWith(
-                    StatementGeneratorReturn(
-                        expression = return_value,
-                        source_ref = node.getSourceReference()
-                    )
-                )
-
 
 class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
     """ Variable closure phase 2: Find assignments and references.
@@ -342,26 +326,6 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
             addVariableUsage(node.getVariable(), provider)
 
 
-    # For Python3, every function in a class is supposed to take "__class__" as
-    # a reference, so make sure that happens.
-    if python_version >= 300:
-        def onLeaveNode(self, node):
-            if node.isExpressionFunctionBody() and node.isClassClosureTaker():
-                if python_version < 340 or True: # TODO: Temporarily reverted:
-                    node.getVariableForReference(
-                        variable_name = "__class__"
-                    )
-                else:
-                    parent_provider = node.getParentVariableProvider()
-
-                    variable = parent_provider.getTempVariable(
-                        temp_scope = None,
-                        name       = "__class__"
-                    )
-
-                    node.addClosureVariable(variable)
-
-
 class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
     """ Variable closure phase 3: Find errors and complete frame variables.
 
@@ -378,7 +342,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
             variable = node.getTargetVariableRef().getVariable()
 
             if not variable.isModuleVariable() and \
-               isSharedLogically(variable):
+               isSharedAmongScopes(variable):
                 SyntaxErrors.raiseSyntaxError(
                     reason       = """\
 can not delete variable '%s' referenced in nested scope""" % (
@@ -391,7 +355,7 @@ can not delete variable '%s' referenced in nested scope""" % (
                     display_line = not isFullCompat()
                 )
         elif node.isStatementsFrame():
-            node.updateVarNames()
+            node.updateLocalNames()
 
 
 def completeVariableClosures(tree):

@@ -22,7 +22,8 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
+import ast
+
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
 from nuitka.tree import SyntaxErrors
@@ -31,7 +32,7 @@ from nuitka.utils import Utils
 from .Helpers import buildNode
 
 
-def _markAsGenerator(provider, node, source_ref):
+def _checkInsideGenerator(provider, node, source_ref):
     if provider.isCompiledPythonModule():
         SyntaxErrors.raiseSyntaxError(
             "'yield' outside function",
@@ -39,11 +40,20 @@ def _markAsGenerator(provider, node, source_ref):
             None if Utils.python_version < 300 else node.col_offset
         )
 
-    provider.markAsGenerator()
+    if provider.isExpressionCoroutineObjectBody():
+        SyntaxErrors.raiseSyntaxError(
+            "'%s' inside async function" % (
+                "yield" if node.__class__ is ast.Yield else "yield from",
+            ),
+            source_ref,
+            node.col_offset+3
+        )
+
+    assert provider.isExpressionGeneratorObjectBody(), provider
 
 
 def buildYieldNode(provider, node, source_ref):
-    _markAsGenerator(provider, node, source_ref)
+    _checkInsideGenerator(provider, node, source_ref)
 
     if node.value is not None:
         return ExpressionYield(
@@ -64,14 +74,9 @@ def buildYieldNode(provider, node, source_ref):
 def buildYieldFromNode(provider, node, source_ref):
     assert Utils.python_version >= 330
 
-    _markAsGenerator(provider, node, source_ref)
-
-    iter_arg = ExpressionBuiltinIter1(
-        value      = buildNode(provider, node.value, source_ref),
-        source_ref = source_ref
-    )
+    _checkInsideGenerator(provider, node, source_ref)
 
     return ExpressionYieldFrom(
-        expression = iter_arg,
+        expression = buildNode(provider, node.value, source_ref),
         source_ref = source_ref
     )

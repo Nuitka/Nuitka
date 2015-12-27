@@ -388,7 +388,7 @@ if ( found == false && %(parameter_name_object)s == key )
 """
 
 template_argparse_assign_from_dict_parameter_slow_path = """\
-if ( found == false && RICH_COMPARE_BOOL_EQ( %(parameter_name_object)s, key ) == 1 )
+if ( found == false && RICH_COMPARE_BOOL_EQ_NORECURSE( %(parameter_name_object)s, key ) == 1 )
 {
 %(parameter_assign_from_kw)s
     found = true;
@@ -397,7 +397,7 @@ if ( found == false && RICH_COMPARE_BOOL_EQ( %(parameter_name_object)s, key ) ==
 """
 
 template_argparse_assign_from_dict_parameter_slow_path_kw_only = """\
-if ( found == false && RICH_COMPARE_BOOL_EQ( %(parameter_name_object)s, key ) == 1 )
+if ( found == false && RICH_COMPARE_BOOL_EQ_NORECURSE( %(parameter_name_object)s, key ) == 1 )
 {
 %(parameter_assign_from_kw)s
     found = true;

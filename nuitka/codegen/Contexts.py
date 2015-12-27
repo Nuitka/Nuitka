@@ -218,28 +218,22 @@ class CodeObjectsMixin:
     def getCodeObjects(self):
         return sorted(iterItems(self.code_objects))
 
-    # Sad but true, code objects have these many details that actually are fed
-    # from all different sources, pylint: disable=R0913
-    def getCodeObjectHandle(self, filename, code_name, line_number, var_names,
-                            arg_count, kw_only_count, is_generator,
-                            is_optimized, has_starlist, has_stardict,
-                            has_closure, future_flags):
-        var_names = tuple(var_names)
-
-        assert type(has_starlist) is bool
-        assert type(has_stardict) is bool
+    def getCodeObjectHandle(self, code_object, filename, line_number,
+                            is_optimized, new_locals, has_closure,
+                            future_flags):
 
         key = (
             filename,
-            code_name,
+            code_object.getCodeObjectName(),
             line_number,
-            var_names,
-            arg_count,
-            kw_only_count,
-            is_generator,
+            code_object.getVarNames(),
+            code_object.getArgumentCount(),
+            code_object.getKwOnlyParameterCount(),
+            code_object.getKind(),
             is_optimized,
-            has_starlist,
-            has_stardict,
+            new_locals,
+            code_object.hasStarListArg(),
+            code_object.hasStarDictArg(),
             has_closure,
             future_flags
         )
@@ -252,14 +246,14 @@ class CodeObjectsMixin:
     if python_version < 300:
         def _calcHash(self, key):
             hash_value = hashlib.md5(
-                "%s%s%d%s%d%d%s%s%s%s%s%s" % key
+                "%s%s%d%s%d%d%s%s%s%s%s%s%s" % key
             )
 
             return hash_value.hexdigest()
     else:
         def _calcHash(self, key):
             hash_value = hashlib.md5(
-                ("%s%s%d%s%d%d%s%s%s%s%s%s" % key).encode("utf-8")
+                ("%s%s%d%s%d%d%s%s%s%s%s%s%s" % key).encode("utf-8")
             )
 
             return hash_value.hexdigest()
@@ -307,7 +301,10 @@ class PythonChildContextBase(PythonContextBase):
 
 
 def _getConstantDefaultPopulation():
-    result = (
+    # Note: Can't work with set here, because we need to put in some values that
+    # cannot be hashed.
+
+    result = [
         # Basic values that the helper code uses all the times.
         (),
         {},
@@ -339,38 +336,38 @@ def _getConstantDefaultPopulation():
         # Patched module name.
         "inspect",
 
-        # Names of builtins used in helper code.
+        # Names of built-ins used in helper code.
         "compile",
         "range",
         "open",
-        "__import__",
-    )
+        "__import__"
+    ]
 
-    # For Python3 modules
     if python_version >= 300:
-        result += (
-            "__cached__",
+        # For Python3 modules
+        result.append(
+            "__cached__"
         )
 
-    # For Python3 print
-    if python_version >= 300:
+        # For Python3 print
         result += (
             "print",
             "end",
-            "file",
+            "file"
         )
 
     if python_version >= 330:
-        result += (
-            # Modules have that attribute.
-            "__loader__",
+        # Modules have that attribute starting with 3.3
+        result.append(
+            "__loader__"
         )
 
     if python_version >= 340:
-        result += (
+        result.append(
             # YIELD_FROM uses this starting 3.4, with 3.3 other code is used.
-            "send",
+            "send"
         )
+
     if python_version >= 330:
         result += (
             # YIELD_FROM uses this
@@ -379,16 +376,15 @@ def _getConstantDefaultPopulation():
         )
 
 
-    # For patching Python2 internal class type
     if python_version < 300:
+        # For patching Python2 internal class type
         result += (
             "__getattr__",
             "__setattr__",
             "__delattr__",
         )
 
-    # For patching Python2 sys attributes for current exception
-    if python_version < 300:
+        # For patching Python2 "sys" attributes for current exception
         result += (
             "exc_type",
             "exc_value",
@@ -397,41 +393,47 @@ def _getConstantDefaultPopulation():
 
     # The xrange built-in is Python2 only.
     if python_version < 300:
-        result += (
-            "xrange",
+        result.append(
+            "xrange"
         )
 
     # Executables only
     if not Options.shallMakeModule():
-        result += (
-            "__main__",
+        result.append(
+            "__main__"
         )
 
         # The "site" module is referenced in inspect patching.
-        result += (
-            "site",
+        result.append(
+            "site"
         )
 
-    # Builtin original values
+    # Built-in original values
     if not Options.shallMakeModule():
-        result += (
+        result += [
             "type",
             "len",
             "range",
             "repr",
             "int",
             "iter",
-        )
+        ]
 
         if python_version < 300:
-            result += (
+            result.append(
                 "long",
             )
 
     # Disabling warnings at startup
     if "no_warnings" in Options.getPythonFlags():
-        result += (
-            "ignore",
+        result.append(
+            "ignore"
+        )
+
+    if python_version >= 350:
+        # Patching the types module.
+        result.append(
+            "types"
         )
 
     return result
@@ -747,8 +749,7 @@ class PythonFunctionDirectContext(PythonFunctionContext):
     def isForCreatedFunction(self):
         return False
 
-
-class PythonFunctionCoroutineContext(PythonFunctionContext):
+class PythonGeneratorObjectContext(PythonFunctionContext):
     def isForDirectCall(self):
         return False
 
@@ -757,6 +758,10 @@ class PythonFunctionCoroutineContext(PythonFunctionContext):
 
     def isForCreatedFunction(self):
         return False
+
+
+class PythonCoroutineObjectContext(PythonGeneratorObjectContext):
+    pass
 
 
 class PythonFunctionCreatedContext(PythonFunctionContext):

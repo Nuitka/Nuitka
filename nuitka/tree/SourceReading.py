@@ -33,7 +33,8 @@ def _readSourceCodeFromFilename3(source_filename):
     import tokenize
 
     try:
-        return tokenize.open(source_filename).read()  # @UndefinedVariable
+        with tokenize.open(source_filename) as source_file:   # @UndefinedVariable
+            return source_file.read()
     except SyntaxError as e:
         if Options.isFullCompat():
             if PythonVersions.doShowUnknownEncodingName():

@@ -54,6 +54,19 @@
 #
 # W1504: Using type() instead of isinstance() for a typecheck.
 # Nuitka is all about exact type checks, so this doesn't apply
+#
+# C0123: Using type() instead of isinstance() for a typecheck.
+# Nuitka is all about exact type checks, so this doesn't apply
+#
+# C0413: Import "..." should be placed at the top of the module
+# There is no harm to this and imports are deal with by isort binary.
+#
+# C0411: external import "external" comes before "local"
+# There is no harm to this and imports are deal with by isort binary.
+#
+# R0204: Redefinition of var type from x to y
+# I do this all the time, e.g. to convert str to unicode, or list to string.
+
 
 from __future__ import print_function
 
@@ -65,7 +78,7 @@ os.chdir("..")
 
 pylint_options = """\
 --rcfile=/dev/null
---disable=I0011,I0012,W0232,C0326,C0330,C1001,E1103,W0632,W1504
+--disable=I0011,I0012,W0232,C0326,C0330,C1001,E1103,W0632,W1504,C0123,C0413,C0411,R0204
 --msg-template="{path}:{line} {msg_id} {obj} {msg}"
 --reports=no
 --persistent=no
@@ -83,6 +96,8 @@ pylint_options = """\
 --max-public-methods=100
 --max-args=10
 --max-parents=10
+--max-nested-blocks=10
+--max-bool-expr=10
 --enable=useless-suppression""".split('\n')
 
 

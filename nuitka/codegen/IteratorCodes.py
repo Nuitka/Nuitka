@@ -27,6 +27,7 @@ from .ErrorCodes import (
     getErrorExitReleaseCode,
     getReleaseCode
 )
+from .Helpers import generateChildExpressionsCode
 from .Indentation import indented
 from .LineNumberCodes import getLineNumberUpdateCode
 from .templates.CodeTemplatesIterators import (
@@ -35,16 +36,22 @@ from .templates.CodeTemplatesIterators import (
 )
 
 
-def getBuiltinNext1Code(to_name, value, emit, context):
+def generateBuiltinNext1Code(to_name, expression, emit, context):
+    value_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
     emit(
         "%s = %s;" % (
             to_name,
-            "ITERATOR_NEXT( %s )" % value,
+            "ITERATOR_NEXT( %s )" % value_name,
         )
     )
 
     getReleaseCode(
-        release_name = value,
+        release_name = value_name,
         emit         = emit,
         context      = context
     )

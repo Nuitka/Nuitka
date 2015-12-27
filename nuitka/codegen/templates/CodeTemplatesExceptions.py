@@ -15,8 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Templates for raising exceptions, making assertions, and try/finally
-    construct.
+""" Templates for handling exceptions.
 
 """
 

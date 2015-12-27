@@ -119,10 +119,8 @@ def getVariableCodeName(in_context, variable):
 
 
 def _getLocalVariableCode(context, variable):
-    # Now must be local or temporary variable. Owners of them will not use
-    # context except if it's a parameter variable, which is not shared between
-    # different generator instances. This is supposed to return in just about
-    # every branch, pylint: disable=R0911
+    # Now must be local or temporary variable, we return in each case-
+    # pylint: disable=R0911
     user = context.getOwner()
     owner = variable.getOwner()
 
@@ -132,26 +130,16 @@ def _getLocalVariableCode(context, variable):
             variable   = variable
         )
 
-        # Generator objects store their parameters in a dedicate kind of
-        # closure alike.
-        if user.isExpressionFunctionBody() and \
-           user.isGenerator() and \
-           variable.isParameterVariable():
-            parameter_index = user.getParameters().getVariables().index(variable)
-            if variable.isSharedTechnically():
-                return "((PyCellObject *)generator->m_parameters[%d])" % parameter_index, True
-            else:
-                return "generator->m_parameters[%d]" % parameter_index, False
-
-        if variable.isSharedTechnically():
-            return result, True
-        else:
-            return result, False
+        return result, variable.isSharedTechnically()
     elif context.isForDirectCall():
-        if user.isGenerator():
+        if user.isExpressionGeneratorObjectBody():
             closure_index = user.getClosureVariables().index(variable)
 
             return "generator->m_closure[%d]" % closure_index, True
+        elif user.isExpressionCoroutineObjectBody():
+            closure_index = user.getClosureVariables().index(variable)
+
+            return "coroutine->m_closure[%d]" % closure_index, True
         else:
             result = getVariableCodeName(
                 in_context = True,
@@ -162,10 +150,13 @@ def _getLocalVariableCode(context, variable):
     else:
         closure_index = user.getClosureVariables().index(variable)
 
-        if user.isGenerator():
+        if user.isExpressionGeneratorObjectBody():
             return "generator->m_closure[%d]" % closure_index, True
+        elif user.isExpressionCoroutineObjectBody():
+            return "coroutine->m_closure[%d]" % closure_index, True
         else:
             return "self->m_closure[%d]" % closure_index, True
+
 
 def getVariableCode(context, variable):
     # Modules are simple.
@@ -396,15 +387,22 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 template = template_read_shared_unclear
             else:
                 template = template_read_shared_known
+
+            emit(
+                template % {
+                    "tmp_name"   : to_name,
+                    "identifier" : getVariableCode(context, variable)
+                }
+            )
         else:
             template = template_read_local
 
-        emit(
-            template % {
-                "tmp_name"   : to_name,
-                "identifier" : getVariableCode(context, variable)
-            }
-        )
+            emit(
+                template % {
+                    "tmp_name"   : to_name,
+                    "identifier" : getLocalVariableObjectAccessCode(context, variable)
+                }
+            )
 
         if needs_check:
             if variable.getOwner() is not context.getOwner():

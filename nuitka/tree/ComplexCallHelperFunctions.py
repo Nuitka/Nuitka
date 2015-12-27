@@ -46,6 +46,7 @@ from nuitka.nodes.ComparisonNodes import ExpressionComparison
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerOperationNodes import ExpressionDictOperationSet
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
     StatementRaiseException
@@ -63,7 +64,7 @@ from nuitka.nodes.OperatorNodes import (
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import (
     ExpressionSubscriptLookup,
     StatementAssignmentSubscript
@@ -80,7 +81,8 @@ from nuitka.utils.Utils import python_version
 
 from .Helpers import (
     makeConditionalStatement,
-    makeStatementsSequenceFromStatement
+    makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements
 )
 from .InternalModule import (
     getInternalModule,
@@ -345,6 +347,7 @@ def makeStarListArgumentErrorRaise(called_variable_ref, star_list_variable_ref):
                                         function_body = getCallableNameDescBody(),
                                         source_ref    = internal_source_ref
                                     ),
+                                    code_object  = None,
                                     defaults     = (),
                                     kw_defaults  = None,
                                     annotations  = None,
@@ -414,10 +417,9 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
     )
 
 
-def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
-                                         star_dict_target_variable_ref,
-                                         star_dict_variable_ref):
-    raise_statement = StatementRaiseException(
+def _makeRaiseExceptionMustBeMapping(called_variable_ref,
+                                     star_dict_variable_ref):
+    return StatementRaiseException(
         exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
             args           = (
@@ -437,19 +439,24 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                                         function_body = getCallableNameDescBody(),
                                         source_ref    = internal_source_ref
                                     ),
+                                    code_object  = None,
                                     defaults     = (),
                                     kw_defaults  = None,
                                     annotations  = None,
                                     source_ref   = internal_source_ref
                                 ),
                                 values     = (
-                                    called_variable_ref,
+                                    called_variable_ref.makeClone(),
                                 ),
                                 source_ref = internal_source_ref
                             ),
                             ExpressionAttributeLookup(
                                 source         = ExpressionBuiltinType1(
-                                    value      = star_dict_variable_ref.makeClone(),
+                                    value      = ExpressionVariableRef(
+                                        variable_name = star_dict_variable_ref.getVariableName(),
+                                        variable      = star_dict_variable_ref.getVariable(),
+                                        source_ref    = internal_source_ref
+                                    ),
                                     source_ref = internal_source_ref
                                 ),
                                 attribute_name = "__name__",
@@ -469,18 +476,13 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
         source_ref      = internal_source_ref
     )
 
-    temp_scope = result.allocateTempScope("mapping")
 
-    tmp_dict_variable = result.allocateTempVariable(temp_scope, "dict")
-    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
-    tmp_keys_variable = result.allocateTempVariable(temp_scope, "keys")
-    tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
-
-    statements = (
+def _makeIteratingLoopStatement(tmp_iter_variable, tmp_item_variable, statements):
+    loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
             tried          = StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_key_variable,
+                    variable   = tmp_item_variable,
                     source_ref = internal_source_ref
                 ),
                 source       = ExpressionBuiltinNext1(
@@ -498,6 +500,26 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             ),
             source_ref     = internal_source_ref
         ),
+        *statements
+    )
+
+    return StatementLoop(
+        body       = loop_body,
+        source_ref = internal_source_ref
+    )
+
+
+def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
+                                         star_dict_target_variable_ref,
+                                         star_dict_variable_ref):
+    temp_scope = result.allocateTempScope("mapping")
+
+    tmp_dict_variable = result.allocateTempVariable(temp_scope, "dict")
+    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
+    tmp_keys_variable = result.allocateTempVariable(temp_scope, "keys")
+    tmp_key_variable = result.allocateTempVariable(temp_scope, "key")
+
+    loop_body = (
         StatementAssignmentSubscript(
             expression = ExpressionTempVariableRef(
                 variable   = tmp_dict_variable,
@@ -516,15 +538,10 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                 source_ref = internal_source_ref
             ),
             source_ref = internal_source_ref
-        )
+        ),
     )
 
-    loop_body = StatementsSequence(
-        statements = statements,
-        source_ref = internal_source_ref
-    )
-
-    statements = (
+    mapping_case = makeStatementsSequenceFromStatements(
         # Initializing the temp variable outside of try/except, because code
         # generation does not yet detect that case properly. TODO: Can be
         # removed once code generation is apt enough.
@@ -557,7 +574,10 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                 source_ref   = internal_source_ref
             ),
             exception_name = "AttributeError",
-            handler_body   = raise_statement,
+            handler_body   = _makeRaiseExceptionMustBeMapping(
+                called_variable_ref    = called_variable_ref,
+                star_dict_variable_ref = star_dict_target_variable_ref
+            ),
             source_ref     = internal_source_ref
         ),
         StatementAssignmentVariable(
@@ -586,9 +606,10 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             ),
             source_ref   = internal_source_ref
         ),
-        StatementLoop(
-            body       = loop_body,
-            source_ref = internal_source_ref
+        _makeIteratingLoopStatement(
+            tmp_iter_variable = tmp_iter_variable,
+            tmp_item_variable = tmp_key_variable,
+            statements        = loop_body
         ),
         StatementAssignmentVariable(
             variable_ref = star_dict_target_variable_ref.makeClone(),
@@ -598,11 +619,6 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
             ),
             source_ref   = internal_source_ref
         ),
-    )
-
-    mapping_case = StatementsSequence(
-        statements = statements,
-        source_ref = internal_source_ref
     )
 
     tried = StatementConditional(
@@ -649,13 +665,8 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
     )
 
 
-def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
-                                            kw_target_variable_ref,
-                                            kw_variable_ref,
-                                            star_dict_variable_ref):
-    # This is plain terribly complex, pylint: disable=R0914
-
-    raise_statement = StatementRaiseException(
+def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
+    return StatementRaiseException(
         exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
             args           = (
@@ -663,7 +674,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     operator   = "Mod",
                     left       =  ExpressionConstantRef(
                         constant      = """\
-%s argument after ** must be a mapping, not %s""",
+%s got multiple values for keyword argument '%s'""",
                         source_ref    = internal_source_ref,
                         user_provided = True
                     ),
@@ -672,26 +683,28 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                             ExpressionFunctionCall(
                                 function   = ExpressionFunctionCreation(
                                     function_ref = ExpressionFunctionRef(
-                                        function_body = getCallableNameDescBody(),
+                                        function_body = getCallableNameDescBody(
+                                        ),
                                         source_ref    = internal_source_ref
                                     ),
+                                    code_object  = None,
                                     defaults     = (),
                                     kw_defaults  = None,
                                     annotations  = None,
                                     source_ref   = internal_source_ref
                                 ),
                                 values     = (
-                                    called_variable_ref.makeClone(),
+                                    ExpressionVariableRef(
+                                        variable      = called_variable,
+                                        variable_name = called_variable.getName(),
+                                        source_ref    = internal_source_ref
+                                    ),
                                 ),
                                 source_ref = internal_source_ref
                             ),
-                            ExpressionAttributeLookup(
-                                source         = ExpressionBuiltinType1(
-                                    value      = star_dict_variable_ref.makeClone(),
-                                    source_ref = internal_source_ref
-                                ),
-                                attribute_name = "__name__",
-                                source_ref     = internal_source_ref
+                            ExpressionTempVariableRef(
+                                variable   = tmp_key_variable,
+                                source_ref = internal_source_ref
                             )
                         ),
                         source_ref = internal_source_ref
@@ -707,6 +720,12 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         source_ref      = internal_source_ref
     )
 
+
+def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
+                                            kw_target_variable_ref,
+                                            kw_variable_ref,
+                                            star_dict_variable_ref):
+    # This is plain terribly complex, pylint: disable=R0914
     temp_scope = result.allocateTempScope("dict")
 
     tmp_dict_variable = result.allocateTempVariable(temp_scope, "dict")
@@ -733,77 +752,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         )
     ]
 
-    raise_duplicate = StatementRaiseException(
-        exception_type  = ExpressionBuiltinMakeException(
-            exception_name = "TypeError",
-            args           = (
-                ExpressionOperationBinary(
-                    operator   = "Mod",
-                    left       =  ExpressionConstantRef(
-                        constant      = """\
-%s got multiple values for keyword argument '%s'""",
-                        source_ref    = internal_source_ref,
-                        user_provided = True
-                    ),
-                    right      = ExpressionMakeTuple(
-                        elements   = (
-                            ExpressionFunctionCall(
-                                function   = ExpressionFunctionCreation(
-                                    function_ref = ExpressionFunctionRef(
-                                        function_body = getCallableNameDescBody(
-                                        ),
-                                        source_ref    = internal_source_ref
-                                    ),
-                                    defaults     = (),
-                                    kw_defaults  = None,
-                                    annotations  = None,
-                                    source_ref   = internal_source_ref
-                                ),
-                                values     = (
-                                    called_variable_ref.makeClone(),
-                                ),
-                                source_ref = internal_source_ref
-                            ),
-                            ExpressionTempVariableRef(
-                                variable   = tmp_key_variable,
-                                source_ref = internal_source_ref
-                            )
-                        ),
-                        source_ref = internal_source_ref
-                    ),
-                    source_ref = internal_source_ref
-                ),
-            ),
-            source_ref     = internal_source_ref
-        ),
-        exception_value = None,
-        exception_trace = None,
-        exception_cause = None,
-        source_ref      = internal_source_ref
-    )
-
-    statements = (
-        makeTryExceptSingleHandlerNode(
-            tried          = StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_key_variable,
-                    source_ref = internal_source_ref
-                ),
-                source       = ExpressionBuiltinNext1(
-                    value      = ExpressionTempVariableRef(
-                        variable   = tmp_iter_variable,
-                        source_ref = internal_source_ref
-                    ),
-                    source_ref = internal_source_ref
-                ),
-                source_ref   = internal_source_ref
-            ),
-            exception_name = "StopIteration",
-            handler_body   = StatementBreakLoop(
-                source_ref = internal_source_ref
-            ),
-            source_ref     = internal_source_ref
-        ),
+    mapping_loop_body = (
         StatementConditional(
             condition  = ExpressionComparison(
                 comparator = "In",
@@ -815,7 +764,10 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                 source_ref = internal_source_ref
             ),
             yes_branch = makeStatementsSequenceFromStatement(
-                statement = raise_duplicate
+                statement = _makeRaiseDuplicationItem(
+                    called_variable  = called_variable_ref.getVariable(),
+                    tmp_key_variable = tmp_key_variable
+                )
             ),
             no_branch  = None,
             source_ref = internal_source_ref
@@ -838,12 +790,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         )
     )
 
-    mapping_loop_body = StatementsSequence(
-        statements = statements,
-        source_ref = internal_source_ref
-    )
-
-    statements = (
+    mapping_case = makeStatementsSequenceFromStatements(
         # Initializing the temp variable outside of try/except, because code
         # generation does not yet detect that case properly. TODO: Can be
         # removed once code generation is apt enough.
@@ -876,7 +823,10 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                 source_ref   = internal_source_ref
             ),
             exception_name = "AttributeError",
-            handler_body   = raise_statement,
+            handler_body   = _makeRaiseExceptionMustBeMapping(
+                called_variable_ref    = called_variable_ref,
+                star_dict_variable_ref = star_dict_variable_ref
+            ),
             source_ref     = internal_source_ref
         ),
         StatementAssignmentVariable(
@@ -905,15 +855,11 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             ),
             source_ref   = internal_source_ref
         ),
-        StatementLoop(
-            body       = mapping_loop_body,
-            source_ref = internal_source_ref
-        ),
-    )
-
-    mapping_case = StatementsSequence(
-        statements = statements,
-        source_ref = internal_source_ref
+        _makeIteratingLoopStatement(
+            tmp_iter_variable = tmp_iter_variable,
+            tmp_item_variable = tmp_key_variable,
+            statements        = mapping_loop_body
+        )
     )
 
     temp_scope = result.allocateTempScope("dict")
@@ -937,78 +883,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         )
     ]
 
-    # TODO: Duplication from above, just so the other temp is used.
-    raise_duplicate = StatementRaiseException(
-        exception_type  = ExpressionBuiltinMakeException(
-            exception_name = "TypeError",
-            args           = (
-                ExpressionOperationBinary(
-                    operator   = "Mod",
-                    left       =  ExpressionConstantRef(
-                        constant      = """\
-%s got multiple values for keyword argument '%s'""",
-                        source_ref    = internal_source_ref,
-                        user_provided = True
-                    ),
-                    right      = ExpressionMakeTuple(
-                        elements   = (
-                            ExpressionFunctionCall(
-                                function   = ExpressionFunctionCreation(
-                                    function_ref = ExpressionFunctionRef(
-                                        function_body = getCallableNameDescBody(
-                                        ),
-                                        source_ref    = internal_source_ref
-                                    ),
-                                    defaults     = (),
-                                    kw_defaults  = None,
-                                    annotations  = None,
-                                    source_ref   = internal_source_ref
-                                ),
-                                values     = (
-                                    called_variable_ref.makeClone(),
-                                ),
-                                source_ref = internal_source_ref
-                            ),
-                            ExpressionTempVariableRef(
-                                variable   = tmp_key_variable,
-                                source_ref = internal_source_ref
-                            )
-                        ),
-                        source_ref = internal_source_ref
-                    ),
-                    source_ref = internal_source_ref
-                ),
-            ),
-            source_ref     = internal_source_ref
-        ),
-        exception_value = None,
-        exception_trace = None,
-        exception_cause = None,
-        source_ref      = internal_source_ref
-    )
-
-    statements = (
-        makeTryExceptSingleHandlerNode(
-            tried          = StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_item_variable,
-                    source_ref = internal_source_ref
-                ),
-                source       = ExpressionBuiltinNext1(
-                    value      = ExpressionTempVariableRef(
-                        variable   = tmp_iter_variable,
-                        source_ref = internal_source_ref
-                    ),
-                    source_ref = internal_source_ref
-                ),
-                source_ref   = internal_source_ref
-            ),
-            exception_name = "StopIteration",
-            handler_body   = StatementBreakLoop(
-                source_ref = internal_source_ref
-            ),
-            source_ref     = internal_source_ref
-        ),
+    dict_loop_body = (
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_key_variable,
@@ -1039,7 +914,10 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                 source_ref = internal_source_ref
             ),
             yes_branch = makeStatementsSequenceFromStatement(
-                statement = raise_duplicate,
+                statement = _makeRaiseDuplicationItem(
+                    called_variable  = called_variable_ref.getVariable(),
+                    tmp_key_variable = tmp_key_variable
+                )
             ),
             no_branch  = None,
             source_ref = internal_source_ref
@@ -1066,12 +944,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
         )
     )
 
-    dict_loop_body = StatementsSequence(
-        statements = statements,
-        source_ref = internal_source_ref
-    )
-
-    statements = (
+    dict_case = makeStatementsSequenceFromStatements(
         StatementAssignmentVariable(
             variable_ref = kw_target_variable_ref.makeClone(),
             source       = ExpressionBuiltinDict(
@@ -1101,29 +974,20 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             ),
             source_ref   = internal_source_ref
         ),
-        StatementLoop(
-            body       = dict_loop_body,
-            source_ref = internal_source_ref
+        _makeIteratingLoopStatement(
+            tmp_iter_variable = tmp_iter_variable,
+            tmp_item_variable = tmp_item_variable,
+            statements        = dict_loop_body,
         ),
     )
 
-    dict_case = StatementsSequence(
-        statements = statements,
-        source_ref = internal_source_ref
-    )
-
-    statements = (
-        StatementConditional(
+    dict_case = makeStatementsSequenceFromStatement(
+        statement = StatementConditional(
             condition  = star_dict_variable_ref.makeClone(),
             yes_branch = dict_case,
             no_branch  = None,
             source_ref = internal_source_ref
-        ),
-    )
-
-    dict_case = StatementsSequence(
-        statements = statements,
-        source_ref = internal_source_ref
+        )
     )
 
     tried = StatementConditional(
@@ -2757,6 +2621,245 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
             makeTryFinallyStatement(
                 provider   = result,
                 tried      = statements,
+                final      = final,
+                source_ref = internal_source_ref
+            )
+        )
+    )
+
+    return result
+
+
+@once_decorator
+def getFunctionCallHelperDictionaryUnpacking():
+    helper_name = "complex_call_helper_dict_unpacking_checks"
+
+    result = ExpressionFunctionBody(
+        provider   = getInternalModule(),
+        name       = helper_name,
+        doc        = None,
+        parameters = ParameterSpec(
+            name          = helper_name,
+            normal_args   = ("called",),
+            list_star_arg = "args",
+            dict_star_arg = None,
+            default_count = 0,
+            kw_only_args  = ()
+        ),
+        source_ref = internal_source_ref,
+        is_class   = False
+    )
+
+    args_variable = result.getVariableForAssignment(
+        variable_name = "args"
+    )
+    called_variable = result.getVariableForAssignment(
+        variable_name = "called"
+    )
+
+    temp_scope = None
+
+    tmp_result_variable = result.allocateTempVariable(temp_scope, "dict")
+    tmp_iter_variable = result.allocateTempVariable(temp_scope, "dicts_iter")
+    tmp_item_variable = result.allocateTempVariable(temp_scope, "args_item")
+    tmp_iter2_variable = result.allocateTempVariable(temp_scope, "dict_iter")
+    tmp_key_variable = result.allocateTempVariable(temp_scope, "dict_key")
+
+    update_body = (
+        StatementConditional(
+            condition  = ExpressionComparison(
+                comparator = "In",
+                left       = ExpressionTempVariableRef(
+                    variable   = tmp_key_variable,
+                    source_ref = internal_source_ref
+                ),
+                right      = ExpressionTempVariableRef(
+                    variable   = tmp_result_variable,
+                    source_ref = internal_source_ref
+                ),
+                source_ref = internal_source_ref
+            ),
+            yes_branch = makeStatementsSequenceFromStatement(
+                statement = _makeRaiseDuplicationItem(
+                    called_variable  = called_variable,
+                    tmp_key_variable = tmp_key_variable
+                )
+            ),
+            no_branch  = None,
+            source_ref = internal_source_ref
+        ),
+
+        StatementExpressionOnly(
+            expression = ExpressionDictOperationSet(
+                dict_arg   = ExpressionTempVariableRef(
+                    variable   = tmp_result_variable,
+                    source_ref = internal_source_ref
+
+                ),
+                key        = ExpressionTempVariableRef(
+                    variable   = tmp_key_variable,
+                    source_ref = internal_source_ref
+                ),
+                value      = ExpressionSubscriptLookup(
+                    subscribed = ExpressionTempVariableRef(
+                        variable   = tmp_item_variable,
+                        source_ref = internal_source_ref
+                    ),
+                    subscript  = ExpressionTempVariableRef(
+                        variable   = tmp_key_variable,
+                        source_ref = internal_source_ref
+                    ),
+                    source_ref = internal_source_ref
+                ),
+                source_ref = internal_source_ref
+            ),
+            source_ref = internal_source_ref
+        ),
+    )
+
+    loop_body = (
+        makeTryExceptSingleHandlerNode(
+            tried          = makeStatementsSequenceFromStatements(
+                StatementAssignmentVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = tmp_iter2_variable,
+                        source_ref = internal_source_ref
+                    ),
+                    source       = ExpressionBuiltinIter1(
+                        value      = ExpressionCallEmpty(
+                            called     = ExpressionAttributeLookup(
+                                ExpressionTempVariableRef(
+                                    variable   = tmp_item_variable,
+                                    source_ref = internal_source_ref
+                                ),
+                                attribute_name = "keys",
+                                source_ref     = internal_source_ref
+                            ),
+                            source_ref = internal_source_ref
+                        ),
+                        source_ref = internal_source_ref
+                    ),
+                    source_ref   = internal_source_ref
+                ),
+                _makeIteratingLoopStatement(
+                    tmp_iter_variable = tmp_iter2_variable,
+                    tmp_item_variable = tmp_key_variable,
+                    statements        = update_body
+                )
+            ),
+            exception_name = "AttributeError",
+            handler_body   = StatementRaiseException(
+                exception_type  = ExpressionBuiltinMakeException(
+                    exception_name = "TypeError",
+                    args           = (
+                        ExpressionOperationBinary(
+                            operator   = "Mod",
+                            left       =  ExpressionConstantRef(
+                                constant      = """\
+'%s' object is not a mapping""",
+                                source_ref    = internal_source_ref,
+                                user_provided = True
+                            ),
+                            right      = ExpressionMakeTuple(
+                                elements   = (
+                                    ExpressionAttributeLookup(
+                                        source         = ExpressionBuiltinType1(
+                                            value      = ExpressionTempVariableRef(
+                                                variable   = tmp_item_variable,
+                                                source_ref = internal_source_ref
+                                            ),
+                                            source_ref = internal_source_ref
+                                        ),
+                                        attribute_name = "__name__",
+                                        source_ref     = internal_source_ref
+                                    ),
+                                ),
+                                source_ref = internal_source_ref
+                            ),
+                            source_ref = internal_source_ref
+                        ),
+                    ),
+                    source_ref     = internal_source_ref
+                ),
+                exception_value = None,
+                exception_trace = None,
+                exception_cause = None,
+                source_ref      = internal_source_ref
+            ),
+            source_ref     = internal_source_ref
+        ),
+    )
+
+
+    final = (
+        StatementReleaseVariable(
+            variable   = tmp_result_variable,
+            source_ref = internal_source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = tmp_iter_variable,
+            source_ref = internal_source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = tmp_item_variable,
+            source_ref = internal_source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = tmp_iter2_variable,
+            source_ref = internal_source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = tmp_key_variable,
+            source_ref = internal_source_ref
+        ),
+    )
+
+    tried = makeStatementsSequenceFromStatements(
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_iter_variable,
+                source_ref = internal_source_ref
+            ),
+            source       = ExpressionBuiltinIter1(
+                value      = ExpressionVariableRef(
+                    variable_name = "args",
+                    variable      = args_variable,
+                    source_ref    = internal_source_ref
+                ),
+                source_ref = internal_source_ref
+            ),
+            source_ref   = internal_source_ref
+        ),
+        StatementAssignmentVariable(
+            variable_ref = ExpressionTargetTempVariableRef(
+                variable   = tmp_result_variable,
+                source_ref = internal_source_ref
+            ),
+            source       = ExpressionConstantRef(
+                constant   = {},
+                source_ref = internal_source_ref
+            ),
+            source_ref   = internal_source_ref
+        ),
+        _makeIteratingLoopStatement(
+            tmp_iter_variable = tmp_iter_variable,
+            tmp_item_variable = tmp_item_variable,
+            statements        = loop_body
+        ),
+        StatementReturn(
+            expression = ExpressionTempVariableRef(
+                variable   = tmp_result_variable,
+                source_ref = internal_source_ref
+            ),
+            source_ref = internal_source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                provider   = result,
+                tried      = tried,
                 final      = final,
                 source_ref = internal_source_ref
             )

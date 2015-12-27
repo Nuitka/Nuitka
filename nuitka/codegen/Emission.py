@@ -33,3 +33,9 @@ class SourceCodeCollector:
     def emit(self,code):
         for line in code.split('\n'):
             self.codes.append(line)
+
+    def emitTo(self, emit):
+        for code in self.codes:
+            emit(code)
+
+        self.codes = None

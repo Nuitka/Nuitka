@@ -74,26 +74,27 @@ def getCodeObjectsInitCode(context):
         # Make sure the filename is always identical.
         assert code_object_key[0] == module_filename
 
-        if code_object_key[2] != 0 and \
-           (code_object_key[7] or Utils.python_version < 340):
-            co_flags.append("CO_NEWLOCALS")
-
-        if code_object_key[6]:
+        if code_object_key[6] == "Generator":
             co_flags.append("CO_GENERATOR")
+        elif code_object_key[6] == "Coroutine":
+            co_flags.append("CO_COROUTINE")
 
         if code_object_key[7]:
             co_flags.append("CO_OPTIMIZED")
 
         if code_object_key[8]:
-            co_flags.append("CO_VARARGS")
+            co_flags.append("CO_NEWLOCALS")
 
         if code_object_key[9]:
+            co_flags.append("CO_VARARGS")
+
+        if code_object_key[10]:
             co_flags.append("CO_VARKEYWORDS")
 
-        if not code_object_key[10]:
+        if not code_object_key[11]:
             co_flags.append("CO_NOFREE")
 
-        co_flags.extend(code_object_key[11])
+        co_flags.extend(code_object_key[12])
 
         if Utils.python_version < 300:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (

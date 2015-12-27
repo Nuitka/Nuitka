@@ -19,25 +19,92 @@
 
 """
 
+template_coroutine_object_decl_template = """\
+static void %(function_identifier)s( Nuitka_CoroutineObject *coroutine );
+"""
+
+template_coroutine_object_body_template = """
+static void %(function_identifier)s( Nuitka_CoroutineObject *coroutine )
+{
+    CHECK_OBJECT( (PyObject *)coroutine );
+    assert( Nuitka_Coroutine_Check( (PyObject *)coroutine ) );
+
+    // Local variable initialization
+%(function_var_inits)s
+
+    // Actual function code.
+%(function_body)s
+
+%(coroutine_exit)s
+}
+"""
+
+template_coroutine_exception_exit = """\
+    // Return statement must be present.
+    NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
+
+    function_exception_exit:
+    assert( exception_type );
+    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+    coroutine->m_yielded = NULL;
+    return;
+"""
+
+template_coroutine_noexception_exit = """\
+    // Return statement must be present.
+    NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
+
+    coroutine->m_yielded = NULL;
+    return;
+"""
+
+template_coroutine_return_exit = """\
+    function_return_exit:;
+    coroutine->m_returned = tmp_return_value;
+    return;
+"""
+
+
 template_make_coroutine_without_context_template = """
 %(to_name)s = Nuitka_Coroutine_New(
-    %(code_identifier)s
+    %(coroutine_identifier)s,
+    self->m_name,
+    self->m_qualname,
+    %(code_identifier)s,
+    NULL,
+    0
 );
 """
 
 template_make_coroutine_with_context_template = """
 {
-    // Copy the parameter default values and closure values over.
-%(context_copy)s
+%(closure_making)s
 
     %(to_name)s = Nuitka_Coroutine_New(
+        %(coroutine_identifier)s,
+        self->m_name,
+        self->m_qualname,
         %(code_identifier)s,
-        context,
+        closure,
         %(closure_count)d
     );
 }
 """
 
+template_coroutine_await = """
+{
+    PyObject *awaitable = _PyCoro_GetAwaitableIter( %(value)s );
+
+    if (likely( awaitable != NULL ))
+    {
+        %(to_name) = COROUTINE_AWAIT( awaitable );
+    }
+    else
+    {
+        %(to_name) = NULL;
+    }
+}
+"""
 
 from . import TemplateDebugWrapper # isort:skip
 TemplateDebugWrapper.checkDebug(globals())

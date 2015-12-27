@@ -22,26 +22,53 @@ source code comments with developer manual sections.
 
 """
 
+from nuitka.nodes.AssignNodes import (
+    ExpressionTargetTempVariableRef,
+    ExpressionTempVariableRef,
+    StatementAssignmentVariable
+)
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
+from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.PythonVersions import python_version
 
+from .ComplexCallHelperFunctions import (
+    getFunctionCallHelperDictionaryUnpacking,
+    getFunctionCallHelperKeywordsStarDict,
+    getFunctionCallHelperKeywordsStarList,
+    getFunctionCallHelperKeywordsStarListStarDict,
+    getFunctionCallHelperPosKeywordsStarDict,
+    getFunctionCallHelperPosKeywordsStarList,
+    getFunctionCallHelperPosKeywordsStarListStarDict,
+    getFunctionCallHelperPosStarDict,
+    getFunctionCallHelperPosStarList,
+    getFunctionCallHelperPosStarListStarDict,
+    getFunctionCallHelperStarDict,
+    getFunctionCallHelperStarList,
+    getFunctionCallHelperStarListStarDict
+)
 from .Helpers import (
     buildNode,
     buildNodeList,
     getKind,
     makeDictCreationOrConstant,
-    makeSequenceCreationOrConstant
+    makeSequenceCreationOrConstant,
+    makeStatementsSequenceFromStatements
 )
+from .ReformulationDictionaryCreation import buildDictionaryUnpackingArgs
 from .ReformulationSequenceCreation import buildListUnpacking
 
 
 def buildCallNode(provider, node, source_ref):
+    called = buildNode(provider, node.func, source_ref)
+
     if python_version >= 350:
         list_star_arg = None
         dict_star_arg = None
@@ -49,7 +76,8 @@ def buildCallNode(provider, node, source_ref):
     positional_args = []
 
     # For Python3.5 compatibility, the error handling with star argument last
-    # is the old one, only with
+    # is the old one, only with a starred argument before that, things use the
+    # new unpacking code.
     for node_arg in node.args[:-1]:
         if getKind(node_arg) == "Starred":
             assert python_version >= 350
@@ -58,6 +86,8 @@ def buildCallNode(provider, node, source_ref):
             break
     else:
         if node.args and getKind(node.args[-1]) == "Starred":
+            assert python_version >= 350
+
             list_star_arg = buildNode(provider, node.args[-1].value, source_ref)
             positional_args = buildNodeList(provider, node.args[:-1], source_ref)
         else:
@@ -69,13 +99,96 @@ def buildCallNode(provider, node, source_ref):
     keys = []
     values = []
 
-    for keyword in node.keywords:
+    for keyword in node.keywords[:-1]:
         if keyword.arg is None:
             assert python_version >= 350
 
-            dict_star_arg = buildNode(provider, keyword.value, source_ref)
-            continue
+            outline_body = ExpressionOutlineBody(
+                provider   = provider,
+                name       = "dict_unpacking_call",
+                source_ref = source_ref
+            )
 
+            tmp_called = outline_body.allocateTempVariable(
+                temp_scope = None,
+                name       = "called"
+            )
+
+            helper_args = [
+                ExpressionTempVariableRef(
+                    variable   = tmp_called,
+                    source_ref = source_ref
+                ),
+                ExpressionMakeTuple(
+                    elements   = buildDictionaryUnpackingArgs(
+                        provider   = provider,
+                        keys       = (keyword.arg for keyword in node.keywords),
+                        values     = (keyword.value for keyword in node.keywords),
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                )
+            ]
+
+            dict_star_arg = ExpressionFunctionCall(
+                function   = ExpressionFunctionCreation(
+                    function_ref = ExpressionFunctionRef(
+                        function_body = getFunctionCallHelperDictionaryUnpacking(),
+                        source_ref    = source_ref
+                    ),
+                    code_object  = None,
+                    defaults     = (),
+                    kw_defaults  = None,
+                    annotations  = None,
+                    source_ref   = source_ref
+                ),
+                values     = helper_args,
+                source_ref = source_ref,
+            )
+
+            outline_body.setBody(
+                makeStatementsSequenceFromStatements(
+                    StatementAssignmentVariable(
+                        variable_ref = ExpressionTargetTempVariableRef(
+                            variable   = tmp_called,
+                            source_ref = source_ref
+                        ),
+                        source       = called,
+                        source_ref   = source_ref
+                    ),
+                    StatementReturn(
+                        expression = _makeCallNode(
+                            called          = ExpressionTempVariableRef(
+                                variable   = tmp_called,
+                                source_ref = source_ref
+                            ),
+                            positional_args = positional_args,
+                            keys            = keys,
+                            values          = values,
+                            list_star_arg   = list_star_arg,
+                            dict_star_arg   = dict_star_arg,
+                            source_ref      = source_ref,
+                        ),
+                        source_ref = source_ref
+                    )
+                )
+            )
+
+            return outline_body
+
+    # For Python3.5 compatibility, the error handling with star argument last
+    # is the old one, only with a starred argument before that, things use the
+    # new unpacking code.
+
+    if node.keywords and node.keywords[-1].arg is None:
+        assert python_version >= 350
+
+        dict_star_arg = buildNode(provider, node.keywords[-1].value, source_ref)
+        keywords = node.keywords[:-1]
+    else:
+        keywords = node.keywords
+
+    for keyword in keywords:
         keys.append(
             ExpressionConstantRef(
                 constant      = keyword.arg,
@@ -92,7 +205,7 @@ def buildCallNode(provider, node, source_ref):
         dict_star_arg = buildNode(provider, node.kwargs, source_ref, True)
 
     return _makeCallNode(
-        called          = buildNode(provider, node.func, source_ref),
+        called          = called,
         positional_args = positional_args,
         keys            = keys,
         values          = values,
@@ -105,7 +218,6 @@ def buildCallNode(provider, node, source_ref):
 def _makeCallNode(called, positional_args, keys, values, list_star_arg,
                   dict_star_arg, source_ref):
     # Many variables, but only to cover the many complex call cases.
-    # pylint: disable=R0914
 
     if list_star_arg is None and dict_star_arg is None:
         result = makeExpressionCall(
@@ -145,21 +257,6 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
             dict_star_arg is not None
         )
 
-        from .ComplexCallHelperFunctions import (
-            getFunctionCallHelperPosKeywordsStarList,
-            getFunctionCallHelperPosStarList,
-            getFunctionCallHelperKeywordsStarList,
-            getFunctionCallHelperStarList,
-            getFunctionCallHelperPosKeywordsStarDict,
-            getFunctionCallHelperPosStarDict,
-            getFunctionCallHelperKeywordsStarDict,
-            getFunctionCallHelperStarDict,
-            getFunctionCallHelperPosKeywordsStarListStarDict,
-            getFunctionCallHelperPosStarListStarDict,
-            getFunctionCallHelperKeywordsStarListStarDict,
-            getFunctionCallHelperStarListStarDict,
-        )
-
         table = {
             (True,   True,  True, False) :
                 getFunctionCallHelperPosKeywordsStarList,
@@ -187,7 +284,7 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
                 getFunctionCallHelperStarListStarDict,
         }
 
-        get_helper = table[ key ]
+        get_helper = table[key]
 
         helper_args = [called]
 
@@ -227,6 +324,7 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
                     function_body = get_helper(),
                     source_ref    = source_ref
                 ),
+                code_object  = None,
                 defaults     = (),
                 kw_defaults  = None,
                 annotations  = None,

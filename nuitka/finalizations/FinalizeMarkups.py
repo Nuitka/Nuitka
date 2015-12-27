@@ -68,7 +68,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
         # Find nodes with only compile time constant children, these are
         # missing some obvious optimization potentially.
-        if False:
+        if False: # For searching only, pylint: disable=W0125
             if not node.isStatementReturn() and \
                not node.isExpressionYield() and \
                not node.isStatementRaiseException() and \
@@ -106,7 +106,8 @@ class FinalizeMarkups(FinalizationVisitorBase):
             # containing the "return" statement.
             search = search.getParentReturnConsumer()
 
-            if search.isExpressionFunctionBody() and search.isGenerator():
+            if search.isExpressionGeneratorObjectBody() or \
+               search.isExpressionCoroutineObjectBody():
                 if in_tried_block:
                     search.markAsNeedsGeneratorReturnHandling(2)
                 else:

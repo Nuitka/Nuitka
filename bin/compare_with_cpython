@@ -421,9 +421,9 @@ if not silent_mode:
         assert not stderr_nuitka
 
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\d+\.\d+s$")
-instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+(\s|\>)")
+instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
 thread_re                    = re.compile(r"Thread 0x[0-9a-fA-F]+")
-compiled_types_re            = re.compile(r"compiled_(module|function|generator|method|frame)")
+compiled_types_re            = re.compile(r"compiled_(module|function|generator|method|frame|coroutine)")
 module_repr_re               = re.compile(r"(\<module '.*?' from ').*?('\>)")
 
 global_name_error_re         = re.compile(

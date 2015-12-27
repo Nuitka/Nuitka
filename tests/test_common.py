@@ -821,17 +821,29 @@ def convertToPython(doctests, line_filter = None):
             while evaluated.startswith(' ' * count):
                 count += 1
 
-            modified = (count-1) * ' ' + "print(" + evaluated + "\n)\n"
-            return (count-1) * ' ' + ("print('Line %d'" % line_number) + ")\n" + modified
+            if sys.version_info < (3,):
+                modified = (count-1) * ' ' + "print " + evaluated
+                return (count-1) * ' ' + ("print 'Line %d'" % line_number) + "\n" + modified
+            else:
+                modified = (count-1) * ' ' + "print(" + evaluated + "\n)\n"
+                return (count-1) * ' ' + ("print('Line %d'" % line_number) + ")\n" + modified
         else:
             return evaluated
 
     def getTried(evaluated):
-        return """
+        if sys.version_info < (3,):
+            return """
 try:
 %(evaluated)s
-except Exception as e:
-    print("Occurred", type(e), e)
+except Exception as __e:
+    print "Occurred", type(__e), __e
+""" % { "evaluated" : indentedCode(getPrintPrefixed(evaluated).split('\n'), 4) }
+        else:
+            return """
+try:
+%(evaluated)s
+except Exception as __e:
+    print("Occurred", type(__e), __e)
 """ % { "evaluated" : indentedCode(getPrintPrefixed(evaluated).split('\n'), 4) }
 
     def isOpener(evaluated):

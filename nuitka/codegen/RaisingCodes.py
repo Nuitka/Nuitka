@@ -25,8 +25,8 @@ from nuitka.Options import isDebug
 
 from .Helpers import generateChildExpressionsCode
 from .LabelCodes import getGotoCode
-from .LineNumberCodes import getErrorLineNumberUpdateCode
-from .PythonAPICodes import getReferenceExportCode
+from .LineNumberCodes import emitErrorLineNumberUpdateCode
+from .PythonAPICodes import getReferenceExportCode2
 
 
 def generateRaiseCode(statement, emit, context):
@@ -251,19 +251,19 @@ def getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit,
     context.markAsNeedsExceptionVariables()
 
     emit(
-        "exception_type = %s;" % (
-            getReferenceExportCode(raise_type_name, context)
-        )
+        "exception_type = %s;" % raise_type_name
     )
+    getReferenceExportCode2(raise_type_name, emit, context)
 
-    emit(
-        getErrorLineNumberUpdateCode(context)
-    )
+    emit("exception_value = NULL;")
 
+    getReferenceExportCode2(raise_cause_name, emit, context)
+
+    emitErrorLineNumberUpdateCode(emit, context)
     emit(
         """\
 RAISE_EXCEPTION_WITH_CAUSE( &exception_type, &exception_value, &exception_tb, \
-%s );""" % getReferenceExportCode(raise_cause_name, context)
+%s );""" % raise_cause_name
     )
 
     getGotoCode(context.getExceptionEscape(), emit)
@@ -278,15 +278,11 @@ def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
     context.markAsNeedsExceptionVariables()
 
     emit(
-        "exception_type = %s;" % (
-            getReferenceExportCode(raise_type_name, context)
-        )
+        "exception_type = %s;" % raise_type_name
     )
+    getReferenceExportCode2(raise_type_name, emit, context)
 
-    emit(
-        getErrorLineNumberUpdateCode(context)
-    )
-
+    emitErrorLineNumberUpdateCode(emit, context)
     emit(
         "RAISE_EXCEPTION_WITH_TYPE( &exception_type, &exception_value, &exception_tb );"
     )
@@ -300,20 +296,15 @@ def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
 def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
                                    emit, context):
     emit(
-        "exception_type = %s;" % (
-            getReferenceExportCode(raise_type_name, context)
-        )
+        "exception_type = %s;" % raise_type_name
     )
+    getReferenceExportCode2(raise_type_name, emit, context)
     emit(
-        "exception_value = %s;" % (
-            getReferenceExportCode(raise_value_name, context)
-        )
+        "exception_value = %s;" % raise_value_name
     )
+    getReferenceExportCode2(raise_value_name, emit, context)
 
-    emit(
-        getErrorLineNumberUpdateCode(context)
-    )
-
+    emitErrorLineNumberUpdateCode(emit, context)
     emit(
         "RAISE_EXCEPTION_%s( &exception_type, &exception_value, &exception_tb );" % (
             ("IMPLICIT" if implicit else "WITH_VALUE")
@@ -331,26 +322,20 @@ def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
 def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
                                        raise_tb_name, emit, context):
     emit(
-        "exception_type = %s;" % (
-            getReferenceExportCode(raise_type_name, context)
-        )
+        "exception_type = %s;" % raise_type_name
     )
+    getReferenceExportCode2(raise_type_name, emit, context)
     emit(
-        "exception_value = %s;" % (
-            getReferenceExportCode(raise_value_name, context)
-        )
+        "exception_value = %s;" % raise_value_name
     )
+    getReferenceExportCode2(raise_value_name, emit, context)
     emit(
-        "exception_tb = (PyTracebackObject *)%s;" % (
-            getReferenceExportCode(raise_tb_name, context)
-        )
+        "exception_tb = (PyTracebackObject *)%s;" % raise_tb_name
     )
+    getReferenceExportCode2(raise_tb_name, emit, context)
 
-    # TODO: May be wrong.
-    if False:
-        emit(
-            getErrorLineNumberUpdateCode(context)
-        )
+    if False: # TODO: May be wrong, pylint: disable=W0125
+        emitErrorLineNumberUpdateCode(emit, context)
 
     emit(
         "RAISE_EXCEPTION_WITH_TRACEBACK( &exception_type, &exception_value, &exception_tb);"

@@ -313,7 +313,7 @@ def getParameterParsingCode(context, function_identifier, function_name,
     }
 
     if not parameters.hasNestedParameterVariables() and \
-       not parameters.getKwOnlyParameterCount() > 0:
+       parameters.getKwOnlyParameterCount() == 0:
         args_forward = []
 
         count = -1

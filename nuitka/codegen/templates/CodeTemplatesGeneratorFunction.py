@@ -19,60 +19,16 @@
 
 """
 
-template_make_genfunc_with_context_template = """
-static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
-{
-    // Copy the parameter default values and closure values over.
-%(context_copy)s
-
-    return Nuitka_Function_New(
-        %(fparse_function_identifier)s,
-        %(dparse_function_identifier)s,
-        %(function_name_obj)s,
-#if PYTHON_VERSION >= 330
-        %(function_qualname_obj)s,
-#endif
-        %(code_identifier)s,
-        %(defaults)s,
-#if PYTHON_VERSION >= 300
-        %(kw_defaults)s,
-        %(annotations)s,
-#endif
-        %(module_identifier)s,
-        %(function_doc)s,
-        closure,
-        %(closure_count)d
-    );
-}
+template_genfunc_yielder_decl_template = """\
+static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator );
 """
 
-template_make_genfunc_without_context_template = """
-static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
+template_genfunc_yielder_body_template = """
+static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
 {
-    return Nuitka_Function_New(
-        %(fparse_function_identifier)s,
-        %(dparse_function_identifier)s,
-        %(function_name_obj)s,
-#if PYTHON_VERSION >= 330
-        %(function_qualname_obj)s,
-#endif
-        %(code_identifier)s,
-        %(defaults)s,
-#if PYTHON_VERSION >= 300
-        %(kw_defaults)s,
-        %(annotations)s,
-#endif
-        %(module_identifier)s,
-        %(function_doc)s
-    );
-}
-"""
+    CHECK_OBJECT( (PyObject *)generator );
+    assert( Nuitka_Generator_Check( (PyObject *)generator ) );
 
-# TODO: Make the try/catch below unnecessary by detecting the presence
-# or return statements in generators.
-template_genfunc_yielder_template = """
-static void %(function_identifier)s_context2( Nuitka_GeneratorObject *generator )
-{
     // Local variable initialization
 %(function_var_inits)s
 
@@ -81,30 +37,7 @@ static void %(function_identifier)s_context2( Nuitka_GeneratorObject *generator 
 
 %(generator_exit)s
 }
-
-#ifdef _NUITKA_MAKECONTEXT_INTS
-static void %(function_identifier)s_context( int generator_address_1, int generator_address_2 )
-{
-    // Restore the pointer from ints should it be necessary, often it can be
-    // directly received.
-    int generator_addresses[2] = {
-        generator_address_1,
-        generator_address_2
-    };
-
-    Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)*(uintptr_t *)&generator_addresses[0];
-#else
-static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
-{
-#endif
-
-    CHECK_OBJECT( (PyObject *)generator );
-    assert( Nuitka_Generator_Check( (PyObject *)generator ) );
-
-    %(function_identifier)s_context2( generator );
-
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-}"""
+"""
 
 template_generator_exception_exit = """\
     RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
@@ -145,60 +78,35 @@ template_generator_return_exit = """\
     return;
 """
 
-template_genfunc_generator_no_parameters = """\
-    PyObject **parameters = NULL;
-"""
-
-template_genfunc_generator_with_parameters = """\
-    PyObject **parameters = (PyObject **)malloc(%(parameter_count)d * sizeof(PyObject *));
-%(parameter_copy)s
-"""
-
-template_genfunc_generator_no_closure = """\
-    PyCellObject **closure = NULL;
-"""
-
-template_genfunc_generator_with_parent_closure = """\
-    PyCellObject **closure = (PyCellObject **)malloc(%(closure_count)d * sizeof(PyCellObject *));
-    for( Py_ssize_t i = 0; i < %(closure_count)d; i++ )
-    {
-        closure[ i ] = self->m_closure[ i ];
-        Py_INCREF( closure[ i ] );
-    }
-"""
-
-template_genfunc_generator_with_own_closure = """\
-    PyCellObject **closure = (PyCellObject **)malloc(%(closure_count)d * sizeof(PyCellObject *));
-%(closure_copy)s
-"""
-
-template_genfunc_function_impl_template = """
-static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
-{
-%(parameter_decl)s
-%(closure_decl)s
-
-    PyObject *result = Nuitka_Generator_New(
-        %(function_identifier)s_context,
-        %(function_name_obj)s,
+template_generator_making_without_context = """\
+%(to_name)s = Nuitka_Generator_New(
+    %(generator_identifier)s_context,
+    %(generator_name_obj)s,
 #if PYTHON_VERSION >= 350
-        %(function_qualname_obj)s,
+    %(generator_qualname_obj)s,
+#endif
+    %(code_identifier)s,
+    NULL,
+    0
+);
+"""
+
+template_generator_making_with_context = """\
+{
+%(closure_making)s
+    %(to_name)s = Nuitka_Generator_New(
+        %(generator_identifier)s_context,
+        %(generator_name_obj)s,
+#if PYTHON_VERSION >= 350
+        %(generator_qualname_obj)s,
 #endif
         %(code_identifier)s,
         closure,
-        %(closure_count)d,
-        parameters,
-        %(parameter_count)d
+        %(closure_count)d
     );
-    if (unlikely( result == NULL ))
-    {
-        PyErr_Format( PyExc_RuntimeError, "cannot create generator %(function_name)s" );
-        return NULL;
-    }
-
-    return result;
 }
 """
+
 
 from . import TemplateDebugWrapper # isort:skip
 TemplateDebugWrapper.checkDebug(globals())

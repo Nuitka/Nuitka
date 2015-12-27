@@ -172,6 +172,16 @@ class ParameterSpec(ParameterSpecTuple):
         self.kw_only_args = tuple(kw_only_args)
         self.kw_only_variables = None
 
+    def makeClone(self):
+        return ParameterSpec(
+            name          = self.name,
+            normal_args   = self.normal_args,
+            kw_only_args  = self.kw_only_args,
+            list_star_arg = self.list_star_arg,
+            dict_star_arg = self.dict_star_arg,
+            default_count = self.default_count
+        )
+
     def checkValid(self):
         arg_names = self.getAllNames()
 

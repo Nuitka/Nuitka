@@ -49,11 +49,9 @@ catching and passing in exceptions raised.
 
 """
 
-
-import ast
 import sys
 
-from nuitka import Options, PythonVersions, SourceCodeReferences, Tracing
+from nuitka import Options, SourceCodeReferences, Tracing
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
@@ -68,7 +66,9 @@ from nuitka.nodes.ConditionalNodes import (
     StatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
 from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
     ExpressionImportName
@@ -85,11 +85,17 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
     ExpressionOperationUnary
 )
-from nuitka.nodes.ReturnNodes import ExpressionAwait, StatementReturn
+from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.PythonVersions import python_version
+from nuitka.tree.ReformulationForLoopStatements import (
+    buildAsyncForLoopNode,
+    buildForLoopNode
+)
+from nuitka.tree.ReformulationWhileLoopStatements import buildWhileLoopNode
 from nuitka.utils import Utils
+from nuitka.VariableRegistry import addVariableUsage
 
 from . import SyntaxErrors
 from .Helpers import (
@@ -104,6 +110,7 @@ from .Helpers import (
     makeStatementsSequenceOrStatement,
     mangleName,
     mergeStatements,
+    parseSourceCodeToAst,
     setBuildingDispatchers
 )
 from .ReformulationAssertStatements import buildAssertNode
@@ -133,7 +140,6 @@ from .ReformulationImportStatements import (
     checkFutureImportsOnlyAtStart
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
-from .ReformulationLoopStatements import buildForLoopNode, buildWhileLoopNode
 from .ReformulationNamespacePackages import (
     createNamespacePackage,
     createPathAssignment
@@ -143,7 +149,7 @@ from .ReformulationSequenceCreation import buildSequenceCreationNode
 from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import buildTryFinallyNode
-from .ReformulationWithStatements import buildWithNode
+from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
 from .SourceReading import readSourceCodeFromFilename
 from .VariableClosure import completeVariableClosures
@@ -152,10 +158,16 @@ from .VariableClosure import completeVariableClosures
 def buildVariableReferenceNode(provider, node, source_ref):
     # Python3 is influenced by the mere use of a variable name. So we need to
     # remember it, esp. for cases, where it is optimized away.
-    if python_version >= 300 and \
-       node.id == "super" and \
-       provider.isExpressionFunctionBody():
-        provider.markAsClassClosureTaker()
+    if node.id == "super" and provider.isExpressionFunctionBody():
+        if python_version >= 300:
+            variable = provider.getVariableForClosure("__class__")
+
+            if variable.getOwner().isExpressionFunctionBody():
+                addVariableUsage(variable, provider)
+
+        variable = provider.getVariableForClosure("self")
+        if variable.getOwner().isExpressionFunctionBody():
+            addVariableUsage(variable, provider)
 
     return ExpressionVariableRef(
         variable_name = mangleName(node.id, provider),
@@ -438,10 +450,16 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 def handleNonlocalDeclarationNode(provider, node, source_ref):
     # Need to catch the error of declaring a parameter variable as global
     # ourselves here. The AST parsing doesn't catch it, but we can do it here.
-    parameters = provider.getParameters()
+    parameter_provider = provider
+
+    while parameter_provider.isExpressionGeneratorObjectBody() or \
+          parameter_provider.isExpressionCoroutineObjectBody():
+        parameter_provider = parameter_provider.getParentVariableProvider()
+
+    parameter_names = parameter_provider.getParameters().getParameterNames()
 
     for variable_name in node.names:
-        if variable_name in parameters.getParameterNames():
+        if variable_name in parameter_names:
             SyntaxErrors.raiseSyntaxError(
                 reason       = "name '%s' is parameter and nonlocal" % (
                     variable_name
@@ -554,6 +572,13 @@ def buildReturnNode(provider, node, source_ref):
 
     expression = buildNode(provider, node.value, source_ref, allow_none = True)
 
+    if provider.isExpressionGeneratorObjectBody():
+        if expression is not None and python_version < 330:
+            SyntaxErrors.raiseSyntaxError(
+                "'return' with argument inside generator",
+                source_ref = source_ref,
+            )
+
     if expression is None:
         expression = ExpressionConstantRef(
             constant      = None,
@@ -561,10 +586,16 @@ def buildReturnNode(provider, node, source_ref):
             user_provided = True
         )
 
-    return StatementReturn(
-        expression = expression,
-        source_ref = source_ref
-    )
+    if provider.isExpressionGeneratorObjectBody():
+        return StatementGeneratorReturn(
+            expression = expression,
+            source_ref = source_ref
+        )
+    else:
+        return StatementReturn(
+            expression = expression,
+            source_ref = source_ref
+        )
 
 
 def buildExprOnlyNode(provider, node, source_ref):
@@ -634,11 +665,13 @@ def buildConditionalExpressionNode(provider, node, source_ref):
         source_ref     = source_ref
     )
 
+
 def buildAwaitNode(provider, node, source_ref):
-    return ExpressionAwait(
+    return ExpressionAsyncWait(
         expression = buildNode(provider, node.value, source_ref),
         source_ref = source_ref
     )
+
 
 setBuildingDispatchers(
     path_args3 = {
@@ -650,6 +683,7 @@ setBuildingDispatchers(
         "If"                : buildConditionNode,
         "While"             : buildWhileLoopNode,
         "For"               : buildForLoopNode,
+        "AsyncFor"          : buildAsyncForLoopNode,
         "Compare"           : buildComparisonNode,
         "ListComp"          : buildListContractionNode,
         "DictComp"          : buildDictContractionNode,
@@ -669,6 +703,7 @@ setBuildingDispatchers(
         "Assert"            : buildAssertNode,
         "Exec"              : buildExecNode,
         "With"              : buildWithNode,
+        "AsyncWith"         : buildAsyncWithNode,
         "FunctionDef"       : buildFunctionNode,
         "AsyncFunctionDef"  : buildAsyncFunctionNode,
         "Await"             : buildAwaitNode,
@@ -702,52 +737,15 @@ setBuildingDispatchers(
 )
 
 
-def _makeSyntaxErrorCompatible(e):
-    # Encoding problems for Python happen here, for Python3, this was
-    # already done when we read the source code.
-    if Options.isFullCompat() and \
-       (e.args[0].startswith("unknown encoding:") or \
-        e.args[0].startswith("encoding problem:")):
-        if PythonVersions.doShowUnknownEncodingName():
-            complaint = e.args[0].split(':',2)[1]
-        else:
-            complaint = " with BOM"
-
-        e.args = (
-            "encoding problem:%s" % complaint,
-            (e.args[1][0], 1, None, None)
-        )
-
-        if hasattr(e, "msg"):
-            e.msg = e.args[0]
-
-
-
 def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     # There are a bunch of branches here, mostly to deal with version
-    # differences for module default variables. pylint: disable=R0912
+    # differences for module default variables.
 
-    # Workaround: ast.parse cannot cope with some situations where a file is not
-    # terminated by a new line.
-    if not source_code.endswith('\n'):
-        source_code = source_code + '\n'
-
-    try:
-        body = ast.parse(source_code, source_ref.getFilename())
-    except SyntaxError as e:
-        _makeSyntaxErrorCompatible(e)
-
-        raise e
-
-    assert getKind(body) == "Module"
-
-    line_offset = source_ref.getLineNumber() - 1
-
-    if line_offset > 0:
-        for created_node in ast.walk(body):
-            if hasattr(created_node, "lineno"):
-                created_node.lineno += line_offset
-
+    body = parseSourceCodeToAst(
+        source_code = source_code,
+        filename    = source_ref.getFilename(),
+        line_offset = source_ref.getLineNumber() - 1
+    )
     body, doc = extractDocFromBody(body)
 
     result = buildStatementsNode(

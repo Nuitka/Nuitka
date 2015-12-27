@@ -553,7 +553,7 @@ def callExec(args, clean_path, add_path):
     sys.stderr.flush()
 
     # Add the main arguments, previous separated.
-    args += Options.getMainArgs()
+    args += Options.getPositionalArgs()[1:] + Options.getMainArgs()
 
     Utils.callExec(args)
 

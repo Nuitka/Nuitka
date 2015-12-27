@@ -43,11 +43,23 @@ int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmd
     char** argv = __argv;
 #endif
 #else
-int main( int argc, char *argv[] )
+int main( int argc, char **argv )
 {
 #endif
 #ifdef _NUITKA_TRACE
     puts("main(): Entered.");
+#endif
+
+#ifdef __FreeBSD__
+    // 754 requires that FP exceptions run in "no stop" mode by default, and
+    // until C vendors implement C99's ways to control FP exceptions, Python
+    // requires non-stop mode.  Alas, some platforms enable FP exceptions by
+    // default.  Here we disable them.
+
+    fp_except_t m;
+
+    m = fpgetmask();
+    fpsetmask( m & ~FP_X_OFL );
 #endif
 
 #ifdef _NUITKA_STANDALONE
@@ -93,10 +105,20 @@ int main( int argc, char *argv[] )
     Py_NoSiteFlag = 1;
 
     // Initial command line handling only.
+
 #ifdef _NUITKA_TRACE
-    puts("main(): Calling setCommandLineParameters.");
+    puts("main(): Calling convert/setCommandLineParameters.");
 #endif
-    bool is_multiprocess_forking = setCommandLineParameters( &argc, argv, true );
+
+#if PYTHON_VERSION >= 300
+    wchar_t **argv_unicode = convertCommandLineParameters( argc, argv );
+#endif
+
+#if PYTHON_VERSION < 300
+    bool is_multiprocess_forking = setCommandLineParameters( argc, argv, true );
+#else
+    bool is_multiprocess_forking = setCommandLineParameters( argc, argv_unicode, true );
+#endif
 
     // Initialize the embedded CPython interpreter.
 #ifdef _NUITKA_TRACE
@@ -115,7 +137,12 @@ int main( int argc, char *argv[] )
 #ifdef _NUITKA_TRACE
     puts("main(): Calling setCommandLineParameters.");
 #endif
-    setCommandLineParameters( &argc, argv, false );
+
+#if PYTHON_VERSION < 300
+    setCommandLineParameters( argc, argv, false );
+#else
+    setCommandLineParameters( argc, argv_unicode, false );
+#endif
 
 #ifdef _NUITKA_STANDALONE
 #ifdef _NUITKA_TRACE
@@ -160,6 +187,12 @@ int main( int argc, char *argv[] )
     PyType_Ready( &Nuitka_Function_Type );
     PyType_Ready( &Nuitka_Method_Type );
     PyType_Ready( &Nuitka_Frame_Type );
+#if PYTHON_VERSION >= 350
+    PyType_Ready( &Nuitka_Coroutine_Type );
+    PyType_Ready( &Nuitka_CoroutineWrapper_Type );
+#endif
+
+
 #if PYTHON_VERSION < 300
     _initSlotCompare();
 #endif
@@ -268,7 +301,7 @@ int main( int argc, char *argv[] )
     if ( ERROR_OCCURRED() )
     {
         // Cleanup code may need a frame, so put one back.
-        PyThreadState_GET()->frame = MAKE_FRAME( %(code_identifier)s, module___main__ );
+        PyThreadState_GET()->frame = MAKE_MODULE_FRAME( %(code_identifier)s, module___main__ );
 
         PyErr_PrintEx( 0 );
         Py_Exit( 1 );

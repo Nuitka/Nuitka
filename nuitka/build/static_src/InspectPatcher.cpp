@@ -27,6 +27,10 @@ extern PyObject *const_str_plain_site;
 extern PyObject *const_int_0;
 
 static PyObject *module_inspect;
+#if PYTHON_VERSION >= 350
+static PyObject *module_types;
+extern PyObject *const_str_plain_types;
+#endif
 
 static char *kwlist[] = { (char *)"object", NULL };
 
@@ -67,16 +71,111 @@ static PyObject *_inspect_getgeneratorstate_replacement( PyObject *self, PyObjec
         return old_getgeneratorstate->ob_type->tp_call( old_getgeneratorstate, args, kwds );
     }
 }
+
+#if PYTHON_VERSION >= 350
+static PyObject *old_getcoroutinestate = NULL;
+
+static PyObject *_inspect_getcoroutinestate_replacement( PyObject *self, PyObject *args, PyObject *kwds )
+{
+    PyObject *object;
+
+    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:getcoroutinestate", kwlist, &object, NULL ))
+    {
+        return NULL;
+    }
+
+    if ( Nuitka_Coroutine_Check( object ) )
+    {
+        Nuitka_CoroutineObject *coroutine = (Nuitka_CoroutineObject *)object;
+
+        if ( coroutine->m_running )
+        {
+            return PyObject_GetAttrString( module_inspect, "CORO_RUNNING" );
+        }
+        else if ( coroutine->m_status == status_Finished )
+        {
+            return PyObject_GetAttrString( module_inspect, "CORO_CLOSED" );
+        }
+        else if ( coroutine->m_status == status_Unused )
+        {
+            return PyObject_GetAttrString( module_inspect, "CORO_CREATED" );
+        }
+        else
+        {
+           return PyObject_GetAttrString( module_inspect, "CORO_SUSPENDED" );
+        }
+    }
+    else
+    {
+        return old_getcoroutinestate->ob_type->tp_call( old_getcoroutinestate, args, kwds );
+    }
+}
+
+static PyObject *old_types_coroutine = NULL;
+
+static char *kwlist_func[] = { (char *)"func", NULL };
+
+static PyObject *_types_coroutine_replacement( PyObject *self, PyObject *args, PyObject *kwds )
+{
+    PyObject *func;
+
+    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:getcoroutinestate", kwlist_func, &func, NULL ))
+    {
+        return NULL;
+    }
+
+    if ( false && Nuitka_Coroutine_Check( func ) )
+    {
+        Py_INCREF( func );
+        return func;
+    }
+    else
+    {
+        if ( Nuitka_Function_Check( func ) )
+        {
+            Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)func;
+
+            if ( function->m_code_object->co_flags & CO_GENERATOR )
+            {
+                function->m_code_object->co_flags |= 0x100;
+            }
+        }
+
+        return old_types_coroutine->ob_type->tp_call( old_types_coroutine, args, kwds );
+    }
+}
+
+#endif
+
 #endif
 
 #if PYTHON_VERSION >= 300
 static PyMethodDef _method_def_inspect_getgeneratorstate_replacement =
 {
-    "isframe",
+    "getgeneratorstate",
     (PyCFunction)_inspect_getgeneratorstate_replacement,
     METH_VARARGS | METH_KEYWORDS,
     NULL
 };
+
+#if PYTHON_VERSION >= 350
+static PyMethodDef _method_def_inspect_getcoroutinestate_replacement =
+{
+    "getcoroutinestate",
+    (PyCFunction)_inspect_getcoroutinestate_replacement,
+    METH_VARARGS | METH_KEYWORDS,
+    NULL
+};
+
+static PyMethodDef _method_def_types_coroutine_replacement =
+{
+    "coroutine",
+    (PyCFunction)_types_coroutine_replacement,
+    METH_VARARGS | METH_KEYWORDS,
+    NULL
+};
+
+#endif
 
 // Replace inspect functions with ones that accept compiled types too.
 static void patchInspectModule( void )
@@ -117,6 +216,62 @@ static void patchInspectModule( void )
 
         PyObject_SetAttrString( module_inspect, "getgeneratorstate", inspect_getgeneratorstate_replacement );
     }
+
+#if PYTHON_VERSION >= 350
+    // Patch "inspect.getcoroutinestate" unless it is already patched.
+    old_getcoroutinestate = PyObject_GetAttrString( module_inspect, "getcoroutinestate" );
+    CHECK_OBJECT( old_getcoroutinestate );
+
+    if ( PyFunction_Check( old_getcoroutinestate ) )
+    {
+        PyObject *inspect_getcoroutinestate_replacement = PyCFunction_New( &_method_def_inspect_getcoroutinestate_replacement, NULL );
+        CHECK_OBJECT( inspect_getcoroutinestate_replacement );
+
+        PyObject_SetAttrString( module_inspect, "getcoroutinestate", inspect_getcoroutinestate_replacement );
+    }
+
+    module_types = IMPORT_MODULE( const_str_plain_types, Py_None, Py_None, const_tuple_empty, const_int_0 );
+
+    if ( module_types == NULL )
+    {
+        PyErr_PrintEx( 0 );
+        Py_Exit( 1 );
+    }
+    CHECK_OBJECT( module_types );
+
+    // Patch "types.coroutine" unless it is already patched.
+    old_types_coroutine = PyObject_GetAttrString( module_types, "coroutine" );
+    CHECK_OBJECT( old_types_coroutine );
+
+    if ( PyFunction_Check( old_types_coroutine ) )
+    {
+        PyObject *types_coroutine_replacement = PyCFunction_New( &_method_def_types_coroutine_replacement, NULL );
+        CHECK_OBJECT( types_coroutine_replacement );
+
+        PyObject_SetAttrString( module_types, "coroutine", types_coroutine_replacement );
+    }
+
+    static char const *wrapper_enhancement_code = "\n\
+import types\n\
+_old_GeneratorWrapper = types._GeneratorWrapper\n\
+class GeneratorWrapperEnhanced(_old_GeneratorWrapper):\n\
+    def __init__(self, gen):\n\
+        _old_GeneratorWrapper.__init__(self, gen)\n\
+\n\
+        if hasattr(gen, 'gi_code'):\n\
+            if gen.gi_code.co_flags & 0x0020:\n\
+                self._GeneratorWrapper__isgen = True\n\
+\n\
+types._GeneratorWrapper = GeneratorWrapperEnhanced\
+";
+
+    PyObject *wrapper_enhencement_codeobject = Py_CompileString( wrapper_enhancement_code, "<exec>", Py_file_input );
+    CHECK_OBJECT( wrapper_enhencement_codeobject );
+
+    PyImport_ExecCodeModuleEx( "_types_patch", wrapper_enhencement_codeobject, "<frozen>" );
+
+#endif
+
 #endif
 
 }

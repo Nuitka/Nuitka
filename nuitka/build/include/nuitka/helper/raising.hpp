@@ -157,7 +157,6 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
 {
     CHECK_OBJECT( *exception_type );
     CHECK_OBJECT( exception_cause );
-    *exception_value = NULL;
     *exception_tb = NULL;
 
 #if PYTHON_VERSION >= 330
@@ -196,8 +195,11 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
         Py_XDECREF( *exception_tb );
         Py_XDECREF( exception_cause );
 
+#ifdef _NUITKA_FULL_COMPAT
         PyErr_Format( PyExc_TypeError, "exception causes must derive from BaseException" );
-
+#else
+        PyErr_Format( PyExc_TypeError, "exception causes must derive from BaseException (%s does not)", Py_TYPE( exception_cause )->tp_name );
+#endif
         FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
         return;
     }

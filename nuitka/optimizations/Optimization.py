@@ -201,6 +201,14 @@ def optimizeUnusedClosureVariables(function_body):
     for closure_variable in function_body.getClosureVariables():
         # print "VAR", closure_variable
 
+        # Need to take closure of
+        if closure_variable.isParameterVariable() and \
+           function_body.isExpressionGeneratorObjectBody():
+            continue
+
+        if closure_variable.getName() == "__class__":
+            continue
+
         variable_traces = function_body.constraint_collection.getVariableTraces(
             variable = closure_variable
         )

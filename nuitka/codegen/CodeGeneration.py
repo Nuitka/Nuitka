@@ -57,6 +57,13 @@ from .ClassCodes import getSelectMetaclassCode
 from .ComparisonCodes import getComparisonExpressionCode
 from .ConditionalCodes import generateConditionCode, getConditionCheckTrueCode
 from .ConstantCodes import generateConstantReferenceCode, getConstantCode
+from .CoroutineCodes import (
+    generateAsyncIterCode,
+    generateAsyncNextCode,
+    generateAsyncWaitCode,
+    generateMakeCoroutineObjectCode,
+    getCoroutineObjectCode
+)
 from .DictCodes import (
     generateDictionaryCreationCode,
     generateDictOperationUpdateCode,
@@ -80,23 +87,22 @@ from .ExceptionCodes import (
     getExceptionRefCode
 )
 from .FrameCodes import (
-    getFrameGuardHeavyCode,
-    getFrameGuardLightCode,
-    getFrameGuardOnceCode,
+    generateStatementsFrameCode,
     getFramePreserveExceptionCode,
     getFrameRestoreExceptionCode
 )
 from .FunctionCodes import (
-    generateCoroutineCreationCode,
-    generateGeneratorEntryCode,
+    generateFunctionCreationCode,
+    generateFunctionDeclCode,
     getDirectFunctionCallCode,
     getExportScopeCode,
     getFunctionCode,
-    getFunctionCreationCode,
-    getFunctionDirectDecl,
-    getFunctionMakerCode,
-    getFunctionMakerDecl,
-    getGeneratorFunctionCode
+    getFunctionDirectDecl
+)
+from .GeneratorCodes import (
+    generateGeneratorEntryCode,
+    generateMakeGeneratorObjectCode,
+    getGeneratorObjectCode
 )
 from .GlobalsLocalsCodes import (
     getLoadGlobalsCode,
@@ -116,8 +122,8 @@ from .IndexCodes import (
     getMinIndexCode
 )
 from .IteratorCodes import (
+    generateBuiltinNext1Code,
     getBuiltinLoopBreakNextCode,
-    getBuiltinNext1Code,
     getUnpackCheckCode,
     getUnpackNextCode
 )
@@ -214,6 +220,8 @@ def generateFunctionCallCode(to_name, call_node, emit, context):
         function_identifier = function_identifier,
         arg_names           = arg_names,
         closure_variables   = function_body.getClosureVariables(),
+        needs_check         = call_node.getFunction().getFunctionRef().\
+                                getFunctionBody().mayRaiseException(BaseException),
         emit                = emit,
         context             = context
     )
@@ -262,143 +270,6 @@ def generateFunctionOutlineCode(to_name, outline_body, emit, context):
 _generated_functions = {}
 
 
-
-def generateFunctionCreationCode(to_name, function_body, defaults, kw_defaults,
-                                  annotations, defaults_first, emit, context):
-    # This is about creating functions, which is detail ridden stuff,
-    # pylint: disable=R0914
-
-    assert function_body.needsCreation(), function_body
-
-    parameters = function_body.getParameters()
-
-    def handleKwDefaults():
-        if kw_defaults:
-            kw_defaults_name = context.allocateTempName("kw_defaults")
-
-            assert not kw_defaults.isExpressionConstantRef() or \
-                   not kw_defaults.getConstant() == {}, kw_defaults.getConstant()
-
-            generateExpressionCode(
-                to_name    = kw_defaults_name,
-                expression = kw_defaults,
-                emit       = emit,
-                context    = context
-            )
-        else:
-            kw_defaults_name = None
-
-        return kw_defaults_name
-
-    def handleDefaults():
-        if defaults:
-            defaults_name = context.allocateTempName("defaults")
-
-            generateTupleCreationCode(
-                to_name  = defaults_name,
-                elements = defaults,
-                emit     = emit,
-                context  = context
-            )
-        else:
-            defaults_name = None
-
-        return defaults_name
-
-    if defaults_first:
-        defaults_name = handleDefaults()
-        kw_defaults_name = handleKwDefaults()
-    else:
-        kw_defaults_name = handleKwDefaults()
-        defaults_name = handleDefaults()
-
-    if annotations:
-        annotations_name = context.allocateTempName("annotations")
-
-        generateExpressionCode(
-            to_name    = annotations_name,
-            expression = annotations,
-            emit       = emit,
-            context    = context,
-        )
-    else:
-        annotations_name = None
-
-    var_names = parameters.getCoArgNames()
-
-    # Add names of local variables too.
-    var_names += [
-        local_variable.getName()
-        for local_variable in
-        function_body.getLocalVariables()
-        if not local_variable.isParameterVariable()
-    ]
-
-    code_identifier = context.getCodeObjectHandle(
-        filename      = function_body.getParentModule().getRunTimeFilename(),
-        var_names     = var_names,
-        arg_count     = parameters.getArgumentCount(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        line_number   = function_body.getSourceReference().getLineNumber(),
-        code_name     = function_body.getFunctionName(),
-        is_generator  = function_body.isGenerator(),
-        is_optimized  = not function_body.needsLocalsDict(),
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None,
-        has_closure   = function_body.getClosureVariables() != (),
-        future_flags  = function_body.getSourceReference().getFutureSpec().asFlags()
-    )
-
-    function_identifier = function_body.getCodeName()
-
-    # Creation code needs to be done only once.
-    if not context.hasHelperCode(function_identifier):
-
-        maker_code = getFunctionMakerCode(
-            function_name       = function_body.getFunctionName(),
-            function_qualname   = function_body.getFunctionQualname(),
-            function_identifier = function_identifier,
-            code_identifier     = code_identifier,
-            parameters          = parameters,
-            closure_variables   = function_body.getClosureVariables(),
-            defaults_name       = defaults_name,
-            kw_defaults_name    = kw_defaults_name,
-            annotations_name    = annotations_name,
-            function_doc        = function_body.getDoc(),
-            is_generator        = function_body.isGenerator(),
-            context             = context
-        )
-
-        context.addHelperCode(function_identifier, maker_code)
-
-        function_decl = getFunctionMakerDecl(
-            function_identifier = function_body.getCodeName(),
-            defaults_name       = defaults_name,
-            kw_defaults_name    = kw_defaults_name,
-            annotations_name    = annotations_name,
-            closure_variables   = function_body.getClosureVariables()
-        )
-
-        context.addDeclaration(function_identifier, function_decl)
-
-    getFunctionCreationCode(
-        to_name             = to_name,
-        function_identifier = function_body.getCodeName(),
-        defaults_name       = defaults_name,
-        kw_defaults_name    = kw_defaults_name,
-        annotations_name    = annotations_name,
-        closure_variables   = function_body.getClosureVariables(),
-        emit                = emit,
-        context             = context
-    )
-
-    getReleaseCode(
-        release_name = annotations_name,
-        emit         = emit,
-        context      = context
-    )
-
-
 def generateFunctionBodyCode(function_body, context):
     function_identifier = function_body.getCodeName()
 
@@ -406,7 +277,18 @@ def generateFunctionBodyCode(function_body, context):
         return _generated_functions[function_identifier]
 
     # TODO: Generate both codes, and base direct/etc. decisions on context.
-    if function_body.needsCreation():
+
+    if function_body.isExpressionGeneratorObjectBody():
+        function_context = Contexts.PythonGeneratorObjectContext(
+            parent   = context,
+            function = function_body
+        )
+    elif function_body.isExpressionCoroutineObjectBody():
+        function_context = Contexts.PythonCoroutineObjectContext(
+            parent   = context,
+            function = function_body
+        )
+    elif function_body.needsCreation():
         function_context = Contexts.PythonFunctionCreatedContext(
             parent   = context,
             function = function_body
@@ -426,45 +308,31 @@ def generateFunctionBodyCode(function_body, context):
         context            = function_context
     )
 
-    parameters = function_body.getParameters()
-
     needs_exception_exit = function_body.mayRaiseException(BaseException)
-    needs_generator_return = function_body.needsGeneratorReturnExit()
 
-    if function_body.isGenerator():
-        source_ref = function_body.getSourceReference()
-
-        code_identifier = function_context.getCodeObjectHandle(
-            filename      = function_body.getParentModule().getRunTimeFilename(),
-            var_names     = parameters.getCoArgNames(),
-            arg_count     = parameters.getArgumentCount(),
-            kw_only_count = parameters.getKwOnlyParameterCount(),
-            line_number   = source_ref.getLineNumber(),
-            code_name     = function_body.getFunctionName(),
-            is_generator  = True,
-            is_optimized  = not function_context.hasLocalsDict(),
-            has_starlist  = parameters.getStarListArgumentName() is not None,
-            has_stardict  = parameters.getStarDictArgumentName() is not None,
-            has_closure   = function_body.getClosureVariables() != (),
-            future_flags  = source_ref.getFutureSpec().asFlags()
-        )
-
-        function_code = getGeneratorFunctionCode(
+    if function_body.isExpressionGeneratorObjectBody():
+        function_code = getGeneratorObjectCode(
             context                = function_context,
-            function_name          = function_body.getFunctionName(),
-            function_qualname      = function_body.getFunctionQualname(),
             function_identifier    = function_identifier,
-            code_identifier        = code_identifier,
-            parameters             = parameters,
-            closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
             temp_variables         = function_body.getTempVariables(),
             function_codes         = function_codes.codes,
-            function_doc           = function_body.getDoc(),
             needs_exception_exit   = needs_exception_exit,
-            needs_generator_return = needs_generator_return
+            needs_generator_return = function_body.needsGeneratorReturnExit()
+        )
+    elif function_body.isExpressionCoroutineObjectBody():
+        function_code = getCoroutineObjectCode(
+            context                = function_context,
+            function_identifier    = function_identifier,
+            user_variables         = function_body.getUserLocalVariables(),
+            temp_variables         = function_body.getTempVariables(),
+            function_codes         = function_codes.codes,
+            needs_exception_exit   = needs_exception_exit,
+            needs_generator_return = function_body.needsGeneratorReturnExit()
         )
     else:
+        parameters = function_body.getParameters()
+
         function_code = getFunctionCode(
             context              = function_context,
             function_name        = function_body.getFunctionName(),
@@ -743,20 +611,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             emit         = emit,
             context      = context
         )
-    elif expression.isExpressionBuiltinNext1():
-        value_name = context.allocateTempName("next1_arg")
-
-        makeExpressionCode(
-            to_name    = value_name,
-            expression = expression.getValue()
-        )
-
-        getBuiltinNext1Code(
-            to_name = to_name,
-            value   = value_name,
-            emit    = emit,
-            context = context
-        )
     elif expression.isExpressionBuiltinNext2():
         generateCAPIObjectCode(
             to_name    = to_name,
@@ -819,6 +673,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         generateFunctionCreationCode(
             to_name        = to_name,
             function_body  = expression.getFunctionRef().getFunctionBody(),
+            code_object    = expression.getCodeObject(),
             defaults       = expression.getDefaults(),
             kw_defaults    = expression.getKwDefaults(),
             annotations    = expression.getAnnotations(),
@@ -3072,140 +2927,6 @@ def _generateStatementSequenceCode(statement_sequence, emit, context,
             )
 
 
-def generateStatementsFrameCode(statement_sequence, emit, context):
-    # This is a wrapper that provides also handling of frames, which got a
-    # lot of variants and details, therefore lots of branches.
-    # pylint: disable=R0912
-
-    context = Contexts.PythonStatementCContext(context)
-
-    provider = statement_sequence.getParentVariableProvider()
-    guard_mode = statement_sequence.getGuardMode()
-
-    parent_exception_exit = context.getExceptionEscape()
-
-    # Allow stacking of frame handles.
-    old_frame_handle = context.getFrameHandle()
-
-    if guard_mode != "pass_through":
-        if provider.isExpressionFunctionBody():
-            context.setFrameHandle("frame_function")
-        else:
-            context.setFrameHandle("frame_module")
-
-        context.setExceptionEscape(
-            context.allocateLabel("frame_exception_exit")
-        )
-    else:
-        context.setFrameHandle("PyThreadState_GET()->frame")
-
-    needs_preserve = statement_sequence.needsFrameExceptionPreserving()
-
-    if statement_sequence.mayReturn() and guard_mode != "pass_through":
-        parent_return_exit = context.getReturnTarget()
-
-        context.setReturnTarget(
-            context.allocateLabel("frame_return_exit")
-        )
-    else:
-        parent_return_exit = None
-
-    # Now generate the statements code into a local buffer, to we can wrap
-    # the frame stuff around it.
-    local_emit = Emission.SourceCodeCollector()
-
-    _generateStatementSequenceCode(
-        statement_sequence = statement_sequence,
-        emit               = local_emit,
-        context            = context
-    )
-
-    if statement_sequence.mayRaiseException(BaseException) or \
-       guard_mode == "generator":
-        frame_exception_exit = context.getExceptionEscape()
-    else:
-        frame_exception_exit = None
-
-    if parent_return_exit is not None:
-        frame_return_exit = context.getReturnTarget()
-    else:
-        frame_return_exit = None
-
-    if guard_mode == "generator":
-        assert provider.isExpressionFunctionBody() and \
-               provider.isGenerator()
-
-        # TODO: This case should care about "needs_preserve", as for
-        # Python3 it is actually not a stub of empty code.
-
-        codes = getFrameGuardLightCode(
-            frame_identifier      = context.getFrameHandle(),
-            code_identifier       = statement_sequence.getCodeObjectHandle(
-                context = context
-            ),
-            codes                 = local_emit.codes,
-            parent_exception_exit = parent_exception_exit,
-            frame_exception_exit  = frame_exception_exit,
-            parent_return_exit    = parent_return_exit,
-            frame_return_exit     = frame_return_exit,
-            provider              = provider,
-            context               = context
-        ).split('\n')
-    elif guard_mode == "pass_through":
-        # This case does not care about "needs_preserve", as for that kind
-        # of frame, it is an empty code stub anyway.
-        codes = '\n'.join(local_emit.codes),
-    elif guard_mode == "full":
-        assert provider.isExpressionFunctionBody()
-
-        codes = getFrameGuardHeavyCode(
-            frame_identifier      = context.getFrameHandle(),
-            code_identifier       = statement_sequence.getCodeObjectHandle(
-                context
-            ),
-            parent_exception_exit = parent_exception_exit,
-            parent_return_exit    = parent_return_exit,
-            frame_exception_exit  = frame_exception_exit,
-            frame_return_exit     = frame_return_exit,
-            codes                 = local_emit.codes,
-            needs_preserve        = needs_preserve,
-            provider              = provider,
-            context               = context
-        ).split('\n')
-    elif guard_mode == "once":
-        codes = getFrameGuardOnceCode(
-            frame_identifier      = context.getFrameHandle(),
-            code_identifier       = statement_sequence.getCodeObjectHandle(
-                context = context
-            ),
-            parent_exception_exit = parent_exception_exit,
-            parent_return_exit    = parent_return_exit,
-            frame_exception_exit  = frame_exception_exit,
-            frame_return_exit     = frame_return_exit,
-            codes                 = local_emit.codes,
-            needs_preserve        = needs_preserve,
-            provider              = provider,
-            context               = context
-        ).split('\n')
-    else:
-        assert False, guard_mode
-
-    context.setExceptionEscape(parent_exception_exit)
-
-    if frame_return_exit is not None:
-        context.setReturnTarget(parent_return_exit)
-
-    context.setFrameHandle(old_frame_handle)
-
-    for line in codes:
-        emit(line)
-
-
-    # Complain if any temporary was not dealt with yet.
-    assert not context.getCleanupTempnames(), \
-      context.getCleanupTempnames()
-
-
 def generateStatementSequenceCode(statement_sequence, emit, context,
                                   allow_none = False):
 
@@ -3267,17 +2988,13 @@ def prepareModuleCode(global_context, module, module_name):
 
         function_body_codes.append(function_code)
 
-        if function_body.needsDirectCall():
-            function_decl = getFunctionDirectDecl(
-                function_identifier = function_body.getCodeName(),
-                closure_variables   = function_body.getClosureVariables(),
-                parameter_variables = function_body.getParameters().getAllVariables(),
-                file_scope          = getExportScopeCode(
-                    cross_module = function_body.isCrossModuleUsed()
-                )
-            )
+        function_decl = generateFunctionDeclCode(
+            function_body = function_body
+        )
 
+        if function_decl is not None:
             function_decl_codes.append(function_decl)
+
 
     for function_body in module.getCrossUsedFunctions():
         assert function_body.isCrossModuleUsed()
@@ -3376,6 +3093,7 @@ Helpers.setExpressionDispatchDict(
         "BUILTIN_SLICE"             : generateBuiltinSliceCode,
         "BUILTIN_HASH"              : generateBuiltinHashCode,
         "BUILTIN_ID"                : generateBuiltinIdCode,
+        "BUILTIN_NEXT1"             : generateBuiltinNext1Code,
         "CALL_EMPTY"                : generateCallCode,
         "CALL_KEYWORDS_ONLY"        : generateCallCode,
         "CALL_NO_KEYWORDS"          : generateCallCode,
@@ -3386,6 +3104,8 @@ Helpers.setExpressionDispatchDict(
         "LIST_OPERATION_EXTEND"     : generateListOperationExtendCode,
         "LIST_OPERATION_POP"        : generateListOperationPopCode,
         "MODULE_FILE_ATTRIBUTE_REF" : generateModuleFileAttributeCode,
+        "MAKE_GENERATOR_OBJECT"     : generateMakeGeneratorObjectCode,
+        "MAKE_COROUTINE_OBJECT"     : generateMakeCoroutineObjectCode,
         "OPERATION_BINARY"          : generateOperationBinaryCode,
         "OPERATION_BINARY_INPLACE"  : generateOperationBinaryCode,
         "OPERATION_UNARY"           : generateOperationUnaryCode,
@@ -3398,6 +3118,8 @@ Helpers.setExpressionDispatchDict(
         "VARIABLE_REF"              : generateVariableReferenceCode,
         "YIELD"                     : generateYieldCode,
         "YIELD_FROM"                : generateYieldFromCode,
-        "COROUTINE_CREATION"        : generateCoroutineCreationCode
+        "ASYNC_WAIT"                : generateAsyncWaitCode,
+        "ASYNC_ITER"                : generateAsyncIterCode,
+        "ASYNC_NEXT"                : generateAsyncNextCode,
     }
 )
