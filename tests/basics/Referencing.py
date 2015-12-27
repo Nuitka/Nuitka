@@ -837,6 +837,8 @@ def simpleFunction101():
 
     orMaking('x', "")
 
+####################################
+
 class SomeClassWithAttributeAccess(object):
     READING = 1
 
@@ -847,6 +849,8 @@ def simpleFunction102():
     SomeClassWithAttributeAccess().use()
     SomeClassWithAttributeAccess().use()
 
+####################################
+
 def getInt():
     return 3
 
@@ -855,6 +859,18 @@ def simpleFunction103():
         raise getInt()
     except TypeError:
         pass
+
+####################################
+
+class ClassWithGeneratorMethod:
+    def generator_method(self):
+        yield self
+
+
+def simpleFunction104():
+    return list(ClassWithGeneratorMethod().generator_method())
+
+####################################
 
 
 # These need stderr to be wrapped.

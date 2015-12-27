@@ -37,22 +37,15 @@ if not hasattr(sys, "gettotalrefcount"):
     sys.gettotalrefcount = lambda : 0
 
 def run_async(coro):
-    buffer = []
+    values = []
     result = None
     while True:
         try:
-            buffer.append(coro.send(None))
+            values.append(coro.send(None))
         except StopIteration as ex:
             result = ex.args[0] if ex.args else None
             break
-    return buffer, result
-
-class I:
-    async def __aiter__(self):
-        return self
-
-    def __anext__(self):
-        return ()
+    return values, result
 
 def raisy():
     raise TypeError
@@ -64,29 +57,41 @@ def simpleFunction1():
 
     run_async(foo())
 
+####################################
+
+class AsyncIteratorWrapper:
+    def __init__(self, obj):
+        self._it = iter(obj)
+
+    async def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            value = next(self._it)
+        except StopIteration:
+            raise StopAsyncIteration
+        return value
+
+
+def simpleFunction3():
+    async def f():
+        result = []
+
+        async for letter in AsyncIteratorWrapper("abcdefg"):
+            result.append(letter)
+
+        return result
+
+    run_async(f())
+
+####################################
 
 def simpleFunction2():
     async def foo():
         return 7
 
     run_async(foo())
-
-
-def simpleFunction3():
-    aiter = I()
-
-    async def foo():
-        # TODO: This is not yet releasing it all, why
-        raisy()
-
-        async for i in aiter:
-            print('never going to happen')
-
-    try:
-        run_async(foo())
-    except TypeError:
-        pass
-
 
 def simpleFunction4():
     async def foo():
@@ -95,6 +100,37 @@ def simpleFunction4():
     try:
         run_async(foo())
     except RuntimeError:
+        pass
+
+####################################
+
+class ClassWithAsyncMethod:
+    async def async_method(self):
+        return self
+
+def simpleFunction5():
+    run_async(ClassWithAsyncMethod().async_method())
+
+####################################
+
+class BadAsyncIter:
+    def __init__(self):
+        self.weight = 1
+
+    async def __aiter__(self):
+        return self
+
+    def __anext__(self):
+        return ()
+
+def simpleFunction7():
+    async def foo():
+        async for i in BadAsyncIter():
+            print('never going to happen')
+
+    try:
+        run_async(foo())
+    except TypeError:
         pass
 
 

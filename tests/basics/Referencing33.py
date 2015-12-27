@@ -107,6 +107,13 @@ def simpleFunction4():
         pass
 
 
+def simpleFunction5():
+    def g():
+        yield from (2,3)
+
+    return list( g() )
+
+
 
 # These need stderr to be wrapped.
 tests_stderr = (3, 4)
