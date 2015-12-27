@@ -343,23 +343,22 @@ def _getConstantDefaultPopulation():
         "__import__"
     ]
 
-    # For Python3 modules
     if python_version >= 300:
+        # For Python3 modules
         result.append(
             "__cached__"
         )
 
-    # For Python3 print
-    if python_version >= 300:
-        result += [
+        # For Python3 print
+        result += (
             "print",
             "end",
             "file"
-        ]
+        )
 
     if python_version >= 330:
+        # Modules have that attribute starting with 3.3
         result.append(
-            # Modules have that attribute.
             "__loader__"
         )
 
@@ -370,23 +369,22 @@ def _getConstantDefaultPopulation():
         )
 
     if python_version >= 330:
-        result += [
+        result += (
             # YIELD_FROM uses this
             "throw",
             "close",
-        ]
+        )
 
 
-    # For patching Python2 internal class type
     if python_version < 300:
-        result += [
+        # For patching Python2 internal class type
+        result += (
             "__getattr__",
             "__setattr__",
             "__delattr__",
-        ]
+        )
 
-    # For patching Python2 sys attributes for current exception
-    if python_version < 300:
+        # For patching Python2 "sys" attributes for current exception
         result += (
             "exc_type",
             "exc_value",
@@ -410,7 +408,7 @@ def _getConstantDefaultPopulation():
             "site"
         )
 
-    # Builtin original values
+    # Built-in original values
     if not Options.shallMakeModule():
         result += [
             "type",
