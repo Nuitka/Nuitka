@@ -1,5 +1,5 @@
-Nuitka Release 0.5.17 (Draft)
-=============================
+Nuitka Release 0.5.17
+=====================
 
 This release is a major feature release, as it adds full support for Python3.5
 and its coroutines. In addition, in order to properly support coroutines, the
