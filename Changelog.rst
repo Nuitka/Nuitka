@@ -3,6 +3,49 @@ Nuitka Release 0.5.18 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Fix, slice built-in was not properly checking for exceptions. `Issue#262
+  <http://bugs.nuitka.net/issue262>`__.
+
+- Compatibility: The nested arguments functions can now be called using their
+  keyword arguments.
+
+  .. code-block:: python
+
+    def someFunction(a,(b,c)):
+        return a, b, c
+
+    someFunction(a = 1, **{".1" : (2,3)})
+
+Optimization
+------------
+
+- Standalone: Avoid inclusion of bytecode of ``unittest.test``, ``sqlite3.test``,
+  ``distutils.test``, and ``ensurepip``. These are not needed, but simply bloat
+  the amount of bytecode used on e.g. MacOS. `Issue#272
+  <http://bugs.nuitka.net/issue272>`__.
+
+- Nested argument functions now have a quick call entry point as well, making
+  them faster to call too.
+
+- The ``slice`` built-in, and internal creation of slices (e.g. in re-formulations
+  of Python3 slices as subscripts) cannot raise.
+
+Cleanups
+--------
+
+- Nested argument functions of Python2 are now re-formulated into a wrapping
+  function that directly calls the actual function body with the unpacking of
+  nested arguments done in nodes explicitly. This allows for better optimization
+  and checks of these steps and potential in-lining of these functions too.
+
+Summary
+-------
+
+This release is not done yet.
+
 
 Nuitka Release 0.5.17
 =====================
@@ -18,7 +61,7 @@ Bug Fixes
 - Windows: Command line arguments that are unicode strings were not properly
   working.
 
-- Compatibility: Only the code object attached to exceptions contains all
+- Compatibility: Fix, only the code object attached to exceptions contained all
   variable names, but not the one of the function object.
 
 - Python3: Support for virtualenv on Windows was using non-portable code and
