@@ -133,10 +133,13 @@ static PyObject *Nuitka_Frame_get_restricted( PyFrameObject *frame, void *closur
 
 static PyObject *Nuitka_Frame_getlocals( PyFrameObject *frame, void *closure )
 {
-    // Note: Very important that we correctly support this function to work:
-    PyFrame_FastToLocals( frame );
+    if ( frame->f_locals == NULL )
+    {
+        frame->f_locals = PyDict_New();
+    }
 
-    return INCREASE_REFCOUNT( frame->f_locals );
+    Py_INCREF( frame->f_locals );
+    return frame->f_locals;
 }
 
 static PyObject *Nuitka_Frame_getlineno( PyFrameObject *frame, void *closure )
