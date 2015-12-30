@@ -346,7 +346,13 @@ def scanStandardLibraryPath(stdlib_dir):
             if "turtledemo" in dirs:
                 dirs.remove("turtledemo")
 
-        if import_path in ("tkinter", "importlib", "ctypes"):
+            if "ensurepip" in filenames:
+                filenames.remove("ensurepip")
+            if "ensurepip" in dirs:
+                dirs.remove("ensurepip")
+
+        if import_path in ("tkinter", "importlib", "ctypes", "unittest",
+                           "sqlite3", "distutils"):
             if "test" in dirs:
                 dirs.remove("test")
 
