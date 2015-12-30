@@ -1837,6 +1837,18 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
         return true;
     }
 
+#if PYTHON_VERSION >= 350
+    if ( cls == (PyObject *)&PyCoro_Type && Nuitka_Coroutine_Check( inst ) )
+    {
+        return true;
+    }
+
+    if ( cls == (PyObject *)&PyCoro_Type && Nuitka_Generator_Check( inst ) )
+    {
+        return true;
+    }
+#endif
+
     // May need to be recursive for tuple arguments.
     if ( PyTuple_Check( cls ) )
     {
