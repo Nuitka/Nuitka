@@ -594,6 +594,7 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
             lower_name = lower_name,
             upper_name = upper_name,
             step_name  = step_name,
+            may_raise  = expression.mayRaiseException(BaseException),
             emit       = emit,
             context    = context
         )

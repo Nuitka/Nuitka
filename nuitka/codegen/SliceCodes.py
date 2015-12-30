@@ -43,6 +43,7 @@ def generateBuiltinSliceCode(to_name, expression, emit, context):
         lower_name = arg_names[0],
         upper_name = arg_names[1],
         step_name  = arg_names[2],
+        may_raise  = expression.mayRaiseException(BaseException),
         emit       = emit,
         context    = context
     )
@@ -100,8 +101,8 @@ def getSliceLookupIndexesCode(to_name, lower_name, upper_name, source_name,
     context.addCleanupTempName(to_name)
 
 
-def getSliceObjectCode(to_name, lower_name, upper_name, step_name, emit,
-                       context):
+def getSliceObjectCode(to_name, lower_name, upper_name, step_name, may_raise,
+                       emit, context):
 
     emit(
         "%s = MAKE_SLICEOBJ3( %s, %s, %s );" % (
@@ -116,6 +117,13 @@ def getSliceObjectCode(to_name, lower_name, upper_name, step_name, emit,
         release_names = (lower_name, upper_name, step_name),
         emit          = emit,
         context       = context
+    )
+
+    getErrorExitCode(
+        check_name  = to_name,
+        needs_check = may_raise,
+        emit        = emit,
+        context     = context
     )
 
     # Note: Cannot fail
