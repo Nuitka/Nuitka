@@ -157,10 +157,10 @@ Assignment raises exception in assigned value, removed assignment."""
                 )
 
                 return result, "new_statements", """\
-Reduced assignment of variable from itself to mere access of it."""
+Reduced assignment of variable '%s' from itself to mere access of it.""" % variable.getName()
             else:
                 return None, "new_statements", """\
-Removed assignment of variable from itself which is known to be defined."""
+Removed assignment of variable '%s' from itself which is known to be defined.""" % variable.getName()
 
 
         # If the assignment source has side effects, we can simply evaluate them
