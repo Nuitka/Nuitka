@@ -31,8 +31,6 @@ from .ErrorCodes import (
 )
 from .Indentation import indented
 from .templates.CodeTemplatesVariables import (
-    template_check_local,
-    template_check_shared,
     template_del_global_unclear,
     template_del_local_intolerant,
     template_del_local_known,
@@ -662,25 +660,3 @@ def getVariableReleaseCode(variable, needs_check, emit, context):
             )
         }
     )
-
-
-def getVariableInitializedCheckCode(variable, context):
-    """ Check if a variable is initialized.
-
-        Returns a code expression that says "true" if it is.
-    """
-
-    if variable.isLocalVariable() or variable.isTempVariable():
-        if variable.isSharedTechnically():
-            template = template_check_shared
-        else:
-            template = template_check_local
-
-        return template % {
-            "identifier" : getVariableCode(
-                variable = variable,
-                context  = context
-            ),
-        }
-    else:
-        assert False, variable

@@ -766,13 +766,6 @@ if python_version >= 300:
                 source_ref = source_ref
             )
 
-            # TODO: Can't really be true, can it?
-            if provider.isExpressionFunctionBody():
-                provider.markAsExecContaining()
-
-                if provider.isExpressionClassBody():
-                    provider.markAsUnqualifiedExecContaining(source_ref)
-
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
                 provider     = provider,
                 globals_node = globals_arg,

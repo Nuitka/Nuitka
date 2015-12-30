@@ -299,5 +299,63 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1( PyDictObject *dict, Nuitka
     }
 }
 
+// TODO: Have mapping.hpp
+NUITKA_MAY_BE_UNUSED static void DICT_SYNC_FROM_VARIABLE( PyObject *dict, PyObject *key, PyObject *value )
+{
+    if ( value )
+    {
+        assert( PyDict_CheckExact( dict ) );
+        UPDATE_STRING_DICT0( (PyDictObject *)dict, (Nuitka_StringObject *)key, value );
+    }
+    else
+    {
+        int res = PyDict_DelItem( dict, key );
+
+        if ( res != 0 )
+        {
+            CLEAR_ERROR_OCCURRED();
+        }
+    }
+}
+
+// TODO: Have mapping.hpp
+NUITKA_MAY_BE_UNUSED static bool MAPPING_SYNC_FROM_VARIABLE( PyObject *mapping, PyObject *key, PyObject *value )
+{
+    if ( value )
+    {
+        int res = PyObject_SetItem(
+            mapping,
+            key,
+            value
+        );
+
+        return res == 0;
+    }
+    else
+    {
+        PyObject *test_value = PyObject_GetItem(
+            mapping,
+            key
+        );
+
+        if ( test_value )
+        {
+            Py_DECREF( test_value );
+
+            int res = PyObject_DelItem(
+                mapping,
+                key
+            );
+
+            return res == 0;
+        }
+        else
+        {
+            PyErr_Clear();
+            return true;
+        }
+    }
+
+}
 
 #endif

@@ -76,7 +76,7 @@ if Utils.python_version >= 300:
             )
 
         def needsLocalsDict(self):
-            return False
+            return True
 
         def computeExpression(self, constraint_collection):
             # TODO: Attempt for constant values to do it.
@@ -92,7 +92,7 @@ if Utils.python_version >= 300:
                 )
 
                 return result, "new_statements", """\
-Replaced builtin exec call to exec statement in early closure context."""
+Replaced built-in exec call to exec statement in early closure context."""
             else:
                 return statement, None, None
 
