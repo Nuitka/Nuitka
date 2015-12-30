@@ -862,8 +862,10 @@ def super_extractor(node):
 
                 # If we already have this as a local variable, then use that
                 # instead.
-                if type_arg.getVariable().getOwner() is provider or \
-                   not type_arg.getVariable().getOwner().isExpressionFunctionBody():
+                type_arg_owner = type_arg.getVariable().getOwner()
+                if type_arg_owner is provider or \
+                not (type_arg_owner.isExpressionFunctionBody() or \
+                     type_arg_owner.isExpressionClassBody()):
                     type_arg = None
                 else:
                     addVariableUsage(type_arg.getVariable(), provider)

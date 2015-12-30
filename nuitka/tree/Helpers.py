@@ -358,7 +358,8 @@ def buildStatementsNode(provider, nodes, source_ref, code_object = None):
                 code_object = code_object,
                 source_ref  = source_ref
             )
-        elif provider.isExpressionFunctionBody():
+        elif provider.isExpressionFunctionBody() or \
+             provider.isExpressionClassBody():
             result = StatementsFrame(
                 statements  = statements,
                 guard_mode  = "full",

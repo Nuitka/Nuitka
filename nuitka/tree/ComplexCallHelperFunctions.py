@@ -142,8 +142,7 @@ def getCallableNameDescBody():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1048,8 +1047,7 @@ def getFunctionCallHelperStarList():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1153,8 +1151,7 @@ def getFunctionCallHelperKeywordsStarList():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1272,8 +1269,7 @@ def getFunctionCallHelperPosStarList():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1394,8 +1390,7 @@ def getFunctionCallHelperPosKeywordsStarList():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
 
@@ -1543,8 +1538,7 @@ def getFunctionCallHelperStarDict():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1663,8 +1657,7 @@ def getFunctionCallHelperPosStarDict():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1821,8 +1814,7 @@ def getFunctionCallHelperKeywordsStarDict():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1979,8 +1971,7 @@ def getFunctionCallHelperPosKeywordsStarDict():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
 
@@ -2097,8 +2088,7 @@ def getFunctionCallHelperStarListStarDict():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2220,8 +2210,7 @@ def getFunctionCallHelperPosStarListStarDict():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2360,8 +2349,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2496,8 +2484,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2646,8 +2633,7 @@ def getFunctionCallHelperDictionaryUnpacking():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     args_variable = result.getVariableForAssignment(

@@ -181,6 +181,13 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             # TODO: Then this may not even have to be here at all.
             self._handleQualnameSetup(node)
+        elif node.isExpressionClassBody():
+            self._handleNonLocal(node)
+
+            # Python3.4 allows for class declarations to be made global, even
+            # after they were declared, so we need to fix this up.
+            if python_version >= 340:
+                self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():
             self._handleNonLocal(node)
 
@@ -228,10 +235,10 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             current = node
 
             while True:
-                if current.isCompiledPythonModule() or \
-                   current.isExpressionFunctionBody():
+                if current.isParentVariableProvider():
                     if node.isStatementContinueLoop():
                         message = "'continue' not properly in loop"
+
                         col_offset   = 16 if python_version >= 300 else None
                         display_line = True
                         source_line  = None
@@ -291,7 +298,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
         # Need to catch functions with "exec" and closure variables not allowed.
         if python_version < 300 and \
            not was_taken and \
-           provider.isExpressionFunctionBody() and \
+           provider.isExpressionFunctionBodyBase() and \
            variable.getOwner() is not provider:
             parent_provider = provider.getParentVariableProvider()
 

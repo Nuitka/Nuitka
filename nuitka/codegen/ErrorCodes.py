@@ -272,12 +272,10 @@ def getMustNotGetHereCode(reason, context, emit):
         emit("return;")
     elif provider.isExpressionCoroutineObjectBody():
         emit("return;")
-    elif provider.isExpressionFunctionBody():
-        emit("return NULL;")
     elif provider.isCompiledPythonModule():
         emit("return MOD_RETURN_VALUE( NULL );")
     else:
-        emit("return;")
+        emit("return NULL;")
 
 
 def getAssertionCode(check, emit):

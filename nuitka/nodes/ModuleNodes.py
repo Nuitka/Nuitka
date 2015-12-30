@@ -361,7 +361,10 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def addUsedFunction(self, function_body):
         assert function_body in self.functions
 
-        assert function_body.isExpressionFunctionBody()
+        assert function_body.isExpressionFunctionBody() or \
+               function_body.isExpressionClassBody() or \
+               function_body.isExpressionGeneratorObjectBody() or \
+               function_body.isExpressionCoroutineObjectBody()
 
         if function_body not in self.active_functions:
             self.active_functions.add(function_body)

@@ -162,17 +162,18 @@ def buildVariableReferenceNode(provider, node, source_ref):
         if python_version >= 300:
             variable = provider.getVariableForClosure("__class__")
 
-            if variable.getOwner().isExpressionFunctionBody():
+            if variable.getOwner().isExpressionClassBody():
                 addVariableUsage(variable, provider)
 
         variable = provider.getVariableForClosure("self")
-        if variable.getOwner().isExpressionFunctionBody():
+        if variable.getOwner().isExpressionClassBody():
             addVariableUsage(variable, provider)
 
     return ExpressionVariableRef(
         variable_name = mangleName(node.id, provider),
         source_ref    = source_ref
     )
+
 
 # Python3.4 only, True and False, are not given as variables anymore.
 def buildNamedConstantNode(node, source_ref):
@@ -351,10 +352,10 @@ def buildImportModulesNode(provider, node, source_ref):
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
                     variable_name = mangleName(
-                                      local_name
-                                        if local_name is not None else
-                                      module_topname,
-                                      provider
+                        local_name
+                          if local_name is not None else
+                        module_topname,
+                        provider
                     ),
                     source_ref    = source_ref
                 ),
@@ -456,7 +457,10 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
           parameter_provider.isExpressionCoroutineObjectBody():
         parameter_provider = parameter_provider.getParentVariableProvider()
 
-    parameter_names = parameter_provider.getParameters().getParameterNames()
+    if parameter_provider.isExpressionClassBody():
+        parameter_names = ()
+    else:
+        parameter_names = parameter_provider.getParameters().getParameterNames()
 
     for variable_name in node.names:
         if variable_name in parameter_names:

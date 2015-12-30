@@ -116,10 +116,6 @@ class ExpressionGeneratorObjectBody(ExpressionFunctionBodyBase,
     def getFunctionQualname(self):
         return self.getParentVariableProvider().getFunctionQualname()
 
-    @staticmethod
-    def isExpressionFunctionBody():
-        return True
-
     def markAsNeedsGeneratorReturnHandling(self, value):
         self.needs_generator_return_exit = max(
             self.needs_generator_return_exit,

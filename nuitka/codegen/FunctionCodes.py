@@ -645,6 +645,15 @@ def generateFunctionDeclCode(function_body):
         return getCoroutineObjectDeclCode(
             function_identifier = function_body.getCodeName(),
         )
+    elif function_body.isExpressionClassBody():
+        return getFunctionDirectDecl(
+            function_identifier = function_body.getCodeName(),
+            closure_variables   = function_body.getClosureVariables(),
+            parameter_variables = (),
+            file_scope          = getExportScopeCode(
+                cross_module = False
+            )
+        )
     elif function_body.needsDirectCall():
         return getFunctionDirectDecl(
             function_identifier = function_body.getCodeName(),

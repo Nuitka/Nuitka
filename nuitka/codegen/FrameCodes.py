@@ -62,10 +62,10 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             context.setFrameHandle("generator->m_frame")
         elif provider.isExpressionCoroutineObjectBody():
             context.setFrameHandle("coroutine->m_frame")
-        elif provider.isExpressionFunctionBody():
-            context.setFrameHandle("frame_function")
-        else:
+        elif provider.isCompiledPythonModule():
             context.setFrameHandle("frame_module")
+        else:
+            context.setFrameHandle("frame_function")
 
         context.setExceptionEscape(
             context.allocateLabel("frame_exception_exit")
@@ -130,7 +130,8 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         # of frame, it is an empty code stub anyway.
         local_emit.emitTo(emit)
     elif guard_mode == "full":
-        assert provider.isExpressionFunctionBody()
+        assert provider.isExpressionFunctionBody() or \
+               provider.isExpressionClassBody()
 
         getFrameGuardHeavyCode(
             frame_identifier      = context.getFrameHandle(),

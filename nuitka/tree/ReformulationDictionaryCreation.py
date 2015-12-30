@@ -116,8 +116,7 @@ def getDictUnpackingHelper():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        source_ref = internal_source_ref
     )
 
     temp_scope = None

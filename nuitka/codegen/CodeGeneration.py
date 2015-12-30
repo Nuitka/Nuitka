@@ -288,6 +288,11 @@ def generateFunctionBodyCode(function_body, context):
             parent   = context,
             function = function_body
         )
+    elif function_body.isExpressionClassBody():
+        function_context = Contexts.PythonFunctionDirectContext(
+            parent   = context,
+            function = function_body
+        )
     elif function_body.needsCreation():
         function_context = Contexts.PythonFunctionCreatedContext(
             parent   = context,
@@ -329,6 +334,22 @@ def generateFunctionBodyCode(function_body, context):
             function_codes         = function_codes.codes,
             needs_exception_exit   = needs_exception_exit,
             needs_generator_return = function_body.needsGeneratorReturnExit()
+        )
+    elif function_body.isExpressionClassBody():
+        function_code = getFunctionCode(
+            context              = function_context,
+            function_name        = function_body.getFunctionName(),
+            function_identifier  = function_identifier,
+            parameters           = None,
+            closure_variables    = function_body.getClosureVariables(),
+            user_variables       = function_body.getUserLocalVariables(),
+            temp_variables       = function_body.getTempVariables(),
+            function_codes       = function_codes.codes,
+            function_doc         = function_body.getDoc(),
+            needs_exception_exit = needs_exception_exit,
+            file_scope           = getExportScopeCode(
+                cross_module = False
+            )
         )
     else:
         parameters = function_body.getParameters()

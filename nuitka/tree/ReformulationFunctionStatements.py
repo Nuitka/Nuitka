@@ -108,7 +108,6 @@ def buildFunctionNode(provider, node, source_ref):
             name       = node.name,
             doc        = function_doc,
             parameters = parameters,
-            is_class   = False,
             source_ref = source_ref
         )
 
@@ -119,7 +118,6 @@ def buildFunctionNode(provider, node, source_ref):
             name       = node.name,
             doc        = function_doc,
             parameters = parameters,
-            is_class   = False,
             source_ref = source_ref
         )
 
@@ -270,7 +268,6 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         name       = node.name,
         doc        = function_doc,
         parameters = buildParameterSpec(provider, node.name, node, source_ref),
-        is_class   = False,
         source_ref = source_ref
     )
 
@@ -570,7 +567,11 @@ def buildParameterSpec(provider, name, node, source_ref):
 
 
 def addFunctionVariableReleases(function):
-    assert function.isExpressionFunctionBody()
+    assert function.isExpressionFunctionBody() or \
+           function.isExpressionClassBody() or \
+           function.isExpressionGeneratorObjectBody() or \
+           function.isExpressionCoroutineObjectBody()
+
 
     releases = []
 

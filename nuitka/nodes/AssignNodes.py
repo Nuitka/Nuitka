@@ -215,8 +215,9 @@ Side effects of assignments promoted to statements.""",
                             provider = self.getParentVariableProvider()
 
                             if variable.isTempVariable() or \
-                               (not provider.isUnoptimized() and \
-                                not provider.isExpressionClassBody()):
+                               (not provider.isExpressionClassBody() and \
+                                not provider.isUnoptimized()
+                                ):
 
                                 if last_trace.hasDefiniteUsages():
                                     self.variable_trace.setReplacementNode(

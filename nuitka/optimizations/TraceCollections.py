@@ -755,7 +755,10 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
                                    ConstraintCollectionBase,
                                    VariableUsageTrackingMixin):
     def __init__(self, parent, function_body):
-        assert function_body.isExpressionFunctionBody(), function_body
+        assert function_body.isExpressionFunctionBody() or \
+               function_body.isExpressionClassBody() or \
+               function_body.isExpressionGeneratorObjectBody() or \
+               function_body.isExpressionCoroutineObjectBody(), function_body
 
         CollectionStartpointMixin.__init__(self)
 

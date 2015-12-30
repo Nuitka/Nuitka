@@ -58,7 +58,6 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinLocals,
     StatementSetLocals
 )
-from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
@@ -80,17 +79,6 @@ from .Helpers import (
     makeStatementsSequenceFromStatement
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
-
-# TODO: Once we start to modify these, we should make sure, the copy is not
-# shared.
-make_class_parameters = ParameterSpec(
-    name          = "class",
-    normal_args   = (),
-    list_star_arg = None,
-    dict_star_arg = None,
-    default_count = 0,
-    kw_only_args  = ()
-)
 
 
 def _buildClassNode3(provider, node, source_ref):
@@ -126,8 +114,6 @@ def _buildClassNode3(provider, node, source_ref):
 
     class_creation_function = ExpressionClassBody(
         provider   = provider,
-        is_class   = True,
-        parameters = make_class_parameters,
         name       = node.name,
         doc        = class_doc,
         source_ref = source_ref
@@ -599,8 +585,6 @@ def _buildClassNode2(provider, node, source_ref):
 
     function_body = ExpressionClassBody(
         provider   = provider,
-        is_class   = True,
-        parameters = make_class_parameters,
         name       = node.name,
         doc        = class_doc,
         source_ref = source_ref

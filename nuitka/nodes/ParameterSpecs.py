@@ -192,7 +192,11 @@ class ParameterSpec(ParameterSpecTuple):
         return None
 
     def __repr__(self):
-        parts = [ str(normal_arg) for normal_arg in self.normal_args ]
+        parts = [
+            str(normal_arg)
+            for normal_arg
+            in self.normal_args
+        ]
 
         if self.list_star_arg is not None:
             parts.append("*%s" % self.list_star_arg)
@@ -233,10 +237,6 @@ class ParameterSpec(ParameterSpecTuple):
             for kw_only_arg in
             self.kw_only_args
         ]
-
-    def isEmpty(self):
-        return len(self.normal_args) == 0 and self.list_star_arg is None and \
-               self.dict_star_arg is None and len(self.kw_only_args) == 0
 
     def getDefaultParameterVariables(self):
         result = ParameterSpecTuple.getTopLevelVariables(self)

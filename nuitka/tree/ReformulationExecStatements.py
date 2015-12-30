@@ -274,7 +274,7 @@ exec: arg 1 must be a string, file, or code object""",
                 source_ref      = source_ref
             )
 
-    if provider.isExpressionFunctionBody():
+    if not provider.isCompiledPythonModule():
         provider.markAsExecContaining()
 
         if orig_globals is None:

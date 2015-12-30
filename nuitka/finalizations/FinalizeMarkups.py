@@ -94,7 +94,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
         if node.needsLocalsDict():
             provider = node.getParentVariableProvider()
 
-            if provider.isExpressionFunctionBody():
+            if not provider.isCompiledPythonModule():
                 provider.markAsLocalsDict()
 
         if node.isStatementReturn() or node.isStatementGeneratorReturn():
@@ -165,7 +165,7 @@ of '--recurse-directory'.""" % (
             if node.isExpressionYield() or node.isExpressionYieldFrom():
                 search = node.getParent()
 
-                while not search.isExpressionFunctionBody():
+                while not search.isExpressionGeneratorObjectBody():
                     last_search = search
                     search = search.getParent()
 

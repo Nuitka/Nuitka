@@ -185,27 +185,6 @@ class NodeBase(NodeMetaClassBase):
             assert False, (self,  self.source_ref)
 
         return self.parent
-
-    def getParents(self):
-        """ Parents of the node. Up to module level.
-
-        """
-        result = []
-        current = self
-
-        while True:
-            current = current.getParent()
-
-            result.append(current)
-
-            if current.isCompiledPythonModule() or current.isExpressionFunctionBody():
-                break
-
-        assert None not in result, self
-
-        result.reverse()
-        return result
-
     def getChildName(self):
         """ Return the role in the current parent, subject to changes.
 
@@ -238,7 +217,7 @@ class NodeBase(NodeMetaClassBase):
 
         parent = self.getParent()
 
-        while parent is not None and not parent.isExpressionFunctionBody():
+        while parent is not None and not parent.isExpressionFunctionBodyBase():
             parent = parent.getParent()
 
         return parent

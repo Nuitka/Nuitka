@@ -29,8 +29,6 @@ from .FinalizeBase import FinalizationVisitorBase
 
 class FinalizeClosureTaking(FinalizationVisitorBase):
     def onEnterNode(self, node):
-        assert node.isExpressionFunctionBody(), node
-
         # print node, node.provider
 
         for variable in node.getClosureVariables():
@@ -39,7 +37,7 @@ class FinalizeClosureTaking(FinalizationVisitorBase):
             current = node
 
             while current is not variable.getOwner():
-                if current.isExpressionFunctionBody():
+                if current.isParentVariableProvider():
                     if variable not in current.getClosureVariables():
                         current.addClosureVariable(variable)
 

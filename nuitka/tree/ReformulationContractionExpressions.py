@@ -441,7 +441,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                 default_count = 0,
                 kw_only_args  = ()
             ),
-            is_class   = False,
             source_ref = source_ref
         )
 
