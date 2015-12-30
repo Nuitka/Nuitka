@@ -47,9 +47,6 @@ if python_version >= "3.4":
     # These tests don't work with 3.4 yet, and the list is considered the major
     # TODO for 3.4 support.
     search_mode.mayFailFor(
-        # The "__class__" doesn't work as expected.
-        "BuiltinSuper.py",
-
         # Too little attributes for generator objects, "__del__" is missing it
         # seems.
         "GeneratorExpressions.py",

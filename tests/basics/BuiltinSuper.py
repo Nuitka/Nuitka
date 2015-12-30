@@ -106,7 +106,7 @@ class X:
 
     print("Early pre-class calls begin")
     print("Set in class __class__", __class__)
-    f1(1)
+    # f1(1)
     f2(2)
     print("Early pre-class calls end")
 
