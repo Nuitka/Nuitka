@@ -124,25 +124,17 @@ static PyObject *_types_coroutine_replacement( PyObject *self, PyObject *args, P
         return NULL;
     }
 
-    if ( false && Nuitka_Coroutine_Check( func ) )
+    if ( Nuitka_Function_Check( func ) )
     {
-        Py_INCREF( func );
-        return func;
-    }
-    else
-    {
-        if ( Nuitka_Function_Check( func ) )
+        Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)func;
+
+        if ( function->m_code_object->co_flags & CO_GENERATOR )
         {
-            Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)func;
-
-            if ( function->m_code_object->co_flags & CO_GENERATOR )
-            {
-                function->m_code_object->co_flags |= 0x100;
-            }
+            function->m_code_object->co_flags |= 0x100;
         }
-
-        return old_types_coroutine->ob_type->tp_call( old_types_coroutine, args, kwds );
     }
+
+    return old_types_coroutine->ob_type->tp_call( old_types_coroutine, args, kwds );
 }
 
 #endif
@@ -323,7 +315,12 @@ void patchBuiltinModule()
     original_isinstance = PyObject_GetAttrString( (PyObject *)builtin_module, "isinstance" );
     CHECK_OBJECT( original_isinstance );
 
-    // TODO: Find safe criterion, there was a C method before
+    // Copy the doc attribute over, needed for "inspect.signature" at least.
+    if ( PyCFunction_Check( original_isinstance ))
+    {
+        _method_def_builtin_isinstance_replacement.ml_doc = ((PyCFunctionObject *)original_isinstance)->m_ml->ml_doc;
+    }
+
     PyObject *builtin_isinstance_replacement = PyCFunction_New( &_method_def_builtin_isinstance_replacement, NULL );
     CHECK_OBJECT( builtin_isinstance_replacement );
 
