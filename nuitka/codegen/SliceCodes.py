@@ -32,21 +32,36 @@ from .Helpers import generateChildExpressionsCode
 
 
 def generateBuiltinSliceCode(to_name, expression, emit, context):
-    arg_names = generateChildExpressionsCode(
+    lower_name, upper_name, step_name = generateChildExpressionsCode(
         expression = expression,
         emit       = emit,
         context    = context
     )
 
-    getSliceObjectCode(
-        to_name    = to_name,
-        lower_name = arg_names[0],
-        upper_name = arg_names[1],
-        step_name  = arg_names[2],
-        may_raise  = expression.mayRaiseException(BaseException),
-        emit       = emit,
-        context    = context
+    emit(
+        "%s = MAKE_SLICEOBJ3( %s, %s, %s );" % (
+            to_name,
+            lower_name if lower_name is not None else "Py_None",
+            upper_name if upper_name is not None else "Py_None",
+            step_name if step_name is not None else "Py_None",
+        )
     )
+
+    getReleaseCodes(
+        release_names = (lower_name, upper_name, step_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitCode(
+        check_name  = to_name,
+        needs_check = False, # Note: Cannot fail
+        emit        = emit,
+        context     = context
+    )
+
+
+    context.addCleanupTempName(to_name)
 
 
 def getSliceLookupCode(to_name, source_name, lower_name, upper_name, emit,
@@ -101,33 +116,6 @@ def getSliceLookupIndexesCode(to_name, lower_name, upper_name, source_name,
     context.addCleanupTempName(to_name)
 
 
-def getSliceObjectCode(to_name, lower_name, upper_name, step_name, may_raise,
-                       emit, context):
-
-    emit(
-        "%s = MAKE_SLICEOBJ3( %s, %s, %s );" % (
-            to_name,
-            lower_name if lower_name is not None else "Py_None",
-            upper_name if upper_name is not None else "Py_None",
-            step_name if step_name is not None else "Py_None",
-        )
-    )
-
-    getReleaseCodes(
-        release_names = (lower_name, upper_name, step_name),
-        emit          = emit,
-        context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = may_raise,
-        emit        = emit,
-        context     = context
-    )
-
-    # Note: Cannot fail
-    context.addCleanupTempName(to_name)
 
 
 def getSliceAssignmentIndexesCode(target_name, lower_name, upper_name,

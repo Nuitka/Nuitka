@@ -282,60 +282,6 @@ class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
         return self, None, None
 
 
-class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
-                             ExpressionSpecBasedComputationMixin):
-    kind = "EXPRESSION_BUILTIN_SLICE"
-
-    named_children = (
-        "start",
-        "stop",
-        "step"
-    )
-
-    builtin_spec = BuiltinOptimization.builtin_slice_spec
-
-    def __init__(self, start, step, stop, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-        ChildrenHavingMixin.__init__(
-            self,
-            values = {
-                "start" : start,
-                "stop"  : stop,
-                "step"  : step
-            }
-        )
-
-    def computeExpression(self, constraint_collection):
-        start = self.getStart()
-        stop = self.getStop()
-        step = self.getStep()
-
-        args = (
-            start,
-            stop,
-            step
-        )
-
-        args = tuple(
-            arg or ExpressionConstantRef(constant = None, source_ref = self.getSourceReference())
-            for arg in
-            args
-        )
-
-        return self.computeBuiltinSpec(
-            constraint_collection = constraint_collection,
-            given_values          = args
-        )
-
-    getStart = ChildrenHavingMixin.childGetter("start")
-    getStop = ChildrenHavingMixin.childGetter("stop")
-    getStep = ChildrenHavingMixin.childGetter("step")
-
-
 class ExpressionBuiltinComplex(ChildrenHavingMixin, NodeBase,
                                ExpressionSpecBasedComputationMixin):
     kind = "EXPRESSION_BUILTIN_COMPLEX"

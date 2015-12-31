@@ -27,7 +27,10 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.SliceNodes import ExpressionSliceLookup, ExpressionSliceObject
+from nuitka.nodes.SliceNodes import (
+    ExpressionBuiltinSlice,
+    ExpressionSliceLookup
+)
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.utils import Utils
 
@@ -85,9 +88,9 @@ def buildSubscriptNode(provider, node, source_ref):
         if use_sliceobj:
             return ExpressionSubscriptLookup(
                 subscribed = buildNode(provider, node.value, source_ref),
-                subscript  = ExpressionSliceObject(
-                    lower      = lower,
-                    upper      = upper,
+                subscript  = ExpressionBuiltinSlice(
+                    start      = lower,
+                    stop       = upper,
                     step       = step,
                     source_ref = source_ref
                 ),

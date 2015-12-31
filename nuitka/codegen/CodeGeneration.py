@@ -170,8 +170,7 @@ from .SliceCodes import (
     getSliceDelCode,
     getSliceDelIndexesCode,
     getSliceLookupCode,
-    getSliceLookupIndexesCode,
-    getSliceObjectCode
+    getSliceLookupIndexesCode
 )
 from .SubscriptCodes import (
     generateSubscriptLookupCode,
@@ -593,29 +592,6 @@ def _generateExpressionCode(to_name, expression, emit, context, allow_none):
         generateSliceLookupCode(
             to_name    = to_name,
             expression = expression,
-            emit       = emit,
-            context    = context
-        )
-    elif expression.isExpressionSliceObject():
-        lower_name, upper_name, step_name = generateExpressionsCode(
-            expressions = (
-                expression.getLower(),
-                expression.getUpper(),
-                expression.getStep()
-            ),
-            names       = (
-                "sliceobj_lower", "sliceobj_upper", "sliceobj_step"
-            ),
-            emit        = emit,
-            context     = context
-        )
-
-        getSliceObjectCode(
-            to_name    = to_name,
-            lower_name = lower_name,
-            upper_name = upper_name,
-            step_name  = step_name,
-            may_raise  = expression.mayRaiseException(BaseException),
             emit       = emit,
             context    = context
         )

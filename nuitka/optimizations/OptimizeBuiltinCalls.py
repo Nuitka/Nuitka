@@ -76,7 +76,6 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinInt,
     ExpressionBuiltinList,
     ExpressionBuiltinSet,
-    ExpressionBuiltinSlice,
     ExpressionBuiltinStr,
     ExpressionBuiltinTuple
 )
@@ -110,6 +109,7 @@ from nuitka.nodes.OperatorNodes import (
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.SliceNodes import ExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,

@@ -46,8 +46,8 @@ from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
 from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryInplace
 from nuitka.nodes.SliceNodes import (
+    ExpressionBuiltinSlice,
     ExpressionSliceLookup,
-    ExpressionSliceObject,
     StatementAssignmentSlice,
     StatementDelSlice
 )
@@ -86,9 +86,9 @@ def buildExtSliceNode(provider, node, source_ref):
             upper = buildNode(provider, dim.upper, source_ref, True)
             step = buildNode(provider, dim.step, source_ref, True)
 
-            element = ExpressionSliceObject(
-                lower      = lower,
-                upper      = upper,
+            element = ExpressionBuiltinSlice(
+                start      = lower,
+                stop       = upper,
                 step       = step,
                 source_ref = source_ref
             )
@@ -160,9 +160,9 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
             return StatementAssignmentSubscript(
                 expression = lookup_source,
                 source     = source,
-                subscript  = ExpressionSliceObject(
-                    lower      = lower,
-                    upper      = upper,
+                subscript  = ExpressionBuiltinSlice(
+                    start      = lower,
+                    stop       = upper,
                     step       = None,
                     source_ref = source_ref
                 ),
@@ -378,17 +378,18 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
     if node is None and allow_none:
         return None
 
-    if hasattr(node, "ctx"):
-        assert getKind(node.ctx) in ("Store", "Del")
-
-    kind = getKind(node)
-
     if type(node) is str:
         return "Name", ExpressionTargetVariableRef(
             variable_name = mangleName(node, provider),
             source_ref    = source_ref
         )
-    elif kind == "Name":
+
+    kind = getKind(node)
+
+    if hasattr(node, "ctx"):
+        assert getKind(node.ctx) in ("Store", "Del")
+
+    if kind == "Name":
         return kind, ExpressionTargetVariableRef(
             variable_name = mangleName(node.id, provider),
             source_ref    = source_ref
@@ -415,9 +416,9 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
 
                 return "Subscript", (
                     buildNode(provider, node.value, source_ref),
-                    ExpressionSliceObject(
-                        lower      = lower,
-                        upper      = upper,
+                    ExpressionBuiltinSlice(
+                        start      = lower,
+                        stop       = upper,
                         step       = step,
                         source_ref = source_ref
                     )
@@ -564,9 +565,9 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
         if use_sliceobj:
             return StatementDelSubscript(
                 expression = lookup_source,
-                subscript  = ExpressionSliceObject(
-                    lower      = lower,
-                    upper      = upper,
+                subscript  = ExpressionBuiltinSlice(
+                    start      = lower,
+                    stop       = upper,
                     step       = None,
                     source_ref = source_ref
                 ),
@@ -924,9 +925,9 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
                     variable   = tmp_variable1,
                     source_ref = source_ref
                 ),
-                subscript  = ExpressionSliceObject(
-                    lower      = lower_ref1,
-                    upper      = upper_ref1,
+                subscript  = ExpressionBuiltinSlice(
+                    start      = lower_ref1,
+                    stop       = upper_ref1,
                     step       = None,
                     source_ref = source_ref
                 ),
@@ -937,9 +938,9 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
                             variable   = tmp_variable1,
                             source_ref = source_ref
                         ),
-                        subscript  = ExpressionSliceObject(
-                            lower      = lower_ref2,
-                            upper      = upper_ref2,
+                        subscript  = ExpressionBuiltinSlice(
+                            start      = lower_ref2,
+                            stop       = upper_ref2,
                             step       = None,
                             source_ref = source_ref
                         ),

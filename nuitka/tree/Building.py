@@ -382,7 +382,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
     # Need to catch the error of declaring a parameter variable as global
     # ourselves here. The AST parsing doesn't catch it, so we check here.
-    try:
+    if provider.isExpressionFunctionBody():
         parameters = provider.getParameters()
 
         for variable_name in node.names:
@@ -401,8 +401,6 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                         provider.getSourceReference()
                     )
                 )
-    except AttributeError:
-        pass
 
     # The module the "global" statement refers to.
     module = provider.getParentModule()
