@@ -631,6 +631,12 @@ if msvc_mode:
     env.Append(CCFLAGS = ["/EHsc", "/J", "/Gd"])
     env.Append(LINKFLAGS = ["/INCREMENTAL:NO"])
 
+    # Stack size 4MB or 8MB, we need more than the default 1MB.
+    if target_arch == "x86_64":
+        env.Append(CCFLAGS = ["/F8388608"])
+    else:
+        env.Append(CCFLAGS = ["/F4194304"])
+
 # The 32 bits MinGW does not default for API level properly, so help it.
 if mingw_mode:
     # Windows XP

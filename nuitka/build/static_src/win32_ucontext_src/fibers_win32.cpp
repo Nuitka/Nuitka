@@ -20,7 +20,11 @@
 #include "nuitka/prelude.hpp"
 
 // Less than 1MB is ignored on Win32 apparently.
+#ifdef MS_WIN64
+#define STACK_SIZE 2*(1024*1024)
+#else
 #define STACK_SIZE (1024*1024)
+#endif
 
 void _initFiber( Fiber *to )
 {
