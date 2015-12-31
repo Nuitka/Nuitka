@@ -199,15 +199,17 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
                 PyObject *saved_exception_type, *saved_exception_value;
                 PyTracebackObject *saved_exception_tb;
 
-                // TODO: Needs release, should get reference count test.
                 FETCH_ERROR_OCCURRED( &saved_exception_type, &saved_exception_value, &saved_exception_tb );
+                NORMALIZE_EXCEPTION( &saved_exception_type, &saved_exception_value, &saved_exception_tb );
 
-                PyObject *exception_type = CALL_FUNCTION_WITH_ARGS1(
+                PyErr_Format(
                     PyExc_RuntimeError,
-                    PyUnicode_FromString("generator raised StopIteration")
+                    "generator raised StopIteration"
                 );
-                PyObject *exception_value = NULL;
-                PyTracebackObject *exception_tb = NULL;
+                PyObject *exception_type, *exception_value;
+                PyTracebackObject *exception_tb;
+
+                FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 
                 RAISE_EXCEPTION_WITH_CAUSE(
                     &exception_type,
@@ -215,6 +217,15 @@ static PyObject *Nuitka_Generator_send( Nuitka_GeneratorObject *generator, PyObj
                     &exception_tb,
                     saved_exception_value
                 );
+
+                CHECK_OBJECT( exception_value );
+                CHECK_OBJECT( saved_exception_value );
+
+                Py_INCREF( saved_exception_value );
+                PyException_SetContext( exception_value, saved_exception_value );
+
+                Py_DECREF( saved_exception_type );
+                Py_XDECREF( saved_exception_tb );
 
                 RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
             }

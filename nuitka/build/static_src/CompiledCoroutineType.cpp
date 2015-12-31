@@ -311,6 +311,9 @@ static PyObject *Nuitka_Coroutine_send( Nuitka_CoroutineObject *coroutine, PyObj
                 CHECK_OBJECT( exception_value );
                 CHECK_OBJECT( saved_exception_value );
 
+                Py_INCREF( saved_exception_value );
+                PyException_SetContext( exception_value, saved_exception_value );
+
                 Py_DECREF( saved_exception_type );
                 Py_XDECREF( saved_exception_tb );
 
