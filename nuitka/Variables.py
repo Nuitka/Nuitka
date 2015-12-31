@@ -78,9 +78,6 @@ class Variable:
     def isParameterVariable(self):
         return False
 
-    def isNestedParameterVariable(self):
-        return False
-
     def isModuleVariable(self):
         return False
 
@@ -166,33 +163,6 @@ class ParameterVariable(LocalVariable):
 
     def isParameterVariableKwOnly(self):
         return self.kw_only
-
-
-class NestedParameterVariable(ParameterVariable):
-    def __init__(self, owner, parameter_name, parameter_spec):
-        ParameterVariable.__init__(
-            self,
-            owner          = owner,
-            parameter_name = parameter_name,
-            kw_only        = False
-        )
-
-        self.parameter_spec = parameter_spec
-
-    def isNestedParameterVariable(self):
-        return True
-
-    def getVariables(self):
-        return self.parameter_spec.getVariables()
-
-    def getAllVariables(self):
-        return self.parameter_spec.getAllVariables()
-
-    def getTopLevelVariables(self):
-        return self.parameter_spec.getTopLevelVariables()
-
-    def getParameterNames(self):
-        return self.parameter_spec.getParameterNames()
 
 
 class ModuleVariable(Variable):

@@ -129,33 +129,6 @@ if (unlikely( %(parameter_test)s ))
 #endif
 """
 
-# TODO: Is there a missing INCREF in the first branch part. Other parts do
-# have it, so this might be a reference loss here when taking from "args[]".
-template_argparse_nested_argument = """\
-if (likely( %(parameter_position)d < args_given ))
-{
-    _python_par_%(parameter_name)s = args[ %(parameter_position)d ];
-}
-else if ( _python_par_%(parameter_name)s == NULL )
-{
-    if ( %(parameter_position)d + self->m_defaults_given >= %(top_level_parameter_count)d  )
-    {
-        _python_par_%(parameter_name)s = PyTuple_GET_ITEM( self->m_defaults, self->m_defaults_given + %(parameter_position)d - %(top_level_parameter_count)d );
-        Py_INCREF( _python_par_%(parameter_name)s );
-    }
-    else
-    {
-#if PYTHON_VERSION < 270
-        ERROR_TOO_FEW_ARGUMENTS( self, kw_size, args_given + kw_found );
-#else
-        ERROR_TOO_FEW_ARGUMENTS( self, args_given + kw_found );
-#endif
-
-        goto error_exit;
-    }
-}
-"""
-
 template_parse_argument_copy_list_star_args = """
 // Copy left-over argument values to the star list parameter given.
 if ( args_given > %(top_level_parameter_count)d )
@@ -410,36 +383,6 @@ if ( found == false && RICH_COMPARE_BOOL_EQ_NORECURSE( %(parameter_name_object)s
 template_argparse_assign_from_dict_finding = """\
 assert( _python_par_%(parameter_name)s == NULL );
 _python_par_%(parameter_name)s = value;
-"""
-
-template_parse_argument_nested_argument_unpack = """\
-// Unpack from _python_par_%(parameter_name)s
-{
-    PyObject *_python_iter_%(parameter_name)s = PyObject_GetIter( %(unpack_source_identifier)s );
-
-    if (unlikely( _python_iter_%(parameter_name)s == NULL ))
-    {
-        goto error_exit;
-    }
-%(unpack_code)s
-    // Check that the unpack was complete.
-    if (unlikely( UNPACK_ITERATOR_CHECK( _python_iter_%(parameter_name)s ) == false ))
-    {
-       Py_DECREF( _python_iter_%(parameter_name)s );
-       goto error_exit;
-    }
-    Py_DECREF( _python_iter_%(parameter_name)s );
-}"""
-
-template_parse_argument_nested_argument_assign = """
-    // Unpack to _python_par_%(parameter_name)s
-    _python_par_%(parameter_name)s = UNPACK_NEXT( _python_iter_%(iter_name)s, %(unpack_count)d );
-
-    if (unlikely (_python_par_%(parameter_name)s == NULL ))
-    {
-        Py_DECREF( _python_iter_%(iter_name)s );
-        goto error_exit;
-    }
 """
 
 template_parse_kwonly_argument_default = """\

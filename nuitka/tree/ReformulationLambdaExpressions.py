@@ -28,13 +28,11 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionBody,
     ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
@@ -56,9 +54,9 @@ from .Helpers import (
     mergeStatements
 )
 from .ReformulationFunctionStatements import (
+    buildFunctionWithParsing,
     buildParameterAnnotations,
-    buildParameterKwDefaults,
-    buildParameterSpec
+    buildParameterKwDefaults
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
@@ -66,45 +64,28 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 def buildLambdaNode(provider, node, source_ref):
     assert getKind(node) == "Lambda"
 
-    function_kind = detectFunctionBodyKind(
+    function_kind, _written_variables, _non_local_declarations, _global_declarations = \
+      detectFunctionBodyKind(
         nodes = (node.body,)
     )
 
-    parameters = buildParameterSpec(provider, "<lambda>", node, source_ref)
+    outer_body, function_body, code_object = buildFunctionWithParsing(
+        provider      = provider,
+        function_kind = function_kind,
+        name          = "<lambda>",
+        function_doc  = None,
+        node          = node,
+        source_ref    = source_ref
+    )
 
     if function_kind == "Function":
-        function_body = ExpressionFunctionBody(
-            provider   = provider,
-            name       = "<lambda>",
-            doc        = None,
-            parameters = parameters,
-            source_ref = source_ref
-        )
-
         code_body = function_body
     else:
-        function_body = ExpressionFunctionBody(
-            provider   = provider,
-            name       = "<lambda>",
-            doc        = None,
-            parameters = parameters,
-            source_ref = source_ref
-        )
-
         code_body = ExpressionGeneratorObjectBody(
             provider   = function_body,
             name       = "<lambda>",
             source_ref = source_ref
         )
-
-    code_object = CodeObjectSpec(
-        code_name     = "<lambda>",
-        code_kind     = function_kind,
-        arg_names     = parameters.getCoArgNames(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None,
-    )
 
     if function_kind == "Generator":
         function_body.setBody(
@@ -221,7 +202,7 @@ def buildLambdaNode(provider, node, source_ref):
 
     return ExpressionFunctionCreation(
         function_ref = ExpressionFunctionRef(
-            function_body = function_body,
+            function_body = outer_body,
             source_ref    = source_ref
         ),
         code_object  = code_object,

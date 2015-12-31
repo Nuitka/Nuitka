@@ -30,7 +30,6 @@ from .templates.CodeTemplatesParameterParsing import (
     template_argparse_assign_from_dict_parameter_slow_path,
     template_argparse_assign_from_dict_parameter_slow_path_kw_only,
     template_argparse_assign_from_dict_parameters,
-    template_argparse_nested_argument,
     template_argparse_plain_argument,
     template_parameter_dparser_entry_point,
     template_parameter_function_entry_point,
@@ -39,8 +38,6 @@ from .templates.CodeTemplatesParameterParsing import (
     template_parse_argument_check_dict_parameter_with_star_dict,
     template_parse_argument_copy_list_star_args,
     template_parse_argument_dict_star_copy,
-    template_parse_argument_nested_argument_assign,
-    template_parse_argument_nested_argument_unpack,
     template_parse_argument_usable_count,
     template_parse_arguments_check,
     template_parse_kwonly_argument_default,
@@ -53,8 +50,7 @@ def getParameterEntryPointIdentifier(function_identifier):
 
 
 def getQuickEntryPointIdentifier(function_identifier, parameters):
-    if parameters.hasNestedParameterVariables() or \
-       parameters.getKwOnlyParameterCount() > 0:
+    if parameters.getKwOnlyParameterCount() > 0:
         return "NULL"
     else:
         return "dparse_" + function_identifier
@@ -103,24 +99,19 @@ def _getParameterParsingCode(context, function_name,
 
         # Check for each variable.
         for variable in top_level_parameter_variables:
-            if not variable.isNestedParameterVariable():
-                parameter_parsing_code += template_parse_argument_check_dict_parameter_with_star_dict % {
-                    "parameter_name"           : variable.getCodeName(),
-                    "parameter_name_object"    : getConstantCode(
-                        constant = variable.getName(),
-                        context  = context
-                    ),
-                    "dict_star_parameter_name" : star_dict_arg_variable.getName(),
-                }
+            parameter_parsing_code += template_parse_argument_check_dict_parameter_with_star_dict % {
+                "parameter_name"           : variable.getCodeName(),
+                "parameter_name_object"    : getConstantCode(
+                    constant = variable.getName(),
+                    context  = context
+                ),
+                "dict_star_parameter_name" : star_dict_arg_variable.getName(),
+            }
     elif not is_empty:
         quick_path_code = ""
         slow_path_code = ""
 
         for variable in top_level_parameter_variables:
-            # Only named ones can be assigned from the dict.
-            if variable.isNestedParameterVariable():
-                continue
-
             parameter_name_object = getConstantCode(
                 constant = variable.getName(),
                 context  = context
@@ -168,13 +159,7 @@ def _getParameterParsingCode(context, function_name,
         parameter_parsing_code += template_parse_argument_usable_count % {}
 
         for count, variable in enumerate(top_level_parameter_variables):
-            if variable.isNestedParameterVariable():
-                parameter_parsing_code += template_argparse_nested_argument % {
-                    "parameter_name"            : variable.getCodeName(),
-                    "parameter_position"        : count,
-                    "top_level_parameter_count" : plain_possible_count,
-                }
-            elif not variable.isParameterVariableKwOnly():
+            if not variable.isParameterVariableKwOnly():
                 parameter_parsing_code += template_argparse_plain_argument % {
                     "parameter_name"            : variable.getCodeName(),
                     "parameter_position"        : count,
@@ -202,43 +187,6 @@ def _getParameterParsingCode(context, function_name,
         parameter_parsing_code += template_parse_argument_check_counts_without_list_star_arg % {
             "top_level_parameter_count" : plain_possible_count,
         }
-
-    def unPackNestedParameterVariables(variables):
-        result = ""
-
-        for count, variable in enumerate(variables):
-            if variable.isNestedParameterVariable():
-                assign_source = "_python_par_%s" % variable.getCodeName()
-
-                unpack_code = ""
-
-                child_variables = variable.getTopLevelVariables()
-
-                for count, child_variable in enumerate(child_variables):
-                    unpack_code += template_parse_argument_nested_argument_assign % {
-                        "parameter_name" : child_variable.getCodeName(),
-                        "iter_name"      : variable.getName(),
-                        "unpack_count"   : count
-                    }
-
-                result += template_parse_argument_nested_argument_unpack % {
-                    "unpack_source_identifier" : assign_source,
-                    "parameter_name" : variable.getCodeName(),
-                    "unpack_code"    : unpack_code
-                }
-
-
-        for variable in variables:
-            if variable.isNestedParameterVariable():
-                result += unPackNestedParameterVariables(
-                    variables = variable.getTopLevelVariables()
-                )
-
-        return result
-
-    parameter_parsing_code += unPackNestedParameterVariables(
-        variables = top_level_parameter_variables
-    )
 
     kw_only_var_names = []
 
@@ -311,7 +259,6 @@ def getParameterParsingCode(context, function_identifier, function_name,
             "    Py_XDECREF( _python_par_" + variable.getCodeName() + " );\n"
             for variable in
             all_parameter_variables
-            if not variable.isNestedParameterVariable()
         ]
     )
 
@@ -337,7 +284,6 @@ def getParameterParsingCode(context, function_identifier, function_name,
     }
 
     if parameters is not None and \
-       not parameters.hasNestedParameterVariables() and \
        parameters.getKwOnlyParameterCount() == 0:
         args_forward = []
 

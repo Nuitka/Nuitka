@@ -900,8 +900,6 @@ def super_extractor(node):
 
                 if parameter_provider.getParameters().getArgumentCount() > 0:
                     par1_name = parameter_provider.getParameters().getArgumentNames()[0]
-                    # TODO: Nested first argument would kill us here, need a
-                    # test for that.
 
                     object_arg = ExpressionVariableRef(
                         variable_name = par1_name,
