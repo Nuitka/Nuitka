@@ -6,9 +6,6 @@ This release is not done yet.
 Bug Fixes
 ---------
 
-- Fix, slice built-in was not properly checking for exceptions. `Issue#262
-  <http://bugs.nuitka.net/issue262>`__.
-
 - Compatibility: The nested arguments functions can now be called using their
   keyword arguments.
 
@@ -31,7 +28,8 @@ Optimization
   them faster to call too.
 
 - The ``slice`` built-in, and internal creation of slices (e.g. in re-formulations
-  of Python3 slices as subscripts) cannot raise.
+  of Python3 slices as subscripts) cannot raise. `Issue#262
+  <http://bugs.nuitka.net/issue262>`__.
 
 Cleanups
 --------
@@ -40,6 +38,15 @@ Cleanups
   function that directly calls the actual function body with the unpacking of
   nested arguments done in nodes explicitly. This allows for better optimization
   and checks of these steps and potential in-lining of these functions too.
+
+- Unified slice object creation and built-in ``slice`` nodes, these were two
+  distinct nodes before.
+
+- The code generation for all statement kinds is now done via dispatching from
+  a dictionary instead of long ``elif`` chains.
+
+- Named nodes more often consistently, e.g. all loop related nodes start with
+  ``Loop`` now, making them easier to group.
 
 Summary
 -------
