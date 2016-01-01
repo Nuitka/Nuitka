@@ -24,7 +24,7 @@ There will be a method "computeExpressionSlice" to aid predicting them.
 """
 
 from nuitka.optimizations import BuiltinOptimization
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .NodeBases import (
@@ -52,7 +52,7 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
     )
 
     def __init__(self, expression, lower, upper, source, source_ref):
-        assert Utils.python_version < 300
+        assert python_version < 300
 
         StatementChildrenHavingBase.__init__(
             self,
@@ -231,7 +231,7 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
     }
 
     def __init__(self, expression, lower, upper, source_ref):
-        assert Utils.python_version < 300
+        assert python_version < 300
 
         ExpressionChildrenHavingBase.__init__(
             self,

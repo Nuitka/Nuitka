@@ -28,6 +28,7 @@ from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.PythonVersions import python_version
 from nuitka.utils import Utils
 
 
@@ -59,7 +60,7 @@ if os.path.exists(guess_path):
 
         # May not be good for everybody, but we cannot have bytes in paths, or
         # else working with them breaks down.
-        if Utils.python_version >= 300:
+        if python_version >= 300:
             output = output.decode("utf-8")
 
         result = []

@@ -26,18 +26,19 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
-from .Helpers import generateChildExpressionsCode
+from .Helpers import generateChildExpressionsCode, generateExpressionCode
+from .PythonAPICodes import generateCAPIObjectCode
 
 
-def generateListCreationCode(to_name, elements, emit, context):
+def generateListCreationCode(to_name, expression, emit, context):
+    elements = expression.getElements()
+
     emit(
         "%s = PyList_New( %d );" % (
             to_name,
             len(elements)
         )
     )
-
-    from .CodeGeneration import generateExpressionCode
 
     context.addCleanupTempName(to_name)
 
@@ -165,3 +166,17 @@ def generateListOperationPopCode(to_name, expression, emit, context):
     )
 
     context.addCleanupTempName(to_name)
+
+
+def generateBuiltinListCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "PySequence_List",
+        arg_desc   = (
+            ("list_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )

@@ -34,6 +34,7 @@ from logging import info, warning
 
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils import Utils
 
@@ -290,7 +291,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         elements = full_name.split('.')
 
         if elements[0] in ("PyQt4", "PyQt5"):
-            if Utils.python_version < 300:
+            if python_version < 300:
                 yield "atexit"
 
             yield "sip"

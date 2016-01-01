@@ -402,6 +402,7 @@ def buildStatementsNode(provider, nodes, source_ref, code_object = None):
 
     return result
 
+
 def makeStatementsSequenceOrStatement(statements, source_ref):
     """ Make a statement sequence, but only if more than one statement
 
@@ -456,7 +457,6 @@ def makeStatementsSequenceFromStatements(*statements):
         statements = statements,
         source_ref = statements[0].getSourceReference()
     )
-
 
 
 def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):

@@ -20,6 +20,8 @@
 Attribute lookup, setting.
 """
 
+from nuitka import Options
+
 from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
@@ -27,8 +29,95 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
-from .Helpers import generateChildExpressionsCode
+from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .LabelCodes import getBranchingCode
+from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
+
+
+def generateAssignmentAttributeCode(statement, emit, context):
+    lookup_source  = statement.getLookupSource()
+    attribute_name = statement.getAttributeName()
+    value          = statement.getAssignSource()
+
+    value_name = context.allocateTempName("assattr_name")
+
+    generateExpressionCode(
+        to_name    = value_name,
+        expression = value,
+        emit       = emit,
+        context    = context
+    )
+
+    target_name = context.allocateTempName("assattr_target")
+    generateExpressionCode(
+        to_name    = target_name,
+        expression = lookup_source,
+        emit       = emit,
+        context    = context
+    )
+
+    old_source_ref = context.setCurrentSourceCodeReference(
+        value.getSourceReference()
+           if Options.isFullCompat() else
+        statement.getSourceReference()
+    )
+
+    if attribute_name == "__dict__":
+        getAttributeAssignmentDictSlotCode(
+            target_name = target_name,
+            value_name  = value_name,
+            emit        = emit,
+            context     = context
+        )
+    elif attribute_name == "__class__":
+        getAttributeAssignmentClassSlotCode(
+            target_name = target_name,
+            value_name  = value_name,
+            emit        = emit,
+            context     = context
+        )
+    else:
+        getAttributeAssignmentCode(
+            target_name    = target_name,
+            value_name     = value_name,
+            attribute_name = getConstantCode(
+                context  = context,
+                constant = attribute_name
+            ),
+            emit           = emit,
+            context        = context
+        )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
+
+
+def generateDelAttributeCode(statement, emit, context):
+    target_name = context.allocateTempName("attrdel_target")
+
+    generateExpressionCode(
+        to_name    = target_name,
+        expression = statement.getLookupSource(),
+        emit       = emit,
+        context    = context
+    )
+
+    old_source_ref = context.setCurrentSourceCodeReference(
+        statement.getLookupSource().getSourceReference()
+           if Options.isFullCompat() else
+        statement.getSourceReference()
+    )
+
+    getAttributeDelCode(
+        target_name    = target_name,
+        attribute_name = getConstantCode(
+            context  = context,
+            constant = statement.getAttributeName()
+        ),
+        emit           = emit,
+        context        = context
+    )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
 
 
 def generateAttributeLookupCode(to_name, expression, emit, context):
@@ -276,3 +365,51 @@ def getAttributeLookupSpecialCode(to_name, source_name, attr_name, needs_check,
     )
 
     context.addCleanupTempName(to_name)
+
+
+def generateBuiltinHasattrCode(to_name, expression, emit, context):
+    generateCAPIObjectCode0(
+        to_name    = to_name,
+        capi       = "BUILTIN_HASATTR",
+        arg_desc   = (
+            ("hasattr_value", expression.getLookupSource()),
+            ("hasattr_attr", expression.getAttribute()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinGetattrCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_GETATTR",
+        arg_desc   = (
+            ("getattr_target", expression.getLookupSource()),
+            ("getattr_attr", expression.getAttribute()),
+            ("getattr_default", expression.getDefault()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        none_null  = True,
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinSetattrCode(to_name, expression, emit, context):
+    generateCAPIObjectCode0(
+        to_name    = to_name,
+        capi       = "BUILTIN_SETATTR",
+        arg_desc   = (
+            ("setattr_target", expression.getLookupSource()),
+            ("setattr_attr", expression.getAttribute()),
+            ("setattr_value", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context,
+    )

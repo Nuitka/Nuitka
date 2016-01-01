@@ -24,7 +24,7 @@ of operations allowed.
 
 import operator
 
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 # TODO: Monkey patching this may cause issues for compile time assessments of
 # user code. This should be solved differently.

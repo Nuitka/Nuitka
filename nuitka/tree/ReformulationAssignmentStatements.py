@@ -60,7 +60,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .Helpers import (
     buildNode,
@@ -154,7 +154,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
         # For Python3 there is no slicing operation, this is always done
         # with subscript using a slice object. For Python2, it is only done
         # if no "step" is provided.
-        use_sliceobj = Utils.python_version >= 300
+        use_sliceobj = python_version >= 300
 
         if use_sliceobj:
             return StatementAssignmentSubscript(
@@ -560,7 +560,7 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
     elif kind == "Slice":
         lookup_source, lower, upper = detail
 
-        use_sliceobj = Utils.python_version >= 300
+        use_sliceobj = python_version >= 300
 
         if use_sliceobj:
             return StatementDelSubscript(
@@ -915,7 +915,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
 
         upper_ref1 = upper_ref2 = None
 
-    use_sliceobj = Utils.python_version >= 300
+    use_sliceobj = python_version >= 300
 
         # Second assign the in-place result over the original value.
     if use_sliceobj:

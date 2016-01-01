@@ -27,7 +27,7 @@ from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .Helpers import buildNode
 
@@ -49,7 +49,7 @@ def buildAssertNode(provider, node, source_ref):
 
     exception_value = buildNode(provider, node.msg, source_ref, True)
 
-    if exception_value is not None and Utils.python_version > 272:
+    if exception_value is not None and python_version > 272:
         exception_value = ExpressionMakeTuple(
             elements   = (exception_value,),
             source_ref = source_ref

@@ -65,7 +65,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .Helpers import (
     buildNode,
@@ -119,7 +119,7 @@ def _buildClassNode3(provider, node, source_ref):
         source_ref = source_ref
     )
 
-    if Utils.python_version >= 340 and False: # TODO: Temporarily reverted:
+    if python_version >= 340 and False: # TODO: Temporarily reverted:
         tmp_class = class_creation_function.allocateTempVariable(
             temp_scope = None,
             name       = "__class__"
@@ -220,13 +220,13 @@ def _buildClassNode3(provider, node, source_ref):
         )
 
     # The "__qualname__" attribute is new in Python 3.3.
-    if Utils.python_version >= 330:
+    if python_version >= 330:
         qualname = class_creation_function.getFunctionQualname()
         qualname_variable = class_creation_function.getVariableForAssignment(
             "__qualname__"
         )
 
-        if Utils.python_version < 340:
+        if python_version < 340:
             qualname_ref = ExpressionConstantRef(
                 constant      = qualname,
                 source_ref    = source_ref,
@@ -250,7 +250,7 @@ def _buildClassNode3(provider, node, source_ref):
             )
         )
 
-        if Utils.python_version >= 340:
+        if python_version >= 340:
             qualname_assign = statements[-1]
 
     statements += [
@@ -546,7 +546,7 @@ def _buildClassNode3(provider, node, source_ref):
         ),
     )
 
-    if Utils.python_version >= 340:
+    if python_version >= 340:
         class_assign = statements[-1]
 
         class_creation_function.qualname_setup = class_assign, qualname_assign
@@ -865,7 +865,7 @@ def buildClassNode(provider, node, source_ref):
 
     # Python2 and Python3 are similar, but fundamentally different, so handle
     # them in dedicated code.
-    if Utils.python_version < 300:
+    if python_version < 300:
         return _buildClassNode2(provider, node, source_ref)
     else:
         return _buildClassNode3(provider, node, source_ref)

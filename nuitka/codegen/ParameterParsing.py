@@ -19,7 +19,7 @@
 
 """
 
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from .ConstantCodes import getConstantCode
 from .Indentation import indented

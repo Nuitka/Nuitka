@@ -30,6 +30,7 @@ import subprocess
 import sys
 
 from nuitka import Options, Tracing
+from nuitka.PythonVersions import python_version
 from nuitka.utils import Utils
 
 
@@ -93,7 +94,7 @@ def _getPython2ExePathWindows():
 
 def getPython2ExePath():
     """ Find a way to call Python2. Scons needs it."""
-    if Utils.python_version < 300:
+    if python_version < 300:
         return sys.executable
     elif Utils.getOS() == "Windows":
         python_exe = _getPython2ExePathWindows()
@@ -130,7 +131,7 @@ def setupSconsEnvironment():
     # Remove environment variables that can only harm if we have to switch
     # major Python versions, these cannot help Python2 to execute scons, this
     # is a bit of noise, but helpful.
-    if Utils.python_version >= 300:
+    if python_version >= 300:
         if "PYTHONPATH" in os.environ:
             old_pythonpath = os.environ["PYTHONPATH"]
             del os.environ["PYTHONPATH"]
@@ -145,7 +146,7 @@ def setupSconsEnvironment():
 
     yield
 
-    if Utils.python_version >= 300:
+    if python_version >= 300:
         if old_pythonpath is not None:
             os.environ["PYTHONPATH"] = old_pythonpath
 

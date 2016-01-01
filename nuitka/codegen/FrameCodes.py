@@ -21,7 +21,7 @@ This is about frame stacks and their management. There are different kinds
 of frames for different uses.
 """
 
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from . import Contexts, Emission
 from .ExceptionCodes import getTracebackMakingIdentifier
@@ -390,7 +390,7 @@ def getFrameLocalsUpdateCode(provider, context):
     return frame_locals_name, locals_codes.codes
 
 
-def getFramePreserveExceptionCode(statement, emit, context):
+def generateFramePreserveExceptionCode(statement, emit, context):
     emit("// Preserve existing published exception.")
 
     if python_version < 300:
@@ -425,7 +425,7 @@ Py_XINCREF( exception_preserved_tb_%(preserver_id)d );
             )
 
 
-def getFrameRestoreExceptionCode(statement, emit, context):
+def generateFrameRestoreExceptionCode(statement, emit, context):
     emit("// Restore previous exception.")
 
     if python_version < 300:

@@ -30,7 +30,7 @@ from logging import info, warning
 
 from nuitka.importing import Importing, Recursion
 from nuitka.plugins.PluginBase import Plugins
-from nuitka.PythonVersions import isUninstalledPython
+from nuitka.PythonVersions import isUninstalledPython, python_version
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import InstanceCounters, Utils
 
@@ -423,17 +423,17 @@ def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches, pylint: disable=R0912
 
-    python_version = "%d.%d" % (sys.version_info[0], sys.version_info[1])
+    python_version_str = "%d.%d" % (sys.version_info[0], sys.version_info[1])
 
     if hasattr(sys, "abiflags"):
         if Options.isPythonDebug() or \
            hasattr(sys, "getobjects"):
             if sys.abiflags.startswith('d'):
-                python_version += sys.abiflags
+                python_version_str += sys.abiflags
             else:
-                python_version += 'd' + sys.abiflags
+                python_version_str += 'd' + sys.abiflags
         else:
-            python_version += sys.abiflags
+            python_version_str += sys.abiflags
 
     def asBoolStr(value):
         return "true" if value else "false"
@@ -452,7 +452,7 @@ def runScons(main_module, quiet):
         "full_compat"     : asBoolStr(Options.isFullCompat()),
         "experimental"    : asBoolStr(Options.isExperimental()),
         "trace_mode"      : asBoolStr(Options.shallTraceExecution()),
-        "python_version"  : python_version,
+        "python_version"  : python_version_str,
         "target_arch"     : Utils.getArchitecture(),
         "python_prefix"   : sys.prefix,
         "nuitka_src"      : SconsInterface.getSconsDataPath(),
@@ -517,7 +517,7 @@ def writeSourceCode(filename, source_code):
     # or something else has failed.
     assert not Utils.isFile(filename), filename
 
-    if Utils.python_version >= 300:
+    if python_version >= 300:
         with open(filename, "wb") as output_file:
             output_file.write(source_code.encode("latin1"))
     else:

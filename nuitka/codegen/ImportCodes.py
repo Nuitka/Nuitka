@@ -28,8 +28,69 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
+from .GlobalsLocalsCodes import getLoadGlobalsCode, getLoadLocalsCode
+from .Helpers import generateExpressionCode, generateExpressionsCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
+
+
+def generateBuiltinImportCode(to_name, expression, emit, context):
+    # We know that 5 expressions are created, pylint: disable=W0632
+    module_name, globals_name, locals_name, import_list_name, level_name = \
+      generateExpressionsCode(
+        expressions = (
+            expression.getImportName(),
+            expression.getGlobals(),
+            expression.getLocals(),
+            expression.getFromList(),
+            expression.getLevel()
+        ),
+        names       = (
+            "import_modulename",
+            "import_globals",
+            "import_locals",
+            "import_fromlist",
+            "import_level"
+        ),
+        emit        = emit,
+        context     = context
+    )
+
+    if expression.getGlobals() is None:
+        globals_name = context.allocateTempName("import_globals")
+
+        getLoadGlobalsCode(
+            to_name = globals_name,
+            emit    = emit,
+            context = context
+        )
+
+    if expression.getLocals() is None:
+        provider = expression.getParentVariableProvider()
+
+        if provider.isCompiledPythonModule():
+            locals_name = globals_name
+        else:
+            locals_name = context.allocateTempName("import_locals")
+
+            getLoadLocalsCode(
+                to_name  = locals_name,
+                provider = provider,
+                mode     = provider.getLocalsMode(),
+                emit     = emit,
+                context  = context
+            )
+
+    getBuiltinImportCode(
+        to_name          = to_name,
+        module_name      = module_name,
+        globals_name     = globals_name,
+        locals_name      = locals_name,
+        import_list_name = import_list_name,
+        level_name       = level_name,
+        emit             = emit,
+        context          = context
+    )
 
 
 def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
@@ -50,7 +111,11 @@ def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
 
     getReleaseCodes(
         release_names = (
-            module_name, globals_name, locals_name, import_list_name, level_name
+            module_name,
+            globals_name,
+            locals_name,
+            import_list_name,
+            level_name
         ),
         emit          = emit,
         context       = context
@@ -63,6 +128,17 @@ def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
     )
 
     context.addCleanupTempName(to_name)
+
+
+def generateImportModuleHardCode(to_name, expression, emit, context):
+    getImportModuleHardCode(
+        to_name     = to_name,
+        module_name = expression.getModuleName(),
+        import_name = expression.getImportName(),
+        needs_check = expression.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
+    )
 
 
 def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
@@ -85,7 +161,6 @@ def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
     else:
         assert False, module_name
 
-
     if needs_check:
         getErrorExitCode(
             check_name = to_name,
@@ -94,7 +169,67 @@ def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
         )
 
 
-def getImportFromStarCode(module_name, emit, context):
+def generateImportModuleCode(to_name, expression, emit, context):
+    provider = expression.getParentVariableProvider()
+
+    globals_name = context.allocateTempName("import_globals")
+
+    getLoadGlobalsCode(
+        to_name = globals_name,
+        emit    = emit,
+        context = context
+    )
+
+    if provider.isCompiledPythonModule():
+        locals_name = globals_name
+    else:
+        locals_name = context.allocateTempName("import_locals")
+
+        getLoadLocalsCode(
+            to_name  = locals_name,
+            provider = expression.getParentVariableProvider(),
+            mode     = "updated",
+            emit     = emit,
+            context  = context
+        )
+
+    old_source_ref = context.setCurrentSourceCodeReference(expression.getSourceReference())
+
+    getBuiltinImportCode(
+        to_name          = to_name,
+        module_name      = getConstantCode(
+            constant = expression.getModuleName(),
+            context  = context
+        ),
+        globals_name     = globals_name,
+        locals_name      = locals_name,
+        import_list_name = getConstantCode(
+            constant = expression.getImportList(),
+            context  = context
+        ),
+        level_name       = getConstantCode(
+            constant = expression.getLevel(),
+            context  = context
+        ),
+        emit             = emit,
+        context          = context
+    )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
+
+
+def generateImportStarCode(statement, emit, context):
+    module_name = context.allocateTempName("star_imported")
+
+    generateImportModuleCode(
+        to_name    = module_name,
+        expression = statement.getModule(),
+        emit       = emit,
+        context    = context
+    )
+
+    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
+
     res_name = context.getBoolResName()
 
     if not context.hasLocalsDict():
@@ -115,26 +250,37 @@ def getImportFromStarCode(module_name, emit, context):
             )
         )
 
-    getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
-    )
-
     getReleaseCode(
         release_name = module_name,
         emit         = emit,
         context      = context
     )
 
+    getErrorExitBoolCode(
+        condition = "%s == false" % res_name,
+        emit      = emit,
+        context   = context
+    )
 
-def getImportNameCode(to_name, import_name, from_arg_name, emit, context):
+    context.setCurrentSourceCodeReference(old_source_ref)
+
+
+def generateImportNameCode(to_name, expression, emit, context):
+    from_arg_name = context.allocateTempName("import_name_from")
+
+    generateExpressionCode(
+        to_name    = from_arg_name,
+        expression = expression.getModule(),
+        emit       = emit,
+        context    = context
+    )
+
     emit(
         "%s = IMPORT_NAME( %s, %s );" % (
             to_name,
             from_arg_name,
             getConstantCode(
-                constant = import_name,
+                constant = expression.getImportName(),
                 context  = context
             )
         )

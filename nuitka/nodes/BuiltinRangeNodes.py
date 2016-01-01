@@ -26,7 +26,7 @@ result of it can be predicted still, and these are interesting for warnings.
 import math
 
 from nuitka.optimizations import BuiltinOptimization
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from .NodeBases import ExpressionBuiltinNoArgBase, ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode

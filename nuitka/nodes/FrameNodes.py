@@ -26,7 +26,7 @@ them.
 
 """
 
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from .StatementNodes import StatementsSequence
 

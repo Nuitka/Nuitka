@@ -22,9 +22,11 @@ generator functions. Also the value currently being returned, and intercepted
 by a try statement is accessible this way.
 
 """
-from nuitka.utils import Utils
+
+from nuitka.PythonVersions import python_version
 
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
+from .Helpers import generateExpressionCode
 from .LabelCodes import getGotoCode
 
 
@@ -34,9 +36,6 @@ def generateReturnCode(statement, emit, context):
     return_value = statement.getExpression()
 
     if not return_value.isExpressionReturnedValueRef():
-        # TODO: This should come from Helpers module.
-        from .CodeGeneration import generateExpressionCode
-
         return_value_name = context.getReturnValueName()
 
         if context.getReturnReleaseMode():
@@ -76,10 +75,7 @@ def generateReturnedValueRefCode(to_name, expression, emit, context):
 
 
 def generateGeneratorReturnCode(statement, emit, context):
-    if Utils.python_version >= 330:
-        # TODO: This should come from Helpers module.
-        from .CodeGeneration import generateExpressionCode
-
+    if python_version >= 330:
         return_value_name = context.getGeneratorReturnValueName()
 
         expression = statement.getExpression()

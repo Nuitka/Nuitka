@@ -57,7 +57,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
-from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
     ExpressionOperationNOT
@@ -77,7 +77,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from .Helpers import (
     makeConditionalStatement,
@@ -494,7 +494,7 @@ def _makeIteratingLoopStatement(tmp_iter_variable, tmp_item_variable, statements
                 source_ref   = internal_source_ref
             ),
             exception_name = "StopIteration",
-            handler_body   = StatementBreakLoop(
+            handler_body   = StatementLoopBreak(
                 source_ref = internal_source_ref
             ),
             source_ref     = internal_source_ref

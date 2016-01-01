@@ -29,7 +29,7 @@ from logging import debug
 from nuitka import Tracing, VariableRegistry
 from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .VariableTraces import (
     VariableTraceAssign,
@@ -401,7 +401,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
                 self.markActiveVariableAsUnknown(variable)
 
-            elif Utils.python_version >= 300 or variable.isSharedTechnically():
+            elif python_version >= 300 or variable.isSharedTechnically():
                 # print variable
 
                 # TODO: Could be limited to shared variables that are actually

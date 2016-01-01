@@ -73,7 +73,7 @@ from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
     ExpressionImportName
 )
-from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
+from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
     CompiledPythonPackage,
@@ -517,7 +517,7 @@ def buildEllipsisNode(source_ref):
     )
 
 
-def buildStatementContinueLoop(node, source_ref):
+def buildStatementLoopContinue(node, source_ref):
     # Python forbids this, although technically it's probably not much of
     # an issue.
     if getBuildContext() == "finally":
@@ -538,16 +538,16 @@ def buildStatementContinueLoop(node, source_ref):
             source_line = source_line
         )
 
-    return StatementContinueLoop(
+    return StatementLoopContinue(
         source_ref = source_ref
     )
 
 
-def buildStatementBreakLoop(provider, node, source_ref):
+def buildStatementLoopBreak(provider, node, source_ref):
     # A bit unusual, we need the provider, but not the node,
     # pylint: disable=W0613
 
-    return StatementBreakLoop(
+    return StatementLoopBreak(
         source_ref = source_ref
     )
 
@@ -724,14 +724,14 @@ setBuildingDispatchers(
         "Repr"              : buildReprNode,
         "AugAssign"         : buildInplaceAssignNode,
         "IfExp"             : buildConditionalExpressionNode,
-        "Break"             : buildStatementBreakLoop,
+        "Break"             : buildStatementLoopBreak,
     },
     path_args2 = {
         "NameConstant" : buildNamedConstantNode,
         "Str"          : buildStringNode,
         "Num"          : buildNumberNode,
         "Bytes"        : buildBytesNode,
-        "Continue"     : buildStatementContinueLoop,
+        "Continue"     : buildStatementLoopContinue,
     },
     path_args1 = {
         "Ellipsis"     : buildEllipsisNode,

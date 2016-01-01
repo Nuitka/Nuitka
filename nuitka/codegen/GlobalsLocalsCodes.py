@@ -20,11 +20,13 @@
 This also includes writing back to locals for exec statements.
 """
 
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .ConstantCodes import getConstantCode
 from .ErrorCodes import getErrorExitBoolCode
+from .Helpers import generateExpressionCode
 from .ModuleCodes import getModuleAccessCode
+from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesVariables import (
     template_set_locals_dict_value,
     template_set_locals_mapping_value,
@@ -35,6 +37,29 @@ from .VariableCodes import (
     getLocalVariableObjectAccessCode,
     getVariableAssignmentCode
 )
+
+
+def generateBuiltinLocalsCode(to_name, expression, emit, context):
+    provider = expression.getParentVariableProvider()
+
+    getLoadLocalsCode(
+        to_name  = to_name,
+        provider = provider,
+        mode     = provider.getLocalsMode(),
+        emit     = emit,
+        context  = context
+    )
+
+
+def generateBuiltinGlobalsCode(to_name, expression, emit, context):
+    # Functions used for generation all accept expression, but this one does
+    # not use it. pylint: disable=W0613
+
+    getLoadGlobalsCode(
+        to_name = to_name,
+        emit    = emit,
+        context = context
+    )
 
 
 def getLoadGlobalsCode(to_name, emit, context):
@@ -171,7 +196,7 @@ Py_INCREF( locals_dict );""" % (
                 _getVariableDictUpdateCode(
                     target_name = to_name,
                     variable    = local_var,
-                    is_dict     = Utils.python_version < 300 or \
+                    is_dict     = python_version < 300 or \
                                   not context.getFunction().isExpressionClassBody(),
                     initial     = False,
                     emit        = emit,
@@ -183,7 +208,16 @@ Py_INCREF( locals_dict );""" % (
             assert False
 
 
-def getSetLocalsCode(new_locals_name, emit, context):
+def generateSetLocalsCode(statement, emit, context):
+    new_locals_name = context.allocateTempName("set_locals", unique = True)
+
+    generateExpressionCode(
+        to_name    = new_locals_name,
+        expression = statement.getNewLocals(),
+        emit       = emit,
+        context    = context
+    )
+
     ref_count = context.needsCleanup(new_locals_name)
 
     emit(
@@ -247,3 +281,31 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
             )
 
             emit('}')
+
+
+def generateBuiltinDir1Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "PyObject_Dir",
+        arg_desc   = (
+            ("dir_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinVarsCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "LOOKUP_VARS",
+        arg_desc   = (
+            ("vars_arg", expression.getSource()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )

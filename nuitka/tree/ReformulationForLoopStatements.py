@@ -37,7 +37,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.StatementNodes import StatementsSequence
 
 from .Helpers import (
@@ -105,7 +105,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
         statements = []
 
     statements.append(
-        StatementBreakLoop(
+        StatementLoopBreak(
             source_ref = source_ref
         )
     )

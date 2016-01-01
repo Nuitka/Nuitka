@@ -31,7 +31,6 @@ flexible.
 
 from nuitka import Variables
 from nuitka.PythonVersions import python_version
-from nuitka.utils import Utils
 
 
 class TooManyArguments(Exception):
@@ -304,7 +303,7 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
         assign(arg, value)
 
     # Python3 does this check earlier.
-    if Utils.python_version >= 300 and not star_dict_arg:
+    if python_version >= 300 and not star_dict_arg:
         for pair in pairs:
             if pair[0] not in args:
                 message = "'%s' is an invalid keyword argument for this function" % pair[0]
@@ -469,7 +468,7 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
                 TypeError(
                     "%s expected %s%s, got %d" % (
                         func_name,
-                        ( "at least " if Utils.python_version < 300 else "" )
+                        ( "at least " if python_version < 300 else "" )
                             if num_defaults > 0
                         else "exactly ",
                         "%d arguments" % num_required,

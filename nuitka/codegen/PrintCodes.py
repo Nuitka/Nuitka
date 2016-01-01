@@ -24,9 +24,36 @@ happening in the C helper functions.
 """
 
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCode, getReleaseCodes
+from .Helpers import generateExpressionCode
 
 
-def getPrintValueCode(dest_name, value_name, emit, context):
+def generatePrintValueCode(statement, emit, context):
+    destination = statement.getDestination()
+    value       = statement.getValue()
+
+    if destination is not None:
+        dest_name = context.allocateTempName("print_dest", unique = True)
+
+        generateExpressionCode(
+            expression = destination,
+            to_name    = dest_name,
+            emit       = emit,
+            context    = context
+        )
+    else:
+        dest_name = None
+
+    value_name = context.allocateTempName("print_value", unique = True)
+
+    generateExpressionCode(
+        expression = value,
+        to_name    = value_name,
+        emit       = emit,
+        context    = context
+    )
+
+    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
+
     if dest_name is not None:
         print_code = "PRINT_ITEM_TO( %s, %s ) == false" % (
             dest_name,
@@ -49,8 +76,26 @@ def getPrintValueCode(dest_name, value_name, emit, context):
         context       = context
     )
 
+    context.setCurrentSourceCodeReference(old_source_ref)
 
-def getPrintNewlineCode(dest_name, emit, context):
+
+def generatePrintNewlineCode(statement, emit, context):
+    destination = statement.getDestination()
+
+    if destination is not None:
+        dest_name = context.allocateTempName("print_dest", unique = True)
+
+        generateExpressionCode(
+            expression = destination,
+            to_name    = dest_name,
+            emit       = emit,
+            context    = context
+        )
+    else:
+        dest_name = None
+
+    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
+
     if dest_name is not None:
         print_code = "PRINT_NEW_LINE_TO( %s ) == false" % (
             dest_name,
@@ -69,3 +114,5 @@ def getPrintNewlineCode(dest_name, emit, context):
         emit         = emit,
         context      = context
     )
+
+    context.setCurrentSourceCodeReference(old_source_ref)

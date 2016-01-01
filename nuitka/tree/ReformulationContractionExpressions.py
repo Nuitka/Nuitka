@@ -51,7 +51,7 @@ from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
     ExpressionMakeGeneratorObject
 )
-from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.NodeMakingHelpers import (
     makeVariableRefNode,
     makeVariableTargetRefNode
@@ -65,7 +65,7 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.YieldNodes import ExpressionYield
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .Helpers import (
     buildNode,
@@ -87,7 +87,7 @@ def buildListContractionNode(provider, node, source_ref):
         provider        = provider,
         node            = node,
         name            = "list_contraction"
-                            if Utils.python_version < 300 else
+                            if python_version < 300 else
                           "<listcontraction>",
         emit_class      = ExpressionListOperationAppend,
         start_value     = ExpressionConstantRef(
@@ -96,7 +96,7 @@ def buildListContractionNode(provider, node, source_ref):
         ),
         # Note: For Python3, the list contractions no longer assign to the outer
         # scope.
-        assign_provider = Utils.python_version < 300,
+        assign_provider = python_version < 300,
         source_ref      = source_ref
     )
 
@@ -321,7 +321,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                     source_ref   = source_ref
                 ),
                 exception_name = "StopIteration",
-                handler_body   = StatementBreakLoop(
+                handler_body   = StatementLoopBreak(
                     source_ref = source_ref.atInternal()
                 ),
                 source_ref     = source_ref

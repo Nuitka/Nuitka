@@ -22,7 +22,7 @@ This contains tools to compare, classify and test constants.
 
 import math
 
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from .__past__ import iterItems, long, unicode  # pylint: disable=W0622
 from .Builtins import builtin_anon_names

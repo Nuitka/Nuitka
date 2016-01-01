@@ -19,7 +19,7 @@
 
 """
 
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .ConstantCodes import getConstantCode
 from .CoroutineCodes import getCoroutineObjectDeclCode
@@ -33,7 +33,9 @@ from .ErrorCodes import (
     getReleaseCode
 )
 from .GeneratorCodes import getGeneratorObjectDeclCode
+from .Helpers import generateExpressionCode
 from .Indentation import indented
+from .LabelCodes import getLabelCode
 from .ModuleCodes import getModuleAccessCode
 from .ParameterParsing import (
     getDirectFunctionEntryPointIdentifier,
@@ -54,7 +56,7 @@ from .templates.CodeTemplatesFunction import (
     template_make_function_with_context_template,
     template_make_function_without_context_template
 )
-from .TupleCodes import generateTupleCreationCode
+from .TupleCodes import getTupleCreationCode
 from .VariableCodes import (
     getLocalVariableInitCode,
     getVariableCode,
@@ -135,7 +137,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
         closure_variables = closure_variables
     )
 
-    if Utils.python_version < 330 or function_qualname == function_name:
+    if python_version < 330 or function_qualname == function_name:
         function_qualname_obj = "NULL"
     else:
         function_qualname_obj = getConstantCode(
@@ -242,11 +244,17 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
     return result
 
 
-def generateFunctionCreationCode(to_name, function_body, code_object, defaults,
-                                 kw_defaults, annotations, defaults_first, emit,
-                                 context):
+def generateFunctionCreationCode(to_name, expression, emit, context):
     # This is about creating functions, which is detail ridden stuff,
     # pylint: disable=R0914
+
+    function_body  = expression.getFunctionRef().getFunctionBody()
+    code_object    = expression.getCodeObject()
+    defaults       = expression.getDefaults()
+    kw_defaults    = expression.getKwDefaults()
+    annotations    = expression.getAnnotations()
+    defaults_first = not expression.kw_defaults_before_defaults
+
     assert function_body.needsCreation(), function_body
 
     def handleKwDefaults():
@@ -256,7 +264,6 @@ def generateFunctionCreationCode(to_name, function_body, code_object, defaults,
             assert not kw_defaults.isExpressionConstantRef() or \
                    kw_defaults.getConstant() != {}, kw_defaults.getConstant()
 
-            from .CodeGeneration import generateExpressionCode
             generateExpressionCode(
                 to_name    = kw_defaults_name,
                 expression = kw_defaults,
@@ -272,7 +279,7 @@ def generateFunctionCreationCode(to_name, function_body, code_object, defaults,
         if defaults:
             defaults_name = context.allocateTempName("defaults")
 
-            generateTupleCreationCode(
+            getTupleCreationCode(
                 to_name  = defaults_name,
                 elements = defaults,
                 emit     = emit,
@@ -293,7 +300,6 @@ def generateFunctionCreationCode(to_name, function_body, code_object, defaults,
     if annotations:
         annotations_name = context.allocateTempName("annotations")
 
-        from .CodeGeneration import generateExpressionCode
         generateExpressionCode(
             to_name    = annotations_name,
             expression = annotations,
@@ -665,3 +671,82 @@ def generateFunctionDeclCode(function_body):
         )
     else:
         return None
+
+
+def generateFunctionCallCode(to_name, expression, emit, context):
+    assert expression.getFunction().isExpressionFunctionCreation()
+
+    function_body = expression.getFunction().getFunctionRef().getFunctionBody()
+    function_identifier = function_body.getCodeName()
+
+    argument_values = expression.getArgumentValues()
+
+    arg_names = []
+    for count, arg_value in enumerate(argument_values):
+        arg_name = context.allocateTempName("dircall_arg%d" % (count+1))
+
+        generateExpressionCode(
+            to_name    = arg_name,
+            expression = arg_value,
+            emit       = emit,
+            context    = context
+        )
+
+        arg_names.append(arg_name)
+
+    context.setCurrentSourceCodeReference(
+        expression.getCompatibleSourceReference()
+    )
+
+    getDirectFunctionCallCode(
+        to_name             = to_name,
+        function_identifier = function_identifier,
+        arg_names           = arg_names,
+        closure_variables   = function_body.getClosureVariables(),
+        needs_check         = expression.getFunction().getFunctionRef().\
+                                getFunctionBody().mayRaiseException(BaseException),
+        emit                = emit,
+        context             = context
+    )
+
+
+def generateFunctionOutlineCode(to_name, expression, emit, context):
+    assert expression.isExpressionOutlineBody()
+
+    # Need to set return target, to assign to_name from.
+    old_return_release_mode = context.getReturnReleaseMode()
+
+    return_target = context.allocateLabel("outline_result")
+    old_return_target = context.setReturnTarget(return_target)
+
+    return_value_name = context.allocateTempName("outline_return_value")
+    old_return_value_name = context.setReturnValueName(return_value_name)
+
+    from .CodeGeneration import generateStatementSequenceCode
+    generateStatementSequenceCode(
+        statement_sequence = expression.getBody(),
+        emit               = emit,
+        context            = context,
+        allow_none         = False
+    )
+
+    getMustNotGetHereCode(
+        reason  = "Return statement must have exited already.",
+        context = context,
+        emit    = emit
+    )
+
+    getLabelCode(return_target, emit)
+    emit(
+        "%s = %s;" % (
+            to_name,
+            return_value_name
+        )
+    )
+
+    context.addCleanupTempName(to_name)
+
+    # Restore previous "return" handling.
+    context.setReturnTarget(old_return_target)
+    context.setReturnReleaseMode(old_return_release_mode)
+    context.setReturnValueName(old_return_value_name)

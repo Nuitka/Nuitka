@@ -22,23 +22,22 @@ added later on.
 """
 
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
-from .Helpers import generateChildExpressionsCode
+from .Helpers import generateChildExpressionsCode, generateExpressionCode
+from .PythonAPICodes import generateCAPIObjectCode
 
 
-def generateSetCreationCode(to_name, elements, emit, context):
+def generateSetCreationCode(to_name, expression, emit, context):
     emit(
         "%s = PySet_New( NULL );" % (
             to_name,
         )
     )
 
-    from .CodeGeneration import generateExpressionCode
-
     context.addCleanupTempName(to_name)
 
     element_name = context.allocateTempName("set_element")
 
-    for element in elements:
+    for element in expression.getElements():
         generateExpressionCode(
             to_name    = element_name,
             expression = element,
@@ -151,3 +150,17 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
         )
     else:
         context.forgetTempName(to_name)
+
+
+def generateBuiltinSetCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "PySet_New",
+        arg_desc   = (
+            ("set_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )

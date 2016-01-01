@@ -43,7 +43,7 @@ from nuitka.nodes.GeneratorNodes import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.YieldNodes import ExpressionYield
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .Helpers import (
     buildNode,
@@ -62,6 +62,8 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildLambdaNode(provider, node, source_ref):
+    # Many details to deal with, pylint: disable=R0914
+
     assert getKind(node) == "Lambda"
 
     function_kind, _written_variables, _non_local_declarations, _global_declarations = \
@@ -119,7 +121,7 @@ def buildLambdaNode(provider, node, source_ref):
     )
 
     if function_kind == "Generator":
-        if Utils.python_version < 270:
+        if python_version < 270:
             tmp_return_value = code_body.allocateTempVariable(
                 temp_scope = None,
                 name       = "yield_return"

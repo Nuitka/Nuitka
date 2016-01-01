@@ -118,6 +118,7 @@ from nuitka.nodes.TypeNodes import (
 )
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.Options import isDebug, shallMakeModule
+from nuitka.PythonVersions import python_version
 from nuitka.tree.Helpers import (
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
@@ -125,7 +126,6 @@ from nuitka.tree.Helpers import (
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from nuitka.tree. \
     ReformulationTryFinallyStatements import makeTryFinallyStatement
-from nuitka.utils.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage
 
 from . import BuiltinOptimization

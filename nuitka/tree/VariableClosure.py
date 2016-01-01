@@ -27,8 +27,8 @@ complete.
 from nuitka import PythonVersions, Variables
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.Options import isFullCompat
+from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.utils.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage, isSharedAmongScopes
 
 from .Operations import VisitorNoopMixin, visitTree
@@ -231,12 +231,12 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         seen_function = True
         # Check if continue and break are properly in loops. If not, raise a
         # syntax error.
-        elif node.isStatementBreakLoop() or node.isStatementContinueLoop():
+        elif node.isStatementLoopBreak() or node.isStatementLoopContinue():
             current = node
 
             while True:
                 if current.isParentVariableProvider():
-                    if node.isStatementContinueLoop():
+                    if node.isStatementLoopContinue():
                         message = "'continue' not properly in loop"
 
                         col_offset   = 16 if python_version >= 300 else None

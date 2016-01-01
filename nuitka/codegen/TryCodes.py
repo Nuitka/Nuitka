@@ -26,6 +26,7 @@ from nuitka import Options
 
 from .ErrorCodes import getMustNotGetHereCode
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
+from .Helpers import generateExpressionCode
 from .IteratorCodes import getBuiltinLoopBreakNextCode
 from .LabelCodes import getGotoCode, getLabelCode
 from .VariableCodes import getVariableAssignmentCode
@@ -287,7 +288,7 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     if len(yes_statements) != 1:
         return False
 
-    if not yes_statements[0].isStatementBreakLoop():
+    if not yes_statements[0].isStatementLoopBreak():
         return False
 
     if len(no_statements) != 1:
@@ -298,9 +299,6 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
         return False
 
     tmp_name = context.allocateTempName("next_source")
-
-    # TODO: Move to helper.
-    from .CodeGeneration import generateExpressionCode
 
     generateExpressionCode(
         expression = assign_source.getValue(),

@@ -24,7 +24,7 @@ anymore, if we start to not know where their value goes.
 The "dir()" call without arguments is reformulated to locals or globals calls.
 """
 
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
@@ -76,7 +76,7 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
                not self.getParent().isStatementReturn()
 
     def mayHaveSideEffects(self):
-        if Utils.python_version < 300:
+        if python_version < 300:
             return False
 
         provider = self.getParentVariableProvider()

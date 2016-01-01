@@ -30,14 +30,20 @@ from .ExceptionCodes import getExceptionUnpublishedReleaseCode
 from .LabelCodes import getGotoCode, getLabelCode
 
 
-def getLoopBreakCode(emit, context):
+def generateLoopBreakCode(statement, emit, context):
+    # Functions used for generation all accept statement, but this one does
+    # not use it. pylint: disable=W0613
+
     getExceptionUnpublishedReleaseCode(emit, context)
 
     break_target = context.getLoopBreakTarget()
     getGotoCode(break_target, emit)
 
 
-def getLoopContinueCode(emit, context):
+def generateLoopContinueCode(statement, emit, context):
+    # Functions used for generation all accept statement, but this one does
+    # not use it. pylint: disable=W0613
+
     getExceptionUnpublishedReleaseCode(emit, context)
 
     continue_target = context.getLoopContinueTarget()

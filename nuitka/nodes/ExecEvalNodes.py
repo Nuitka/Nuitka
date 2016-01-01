@@ -23,7 +23,7 @@ to do.
 """
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
@@ -62,7 +62,7 @@ class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
 
 
 # Note: Python3 only so far.
-if Utils.python_version >= 300:
+if python_version >= 300:
     class ExpressionBuiltinExec(ExpressionBuiltinEval):
         kind = "EXPRESSION_BUILTIN_EXEC"
 
@@ -98,7 +98,7 @@ Replaced built-in exec call to exec statement in early closure context."""
 
 
 # Note: Python2 only
-if Utils.python_version < 300:
+if python_version < 300:
     class ExpressionBuiltinExecfile(ExpressionBuiltinEval):
         kind = "EXPRESSION_BUILTIN_EXECFILE"
 

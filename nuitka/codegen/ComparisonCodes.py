@@ -18,7 +18,7 @@
 """ Comparison related codes.
 
 Rich comparisons, "in", and "not in", also "is", and "is not", and the
-"isinstance" check as used in conditions.
+"isinstance" check as used in conditions, as well as exception matching.
 """
 
 from . import OperatorCodes
@@ -28,7 +28,36 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
+from .Helpers import generateExpressionCode
 from .LabelCodes import getBranchingCode
+
+
+def generateComparisonExpressionCode(to_name, expression, emit, context):
+    left_name = context.allocateTempName("compexpr_left")
+    right_name = context.allocateTempName("compexpr_right")
+
+    generateExpressionCode(
+        to_name    = left_name,
+        expression = expression.getLeft(),
+        emit       = emit,
+        context    = context
+    )
+    generateExpressionCode(
+        to_name    = right_name,
+        expression = expression.getRight(),
+        emit       = emit,
+        context    = context
+    )
+
+    getComparisonExpressionCode(
+        to_name     = to_name,
+        comparator  = expression.getComparator(),
+        left_name   = left_name,
+        right_name  = right_name,
+        needs_check = expression.mayRaiseExceptionBool(BaseException),
+        emit        = emit,
+        context     = context
+    )
 
 
 def getComparisonExpressionCode(to_name, comparator, left_name, right_name,

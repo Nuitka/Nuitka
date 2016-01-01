@@ -55,7 +55,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
-from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import ExpressionOperationBinary
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -142,7 +142,7 @@ def getDictUnpackingHelper():
                 source_ref   = internal_source_ref
             ),
             exception_name = "StopIteration",
-            handler_body   = StatementBreakLoop(
+            handler_body   = StatementLoopBreak(
                 source_ref = internal_source_ref
             ),
             source_ref     = internal_source_ref

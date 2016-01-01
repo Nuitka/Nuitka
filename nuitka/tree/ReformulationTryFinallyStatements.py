@@ -22,7 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
+from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ReturnNodes import ExpressionReturnedValueRef, StatementReturn
 from nuitka.nodes.StatementNodes import (
     StatementPreserveFrameException,
@@ -32,7 +32,7 @@ from nuitka.nodes.StatementNodes import (
 )
 from nuitka.nodes.TryNodes import StatementTry
 from nuitka.Options import isDebug
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .Helpers import (
     buildStatementsNode,
@@ -144,7 +144,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
     if tried.mayBreak():
         break_handler = getStatementsAppended(
             statement_sequence = final.makeClone(),
-            statements         = StatementBreakLoop(
+            statements         = StatementLoopBreak(
                 source_ref = source_ref
             )
         )
@@ -156,7 +156,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
     if tried.mayContinue():
         continue_handler = getStatementsAppended(
             statement_sequence = final.makeClone(),
-            statements         = StatementContinueLoop(
+            statements         = StatementLoopContinue(
                 source_ref = source_ref
             )
         )
@@ -203,7 +203,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
 
 def buildTryFinallyNode(provider, build_tried, node, source_ref):
 
-    if Utils.python_version < 300:
+    if python_version < 300:
         # Prevent "continue" statements in the final blocks
         pushBuildContext("finally")
         final = buildStatementsNode(

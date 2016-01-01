@@ -25,7 +25,6 @@ able to execute them without creating the argument dictionary at all.
 
 from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
-from .ExceptionCodes import getExceptionIdentifier
 from .Helpers import generateChildExpressionCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesCalls import (
@@ -382,26 +381,3 @@ def getCallsCode():
         )
 
     return '\n'.join(result)
-
-
-# TODO: Why is this here, not really related.
-def getMakeBuiltinExceptionCode(to_name, exception_type, arg_names, emit,
-                                context):
-    if arg_names:
-        getCallCodePosArgsQuick(
-            to_name     = to_name,
-            called_name = getExceptionIdentifier(exception_type),
-            arg_names   = arg_names,
-            needs_check = False,
-            emit        = emit,
-            context     = context
-        )
-
-    else:
-        getCallCodeNoArgs(
-            to_name     = to_name,
-            called_name = getExceptionIdentifier(exception_type),
-            needs_check = False,
-            emit        = emit,
-            context     = context
-        )

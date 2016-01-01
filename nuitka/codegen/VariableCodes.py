@@ -20,7 +20,7 @@
 """
 
 from nuitka import Options, Variables
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .ConstantCodes import getConstantCode
 from .Emission import SourceCodeCollector
@@ -29,6 +29,7 @@ from .ErrorCodes import (
     getErrorFormatExitBoolCode,
     getErrorFormatExitCode
 )
+from .Helpers import generateExpressionCode
 from .Indentation import indented
 from .templates.CodeTemplatesVariables import (
     template_del_global_unclear,
@@ -60,7 +61,33 @@ from .templates.CodeTemplatesVariables import (
 )
 
 
-def generateVariableDelCode(statement, emit, context):
+def generateAssignmentVariableCode(statement, emit, context):
+    variable_ref  = statement.getTargetVariableRef()
+    value         = statement.getAssignSource()
+
+    tmp_name = context.allocateTempName("assign_source")
+
+    generateExpressionCode(
+        expression = value,
+        to_name    = tmp_name,
+        emit       = emit,
+        context    = context
+    )
+
+    getVariableAssignmentCode(
+        tmp_name      = tmp_name,
+        variable      = variable_ref.getVariable(),
+        needs_release = statement.needsReleasePreviousValue(),
+        in_place      = statement.inplace_suspect,
+        emit          = emit,
+        context       = context
+    )
+
+    # Ownership of that reference must have been transfered.
+    assert not context.needsCleanup(tmp_name)
+
+
+def generateDelVariableCode(statement, emit, context):
     old_source_ref = context.setCurrentSourceCodeReference(
         statement.getSourceReference()
     )
@@ -75,6 +102,7 @@ def generateVariableDelCode(statement, emit, context):
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
+
 
 def generateVariableReleaseCode(statement, emit, context):
     variable = statement.getVariable()
@@ -335,7 +363,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
         )
 
         if needs_check:
-            if Utils.python_version < 340 and \
+            if python_version < 340 and \
                not context.isCompiledPythonModule() and \
                not context.getOwner().isExpressionClassBody():
                 error_message = "global name '%s' is not defined"

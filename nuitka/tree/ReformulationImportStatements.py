@@ -34,8 +34,8 @@ from nuitka.nodes.ImportNodes import (
     StatementImportStar
 )
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.utils import Utils
 
 from .Helpers import mangleName
 
@@ -54,7 +54,7 @@ def checkFutureImportsOnlyAtStart(body):
                     reason     = """\
 from __future__ imports must occur at the beginning of the file""",
                     col_offset = 1
-                      if Utils.python_version >= 300 or \
+                      if python_version >= 300 or \
                       not Options.isFullCompat() else
                     None,
                     source_ref = _future_import_nodes[0].source_ref
@@ -78,7 +78,7 @@ def buildImportFromNode(provider, node, source_ref):
                 reason     = """\
 from __future__ imports must occur at the beginning of the file""",
                 col_offset = 8
-                  if Utils.python_version >= 300 or \
+                  if python_version >= 300 or \
                   not Options.isFullCompat()
                 else None,
                 source_ref = source_ref
@@ -121,7 +121,7 @@ from __future__ imports must occur at the beginning of the file""",
         assert target_names == [None]
 
         # Python3 made this a syntax error unfortunately.
-        if not provider.isCompiledPythonModule() and Utils.python_version >= 300:
+        if not provider.isCompiledPythonModule() and python_version >= 300:
             SyntaxErrors.raiseSyntaxError(
                 "import * only allowed at module level",
                 provider.getSourceReference()
@@ -199,7 +199,7 @@ def enableFutureFeature(object_name, future_spec, source_ref):
         future_spec.enableFutureDivision()
     elif object_name == "print_function":
         future_spec.enableFuturePrint()
-    elif object_name == "barry_as_FLUFL" and Utils.python_version >= 300:
+    elif object_name == "barry_as_FLUFL" and python_version >= 300:
         future_spec.enableBarry()
     elif object_name == "generator_stop":
         future_spec.enableGeneratorStop()

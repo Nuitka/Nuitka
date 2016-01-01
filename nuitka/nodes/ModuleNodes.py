@@ -31,6 +31,7 @@ from nuitka.importing.Importing import (
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
+from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
 from nuitka.utils import Utils
 
@@ -89,12 +90,12 @@ class PythonModuleMixin:
                 module_name    = self.package_name,
                 parent_package = None,
                 level          = 1,
-                warn           = Utils.python_version < 330
+                warn           = python_version < 330
             )
 
             # TODO: Temporary, if we can't find the package for Python3.3 that
             # is semi-OK, maybe.
-            if Utils.python_version >= 330 and not package_filename:
+            if python_version >= 330 and not package_filename:
                 return []
 
             assert package_filename is not None, self.package_name

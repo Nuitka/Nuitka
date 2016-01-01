@@ -26,14 +26,12 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
+from .Helpers import generateExpressionCode
 
 
 def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, may_raise, ref_count,
                                  source_ref, emit, context, none_null = False):
     arg_names = []
-
-    # TODO: This will move to Helpers module, but not yet done.
-    from .CodeGeneration import generateExpressionCode
 
     for arg_name, arg_expression in arg_desc:
         if arg_expression is None and none_null:

@@ -22,7 +22,7 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .Checkers import checkStatementsSequenceOrNone
 from .FunctionNodes import ExpressionFunctionBodyBase
@@ -95,7 +95,7 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
         "body" : checkStatementsSequenceOrNone
     }
 
-    if Utils.python_version >= 340:
+    if python_version >= 340:
         qualname_setup = None
 
     def __init__(self, provider, name, source_ref):

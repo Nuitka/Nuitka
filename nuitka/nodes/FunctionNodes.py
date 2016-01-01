@@ -31,8 +31,8 @@ classes.
 
 from nuitka import Options, VariableRegistry, Variables
 from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
+from nuitka.PythonVersions import python_version
 from nuitka.tree.Extractions import updateVariableUsage
-from nuitka.utils import Utils
 
 from .Checkers import checkStatementsSequenceOrNone
 from .IndicatorMixins import (
@@ -87,7 +87,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         # Python3.4: Might be overridden by global statement on the class name.
         # TODO: Make this class only code.
-        if Utils.python_version >= 340:
+        if python_version >= 340:
             self.qualname_provider = provider
 
         # Non-local declarations.
@@ -121,7 +121,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         return self.has_super
 
     def getLocalsMode(self):
-        if Utils.python_version >= 300:
+        if python_version >= 300:
             return "updated"
         elif self.isEarlyClosure() or self.isUnoptimized():
             return "updated"
@@ -265,7 +265,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         function_name = self.getFunctionName()
 
-        if Utils.python_version < 340:
+        if python_version < 340:
             provider = self.getParentVariableProvider()
         else:
             provider = self.qualname_provider
@@ -309,7 +309,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         "body" : checkStatementsSequenceOrNone
     }
 
-    if Utils.python_version >= 340:
+    if python_version >= 340:
         qualname_setup = None
 
     def __init__(self, provider, name, doc, parameters, source_ref):
@@ -317,7 +317,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
             provider = provider.getParentVariableProvider()
 
         if name == "<listcontraction>":
-            assert Utils.python_version >= 300
+            assert python_version >= 300
 
         ExpressionFunctionBodyBase.__init__(
             self,
@@ -478,11 +478,11 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
         # they provide "__class__" but nothing else.
 
         if variable_name == "__class__":
-            if Utils.python_version < 300:
+            if python_version < 300:
                 return self.provider.getVariableForClosure(
                     "__class__"
                 )
-            elif Utils.python_version >= 340 and False: # TODO: Temporarily reverted
+            elif python_version >= 340 and False: # TODO: Temporarily reverted
                 result = self.getTempVariable(
                     temp_scope = None,
                     name       = "__class__"
@@ -539,7 +539,7 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
     # all kinds go last.
 
     # A bug of CPython3.x not fixed before version 3.4, see bugs.python.org/issue16967
-    kw_defaults_before_defaults = Utils.python_version < 340
+    kw_defaults_before_defaults = python_version < 340
 
     if kw_defaults_before_defaults:
         named_children = (

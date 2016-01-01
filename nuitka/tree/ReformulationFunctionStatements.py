@@ -59,8 +59,8 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
+from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.utils import Utils
 
 from .Helpers import (
     buildNode,
@@ -246,7 +246,7 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref   = source_ref
     )
 
-    if Utils.python_version >= 340:
+    if python_version >= 340:
         function_body.qualname_setup = result.getTargetVariableRef()
 
     return result
@@ -375,7 +375,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
     # Build keyword only arguments default values. We are hiding here, that it
     # is a Python3 only feature.
 
-    if Utils.python_version >= 300:
+    if python_version >= 300:
         kw_only_names = function_body.getParameters().getKwOnlyParameterNames()
 
         if kw_only_names:
@@ -413,13 +413,13 @@ def buildParameterAnnotations(provider, node, source_ref):
     # Too many branches, because there is too many cases, pylint: disable=R0912
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.
-    if Utils.python_version < 300:
+    if python_version < 300:
         return None
 
 
     # Starting with Python 3.4, the names of parameters are mangled in
     # annotations as well.
-    if Utils.python_version < 340:
+    if python_version < 340:
         mangle = lambda variable_name: variable_name
     else:
         mangle = lambda variable_name: mangleName(variable_name, provider)
@@ -458,7 +458,7 @@ def buildParameterAnnotations(provider, node, source_ref):
     for arg in node.args.kwonlyargs:
         extractArg(arg)
 
-    if Utils.python_version < 340:
+    if python_version < 340:
         if node.args.varargannotation is not None:
             addAnnotation(
                 key   = node.args.vararg,
@@ -549,7 +549,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, node, 
             for arg in
             node.args.kwonlyargs
             ]
-              if Utils.python_version >= 300 else
+              if python_version >= 300 else
             [],
         list_star_arg = extractArg(node.args.vararg),
         dict_star_arg = extractArg(node.args.kwarg),

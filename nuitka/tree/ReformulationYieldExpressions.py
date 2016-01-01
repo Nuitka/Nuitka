@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Reformulation of yield and yield from expressions.
+""" Reformulation of "yield" and "yield from" expressions.
 
 Consult the developer manual for information. TODO: Add ability to sync
 source code comments with developer manual sections.
@@ -26,8 +26,8 @@ import ast
 
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
+from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.utils import Utils
 
 from .Helpers import buildNode
 
@@ -37,7 +37,7 @@ def _checkInsideGenerator(provider, node, source_ref):
         SyntaxErrors.raiseSyntaxError(
             "'yield' outside function",
             source_ref,
-            None if Utils.python_version < 300 else node.col_offset
+            None if python_version < 300 else node.col_offset
         )
 
     if provider.isExpressionCoroutineObjectBody():
@@ -72,7 +72,7 @@ def buildYieldNode(provider, node, source_ref):
 
 
 def buildYieldFromNode(provider, node, source_ref):
-    assert Utils.python_version >= 330
+    assert python_version >= 330
 
     _checkInsideGenerator(provider, node, source_ref)
 
