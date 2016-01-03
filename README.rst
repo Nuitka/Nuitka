@@ -1,6 +1,10 @@
 Nuitka User Manual
 ~~~~~~~~~~~~~~~~~~
 
+.. image:: https://badges.gitter.im/Join%20Chat.svg
+   :alt: Join the chat at https://gitter.im/kayhayen/Nuitka
+   :target: https://gitter.im/kayhayen/Nuitka?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+
 .. image:: images/Nuitka-Logo-Symbol.png
 
 .. contents::
