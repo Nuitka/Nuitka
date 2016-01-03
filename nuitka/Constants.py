@@ -234,23 +234,15 @@ def isIndexConstant(constant):
     return type(constant) in (int, long, bool)
 
 
-def createConstantDict(keys, values, lazy_order):
-    if lazy_order:
-        constant_value = {}
-
-        keys = list(keys)
-        keys.reverse()
-
-        values = list(values)
-        values.reverse()
-    else:
-        constant_value = dict.fromkeys(
-            [ key for key in keys ],
-            None
-        )
+def createConstantDict(keys, values):
+    # Create it proper size immediately.
+    constant_value = dict.fromkeys(
+        keys,
+        None
+    )
 
     for key, value in zip(keys, values):
-        constant_value[ key ] = value
+        constant_value[key] = value
 
     return constant_value
 

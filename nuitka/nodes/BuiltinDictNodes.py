@@ -25,12 +25,10 @@ from nuitka.nodes.DictionaryNodes import (
 )
 from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
-from nuitka.utils.Utils import python_version
 
 from .BuiltinIteratorNodes import ExpressionBuiltinIter1
 from .ConstantRefNodes import ExpressionConstantRef
 from .NodeBases import ExpressionChildrenHavingBase
-from .NodeMakingHelpers import makeConstantReplacementNode
 
 
 class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
@@ -81,43 +79,11 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
 
     def computeExpression(self, constraint_collection):
         pos_arg = self.getPositionalArgument()
+        pairs = self.getNamedArgumentPairs()
 
-        if self.hasOnlyConstantArguments():
-            if pos_arg is not None:
-                pos_args = (
-                    pos_arg,
-                )
-            elif python_version >= 340:
-                # Doing this here, because calling dict built-in apparently
-                # mutates existing dictionaries in Python 3.4
-                result = {}
-
-                for pair in reversed(self.getNamedArgumentPairs()):
-                    arg_name = pair.getKey().getCompileTimeConstant()
-                    arg_value = pair.getValue().getCompileTimeConstant()
-
-                    result[arg_name] = arg_value
-
-                new_node = makeConstantReplacementNode(
-                    constant = result,
-                    node     = self
-                )
-
-                return new_node, "new_expression", "Replace 'dict' built-in call with constant arguments."
-            else:
-                pos_args = None
-
-            return constraint_collection.getCompileTimeComputationResult(
-                node        = self,
-                computation = lambda : builtin_dict_spec.simulateCall(
-                    (pos_args, self.getNamedArgumentPairs())
-                ),
-                description = "Replace 'dict' call with constant arguments."
-            )
-        elif pos_arg is None:
+        if pos_arg is None:
             new_node = ExpressionMakeDict(
                 pairs      = self.getNamedArgumentPairs(),
-                lazy_order = False,
                 source_ref = self.source_ref
             )
 
@@ -129,10 +95,12 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 "new_expression",
                 "Replace 'dict' built-in call dictionary creation from arguments."
             )
-        elif pos_arg.getIterationLength() == 0:
+
+        pos_iteration_length = pos_arg.getIterationLength()
+
+        if pos_iteration_length == 0:
             new_node = ExpressionMakeDict(
                 pairs      = self.getNamedArgumentPairs(),
-                lazy_order = False,
                 source_ref = self.source_ref
             )
 
@@ -153,6 +121,24 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 new_node,
                 "new_expression",
                 "Replace 'dict' built-in call dictionary creation from arguments."
+            )
+
+        if pos_iteration_length is not None and \
+           pos_iteration_length + len(pairs) < 256 and \
+           self.hasOnlyConstantArguments():
+            if pos_arg is not None:
+                pos_args = (
+                    pos_arg,
+                )
+            else:
+                pos_args = None
+
+            return constraint_collection.getCompileTimeComputationResult(
+                node        = self,
+                computation = lambda : builtin_dict_spec.simulateCall(
+                    (pos_args, self.getNamedArgumentPairs())
+                ),
+                description = "Replace 'dict' call with constant arguments."
             )
         else:
             constraint_collection.onExceptionRaiseExit(BaseException)

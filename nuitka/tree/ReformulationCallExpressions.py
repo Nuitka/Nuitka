@@ -230,7 +230,6 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
             kw         = makeDictCreationOrConstant(
                 keys       = keys,
                 values     = values,
-                lazy_order = True,
                 source_ref = source_ref
             ),
             source_ref = source_ref,
@@ -306,7 +305,6 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
                 makeDictCreationOrConstant(
                     keys       = keys,
                     values     = values,
-                    lazy_order = True,
                     source_ref = source_ref
                 )
             )

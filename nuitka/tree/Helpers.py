@@ -524,7 +524,7 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     return result
 
 
-def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
+def makeDictCreationOrConstant(keys, values, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
     # mutable.
 
@@ -548,7 +548,6 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
         # before being marshaled.
         result = ExpressionConstantRef(
             constant      = Constants.createConstantDict(
-                lazy_order = not lazy_order,
                 keys       = [
                     key.getConstant()
                     for key in
@@ -560,8 +559,8 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
                     values
                 ]
             ),
-            source_ref    = source_ref,
-            user_provided = True
+            user_provided = True,
+            source_ref    = source_ref
         )
     else:
         result = ExpressionMakeDict(
@@ -574,7 +573,6 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
                 for key, value in
                 zip(keys, values)
             ],
-            lazy_order = lazy_order,
             source_ref = source_ref
         )
 

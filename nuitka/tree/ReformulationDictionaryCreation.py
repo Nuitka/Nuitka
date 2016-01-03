@@ -96,7 +96,6 @@ def buildDictionaryNode(provider, node, source_ref):
     return makeDictCreationOrConstant(
         keys       = buildNodeList(provider, node.keys, source_ref),
         values     = buildNodeList(provider, node.values, source_ref),
-        lazy_order = False,
         source_ref = source_ref
     )
 
@@ -301,8 +300,7 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
                             source_ref = source_ref
                         ),
                     ),
-                    source_ref = source_ref,
-                    lazy_order = False,
+                    source_ref = source_ref
                 )
             )
         else:
@@ -315,8 +313,7 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
                             source_ref = source_ref
                         ),
                     ),
-                    source_ref = source_ref,
-                    lazy_order = False,
+                    source_ref = source_ref
                 )
             )
 
