@@ -13,4 +13,4 @@ override_dh_auto_build:
 	cp Developer_Manual.rst Developer_Manual.txt
 
 override_dh_auto_test:
-	./tests/run-tests
+	./tests/run-tests --skip-reflection-test
