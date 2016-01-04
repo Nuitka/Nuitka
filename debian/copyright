@@ -4,7 +4,7 @@ Upstream-Contact: Kay Hayen <kay.hayen@gmail.com>
 Source: http://nuitka.net/
 
 Files: *
-Copyright: 2015 Kay Hayen <kay.hayen@gmail.com>
+Copyright: 2016 Kay Hayen <kay.hayen@gmail.com>
 License: Apache+Nuitka_comment
  Part of "Nuitka", an optimizing Python compiler that is compatible and
  integrates with CPython, but also works on its own.
@@ -25,7 +25,7 @@ License: Apache+Nuitka_comment
  can be found in `/usr/share/common-licenses/Apache-2.0'.
 
 Files: tests/basics/* tests/programs/* tests/reflected/* tests/type_inference/*
-Copyright: 2015 Kay Hayen <kay.hayen@gmail.com>
+Copyright: 2016 Kay Hayen <kay.hayen@gmail.com>
 License: Apache+Nuitka_test_origin
  Python tests originally created or extracted from other peoples work. The
  parts were too small to be protected.
@@ -160,7 +160,7 @@ License: MIT
  OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Files: debian/*
-Copyright: 2015 Kay Hayen <kay.hayen@gmail.com>
+Copyright: 2016 Kay Hayen <kay.hayen@gmail.com>
 License: Apache
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
