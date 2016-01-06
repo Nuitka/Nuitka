@@ -23,6 +23,7 @@ package. Nuitka will pretend for those that there be one, but without content.
 """
 
 import sys
+from logging import warning
 
 from nuitka.utils import Utils
 
@@ -100,13 +101,16 @@ def detectPthImportedPackages():
 
         for path, filename in Utils.listDir(prefix):
             if filename.endswith(".pth"):
-                for line in open(path, "rU"):
-                    if line.startswith("import "):
-                        if ';' in line:
-                            line = line[:line.find(';')]
+                try:
+                    for line in open(path, "rU"):
+                        if line.startswith("import "):
+                            if ';' in line:
+                                line = line[:line.find(';')]
 
-                        for part in line[7:].split(','):
-                            pth_imports.add(part.strip())
+                            for part in line[7:].split(','):
+                                pth_imports.add(part.strip())
+                except OSError:
+                    warning("Python installation problem, cannot read file '%s'.")
 
 
     return tuple(sorted(pth_imports))
