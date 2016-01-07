@@ -69,7 +69,7 @@ def convertFunctionCallToOutline(provider, function_ref, values):
 
     statements = []
 
-    argument_names = function_body.getParameters().getAllNames()
+    argument_names = function_body.getParameters().getParameterNames()
 
     assert len(argument_names) == len(values), (argument_names, values)
 

@@ -93,10 +93,6 @@ class Variable:
         from nuitka.VariableRegistry import isSharedTechnically
         return isSharedTechnically(self)
 
-    def getDeclarationTypeCode(self):
-        # Abstract method, pylint: disable=R0201
-        assert False
-
 
 class LocalVariable(Variable):
     def __init__(self, owner, variable_name):
@@ -115,12 +111,6 @@ class LocalVariable(Variable):
 
     def isLocalVariable(self):
         return True
-
-    def getDeclarationTypeCode(self):
-        if self.isSharedTechnically():
-            return "PyCellObject *"
-        else:
-            return "PyObject *"
 
 
 class MaybeLocalVariable(Variable):
@@ -149,20 +139,15 @@ class MaybeLocalVariable(Variable):
 
 
 class ParameterVariable(LocalVariable):
-    def __init__(self, owner, parameter_name, kw_only):
+    def __init__(self, owner, parameter_name):
         LocalVariable.__init__(
             self,
             owner         = owner,
             variable_name = parameter_name
         )
 
-        self.kw_only = kw_only
-
     def isParameterVariable(self):
         return True
-
-    def isParameterVariableKwOnly(self):
-        return self.kw_only
 
 
 class ModuleVariable(Variable):
@@ -181,7 +166,7 @@ class ModuleVariable(Variable):
     def __repr__(self):
         return "<ModuleVariable '%s' of '%s'>" % (
             self.variable_name,
-            self.getModuleName()
+            self.getModule().getFullName()
         )
 
     def isModuleVariable(self):
@@ -189,9 +174,6 @@ class ModuleVariable(Variable):
 
     def getModule(self):
         return self.module
-
-    def getModuleName(self):
-        return self.module.getFullName()
 
 
 class TempVariable(Variable):
@@ -210,21 +192,3 @@ class TempVariable(Variable):
 
     def isTempVariable(self):
         return True
-
-    def getDeclarationTypeCode(self):
-        if self.isSharedTechnically():
-            return "PyCellObject *"
-        else:
-            return "PyObject *"
-
-    def getDeclarationInitValueCode(self):
-        # Virtual method, pylint: disable=R0201
-        return "NULL"
-
-
-def getNames(variables):
-    return [
-        variable.getName()
-        for variable in
-        variables
-    ]

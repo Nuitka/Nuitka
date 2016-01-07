@@ -210,7 +210,10 @@ def getLocalVariableObjectAccessCode(context, variable):
 def getLocalVariableInitCode(variable, init_from = None):
     assert not variable.isModuleVariable()
 
-    type_name = variable.getDeclarationTypeCode()
+    if variable.isSharedTechnically():
+        type_name = "PyCellObject *"
+    else:
+        type_name = "PyObject *"
 
     code_name = getVariableCodeName(
         in_context = False,

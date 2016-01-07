@@ -24,7 +24,7 @@ make others possible.
 
 
 import inspect
-from logging import debug, warning
+from logging import debug, warning, info
 
 from nuitka import ModuleRegistry, Options, VariableRegistry
 from nuitka.optimizations import TraceCollections
@@ -93,7 +93,11 @@ def optimizePythonModule(module):
     while True:
         tag_set.clear()
 
-        module.computeModule()
+        try:
+            module.computeModule()
+        except BaseException:
+            info("Interrupted while working on '%s'." % module)
+            raise
 
         if not tag_set:
             break

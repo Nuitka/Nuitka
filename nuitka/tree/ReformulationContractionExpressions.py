@@ -452,7 +452,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     code_object = CodeObjectSpec(
         code_name     = name,
         code_kind     = "Generator" if emit_class is ExpressionYield else "Function",
-        arg_names     = () if assign_provider else function_body.getParameters().getAllNames(),
+        arg_names     = () if assign_provider else function_body.getParameters().getParameterNames(),
         kw_only_count = 0,
         has_starlist  = False,
         has_stardict  = False,

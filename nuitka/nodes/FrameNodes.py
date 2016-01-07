@@ -107,9 +107,14 @@ class StatementsFrame(StatementsSequence):
         """
         provider = self.getParentVariableProvider()
 
-        # TODO: Bad for in-lining of these.
         if provider.isExpressionFunctionBody():
-            self.code_object.updateLocalNames(provider.getLocalVariableNames())
+            self.code_object.updateLocalNames(
+                [
+                    variable.getName() for
+                    variable in
+                    provider.getLocalVariables()
+                ]
+            )
 
     def markAsFrameExceptionPreserving(self):
         self.needs_frame_exception_preserve = True

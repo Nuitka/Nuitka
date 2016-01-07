@@ -95,7 +95,7 @@ def isSharedTechnically(variable):
 
     for user in variable_info.getUsers():
         # May have been optimized away.
-        if variable not in user.getVariables():
+        if not user.hasVariable(variable):
             continue
 
         while user != top_owner and \

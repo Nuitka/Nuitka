@@ -579,9 +579,6 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
     # There cannot be local variable in modules no need to consider the name.
     # pylint: disable=W0613
-    def hasLocalVariable(self, var_name):
-        return False
-
     def hasClosureVariable(self, var_name):
         return False
     # pylint: enable=W0613
@@ -691,9 +688,6 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin,
 
     def hasLocalsDict(self):
         return self.function.hasLocalsDict()
-
-    def hasLocalVariable(self, var_name):
-        return var_name in self.function.getLocalVariableNames()
 
     def hasClosureVariable(self, var_name):
         return var_name in self.function.getClosureVariableNames()

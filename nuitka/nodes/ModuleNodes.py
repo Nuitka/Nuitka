@@ -297,6 +297,9 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def getParentVariableProvider(self):
         return None
 
+    def hasVariable(self, variable):
+        return variable in self.variables
+
     def getVariables(self):
         return self.variables
 

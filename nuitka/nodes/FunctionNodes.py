@@ -128,11 +128,11 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         else:
             return "copy"
 
+    def hasVariable(self, variable):
+        return variable.getName() in self.providing
+
     def getVariables(self):
         return self.providing.values()
-
-    def getLocalVariableNames(self):
-        return Variables.getNames(self.getLocalVariables())
 
     def getLocalVariables(self):
         return [
@@ -698,7 +698,7 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             values = [
                 args_dict[name]
                 for name in
-                call_spec.getAllNames()
+                call_spec.getParameterNames()
             ]
 
             result = ExpressionFunctionCall(

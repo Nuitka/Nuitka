@@ -79,18 +79,19 @@ class CollectionTracingMixin:
         self.variable_actives[variable] = version
 
     def getCurrentVariableVersion(self, variable):
-        # Initialize variables on the fly.
-        if variable not in self.variable_actives:
+        try:
+            return self.variable_actives[variable]
+        except KeyError:
+            # Initialize variables on the fly.
             if not self.hasVariableTrace(variable, 0):
                 self.initVariable(variable)
 
             self.markCurrentVariableTrace(variable, 0)
 
-        assert variable in self.variable_actives, (variable, self)
-        return self.variable_actives[variable]
+            return self.variable_actives[variable]
 
     def getActiveVariables(self):
-        return tuple(self.variable_actives.keys())
+        return self.variable_actives.keys()
 
     def markActiveVariableAsUnknown(self, variable):
         current = self.getVariableCurrentTrace(

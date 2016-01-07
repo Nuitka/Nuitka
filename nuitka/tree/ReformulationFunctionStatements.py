@@ -565,7 +565,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, node, 
     code_object = CodeObjectSpec(
         code_name     = name,
         code_kind     = function_kind,
-        arg_names     = parameters.getAllNames(),
+        arg_names     = parameters.getParameterNames(),
         kw_only_count = parameters.getKwOnlyParameterCount(),
         has_starlist  = parameters.getStarListArgumentName() is not None,
         has_stardict  = parameters.getStarDictArgumentName() is not None
@@ -674,7 +674,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, node, 
 
             return accesses
 
-        for arg_name in parameters.getAllNames():
+        for arg_name in parameters.getParameterNames():
             if arg_name.startswith('.'):
                 source = ExpressionVariableRef(
                     variable_name = arg_name,

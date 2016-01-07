@@ -84,7 +84,7 @@ class ParameterSpec:
         )
 
     def checkValid(self):
-        arg_names = self.getAllNames()
+        arg_names = self.getParameterNames()
 
         # Check for duplicate arguments, could happen.
         for arg_name in arg_names:
@@ -125,8 +125,7 @@ class ParameterSpec:
             if type(normal_arg) is str:
                 normal_variable = Variables.ParameterVariable(
                     owner          = self.owner,
-                    parameter_name = normal_arg,
-                    kw_only        = False
+                    parameter_name = normal_arg
                 )
             else:
                 assert False, normal_arg
@@ -134,37 +133,35 @@ class ParameterSpec:
             self.normal_variables.append(normal_variable)
 
         if self.list_star_arg:
-            self.list_star_variable = Variables.ParameterVariable(owner, self.list_star_arg, False)
+            self.list_star_variable = Variables.ParameterVariable(
+                owner = owner,
+                parameter_name = self.list_star_arg
+            )
         else:
             self.list_star_variable = None
 
         if self.dict_star_arg:
             self.dict_star_variable = Variables.ParameterVariable(
                 owner          = owner,
-                parameter_name = self.dict_star_arg,
-                kw_only        = False
+                parameter_name = self.dict_star_arg
             )
         else:
             self.dict_star_variable = None
 
         self.kw_only_variables = [
-            Variables.ParameterVariable(self.owner, kw_only_arg, True)
+            Variables.ParameterVariable(
+                owner          = self.owner,
+                parameter_name = kw_only_arg
+            )
             for kw_only_arg in
             self.kw_only_args
         ]
-
-    def getDefaultParameterNames(self):
-        return self.normal_args[ \
-            len(self.normal_args) - self.default_count : ]
 
     def getDefaultCount(self):
         return self.default_count
 
     def hasDefaultParameters(self):
         return self.getDefaultCount() > 0
-
-    def getParameterNames(self):
-        return Variables.getNames(self.getAllVariables())
 
     def getTopLevelVariables(self):
         return self.normal_variables + self.kw_only_variables
@@ -182,7 +179,7 @@ class ParameterSpec:
 
         return result
 
-    def getAllNames(self):
+    def getParameterNames(self):
         result = list(self.normal_args)
 
         result += self.kw_only_args
