@@ -163,25 +163,16 @@ class ParameterSpec:
     def hasDefaultParameters(self):
         return self.getDefaultCount() > 0
 
-    def getVariables(self):
-        result = self.normal_variables[:]
-
-        if self.list_star_variable is not None:
-            result.append(self.list_star_variable)
-
-        if self.dict_star_variable is not None:
-            result.append(self.dict_star_variable)
-
-        return result + self.kw_only_variables
-
     def getParameterNames(self):
-        return Variables.getNames(self.getVariables())
+        return Variables.getNames(self.getAllVariables())
 
     def getTopLevelVariables(self):
         return self.normal_variables + self.kw_only_variables
 
     def getAllVariables(self):
-        result = self.normal_variables[:]
+        result = list(self.normal_variables)
+
+        result += self.kw_only_variables
 
         if self.list_star_variable is not None:
             result.append(self.list_star_variable)
@@ -189,7 +180,7 @@ class ParameterSpec:
         if self.dict_star_variable is not None:
             result.append(self.dict_star_variable)
 
-        return result + self.kw_only_variables
+        return result
 
     def getAllNames(self):
         result = list(self.normal_args)

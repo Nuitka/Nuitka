@@ -593,7 +593,7 @@ static inline PyObject *make_compiled_function( function_arg_parser code, direct
     {
         kwdefaults = INCREASE_REFCOUNT( Py_None );
     }
-    assert( kwdefaults == Py_None || ( PyDict_Check( kwdefaults ) && PyDict_Size( kwdefaults ) > 0 ) );
+    assert( kwdefaults == Py_None || ( PyDict_Check( kwdefaults ) && DICT_SIZE( kwdefaults ) > 0 ) );
     result->m_kwdefaults = kwdefaults;
 
     assert( annotations == Py_None || PyDict_Check( annotations ) );
@@ -1093,3 +1093,606 @@ void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
     Py_DECREF( list_str );
 }
 #endif
+
+
+#if PYTHON_VERSION < 300
+static Py_ssize_t _PARSE_ARGUMENTS_KW( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw )
+#else
+static Py_ssize_t _PARSE_ARGUMENTS_KW( Nuitka_FunctionObject *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
+#endif
+{
+    if ( kw == NULL || DICT_SIZE( kw ) == 0 )
+    {
+        return 0;
+    }
+
+#if PYTHON_VERSION < 300
+    Py_ssize_t arg_count = function->m_code_object->co_argcount;
+#else
+    Py_ssize_t arg_count = function->m_code_object->co_argcount + function->m_code_object->co_kwonlyargcount;
+#endif
+
+#if PYTHON_VERSION >= 300
+    Py_ssize_t keyword_after_index = function->m_code_object->co_argcount;
+#endif
+
+    assert( ( function->m_code_object->co_flags & CO_VARKEYWORDS ) == 0 );
+
+    Py_ssize_t kw_found = 0;
+    Py_ssize_t ppos = 0;
+    PyObject *key, *value;
+
+    while( PyDict_Next( kw, &ppos, &key, &value ) )
+    {
+#if PYTHON_VERSION < 300
+        if (unlikely( !PyString_Check( key ) && !PyUnicode_Check( key ) ))
+#else
+        if (unlikely( !PyUnicode_Check( key ) ))
+#endif
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "%s() keywords must be strings",
+                Nuitka_String_AsString( function->m_name )
+            );
+            return -1;
+        }
+
+        NUITKA_MAY_BE_UNUSED bool found = false;
+
+        Py_INCREF( key );
+        Py_INCREF( value );
+
+        for( Py_ssize_t i = 0; i < arg_count; i++ )
+        {
+            if ( PyTuple_GET_ITEM( function->m_code_object->co_varnames, i ) == key )
+            {
+                assert( python_pars[ i ] == NULL );
+                python_pars[ i ] = value;
+
+#if PYTHON_VERSION >= 300
+                if ( i >= keyword_after_index )
+                {
+                    *kw_only_found += 1;
+                }
+#endif
+
+                found = true;
+                break;
+            }
+        }
+
+        if ( found == false )
+        {
+            for( Py_ssize_t i = 0; i < arg_count; i++ )
+            {
+                if ( RICH_COMPARE_BOOL_EQ_NORECURSE( PyTuple_GET_ITEM( function->m_code_object->co_varnames, i ), key ) )
+                {
+                    assert( python_pars[ i ] == NULL );
+                    python_pars[ i ] = value;
+
+#if PYTHON_VERSION >= 300
+                    if ( i >= keyword_after_index )
+                    {
+                        *kw_only_found += 1;
+                    }
+#endif
+
+                    found = true;
+                    break;
+                }
+            }
+
+        }
+
+        if (unlikely( found == false ))
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "%s() got an unexpected keyword argument '%s'",
+                Nuitka_String_AsString( function->m_name ),
+                Nuitka_String_Check( key ) ? Nuitka_String_AsString( key ) : "<non-string>"
+            );
+
+            Py_DECREF( key );
+            Py_DECREF( value );
+
+            return -1;
+        }
+
+        Py_DECREF( key );
+
+        kw_found += 1;
+    }
+
+    return kw_found;
+}
+
+
+static bool MAKE_STAR_DICT_DICTIONARY_COPY( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw )
+{
+    Py_ssize_t dict_star_index = function->m_code_object->co_argcount;
+    assert( ( function->m_code_object->co_flags & CO_VARKEYWORDS ) != 0 );
+
+#if PYTHON_VERSION >= 300
+    dict_star_index += function->m_code_object->co_kwonlyargcount;
+#endif
+
+    if ( function->m_code_object->co_flags & CO_VARARGS )
+    {
+        dict_star_index += 1;
+    }
+
+    if ( kw == NULL )
+    {
+        python_pars[ dict_star_index ] = PyDict_New();
+    }
+    else if ( ((PyDictObject *)kw)->ma_used > 0 )
+    {
+#if PYTHON_VERSION < 330
+        python_pars[ dict_star_index ] = _PyDict_NewPresized( ((PyDictObject *)kw)->ma_used );
+
+        for ( int i = 0; i <= ((PyDictObject *)kw)->ma_mask; i++ )
+        {
+            PyDictEntry *entry = &((PyDictObject *)kw)->ma_table[ i ];
+
+            if ( entry->me_value != NULL )
+            {
+
+#if PYTHON_VERSION < 300
+                if (unlikely( !PyString_Check( entry->me_key ) && !PyUnicode_Check( entry->me_key ) ))
+#else
+                if (unlikely( !PyUnicode_Check( entry->me_key ) ))
+#endif
+                {
+                    PyErr_Format(
+                        PyExc_TypeError,
+                        "%s() keywords must be strings",
+                        Nuitka_String_AsString( function->m_name )
+                    );
+
+                    return false;
+                }
+
+                int res = PyDict_SetItem( python_pars[ dict_star_index ], entry->me_key, entry->me_value );
+
+                if (unlikely( res != 0 ))
+                {
+                    return false;
+                }
+            }
+        }
+#else
+        if ( _PyDict_HasSplitTable( (PyDictObject *)kw) )
+        {
+            PyDictObject *mp = (PyDictObject *)kw;
+
+            PyObject **newvalues = PyMem_NEW( PyObject *, mp->ma_keys->dk_size );
+            assert( newvalues != NULL );
+
+            PyDictObject *split_copy = PyObject_GC_New( PyDictObject, &PyDict_Type );
+            assert( split_copy != NULL );
+
+            split_copy->ma_values = newvalues;
+            split_copy->ma_keys = mp->ma_keys;
+            split_copy->ma_used = mp->ma_used;
+
+            mp->ma_keys->dk_refcnt += 1;
+
+            Nuitka_GC_Track( split_copy );
+
+            Py_ssize_t size = mp->ma_keys->dk_size;
+            for ( Py_ssize_t i = 0; i < size; i++ )
+            {
+                PyDictKeyEntry *entry = &split_copy->ma_keys->dk_entries[ i ];
+
+                if ( ( entry->me_key != NULL ) && unlikely( !PyUnicode_Check( entry->me_key ) ))
+                {
+                    PyErr_Format(
+                        PyExc_TypeError,
+                        "%s() keywords must be strings",
+                        Nuitka_String_AsString( function->m_name )
+                    );
+
+                    return false;
+                }
+
+                split_copy->ma_values[ i ] = mp->ma_values[ i ];
+                Py_XINCREF( split_copy->ma_values[ i ] );
+            }
+
+            python_pars[ dict_star_index ] = (PyObject *)split_copy;
+        }
+        else
+        {
+            python_pars[ dict_star_index ] = PyDict_New();
+
+            PyDictObject *mp = (PyDictObject *)kw;
+
+            Py_ssize_t size = mp->ma_keys->dk_size;
+            for ( Py_ssize_t i = 0; i < size; i++ )
+            {
+                PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+
+                // TODO: One of these cases has been dealt with above.
+                PyObject *value;
+                if ( mp->ma_values )
+                {
+                    value = mp->ma_values[ i ];
+                }
+                else
+                {
+                    value = entry->me_value;
+                }
+
+                if ( value != NULL )
+                {
+                    if (unlikely( !PyUnicode_Check( entry->me_key ) ))
+                    {
+                        PyErr_Format(
+                            PyExc_TypeError,
+                            "%s() keywords must be strings",
+                            Nuitka_String_AsString( function->m_name )
+                        );
+
+                        return false;
+                    }
+
+                    int res = PyDict_SetItem( python_pars[ dict_star_index ], entry->me_key, value );
+
+                    if (unlikely( res != 0 ))
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+#endif
+    }
+    else
+    {
+        python_pars[ dict_star_index ] = PyDict_New();
+    }
+
+    return true;
+}
+
+
+#if PYTHON_VERSION < 300
+static Py_ssize_t _PARSE_ARGUMENTS_KW_STARDICT( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw )
+#else
+static Py_ssize_t _PARSE_ARGUMENTS_KW_STARDICT( Nuitka_FunctionObject *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
+#endif
+{
+    assert( ( function->m_code_object->co_flags & CO_VARKEYWORDS ) != 0 );
+
+    if (unlikely( MAKE_STAR_DICT_DICTIONARY_COPY( function, python_pars, kw ) == false ))
+    {
+        return -1;
+    }
+
+    Py_ssize_t kw_found = 0;
+#if PYTHON_VERSION < 300
+    Py_ssize_t arg_count = function->m_code_object->co_argcount;
+#else
+    Py_ssize_t arg_count = function->m_code_object->co_argcount + function->m_code_object->co_kwonlyargcount;
+    Py_ssize_t keyword_after_index = function->m_code_object->co_argcount;
+#endif
+
+    Py_ssize_t dict_star_index = arg_count;
+
+    if ( function->m_code_object->co_flags & CO_VARARGS )
+    {
+        dict_star_index += 1;
+    }
+
+    for( Py_ssize_t i = 0; i < arg_count; i++ )
+    {
+        PyObject *arg_name = PyTuple_GET_ITEM( function->m_code_object->co_varnames, i );
+
+        PyObject *kw_arg_value = PyDict_GetItem(
+            python_pars[ dict_star_index ],
+            arg_name
+        );
+
+        if ( kw_arg_value != NULL )
+        {
+            assert( python_pars[ i ] == NULL );
+
+            python_pars[ i ] = kw_arg_value;
+            Py_INCREF( kw_arg_value );
+
+            PyDict_DelItem( python_pars[ dict_star_index ], arg_name );
+
+            kw_found += 1;
+
+#if PYTHON_VERSION >= 300
+            if ( i >= keyword_after_index )
+            {
+                *kw_only_found += 1;
+            }
+#endif
+        }
+    }
+
+    return kw_found;
+}
+
+#if PYTHON_VERSION < 300
+static Py_ssize_t PARSE_ARGUMENTS_KW( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw )
+#else
+static Py_ssize_t PARSE_ARGUMENTS_KW( Nuitka_FunctionObject *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
+#endif
+{
+    if ( ( function->m_code_object->co_flags & CO_VARKEYWORDS ) == 0 )
+    {
+#if PYTHON_VERSION < 300
+        return _PARSE_ARGUMENTS_KW( function, python_pars, kw );
+#else
+        return _PARSE_ARGUMENTS_KW( function, python_pars, kw_only_found, kw );
+#endif
+    }
+    else
+    {
+#if PYTHON_VERSION < 300
+        return _PARSE_ARGUMENTS_KW_STARDICT( function, python_pars, kw );
+#else
+        return _PARSE_ARGUMENTS_KW_STARDICT( function, python_pars, kw_only_found, kw );
+#endif
+    }
+}
+
+
+static void _MAKE_STAR_LIST_TUPLE_COPY( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size )
+{
+    assert( ( function->m_code_object->co_flags & CO_VARARGS ) != 0 );
+    Py_ssize_t list_star_index = function->m_code_object->co_argcount;
+
+#if PYTHON_VERSION >= 300
+    list_star_index += function->m_code_object->co_kwonlyargcount;
+#endif
+
+    // Copy left-over argument values to the star list parameter given.
+    if ( args_size > function->m_code_object->co_argcount )
+    {
+        python_pars[ list_star_index ] = PyTuple_New( args_size - function->m_code_object->co_argcount );
+
+        for( Py_ssize_t i = 0; i < args_size - function->m_code_object->co_argcount; i++ )
+        {
+            PyObject *value = args[ function->m_code_object->co_argcount + i ];
+
+            PyTuple_SET_ITEM( python_pars[ list_star_index ], i, value );
+            Py_INCREF( value );
+        }
+    }
+    else
+    {
+        python_pars[ list_star_index ] = const_tuple_empty;
+        Py_INCREF( const_tuple_empty );
+    }
+}
+
+#if PYTHON_VERSION < 270
+static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found, Py_ssize_t kw_size )
+#elif PYTHON_VERSION < 300
+static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found )
+#else
+static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found, Py_ssize_t kw_only_found )
+#endif
+{
+    Py_ssize_t arg_count = function->m_code_object->co_argcount;
+
+    // Check if too many arguments were given in case of non list star arg.
+    // For Python3.3 it's done only later, when more knowledge has
+    // been gained. TODO: Could be done this way for improved mode
+    // on all versions.
+#if PYTHON_VERSION < 330
+    if ( ( function->m_code_object->co_flags & CO_VARARGS ) == 0 )
+    {
+        if (unlikely( args_size > arg_count ))
+        {
+#if PYTHON_VERSION < 270
+            ERROR_TOO_MANY_ARGUMENTS( function, args_size, kw_size );
+#else
+            ERROR_TOO_MANY_ARGUMENTS( function, args_size + kw_found );
+#endif
+            return false;
+        }
+    }
+#endif
+
+#if PYTHON_VERSION >= 330
+    bool parameter_error = false;
+#endif
+
+    for( Py_ssize_t i = 0; i < arg_count; i++ )
+    {
+        if (likely( i < args_size ))
+        {
+             if (unlikely( python_pars[ i ] != NULL ))
+             {
+                 ERROR_MULTIPLE_VALUES( function, i );
+                 return false;
+             }
+
+            python_pars[ i ] = args[ i ];
+            Py_INCREF( python_pars[ i ] );
+        }
+        else if ( python_pars[ i ] == NULL )
+        {
+            if ( i + function->m_defaults_given >= arg_count  )
+            {
+                python_pars[ i ] = PyTuple_GET_ITEM( function->m_defaults, function->m_defaults_given + i - arg_count );
+                Py_INCREF( python_pars[ i ] );
+            }
+            else
+            {
+#if PYTHON_VERSION < 270
+                ERROR_TOO_FEW_ARGUMENTS( function, kw_size, args_size + kw_found );
+                return false;
+#elif PYTHON_VERSION < 300
+                ERROR_TOO_FEW_ARGUMENTS( function, args_size + kw_found );
+                return false;
+#elif PYTHON_VERSION < 330
+                ERROR_TOO_FEW_ARGUMENTS( function, args_size + kw_found - kw_only_found );
+                return false;
+#else
+                parameter_error = true;
+#endif
+            }
+        }
+    }
+
+#if PYTHON_VERSION >= 330
+    if (unlikely( parameter_error ))
+    {
+        ERROR_TOO_FEW_ARGUMENTS( function, python_pars );
+        return false;
+    }
+
+    if( ( function->m_code_object->co_flags & CO_VARARGS ) == 0 )
+    {
+        // Check if too many arguments were given in case of non list star arg
+        if (unlikely( args_size > arg_count ))
+        {
+            ERROR_TOO_MANY_ARGUMENTS( function, args_size, kw_only_found );
+            return false;
+        }
+    }
+#endif
+
+    if( ( function->m_code_object->co_flags & CO_VARARGS ) != 0 )
+    {
+        _MAKE_STAR_LIST_TUPLE_COPY( function, python_pars, args, args_size );
+    }
+
+    return true;
+}
+
+Py_ssize_t PARSE_ARGUMENTS( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size )
+{
+    Py_ssize_t kw_size = kw ? DICT_SIZE( kw ) : 0;
+
+#if PYTHON_VERSION < 300
+    Py_ssize_t arg_count = function->m_code_object->co_argcount;
+#else
+    Py_ssize_t arg_count = function->m_code_object->co_argcount + function->m_code_object->co_kwonlyargcount;
+#endif
+
+    if (unlikely( arg_count == 0 && ( function->m_code_object->co_flags & (CO_VARARGS | CO_VARKEYWORDS ) ) == 0 && args_size + kw_size > 0 ))
+    {
+#if PYTHON_VERSION < 330
+        ERROR_NO_ARGUMENTS_ALLOWED(
+                function,
+           args_size + kw_size
+        );
+#else
+        ERROR_NO_ARGUMENTS_ALLOWED(
+           function,
+           kw_size > 0 ? kw : NULL,
+           args_size
+        );
+#endif
+
+        return -1;
+    }
+
+#if PYTHON_VERSION < 300
+    Py_ssize_t kw_found = PARSE_ARGUMENTS_KW( function, python_pars, kw );
+#else
+    Py_ssize_t kw_only_found = 0;
+    Py_ssize_t kw_found = PARSE_ARGUMENTS_KW( function, python_pars, &kw_only_found, kw );
+#endif
+
+    if ( kw_found == -1 ) return -1;
+
+#if PYTHON_VERSION < 270
+    bool result = _PARSE_ARGUMENTS_PLAIN( function, python_pars, kw, args, args_size, kw_found, kw_size );
+#elif PYTHON_VERSION < 300
+    bool result = _PARSE_ARGUMENTS_PLAIN( function, python_pars, kw, args, args_size, kw_found );
+#else
+    bool result = _PARSE_ARGUMENTS_PLAIN( function, python_pars, kw, args, args_size, kw_found, kw_only_found );
+#endif
+
+    if ( result == false ) return -1;
+
+#if PYTHON_VERSION >= 300
+
+    // For Python3.3 the keyword only errors are all reported at once.
+#if PYTHON_VERSION >= 330
+    bool kw_error = false;
+#endif
+
+    for( Py_ssize_t i = function->m_code_object->co_argcount; i < function->m_code_object->co_argcount + function->m_code_object->co_kwonlyargcount; i++ )
+    {
+        if ( python_pars[ i ] == NULL )
+        {
+            PyObject *arg_name = PyTuple_GET_ITEM( function->m_code_object->co_varnames, i );
+
+            python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+
+#if PYTHON_VERSION < 330
+            if (unlikely( python_pars[ i ] == NULL ))
+            {
+                PyErr_Format(
+                    PyExc_TypeError,
+                    "%s() needs keyword-only argument %s",
+                    Nuitka_String_AsString( function->m_name ),
+                    Nuitka_String_AsString( arg_name )
+                );
+
+                return -1;
+            }
+
+            Py_INCREF( python_pars[ i ] );
+#else
+            if ( python_pars[ i ] == NULL )
+            {
+                kw_error = true;
+            }
+            else
+            {
+                Py_INCREF( python_pars[ i ] );
+            }
+#endif
+        }
+    }
+
+#if PYTHON_VERSION >= 330
+    if (unlikely( kw_error ))
+    {
+        ERROR_TOO_FEW_KWONLY( function, &python_pars[ function->m_code_object->co_argcount ] );
+
+        return -1;
+    }
+#endif
+
+#endif
+
+    return kw_found;
+}
+
+
+void PARSE_PARAMETERS_ERROR_RELEASE( Nuitka_FunctionObject *function, PyObject **python_pars )
+{
+    Py_ssize_t arg_count = function->m_code_object->co_argcount;
+
+#if PYTHON_VERSION >= 300
+    arg_count += function->m_code_object->co_kwonlyargcount;
+#endif
+
+    if ( ( function->m_code_object->co_flags & CO_VARARGS ) != 0 )
+    {
+        arg_count += 1;
+    }
+
+    if ( ( function->m_code_object->co_flags & CO_VARKEYWORDS ) != 0 )
+    {
+        arg_count += 1;
+    }
+
+    for ( Py_ssize_t i = 0; i < arg_count; i++ )
+    {
+        Py_XDECREF( python_pars[ i ] );
+    }
+}

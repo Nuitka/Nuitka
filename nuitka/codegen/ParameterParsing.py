@@ -19,29 +19,11 @@
 
 """
 
-from nuitka.PythonVersions import python_version
-
-from .ConstantCodes import getConstantCode
 from .Indentation import indented
 from .templates.CodeTemplatesParameterParsing import (
-    template_argparse_assign_from_dict_finding,
-    template_argparse_assign_from_dict_parameter_quick_path,
-    template_argparse_assign_from_dict_parameter_quick_path_kw_only,
-    template_argparse_assign_from_dict_parameter_slow_path,
-    template_argparse_assign_from_dict_parameter_slow_path_kw_only,
-    template_argparse_assign_from_dict_parameters,
-    template_argparse_plain_argument,
     template_parameter_dparser_entry_point,
     template_parameter_function_entry_point,
-    template_parameter_function_refuses,
-    template_parse_argument_check_counts_without_list_star_arg,
-    template_parse_argument_check_dict_parameter_with_star_dict,
-    template_parse_argument_copy_list_star_args,
-    template_parse_argument_dict_star_copy,
-    template_parse_argument_usable_count,
-    template_parse_arguments_check,
-    template_parse_kwonly_argument_default,
-    template_parse_kwonly_arguments_check
+    template_parse_arguments
 )
 
 
@@ -60,191 +42,43 @@ def getDirectFunctionEntryPointIdentifier(function_identifier):
     return "impl_" + function_identifier
 
 
-def _getParameterParsingCode(context, function_name,
-                             all_parameter_variables,
-                             top_level_parameter_variables,
-                             kw_only_parameter_variables,
-                             star_list_arg_variable,
-                             star_dict_arg_variable):
-    # There is really no way this could be any less complex.
-    # pylint: disable=R0912,R0914
-
-    is_empty = not all_parameter_variables
+def _getParameterParsingCode(all_parameter_variables):
+    all_variable_count = len(all_parameter_variables)
 
     # First, declare all parameter objects as variables.
-    parameter_parsing_code = "".join(
-        [
-            "PyObject *_python_par_" + variable.getCodeName() + " = NULL;\n"
-            for variable in
-            all_parameter_variables
-        ]
-    )
+    parameter_parsing_code = """
+PyObject *python_pars[ %(arg_count)d ] = { %(arg_init)s };
+""" % {
+        "arg_count" : all_variable_count or 1, # MSVC disallows 0.
+        "arg_init"  : ", ".join(["NULL"] * (all_variable_count or 1))
+    }
 
-    # Max allowed number of positional arguments, all except keyword only
-    # arguments.
-    plain_possible_count = len(top_level_parameter_variables) - \
-                           len(kw_only_parameter_variables)
-
-    if top_level_parameter_variables:
-        parameter_parsing_code += "// Copy given dictionary values to the the respective variables:\n"
-
-    if star_dict_arg_variable is not None:
-        # In the case of star dict arguments, we need to check what is for it
-        # and which arguments with names we have.
-
-        parameter_parsing_code += template_parse_argument_dict_star_copy % {
-            "dict_star_parameter_name" : star_dict_arg_variable.getName(),
-            "function_name"            : function_name,
-        }
-
-        # Check for each variable.
-        for variable in top_level_parameter_variables:
-            parameter_parsing_code += template_parse_argument_check_dict_parameter_with_star_dict % {
-                "parameter_name"           : variable.getCodeName(),
-                "parameter_name_object"    : getConstantCode(
-                    constant = variable.getName(),
-                    context  = context
-                ),
-                "dict_star_parameter_name" : star_dict_arg_variable.getName(),
-            }
-    elif not is_empty:
-        quick_path_code = ""
-        slow_path_code = ""
-
-        for variable in top_level_parameter_variables:
-            parameter_name_object = getConstantCode(
-                constant = variable.getName(),
-                context  = context
-            )
-
-            parameter_assign_from_kw = template_argparse_assign_from_dict_finding % {
-                "parameter_name" : variable.getCodeName(),
-            }
-
-            if variable.isParameterVariableKwOnly():
-                assign_quick = template_argparse_assign_from_dict_parameter_quick_path_kw_only
-                assign_slow = template_argparse_assign_from_dict_parameter_slow_path_kw_only
-            else:
-                assign_quick = template_argparse_assign_from_dict_parameter_quick_path
-                assign_slow = template_argparse_assign_from_dict_parameter_slow_path
-
-
-            quick_path_code += assign_quick % {
-                "parameter_name_object"    : parameter_name_object,
-                "parameter_assign_from_kw" : indented(parameter_assign_from_kw)
-            }
-
-            slow_path_code += assign_slow % {
-                "parameter_name_object"    : parameter_name_object,
-                "parameter_assign_from_kw" : indented(parameter_assign_from_kw)
-            }
-
-        parameter_parsing_code += template_argparse_assign_from_dict_parameters % {
-            "function_name"         : function_name,
-            "parameter_quick_path"  : indented(quick_path_code, 2),
-            "parameter_slow_path"   : indented(slow_path_code, 2)
-        }
-
-    if is_empty:
-        parameter_parsing_code += template_parameter_function_refuses % {}
-    elif python_version < 330:
-        if star_list_arg_variable is None:
-            parameter_parsing_code += template_parse_argument_check_counts_without_list_star_arg % {
-                "top_level_parameter_count" : plain_possible_count,
-            }
-
-    if plain_possible_count > 0:
-        plain_var_names = []
-
-        parameter_parsing_code += template_parse_argument_usable_count % {}
-
-        for count, variable in enumerate(top_level_parameter_variables):
-            if not variable.isParameterVariableKwOnly():
-                parameter_parsing_code += template_argparse_plain_argument % {
-                    "parameter_name"            : variable.getCodeName(),
-                    "parameter_position"        : count,
-                    "top_level_parameter_count" : plain_possible_count,
-                }
-
-                plain_var_names.append("_python_par_" + variable.getCodeName())
-
-        parameter_parsing_code += template_parse_arguments_check % {
-            "parameter_test" : " || ".join(
-                "%s == NULL" % plain_var_name
-                for plain_var_name in
-                plain_var_names
-            ),
-            "parameter_list" : ", ".join(plain_var_names)
-        }
-
-
-    if star_list_arg_variable is not None:
-        parameter_parsing_code += template_parse_argument_copy_list_star_args % {
-            "list_star_parameter_name"  : star_list_arg_variable.getName(),
-            "top_level_parameter_count" : plain_possible_count
-        }
-    elif python_version >= 330:
-        parameter_parsing_code += template_parse_argument_check_counts_without_list_star_arg % {
-            "top_level_parameter_count" : plain_possible_count,
-        }
-
-    kw_only_var_names = []
-
-    for variable in kw_only_parameter_variables:
-        parameter_parsing_code += template_parse_kwonly_argument_default % {
-            "function_name"         : function_name,
-            "parameter_name"        : variable.getCodeName(),
-            "parameter_name_object" : getConstantCode(
-                constant = variable.getName(),
-                context  = context
-            )
-        }
-
-        kw_only_var_names.append("_python_par_" + variable.getCodeName())
-
-    if kw_only_var_names:
-        parameter_parsing_code += template_parse_kwonly_arguments_check % {
-            "parameter_test" : " || ".join(
-                "%s == NULL" % kw_only_var_name
-                for kw_only_var_name in
-                kw_only_var_names
-            ),
-            "parameter_list" : ", ".join(kw_only_var_names)
-        }
+    parameter_parsing_code += template_parse_arguments % {}
 
     return indented(parameter_parsing_code)
 
-def getParameterParsingCode(context, function_identifier, function_name,
-                             parameters, needs_creation):
+
+def getParameterParsingCode(function_identifier, function_name, parameters,
+                            needs_creation):
     # This definitely is detail rich stuff. pylint: disable=R0914
 
 
     if parameters is None:
-        parameter_variables = ()
         all_parameter_variables = ()
-        top_level_parameter_variables = ()
-        kw_only_parameter_variables = ()
-        star_list_arg_variable = None
-        star_dict_arg_variable = None
     else:
-        parameter_variables = parameters.getVariables()
         all_parameter_variables = parameters.getAllVariables()
-        top_level_parameter_variables = parameters.getTopLevelVariables()
-        kw_only_parameter_variables = parameters.getKwOnlyVariables()
-        star_list_arg_variable = parameters.getListStarArgVariable()
-        star_dict_arg_variable = parameters.getDictStarArgVariable()
 
-    if parameter_variables:
+    if all_parameter_variables:
         parameter_objects_decl = [
             "PyObject *_python_par_" + variable.getCodeName()
             for variable in
-            parameter_variables
+            all_parameter_variables
         ]
 
         parameter_objects_list = [
-            "_python_par_" + variable.getCodeName()
-            for variable in
-            parameter_variables
+            "python_pars[%d]" % arg_index
+            for arg_index in
+            range(len(all_parameter_variables))
         ]
     else:
         parameter_objects_decl = []
@@ -254,24 +88,9 @@ def getParameterParsingCode(context, function_identifier, function_name,
         parameter_objects_decl.insert(0, "Nuitka_FunctionObject *self")
         parameter_objects_list.insert(0, "self")
 
-    parameter_release_code = "".join(
-        [
-            "    Py_XDECREF( _python_par_" + variable.getCodeName() + " );\n"
-            for variable in
-            all_parameter_variables
-        ]
-    )
-
     parameter_entry_point_code = template_parameter_function_entry_point % {
         "parameter_parsing_code"    : _getParameterParsingCode(
-            context                       = context,
-            function_name                 = function_name,
             all_parameter_variables       = all_parameter_variables,
-            top_level_parameter_variables = top_level_parameter_variables,
-            kw_only_parameter_variables   = kw_only_parameter_variables,
-            star_list_arg_variable        = star_list_arg_variable,
-            star_dict_arg_variable        = star_dict_arg_variable
-
         ),
         "parse_function_identifier" : getParameterEntryPointIdentifier(
             function_identifier = function_identifier,
@@ -280,7 +99,6 @@ def getParameterParsingCode(context, function_identifier, function_name,
             function_identifier = function_identifier
         ),
         "parameter_objects_list"    : ", ".join(parameter_objects_list),
-        "parameter_release_code"    : parameter_release_code,
     }
 
     if parameters is not None and \
@@ -311,13 +129,13 @@ def getParameterParsingCode(context, function_identifier, function_name,
 
         parameter_entry_point_code += template_parameter_dparser_entry_point % {
             "function_identifier" : function_identifier,
-            "arg_count"           : len(parameter_variables),
+            "arg_count"           : len(all_parameter_variables),
             "args_forward"        : "".join(args_forward)
 
         }
 
     return (
-        parameter_variables,
+        all_parameter_variables,
         parameter_entry_point_code,
         parameter_objects_decl
     )

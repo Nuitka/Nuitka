@@ -145,4 +145,9 @@ extern void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
                                   PyObject **kw_vars );
 #endif
 
+
+extern Py_ssize_t PARSE_ARGUMENTS( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size );
+
+extern void PARSE_PARAMETERS_ERROR_RELEASE( Nuitka_FunctionObject *function, PyObject **python_pars );
+
 #endif

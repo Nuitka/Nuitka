@@ -512,8 +512,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
         function_identifier = function_identifier,
         function_name       = function_name,
         parameters          = parameters,
-        needs_creation      = context.isForCreatedFunction(),
-        context             = context,
+        needs_creation      = context.isForCreatedFunction()
     )
 
     function_locals = []

@@ -18,6 +18,14 @@
 #ifndef __NUITKA_DICTIONARIES_H__
 #define __NUITKA_DICTIONARIES_H__
 
+
+static inline Py_ssize_t DICT_SIZE( PyObject *dict )
+{
+    CHECK_OBJECT( dict );
+
+    return ((PyDictObject *)dict)->ma_used;
+}
+
 static inline PyDictObject *MODULE_DICT( PyModuleObject *module )
 {
     PyDictObject *dict = (PyDictObject *)(module->md_dict);

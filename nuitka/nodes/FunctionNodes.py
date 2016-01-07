@@ -350,7 +350,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         self.parameters.setOwner(self)
 
         self.registerProvidedVariables(
-            *self.parameters.getVariables()
+            *self.parameters.getAllVariables()
         )
 
     def getDetails(self):
