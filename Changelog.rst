@@ -19,10 +19,9 @@ Bug Fixes
 Optimization
 ------------
 
-- Standalone: Avoid inclusion of bytecode of ``unittest.test``, ``sqlite3.test``,
-  ``distutils.test``, and ``ensurepip``. These are not needed, but simply bloat
-  the amount of bytecode used on e.g. MacOS. `Issue#272
-  <http://bugs.nuitka.net/issue272>`__.
+- Code generated for parameter parsing is now a *lot* less verbose. Python level
+  loops and conditionals to generate code for each variable has been replaced
+  with C level generic code. This will speed up the backend compilation by a lot.
 
 - Nested argument functions now have a quick call entry point as well, making
   them faster to call too.
@@ -30,6 +29,14 @@ Optimization
 - The ``slice`` built-in, and internal creation of slices (e.g. in re-formulations
   of Python3 slices as subscripts) cannot raise. `Issue#262
   <http://bugs.nuitka.net/issue262>`__.
+
+- Standalone: Avoid inclusion of bytecode of ``unittest.test``, ``sqlite3.test``,
+  ``distutils.test``, and ``ensurepip``. These are not needed, but simply bloat
+  the amount of bytecode used on e.g. MacOS. `Issue#272
+  <http://bugs.nuitka.net/issue272>`__.
+
+- Speed up compilation with Nuitka itself by avoid to copying and constructing
+  variable lists as much as possible.
 
 Cleanups
 --------
@@ -47,6 +54,9 @@ Cleanups
 
 - Named nodes more often consistently, e.g. all loop related nodes start with
   ``Loop`` now, making them easier to group.
+
+- Parameter specifications got simplified to work without variables where it is
+  possible.
 
 Summary
 -------
