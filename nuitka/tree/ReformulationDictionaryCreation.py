@@ -115,6 +115,7 @@ def getDictUnpackingHelper():
             default_count = 0,
             kw_only_args  = ()
         ),
+        flags      = set(),
         source_ref = internal_source_ref
     )
 

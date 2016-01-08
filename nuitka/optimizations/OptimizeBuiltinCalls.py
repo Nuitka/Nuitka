@@ -845,42 +845,29 @@ def super_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):
         if type_arg is None and python_version >= 300:
+
             provider = node.getParentVariableProvider()
 
-            if python_version < 340 or True: # TODO: Temporarily reverted:
-                type_arg = ExpressionVariableRef(
-                    variable_name = "__class__",
-                    source_ref    = source_ref
-                )
+            type_arg = ExpressionVariableRef(
+                variable_name = "__class__",
+                source_ref    = source_ref
+            )
 
-                # Ought to be already closure taken.
-                type_arg.setVariable(
-                    provider.getVariableForReference(
-                        variable_name = "__class__"
-                    )
+            # Ought to be already closure taken.
+            type_arg.setVariable(
+                provider.getVariableForReference(
+                    variable_name = "__class__"
                 )
+            )
 
-                # If we already have this as a local variable, then use that
-                # instead.
-                type_arg_owner = type_arg.getVariable().getOwner()
-                if type_arg_owner is provider or \
-                not (type_arg_owner.isExpressionFunctionBody() or \
-                     type_arg_owner.isExpressionClassBody()):
-                    type_arg = None
-                else:
-                    addVariableUsage(type_arg.getVariable(), provider)
+            # If we already have this as a local variable, then use that
+            # instead.
+            type_arg_owner = type_arg.getVariable().getOwner()
+            if type_arg_owner is provider or \
+            not (type_arg_owner.isExpressionFunctionBody() or \
+                 type_arg_owner.isExpressionClassBody()):
+                type_arg = None
             else:
-                parent_provider = provider.getParentVariableProvider()
-
-                class_var = parent_provider.getTempVariable(
-                    temp_scope = None,
-                    name       = "__class__"
-                )
-
-                type_arg = ExpressionTempVariableRef(
-                    variable   = class_var,
-                    source_ref = source_ref
-                )
                 addVariableUsage(type_arg.getVariable(), provider)
 
             if type_arg is None:

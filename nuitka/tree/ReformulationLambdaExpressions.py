@@ -66,7 +66,7 @@ def buildLambdaNode(provider, node, source_ref):
 
     assert getKind(node) == "Lambda"
 
-    function_kind, _written_variables, _non_local_declarations, _global_declarations = \
+    function_kind, flags, _written_variables, _non_local_declarations, _global_declarations = \
       detectFunctionBodyKind(
         nodes = (node.body,)
     )
@@ -76,6 +76,7 @@ def buildLambdaNode(provider, node, source_ref):
         function_kind = function_kind,
         name          = "<lambda>",
         function_doc  = None,
+        flags         = flags,
         node          = node,
         source_ref    = source_ref
     )
@@ -86,6 +87,7 @@ def buildLambdaNode(provider, node, source_ref):
         code_body = ExpressionGeneratorObjectBody(
             provider   = function_body,
             name       = "<lambda>",
+            flags      = set(),
             source_ref = source_ref
         )
 

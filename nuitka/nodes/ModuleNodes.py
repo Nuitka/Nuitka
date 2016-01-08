@@ -204,7 +204,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
             },
         )
 
-        self.variables = set()
+        self.variables = {}
 
         # The list functions contained in that module.
         self.functions = OrderedSet()
@@ -297,11 +297,11 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def getParentVariableProvider(self):
         return None
 
-    def hasVariable(self, variable):
-        return variable in self.variables
+    def hasVariableName(self, variable_name):
+        return variable_name in self.variables or variable_name in self.temp_variables
 
     def getVariables(self):
-        return self.variables
+        return self.variables.values()
 
     def getFilename(self):
         return self.source_ref.getFilename()
@@ -318,13 +318,14 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         )
 
     def createProvidedVariable(self, variable_name):
+        assert variable_name not in self.variables
+
         result = Variables.ModuleVariable(
             module        = self,
             variable_name = variable_name
         )
 
-        assert result not in self.variables
-        self.variables.add(result)
+        self.variables[variable_name] = result
 
         return result
 

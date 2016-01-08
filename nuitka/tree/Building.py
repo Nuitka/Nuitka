@@ -95,7 +95,6 @@ from nuitka.tree.ReformulationForLoopStatements import (
 )
 from nuitka.tree.ReformulationWhileLoopStatements import buildWhileLoopNode
 from nuitka.utils import Utils
-from nuitka.VariableRegistry import addVariableUsage
 
 from . import SyntaxErrors
 from .Helpers import (
@@ -156,26 +155,13 @@ from .VariableClosure import completeVariableClosures
 
 
 def buildVariableReferenceNode(provider, node, source_ref):
-    # Python3 is influenced by the mere use of a variable name. So we need to
-    # remember it, esp. for cases, where it is optimized away.
-    if node.id == "super" and provider.isExpressionFunctionBody():
-        if python_version >= 300:
-            variable = provider.getVariableForClosure("__class__")
-
-            if variable.getOwner().isExpressionClassBody():
-                addVariableUsage(variable, provider)
-
-        variable = provider.getVariableForClosure("self")
-        if variable.getOwner().isExpressionClassBody():
-            addVariableUsage(variable, provider)
-
     return ExpressionVariableRef(
         variable_name = mangleName(node.id, provider),
         source_ref    = source_ref
     )
 
 
-# Python3.4 only, True and False, are not given as variables anymore.
+# Python3.4 or higher, True and False, are not given as variables anymore.
 def buildNamedConstantNode(node, source_ref):
     return ExpressionConstantRef(
         constant   = node.value,

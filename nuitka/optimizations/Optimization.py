@@ -24,7 +24,7 @@ make others possible.
 
 
 import inspect
-from logging import debug, warning, info
+from logging import debug, info, warning
 
 from nuitka import ModuleRegistry, Options, VariableRegistry
 from nuitka.optimizations import TraceCollections
@@ -199,8 +199,6 @@ def areReadOnlyTraces(variable_traces):
     return read_only
 
 
-
-
 def optimizeUnusedClosureVariables(function_body):
     for closure_variable in function_body.getClosureVariables():
         # print "VAR", closure_variable
@@ -210,7 +208,7 @@ def optimizeUnusedClosureVariables(function_body):
            function_body.isExpressionGeneratorObjectBody():
             continue
 
-        if closure_variable.getName() == "__class__":
+        if function_body.hasFlag("has_super") and closure_variable.getName() in ("__class__", "self"):
             continue
 
         variable_traces = function_body.constraint_collection.getVariableTraces(

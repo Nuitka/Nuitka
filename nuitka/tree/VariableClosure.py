@@ -81,7 +81,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     )
 
                 node.registerProvidedVariable(variable)
-
+                addVariableUsage(variable, node)
 
     @staticmethod
     def _handleQualnameSetup(node):
@@ -382,7 +382,16 @@ def completeVariableClosures(tree):
     if tree.isCompiledPythonModule():
         for function in tree.getFunctions():
             addFunctionVariableReleases(function)
-    else:
-        # For "eval" code, this will need to be done differently, not done
-        # yet-
-        assert False
+
+            # Python3 is influenced by the mere use of a variable named as
+            # "super". So we need to prepare ability to take closure.
+            if function.hasFlag("has_super"):
+                if not function.hasVariableName("__class__"):
+                    class_var = function.getClosureVariable("__class__")
+                    function.registerProvidedVariable(class_var)
+                    addVariableUsage(class_var, function)
+
+                if not function.hasVariableName("self"):
+                    self_var = function.getClosureVariable("self")
+                    function.registerProvidedVariable(self_var)
+                    addVariableUsage(self_var, function)

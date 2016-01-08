@@ -109,7 +109,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
-    function_kind, _written_variables, _non_local_declarations, _global_declarations = \
+    function_kind, flags, _written_variables, _non_local_declarations, _global_declarations = \
       detectFunctionBodyKind(
         nodes = function_statement_nodes
     )
@@ -119,6 +119,7 @@ def buildFunctionNode(provider, node, source_ref):
         function_kind = function_kind,
         name          = node.name,
         function_doc  = function_doc,
+        flags         = flags,
         node          = node,
         source_ref    = source_ref
     )
@@ -129,6 +130,7 @@ def buildFunctionNode(provider, node, source_ref):
         code_body = ExpressionGeneratorObjectBody(
             provider   = function_body,
             name       = node.name,
+            flags      = flags,
             source_ref = source_ref
         )
 
@@ -263,6 +265,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         provider      = provider,
         function_kind = "Coroutine",
         name          = node.name,
+        flags         = set(),
         function_doc  = function_doc,
         node          = node,
         source_ref    = source_ref
@@ -271,6 +274,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     function_body = ExpressionCoroutineObjectBody(
         provider   = creator_function_body,
         name       = node.name,
+        flags      = set(),
         source_ref = source_ref
     )
 
@@ -498,7 +502,8 @@ def buildParameterAnnotations(provider, node, source_ref):
         return None
 
 
-def buildFunctionWithParsing(provider, function_kind, name, function_doc, node, source_ref):
+def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
+                             node, source_ref):
     # This contains a complex re-formulation for nested parameter functions.
     # pylint: disable=R0914
 
@@ -574,6 +579,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, node, 
     outer_body = ExpressionFunctionBody(
         provider   = provider,
         name       = name,
+        flags      = flags,
         doc        = function_doc,
         parameters = parameters,
         source_ref = source_ref
@@ -706,11 +712,11 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, node, 
         function_body = ExpressionFunctionBody(
             provider   = outer_body,
             name       = inner_name,
+            flags      = flags,
             doc        = function_doc,
             parameters = inner_parameters,
             source_ref = source_ref
         )
-
 
         statements.append(
             StatementReturn(

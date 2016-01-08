@@ -98,7 +98,7 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, source_ref):
+    def __init__(self, provider, name, flags, source_ref):
         while provider.isExpressionOutlineBody():
             provider = provider.getParentVariableProvider()
 
@@ -108,6 +108,7 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
             name        = name,
             code_prefix = "coroutine",
             is_class    = False,
+            flags       = flags,
             source_ref  = source_ref
         )
 

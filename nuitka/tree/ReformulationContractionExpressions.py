@@ -441,6 +441,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
                 default_count = 0,
                 kw_only_args  = ()
             ),
+            flags      = set(),
             source_ref = source_ref
         )
 
@@ -462,6 +463,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         code_body = ExpressionGeneratorObjectBody(
             provider   = function_body,
             name       = "<genexpr>",
+            flags      = set(),
             source_ref = source_ref
         )
 

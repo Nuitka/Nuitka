@@ -127,12 +127,12 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
                 return self, None, None
 
         constant_value = Constants.createConstantDict(
-            keys       = [
+            keys   = [
                 pair.getKey().getConstant()
                 for pair in
                 pairs
             ],
-            values     = [
+            values = [
                 pair.getValue().getConstant()
                 for pair in
                 pairs

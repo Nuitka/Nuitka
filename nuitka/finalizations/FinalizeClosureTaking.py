@@ -24,6 +24,8 @@ having it spoiled with these transitive only references.
 
 """
 
+from nuitka.optimizations.Optimization import areEmptyTraces
+
 from .FinalizeBase import FinalizationVisitorBase
 
 
@@ -48,3 +50,18 @@ class FinalizeClosureTaking(FinalizationVisitorBase):
 
                 # Not found?!
                 assert current is not None, variable
+
+
+class FinalizeClassClosure(FinalizationVisitorBase):
+    def onEnterNode(self, function_body):
+        for closure_variable in function_body.getClosureVariables():
+            if closure_variable.getName() not in ("__class__", "self"):
+                continue
+
+            variable_traces = function_body.constraint_collection.getVariableTraces(
+                variable = closure_variable
+            )
+
+            empty = areEmptyTraces(variable_traces)
+            if empty:
+                function_body.removeClosureVariable(closure_variable)

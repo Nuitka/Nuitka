@@ -112,6 +112,7 @@ def detectFunctionBodyKind(nodes):
     written_variables = set()
     non_local_declarations = set()
     global_declarations = set()
+    flags = set()
 
     # print "Enter"
 
@@ -217,6 +218,9 @@ def detectFunctionBodyKind(nodes):
                     _check(field[0].iter)
                 else:
                     assert False, (name, field, ast.dump(node))
+        elif node_class is ast.Name:
+            if python_version >= 300 and node.id == "super":
+                flags.add("has_super")
         else:
             for child in ast.iter_child_nodes(node):
                 _check(child)
@@ -225,12 +229,13 @@ def detectFunctionBodyKind(nodes):
         _check(node)
 
     if indications:
+        # If we found something, make sure we agree on all clues.
         assert len(indications) == 1
-        indication = indications.pop()
+        function_kind = indications.pop()
     else:
-        indication = "Function"
+        function_kind = "Function"
 
-    return indication, written_variables, non_local_declarations, global_declarations
+    return function_kind, flags, written_variables, non_local_declarations, global_declarations
 
 
 build_nodes_args3 = None
@@ -548,12 +553,12 @@ def makeDictCreationOrConstant(keys, values, source_ref):
         # before being marshaled.
         result = ExpressionConstantRef(
             constant      = Constants.createConstantDict(
-                keys       = [
+                keys   = [
                     key.getConstant()
                     for key in
                     keys
                 ],
-                values     = [
+                values = [
                     value.getConstant()
                     for value in
                     values

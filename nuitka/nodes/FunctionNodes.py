@@ -60,7 +60,7 @@ from .ParameterSpecs import TooManyArguments, matchCall
 class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
                                  ClosureGiverNodeBase, ExpressionMixin):
 
-    def __init__(self, provider, name, code_prefix, is_class, source_ref):
+    def __init__(self, provider, name, code_prefix, is_class, flags, source_ref):
         ClosureTakerMixin.__init__(
             self,
             provider      = provider,
@@ -81,6 +81,8 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             }
         )
 
+        self.flags = flags
+
         # Hack: This allows some APIs to work although this is not yet
         # officially a child yet. Important during building.
         self.parent = provider
@@ -92,10 +94,6 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         # Non-local declarations.
         self.non_local_declarations = []
-
-        # Indicator, if this is a function that uses "super", because if it
-        # does, it would like to get the final "__class__" attached.
-        self.has_super = False
 
         # Register ourselves immediately with the module.
         provider.getParentModule().addFunction(self)
@@ -117,8 +115,8 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         return None
 
-    def isClassClosureTaker(self):
-        return self.has_super
+    def hasFlag(self, flag):
+        return flag in self.flags
 
     def getLocalsMode(self):
         if python_version >= 300:
@@ -128,8 +126,8 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         else:
             return "copy"
 
-    def hasVariable(self, variable):
-        return variable.getName() in self.providing
+    def hasVariableName(self, variable_name):
+        return variable_name in self.providing or variable_name in self.temp_variables
 
     def getVariables(self):
         return self.providing.values()
@@ -161,6 +159,8 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         self.taken.remove(variable)
 
+        VariableRegistry.removeVariableUsage(variable, self)
+
     def demoteClosureVariable(self, variable):
         assert variable.isLocalVariable()
 
@@ -181,6 +181,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             new_variable = new_variable
         )
 
+        VariableRegistry.removeVariableUsage(variable, self)
         VariableRegistry.addVariableUsage(new_variable, self)
 
     def removeUserVariable(self, variable):
@@ -190,6 +191,8 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         assert not variable.isParameterVariable() or \
                variable.getOwner() is not self
+
+        VariableRegistry.removeVariableUsage(variable, self)
 
     def getVariableForAssignment(self, variable_name):
         # print("ASS func", self, variable_name)
@@ -312,7 +315,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, doc, parameters, source_ref):
+    def __init__(self, provider, name, doc, parameters, flags, source_ref):
         while provider.isExpressionOutlineBody():
             provider = provider.getParentVariableProvider()
 
@@ -325,6 +328,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
             name        = name,
             code_prefix = "function",
             is_class    = False,
+            flags       = flags,
             source_ref  = source_ref
         )
 
@@ -420,102 +424,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
 
     def needsExceptionReturnValue(self):
         return self.return_exception
-
-
-class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
-    kind = "EXPRESSION_CLASS_BODY"
-
-    named_children = (
-        "body",
-    )
-
-    checkers = {
-        # TODO: Is "None" really an allowed value.
-        "body" : checkStatementsSequenceOrNone
-    }
-
-    def __init__(self, provider, name, doc, source_ref):
-        while provider.isExpressionOutlineBody():
-            provider = provider.getParentVariableProvider()
-
-        ExpressionFunctionBodyBase.__init__(
-            self,
-            provider    = provider,
-            name        = name,
-            is_class    = True,
-            code_prefix = "class",
-            source_ref  = source_ref
-        )
-
-        MarkLocalsDictIndicator.__init__(self)
-
-        self.doc = doc
-
-        assert self.isEarlyClosure()
-
-    def getDetails(self):
-        return {
-            "name"       : self.getFunctionName(),
-            "ref_name"   : self.getCodeName(),
-            "provider"   : self.provider.getCodeName(),
-            "doc"        : self.doc
-        }
-
-    def getDetail(self):
-        return "named %s" % self.getFunctionName()
-
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
-
-    def getDoc(self):
-        return self.doc
-
-
-    def getVariableForClosure(self, variable_name):
-        # print( "getVariableForClosure", self, variable_name )
-
-        # The class bodies provide no closure, except under CPython3.x, there
-        # they provide "__class__" but nothing else.
-
-        if variable_name == "__class__":
-            if python_version < 300:
-                return self.provider.getVariableForClosure(
-                    "__class__"
-                )
-            elif python_version >= 340 and False: # TODO: Temporarily reverted
-                result = self.getTempVariable(
-                    temp_scope = None,
-                    name       = "__class__"
-                )
-
-                return result
-            else:
-                return ExpressionFunctionBodyBase.getVariableForClosure(
-                    self,
-                    variable_name = "__class__"
-                )
-        else:
-            return self.provider.getVariableForClosure(
-                variable_name
-            )
-
-    def markAsDirectlyCalled(self):
-        pass
-
-    def markAsExecContaining(self):
-        pass
-
-    def markAsUnqualifiedExecContaining(self, source_ref):
-        pass
-
-    def mayHaveSideEffects(self):
-        # The function definition has no side effects, calculating the defaults
-        # would be, but that is done outside of this.
-        return False
-
-    def mayRaiseException(self, exception_type):
-        return self.getBody().mayRaiseException(exception_type)
-
 
 def convertNoneConstantOrEmptyDictToNone(node):
     if node is None:

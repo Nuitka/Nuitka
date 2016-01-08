@@ -34,7 +34,10 @@ from nuitka.nodes.AttributeNodes import (
 )
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCall, ExpressionCallNoKeywords
-from nuitka.nodes.ClassNodes import ExpressionSelectMetaclass
+from nuitka.nodes.ClassNodes import (
+    ExpressionClassBody,
+    ExpressionSelectMetaclass
+)
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ComparisonNodes import ExpressionComparison
 from nuitka.nodes.ConditionalNodes import (
@@ -48,7 +51,6 @@ from nuitka.nodes.ContainerOperationNodes import (
     StatementDictOperationRemove
 )
 from nuitka.nodes.FunctionNodes import (
-    ExpressionClassBody,
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
     ExpressionFunctionQualnameRef,
@@ -116,6 +118,7 @@ def _buildClassNode3(provider, node, source_ref):
         provider   = provider,
         name       = node.name,
         doc        = class_doc,
+        flags      = set(),
         source_ref = source_ref
     )
 
@@ -304,6 +307,11 @@ def _buildClassNode3(provider, node, source_ref):
     # returns its locals and cannot have other return statements contained.
 
     class_creation_function.setBody(body)
+
+    class_creation_function.registerProvidedVariable(tmp_bases)
+    class_creation_function.registerProvidedVariable(tmp_class_decl_dict)
+    class_creation_function.registerProvidedVariable(tmp_metaclass)
+    class_creation_function.registerProvidedVariable(tmp_prepared)
 
     # The class body is basically a function that implicitly, at the end
     # returns its created class and cannot have other return statements
@@ -586,6 +594,7 @@ def _buildClassNode2(provider, node, source_ref):
         provider   = provider,
         name       = node.name,
         doc        = class_doc,
+        flags      = set(),
         source_ref = source_ref
     )
 

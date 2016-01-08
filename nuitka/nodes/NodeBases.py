@@ -26,10 +26,9 @@ from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.containers.odict import OrderedDict
-from nuitka.containers.oset import OrderedSet
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
-from nuitka.VariableRegistry import addVariableUsage
+from nuitka.VariableRegistry import addVariableUsage, removeVariableUsage
 
 from .NodeMakingHelpers import (
     getComputationResult,
@@ -836,8 +835,6 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
         self.providing = OrderedDict()
 
-        self.keeper_variables = OrderedSet()
-
         self.temp_variables = OrderedDict()
 
         self.temp_scopes = OrderedDict()
@@ -901,8 +898,7 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
             full_name = name
 
-        del name
-
+        # No duplicates please.
         assert full_name not in self.temp_variables, full_name
 
         result = Variables.TempVariable(
@@ -929,6 +925,8 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
     def removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]
+
+        removeVariableUsage(variable, self)
 
     def allocatePreserverId(self):
         if python_version >= 300:

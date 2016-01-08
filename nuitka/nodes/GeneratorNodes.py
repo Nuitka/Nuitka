@@ -94,13 +94,14 @@ class ExpressionGeneratorObjectBody(ExpressionFunctionBodyBase,
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, source_ref):
+    def __init__(self, provider, name, flags, source_ref):
         ExpressionFunctionBodyBase.__init__(
             self,
             provider    = provider,
             name        = name,
             is_class    = False,
             code_prefix = "genexpr" if name == "<genexpr>" else "genobj",
+            flags       = flags,
             source_ref  = source_ref
         )
 

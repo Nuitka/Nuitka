@@ -430,9 +430,12 @@ class StatementDelVariable(StatementChildrenHavingBase):
             if self.variable_trace is not None:
 
                 variable = self.getTargetVariableRef().getVariable()
+
                 # TODO: This condition must become unnecessary, but enhancing
                 # SSA to notice potential escapes.
-                if not variable.isSharedTechnically():
+                if not variable.isModuleVariable() and \
+                   not variable.isMaybeLocalVariable() and not \
+                    variable.isSharedTechnically():
 
                     # Temporary variables deletions won't raise, just because we don't
                     # create them that way. We can avoid going through SSA in these
