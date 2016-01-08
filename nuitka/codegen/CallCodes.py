@@ -40,7 +40,7 @@ from .templates.CodeTemplatesModules import (
 def generateCallCode(to_name, expression, emit, context):
     # There is a whole lot of different cases, for each of which, we create
     # optimized code, constant, with and without positional or keyword arguments
-    # each, so there is lots of branches here.
+    # each, so there is lots of branches here. pylint: disable=R0912
 
     called_name = generateChildExpressionCode(
         expression = expression.getCalled(),
@@ -54,6 +54,10 @@ def generateCallCode(to_name, expression, emit, context):
     if call_kw is None or \
        (call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}):
         if call_args is None or call_args.isExpressionConstantRef():
+            context.setCurrentSourceCodeReference(
+                expression.getCompatibleSourceReference()
+            )
+
             if call_args is not None:
                 call_args_value = call_args.getConstant()
             else:
@@ -61,29 +65,36 @@ def generateCallCode(to_name, expression, emit, context):
 
             assert type(call_args_value) is tuple
 
-            call_arg_names = []
+            if call_args is not None and call_args.isMutable():
+                call_arg_names = []
 
-            for call_arg_element in call_args_value:
-                call_arg_name = context.allocateTempName("call_arg_element")
+                for call_arg_element in call_args_value:
+                    call_arg_name = context.allocateTempName("call_arg_element")
 
-                getConstantAccess(
-                    to_name  = call_arg_name,
-                    constant = call_arg_element,
-                    emit     = emit,
-                    context  = context,
-                )
+                    getConstantAccess(
+                        to_name  = call_arg_name,
+                        constant = call_arg_element,
+                        emit     = emit,
+                        context  = context,
+                    )
 
-                call_arg_names.append(call_arg_name)
+                    call_arg_names.append(call_arg_name)
 
-            context.setCurrentSourceCodeReference(
-                expression.getCompatibleSourceReference()
-            )
-
-            if call_arg_names:
                 getCallCodePosArgsQuick(
                     to_name     = to_name,
                     called_name = called_name,
                     arg_names   = call_arg_names,
+                    needs_check = expression.mayRaiseException(BaseException),
+                    emit        = emit,
+                    context     = context
+                )
+            elif call_args_value:
+                getCallCodePosArgs(
+                    to_name     = to_name,
+                    called_name = called_name,
+                    args_name   = context.getConstantCode(
+                        constant = call_args_value
+                    ),
                     needs_check = expression.mayRaiseException(BaseException),
                     emit        = emit,
                     context     = context
@@ -136,6 +147,7 @@ def generateCallCode(to_name, expression, emit, context):
                 to_name     = to_name,
                 called_name = called_name,
                 args_name   = args_name,
+                needs_check = expression.mayRaiseException(BaseException),
                 emit        = emit,
                 context     = context
             )
@@ -253,7 +265,7 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
     context.addCleanupTempName(to_name)
 
 
-def getCallCodePosArgs(to_name, called_name, args_name, emit, context):
+def getCallCodePosArgs(to_name, called_name, args_name, needs_check, emit, context):
     emitLineNumberUpdateCode(emit, context)
 
     emit(
@@ -271,9 +283,10 @@ def getCallCodePosArgs(to_name, called_name, args_name, emit, context):
     )
 
     getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
+        check_name  = to_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
     )
 
     context.addCleanupTempName(to_name)
