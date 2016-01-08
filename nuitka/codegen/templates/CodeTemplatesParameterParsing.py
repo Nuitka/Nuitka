@@ -26,11 +26,6 @@ static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyO
 %(parameter_parsing_code)s
 
     return %(impl_function_identifier)s( %(parameter_objects_list)s );
-
-error_exit:;
-
-    PARSE_PARAMETERS_ERROR_RELEASE( self, python_pars );
-    return NULL;
 }
 """
 
@@ -51,8 +46,8 @@ template_parse_arguments = r"""
 // Copy normal parameter values given as part of the argument list to the
 // respective variables:
 
-Py_ssize_t kw_found = PARSE_ARGUMENTS( self, python_pars, kw, args, args_size );
-if (unlikely( kw_found == -1 )) goto error_exit;
+bool res = PARSE_ARGUMENTS( self, python_pars, kw, args, args_size );
+if (unlikely( res == false )) return NULL;
 """
 
 

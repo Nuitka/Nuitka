@@ -497,12 +497,9 @@ def getFunctionDirectDecl(function_identifier, closure_variables,
     return result
 
 
-def getFunctionCode(context, function_name, function_identifier, parameters,
-                    closure_variables, user_variables, temp_variables,
-                    function_codes, function_doc, file_scope,
-                    needs_exception_exit):
-
-    # Many arguments, as we need much input transferred, pylint: disable=R0913
+def getFunctionCode(context, function_identifier, parameters, closure_variables,
+                    user_variables, temp_variables, function_codes, function_doc,
+                    file_scope, needs_exception_exit):
 
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=R0912,R0914
@@ -510,7 +507,6 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     parameter_variables, entry_point_code, parameter_objects_decl = \
       getParameterParsingCode(
         function_identifier = function_identifier,
-        function_name       = function_name,
         parameters          = parameters,
         needs_creation      = context.isForCreatedFunction()
     )

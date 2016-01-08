@@ -1569,9 +1569,44 @@ static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject *function, PyObject **
     return true;
 }
 
-Py_ssize_t PARSE_ARGUMENTS( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size )
+
+// Release them all in case of an error.
+static void releaseParameters( Nuitka_FunctionObject *function, PyObject **python_pars )
+{
+    Py_ssize_t arg_count = function->m_code_object->co_argcount;
+
+#if PYTHON_VERSION >= 300
+    arg_count += function->m_code_object->co_kwonlyargcount;
+#endif
+
+    if ( ( function->m_code_object->co_flags & CO_VARARGS ) != 0 )
+    {
+        arg_count += 1;
+    }
+
+    if ( ( function->m_code_object->co_flags & CO_VARKEYWORDS ) != 0 )
+    {
+        arg_count += 1;
+    }
+
+    for ( Py_ssize_t i = 0; i < arg_count; i++ )
+    {
+        Py_XDECREF( python_pars[ i ] );
+    }
+}
+
+
+bool PARSE_ARGUMENTS( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size )
 {
     Py_ssize_t kw_size = kw ? DICT_SIZE( kw ) : 0;
+    Py_ssize_t kw_found;
+    bool result;
+#if PYTHON_VERSION >= 300
+    Py_ssize_t kw_only_found;
+#endif
+#if PYTHON_VERSION >= 330
+    bool kw_only_error;
+#endif
 
 #if PYTHON_VERSION < 300
     Py_ssize_t arg_count = function->m_code_object->co_argcount;
@@ -1594,33 +1629,33 @@ Py_ssize_t PARSE_ARGUMENTS( Nuitka_FunctionObject *function, PyObject **python_p
         );
 #endif
 
-        return -1;
+        goto error_exit;
     }
 
 #if PYTHON_VERSION < 300
-    Py_ssize_t kw_found = PARSE_ARGUMENTS_KW( function, python_pars, kw );
+    kw_found = PARSE_ARGUMENTS_KW( function, python_pars, kw );
 #else
-    Py_ssize_t kw_only_found = 0;
-    Py_ssize_t kw_found = PARSE_ARGUMENTS_KW( function, python_pars, &kw_only_found, kw );
+    kw_only_found = 0;
+    kw_found = PARSE_ARGUMENTS_KW( function, python_pars, &kw_only_found, kw );
 #endif
 
-    if ( kw_found == -1 ) return -1;
+    if ( kw_found == -1 ) goto error_exit;
 
 #if PYTHON_VERSION < 270
-    bool result = _PARSE_ARGUMENTS_PLAIN( function, python_pars, kw, args, args_size, kw_found, kw_size );
+    result = _PARSE_ARGUMENTS_PLAIN( function, python_pars, kw, args, args_size, kw_found, kw_size );
 #elif PYTHON_VERSION < 300
-    bool result = _PARSE_ARGUMENTS_PLAIN( function, python_pars, kw, args, args_size, kw_found );
+    result = _PARSE_ARGUMENTS_PLAIN( function, python_pars, kw, args, args_size, kw_found );
 #else
-    bool result = _PARSE_ARGUMENTS_PLAIN( function, python_pars, kw, args, args_size, kw_found, kw_only_found );
+    result = _PARSE_ARGUMENTS_PLAIN( function, python_pars, kw, args, args_size, kw_found, kw_only_found );
 #endif
 
-    if ( result == false ) return -1;
+    if ( result == false ) goto error_exit;
 
 #if PYTHON_VERSION >= 300
 
     // For Python3.3 the keyword only errors are all reported at once.
 #if PYTHON_VERSION >= 330
-    bool kw_error = false;
+    kw_only_error = false;
 #endif
 
     for( Py_ssize_t i = function->m_code_object->co_argcount; i < function->m_code_object->co_argcount + function->m_code_object->co_kwonlyargcount; i++ )
@@ -1641,14 +1676,14 @@ Py_ssize_t PARSE_ARGUMENTS( Nuitka_FunctionObject *function, PyObject **python_p
                     Nuitka_String_AsString( arg_name )
                 );
 
-                return -1;
+                goto error_exit;
             }
 
             Py_INCREF( python_pars[ i ] );
 #else
             if ( python_pars[ i ] == NULL )
             {
-                kw_error = true;
+                kw_only_error = true;
             }
             else
             {
@@ -1659,40 +1694,20 @@ Py_ssize_t PARSE_ARGUMENTS( Nuitka_FunctionObject *function, PyObject **python_p
     }
 
 #if PYTHON_VERSION >= 330
-    if (unlikely( kw_error ))
+    if (unlikely( kw_only_error ))
     {
         ERROR_TOO_FEW_KWONLY( function, &python_pars[ function->m_code_object->co_argcount ] );
 
-        return -1;
+        goto error_exit;
     }
 #endif
 
 #endif
 
-    return kw_found;
-}
+    return true;
 
+error_exit:
 
-void PARSE_PARAMETERS_ERROR_RELEASE( Nuitka_FunctionObject *function, PyObject **python_pars )
-{
-    Py_ssize_t arg_count = function->m_code_object->co_argcount;
-
-#if PYTHON_VERSION >= 300
-    arg_count += function->m_code_object->co_kwonlyargcount;
-#endif
-
-    if ( ( function->m_code_object->co_flags & CO_VARARGS ) != 0 )
-    {
-        arg_count += 1;
-    }
-
-    if ( ( function->m_code_object->co_flags & CO_VARKEYWORDS ) != 0 )
-    {
-        arg_count += 1;
-    }
-
-    for ( Py_ssize_t i = 0; i < arg_count; i++ )
-    {
-        Py_XDECREF( python_pars[ i ] );
-    }
+    releaseParameters( function, python_pars );
+    return false;
 }

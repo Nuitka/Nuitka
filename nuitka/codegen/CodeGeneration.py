@@ -281,7 +281,6 @@ def generateFunctionBodyCode(function_body, context):
     elif function_body.isExpressionClassBody():
         function_code = getFunctionCode(
             context              = function_context,
-            function_name        = function_body.getFunctionName(),
             function_identifier  = function_identifier,
             parameters           = None,
             closure_variables    = function_body.getClosureVariables(),
@@ -299,7 +298,6 @@ def generateFunctionBodyCode(function_body, context):
 
         function_code = getFunctionCode(
             context              = function_context,
-            function_name        = function_body.getFunctionName(),
             function_identifier  = function_identifier,
             parameters           = parameters,
             closure_variables    = function_body.getClosureVariables(),

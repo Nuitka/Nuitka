@@ -134,7 +134,7 @@ class ParameterSpec:
 
         if self.list_star_arg:
             self.list_star_variable = Variables.ParameterVariable(
-                owner = owner,
+                owner          = owner,
                 parameter_name = self.list_star_arg
             )
         else:

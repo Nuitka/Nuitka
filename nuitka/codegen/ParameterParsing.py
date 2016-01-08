@@ -58,11 +58,7 @@ PyObject *python_pars[ %(arg_count)d ] = { %(arg_init)s };
     return indented(parameter_parsing_code)
 
 
-def getParameterParsingCode(function_identifier, function_name, parameters,
-                            needs_creation):
-    # This definitely is detail rich stuff. pylint: disable=R0914
-
-
+def getParameterParsingCode(function_identifier, parameters, needs_creation):
     if parameters is None:
         all_parameter_variables = ()
     else:
@@ -90,7 +86,7 @@ def getParameterParsingCode(function_identifier, function_name, parameters,
 
     parameter_entry_point_code = template_parameter_function_entry_point % {
         "parameter_parsing_code"    : _getParameterParsingCode(
-            all_parameter_variables       = all_parameter_variables,
+            all_parameter_variables = all_parameter_variables,
         ),
         "parse_function_identifier" : getParameterEntryPointIdentifier(
             function_identifier = function_identifier,
