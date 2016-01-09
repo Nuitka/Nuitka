@@ -34,14 +34,14 @@ except TypeError as e:
     print( repr(e) )
 
 
-print( "Call function with mixed arguments with too little position arguments." )
+print( "Call function with mixed arguments with too little positional arguments." )
 
 try:
     kwfunc( 3 )
 except TypeError as e:
     print( repr(e) )
 
-print( "Call function with mixed arguments with too many position arguments." )
+print( "Call function with mixed arguments with too many positional arguments." )
 
 try:
     kwfunc( 1,2,k=3 )
@@ -51,7 +51,7 @@ except TypeError as e:
 def kwfuncdefaulted(a, b = None, *, c = None):
     pass
 
-print( "Call function with mixed arguments and defaults but too many position arguments." )
+print( "Call function with mixed arguments and defaults but too many positional arguments." )
 
 try:
     kwfuncdefaulted(1, 2, 3)
