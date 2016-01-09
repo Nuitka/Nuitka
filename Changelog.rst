@@ -58,6 +58,11 @@ Cleanups
 - Parameter specifications got simplified to work without variables where it is
   possible.
 
+Organizational
+--------------
+
+- Nuitka is now available on the social code platforms gitlab as well.
+
 Summary
 -------
 
