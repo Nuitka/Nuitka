@@ -24,10 +24,7 @@
 // Compiled function type.
 
 // The backbone of the integration into CPython. Try to behave as well as normal
-// functions and builtin functions, or even better.
-
-// Cleanup function to be called when the function object is released.
-typedef void (*releaser)( void * );
+// functions and built-in functions, or even better.
 
 struct Nuitka_FunctionObject;
 
@@ -35,7 +32,7 @@ struct Nuitka_FunctionObject;
 typedef PyObject *(*function_arg_parser)( Nuitka_FunctionObject *, PyObject **, Py_ssize_t, PyObject * );
 // Quick call variant, only plain arguments are present and not formed as a
 // tuple, allowing shortcuts.
-typedef PyObject *(*direct_arg_parser)( Nuitka_FunctionObject *, PyObject **, int );
+typedef PyObject *(*direct_arg_parser)( Nuitka_FunctionObject *, PyObject **, Py_ssize_t );
 
 // The Nuitka_FunctionObject is the storage associated with a compiled function
 // instance of which there can be many for each code.
@@ -110,6 +107,6 @@ static inline PyObject *Nuitka_Function_GetName( PyObject *object )
     return ((Nuitka_FunctionObject *)object)->m_name;
 }
 
-extern bool PARSE_ARGUMENTS( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size );
+extern bool PARSE_ARGUMENTS( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size );
 
 #endif

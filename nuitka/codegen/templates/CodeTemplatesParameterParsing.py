@@ -23,36 +23,17 @@ template_parameter_function_entry_point = """\
 static PyObject *%(parse_function_identifier)s( Nuitka_FunctionObject *self, PyObject **args, Py_ssize_t args_size, PyObject *kw )
 {
     assert( kw == NULL || PyDict_Check( kw ) );
+
 %(parameter_parsing_code)s
+    bool res = PARSE_ARGUMENTS( self, python_pars, kw, args, args_size );
+    if (unlikely( res == false )) return NULL;
 
     return %(impl_function_identifier)s( %(parameter_objects_list)s );
 }
 """
 
-
-template_parse_argument_check_counts_without_list_star_arg = r"""
-// Check if too many arguments were given in case of non list star arg
-if (unlikely( args_size > %(top_level_parameter_count)d ))
-{
-#if PYTHON_VERSION >= 330
-    ERROR_TOO_MANY_ARGUMENTS( self, args_size, kw_only_found );
-    goto error_exit;
-#endif
-}
-
-"""
-
-template_parse_arguments = r"""
-// Copy normal parameter values given as part of the argument list to the
-// respective variables:
-
-bool res = PARSE_ARGUMENTS( self, python_pars, kw, args, args_size );
-if (unlikely( res == false )) return NULL;
-"""
-
-
 template_parameter_dparser_entry_point = """
-static PyObject *dparse_%(function_identifier)s( Nuitka_FunctionObject *self, PyObject **args, int size )
+static PyObject *dparse_%(function_identifier)s( Nuitka_FunctionObject *self, PyObject **args, Py_ssize_t size )
 {
     if ( size == %(arg_count)d )
     {

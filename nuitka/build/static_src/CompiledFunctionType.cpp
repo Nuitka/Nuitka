@@ -440,7 +440,7 @@ static PyObject *Nuitka_Function_reduce( Nuitka_FunctionObject *function )
 #endif
 }
 
-static PyMethodDef Nuitka_Generator_methods[] =
+static PyMethodDef Nuitka_Function_methods[] =
 {
     { "__reduce__", (PyCFunction)Nuitka_Function_reduce, METH_NOARGS, NULL },
     { NULL }
@@ -537,7 +537,7 @@ PyTypeObject Nuitka_Function_Type =
     offsetof( Nuitka_FunctionObject, m_weakrefs ),  // tp_weaklistoffset
     0,                                              // tp_iter
     0,                                              // tp_iternext
-    Nuitka_Generator_methods,                       // tp_methods
+    Nuitka_Function_methods,                        // tp_methods
     0,                                              // tp_members
     Nuitka_Function_getset,                         // tp_getset
     0,                                              // tp_base
@@ -654,11 +654,11 @@ PyObject *Nuitka_Function_New( function_arg_parser fparse, direct_arg_parser dpa
 }
 #endif
 
-void ERROR_NO_ARGUMENTS_ALLOWED( Nuitka_FunctionObject *function,
+static void ERROR_NO_ARGUMENTS_ALLOWED( Nuitka_FunctionObject const *function,
 #if PYTHON_VERSION >= 330
-                                 PyObject *kw,
+                                        PyObject *kw,
 #endif
-                                 Py_ssize_t given )
+                                        Py_ssize_t given )
 {
     char const *function_name =
        Nuitka_String_AsString( function->m_name );
@@ -696,7 +696,7 @@ void ERROR_NO_ARGUMENTS_ALLOWED( Nuitka_FunctionObject *function,
 #endif
 }
 
-void ERROR_MULTIPLE_VALUES( Nuitka_FunctionObject *function, Py_ssize_t index )
+static void ERROR_MULTIPLE_VALUES( Nuitka_FunctionObject const *function, Py_ssize_t index )
 {
     char const *function_name =
        Nuitka_String_AsString( function->m_name );
@@ -718,7 +718,7 @@ void ERROR_MULTIPLE_VALUES( Nuitka_FunctionObject *function, Py_ssize_t index )
     );
 }
 
-void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
+static void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject const *function,
 #if PYTHON_VERSION < 270
                               Py_ssize_t kw_size,
 #endif
@@ -777,14 +777,14 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
 #endif
 }
 
-void ERROR_TOO_MANY_ARGUMENTS( Nuitka_FunctionObject *function,
-                               Py_ssize_t given
+static void ERROR_TOO_MANY_ARGUMENTS( Nuitka_FunctionObject const *function,
+                                      Py_ssize_t given
 #if PYTHON_VERSION < 270
-                             , Py_ssize_t kw_size
+                                    , Py_ssize_t kw_size
 
 #endif
 #if PYTHON_VERSION >= 330
-                             , Py_ssize_t kw_only
+                                    , Py_ssize_t kw_only
 #endif
 )
 {
@@ -877,8 +877,8 @@ void ERROR_TOO_MANY_ARGUMENTS( Nuitka_FunctionObject *function,
 }
 
 #if PYTHON_VERSION >= 330
-void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
-                              PyObject **values )
+static void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject const *function,
+                                     PyObject **values )
 {
     char const *function_name =
        Nuitka_String_AsString( function->m_name );
@@ -887,7 +887,7 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
 
     Py_ssize_t max_missing = 0;
 
-    for( Py_ssize_t i = code_object->co_argcount-1; i >= 0; --i )
+    for( Py_ssize_t i = code_object->co_argcount - 1 - function->m_defaults_given; i >= 0; --i )
     {
         if ( values[ i ] == NULL )
         {
@@ -903,7 +903,7 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
     );
 
     Py_ssize_t missing = 0;
-    for( Py_ssize_t i = code_object->co_argcount-1; i >= 0; --i )
+    for( Py_ssize_t i = code_object->co_argcount - 1 - function->m_defaults_given; i >= 0; --i )
     {
         if ( values[ i ] == NULL )
         {
@@ -986,8 +986,8 @@ void ERROR_TOO_FEW_ARGUMENTS( Nuitka_FunctionObject *function,
 }
 
 
-void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
-                           PyObject **kw_vars )
+static void ERROR_TOO_FEW_KWONLY( Nuitka_FunctionObject const *function,
+                                  PyObject **kw_vars )
 {
     char const *function_name = Nuitka_String_AsString( function->m_name );
 
@@ -1096,16 +1096,11 @@ void ERROR_TOO_FEW_KWONLY( struct Nuitka_FunctionObject *function,
 
 
 #if PYTHON_VERSION < 300
-static Py_ssize_t _PARSE_ARGUMENTS_KW( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw )
+static Py_ssize_t _PARSE_ARGUMENTS_KW( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw )
 #else
-static Py_ssize_t _PARSE_ARGUMENTS_KW( Nuitka_FunctionObject *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
+static Py_ssize_t _PARSE_ARGUMENTS_KW( Nuitka_FunctionObject const *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
 #endif
 {
-    if ( kw == NULL || DICT_SIZE( kw ) == 0 )
-    {
-        return 0;
-    }
-
 #if PYTHON_VERSION < 300
     Py_ssize_t arg_count = function->m_code_object->co_argcount;
 #else
@@ -1209,7 +1204,7 @@ static Py_ssize_t _PARSE_ARGUMENTS_KW( Nuitka_FunctionObject *function, PyObject
 }
 
 
-static bool MAKE_STAR_DICT_DICTIONARY_COPY( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw )
+static bool MAKE_STAR_DICT_DICTIONARY_COPY( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw )
 {
     Py_ssize_t dict_star_index = function->m_code_object->co_argcount;
     assert( ( function->m_code_object->co_flags & CO_VARKEYWORDS ) != 0 );
@@ -1359,9 +1354,9 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY( Nuitka_FunctionObject *function, PyO
 
 
 #if PYTHON_VERSION < 300
-static Py_ssize_t _PARSE_ARGUMENTS_KW_STARDICT( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw )
+static Py_ssize_t _PARSE_ARGUMENTS_KW_STARDICT( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw )
 #else
-static Py_ssize_t _PARSE_ARGUMENTS_KW_STARDICT( Nuitka_FunctionObject *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
+static Py_ssize_t _PARSE_ARGUMENTS_KW_STARDICT( Nuitka_FunctionObject const *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
 #endif
 {
     assert( ( function->m_code_object->co_flags & CO_VARKEYWORDS ) != 0 );
@@ -1418,32 +1413,7 @@ static Py_ssize_t _PARSE_ARGUMENTS_KW_STARDICT( Nuitka_FunctionObject *function,
     return kw_found;
 }
 
-#if PYTHON_VERSION < 300
-static Py_ssize_t PARSE_ARGUMENTS_KW( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw )
-#else
-static Py_ssize_t PARSE_ARGUMENTS_KW( Nuitka_FunctionObject *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
-#endif
-{
-    if ( ( function->m_code_object->co_flags & CO_VARKEYWORDS ) == 0 )
-    {
-#if PYTHON_VERSION < 300
-        return _PARSE_ARGUMENTS_KW( function, python_pars, kw );
-#else
-        return _PARSE_ARGUMENTS_KW( function, python_pars, kw_only_found, kw );
-#endif
-    }
-    else
-    {
-#if PYTHON_VERSION < 300
-        return _PARSE_ARGUMENTS_KW_STARDICT( function, python_pars, kw );
-#else
-        return _PARSE_ARGUMENTS_KW_STARDICT( function, python_pars, kw_only_found, kw );
-#endif
-    }
-}
-
-
-static void _MAKE_STAR_LIST_TUPLE_COPY( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size )
+static void _MAKE_STAR_LIST_TUPLE_COPY( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size )
 {
     assert( ( function->m_code_object->co_flags & CO_VARARGS ) != 0 );
     Py_ssize_t list_star_index = function->m_code_object->co_argcount;
@@ -1472,12 +1442,19 @@ static void _MAKE_STAR_LIST_TUPLE_COPY( Nuitka_FunctionObject *function, PyObjec
     }
 }
 
+// TODO: Use this.
+#if  !defined(_NUITKA_FULL_COMPAT) || PYTHON_VERSION >= 330
+#define NUITKA_BEST_ERROR_REPORTING 1
+#endif
+
+
+
 #if PYTHON_VERSION < 270
-static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found, Py_ssize_t kw_size )
+static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw, PyObject **args, int args_size, Py_ssize_t kw_found, Py_ssize_t kw_size )
 #elif PYTHON_VERSION < 300
-static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found )
+static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw, PyObject **args, int args_size, Py_ssize_t kw_found )
 #else
-static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found, Py_ssize_t kw_only_found )
+static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw, PyObject **args, int args_size, Py_ssize_t kw_found, Py_ssize_t kw_only_found )
 #endif
 {
     Py_ssize_t arg_count = function->m_code_object->co_argcount;
@@ -1505,42 +1482,97 @@ static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject *function, PyObject **
     bool parameter_error = false;
 #endif
 
-    for( Py_ssize_t i = 0; i < arg_count; i++ )
+    if ( kw_found > 0 )
     {
-        if (likely( i < args_size ))
+        Py_ssize_t i;
+        for( i = 0; i < (args_size < arg_count ? args_size : arg_count); i++ )
         {
-             if (unlikely( python_pars[ i ] != NULL ))
-             {
-                 ERROR_MULTIPLE_VALUES( function, i );
-                 return false;
-             }
+            if (unlikely( python_pars[ i ] != NULL ))
+            {
+                ERROR_MULTIPLE_VALUES( function, i );
+                return false;
+            }
 
             python_pars[ i ] = args[ i ];
             Py_INCREF( python_pars[ i ] );
         }
-        else if ( python_pars[ i ] == NULL )
+
+        Py_ssize_t defaults_given = function->m_defaults_given;
+
+        for( ; i < arg_count; i++ )
         {
-            if ( i + function->m_defaults_given >= arg_count  )
+            if ( python_pars[ i ] == NULL )
             {
-                python_pars[ i ] = PyTuple_GET_ITEM( function->m_defaults, function->m_defaults_given + i - arg_count );
-                Py_INCREF( python_pars[ i ] );
-            }
-            else
-            {
+
+                if ( i + defaults_given >= arg_count  )
+                {
+                    python_pars[ i ] = PyTuple_GET_ITEM( function->m_defaults, defaults_given + i - arg_count );
+                    Py_INCREF( python_pars[ i ] );
+                }
+                else
+                {
 #if PYTHON_VERSION < 270
-                ERROR_TOO_FEW_ARGUMENTS( function, kw_size, args_size + kw_found );
-                return false;
+                    ERROR_TOO_FEW_ARGUMENTS( function, kw_size, args_size + kw_found );
+                    return false;
 #elif PYTHON_VERSION < 300
-                ERROR_TOO_FEW_ARGUMENTS( function, args_size + kw_found );
-                return false;
+                    ERROR_TOO_FEW_ARGUMENTS( function, args_size + kw_found );
+                    return false;
 #elif PYTHON_VERSION < 330
-                ERROR_TOO_FEW_ARGUMENTS( function, args_size + kw_found - kw_only_found );
-                return false;
+                    ERROR_TOO_FEW_ARGUMENTS( function, args_size + kw_found - kw_only_found );
+                    return false;
 #else
-                parameter_error = true;
+                    parameter_error = true;
 #endif
+                }
             }
         }
+    }
+    else
+    {
+        Py_ssize_t usable = (args_size < arg_count ? args_size : arg_count);
+        Py_ssize_t defaults_given = function->m_defaults_given;
+
+        if ( defaults_given < arg_count - usable )
+        {
+#if PYTHON_VERSION < 270
+            ERROR_TOO_FEW_ARGUMENTS( function, kw_size, args_size + kw_found );
+            return false;
+#elif PYTHON_VERSION < 300
+            ERROR_TOO_FEW_ARGUMENTS( function, args_size + kw_found );
+            return false;
+#elif PYTHON_VERSION < 330
+            ERROR_TOO_FEW_ARGUMENTS( function, args_size + kw_found - kw_only_found );
+            return false;
+#else
+            parameter_error = true;
+#endif
+        }
+
+        for( Py_ssize_t i = 0; i < usable; i++ )
+        {
+            assert( python_pars[ i ] == NULL );
+
+            python_pars[ i ] = args[ i ];
+            Py_INCREF( python_pars[ i ] );
+        }
+
+#if PYTHON_VERSION >= 330
+        if ( parameter_error == false )
+        {
+#endif
+            PyObject **source = &PyTuple_GET_ITEM( function->m_defaults, 0 );
+
+            for( Py_ssize_t i = usable; i < arg_count; i++ )
+            {
+                assert( python_pars[ i ] == NULL );
+                assert( i + defaults_given >= arg_count );
+
+                python_pars[ i ] = source[ defaults_given + i - arg_count ];
+                Py_INCREF( python_pars[ i ] );
+            }
+#if PYTHON_VERSION >= 330
+        }
+#endif
     }
 
 #if PYTHON_VERSION >= 330
@@ -1571,7 +1603,7 @@ static bool _PARSE_ARGUMENTS_PLAIN( Nuitka_FunctionObject *function, PyObject **
 
 
 // Release them all in case of an error.
-static void releaseParameters( Nuitka_FunctionObject *function, PyObject **python_pars )
+static void releaseParameters( Nuitka_FunctionObject const *function, PyObject **python_pars )
 {
     Py_ssize_t arg_count = function->m_code_object->co_argcount;
 
@@ -1596,7 +1628,7 @@ static void releaseParameters( Nuitka_FunctionObject *function, PyObject **pytho
 }
 
 
-bool PARSE_ARGUMENTS( Nuitka_FunctionObject *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size )
+bool PARSE_ARGUMENTS( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size )
 {
     Py_ssize_t kw_size = kw ? DICT_SIZE( kw ) : 0;
     Py_ssize_t kw_found;
@@ -1618,28 +1650,45 @@ bool PARSE_ARGUMENTS( Nuitka_FunctionObject *function, PyObject **python_pars, P
     {
 #if PYTHON_VERSION < 330
         ERROR_NO_ARGUMENTS_ALLOWED(
-                function,
-           args_size + kw_size
+            function,
+            args_size + kw_size
         );
 #else
         ERROR_NO_ARGUMENTS_ALLOWED(
-           function,
-           kw_size > 0 ? kw : NULL,
-           args_size
+            function,
+            kw_size > 0 ? kw : NULL,
+            args_size
         );
 #endif
 
         goto error_exit;
     }
 
-#if PYTHON_VERSION < 300
-    kw_found = PARSE_ARGUMENTS_KW( function, python_pars, kw );
-#else
-    kw_only_found = 0;
-    kw_found = PARSE_ARGUMENTS_KW( function, python_pars, &kw_only_found, kw );
+#if PYTHON_VERSION >= 300
+        kw_only_found = 0;
 #endif
-
-    if ( kw_found == -1 ) goto error_exit;
+    if ( ( function->m_code_object->co_flags & CO_VARKEYWORDS ) != 0 )
+    {
+#if PYTHON_VERSION < 300
+        kw_found = _PARSE_ARGUMENTS_KW_STARDICT( function, python_pars, kw );
+#else
+        kw_found = _PARSE_ARGUMENTS_KW_STARDICT( function, python_pars, &kw_only_found, kw );
+#endif
+        if ( kw_found == -1 ) goto error_exit;
+    }
+    else if ( kw == NULL || DICT_SIZE( kw ) == 0 )
+    {
+        kw_found = 0;
+    }
+    else
+    {
+#if PYTHON_VERSION < 300
+        kw_found = _PARSE_ARGUMENTS_KW( function, python_pars, kw );
+#else
+        kw_found =  _PARSE_ARGUMENTS_KW( function, python_pars, &kw_only_found, kw );
+#endif
+        if ( kw_found == -1 ) goto error_exit;
+    }
 
 #if PYTHON_VERSION < 270
     result = _PARSE_ARGUMENTS_PLAIN( function, python_pars, kw, args, args_size, kw_found, kw_size );

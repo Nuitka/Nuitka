@@ -22,8 +22,7 @@
 from .Indentation import indented
 from .templates.CodeTemplatesParameterParsing import (
     template_parameter_dparser_entry_point,
-    template_parameter_function_entry_point,
-    template_parse_arguments
+    template_parameter_function_entry_point
 )
 
 
@@ -52,8 +51,6 @@ PyObject *python_pars[ %(arg_count)d ] = { %(arg_init)s };
         "arg_count" : all_variable_count or 1, # MSVC disallows 0.
         "arg_init"  : ", ".join(["NULL"] * (all_variable_count or 1))
     }
-
-    parameter_parsing_code += template_parse_arguments % {}
 
     return indented(parameter_parsing_code)
 
