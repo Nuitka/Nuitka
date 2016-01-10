@@ -162,11 +162,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_COMPLEX( PyObject *real, PyObject *imag
 
     if ( imag == NULL)
     {
-        return CALL_FUNCTION_WITH_ARGS1( (PyObject *)&PyComplex_Type, real );
+        PyObject *args[] = { real };
+        return CALL_FUNCTION_WITH_ARGS1( (PyObject *)&PyComplex_Type, args );
     }
     else
     {
-        return CALL_FUNCTION_WITH_ARGS2( (PyObject *)&PyComplex_Type, real, imag );
+        PyObject *args[] = { real, imag };
+        return CALL_FUNCTION_WITH_ARGS2( (PyObject *)&PyComplex_Type, args );
     }
 }
 

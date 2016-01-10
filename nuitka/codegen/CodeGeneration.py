@@ -426,7 +426,6 @@ def prepareModuleCode(global_context, module, module_name):
         function_decl = getFunctionDirectDecl(
             function_identifier = function_body.getCodeName(),
             closure_variables   = function_body.getClosureVariables(),
-            parameter_variables = function_body.getParameters().getAllVariables(),
             file_scope          = getExportScopeCode(
                 cross_module = function_body.isCrossModuleUsed()
             )

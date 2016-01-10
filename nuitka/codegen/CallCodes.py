@@ -89,12 +89,13 @@ def generateCallCode(to_name, expression, emit, context):
                     context     = context
                 )
             elif call_args_value:
-                getCallCodePosArgs(
+                getCallCodeFromTuple(
                     to_name     = to_name,
                     called_name = called_name,
-                    args_name   = context.getConstantCode(
+                    arg_tuple   = context.getConstantCode(
                         constant = call_args_value
                     ),
+                    arg_size    = len(call_args_value),
                     needs_check = expression.mayRaiseException(BaseException),
                     emit        = emit,
                     context     = context
@@ -241,11 +242,16 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
     emitLineNumberUpdateCode(emit, context)
 
     emit(
-        "%s = CALL_FUNCTION_WITH_ARGS%d( %s, %s );" % (
+        """\
+{
+    PyObject *call_args[] = { %s };
+    %s = CALL_FUNCTION_WITH_ARGS%d( %s, call_args );
+}
+""" % (
+            ", ".join(arg_names),
             to_name,
             arg_size,
             called_name,
-            ", ".join(arg_names)
         )
     )
 
@@ -253,6 +259,42 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
         release_names = [called_name] + arg_names,
         emit          = emit,
         context       = context
+    )
+
+    getErrorExitCode(
+        check_name  = to_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
+    )
+
+    context.addCleanupTempName(to_name)
+
+
+def getCallCodeFromTuple(to_name, called_name, arg_tuple, arg_size,
+                         needs_check, emit, context):
+    quick_calls_used.add(arg_size)
+
+    # For 0 arguments, NOARGS is supposed to be used.
+    assert arg_size > 0
+
+    emitLineNumberUpdateCode(emit, context)
+
+    emit(
+        """\
+%s = CALL_FUNCTION_WITH_ARGS%d( %s, &PyTuple_GET_ITEM( %s, 0 ) );
+""" % (
+            to_name,
+            arg_size,
+            called_name,
+            arg_tuple,
+        )
+    )
+
+    getReleaseCode(
+        release_name = called_name,
+        emit         = emit,
+        context      = context
     )
 
     getErrorExitCode(
@@ -350,14 +392,8 @@ def getCallsDecls():
     result = []
 
     for quick_call_used in sorted(quick_calls_used):
-        args_decl = [
-            "PyObject *arg%d" % d
-            for d in range(quick_call_used)
-        ]
-
         result.append(
             template_call_function_with_args_decl % {
-                "args_decl"  : ", ".join(args_decl),
                 "args_count" : quick_call_used
             }
         )
@@ -376,19 +412,8 @@ def getCallsCode():
     )
 
     for quick_call_used in sorted(quick_calls_used):
-        args_decl = [
-            "PyObject *arg%d" % d
-            for d in range(1, quick_call_used + 1)
-        ]
-        args_list = [
-            "arg%d" % d
-            for d in range(1, quick_call_used + 1)
-        ]
-
         result.append(
             template_call_function_with_args_impl % {
-                "args_decl"  : ", ".join(args_decl),
-                "args_list"  : ", ".join(args_list),
                 "args_count" : quick_call_used
             }
         )

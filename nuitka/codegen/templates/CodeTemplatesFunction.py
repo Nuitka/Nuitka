@@ -39,8 +39,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 %(closure_making)s
 
     PyObject *result = Nuitka_Function_New(
-        %(fparse_function_identifier)s,
-        %(dparse_function_identifier)s,
+        %(function_impl_identifier)s,
         %(function_name_obj)s,
 #if PYTHON_VERSION >= 330
         %(function_qualname_obj)s,
@@ -65,8 +64,7 @@ template_make_function_without_context_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     PyObject *result = Nuitka_Function_New(
-        %(fparse_function_identifier)s,
-        %(dparse_function_identifier)s,
+        %(function_impl_identifier)s,
         %(function_name_obj)s,
 #if PYTHON_VERSION >= 330
         %(function_qualname_obj)s,

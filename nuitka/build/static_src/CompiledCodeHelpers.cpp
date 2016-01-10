@@ -143,27 +143,36 @@ PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering
     }
     else if ( mode == NULL )
     {
+        PyObject *args[] = {
+            file_name
+        };
         return CALL_FUNCTION_WITH_ARGS1(
             _python_builtin_open.asObject0(),
-            file_name
+            args
         );
 
     }
     else if ( buffering == NULL )
     {
-        return CALL_FUNCTION_WITH_ARGS2(
-            _python_builtin_open.asObject0(),
+        PyObject *args[] = {
             file_name,
             mode
+        };
+        return CALL_FUNCTION_WITH_ARGS2(
+            _python_builtin_open.asObject0(),
+            args
         );
     }
     else
     {
-        return CALL_FUNCTION_WITH_ARGS3(
-            _python_builtin_open.asObject0(),
+        PyObject *args[] = {
             file_name,
             mode,
             buffering
+        };
+        return CALL_FUNCTION_WITH_ARGS3(
+            _python_builtin_open.asObject0(),
+            args
         );
     }
 }
@@ -600,9 +609,11 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
     {
         CLEAR_ERROR_OCCURRED();
 
+        PyObject *args[] = { boundary_temp };
+
         PyObject *result = CALL_FUNCTION_WITH_ARGS1(
             _python_builtin_range.asObject0(),
-            boundary_temp
+            args
         );
 
         Py_DECREF( boundary_temp );
@@ -613,9 +624,11 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
 
     return _BUILTIN_RANGE_INT( start );
 #else
+    PyObject *args[] = { boundary };
+
     return CALL_FUNCTION_WITH_ARGS1(
        _python_builtin_range.asObject0(),
-       boundary
+       args
     );
 #endif
 }
@@ -803,26 +816,35 @@ PyObject *BUILTIN_XRANGE( PyObject *low, PyObject *high, PyObject *step )
 {
     if ( step != NULL )
     {
-        return CALL_FUNCTION_WITH_ARGS3(
-            _python_builtin_xrange.asObject0(),
+        PyObject *args[] = {
             low,
             high,
             step
+        };
+        return CALL_FUNCTION_WITH_ARGS3(
+            _python_builtin_xrange.asObject0(),
+            args
         );
     }
     else if ( high != NULL )
     {
-        return CALL_FUNCTION_WITH_ARGS2(
-            _python_builtin_xrange.asObject0(),
+        PyObject *args[] = {
             low,
             high
+        };
+        return CALL_FUNCTION_WITH_ARGS2(
+            _python_builtin_xrange.asObject0(),
+            args
         );
     }
     else
     {
+        PyObject *args[] = {
+            low
+        };
         return CALL_FUNCTION_WITH_ARGS1(
             _python_builtin_xrange.asObject0(),
-            low
+            args
         );
     }
 }
@@ -1080,9 +1102,11 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
 #else
     if (likely( file == NULL ))
     {
+        PyObject *args[] = { object };
+
         PyObject *result = CALL_FUNCTION_WITH_ARGS1(
             _python_builtin_print.asObject0(),
-            object
+            args
         );
 
         Py_XDECREF( result );
@@ -1870,7 +1894,11 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
     }
     else
     {
-        PyObject *result = CALL_FUNCTION_WITH_ARGS2( original_isinstance, inst, cls );
+        PyObject *args[] = { inst, cls };
+        PyObject *result = CALL_FUNCTION_WITH_ARGS2(
+            original_isinstance,
+            args
+        );
 
         if ( result == NULL )
         {
@@ -2433,24 +2461,41 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
         }
 
         Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
+
         PyObject *result;
 
-        if ( function->m_direct_arg_parser )
+        if ( function->m_args_simple && 0 == function->m_args_positional_count )
         {
-            result = function->m_direct_arg_parser(
-                function,
-                NULL,
-                0
-            );
+            result = function->m_c_code( function, NULL );
+        }
+        else if ( function->m_args_simple && function->m_defaults_given == function->m_args_positional_count )
+        {
+            PyObject **python_pars = &PyTuple_GET_ITEM( function->m_defaults, 0 );
+
+            for( Py_ssize_t i = 0; i < function->m_defaults_given; i++ )
+            {
+                Py_INCREF( python_pars[ i ] );
+            }
+
+            result = function->m_c_code( function, python_pars );
         }
         else
         {
-            result = function->m_code(
-                function,
-                NULL,
-                0,
-                NULL
-            );
+#ifdef _MSC_VER
+            PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_overall_count );
+#else
+            PyObject *python_pars[ function->m_args_overall_count ];
+#endif
+            memset( python_pars, 0, function->m_args_overall_count * sizeof(PyObject *) );
+
+            if ( parseArgumentsPos( function, python_pars, NULL, 0 ) )
+            {
+                result = function->m_c_code( function, python_pars );
+            }
+            else
+            {
+                result = NULL;
+            }
         }
 
         Py_LeaveRecursiveCall();
@@ -2469,27 +2514,49 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
                 return NULL;
             }
 
-            PyObject *args[1] = {
-                method->m_object
-            };
+            Nuitka_FunctionObject *function = method->m_function;
             PyObject *result;
 
-            if ( method->m_function->m_direct_arg_parser )
+            if ( function->m_args_simple && 1 == function->m_args_positional_count )
             {
-                result = method->m_function->m_direct_arg_parser(
-                    method->m_function,
-                    args,
-                    1
-                );
+                PyObject *args[] = { method->m_object };
+                Py_INCREF( method->m_object );
+
+                result = function->m_c_code( function, args );
+            }
+            else if ( function->m_args_simple && function->m_defaults_given == function->m_args_positional_count - 1 )
+            {
+#ifdef _MSC_VER
+                PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_overall_count );
+#else
+                PyObject *python_pars[ function->m_args_overall_count ];
+#endif
+                python_pars[0] = method->m_object;
+                memcpy( python_pars+1, &PyTuple_GET_ITEM( function->m_defaults, 0 ), sizeof(PyObject *) * function->m_defaults_given );
+
+                for( Py_ssize_t i = 0; i < function->m_args_positional_count; i++ )
+                {
+                    Py_INCREF( python_pars[ i ] );
+                }
+
+                result = function->m_c_code( function, python_pars );
             }
             else
             {
-                result = method->m_function->m_code(
-                    method->m_function,
-                    args,
-                    1,
-                    NULL
-                );
+#ifdef _MSC_VER
+                PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_overall_count );
+#else
+                PyObject *python_pars[ function->m_args_overall_count ];
+#endif
+                memset( python_pars, 0, function->m_args_overall_count * sizeof(PyObject *) );
+                if ( parseArgumentsMethodPos( function, python_pars, method->m_object, NULL, 0 ))
+                {
+                    result = function->m_c_code( function, python_pars );
+                }
+                else
+                {
+                    result = NULL;
+                }
             }
 
             Py_LeaveRecursiveCall();

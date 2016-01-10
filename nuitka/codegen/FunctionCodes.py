@@ -37,12 +37,7 @@ from .Helpers import generateExpressionCode
 from .Indentation import indented
 from .LabelCodes import getLabelCode
 from .ModuleCodes import getModuleAccessCode
-from .ParameterParsing import (
-    getDirectFunctionEntryPointIdentifier,
-    getParameterEntryPointIdentifier,
-    getParameterParsingCode,
-    getQuickEntryPointIdentifier
-)
+from .ParameterParsing import getDirectFunctionEntryPointIdentifier
 from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesFunction import (
     function_dict_setup,
@@ -123,13 +118,11 @@ def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
 
 
 def getFunctionMakerCode(function_name, function_qualname, function_identifier,
-                         code_identifier, parameters, closure_variables,
-                         defaults_name, kw_defaults_name, annotations_name,
-                         function_doc, context):
-    # We really need this many parameters here. pylint: disable=R0913
-
-    # Functions have many details, that we express as variables
-    # pylint: disable=R0914
+                         code_identifier, closure_variables, defaults_name,
+                         kw_defaults_name, annotations_name, function_doc,
+                         context):
+    # We really need this many parameters here and functions have many details,
+    # that we express as variables, pylint: disable=R0914
     function_creation_args = _getFunctionCreationArgs(
         defaults_name     = defaults_name,
         kw_defaults_name  = kw_defaults_name,
@@ -174,12 +167,8 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
             ),
             "function_qualname_obj"      : function_qualname_obj,
             "function_identifier"        : function_identifier,
-            "fparse_function_identifier" : getParameterEntryPointIdentifier(
+            "function_impl_identifier" : getDirectFunctionEntryPointIdentifier(
                 function_identifier = function_identifier,
-            ),
-            "dparse_function_identifier" : getQuickEntryPointIdentifier(
-                function_identifier = function_identifier,
-                parameters          = parameters
             ),
             "function_creation_args"     : ", ".join(
                 function_creation_args
@@ -212,12 +201,8 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
             ),
             "function_qualname_obj"      : function_qualname_obj,
             "function_identifier"        : function_identifier,
-            "fparse_function_identifier" : getParameterEntryPointIdentifier(
+            "function_impl_identifier" : getDirectFunctionEntryPointIdentifier(
                 function_identifier = function_identifier,
-            ),
-            "dparse_function_identifier" : getQuickEntryPointIdentifier(
-                function_identifier = function_identifier,
-                parameters          = parameters
             ),
             "function_creation_args"     : ", ".join(
                 function_creation_args
@@ -328,7 +313,6 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
             function_qualname   = function_body.getFunctionQualname(),
             function_identifier = function_identifier,
             code_identifier     = code_identifier,
-            parameters          = function_body.getParameters(),
             closure_variables   = function_body.getClosureVariables(),
             defaults_name       = defaults_name,
             kw_defaults_name    = kw_defaults_name,
@@ -424,15 +408,33 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
         else:
             emit("Py_INCREF( %s );" % arg_name)
 
-    emit(
-        "%s = %s( %s );" % (
-            to_name,
-            function_identifier,
-            ", ".join(
-                arg_names + suffix_args
+
+    if arg_names:
+        emit(
+            """
+{
+    PyObject *dir_call_args[] = {%s};
+    %s = %s( dir_call_args%s%s );
+}""" % (
+                ", ".join(
+                    arg_names
+                ),
+                to_name,
+                function_identifier,
+                ", " if suffix_args else "",
+                ", ".join(suffix_args)
             )
         )
-    )
+    else:
+        emit(
+            "%s = %s( NULL%s%s );" % (
+                to_name,
+                function_identifier,
+                ", " if suffix_args else "",
+                ", ".join(suffix_args)
+            )
+        )
+
 
     # Arguments are owned to the called in direct function call.
     for arg_name in arg_names:
@@ -477,13 +479,10 @@ def getFunctionDirectClosureArgs(closure_variables):
     return result
 
 
-def getFunctionDirectDecl(function_identifier, closure_variables,
-                          parameter_variables, file_scope):
+def getFunctionDirectDecl(function_identifier, closure_variables, file_scope):
 
     parameter_objects_decl = [
-        "PyObject *_python_par_" + variable.getCodeName()
-        for variable in
-        parameter_variables
+        "PyObject **python_pars"
     ]
 
     parameter_objects_decl += getFunctionDirectClosureArgs(closure_variables)
@@ -504,13 +503,6 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=R0912,R0914
 
-    parameter_variables, entry_point_code, parameter_objects_decl = \
-      getParameterParsingCode(
-        function_identifier = function_identifier,
-        parameters          = parameters,
-        needs_creation      = context.isForCreatedFunction()
-    )
-
     function_locals = []
 
     if context.hasLocalsDict():
@@ -519,14 +511,14 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
     else:
         function_cleanup = ""
 
-    function_locals += [
-        getLocalVariableInitCode(
-            variable  = variable,
-            init_from = "_python_par_" + variable.getCodeName()
-        )
-        for variable in
-        parameter_variables
-    ]
+    if parameters is not None:
+        for count, variable in enumerate(parameters.getAllVariables()):
+            function_locals.append(
+                getLocalVariableInitCode(
+                    variable  = variable,
+                    init_from = "python_pars[ %d ]" % count
+                )
+            )
 
     # User local variable initializations
     function_locals += [
@@ -600,6 +592,15 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
             }
         )
 
+    if context.isForCreatedFunction():
+        parameter_objects_decl = ["Nuitka_FunctionObject const *self"]
+    else:
+        parameter_objects_decl = []
+
+    parameter_objects_decl += [
+        "PyObject **python_pars"
+    ]
+
     if context.isForDirectCall():
         parameter_objects_decl += getFunctionDirectClosureArgs(closure_variables)
 
@@ -622,11 +623,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
             "function_exit"                : function_exit
         }
 
-    if context.isForCreatedFunction():
-        result += entry_point_code
-
     return result
-
 
 
 def getExportScopeCode(cross_module):
@@ -650,7 +647,6 @@ def generateFunctionDeclCode(function_body):
         return getFunctionDirectDecl(
             function_identifier = function_body.getCodeName(),
             closure_variables   = function_body.getClosureVariables(),
-            parameter_variables = (),
             file_scope          = getExportScopeCode(
                 cross_module = False
             )
@@ -659,7 +655,6 @@ def generateFunctionDeclCode(function_body):
         return getFunctionDirectDecl(
             function_identifier = function_body.getCodeName(),
             closure_variables   = function_body.getClosureVariables(),
-            parameter_variables = function_body.getParameters().getAllVariables(),
             file_scope          = getExportScopeCode(
                 cross_module = function_body.isCrossModuleUsed()
             )

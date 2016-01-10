@@ -213,14 +213,9 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     }
 }
 
-#ifdef _MSC_VER
-// Using _alloca below.
-#include <malloc.h>
-#endif
-
 static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *args, PyObject *kw )
 {
-    int arg_count = int( PyTuple_Size( args ) );
+    Py_ssize_t arg_count = PyTuple_Size( args );
 
     if ( method->m_object == NULL )
     {
@@ -267,35 +262,13 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
     }
     else
     {
-#ifdef _MSC_VER
-        PyObject **new_args = (PyObject **)_alloca( sizeof( PyObject * ) *( arg_count + 1 ) );
-#else
-        PyObject *new_args[ arg_count + 1 ];
-#endif
-        new_args[ 0 ] = method->m_object;
-
-        for ( int i = 0; i < arg_count; i++ )
-        {
-            new_args[ i + 1 ] = PyTuple_GET_ITEM( args, i );
-        }
-
-        if ( kw || method->m_function->m_direct_arg_parser == NULL )
-        {
-            return method->m_function->m_code(
-                method->m_function,
-                new_args,
-                arg_count + 1,
-                kw
-            );
-        }
-        else
-        {
-            return method->m_function->m_direct_arg_parser(
-                method->m_function,
-                new_args,
-                arg_count + 1
-            );
-        }
+        return Nuitka_CallMethodFunctionPosArgsKwArgs(
+            method->m_function,
+            method->m_object,
+            &PyTuple_GET_ITEM( args, 0 ),
+            arg_count,
+            kw
+        );
     }
 }
 
