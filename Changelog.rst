@@ -18,6 +18,11 @@ Bug Fixes
 
     someFunction(a = 1, **{".1" : (2,3)})
 
+- Compatibility: Generators with Python3.4 or higher now also have a ``__del__``
+  attribute, and therefore properly participate in finalization. This should
+  improve their interactions with garbage collection reference cycles, although
+  no issues had been observed so far.
+
 Optimization
 ------------
 
