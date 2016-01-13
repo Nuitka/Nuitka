@@ -1,7 +1,9 @@
 Nuitka Release 0.5.18 (Draft)
 =============================
 
-This release is not done yet.
+This release mainly has a scalability focus. While there are few compatibility
+improvements, the larger goal has been to make Nuitka compilation and the final
+C compilation faster.
 
 Bug Fixes
 ---------
@@ -23,6 +25,11 @@ Optimization
   loops and conditionals to generate code for each variable has been replaced
   with C level generic code. This will speed up the backend compilation by a lot.
 
+- Function calls with constant arguments were speed up specifically, as their
+  call is now fully prepared, and yet using less code. Variable arguments are
+  also faster, and all defaulted arguments are also much faster. Method calls
+  are not affected by these improvements though.
+
 - Nested argument functions now have a quick call entry point as well, making
   them faster to call too.
 
@@ -36,7 +43,7 @@ Optimization
   <http://bugs.nuitka.net/issue272>`__.
 
 - Speed up compilation with Nuitka itself by avoid to copying and constructing
-  variable lists as much as possible.
+  variable lists as much as possible using an always accurate variable registry.
 
 Cleanups
 --------
@@ -66,7 +73,18 @@ Organizational
 Summary
 -------
 
-This release is not done yet.
+Long standing weaknesses have been addressed in this release, also quite a few
+structural cleanups have been performed, e.g. strengthening the role of the
+variable registry to always be accurate, is foundational to further improvement
+of optimization.
+
+However, this release cycle was mostly dedicated to performance of the actual
+compilation, and more accurate information was needed to e.g. not search for
+information that should be instant.
+
+Upcoming releases will focus on usability issues and further optimization, it
+was nice however to see speedups of created code even from these scalability
+improvements.
 
 
 Nuitka Release 0.5.17
