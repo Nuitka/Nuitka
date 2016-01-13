@@ -679,10 +679,9 @@ PyTypeObject Nuitka_Coroutine_Type = {
     0,                                               /* tp_cache */
     0,                                               /* tp_subclasses */
     0,                                               /* tp_weaklist */
-    (destructor)Nuitka_Coroutine_tp_del,             /* tp_del */
+    0,                                               /* tp_del */
     0,                                               /* tp_version_tag */
-    /* TODO: Check out the merits of tp_finalize vs. tp_del */
-    0,                                               /* tp_finalize */
+    (destructor)Nuitka_Coroutine_tp_del,             /* tp_finalize */
 };
 
 static void Nuitka_CoroutineWrapper_tp_dealloc( Nuitka_CoroutineWrapperObject *cw )
