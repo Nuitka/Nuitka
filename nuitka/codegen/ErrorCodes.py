@@ -120,7 +120,7 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
 
     context.markAsNeedsExceptionVariables()
 
-    if len(args) == 1:
+    if len(args) == 1 and type(args[0]) is str:
         from .ConstantCodes import getModuleConstantCode
 
         set_exception = [
@@ -132,7 +132,15 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
             "exception_tb = NULL;"
         ]
     else:
-        assert False, args
+        set_exception = [
+            "exception_type = %s;" % exception,
+            "Py_INCREF( exception_type );",
+            "exception_value = Py%s_FromFormat( %s );" % (
+                "String" if python_version < 300 else "Unicode",
+                ", ".join( '"%s"' % arg for arg in args )
+            ),
+            "exception_tb = NULL;"
+        ]
 
 
     if python_version >= 300:

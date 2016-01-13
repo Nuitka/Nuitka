@@ -377,7 +377,8 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 check_name = to_name,
                 exception  = "PyExc_NameError",
                 args       = (
-                    error_message % variable.getName(),
+                    error_message,
+                    variable.getName()
                 ),
                 emit       = emit,
                 context    = context
@@ -440,9 +441,8 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                     exception  = "PyExc_NameError",
                     args       = (
                         """\
-free variable '%s' referenced before assignment in enclosing scope""" % (
-                           variable.getName()
-                        ),
+free variable '%s' referenced before assignment in enclosing scope""",
+                        variable.getName()
                     ),
                     emit       = emit,
                     context    = context
@@ -453,9 +453,8 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     exception  = "PyExc_UnboundLocalError",
                     args       = (
                         """\
-local variable '%s' referenced before assignment""" % (
-                           variable.getName()
-                        ),
+local variable '%s' referenced before assignment""",
+                        variable.getName()
                     ),
                     emit       = emit,
                     context    = context
@@ -481,9 +480,8 @@ local variable '%s' referenced before assignment""" % (
                     exception  = "PyExc_NameError",
                     args       = (
                         """\
-free variable '%s' referenced before assignment in enclosing scope""" % (
-                           variable.getName()
-                        ),
+free variable '%s' referenced before assignment in enclosing scope""",
+                        variable.getName()
                     ),
                     emit       = emit,
                     context    = context
@@ -506,10 +504,10 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                 getErrorFormatExitCode(
                     check_name = to_name,
                     exception  = "PyExc_UnboundLocalError",
-                    args       = ("""\
-local variable '%s' referenced before assignment""" % (
-                           variable.getName()
-                        ),
+                    args       = (
+                        """\
+local variable '%s' referenced before assignment""",
+                        variable.getName()
                     ),
                     emit       = emit,
                     context    = context
