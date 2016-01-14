@@ -308,7 +308,7 @@ static bool SET_INSTANCE( PyObject *target, PyObject *attr_name, PyObject *value
 
     if ( target_instance->in_class->cl_setattr != NULL )
     {
-        PyObject *args[] = {target, attr_name, value };
+        PyObject *args[] = { target, attr_name, value };
         PyObject *result = CALL_FUNCTION_WITH_ARGS3(
             target_instance->in_class->cl_setattr,
             args
