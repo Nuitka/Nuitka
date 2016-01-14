@@ -1645,7 +1645,6 @@ argv_type_t convertCommandLineParameters( int argc, char **argv )
     int new_argc;
 
     argv_type_t result = CommandLineToArgvW( GetCommandLineW(), &new_argc );
-    printf("argc %d %d\n", argc, new_argc);
     assert( new_argc == argc );
     return result;
 #else
