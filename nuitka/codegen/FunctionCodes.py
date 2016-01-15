@@ -37,7 +37,6 @@ from .Helpers import generateExpressionCode
 from .Indentation import indented
 from .LabelCodes import getLabelCode
 from .ModuleCodes import getModuleAccessCode
-from .ParameterParsing import getDirectFunctionEntryPointIdentifier
 from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesFunction import (
     function_dict_setup,
@@ -117,6 +116,10 @@ def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
     }
 
 
+def getFunctionEntryPointIdentifier(function_identifier):
+    return "impl_" + function_identifier
+
+
 def getFunctionMakerCode(function_name, function_qualname, function_identifier,
                          code_identifier, closure_variables, defaults_name,
                          kw_defaults_name, annotations_name, function_doc,
@@ -167,7 +170,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
             ),
             "function_qualname_obj"      : function_qualname_obj,
             "function_identifier"        : function_identifier,
-            "function_impl_identifier" : getDirectFunctionEntryPointIdentifier(
+            "function_impl_identifier" : getFunctionEntryPointIdentifier(
                 function_identifier = function_identifier,
             ),
             "function_creation_args"     : ", ".join(
@@ -201,7 +204,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
             ),
             "function_qualname_obj"      : function_qualname_obj,
             "function_identifier"        : function_identifier,
-            "function_impl_identifier" : getDirectFunctionEntryPointIdentifier(
+            "function_impl_identifier" : getFunctionEntryPointIdentifier(
                 function_identifier = function_identifier,
             ),
             "function_creation_args"     : ", ".join(
@@ -389,7 +392,7 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
 
 def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
                               closure_variables, needs_check, emit, context):
-    function_identifier = getDirectFunctionEntryPointIdentifier(
+    function_identifier = getFunctionEntryPointIdentifier(
         function_identifier = function_identifier
     )
 

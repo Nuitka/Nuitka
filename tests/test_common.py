@@ -557,7 +557,7 @@ def checkReferenceCount(checked_function, max_rounds = 10):
     assert max_rounds > 0
     for count in range(max_rounds):
         gc.collect()
-        ref_count1 = sys.gettotalrefcount()
+        ref_count1 = sys.gettotalrefcount()  # @UndefinedVariable
 
         if explain and count == max_rounds - 1:
             snapObjRefCntMap(True)
@@ -572,7 +572,7 @@ def checkReferenceCount(checked_function, max_rounds = 10):
         if explain and count == max_rounds - 1:
             snapObjRefCntMap(False)
 
-        ref_count2 = sys.gettotalrefcount()
+        ref_count2 = sys.gettotalrefcount()  # @UndefinedVariable
 
         if ref_count1 == ref_count2:
             result = True
