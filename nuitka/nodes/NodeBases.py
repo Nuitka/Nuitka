@@ -32,7 +32,8 @@ from nuitka.VariableRegistry import addVariableUsage, removeVariableUsage
 
 from .NodeMakingHelpers import (
     getComputationResult,
-    wrapExpressionWithSideEffects
+    wrapExpressionWithSideEffects,
+    makeStatementOnlyNodesFromExpressions
 )
 
 
@@ -1592,13 +1593,15 @@ class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
             values = values
         )
 
-    def computeStatementSubExpressions(self, constraint_collection, expressions):
+    def computeStatementSubExpressions(self, constraint_collection):
         """ Compute a statement.
 
             Default behavior is to just visit the child expressions first, and
             then the node "computeStatement". For a few cases this needs to
             be overloaded.
         """
+        expressions = self.getVisitableNodes()
+
         for count, expression in enumerate(expressions):
             assert expression.isExpression(), (self, expression)
 
@@ -1607,11 +1610,11 @@ class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
             )
 
             if expression.willRaiseException(BaseException):
-                wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects = expressions[:count],
-                    old_node     = expression,
-                    new_node     = expression
+                wrapped_expression = makeStatementOnlyNodesFromExpressions(
+                    expressions[:count+1]
                 )
+
+                assert wrapped_expression is not None
 
                 return (
                     wrapped_expression,

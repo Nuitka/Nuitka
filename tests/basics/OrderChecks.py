@@ -181,6 +181,12 @@ def attributeOrderCheck():
     else:
         assert False
 
+    try:
+        (1/0).x = (1.0/0)
+    except ZeroDivisionError as e:
+        print("Expected exception caught:", repr(e))
+
+
 def compareOrderCheck():
     def lvalue():
         print("lvalue", end = ' ')
