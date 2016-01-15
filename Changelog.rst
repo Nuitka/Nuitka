@@ -23,6 +23,10 @@ Bug Fixes
   improve their interactions with garbage collection reference cycles, although
   no issues had been observed so far.
 
+- Windows: Was outputting command line arguments debug information at program
+  start. `Issue#284 <http://bugs.nuitka.net/issue284>`__. Fixed in 0.5.17.1
+  already.
+
 Optimization
 ------------
 
@@ -80,7 +84,7 @@ Summary
 
 Long standing weaknesses have been addressed in this release, also quite a few
 structural cleanups have been performed, e.g. strengthening the role of the
-variable registry to always be accurate, is foundational to further improvement
+variable registry to always be accurate, is groundlaying to further improvement
 of optimization.
 
 However, this release cycle was mostly dedicated to performance of the actual
