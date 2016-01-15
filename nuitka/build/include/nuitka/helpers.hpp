@@ -1,4 +1,4 @@
-//     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -162,11 +162,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_COMPLEX( PyObject *real, PyObject *imag
 
     if ( imag == NULL)
     {
-        return CALL_FUNCTION_WITH_ARGS1( (PyObject *)&PyComplex_Type, real );
+        PyObject *args[] = { real };
+        return CALL_FUNCTION_WITH_ARGS1( (PyObject *)&PyComplex_Type, args );
     }
     else
     {
-        return CALL_FUNCTION_WITH_ARGS2( (PyObject *)&PyComplex_Type, real, imag );
+        PyObject *args[] = { real, imag };
+        return CALL_FUNCTION_WITH_ARGS2( (PyObject *)&PyComplex_Type, args );
     }
 }
 

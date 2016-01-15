@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,6 @@ able to execute them without creating the argument dictionary at all.
 
 from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
-from .ExceptionCodes import getExceptionIdentifier
 from .Helpers import generateChildExpressionCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesCalls import (
@@ -41,7 +40,7 @@ from .templates.CodeTemplatesModules import (
 def generateCallCode(to_name, expression, emit, context):
     # There is a whole lot of different cases, for each of which, we create
     # optimized code, constant, with and without positional or keyword arguments
-    # each, so there is lots of branches here.
+    # each, so there is lots of branches here. pylint: disable=R0912
 
     called_name = generateChildExpressionCode(
         expression = expression.getCalled(),
@@ -55,6 +54,10 @@ def generateCallCode(to_name, expression, emit, context):
     if call_kw is None or \
        (call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}):
         if call_args is None or call_args.isExpressionConstantRef():
+            context.setCurrentSourceCodeReference(
+                expression.getCompatibleSourceReference()
+            )
+
             if call_args is not None:
                 call_args_value = call_args.getConstant()
             else:
@@ -62,29 +65,37 @@ def generateCallCode(to_name, expression, emit, context):
 
             assert type(call_args_value) is tuple
 
-            call_arg_names = []
+            if call_args is not None and call_args.isMutable():
+                call_arg_names = []
 
-            for call_arg_element in call_args_value:
-                call_arg_name = context.allocateTempName("call_arg_element")
+                for call_arg_element in call_args_value:
+                    call_arg_name = context.allocateTempName("call_arg_element")
 
-                getConstantAccess(
-                    to_name  = call_arg_name,
-                    constant = call_arg_element,
-                    emit     = emit,
-                    context  = context,
-                )
+                    getConstantAccess(
+                        to_name  = call_arg_name,
+                        constant = call_arg_element,
+                        emit     = emit,
+                        context  = context,
+                    )
 
-                call_arg_names.append(call_arg_name)
+                    call_arg_names.append(call_arg_name)
 
-            context.setCurrentSourceCodeReference(
-                expression.getCompatibleSourceReference()
-            )
-
-            if call_arg_names:
                 getCallCodePosArgsQuick(
                     to_name     = to_name,
                     called_name = called_name,
                     arg_names   = call_arg_names,
+                    needs_check = expression.mayRaiseException(BaseException),
+                    emit        = emit,
+                    context     = context
+                )
+            elif call_args_value:
+                getCallCodeFromTuple(
+                    to_name     = to_name,
+                    called_name = called_name,
+                    arg_tuple   = context.getConstantCode(
+                        constant = call_args_value
+                    ),
+                    arg_size    = len(call_args_value),
                     needs_check = expression.mayRaiseException(BaseException),
                     emit        = emit,
                     context     = context
@@ -137,6 +148,7 @@ def generateCallCode(to_name, expression, emit, context):
                 to_name     = to_name,
                 called_name = called_name,
                 args_name   = args_name,
+                needs_check = expression.mayRaiseException(BaseException),
                 emit        = emit,
                 context     = context
             )
@@ -230,11 +242,16 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
     emitLineNumberUpdateCode(emit, context)
 
     emit(
-        "%s = CALL_FUNCTION_WITH_ARGS%d( %s, %s );" % (
+        """\
+{
+    PyObject *call_args[] = { %s };
+    %s = CALL_FUNCTION_WITH_ARGS%d( %s, call_args );
+}
+""" % (
+            ", ".join(arg_names),
             to_name,
             arg_size,
             called_name,
-            ", ".join(arg_names)
         )
     )
 
@@ -254,7 +271,43 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
     context.addCleanupTempName(to_name)
 
 
-def getCallCodePosArgs(to_name, called_name, args_name, emit, context):
+def getCallCodeFromTuple(to_name, called_name, arg_tuple, arg_size,
+                         needs_check, emit, context):
+    quick_calls_used.add(arg_size)
+
+    # For 0 arguments, NOARGS is supposed to be used.
+    assert arg_size > 0
+
+    emitLineNumberUpdateCode(emit, context)
+
+    emit(
+        """\
+%s = CALL_FUNCTION_WITH_ARGS%d( %s, &PyTuple_GET_ITEM( %s, 0 ) );
+""" % (
+            to_name,
+            arg_size,
+            called_name,
+            arg_tuple,
+        )
+    )
+
+    getReleaseCode(
+        release_name = called_name,
+        emit         = emit,
+        context      = context
+    )
+
+    getErrorExitCode(
+        check_name  = to_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
+    )
+
+    context.addCleanupTempName(to_name)
+
+
+def getCallCodePosArgs(to_name, called_name, args_name, needs_check, emit, context):
     emitLineNumberUpdateCode(emit, context)
 
     emit(
@@ -272,9 +325,10 @@ def getCallCodePosArgs(to_name, called_name, args_name, emit, context):
     )
 
     getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
+        check_name  = to_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -338,14 +392,8 @@ def getCallsDecls():
     result = []
 
     for quick_call_used in sorted(quick_calls_used):
-        args_decl = [
-            "PyObject *arg%d" % d
-            for d in range(quick_call_used)
-        ]
-
         result.append(
             template_call_function_with_args_decl % {
-                "args_decl"  : ", ".join(args_decl),
                 "args_count" : quick_call_used
             }
         )
@@ -364,44 +412,10 @@ def getCallsCode():
     )
 
     for quick_call_used in sorted(quick_calls_used):
-        args_decl = [
-            "PyObject *arg%d" % d
-            for d in range(1, quick_call_used + 1)
-        ]
-        args_list = [
-            "arg%d" % d
-            for d in range(1, quick_call_used + 1)
-        ]
-
         result.append(
             template_call_function_with_args_impl % {
-                "args_decl"  : ", ".join(args_decl),
-                "args_list"  : ", ".join(args_list),
                 "args_count" : quick_call_used
             }
         )
 
     return '\n'.join(result)
-
-
-# TODO: Why is this here, not really related.
-def getMakeBuiltinExceptionCode(to_name, exception_type, arg_names, emit,
-                                context):
-    if arg_names:
-        getCallCodePosArgsQuick(
-            to_name     = to_name,
-            called_name = getExceptionIdentifier(exception_type),
-            arg_names   = arg_names,
-            needs_check = False,
-            emit        = emit,
-            context     = context
-        )
-
-    else:
-        getCallCodeNoArgs(
-            to_name     = to_name,
-            called_name = getExceptionIdentifier(exception_type),
-            needs_check = False,
-            emit        = emit,
-            context     = context
-        )

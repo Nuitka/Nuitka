@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,8 +21,110 @@ There is special handling for integer indexes, which can be dealt with
 much faster than general subscript lookups.
 """
 
+from nuitka import Options
+from nuitka.Constants import isIndexConstant
+
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
-from .Helpers import generateChildExpressionsCode
+from .Helpers import (
+    generateChildExpressionsCode,
+    generateExpressionCode,
+    generateExpressionsCode
+)
+
+
+def generateAssignmentSubscriptCode(statement, emit, context):
+    subscribed      = statement.getSubscribed()
+    subscript       = statement.getSubscript()
+    value           = statement.getAssignSource()
+
+    integer_subscript = False
+    if subscript.isExpressionConstantRef():
+        constant = subscript.getConstant()
+
+        if isIndexConstant(constant):
+            constant_value = int(constant)
+
+            if abs(constant_value) < 2**31:
+                integer_subscript = True
+
+    value_name = context.allocateTempName("ass_subvalue")
+
+    generateExpressionCode(
+        to_name    = value_name,
+        expression = value,
+        emit       = emit,
+        context    = context
+    )
+
+    subscribed_name = context.allocateTempName("ass_subscribed")
+    generateExpressionCode(
+        to_name    = subscribed_name,
+        expression = subscribed,
+        emit       = emit,
+        context    = context
+    )
+
+
+    subscript_name = context.allocateTempName("ass_subscript")
+
+    generateExpressionCode(
+        to_name    = subscript_name,
+        expression = subscript,
+        emit       = emit,
+        context    = context
+    )
+
+    old_source_ref = context.setCurrentSourceCodeReference(
+        value.getSourceReference()
+           if Options.isFullCompat() else
+        statement.getSourceReference()
+    )
+
+    if integer_subscript:
+        getIntegerSubscriptAssignmentCode(
+            subscribed_name = subscribed_name,
+            subscript_name  = subscript_name,
+            subscript_value = constant_value,
+            value_name      = value_name,
+            emit            = emit,
+            context         = context
+        )
+    else:
+        getSubscriptAssignmentCode(
+            target_name    = subscribed_name,
+            subscript_name = subscript_name,
+            value_name     = value_name,
+            emit           = emit,
+            context        = context
+        )
+    context.setCurrentSourceCodeReference(old_source_ref)
+
+
+def generateDelSubscriptCode(statement, emit, context):
+    subscribed = statement.getSubscribed()
+    subscript  = statement.getSubscript()
+
+    target_name, subscript_name = generateExpressionsCode(
+        expressions = (subscribed, subscript),
+        names       = ("delsubscr_target", "delsubscr_subscript"),
+        emit        = emit,
+        context     = context
+    )
+
+    old_source_ref = context.setCurrentSourceCodeReference(
+        subscript.getSourceReference()
+           if Options.isFullCompat() else
+        statement.getSourceReference()
+    )
+
+    getSubscriptDelCode(
+        target_name    = target_name,
+        subscript_name = subscript_name,
+        emit           = emit,
+        context        = context
+    )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
 
 
 def generateSubscriptLookupCode(to_name, expression, emit, context):

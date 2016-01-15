@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,7 @@ that should allow some important optimizations.
 
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.optimizations import BuiltinOptimization
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from .NodeBases import (
     ChildrenHavingMixin,
@@ -280,60 +280,6 @@ class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
         # TODO: Quite impossible as this has a variable result, but we could
         # look at the arguments at least.
         return self, None, None
-
-
-class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
-                             ExpressionSpecBasedComputationMixin):
-    kind = "EXPRESSION_BUILTIN_SLICE"
-
-    named_children = (
-        "start",
-        "stop",
-        "step"
-    )
-
-    builtin_spec = BuiltinOptimization.builtin_slice_spec
-
-    def __init__(self, start, step, stop, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-        ChildrenHavingMixin.__init__(
-            self,
-            values = {
-                "start" : start,
-                "stop"  : stop,
-                "step"  : step
-            }
-        )
-
-    def computeExpression(self, constraint_collection):
-        start = self.getStart()
-        stop = self.getStop()
-        step = self.getStep()
-
-        args = (
-            start,
-            stop,
-            step
-        )
-
-        args = tuple(
-            arg or ExpressionConstantRef(constant = None, source_ref = self.getSourceReference())
-            for arg in
-            args
-        )
-
-        return self.computeBuiltinSpec(
-            constraint_collection = constraint_collection,
-            given_values          = args
-        )
-
-    getStart = ChildrenHavingMixin.childGetter("start")
-    getStop = ChildrenHavingMixin.childGetter("stop")
-    getStep = ChildrenHavingMixin.childGetter("step")
 
 
 class ExpressionBuiltinComplex(ChildrenHavingMixin, NodeBase,

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -109,6 +109,11 @@ def detectFunctionBodyKind(nodes):
     # to be done. pylint: disable=R0912,R0915
 
     indications = set()
+    written_variables = set()
+    non_local_declarations = set()
+    global_declarations = set()
+    flags = set()
+
     # print "Enter"
 
     def _check(node):
@@ -124,6 +129,22 @@ def detectFunctionBodyKind(nodes):
         elif python_version >= 350 and node_class in (ast.Await, ast.AsyncWith):  # @UndefinedVariable
             indications.add("Coroutine")
 
+        # Detect assignments to variables, for functions we need to know that
+        # to properly resolve closure.
+        if node_class is ast.Assign:
+            for target in node.targets:
+                if type(target) is str:
+                    written_variables.add(target)
+                elif target.__class__ is ast.Name:
+                    written_variables.add(target.id)
+
+        # Detect global and nonlocal declarations ahead of time.
+        if python_version >= 300 and node_class is ast.Nonlocal:  # @UndefinedVariable
+            non_local_declarations.update(set(node.names))
+        elif node_class is ast.Global:
+            global_declarations.update(set(node.names))
+
+        # Recurse to children, but do not cross scope boundary doing so.
         if node_class is ast.ClassDef:
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body"):
@@ -197,6 +218,9 @@ def detectFunctionBodyKind(nodes):
                     _check(field[0].iter)
                 else:
                     assert False, (name, field, ast.dump(node))
+        elif node_class is ast.Name:
+            if python_version >= 300 and node.id == "super":
+                flags.add("has_super")
         else:
             for child in ast.iter_child_nodes(node):
                 _check(child)
@@ -205,10 +229,13 @@ def detectFunctionBodyKind(nodes):
         _check(node)
 
     if indications:
+        # If we found something, make sure we agree on all clues.
         assert len(indications) == 1
-        return indications.pop()
+        function_kind = indications.pop()
     else:
-        return "Function"
+        function_kind = "Function"
+
+    return function_kind, flags, written_variables, non_local_declarations, global_declarations
 
 
 build_nodes_args3 = None
@@ -358,7 +385,8 @@ def buildStatementsNode(provider, nodes, source_ref, code_object = None):
                 code_object = code_object,
                 source_ref  = source_ref
             )
-        elif provider.isExpressionFunctionBody():
+        elif provider.isExpressionFunctionBody() or \
+             provider.isExpressionClassBody():
             result = StatementsFrame(
                 statements  = statements,
                 guard_mode  = "full",
@@ -378,6 +406,7 @@ def buildStatementsNode(provider, nodes, source_ref, code_object = None):
         )
 
     return result
+
 
 def makeStatementsSequenceOrStatement(statements, source_ref):
     """ Make a statement sequence, but only if more than one statement
@@ -433,7 +462,6 @@ def makeStatementsSequenceFromStatements(*statements):
         statements = statements,
         source_ref = statements[0].getSourceReference()
     )
-
 
 
 def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
@@ -501,7 +529,7 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     return result
 
 
-def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
+def makeDictCreationOrConstant(keys, values, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
     # mutable.
 
@@ -525,20 +553,19 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
         # before being marshaled.
         result = ExpressionConstantRef(
             constant      = Constants.createConstantDict(
-                lazy_order = not lazy_order,
-                keys       = [
+                keys   = [
                     key.getConstant()
                     for key in
                     keys
                 ],
-                values     = [
+                values = [
                     value.getConstant()
                     for value in
                     values
                 ]
             ),
-            source_ref    = source_ref,
-            user_provided = True
+            user_provided = True,
+            source_ref    = source_ref
         )
     else:
         result = ExpressionMakeDict(
@@ -551,7 +578,6 @@ def makeDictCreationOrConstant(keys, values, lazy_order, source_ref):
                 for key, value in
                 zip(keys, values)
             ],
-            lazy_order = lazy_order,
             source_ref = source_ref
         )
 

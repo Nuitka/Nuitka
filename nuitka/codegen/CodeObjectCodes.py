@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,7 @@ Right now only the creation is done here. But more should be added later on.
 """
 
 from nuitka import Options
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .ConstantCodes import getConstantCode
 
@@ -96,7 +96,7 @@ def getCodeObjectsInitCode(context):
 
         co_flags.extend(code_object_key[12])
 
-        if Utils.python_version < 300:
+        if python_version < 300:
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
                 code_identifier,
                 filename_code,

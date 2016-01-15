@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -50,7 +50,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
-from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
@@ -120,8 +120,8 @@ def getListUnpackingHelper():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     temp_scope = None
@@ -147,7 +147,7 @@ def getListUnpackingHelper():
                 source_ref   = internal_source_ref
             ),
             exception_name = "StopIteration",
-            handler_body   = StatementBreakLoop(
+            handler_body   = StatementLoopBreak(
                 source_ref = internal_source_ref
             ),
             source_ref     = internal_source_ref
@@ -257,8 +257,8 @@ def getSetUnpackingHelper():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     temp_scope = None
@@ -284,7 +284,7 @@ def getSetUnpackingHelper():
                 source_ref   = internal_source_ref
             ),
             exception_name = "StopIteration",
-            handler_body   = StatementBreakLoop(
+            handler_body   = StatementLoopBreak(
                 source_ref = internal_source_ref
             ),
             source_ref     = internal_source_ref

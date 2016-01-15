@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,7 +31,7 @@ from nuitka.nodes.AssignNodes import (
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
-from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
 
@@ -78,13 +78,13 @@ def buildWhileLoopNode(provider, node, source_ref):
                 ),
                 source_ref   = source_ref
             ),
-            StatementBreakLoop(
+            StatementLoopBreak(
                 source_ref = source_ref
             )
         )
     else:
         statements = (
-            StatementBreakLoop(
+            StatementLoopBreak(
                 source_ref = source_ref
             ),
         )

@@ -29,9 +29,8 @@ Milestones
    absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not target any
-   older CPython release. For CPython 3.2, CPython 3.3, and CPython 3.4 it also
-   has been reached. We do not target the older and practically unused CPython
-   3.1 and 3.0 releases.
+   older CPython release. For CPython 3.2 to 3.5 it also has been reached. We do
+   not target the older and practically unused CPython 3.1 and 3.0 releases.
 
    This milestone was reached. Dropping support for Python 2.6 and 3.2 is an
    option, should this prove to be any benefit. Currently it is not, as it
@@ -1252,6 +1251,37 @@ different.
 This removes the need for optimization and code generation to support decorators
 at all. And it should make the two variants optimize equally well.
 
+
+Functions nested arguments
+++++++++++++++++++++++++++
+
+Nested arguments are a Python2 only feature supported by Nuitka. Consider this
+example:
+
+.. code-block:: python
+
+   def function(a,(b,c)):
+      return a, b, c
+
+We solve this, by kind of wrapping the function with another function that does
+the unpacking and gives the errors that come from this:
+
+.. code-block:: python
+
+   def function(a,".1"):
+      def _tmp(a, b, c):
+         return a, b, c
+
+      a, b = ".1"
+      return _tmp(a, b, c)
+
+The ``".1"`` is the variable name used by CPython internally, and actually works
+if you use keyword arguments via star dictionary. So this is very compatible and
+actually the right kind of re-formulation, but it removes the need from the code
+that does parameter parsing to deal with these.
+
+Obviously, there is no frame for ``_tmp``, just one for ``function`` and we do
+not use local variables, but temporary functions.
 
 In-place Assignments
 ++++++++++++++++++++

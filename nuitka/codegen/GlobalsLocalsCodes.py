@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,16 +20,46 @@
 This also includes writing back to locals for exec statements.
 """
 
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .ConstantCodes import getConstantCode
 from .ErrorCodes import getErrorExitBoolCode
+from .Helpers import generateExpressionCode
 from .ModuleCodes import getModuleAccessCode
+from .PythonAPICodes import generateCAPIObjectCode
+from .templates.CodeTemplatesVariables import (
+    template_set_locals_dict_value,
+    template_set_locals_mapping_value,
+    template_update_locals_dict_value,
+    template_update_locals_mapping_value
+)
 from .VariableCodes import (
     getLocalVariableObjectAccessCode,
-    getVariableAssignmentCode,
-    getVariableInitializedCheckCode
+    getVariableAssignmentCode
 )
+
+
+def generateBuiltinLocalsCode(to_name, expression, emit, context):
+    provider = expression.getParentVariableProvider()
+
+    getLoadLocalsCode(
+        to_name  = to_name,
+        provider = provider,
+        mode     = provider.getLocalsMode(),
+        emit     = emit,
+        context  = context
+    )
+
+
+def generateBuiltinGlobalsCode(to_name, expression, emit, context):
+    # Functions used for generation all accept expression, but this one does
+    # not use it. pylint: disable=W0613
+
+    getLoadGlobalsCode(
+        to_name = to_name,
+        emit    = emit,
+        context = context
+    )
 
 
 def getLoadGlobalsCode(to_name, emit, context):
@@ -45,46 +75,25 @@ def getLoadGlobalsCode(to_name, emit, context):
 
 def _getLocalVariableList(provider):
     if provider.isExpressionFunctionBody():
-        # Sort parameter variables of functions to the end.
-
-        start_part = []
-        end_part = []
-
-        for variable in provider.getVariables():
-            if variable.isParameterVariable():
-                end_part.append(variable)
-            else:
-                start_part.append(variable)
-
-        variables = start_part + end_part
-
-        include_closure = not provider.isUnoptimized() and \
-                          not provider.isExpressionClassBody()
+        include_closure = not provider.isUnoptimized()
+    elif provider.isExpressionClassBody():
+        include_closure = False
     else:
-        variables = provider.getVariables()
-
         include_closure = True
 
     return [
         variable
         for variable in
-        variables
+        provider.getVariables()
         if not variable.isModuleVariable()
         if not variable.isMaybeLocalVariable()
         if (include_closure or variable.getOwner() is provider)
     ]
 
 
-def _getVariableDictUpdateCode(dict_name, variable, is_dict, emit, context):
+def _getVariableDictUpdateCode(target_name, variable, initial, is_dict, emit, context):
     # TODO: Variable could known to be set here, get a hand at that
     # information.
-
-    emit(
-        "if %s\n{" % getVariableInitializedCheckCode(
-            variable = variable,
-            context  = context
-        )
-    )
 
     access_code = getLocalVariableObjectAccessCode(
         variable = variable,
@@ -92,17 +101,14 @@ def _getVariableDictUpdateCode(dict_name, variable, is_dict, emit, context):
     )
 
     if is_dict:
+        if initial:
+            template = template_set_locals_dict_value
+        else:
+            template = template_update_locals_dict_value
+
         emit(
-            """\
-    %(tmp_name)s = PyDict_SetItem(
-        %(dict_name)s,
-        %(var_name)s,
-        %(access_code)s
-    );
-    assert( %(tmp_name)s != -1 );
-""" % {
-                "tmp_name"    : context.getIntResName(),
-                "dict_name"   : dict_name,
+             template % {
+                "dict_name"   : target_name,
                 "var_name"    : getConstantCode(
                     constant = variable.getName(),
                     context  = context
@@ -111,36 +117,30 @@ def _getVariableDictUpdateCode(dict_name, variable, is_dict, emit, context):
             }
         )
     else:
-        res_name = context.getIntResName()
+        if initial:
+            template = template_set_locals_mapping_value
+        else:
+            template = template_update_locals_mapping_value
+
+        res_name = context.getBoolResName()
 
         emit(
-            """\
-    %s = PyObject_SetItem(
-        %s,
-        %s,
-        %s
-    );
-""" % (
-                res_name,
-                dict_name,
-                getConstantCode(
+            template % {
+                "mapping_name" : target_name,
+                "var_name"     : getConstantCode(
                     constant = variable.getName(),
                     context  = context
                 ),
-                access_code,
-            )
+                "access_code"  : access_code,
+                "tmp_name"     : res_name
+            }
         )
 
         getErrorExitBoolCode(
-            condition = "%s == -1" % res_name,
+            condition = "%s == false" % res_name,
             emit      = emit,
             context   = context
         )
-
-    # TODO: Use branch C codes to achieve proper indentation
-    emit(
-        '}'
-    )
 
 
 def getLoadLocalsCode(to_name, provider, mode, emit, context):
@@ -163,11 +163,12 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
 
         for local_var in local_list:
             _getVariableDictUpdateCode(
-                dict_name = to_name,
-                variable  = local_var,
-                is_dict   = True,
-                emit      = emit,
-                context   = context
+                target_name = to_name,
+                variable    = local_var,
+                is_dict     = True,
+                initial     = True,
+                emit        = emit,
+                context     = context
             )
     else:
         if mode == "copy":
@@ -193,12 +194,13 @@ Py_INCREF( locals_dict );""" % (
 
             for local_var in local_list:
                 _getVariableDictUpdateCode(
-                    dict_name = to_name,
-                    variable  = local_var,
-                    is_dict   = Utils.python_version < 300 or \
-                                not context.getFunction().isExpressionClassBody(),
-                    emit      = emit,
-                    context   = context
+                    target_name = to_name,
+                    variable    = local_var,
+                    is_dict     = python_version < 300 or \
+                                  not context.getFunction().isExpressionClassBody(),
+                    initial     = False,
+                    emit        = emit,
+                    context     = context
                 )
 
             context.addCleanupTempName(to_name)
@@ -206,7 +208,16 @@ Py_INCREF( locals_dict );""" % (
             assert False
 
 
-def getSetLocalsCode(new_locals_name, emit, context):
+def generateSetLocalsCode(statement, emit, context):
+    new_locals_name = context.allocateTempName("set_locals", unique = True)
+
+    generateExpressionCode(
+        to_name    = new_locals_name,
+        expression = statement.getNewLocals(),
+        emit       = emit,
+        context    = context
+    )
+
     ref_count = context.needsCleanup(new_locals_name)
 
     emit(
@@ -270,3 +281,31 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
             )
 
             emit('}')
+
+
+def generateBuiltinDir1Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "PyObject_Dir",
+        arg_desc   = (
+            ("dir_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinVarsCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "LOOKUP_VARS",
+        arg_desc   = (
+            ("vars_arg", expression.getSource()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )

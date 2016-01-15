@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,6 +27,7 @@ import marshal
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
 from nuitka.plugins.PluginBase import Plugins
+from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 
@@ -285,7 +286,7 @@ def _checkPluginPath(plugin_filename, module_package):
 
                 if Utils.isDir(package_filename):
                     # Must be a namespace package.
-                    assert Utils.python_version >= 330
+                    assert python_version >= 330
 
                     package_dir = package_filename
 

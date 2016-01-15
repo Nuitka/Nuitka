@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -94,7 +94,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
         if node.needsLocalsDict():
             provider = node.getParentVariableProvider()
 
-            if provider.isExpressionFunctionBody():
+            if not provider.isCompiledPythonModule():
                 provider.markAsLocalsDict()
 
         if node.isStatementReturn() or node.isStatementGeneratorReturn():
@@ -165,7 +165,7 @@ of '--recurse-directory'.""" % (
             if node.isExpressionYield() or node.isExpressionYieldFrom():
                 search = node.getParent()
 
-                while not search.isExpressionFunctionBody():
+                while not search.isExpressionGeneratorObjectBody():
                     last_search = search
                     search = search.getParent()
 

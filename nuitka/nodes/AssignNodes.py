@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -157,10 +157,10 @@ Assignment raises exception in assigned value, removed assignment."""
                 )
 
                 return result, "new_statements", """\
-Reduced assignment of variable from itself to mere access of it."""
+Reduced assignment of variable '%s' from itself to mere access of it.""" % variable.getName()
             else:
                 return None, "new_statements", """\
-Removed assignment of variable from itself which is known to be defined."""
+Removed assignment of variable '%s' from itself which is known to be defined.""" % variable.getName()
 
 
         # If the assignment source has side effects, we can simply evaluate them
@@ -215,8 +215,9 @@ Side effects of assignments promoted to statements.""",
                             provider = self.getParentVariableProvider()
 
                             if variable.isTempVariable() or \
-                               (not provider.isUnoptimized() and \
-                                not provider.isExpressionClassBody()):
+                               (not provider.isExpressionClassBody() and \
+                                not provider.isUnoptimized()
+                                ):
 
                                 if last_trace.hasDefiniteUsages():
                                     self.variable_trace.setReplacementNode(
@@ -429,9 +430,12 @@ class StatementDelVariable(StatementChildrenHavingBase):
             if self.variable_trace is not None:
 
                 variable = self.getTargetVariableRef().getVariable()
+
                 # TODO: This condition must become unnecessary, but enhancing
                 # SSA to notice potential escapes.
-                if not variable.isSharedTechnically():
+                if not variable.isModuleVariable() and \
+                   not variable.isMaybeLocalVariable() and not \
+                    variable.isSharedTechnically():
 
                     # Temporary variables deletions won't raise, just because we don't
                     # create them that way. We can avoid going through SSA in these

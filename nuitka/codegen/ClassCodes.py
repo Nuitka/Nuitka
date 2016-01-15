@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,14 +21,15 @@ Most the class specific stuff is solved in re-formulation. Only the selection
 of the metaclass remains as specific.
 """
 
-
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
+from .Helpers import generateChildExpressionsCode
+from .PythonAPICodes import generateCAPIObjectCode0
 
 
 def _getMetaclassVariableCode(context):
-    assert Utils.python_version < 300
+    assert python_version < 300
 
     return "GET_STRING_DICT_VALUE( moduledict_%s, (Nuitka_StringObject *)%s )" % (
         context.getModuleCodeName(),
@@ -38,8 +39,14 @@ def _getMetaclassVariableCode(context):
     )
 
 
-def getSelectMetaclassCode(to_name, metaclass_name, bases_name, emit, context):
-    if Utils.python_version < 300:
+def generateSelectMetaclassCode(to_name, expression, emit, context):
+    metaclass_name, bases_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    if python_version < 300:
         assert metaclass_name is None
 
         args = [
@@ -61,7 +68,7 @@ def getSelectMetaclassCode(to_name, metaclass_name, bases_name, emit, context):
     )
 
     # Can only fail with Python3.
-    if Utils.python_version >= 300:
+    if python_version >= 300:
         getErrorExitCode(
             check_name = to_name,
             emit       = emit,
@@ -81,3 +88,48 @@ def getSelectMetaclassCode(to_name, metaclass_name, bases_name, emit, context):
         )
 
     context.addCleanupTempName(to_name)
+
+
+def generateBuiltinSuperCode(to_name, expression, emit, context):
+    type_name, object_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    emit(
+        "%s = BUILTIN_SUPER( %s, %s );" % (
+            to_name,
+            type_name if type_name is not None else "NULL",
+            object_name if object_name is not None else "NULL"
+        )
+    )
+
+    getReleaseCodes(
+        release_names = (type_name, object_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
+
+    context.addCleanupTempName(to_name)
+
+
+def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
+    generateCAPIObjectCode0(
+        to_name    = to_name,
+        capi       = "BUILTIN_ISINSTANCE",
+        arg_desc   = (
+            ("isinstance_inst", expression.getInstance()),
+            ("isinstance_cls", expression.getCls()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )

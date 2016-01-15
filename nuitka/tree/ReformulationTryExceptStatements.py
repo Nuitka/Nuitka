@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -47,8 +47,8 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.TryNodes import StatementTry
+from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.utils import Utils
 
 from .Helpers import (
     buildNode,
@@ -208,7 +208,7 @@ def _makeTryExceptSingleHandlerNode(provider, public_exc, tried, exception_name,
         )
     )
 
-    if Utils.python_version >= 300 and public_exc:
+    if python_version >= 300 and public_exc:
         handling = (
             makeTryFinallyStatement(
                 provider   = provider,
@@ -290,7 +290,7 @@ def buildTryExceptionNode(provider, node, source_ref):
                     source_ref = source_ref
                 )
             ]
-        elif Utils.python_version < 300:
+        elif python_version < 300:
             statements = [
                 buildAssignmentStatements(
                     provider   = provider,
@@ -408,7 +408,7 @@ def buildTryExceptionNode(provider, node, source_ref):
         # For Python3, we need not publish at all, if all we do is to revert
         # that immediately. For Python2, the publish may release previously
         # published exception, which has side effects potentially.
-        if Utils.python_version < 300:
+        if python_version < 300:
             exception_handling = StatementsSequence(
                 statements = (
                     StatementPreserveFrameException(
@@ -422,7 +422,7 @@ def buildTryExceptionNode(provider, node, source_ref):
                 source_ref = source_ref.atInternal()
             )
     else:
-        if Utils.python_version < 300:
+        if python_version < 300:
             exception_handling.setStatements(
                 (
                     StatementPreserveFrameException(

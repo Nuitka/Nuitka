@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,7 +30,7 @@ template_metapath_loader_shlib_module_entry = """\
 { (char *)"%(module_name)s", NULL, NUITKA_SHLIB_MODULE },"""
 
 template_metapath_loader_body = """\
-// Code tegister embedded modules if any.
+// Code to register embedded modules if any.
 #if %(use_loader)d == 1
 
 #include "nuitka/unfreezing.hpp"

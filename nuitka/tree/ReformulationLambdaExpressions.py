@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,13 +28,11 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionBody,
     ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
@@ -45,7 +43,7 @@ from nuitka.nodes.GeneratorNodes import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.YieldNodes import ExpressionYield
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .Helpers import (
     buildNode,
@@ -56,57 +54,42 @@ from .Helpers import (
     mergeStatements
 )
 from .ReformulationFunctionStatements import (
+    buildFunctionWithParsing,
     buildParameterAnnotations,
-    buildParameterKwDefaults,
-    buildParameterSpec
+    buildParameterKwDefaults
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildLambdaNode(provider, node, source_ref):
+    # Many details to deal with, pylint: disable=R0914
+
     assert getKind(node) == "Lambda"
 
-    function_kind = detectFunctionBodyKind(
+    function_kind, flags, _written_variables, _non_local_declarations, _global_declarations = \
+      detectFunctionBodyKind(
         nodes = (node.body,)
     )
 
-    parameters = buildParameterSpec(provider, "<lambda>", node, source_ref)
+    outer_body, function_body, code_object = buildFunctionWithParsing(
+        provider      = provider,
+        function_kind = function_kind,
+        name          = "<lambda>",
+        function_doc  = None,
+        flags         = flags,
+        node          = node,
+        source_ref    = source_ref
+    )
 
     if function_kind == "Function":
-        function_body = ExpressionFunctionBody(
-            provider   = provider,
-            name       = "<lambda>",
-            doc        = None,
-            parameters = parameters,
-            is_class   = False,
-            source_ref = source_ref
-        )
-
         code_body = function_body
     else:
-        function_body = ExpressionFunctionBody(
-            provider   = provider,
-            name       = "<lambda>",
-            doc        = None,
-            parameters = parameters,
-            is_class   = False,
-            source_ref = source_ref
-        )
-
         code_body = ExpressionGeneratorObjectBody(
             provider   = function_body,
             name       = "<lambda>",
+            flags      = set(),
             source_ref = source_ref
         )
-
-    code_object = CodeObjectSpec(
-        code_name     = "<lambda>",
-        code_kind     = function_kind,
-        arg_names     = parameters.getCoArgNames(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None,
-    )
 
     if function_kind == "Generator":
         function_body.setBody(
@@ -140,7 +123,7 @@ def buildLambdaNode(provider, node, source_ref):
     )
 
     if function_kind == "Generator":
-        if Utils.python_version < 270:
+        if python_version < 270:
             tmp_return_value = code_body.allocateTempVariable(
                 temp_scope = None,
                 name       = "yield_return"
@@ -223,7 +206,7 @@ def buildLambdaNode(provider, node, source_ref):
 
     return ExpressionFunctionCreation(
         function_ref = ExpressionFunctionRef(
-            function_body = function_body,
+            function_body = outer_body,
             source_ref    = source_ref
         ),
         code_object  = code_object,

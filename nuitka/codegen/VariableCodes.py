@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,7 +20,7 @@
 """
 
 from nuitka import Options, Variables
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .ConstantCodes import getConstantCode
 from .Emission import SourceCodeCollector
@@ -29,10 +29,9 @@ from .ErrorCodes import (
     getErrorFormatExitBoolCode,
     getErrorFormatExitCode
 )
+from .Helpers import generateExpressionCode
 from .Indentation import indented
 from .templates.CodeTemplatesVariables import (
-    template_check_local,
-    template_check_shared,
     template_del_global_unclear,
     template_del_local_intolerant,
     template_del_local_known,
@@ -62,7 +61,33 @@ from .templates.CodeTemplatesVariables import (
 )
 
 
-def generateVariableDelCode(statement, emit, context):
+def generateAssignmentVariableCode(statement, emit, context):
+    variable_ref  = statement.getTargetVariableRef()
+    value         = statement.getAssignSource()
+
+    tmp_name = context.allocateTempName("assign_source")
+
+    generateExpressionCode(
+        expression = value,
+        to_name    = tmp_name,
+        emit       = emit,
+        context    = context
+    )
+
+    getVariableAssignmentCode(
+        tmp_name      = tmp_name,
+        variable      = variable_ref.getVariable(),
+        needs_release = statement.needsReleasePreviousValue(),
+        in_place      = statement.inplace_suspect,
+        emit          = emit,
+        context       = context
+    )
+
+    # Ownership of that reference must have been transfered.
+    assert not context.needsCleanup(tmp_name)
+
+
+def generateDelVariableCode(statement, emit, context):
     old_source_ref = context.setCurrentSourceCodeReference(
         statement.getSourceReference()
     )
@@ -77,6 +102,7 @@ def generateVariableDelCode(statement, emit, context):
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
+
 
 def generateVariableReleaseCode(statement, emit, context):
     variable = statement.getVariable()
@@ -184,7 +210,10 @@ def getLocalVariableObjectAccessCode(context, variable):
 def getLocalVariableInitCode(variable, init_from = None):
     assert not variable.isModuleVariable()
 
-    type_name = variable.getDeclarationTypeCode()
+    if variable.isSharedTechnically():
+        type_name = "PyCellObject *"
+    else:
+        type_name = "PyObject *"
 
     code_name = getVariableCodeName(
         in_context = False,
@@ -337,7 +366,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
         )
 
         if needs_check:
-            if Utils.python_version < 340 and \
+            if python_version < 340 and \
                not context.isCompiledPythonModule() and \
                not context.getOwner().isExpressionClassBody():
                 error_message = "global name '%s' is not defined"
@@ -348,7 +377,8 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 check_name = to_name,
                 exception  = "PyExc_NameError",
                 args       = (
-                    error_message % variable.getName(),
+                    error_message,
+                    variable.getName()
                 ),
                 emit       = emit,
                 context    = context
@@ -411,9 +441,8 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                     exception  = "PyExc_NameError",
                     args       = (
                         """\
-free variable '%s' referenced before assignment in enclosing scope""" % (
-                           variable.getName()
-                        ),
+free variable '%s' referenced before assignment in enclosing scope""",
+                        variable.getName()
                     ),
                     emit       = emit,
                     context    = context
@@ -424,9 +453,8 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     exception  = "PyExc_UnboundLocalError",
                     args       = (
                         """\
-local variable '%s' referenced before assignment""" % (
-                           variable.getName()
-                        ),
+local variable '%s' referenced before assignment""",
+                        variable.getName()
                     ),
                     emit       = emit,
                     context    = context
@@ -452,9 +480,8 @@ local variable '%s' referenced before assignment""" % (
                     exception  = "PyExc_NameError",
                     args       = (
                         """\
-free variable '%s' referenced before assignment in enclosing scope""" % (
-                           variable.getName()
-                        ),
+free variable '%s' referenced before assignment in enclosing scope""",
+                        variable.getName()
                     ),
                     emit       = emit,
                     context    = context
@@ -477,10 +504,10 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                 getErrorFormatExitCode(
                     check_name = to_name,
                     exception  = "PyExc_UnboundLocalError",
-                    args       = ("""\
-local variable '%s' referenced before assignment""" % (
-                           variable.getName()
-                        ),
+                    args       = (
+                        """\
+local variable '%s' referenced before assignment""",
+                        variable.getName()
                     ),
                     emit       = emit,
                     context    = context
@@ -662,25 +689,3 @@ def getVariableReleaseCode(variable, needs_check, emit, context):
             )
         }
     )
-
-
-def getVariableInitializedCheckCode(variable, context):
-    """ Check if a variable is initialized.
-
-        Returns a code expression that says "true" if it is.
-    """
-
-    if variable.isLocalVariable() or variable.isTempVariable():
-        if variable.isSharedTechnically():
-            template = template_check_shared
-        else:
-            template = template_check_local
-
-        return template % {
-            "identifier" : getVariableCode(
-                variable = variable,
-                context  = context
-            ),
-        }
-    else:
-        assert False, variable

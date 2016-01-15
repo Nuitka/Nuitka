@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,7 +24,7 @@ import hashlib
 from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.Constants import constant_builtin_types
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from .Namify import namifyConstant
 
@@ -579,9 +579,6 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
     # There cannot be local variable in modules no need to consider the name.
     # pylint: disable=W0613
-    def hasLocalVariable(self, var_name):
-        return False
-
     def hasClosureVariable(self, var_name):
         return False
     # pylint: enable=W0613
@@ -691,9 +688,6 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin,
 
     def hasLocalsDict(self):
         return self.function.hasLocalsDict()
-
-    def hasLocalVariable(self, var_name):
-        return var_name in self.function.getLocalVariableNames()
 
     def hasClosureVariable(self, var_name):
         return var_name in self.function.getClosureVariableNames()

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,14 +26,12 @@ from .ErrorCodes import (
     getReleaseCode,
     getReleaseCodes
 )
+from .Helpers import generateExpressionCode
 
 
 def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, may_raise, ref_count,
                                  source_ref, emit, context, none_null = False):
     arg_names = []
-
-    # TODO: This will move to Helpers module, but not yet done.
-    from .CodeGeneration import generateExpressionCode
 
     for arg_name, arg_expression in arg_desc:
         if arg_expression is None and none_null:

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -69,7 +69,7 @@ def convertFunctionCallToOutline(provider, function_ref, values):
 
     statements = []
 
-    argument_names = function_body.getParameters().getAllNames()
+    argument_names = function_body.getParameters().getParameterNames()
 
     assert len(argument_names) == len(values), (argument_names, values)
 

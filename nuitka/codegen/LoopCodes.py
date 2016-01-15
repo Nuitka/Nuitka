@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,14 +30,20 @@ from .ExceptionCodes import getExceptionUnpublishedReleaseCode
 from .LabelCodes import getGotoCode, getLabelCode
 
 
-def getLoopBreakCode(emit, context):
+def generateLoopBreakCode(statement, emit, context):
+    # Functions used for generation all accept statement, but this one does
+    # not use it. pylint: disable=W0613
+
     getExceptionUnpublishedReleaseCode(emit, context)
 
     break_target = context.getLoopBreakTarget()
     getGotoCode(break_target, emit)
 
 
-def getLoopContinueCode(emit, context):
+def generateLoopContinueCode(statement, emit, context):
+    # Functions used for generation all accept statement, but this one does
+    # not use it. pylint: disable=W0613
+
     getExceptionUnpublishedReleaseCode(emit, context)
 
     continue_target = context.getLoopContinueTarget()

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -100,7 +100,7 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
         "pairs",
     )
 
-    def __init__(self, pairs, lazy_order, source_ref):
+    def __init__(self, pairs, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -108,13 +108,6 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
             },
             source_ref = source_ref
         )
-
-        self.lazy_order = lazy_order
-
-    def getDetails(self):
-        return {
-            "lazy_order" : self.lazy_order
-        }
 
     getPairs = ExpressionChildrenHavingBase.childGetter("pairs")
 
@@ -134,17 +127,16 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
                 return self, None, None
 
         constant_value = Constants.createConstantDict(
-            keys       = [
+            keys   = [
                 pair.getKey().getConstant()
                 for pair in
                 pairs
             ],
-            values     = [
+            values = [
                 pair.getValue().getConstant()
                 for pair in
                 pairs
-            ],
-            lazy_order = self.lazy_order
+            ]
         )
 
         new_node = makeConstantReplacementNode(
@@ -252,10 +244,4 @@ Created dictionary found to be constant."""
 Removed sequence creation for unused sequence."""
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
-        return self, None, None
-
-        # TODO: This ought to be possible. Only difficulty is to
-        # preserve order of evaluation, by making values a side
-        # effect of the keys.
-        # return iter_node, "new_expression", """\
-# Iteration over dict reduced to tuple."""
+        return iter_node, None, None

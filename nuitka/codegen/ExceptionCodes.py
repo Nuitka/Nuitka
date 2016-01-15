@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,8 +19,9 @@
 
 """
 
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
+from .Helpers import generateExpressionCode
 from .templates. \
     CodeTemplatesExceptions import template_publish_exception_to_handler
 
@@ -34,7 +35,9 @@ def getExceptionIdentifier(exception_type):
     return "PyExc_%s" % exception_type
 
 
-def getExceptionRefCode(to_name, exception_type, emit, context):
+def generateExceptionRefCode(to_name, expression, emit, context):
+    exception_type = expression.getExceptionName()
+
     emit(
         "%s = %s;" % (
             to_name,
@@ -56,7 +59,10 @@ def getTracebackMakingIdentifier(context, lineno_name):
     )
 
 
-def getExceptionCaughtTypeCode(to_name, emit, context):
+def generateExceptionCaughtTypeCode(to_name, expression, emit, context):
+    # Functions used for generation all accept expression, but this one does
+    # not use it. pylint: disable=W0613
+
     keeper_variables = context.getExceptionKeeperVariables()
 
     if keeper_variables[0] is None:
@@ -74,7 +80,10 @@ def getExceptionCaughtTypeCode(to_name, emit, context):
         )
 
 
-def getExceptionCaughtValueCode(to_name, emit, context):
+def generateExceptionCaughtValueCode(to_name, expression, emit, context):
+    # Functions used for generation all accept expression, but this one does
+    # not use it. pylint: disable=W0613
+
     keeper_variables = context.getExceptionKeeperVariables()
 
     if keeper_variables[1] is None:
@@ -84,7 +93,7 @@ def getExceptionCaughtValueCode(to_name, emit, context):
             )
         )
     else:
-        if Utils.python_version >= 270:
+        if python_version >= 270:
             emit(
                 "%s = %s;" % (
                     to_name,
@@ -101,7 +110,10 @@ def getExceptionCaughtValueCode(to_name, emit, context):
             )
 
 
-def getExceptionCaughtTracebackCode(to_name, emit, context):
+def generateExceptionCaughtTracebackCode(to_name, expression, emit, context):
+    # Functions used for generation all accept expression, but this one does
+    # not use it. pylint: disable=W0613
+
     keeper_variables = context.getExceptionKeeperVariables()
 
     if keeper_variables[2] is None:
@@ -176,7 +188,7 @@ def generateExceptionPublishCode(statement, emit, context):
         )
     )
 
-    if Utils.python_version >= 300:
+    if python_version >= 300:
         emit(
             "PyException_SetTraceback( %s, (PyObject *)%s );" % (
                 keeper_value,
@@ -191,3 +203,42 @@ def generateExceptionPublishCode(statement, emit, context):
             keeper_tb
         )
     )
+
+
+def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
+    from .CallCodes import getCallCodeNoArgs, getCallCodePosArgsQuick
+
+    exception_arg_names = []
+
+    for exception_arg in expression.getArgs():
+        exception_arg_name = context.allocateTempName("make_exception_arg")
+
+        generateExpressionCode(
+            to_name    = exception_arg_name,
+            expression = exception_arg,
+            emit       = emit,
+            context    = context
+        )
+
+        exception_arg_names.append(exception_arg_name)
+
+    exception_type = expression.getExceptionName()
+
+    if exception_arg_names:
+        getCallCodePosArgsQuick(
+            to_name     = to_name,
+            called_name = getExceptionIdentifier(exception_type),
+            arg_names   = exception_arg_names,
+            needs_check = False,
+            emit        = emit,
+            context     = context
+        )
+
+    else:
+        getCallCodeNoArgs(
+            to_name     = to_name,
+            called_name = getExceptionIdentifier(exception_type),
+            needs_check = False,
+            emit        = emit,
+            context     = context
+        )

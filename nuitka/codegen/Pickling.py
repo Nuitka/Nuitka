@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,18 +25,17 @@ from logging import warning
 
 from nuitka import Constants
 from nuitka.__past__ import unicode  # pylint: disable=W0622
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
-# Work around for CPython 3.x removal of cpickle.
+# Work around for CPython 3.x removal of "cpickle".
 try:
     import cPickle as cpickle
 except ImportError:
     import pickle as cpickle
 
 
-if Utils.python_version >= 300:
+if python_version >= 300:
     # Python3: The protocol 3 adds support for bytes type.
-    # instead.
     pickle_protocol = 3
 else:
     pickle_protocol = 2

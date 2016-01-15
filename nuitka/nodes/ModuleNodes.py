@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,6 +31,7 @@ from nuitka.importing.Importing import (
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
+from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
 from nuitka.utils import Utils
 
@@ -89,12 +90,12 @@ class PythonModuleMixin:
                 module_name    = self.package_name,
                 parent_package = None,
                 level          = 1,
-                warn           = Utils.python_version < 330
+                warn           = python_version < 330
             )
 
             # TODO: Temporary, if we can't find the package for Python3.3 that
             # is semi-OK, maybe.
-            if Utils.python_version >= 330 and not package_filename:
+            if python_version >= 330 and not package_filename:
                 return []
 
             assert package_filename is not None, self.package_name
@@ -203,7 +204,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
             },
         )
 
-        self.variables = set()
+        self.variables = {}
 
         # The list functions contained in that module.
         self.functions = OrderedSet()
@@ -296,8 +297,11 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def getParentVariableProvider(self):
         return None
 
+    def hasVariableName(self, variable_name):
+        return variable_name in self.variables or variable_name in self.temp_variables
+
     def getVariables(self):
-        return self.variables
+        return self.variables.values()
 
     def getFilename(self):
         return self.source_ref.getFilename()
@@ -314,13 +318,14 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         )
 
     def createProvidedVariable(self, variable_name):
+        assert variable_name not in self.variables
+
         result = Variables.ModuleVariable(
             module        = self,
             variable_name = variable_name
         )
 
-        assert result not in self.variables
-        self.variables.add(result)
+        self.variables[variable_name] = result
 
         return result
 
@@ -361,7 +366,10 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def addUsedFunction(self, function_body):
         assert function_body in self.functions
 
-        assert function_body.isExpressionFunctionBody()
+        assert function_body.isExpressionFunctionBody() or \
+               function_body.isExpressionClassBody() or \
+               function_body.isExpressionGeneratorObjectBody() or \
+               function_body.isExpressionCoroutineObjectBody()
 
         if function_body not in self.active_functions:
             self.active_functions.add(function_body)

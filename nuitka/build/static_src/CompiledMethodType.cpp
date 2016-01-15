@@ -1,4 +1,4 @@
-//     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -213,14 +213,9 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     }
 }
 
-#ifdef _MSC_VER
-// Using _alloca below.
-#include <malloc.h>
-#endif
-
 static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *args, PyObject *kw )
 {
-    int arg_count = int( PyTuple_Size( args ) );
+    Py_ssize_t arg_count = PyTuple_Size( args );
 
     if ( method->m_object == NULL )
     {
@@ -267,35 +262,13 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
     }
     else
     {
-#ifdef _MSC_VER
-        PyObject **new_args = (PyObject **)_alloca( sizeof( PyObject * ) *( arg_count + 1 ) );
-#else
-        PyObject *new_args[ arg_count + 1 ];
-#endif
-        new_args[ 0 ] = method->m_object;
-
-        for ( int i = 0; i < arg_count; i++ )
-        {
-            new_args[ i + 1 ] = PyTuple_GET_ITEM( args, i );
-        }
-
-        if ( kw || method->m_function->m_direct_arg_parser == NULL )
-        {
-            return method->m_function->m_code(
-                method->m_function,
-                new_args,
-                arg_count + 1,
-                kw
-            );
-        }
-        else
-        {
-            return method->m_function->m_direct_arg_parser(
-                method->m_function,
-                new_args,
-                arg_count + 1
-            );
-        }
+        return Nuitka_CallMethodFunctionPosArgsKwArgs(
+            method->m_function,
+            method->m_object,
+            &PyTuple_GET_ITEM( args, 0 ),
+            arg_count,
+            kw
+        );
     }
 }
 
@@ -619,43 +592,55 @@ PyTypeObject Nuitka_Method_Type =
     sizeof(Nuitka_MethodObject),
     0,
     (destructor)Nuitka_Method_tp_dealloc,        // tp_dealloc
-    0,                                           // tp_print
-    0,                                           // tp_getattr
-    0,                                           // tp_setattr
+    0,                                           /* tp_print */
+    0,                                           /* tp_getattr */
+    0,                                           /* tp_setattr */
 #if PYTHON_VERSION < 300
-    (cmpfunc)Nuitka_Method_tp_compare,           // tp_compare
+    (cmpfunc)Nuitka_Method_tp_compare,           /* tp_compare */
 #else
     0,
 #endif
-    (reprfunc)Nuitka_Method_tp_repr,             // tp_repr
-    0,                                           // tp_as_number
-    0,                                           // tp_as_sequence
-    0,                                           // tp_as_mapping
-    (hashfunc)Nuitka_Method_tp_hash,             // tp_hash
-    (ternaryfunc)Nuitka_Method_tp_call,          // tp_call
-    0,                                           // tp_str
-    (getattrofunc)Nuitka_Method_tp_getattro,     // tp_getattro
-    PyObject_GenericSetAttr,                     // tp_setattro
-    0,                                           // tp_as_buffer
-    tp_flags,                                    // tp_flags
-    0,                                           // tp_doc
-    (traverseproc)Nuitka_Method_tp_traverse,     // tp_traverse
-    0,                                           // tp_clear
-    (richcmpfunc)Nuitka_Method_tp_richcompare,   // tp_richcompare
-    offsetof( Nuitka_MethodObject, m_weakrefs ), // tp_weaklistoffset
-    0,                                           // tp_iter
-    0,                                           // tp_iternext
-    Nuitka_Method_methods,                       // tp_methods
-    Nuitka_Method_members,                       // tp_members
-    Nuitka_Method_getsets,                       // tp_getset
-    0,                                           // tp_base
-    0,                                           // tp_dict
-    (descrgetfunc)Nuitka_Method_tp_descr_get,    // tp_descr_get
-    0,                                           // tp_descr_set
-    0,                                           // tp_dictoffset
-    0,                                           // tp_init
-    0,                                           // tp_alloc
-    Nuitka_Method_tp_new                         // tp_new
+    (reprfunc)Nuitka_Method_tp_repr,             /* tp_repr */
+    0,                                           /* tp_as_number */
+    0,                                           /* tp_as_sequence */
+    0,                                           /* tp_as_mapping */
+    (hashfunc)Nuitka_Method_tp_hash,             /* tp_hash */
+    (ternaryfunc)Nuitka_Method_tp_call,          /* tp_call */
+    0,                                           /* tp_str */
+    (getattrofunc)Nuitka_Method_tp_getattro,     /* tp_getattro */
+    PyObject_GenericSetAttr,                     /* tp_setattro */
+    0,                                           /* tp_as_buffer */
+    tp_flags,                                    /* tp_flags */
+    0,                                           /* tp_doc */
+    (traverseproc)Nuitka_Method_tp_traverse,     /* tp_traverse */
+    0,                                           /* tp_clear */
+    (richcmpfunc)Nuitka_Method_tp_richcompare,   /* tp_richcompare */
+    offsetof( Nuitka_MethodObject, m_weakrefs ), /* tp_weaklistoffset */
+    0,                                           /* tp_iter */
+    0,                                           /* tp_iternext */
+    Nuitka_Method_methods,                       /* tp_methods */
+    Nuitka_Method_members,                       /* tp_members */
+    Nuitka_Method_getsets,                       /* tp_getset */
+    0,                                           /* tp_base */
+    0,                                           /* tp_dict */
+    (descrgetfunc)Nuitka_Method_tp_descr_get,    /* tp_descr_get */
+    0,                                           /* tp_descr_set */
+    0,                                           /* tp_dictoffset */
+    0,                                           /* tp_init */
+    0,                                           /* tp_alloc */
+    Nuitka_Method_tp_new,                        /* tp_new */
+    0,                                           /* tp_free */
+    0,                                           /* tp_is_gc */
+    0,                                           /* tp_bases */
+    0,                                           /* tp_mro */
+    0,                                           /* tp_cache */
+    0,                                           /* tp_subclasses */
+    0,                                           /* tp_weaklist */
+    0,                                           /* tp_del */
+    0                                            /* tp_version_tag */
+#if PYTHON_VERSION >= 340
+    ,0                                           /* tp_finalizer */
+#endif
 };
 
 PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, PyObject *klass )

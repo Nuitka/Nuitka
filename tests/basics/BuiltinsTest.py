@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -69,7 +69,8 @@ def displayDict(d):
         d = dict(d)
         d["__file__"] = "<__file__ removed>"
 
-    return repr(d)
+    import pprint
+    return pprint.pformat(d)
 
 print("Vars on module level", displayDict(vars()))
 
@@ -278,7 +279,12 @@ print("Can optimize the empty star list arg away", int(*tuple()), end = ' ')
 print("Can optimize the empty star dict arg away", int(**dict()))
 
 print("Dict building with keyword arguments", dict(), dict(a = f))
-print("Dictionary entirely from constant args", dict(q = "Guido", w = "van", e = "Rossum", r = "invented", t = "Python", y = ""))
+print(
+    "Dictionary entirely from constant args",
+    displayDict(
+        dict(q = "Guido", w = "van", e = "Rossum", r = "invented", t = "Python", y = "")
+    )
+)
 
 a = 5
 print("Instance check recognises", isinstance(a, int))

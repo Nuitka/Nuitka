@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,7 +19,7 @@
 
 """
 
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .ConstantCodes import getConstantCode
 from .CoroutineCodes import getCoroutineObjectDeclCode
@@ -33,14 +33,10 @@ from .ErrorCodes import (
     getReleaseCode
 )
 from .GeneratorCodes import getGeneratorObjectDeclCode
+from .Helpers import generateExpressionCode
 from .Indentation import indented
+from .LabelCodes import getLabelCode
 from .ModuleCodes import getModuleAccessCode
-from .ParameterParsing import (
-    getDirectFunctionEntryPointIdentifier,
-    getParameterEntryPointIdentifier,
-    getParameterParsingCode,
-    getQuickEntryPointIdentifier
-)
 from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesFunction import (
     function_dict_setup,
@@ -54,7 +50,7 @@ from .templates.CodeTemplatesFunction import (
     template_make_function_with_context_template,
     template_make_function_without_context_template
 )
-from .TupleCodes import generateTupleCreationCode
+from .TupleCodes import getTupleCreationCode
 from .VariableCodes import (
     getLocalVariableInitCode,
     getVariableCode,
@@ -120,14 +116,16 @@ def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
     }
 
 
-def getFunctionMakerCode(function_name, function_qualname, function_identifier,
-                         code_identifier, parameters, closure_variables,
-                         defaults_name, kw_defaults_name, annotations_name,
-                         function_doc, context):
-    # We really need this many parameters here. pylint: disable=R0913
+def getFunctionEntryPointIdentifier(function_identifier):
+    return "impl_" + function_identifier
 
-    # Functions have many details, that we express as variables
-    # pylint: disable=R0914
+
+def getFunctionMakerCode(function_name, function_qualname, function_identifier,
+                         code_identifier, closure_variables, defaults_name,
+                         kw_defaults_name, annotations_name, function_doc,
+                         context):
+    # We really need this many parameters here and functions have many details,
+    # that we express as variables, pylint: disable=R0914
     function_creation_args = _getFunctionCreationArgs(
         defaults_name     = defaults_name,
         kw_defaults_name  = kw_defaults_name,
@@ -135,7 +133,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
         closure_variables = closure_variables
     )
 
-    if Utils.python_version < 330 or function_qualname == function_name:
+    if python_version < 330 or function_qualname == function_name:
         function_qualname_obj = "NULL"
     else:
         function_qualname_obj = getConstantCode(
@@ -172,12 +170,8 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
             ),
             "function_qualname_obj"      : function_qualname_obj,
             "function_identifier"        : function_identifier,
-            "fparse_function_identifier" : getParameterEntryPointIdentifier(
+            "function_impl_identifier" : getFunctionEntryPointIdentifier(
                 function_identifier = function_identifier,
-            ),
-            "dparse_function_identifier" : getQuickEntryPointIdentifier(
-                function_identifier = function_identifier,
-                parameters          = parameters
             ),
             "function_creation_args"     : ", ".join(
                 function_creation_args
@@ -210,12 +204,8 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
             ),
             "function_qualname_obj"      : function_qualname_obj,
             "function_identifier"        : function_identifier,
-            "fparse_function_identifier" : getParameterEntryPointIdentifier(
+            "function_impl_identifier" : getFunctionEntryPointIdentifier(
                 function_identifier = function_identifier,
-            ),
-            "dparse_function_identifier" : getQuickEntryPointIdentifier(
-                function_identifier = function_identifier,
-                parameters          = parameters
             ),
             "function_creation_args"     : ", ".join(
                 function_creation_args
@@ -242,11 +232,17 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
     return result
 
 
-def generateFunctionCreationCode(to_name, function_body, code_object, defaults,
-                                 kw_defaults, annotations, defaults_first, emit,
-                                 context):
+def generateFunctionCreationCode(to_name, expression, emit, context):
     # This is about creating functions, which is detail ridden stuff,
     # pylint: disable=R0914
+
+    function_body  = expression.getFunctionRef().getFunctionBody()
+    code_object    = expression.getCodeObject()
+    defaults       = expression.getDefaults()
+    kw_defaults    = expression.getKwDefaults()
+    annotations    = expression.getAnnotations()
+    defaults_first = not expression.kw_defaults_before_defaults
+
     assert function_body.needsCreation(), function_body
 
     def handleKwDefaults():
@@ -256,7 +252,6 @@ def generateFunctionCreationCode(to_name, function_body, code_object, defaults,
             assert not kw_defaults.isExpressionConstantRef() or \
                    kw_defaults.getConstant() != {}, kw_defaults.getConstant()
 
-            from .CodeGeneration import generateExpressionCode
             generateExpressionCode(
                 to_name    = kw_defaults_name,
                 expression = kw_defaults,
@@ -272,7 +267,7 @@ def generateFunctionCreationCode(to_name, function_body, code_object, defaults,
         if defaults:
             defaults_name = context.allocateTempName("defaults")
 
-            generateTupleCreationCode(
+            getTupleCreationCode(
                 to_name  = defaults_name,
                 elements = defaults,
                 emit     = emit,
@@ -293,7 +288,6 @@ def generateFunctionCreationCode(to_name, function_body, code_object, defaults,
     if annotations:
         annotations_name = context.allocateTempName("annotations")
 
-        from .CodeGeneration import generateExpressionCode
         generateExpressionCode(
             to_name    = annotations_name,
             expression = annotations,
@@ -322,7 +316,6 @@ def generateFunctionCreationCode(to_name, function_body, code_object, defaults,
             function_qualname   = function_body.getFunctionQualname(),
             function_identifier = function_identifier,
             code_identifier     = code_identifier,
-            parameters          = function_body.getParameters(),
             closure_variables   = function_body.getClosureVariables(),
             defaults_name       = defaults_name,
             kw_defaults_name    = kw_defaults_name,
@@ -399,7 +392,7 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
 
 def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
                               closure_variables, needs_check, emit, context):
-    function_identifier = getDirectFunctionEntryPointIdentifier(
+    function_identifier = getFunctionEntryPointIdentifier(
         function_identifier = function_identifier
     )
 
@@ -418,15 +411,33 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
         else:
             emit("Py_INCREF( %s );" % arg_name)
 
-    emit(
-        "%s = %s( %s );" % (
-            to_name,
-            function_identifier,
-            ", ".join(
-                arg_names + suffix_args
+
+    if arg_names:
+        emit(
+            """
+{
+    PyObject *dir_call_args[] = {%s};
+    %s = %s( dir_call_args%s%s );
+}""" % (
+                ", ".join(
+                    arg_names
+                ),
+                to_name,
+                function_identifier,
+                ", " if suffix_args else "",
+                ", ".join(suffix_args)
             )
         )
-    )
+    else:
+        emit(
+            "%s = %s( NULL%s%s );" % (
+                to_name,
+                function_identifier,
+                ", " if suffix_args else "",
+                ", ".join(suffix_args)
+            )
+        )
+
 
     # Arguments are owned to the called in direct function call.
     for arg_name in arg_names:
@@ -471,13 +482,10 @@ def getFunctionDirectClosureArgs(closure_variables):
     return result
 
 
-def getFunctionDirectDecl(function_identifier, closure_variables,
-                          parameter_variables, file_scope):
+def getFunctionDirectDecl(function_identifier, closure_variables, file_scope):
 
     parameter_objects_decl = [
-        "PyObject *_python_par_" + variable.getCodeName()
-        for variable in
-        parameter_variables
+        "PyObject **python_pars"
     ]
 
     parameter_objects_decl += getFunctionDirectClosureArgs(closure_variables)
@@ -491,24 +499,12 @@ def getFunctionDirectDecl(function_identifier, closure_variables,
     return result
 
 
-def getFunctionCode(context, function_name, function_identifier, parameters,
-                    closure_variables, user_variables, temp_variables,
-                    function_codes, function_doc, file_scope,
-                    needs_exception_exit):
-
-    # Many arguments, as we need much input transferred, pylint: disable=R0913
+def getFunctionCode(context, function_identifier, parameters, closure_variables,
+                    user_variables, temp_variables, function_codes, function_doc,
+                    file_scope, needs_exception_exit):
 
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=R0912,R0914
-
-    parameter_variables, entry_point_code, parameter_objects_decl = \
-      getParameterParsingCode(
-        function_identifier = function_identifier,
-        function_name       = function_name,
-        parameters          = parameters,
-        needs_creation      = context.isForCreatedFunction(),
-        context             = context,
-    )
 
     function_locals = []
 
@@ -518,14 +514,14 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
     else:
         function_cleanup = ""
 
-    function_locals += [
-        getLocalVariableInitCode(
-            variable  = variable,
-            init_from = "_python_par_" + variable.getCodeName()
-        )
-        for variable in
-        parameter_variables
-    ]
+    if parameters is not None:
+        for count, variable in enumerate(parameters.getAllVariables()):
+            function_locals.append(
+                getLocalVariableInitCode(
+                    variable  = variable,
+                    init_from = "python_pars[ %d ]" % count
+                )
+            )
 
     # User local variable initializations
     function_locals += [
@@ -599,6 +595,15 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
             }
         )
 
+    if context.isForCreatedFunction():
+        parameter_objects_decl = ["Nuitka_FunctionObject const *self"]
+    else:
+        parameter_objects_decl = []
+
+    parameter_objects_decl += [
+        "PyObject **python_pars"
+    ]
+
     if context.isForDirectCall():
         parameter_objects_decl += getFunctionDirectClosureArgs(closure_variables)
 
@@ -621,11 +626,7 @@ def getFunctionCode(context, function_name, function_identifier, parameters,
             "function_exit"                : function_exit
         }
 
-    if context.isForCreatedFunction():
-        result += entry_point_code
-
     return result
-
 
 
 def getExportScopeCode(cross_module):
@@ -645,14 +646,100 @@ def generateFunctionDeclCode(function_body):
         return getCoroutineObjectDeclCode(
             function_identifier = function_body.getCodeName(),
         )
+    elif function_body.isExpressionClassBody():
+        return getFunctionDirectDecl(
+            function_identifier = function_body.getCodeName(),
+            closure_variables   = function_body.getClosureVariables(),
+            file_scope          = getExportScopeCode(
+                cross_module = False
+            )
+        )
     elif function_body.needsDirectCall():
         return getFunctionDirectDecl(
             function_identifier = function_body.getCodeName(),
             closure_variables   = function_body.getClosureVariables(),
-            parameter_variables = function_body.getParameters().getAllVariables(),
             file_scope          = getExportScopeCode(
                 cross_module = function_body.isCrossModuleUsed()
             )
         )
     else:
         return None
+
+
+def generateFunctionCallCode(to_name, expression, emit, context):
+    assert expression.getFunction().isExpressionFunctionCreation()
+
+    function_body = expression.getFunction().getFunctionRef().getFunctionBody()
+    function_identifier = function_body.getCodeName()
+
+    argument_values = expression.getArgumentValues()
+
+    arg_names = []
+    for count, arg_value in enumerate(argument_values):
+        arg_name = context.allocateTempName("dircall_arg%d" % (count+1))
+
+        generateExpressionCode(
+            to_name    = arg_name,
+            expression = arg_value,
+            emit       = emit,
+            context    = context
+        )
+
+        arg_names.append(arg_name)
+
+    context.setCurrentSourceCodeReference(
+        expression.getCompatibleSourceReference()
+    )
+
+    getDirectFunctionCallCode(
+        to_name             = to_name,
+        function_identifier = function_identifier,
+        arg_names           = arg_names,
+        closure_variables   = function_body.getClosureVariables(),
+        needs_check         = expression.getFunction().getFunctionRef().\
+                                getFunctionBody().mayRaiseException(BaseException),
+        emit                = emit,
+        context             = context
+    )
+
+
+def generateFunctionOutlineCode(to_name, expression, emit, context):
+    assert expression.isExpressionOutlineBody()
+
+    # Need to set return target, to assign to_name from.
+    old_return_release_mode = context.getReturnReleaseMode()
+
+    return_target = context.allocateLabel("outline_result")
+    old_return_target = context.setReturnTarget(return_target)
+
+    return_value_name = context.allocateTempName("outline_return_value")
+    old_return_value_name = context.setReturnValueName(return_value_name)
+
+    from .CodeGeneration import generateStatementSequenceCode
+    generateStatementSequenceCode(
+        statement_sequence = expression.getBody(),
+        emit               = emit,
+        context            = context,
+        allow_none         = False
+    )
+
+    getMustNotGetHereCode(
+        reason  = "Return statement must have exited already.",
+        context = context,
+        emit    = emit
+    )
+
+    getLabelCode(return_target, emit)
+    emit(
+        "%s = %s;" % (
+            to_name,
+            return_value_name
+        )
+    )
+
+    context.addCleanupTempName(to_name)
+
+    # Restore previous "return" handling.
+    context.setReturnTarget(old_return_target)
+    context.setReturnReleaseMode(old_return_release_mode)
+    context.setReturnValueName(old_return_value_name)

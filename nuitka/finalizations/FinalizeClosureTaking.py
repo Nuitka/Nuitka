@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,13 +24,13 @@ having it spoiled with these transitive only references.
 
 """
 
+from nuitka.optimizations.Optimization import areEmptyTraces
+
 from .FinalizeBase import FinalizationVisitorBase
 
 
 class FinalizeClosureTaking(FinalizationVisitorBase):
     def onEnterNode(self, node):
-        assert node.isExpressionFunctionBody(), node
-
         # print node, node.provider
 
         for variable in node.getClosureVariables():
@@ -39,7 +39,7 @@ class FinalizeClosureTaking(FinalizationVisitorBase):
             current = node
 
             while current is not variable.getOwner():
-                if current.isExpressionFunctionBody():
+                if current.isParentVariableProvider():
                     if variable not in current.getClosureVariables():
                         current.addClosureVariable(variable)
 
@@ -50,3 +50,18 @@ class FinalizeClosureTaking(FinalizationVisitorBase):
 
                 # Not found?!
                 assert current is not None, variable
+
+
+class FinalizeClassClosure(FinalizationVisitorBase):
+    def onEnterNode(self, function_body):
+        for closure_variable in function_body.getClosureVariables():
+            if closure_variable.getName() not in ("__class__", "self"):
+                continue
+
+            variable_traces = function_body.constraint_collection.getVariableTraces(
+                variable = closure_variable
+            )
+
+            empty = areEmptyTraces(variable_traces)
+            if empty:
+                function_body.removeClosureVariable(closure_variable)

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,8 +25,8 @@ import re
 
 from nuitka import Options, PythonVersions, SourceCodeReferences
 from nuitka.plugins.PluginBase import Plugins
+from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.utils import Utils
 
 
 def _readSourceCodeFromFilename3(source_filename):
@@ -124,7 +124,7 @@ see http://python.org/dev/peps/pep-0263/ for details""" % (
     return source_code
 
 def readSourceCodeFromFilename(module_name, source_filename):
-    if Utils.python_version < 300:
+    if python_version < 300:
         source_code = _readSourceCodeFromFilename2(source_filename)
     else:
         source_code = _readSourceCodeFromFilename3(source_filename)

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Code generation for implicit and explict exception raises.
+""" Code generation for implicit and explicit exception raises.
 
 Exceptions from other operations are consider ErrorCodes domain.
 
@@ -23,15 +23,13 @@ Exceptions from other operations are consider ErrorCodes domain.
 
 from nuitka.Options import isDebug
 
-from .Helpers import generateChildExpressionsCode
+from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .LabelCodes import getGotoCode
 from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .PythonAPICodes import getReferenceExportCode2
 
 
 def generateRaiseCode(statement, emit, context):
-    from .CodeGeneration import generateExpressionCode
-
     exception_type  = statement.getExceptionType()
     exception_value = statement.getExceptionValue()
     exception_tb    = statement.getExceptionTrace()

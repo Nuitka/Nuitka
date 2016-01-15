@@ -853,17 +853,16 @@ Projects used by Nuitka
   large variety of platforms and make them available immediately nearly at
   release time.
 
-* The `MinGW project <http://www.mingw.org>`__
+* The `MinGW64 project <http://mingw-w64.org>`__
 
   Thanks for porting the gcc to Windows. This allowed portability of Nuitka with
-  relatively little effort. Unfortunately this is currently limited to compiling
-  CPython with 32 bits, and 64 bits requires MSVC compiler.
+  relatively little effort.
 
 * The `Buildbot project <http://buildbot.net>`__
 
-  Thanks for creating an easy to deploy and use continous integration framework
-  that also runs on Windows and written and configured in Python. This allows to
-  run the Nuitka tests long before release time.
+  Thanks for creating an easy to deploy and use continuous integration framework
+  that also runs on Windows and is written and configured in Python code. This
+  allows to run the Nuitka tests long before release time.
 
 Updates for this Manual
 =======================

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,7 +29,7 @@ from logging import debug
 from nuitka import Tracing, VariableRegistry
 from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .VariableTraces import (
     VariableTraceAssign,
@@ -79,18 +79,19 @@ class CollectionTracingMixin:
         self.variable_actives[variable] = version
 
     def getCurrentVariableVersion(self, variable):
-        # Initialize variables on the fly.
-        if variable not in self.variable_actives:
+        try:
+            return self.variable_actives[variable]
+        except KeyError:
+            # Initialize variables on the fly.
             if not self.hasVariableTrace(variable, 0):
                 self.initVariable(variable)
 
             self.markCurrentVariableTrace(variable, 0)
 
-        assert variable in self.variable_actives, (variable, self)
-        return self.variable_actives[variable]
+            return self.variable_actives[variable]
 
     def getActiveVariables(self):
-        return tuple(self.variable_actives.keys())
+        return self.variable_actives.keys()
 
     def markActiveVariableAsUnknown(self, variable):
         current = self.getVariableCurrentTrace(
@@ -401,7 +402,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
                 self.markActiveVariableAsUnknown(variable)
 
-            elif Utils.python_version >= 300 or variable.isSharedTechnically():
+            elif python_version >= 300 or variable.isSharedTechnically():
                 # print variable
 
                 # TODO: Could be limited to shared variables that are actually
@@ -755,7 +756,10 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
                                    ConstraintCollectionBase,
                                    VariableUsageTrackingMixin):
     def __init__(self, parent, function_body):
-        assert function_body.isExpressionFunctionBody(), function_body
+        assert function_body.isExpressionFunctionBody() or \
+               function_body.isExpressionClassBody() or \
+               function_body.isExpressionGeneratorObjectBody() or \
+               function_body.isExpressionCoroutineObjectBody(), function_body
 
         CollectionStartpointMixin.__init__(self)
 

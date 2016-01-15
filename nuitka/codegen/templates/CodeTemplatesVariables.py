@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -163,13 +163,6 @@ Py_DECREF( %(identifier)s );
 %(identifier)s = NULL;
 """
 
-# TODO: Maybe storage is never NULL.
-template_check_shared = """\
-( %(identifier)s != NULL && PyCell_GET( %(identifier)s ) != NULL )"""
-
-template_check_local = """\
-( %(identifier)s != NULL )"""
-
 # TODO: Storage will not be NULL.
 template_read_shared_unclear = """\
 if ( %(identifier)s == NULL )
@@ -210,6 +203,52 @@ if ( %(tmp_name)s == NULL )
 template_del_global_unclear = """\
 %(res_name)s = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, %(var_name)s );
 if ( %(res_name)s == -1 ) CLEAR_ERROR_OCCURRED();
+"""
+
+template_update_locals_dict_value = """\
+DICT_SYNC_FROM_VARIABLE(
+    %(dict_name)s,
+    %(var_name)s,
+    %(access_code)s
+);
+"""
+
+template_set_locals_dict_value = """\
+if ( %(access_code)s )
+{
+    int res = PyDict_SetItem(
+        %(dict_name)s,
+        %(var_name)s,
+        %(access_code)s
+    );
+
+    assert( res == 0 );
+}
+"""
+
+template_update_locals_mapping_value = """\
+%(tmp_name)s = MAPPING_SYNC_FROM_VARIABLE( %(mapping_name)s, %(var_name)s, %(access_code)s );
+"""
+
+template_set_locals_mapping_value = """\
+if %(check_code)s
+{
+    %(tmp_name)s = SET_SUBSCRIPT(
+        %(mapping_name)s,
+        %(var_name)s,
+        %(access_code)s
+    );
+}
+"""
+
+
+# TODO: Unused now.
+template_assign_from_frame_locals = """\
+if ( %(frame_identifier)s->f_locals == NULL )
+{
+    %(frame_identifier)s->f_locals = PyDict_New();
+}
+%(to_name)s = %(frame_identifier)s->f_locals;
 """
 
 from . import TemplateDebugWrapper # isort:skip

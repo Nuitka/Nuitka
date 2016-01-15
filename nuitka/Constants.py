@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,7 @@ This contains tools to compare, classify and test constants.
 
 import math
 
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from .__past__ import iterItems, long, unicode  # pylint: disable=W0622
 from .Builtins import builtin_anon_names
@@ -234,23 +234,15 @@ def isIndexConstant(constant):
     return type(constant) in (int, long, bool)
 
 
-def createConstantDict(keys, values, lazy_order):
-    if lazy_order:
-        constant_value = {}
-
-        keys = list(keys)
-        keys.reverse()
-
-        values = list(values)
-        values.reverse()
-    else:
-        constant_value = dict.fromkeys(
-            [ key for key in keys ],
-            None
-        )
+def createConstantDict(keys, values):
+    # Create it proper size immediately.
+    constant_value = dict.fromkeys(
+        keys,
+        None
+    )
 
     for key, value in zip(keys, values):
-        constant_value[ key ] = value
+        constant_value[key] = value
 
     return constant_value
 

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,8 +31,8 @@ classes.
 
 from nuitka import Options, VariableRegistry, Variables
 from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
+from nuitka.PythonVersions import python_version
 from nuitka.tree.Extractions import updateVariableUsage
-from nuitka.utils import Utils
 
 from .Checkers import checkStatementsSequenceOrNone
 from .IndicatorMixins import (
@@ -60,7 +60,7 @@ from .ParameterSpecs import TooManyArguments, matchCall
 class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
                                  ClosureGiverNodeBase, ExpressionMixin):
 
-    def __init__(self, provider, name, code_prefix, is_class, source_ref):
+    def __init__(self, provider, name, code_prefix, is_class, flags, source_ref):
         ClosureTakerMixin.__init__(
             self,
             provider      = provider,
@@ -81,21 +81,19 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             }
         )
 
+        self.flags = flags
+
         # Hack: This allows some APIs to work although this is not yet
         # officially a child yet. Important during building.
         self.parent = provider
 
         # Python3.4: Might be overridden by global statement on the class name.
         # TODO: Make this class only code.
-        if Utils.python_version >= 340:
+        if python_version >= 340:
             self.qualname_provider = provider
 
         # Non-local declarations.
         self.non_local_declarations = []
-
-        # Indicator, if this is a function that uses "super", because if it
-        # does, it would like to get the final "__class__" attached.
-        self.has_super = False
 
         # Register ourselves immediately with the module.
         provider.getParentModule().addFunction(self)
@@ -117,22 +115,22 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         return None
 
-    def isClassClosureTaker(self):
-        return self.has_super
+    def hasFlag(self, flag):
+        return flag in self.flags
 
     def getLocalsMode(self):
-        if Utils.python_version >= 300:
+        if python_version >= 300:
             return "updated"
         elif self.isEarlyClosure() or self.isUnoptimized():
             return "updated"
         else:
             return "copy"
 
+    def hasVariableName(self, variable_name):
+        return variable_name in self.providing or variable_name in self.temp_variables
+
     def getVariables(self):
         return self.providing.values()
-
-    def getLocalVariableNames(self):
-        return Variables.getNames(self.getLocalVariables())
 
     def getLocalVariables(self):
         return [
@@ -161,6 +159,8 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         self.taken.remove(variable)
 
+        VariableRegistry.removeVariableUsage(variable, self)
+
     def demoteClosureVariable(self, variable):
         assert variable.isLocalVariable()
 
@@ -181,6 +181,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             new_variable = new_variable
         )
 
+        VariableRegistry.removeVariableUsage(variable, self)
         VariableRegistry.addVariableUsage(new_variable, self)
 
     def removeUserVariable(self, variable):
@@ -190,6 +191,8 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         assert not variable.isParameterVariable() or \
                variable.getOwner() is not self
+
+        VariableRegistry.removeVariableUsage(variable, self)
 
     def getVariableForAssignment(self, variable_name):
         # print("ASS func", self, variable_name)
@@ -219,7 +222,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             # For "exec" containing/star import containing, we get a
             # closure variable already, but if it is a module variable,
             # only then make it a maybe local variable.
-            if self.isUnoptimized() and result.isModuleVariable():
+            if not self.isExpressionClassBody() and self.isUnoptimized() and result.isModuleVariable():
                 result = Variables.MaybeLocalVariable(
                     owner          = self,
                     maybe_variable = result
@@ -253,6 +256,30 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
     def getNonlocalDeclarations(self):
         return self.non_local_declarations
 
+    def getFunctionName(self):
+        return self.name
+
+    def getFunctionQualname(self):
+        """ Function __qualname__ new in CPython3.3
+
+        Should contain some kind of full name descriptions for the closure to
+        recognize and will be used for outputs.
+        """
+
+        function_name = self.getFunctionName()
+
+        if python_version < 340:
+            provider = self.getParentVariableProvider()
+        else:
+            provider = self.qualname_provider
+
+        if provider.isCompiledPythonModule():
+            return function_name
+        elif provider.isExpressionClassBody():
+            return provider.getFunctionQualname() + '.' + function_name
+        else:
+            return provider.getFunctionQualname() + ".<locals>." + function_name
+
     def computeExpression(self, constraint_collection):
         assert False
 
@@ -285,35 +312,29 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         "body" : checkStatementsSequenceOrNone
     }
 
-    if Utils.python_version >= 340:
+    if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, doc, parameters, is_class, source_ref):
+    def __init__(self, provider, name, doc, parameters, flags, source_ref):
         while provider.isExpressionOutlineBody():
             provider = provider.getParentVariableProvider()
 
-        if is_class:
-            code_prefix = "class"
-        else:
-            code_prefix = "function"
-
         if name == "<listcontraction>":
-            assert Utils.python_version >= 300
+            assert python_version >= 300
 
         ExpressionFunctionBodyBase.__init__(
             self,
             provider    = provider,
             name        = name,
-            code_prefix = code_prefix,
-            is_class    = is_class,
+            code_prefix = "function",
+            is_class    = False,
+            flags       = flags,
             source_ref  = source_ref
         )
 
         MarkLocalsDictIndicator.__init__(self)
 
         MarkUnoptimizedFunctionIndicator.__init__(self)
-
-        self.is_class = is_class
 
         self.doc = doc
 
@@ -333,7 +354,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         self.parameters.setOwner(self)
 
         self.registerProvidedVariables(
-            *self.parameters.getVariables()
+            *self.parameters.getAllVariables()
         )
 
     def getDetails(self):
@@ -350,30 +371,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
 
     def getParent(self):
         assert False
-
-    def getFunctionName(self):
-        return self.name
-
-    def getFunctionQualname(self):
-        """ Function __qualname__ new in CPython3.3
-
-        Should contain some kind of full name descriptions for the closure to
-        recognize and will be used for outputs.
-        """
-
-        function_name = self.getFunctionName()
-
-        if Utils.python_version < 340:
-            provider = self.getParentVariableProvider()
-        else:
-            provider = self.qualname_provider
-
-        if provider.isCompiledPythonModule():
-            return function_name
-        elif provider.isExpressionClassBody():
-            return provider.getFunctionQualname() + '.' + function_name
-        else:
-            return provider.getFunctionQualname() + ".<locals>." + function_name
 
     def getDoc(self):
         return self.doc
@@ -428,56 +425,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
     def needsExceptionReturnValue(self):
         return self.return_exception
 
-
-
-
-class ExpressionClassBody(ExpressionFunctionBody):
-    # pylint: disable=R0901
-    kind = "EXPRESSION_CLASS_BODY"
-
-    named_children = (
-        "body",
-    )
-
-    checkers = {
-        # TODO: Is "None" really an allowed value.
-        "body" : checkStatementsSequenceOrNone
-    }
-
-    # TODO: Everybody should check base instead.
-    @staticmethod
-    def isExpressionFunctionBody():
-        return True
-
-    def getVariableForClosure(self, variable_name):
-        # print( "getVariableForClosure", self, variable_name )
-
-        # The class bodies provide no closure, except under CPython3.x, there
-        # they provide "__class__" but nothing else.
-
-        if variable_name == "__class__":
-            if Utils.python_version < 300:
-                return self.provider.getVariableForClosure(
-                    "__class__"
-                )
-            elif Utils.python_version >= 340 and False: # TODO: Temporarily reverted
-                result = self.getTempVariable(
-                    temp_scope = None,
-                    name       = "__class__"
-                )
-
-                return result
-            else:
-                return ExpressionFunctionBody.getVariableForClosure(
-                    self,
-                    variable_name = "__class__"
-                )
-        else:
-            return self.provider.getVariableForClosure(
-                variable_name
-            )
-
-
 def convertNoneConstantOrEmptyDictToNone(node):
     if node is None:
         return None
@@ -500,7 +447,7 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
     # all kinds go last.
 
     # A bug of CPython3.x not fixed before version 3.4, see bugs.python.org/issue16967
-    kw_defaults_before_defaults = Utils.python_version < 340
+    kw_defaults_before_defaults = python_version < 340
 
     if kw_defaults_before_defaults:
         named_children = (
@@ -659,7 +606,7 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             values = [
                 args_dict[name]
                 for name in
-                call_spec.getAllNames()
+                call_spec.getParameterNames()
             ]
 
             result = ExpressionFunctionCall(
@@ -731,7 +678,10 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_FUNCTION_REF"
 
     def __init__(self, function_body, source_ref):
-        assert function_body.isExpressionFunctionBody()
+        assert function_body.isExpressionFunctionBody() or \
+               function_body.isExpressionClassBody() or \
+               function_body.isExpressionGeneratorObjectBody() or \
+               function_body.isExpressionCoroutineObjectBody()
 
         NodeBase.__init__(
             self,

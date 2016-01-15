@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,7 +24,7 @@ check it many times.
 """
 from nuitka.tree import Operations
 
-from .FinalizeClosureTaking import FinalizeClosureTaking
+from .FinalizeClosureTaking import FinalizeClassClosure, FinalizeClosureTaking
 from .FinalizeMarkups import FinalizeMarkups
 
 
@@ -33,6 +33,11 @@ def prepareCodeGeneration(tree):
     Operations.visitTree(tree, visitor)
     for function in tree.getUsedFunctions():
         Operations.visitTree(function, visitor)
+
+    visitor = FinalizeClassClosure()
+    for function in tree.getUsedFunctions():
+        if function.hasFlag("has_super"):
+            Operations.visitFunction(function, visitor)
 
     visitor = FinalizeClosureTaking()
     for function in tree.getUsedFunctions():

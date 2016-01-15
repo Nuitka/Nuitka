@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,6 +20,8 @@
 """
 
 from .ConstantCodes import getConstantAccess
+from .Helpers import generateExpressionCode
+from .PythonAPICodes import generateCAPIObjectCode
 
 
 def _areConstants(expressions):
@@ -32,7 +34,16 @@ def _areConstants(expressions):
     return True
 
 
-def generateTupleCreationCode(to_name, elements, emit, context):
+def generateTupleCreationCode(to_name, expression, emit, context):
+    return getTupleCreationCode(
+        to_name  = to_name,
+        elements = expression.getElements(),
+        emit     = emit,
+        context  = context
+    )
+
+
+def getTupleCreationCode(to_name, elements, emit, context):
     if _areConstants(elements):
         getConstantAccess(
             to_name  = to_name,
@@ -43,8 +54,6 @@ def generateTupleCreationCode(to_name, elements, emit, context):
             context  = context
         )
     else:
-        from .CodeGeneration import generateExpressionCode
-
         emit(
             "%s = PyTuple_New( %d );" % (
                 to_name,
@@ -76,3 +85,17 @@ def generateTupleCreationCode(to_name, elements, emit, context):
                     element_name
                 )
             )
+
+
+def generateBuiltinTupleCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "PySequence_Tuple",
+        arg_desc   = (
+            ("tuple_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )

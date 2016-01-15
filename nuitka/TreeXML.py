@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,7 @@ Means to create XML elements from Nuitka tree nodes and to convert the
 XML tree to ASCII or output it.
 """
 
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from . import Tracing
 
@@ -71,13 +71,15 @@ except ImportError:
         Element = None
         xml_tostring = None
 
+
 def toString(tree):
     result = xml_tostring(tree)
 
-    if Utils.python_version >= 300:
+    if python_version >= 300:
         result = result.decode("utf-8")
 
     return result
+
 
 def dump(tree):
     value = toString(tree).rstrip()

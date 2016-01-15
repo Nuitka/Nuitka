@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -76,7 +76,6 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinInt,
     ExpressionBuiltinList,
     ExpressionBuiltinSet,
-    ExpressionBuiltinSlice,
     ExpressionBuiltinStr,
     ExpressionBuiltinTuple
 )
@@ -110,6 +109,7 @@ from nuitka.nodes.OperatorNodes import (
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.SliceNodes import ExpressionBuiltinSlice
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
@@ -118,6 +118,7 @@ from nuitka.nodes.TypeNodes import (
 )
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.Options import isDebug, shallMakeModule
+from nuitka.PythonVersions import python_version
 from nuitka.tree.Helpers import (
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
@@ -125,7 +126,6 @@ from nuitka.tree.Helpers import (
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from nuitka.tree. \
     ReformulationTryFinallyStatements import makeTryFinallyStatement
-from nuitka.utils.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage
 
 from . import BuiltinOptimization
@@ -766,13 +766,6 @@ if python_version >= 300:
                 source_ref = source_ref
             )
 
-            # TODO: Can't really be true, can it?
-            if provider.isExpressionFunctionBody():
-                provider.markAsExecContaining()
-
-                if provider.isExpressionClassBody():
-                    provider.markAsUnqualifiedExecContaining(source_ref)
-
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
                 provider     = provider,
                 globals_node = globals_arg,
@@ -852,40 +845,29 @@ def super_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):
         if type_arg is None and python_version >= 300:
+
             provider = node.getParentVariableProvider()
 
-            if python_version < 340 or True: # TODO: Temporarily reverted:
-                type_arg = ExpressionVariableRef(
-                    variable_name = "__class__",
-                    source_ref    = source_ref
-                )
+            type_arg = ExpressionVariableRef(
+                variable_name = "__class__",
+                source_ref    = source_ref
+            )
 
-                # Ought to be already closure taken.
-                type_arg.setVariable(
-                    provider.getVariableForReference(
-                        variable_name = "__class__"
-                    )
+            # Ought to be already closure taken.
+            type_arg.setVariable(
+                provider.getVariableForReference(
+                    variable_name = "__class__"
                 )
+            )
 
-                # If we already have this as a local variable, then use that
-                # instead.
-                if type_arg.getVariable().getOwner() is provider or \
-                   not type_arg.getVariable().getOwner().isExpressionFunctionBody():
-                    type_arg = None
-                else:
-                    addVariableUsage(type_arg.getVariable(), provider)
+            # If we already have this as a local variable, then use that
+            # instead.
+            type_arg_owner = type_arg.getVariable().getOwner()
+            if type_arg_owner is provider or \
+            not (type_arg_owner.isExpressionFunctionBody() or \
+                 type_arg_owner.isExpressionClassBody()):
+                type_arg = None
             else:
-                parent_provider = provider.getParentVariableProvider()
-
-                class_var = parent_provider.getTempVariable(
-                    temp_scope = None,
-                    name       = "__class__"
-                )
-
-                type_arg = ExpressionTempVariableRef(
-                    variable   = class_var,
-                    source_ref = source_ref
-                )
                 addVariableUsage(type_arg.getVariable(), provider)
 
             if type_arg is None:
@@ -905,8 +887,6 @@ def super_extractor(node):
 
                 if parameter_provider.getParameters().getArgumentCount() > 0:
                     par1_name = parameter_provider.getParameters().getArgumentNames()[0]
-                    # TODO: Nested first argument would kill us here, need a
-                    # test for that.
 
                     object_arg = ExpressionVariableRef(
                         variable_name = par1_name,

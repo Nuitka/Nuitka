@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -41,6 +41,7 @@ from nuitka.nodes.ModuleNodes import (
     PythonShlibModule,
     makeUncompiledPythonModule
 )
+from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
 
@@ -173,7 +174,7 @@ def _detectImports(command, user_provided):
     # pylint: disable=R0912,R0914,R0915
 
     # Print statements for stuff to show, the modules loaded.
-    if Utils.python_version >= 300:
+    if python_version >= 300:
         command += '\nimport sys\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + ' \
                    'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and ' \
                    'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it
@@ -200,7 +201,7 @@ def _detectImports(command, user_provided):
     tmp_file, tmp_filename = tempfile.mkstemp()
 
     try:
-        if Utils.python_version >= 300:
+        if python_version >= 300:
             command = command.encode("ascii")
         os.write(tmp_file, command)
         os.close(tmp_file)
@@ -234,14 +235,14 @@ def _detectImports(command, user_provided):
             module_name = parts[0].split(b" ", 2)[1]
             origin = parts[1].split()[0]
 
-            if Utils.python_version >= 300:
+            if python_version >= 300:
                 module_name = module_name.decode("utf-8")
 
             if origin == b"precompiled":
                 # This is a ".pyc" file that was imported, even before we have a
                 # chance to do anything, we need to preserve it.
                 filename = parts[1][len(b"precompiled from "):]
-                if Utils.python_version >= 300:
+                if python_version >= 300:
                     filename = filename.decode("utf-8")
 
                 # Do not leave standard library when freezing.
@@ -256,7 +257,7 @@ def _detectImports(command, user_provided):
                 )
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile "):]
-                if Utils.python_version >= 300:
+                if python_version >= 300:
                     filename = filename.decode("utf-8")
 
                 # Do not leave standard library when freezing.
@@ -279,7 +280,7 @@ def _detectImports(command, user_provided):
                 # Shared library in early load, happens on RPM based systems and
                 # or self compiled Python installations.
                 filename = parts[1][len(b"dynamically loaded from "):]
-                if Utils.python_version >= 300:
+                if python_version >= 300:
                     filename = filename.decode("utf-8")
 
                 # Do not leave standard library when freezing.
@@ -300,11 +301,11 @@ def detectLateImports():
     # we need to make sure it will be available as well.
     if needsPickleInit():
         command += "import {pickle};".format(
-            pickle = "pickle" if Utils.python_version >= 300 else "cPickle"
+            pickle = "pickle" if python_version >= 300 else "cPickle"
         )
 
     # For Python3 we patch inspect without knowing if it is used.
-    if Utils.python_version >= 300:
+    if python_version >= 300:
         command += "import inspect;"
 
     if command:
@@ -346,7 +347,13 @@ def scanStandardLibraryPath(stdlib_dir):
             if "turtledemo" in dirs:
                 dirs.remove("turtledemo")
 
-        if import_path in ("tkinter", "importlib", "ctypes"):
+            if "ensurepip" in filenames:
+                filenames.remove("ensurepip")
+            if "ensurepip" in dirs:
+                dirs.remove("ensurepip")
+
+        if import_path in ("tkinter", "importlib", "ctypes", "unittest",
+                           "sqlite3", "distutils"):
             if "test" in dirs:
                 dirs.remove("test")
 
@@ -354,7 +361,7 @@ def scanStandardLibraryPath(stdlib_dir):
             if "tests" in dirs:
                 dirs.remove("tests")
 
-        if Utils.python_version >= 340 and Utils.getOS() == "Windows":
+        if python_version >= 340 and Utils.getOS() == "Windows":
             if import_path == "multiprocessing":
                 filenames.remove("popen_fork.py")
                 filenames.remove("popen_forkserver.py")
@@ -372,7 +379,7 @@ def scanStandardLibraryPath(stdlib_dir):
                 else:
                     yield import_path + '.' + module_name
 
-        if Utils.python_version >= 300:
+        if python_version >= 300:
             if "__pycache__" in dirs:
                 dirs.remove("__pycache__")
 
@@ -391,7 +398,7 @@ def detectEarlyImports():
         import_code += "import encodings.mbcs;import encodings.cp437;"
 
     # String method hex depends on it.
-    if Utils.python_version < 300:
+    if python_version < 300:
         import_code += "import encodings.hex_codec;"
 
     import_code += "import locale;"
@@ -462,7 +469,7 @@ def _detectBinaryPathDLLsLinuxBSD(binary_filename):
         if not filename:
             continue
 
-        if Utils.python_version >= 300:
+        if python_version >= 300:
             filename = filename.decode("utf-8")
 
         # Sometimes might use stuff not found.
@@ -500,7 +507,7 @@ def _detectBinaryPathDLLsMacOS(binary_filename):
                 stop = True
                 break
         if not stop:
-            if Utils.python_version >= 300:
+            if python_version >= 300:
                 filename = filename.decode("utf-8")
 
             # print "adding", filename

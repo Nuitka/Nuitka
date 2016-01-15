@@ -1,4 +1,4 @@
-//     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -310,6 +310,9 @@ static PyObject *Nuitka_Coroutine_send( Nuitka_CoroutineObject *coroutine, PyObj
 
                 CHECK_OBJECT( exception_value );
                 CHECK_OBJECT( saved_exception_value );
+
+                Py_INCREF( saved_exception_value );
+                PyException_SetContext( exception_value, saved_exception_value );
 
                 Py_DECREF( saved_exception_type );
                 Py_XDECREF( saved_exception_tb );
@@ -676,10 +679,9 @@ PyTypeObject Nuitka_Coroutine_Type = {
     0,                                               /* tp_cache */
     0,                                               /* tp_subclasses */
     0,                                               /* tp_weaklist */
-    (destructor)Nuitka_Coroutine_tp_del,             /* tp_del */
+    0,                                               /* tp_del */
     0,                                               /* tp_version_tag */
-    /* TODO: Check out the merits of tp_finalize vs. tp_del */
-    0,                                               /* tp_finalize */
+    (destructor)Nuitka_Coroutine_tp_del,             /* tp_finalize */
 };
 
 static void Nuitka_CoroutineWrapper_tp_dealloc( Nuitka_CoroutineWrapperObject *cw )

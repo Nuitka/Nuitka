@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,8 +27,8 @@ complete.
 from nuitka import PythonVersions, Variables
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.Options import isFullCompat
+from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.utils.Utils import python_version
 from nuitka.VariableRegistry import addVariableUsage, isSharedAmongScopes
 
 from .Operations import VisitorNoopMixin, visitTree
@@ -81,7 +81,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     )
 
                 node.registerProvidedVariable(variable)
-
+                addVariableUsage(variable, node)
 
     @staticmethod
     def _handleQualnameSetup(node):
@@ -181,6 +181,13 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             # TODO: Then this may not even have to be here at all.
             self._handleQualnameSetup(node)
+        elif node.isExpressionClassBody():
+            self._handleNonLocal(node)
+
+            # Python3.4 allows for class declarations to be made global, even
+            # after they were declared, so we need to fix this up.
+            if python_version >= 340:
+                self._handleQualnameSetup(node)
         elif node.isExpressionFunctionBody():
             self._handleNonLocal(node)
 
@@ -224,14 +231,14 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         seen_function = True
         # Check if continue and break are properly in loops. If not, raise a
         # syntax error.
-        elif node.isStatementBreakLoop() or node.isStatementContinueLoop():
+        elif node.isStatementLoopBreak() or node.isStatementLoopContinue():
             current = node
 
             while True:
-                if current.isCompiledPythonModule() or \
-                   current.isExpressionFunctionBody():
-                    if node.isStatementContinueLoop():
+                if current.isParentVariableProvider():
+                    if node.isStatementLoopContinue():
                         message = "'continue' not properly in loop"
+
                         col_offset   = 16 if python_version >= 300 else None
                         display_line = True
                         source_line  = None
@@ -291,7 +298,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
         # Need to catch functions with "exec" and closure variables not allowed.
         if python_version < 300 and \
            not was_taken and \
-           provider.isExpressionFunctionBody() and \
+           provider.isExpressionFunctionBodyBase() and \
            variable.getOwner() is not provider:
             parent_provider = provider.getParentVariableProvider()
 
@@ -375,7 +382,16 @@ def completeVariableClosures(tree):
     if tree.isCompiledPythonModule():
         for function in tree.getFunctions():
             addFunctionVariableReleases(function)
-    else:
-        # For "eval" code, this will need to be done differently, not done
-        # yet-
-        assert False
+
+            # Python3 is influenced by the mere use of a variable named as
+            # "super". So we need to prepare ability to take closure.
+            if function.hasFlag("has_super"):
+                if not function.hasVariableName("__class__"):
+                    class_var = function.getClosureVariable("__class__")
+                    function.registerProvidedVariable(class_var)
+                    addVariableUsage(class_var, function)
+
+                if not function.hasVariableName("self"):
+                    self_var = function.getClosureVariable("self")
+                    function.registerProvidedVariable(self_var)
+                    addVariableUsage(self_var, function)

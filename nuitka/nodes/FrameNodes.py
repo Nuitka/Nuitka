@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,7 +26,7 @@ them.
 
 """
 
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from .StatementNodes import StatementsSequence
 
@@ -107,9 +107,14 @@ class StatementsFrame(StatementsSequence):
         """
         provider = self.getParentVariableProvider()
 
-        # TODO: Bad for in-lining of these.
         if provider.isExpressionFunctionBody():
-            self.code_object.updateLocalNames(provider.getLocalVariableNames())
+            self.code_object.updateLocalNames(
+                [
+                    variable.getName() for
+                    variable in
+                    provider.getLocalVariables()
+                ]
+            )
 
     def markAsFrameExceptionPreserving(self):
         self.needs_frame_exception_preserve = True

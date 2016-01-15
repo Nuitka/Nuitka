@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,9 +27,10 @@ from .ErrorCodes import (
     getErrorExitReleaseCode,
     getReleaseCode
 )
-from .Helpers import generateChildExpressionsCode
+from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .Indentation import indented
 from .LineNumberCodes import getLineNumberUpdateCode
+from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesIterators import (
     template_iterator_check,
     template_loop_break_next
@@ -142,7 +143,36 @@ def getUnpackNextCode(to_name, value, expected, count, emit, context):
     context.addCleanupTempName(to_name)
 
 
-def getUnpackCheckCode(iterator_name, count, emit, context):
+def generateSpecialUnpackCode(to_name, expression, emit, context):
+    value_name = context.allocateTempName("unpack")
+
+    generateExpressionCode(
+        to_name    = value_name,
+        expression = expression.getValue(),
+        emit       = emit,
+        context    = context
+    )
+
+    getUnpackNextCode(
+        to_name  = to_name,
+        value    = value_name,
+        count    = expression.getCount(),
+        expected = expression.getExpected(),
+        emit     = emit,
+        context  = context
+    )
+
+
+def generateUnpackCheckCode(statement, emit, context):
+    iterator_name  = context.allocateTempName("iterator_name")
+
+    generateExpressionCode(
+        to_name    = iterator_name,
+        expression = statement.getIterator(),
+        emit       = emit,
+        context    = context
+    )
+
     # These variable cannot collide, as it's used very locally.
     attempt_name = context.allocateTempName("iterator_attempt", unique = True)
 
@@ -152,7 +182,7 @@ def getUnpackCheckCode(iterator_name, count, emit, context):
         template_iterator_check % {
             "iterator_name"   : iterator_name,
             "attempt_name"    : attempt_name,
-            "count"           : count,
+            "count"           : statement.getCount(),
             "exception_exit"  : context.getExceptionEscape(),
             "release_temps_1" : indented(release_code, 2),
             "release_temps_2" : indented(release_code),
@@ -163,4 +193,62 @@ def getUnpackCheckCode(iterator_name, count, emit, context):
         release_name = iterator_name,
         emit         = emit,
         context      = context
+    )
+
+
+def generateBuiltinNext2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_NEXT2",
+        arg_desc   = (
+            ("next_arg", expression.getIterator()),
+            ("next_default", expression.getDefault()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinIter1Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "MAKE_ITERATOR",
+        arg_desc   = (
+            ("iter_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinIter2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_ITER2",
+        arg_desc   = (
+            ("iter_callable", expression.getCallable()),
+            ("iter_sentinel", expression.getSentinel()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinLenCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_LEN",
+        arg_desc   = (
+            ("len_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
     )

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -73,7 +73,7 @@ from nuitka.nodes.ImportNodes import (
     ExpressionImportModule,
     ExpressionImportName
 )
-from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementContinueLoop
+from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
     CompiledPythonPackage,
@@ -95,7 +95,6 @@ from nuitka.tree.ReformulationForLoopStatements import (
 )
 from nuitka.tree.ReformulationWhileLoopStatements import buildWhileLoopNode
 from nuitka.utils import Utils
-from nuitka.VariableRegistry import addVariableUsage
 
 from . import SyntaxErrors
 from .Helpers import (
@@ -156,25 +155,13 @@ from .VariableClosure import completeVariableClosures
 
 
 def buildVariableReferenceNode(provider, node, source_ref):
-    # Python3 is influenced by the mere use of a variable name. So we need to
-    # remember it, esp. for cases, where it is optimized away.
-    if node.id == "super" and provider.isExpressionFunctionBody():
-        if python_version >= 300:
-            variable = provider.getVariableForClosure("__class__")
-
-            if variable.getOwner().isExpressionFunctionBody():
-                addVariableUsage(variable, provider)
-
-        variable = provider.getVariableForClosure("self")
-        if variable.getOwner().isExpressionFunctionBody():
-            addVariableUsage(variable, provider)
-
     return ExpressionVariableRef(
         variable_name = mangleName(node.id, provider),
         source_ref    = source_ref
     )
 
-# Python3.4 only, True and False, are not given as variables anymore.
+
+# Python3.4 or higher, True and False, are not given as variables anymore.
 def buildNamedConstantNode(node, source_ref):
     return ExpressionConstantRef(
         constant   = node.value,
@@ -351,10 +338,10 @@ def buildImportModulesNode(provider, node, source_ref):
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetVariableRef(
                     variable_name = mangleName(
-                                      local_name
-                                        if local_name is not None else
-                                      module_topname,
-                                      provider
+                        local_name
+                          if local_name is not None else
+                        module_topname,
+                        provider
                     ),
                     source_ref    = source_ref
                 ),
@@ -381,7 +368,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
 
     # Need to catch the error of declaring a parameter variable as global
     # ourselves here. The AST parsing doesn't catch it, so we check here.
-    try:
+    if provider.isExpressionFunctionBody():
         parameters = provider.getParameters()
 
         for variable_name in node.names:
@@ -400,8 +387,6 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                         provider.getSourceReference()
                     )
                 )
-    except AttributeError:
-        pass
 
     # The module the "global" statement refers to.
     module = provider.getParentModule()
@@ -456,7 +441,10 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
           parameter_provider.isExpressionCoroutineObjectBody():
         parameter_provider = parameter_provider.getParentVariableProvider()
 
-    parameter_names = parameter_provider.getParameters().getParameterNames()
+    if parameter_provider.isExpressionClassBody():
+        parameter_names = ()
+    else:
+        parameter_names = parameter_provider.getParameters().getParameterNames()
 
     for variable_name in node.names:
         if variable_name in parameter_names:
@@ -515,7 +503,7 @@ def buildEllipsisNode(source_ref):
     )
 
 
-def buildStatementContinueLoop(node, source_ref):
+def buildStatementLoopContinue(node, source_ref):
     # Python forbids this, although technically it's probably not much of
     # an issue.
     if getBuildContext() == "finally":
@@ -536,16 +524,16 @@ def buildStatementContinueLoop(node, source_ref):
             source_line = source_line
         )
 
-    return StatementContinueLoop(
+    return StatementLoopContinue(
         source_ref = source_ref
     )
 
 
-def buildStatementBreakLoop(provider, node, source_ref):
+def buildStatementLoopBreak(provider, node, source_ref):
     # A bit unusual, we need the provider, but not the node,
     # pylint: disable=W0613
 
-    return StatementBreakLoop(
+    return StatementLoopBreak(
         source_ref = source_ref
     )
 
@@ -722,14 +710,14 @@ setBuildingDispatchers(
         "Repr"              : buildReprNode,
         "AugAssign"         : buildInplaceAssignNode,
         "IfExp"             : buildConditionalExpressionNode,
-        "Break"             : buildStatementBreakLoop,
+        "Break"             : buildStatementLoopBreak,
     },
     path_args2 = {
         "NameConstant" : buildNamedConstantNode,
         "Str"          : buildStringNode,
         "Num"          : buildNumberNode,
         "Bytes"        : buildBytesNode,
-        "Continue"     : buildStatementContinueLoop,
+        "Continue"     : buildStatementLoopContinue,
     },
     path_args1 = {
         "Ellipsis"     : buildEllipsisNode,

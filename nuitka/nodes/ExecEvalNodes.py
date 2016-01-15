@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,7 +23,7 @@ to do.
 """
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
@@ -62,7 +62,7 @@ class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
 
 
 # Note: Python3 only so far.
-if Utils.python_version >= 300:
+if python_version >= 300:
     class ExpressionBuiltinExec(ExpressionBuiltinEval):
         kind = "EXPRESSION_BUILTIN_EXEC"
 
@@ -76,7 +76,7 @@ if Utils.python_version >= 300:
             )
 
         def needsLocalsDict(self):
-            return False
+            return True
 
         def computeExpression(self, constraint_collection):
             # TODO: Attempt for constant values to do it.
@@ -92,13 +92,13 @@ if Utils.python_version >= 300:
                 )
 
                 return result, "new_statements", """\
-Replaced builtin exec call to exec statement in early closure context."""
+Replaced built-in exec call to exec statement in early closure context."""
             else:
                 return statement, None, None
 
 
 # Note: Python2 only
-if Utils.python_version < 300:
+if python_version < 300:
     class ExpressionBuiltinExecfile(ExpressionBuiltinEval):
         kind = "EXPRESSION_BUILTIN_EXECFILE"
 

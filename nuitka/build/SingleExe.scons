@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -631,6 +631,12 @@ if msvc_mode:
     env.Append(CCFLAGS = ["/EHsc", "/J", "/Gd"])
     env.Append(LINKFLAGS = ["/INCREMENTAL:NO"])
 
+    # Stack size 4MB or 8MB, we need more than the default 1MB.
+    if target_arch == "x86_64":
+        env.Append(CCFLAGS = ["/F8388608"])
+    else:
+        env.Append(CCFLAGS = ["/F4194304"])
+
 # The 32 bits MinGW does not default for API level properly, so help it.
 if mingw_mode:
     # Windows XP
@@ -908,7 +914,7 @@ if win_target:
                 shell       = False
             )
         except WindowsError:
-            sys.exit("Error, cannot find gendefs.exe which is required though.")
+            sys.exit("Error, cannot find gendef.exe which is required though.")
 
         data, err = proc.communicate()
         rv = proc.wait()

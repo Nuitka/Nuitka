@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -71,7 +71,9 @@ def e():
 
 
 class C1(a(), b(), other = d(), metaclass = m(), yet_other = e()):
-    pass
+    import sys
+    # TODO: Enable this.
+    # print("C1 locals type is", type(sys._getframe().f_locals))
 
 print("OK, class created", C1)
 

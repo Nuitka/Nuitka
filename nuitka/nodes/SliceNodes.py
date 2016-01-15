@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,12 +23,19 @@ achieve more compact code, or predict results at compile time.
 There will be a method "computeExpressionSlice" to aid predicting them.
 """
 
-from nuitka.utils import Utils
+from nuitka.optimizations import BuiltinOptimization
+from nuitka.PythonVersions import python_version
 
-from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from .ConstantRefNodes import ExpressionConstantRef
+from .NodeBases import (
+    ChildrenHavingMixin,
+    ExpressionChildrenHavingBase,
+    ExpressionSpecBasedComputationMixin,
+    NodeBase,
+    StatementChildrenHavingBase
+)
 from .NodeMakingHelpers import (
     convertNoneConstantToNone,
-    getComputationResult,
     makeStatementExpressionOnlyReplacementNode,
     makeStatementOnlyNodesFromExpressions
 )
@@ -45,7 +52,7 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
     )
 
     def __init__(self, expression, lower, upper, source, source_ref):
-        assert Utils.python_version < 300
+        assert python_version < 300
 
         StatementChildrenHavingBase.__init__(
             self,
@@ -224,7 +231,7 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
     }
 
     def __init__(self, expression, lower, upper, source_ref):
-        assert Utils.python_version < 300
+        assert python_version < 300
 
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -259,52 +266,70 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
         return None
 
 
-class ExpressionSliceObject(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_SLICE_OBJECT"
+class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
+                             ExpressionSpecBasedComputationMixin):
+    kind = "EXPRESSION_BUILTIN_SLICE"
 
     named_children = (
-        "lower",
-        "upper",
+        "start",
+        "stop",
         "step"
     )
 
-    def __init__(self, lower, upper, step, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+    builtin_spec = BuiltinOptimization.builtin_slice_spec
+
+    def __init__(self, start, stop, step, source_ref):
+        NodeBase.__init__(
             self,
-            values     = {
-                "upper" : upper,
-                "lower" : lower,
-                "step"  : step
-            },
             source_ref = source_ref
         )
 
-    getLower = ExpressionChildrenHavingBase.childGetter("lower")
-    getUpper = ExpressionChildrenHavingBase.childGetter("upper")
-    getStep  = ExpressionChildrenHavingBase.childGetter("step")
+        if start is None:
+            start = ExpressionConstantRef(
+                constant   = None,
+                source_ref = source_ref
+            )
+        if stop is None:
+            stop = ExpressionConstantRef(
+                constant   = None,
+                source_ref = source_ref
+            )
+        if step is None:
+            step = ExpressionConstantRef(
+                constant   = None,
+                source_ref = source_ref
+            )
+
+        ChildrenHavingMixin.__init__(
+            self,
+            values = {
+                "start" : start,
+                "stop"  : stop,
+                "step"  : step
+            }
+        )
 
     def computeExpression(self, constraint_collection):
-        lower = self.getLower()
-
-        if lower is not None and not lower.isCompileTimeConstant():
-            return self, None, None
-
-        upper = self.getUpper()
-
-        if upper is not None and not upper.isCompileTimeConstant():
-            return self, None, None
-
+        start = self.getStart()
+        stop = self.getStop()
         step = self.getStep()
 
-        if step is not None and not step.isCompileTimeConstant():
-            return self, None, None
-
-        return getComputationResult(
-            node        = self,
-            computation = lambda : slice(
-                lower.getCompileTimeConstant() if lower is not None else None,
-                upper.getCompileTimeConstant() if upper is not None else None,
-                step.getCompileTimeConstant()  if step is not None else None
-            ),
-            description = "Built-in call to 'slice' computed."
+        args = (
+            start,
+            stop,
+            step
         )
+
+        return self.computeBuiltinSpec(
+            constraint_collection = constraint_collection,
+            given_values          = args
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.getStart().mayRaiseException(exception_type) or \
+               self.getStop().mayRaiseException(exception_type) or \
+               self.getStep().mayRaiseException(exception_type)
+
+    getStart = ChildrenHavingMixin.childGetter("start")
+    getStop = ChildrenHavingMixin.childGetter("stop")
+    getStep = ChildrenHavingMixin.childGetter("step")

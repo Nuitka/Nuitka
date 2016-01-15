@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -103,8 +103,9 @@ def kwonlyfunc(x: annotation1(), y: annotation2() = default1(), z: annotation3()
 
 print("__kwdefaults__", displayDict(kwonlyfunc.__kwdefaults__))
 
-print("Keyword only function")
+print("Keyword only function called:")
 kwonlyfunc( 7, a = 8, d = 12 )
+print("OK.")
 
 print("Annotations come out as", sorted( kwonlyfunc.__annotations__ ))
 kwonlyfunc.__annotations__ = {}

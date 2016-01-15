@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,10 +26,9 @@ from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.containers.odict import OrderedDict
-from nuitka.containers.oset import OrderedSet
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
-from nuitka.VariableRegistry import addVariableUsage
+from nuitka.VariableRegistry import addVariableUsage, removeVariableUsage
 
 from .NodeMakingHelpers import (
     getComputationResult,
@@ -185,27 +184,6 @@ class NodeBase(NodeMetaClassBase):
             assert False, (self,  self.source_ref)
 
         return self.parent
-
-    def getParents(self):
-        """ Parents of the node. Up to module level.
-
-        """
-        result = []
-        current = self
-
-        while True:
-            current = current.getParent()
-
-            result.append(current)
-
-            if current.isCompiledPythonModule() or current.isExpressionFunctionBody():
-                break
-
-        assert None not in result, self
-
-        result.reverse()
-        return result
-
     def getChildName(self):
         """ Return the role in the current parent, subject to changes.
 
@@ -238,7 +216,7 @@ class NodeBase(NodeMetaClassBase):
 
         parent = self.getParent()
 
-        while parent is not None and not parent.isExpressionFunctionBody():
+        while parent is not None and not parent.isExpressionFunctionBodyBase():
             parent = parent.getParent()
 
         return parent
@@ -857,8 +835,6 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
         self.providing = OrderedDict()
 
-        self.keeper_variables = OrderedSet()
-
         self.temp_variables = OrderedDict()
 
         self.temp_scopes = OrderedDict()
@@ -922,8 +898,7 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
             full_name = name
 
-        del name
-
+        # No duplicates please.
         assert full_name not in self.temp_variables, full_name
 
         result = Variables.TempVariable(
@@ -950,6 +925,8 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
     def removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]
+
+        removeVariableUsage(variable, self)
 
     def allocatePreserverId(self):
         if python_version >= 300:

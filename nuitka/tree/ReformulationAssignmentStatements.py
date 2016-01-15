@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -46,8 +46,8 @@ from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
 from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryInplace
 from nuitka.nodes.SliceNodes import (
+    ExpressionBuiltinSlice,
     ExpressionSliceLookup,
-    ExpressionSliceObject,
     StatementAssignmentSlice,
     StatementDelSlice
 )
@@ -60,7 +60,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .Helpers import (
     buildNode,
@@ -86,9 +86,9 @@ def buildExtSliceNode(provider, node, source_ref):
             upper = buildNode(provider, dim.upper, source_ref, True)
             step = buildNode(provider, dim.step, source_ref, True)
 
-            element = ExpressionSliceObject(
-                lower      = lower,
-                upper      = upper,
+            element = ExpressionBuiltinSlice(
+                start      = lower,
+                stop       = upper,
                 step       = step,
                 source_ref = source_ref
             )
@@ -154,15 +154,15 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
         # For Python3 there is no slicing operation, this is always done
         # with subscript using a slice object. For Python2, it is only done
         # if no "step" is provided.
-        use_sliceobj = Utils.python_version >= 300
+        use_sliceobj = python_version >= 300
 
         if use_sliceobj:
             return StatementAssignmentSubscript(
                 expression = lookup_source,
                 source     = source,
-                subscript  = ExpressionSliceObject(
-                    lower      = lower,
-                    upper      = upper,
+                subscript  = ExpressionBuiltinSlice(
+                    start      = lower,
+                    stop       = upper,
                     step       = None,
                     source_ref = source_ref
                 ),
@@ -378,17 +378,18 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
     if node is None and allow_none:
         return None
 
-    if hasattr(node, "ctx"):
-        assert getKind(node.ctx) in ("Store", "Del")
-
-    kind = getKind(node)
-
     if type(node) is str:
         return "Name", ExpressionTargetVariableRef(
             variable_name = mangleName(node, provider),
             source_ref    = source_ref
         )
-    elif kind == "Name":
+
+    kind = getKind(node)
+
+    if hasattr(node, "ctx"):
+        assert getKind(node.ctx) in ("Store", "Del")
+
+    if kind == "Name":
         return kind, ExpressionTargetVariableRef(
             variable_name = mangleName(node.id, provider),
             source_ref    = source_ref
@@ -415,9 +416,9 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
 
                 return "Subscript", (
                     buildNode(provider, node.value, source_ref),
-                    ExpressionSliceObject(
-                        lower      = lower,
-                        upper      = upper,
+                    ExpressionBuiltinSlice(
+                        start      = lower,
+                        stop       = upper,
                         step       = step,
                         source_ref = source_ref
                     )
@@ -559,14 +560,14 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
     elif kind == "Slice":
         lookup_source, lower, upper = detail
 
-        use_sliceobj = Utils.python_version >= 300
+        use_sliceobj = python_version >= 300
 
         if use_sliceobj:
             return StatementDelSubscript(
                 expression = lookup_source,
-                subscript  = ExpressionSliceObject(
-                    lower      = lower,
-                    upper      = upper,
+                subscript  = ExpressionBuiltinSlice(
+                    start      = lower,
+                    stop       = upper,
                     step       = None,
                     source_ref = source_ref
                 ),
@@ -914,7 +915,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
 
         upper_ref1 = upper_ref2 = None
 
-    use_sliceobj = Utils.python_version >= 300
+    use_sliceobj = python_version >= 300
 
         # Second assign the in-place result over the original value.
     if use_sliceobj:
@@ -924,9 +925,9 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
                     variable   = tmp_variable1,
                     source_ref = source_ref
                 ),
-                subscript  = ExpressionSliceObject(
-                    lower      = lower_ref1,
-                    upper      = upper_ref1,
+                subscript  = ExpressionBuiltinSlice(
+                    start      = lower_ref1,
+                    stop       = upper_ref1,
                     step       = None,
                     source_ref = source_ref
                 ),
@@ -937,9 +938,9 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
                             variable   = tmp_variable1,
                             source_ref = source_ref
                         ),
-                        subscript  = ExpressionSliceObject(
-                            lower      = lower_ref2,
-                            upper      = upper_ref2,
+                        subscript  = ExpressionBuiltinSlice(
+                            start      = lower_ref2,
+                            stop       = upper_ref2,
                             step       = None,
                             source_ref = source_ref
                         ),

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,7 @@ This is about frame stacks and their management. There are different kinds
 of frames for different uses.
 """
 
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from . import Contexts, Emission
 from .ExceptionCodes import getTracebackMakingIdentifier
@@ -62,10 +62,10 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             context.setFrameHandle("generator->m_frame")
         elif provider.isExpressionCoroutineObjectBody():
             context.setFrameHandle("coroutine->m_frame")
-        elif provider.isExpressionFunctionBody():
-            context.setFrameHandle("frame_function")
-        else:
+        elif provider.isCompiledPythonModule():
             context.setFrameHandle("frame_module")
+        else:
+            context.setFrameHandle("frame_function")
 
         context.setExceptionEscape(
             context.allocateLabel("frame_exception_exit")
@@ -130,7 +130,8 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         # of frame, it is an empty code stub anyway.
         local_emit.emitTo(emit)
     elif guard_mode == "full":
-        assert provider.isExpressionFunctionBody()
+        assert provider.isExpressionFunctionBody() or \
+               provider.isExpressionClassBody()
 
         getFrameGuardHeavyCode(
             frame_identifier      = context.getFrameHandle(),
@@ -389,7 +390,7 @@ def getFrameLocalsUpdateCode(provider, context):
     return frame_locals_name, locals_codes.codes
 
 
-def getFramePreserveExceptionCode(statement, emit, context):
+def generateFramePreserveExceptionCode(statement, emit, context):
     emit("// Preserve existing published exception.")
 
     if python_version < 300:
@@ -424,7 +425,7 @@ Py_XINCREF( exception_preserved_tb_%(preserver_id)d );
             )
 
 
-def getFrameRestoreExceptionCode(statement, emit, context):
+def generateFrameRestoreExceptionCode(statement, emit, context):
     emit("// Restore previous exception.")
 
     if python_version < 300:

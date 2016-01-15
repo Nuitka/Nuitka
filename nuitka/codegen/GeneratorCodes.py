@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,7 +19,7 @@
 
 """
 
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
@@ -119,7 +119,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
 
     closure_variables = generator_object_body.getClosureVariables()
 
-    if Utils.python_version < 350 or context.isForDirectCall():
+    if python_version < 350 or context.isForDirectCall():
         generator_name_obj = getConstantCode(
             constant = generator_object_body.getFunctionName(),
             context  = context
@@ -127,7 +127,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     else:
         generator_name_obj = "self->m_name"
 
-    if Utils.python_version < 350:
+    if python_version < 350:
         generator_qualname_obj = "NULL"
     elif not context.isForDirectCall():
         generator_qualname_obj = "self->m_qualname"

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -106,7 +106,7 @@ class X:
 
     print("Early pre-class calls begin")
     print("Set in class __class__", __class__)
-    f1(1)
+    # f1(1)
     f2(2)
     print("Early pre-class calls end")
 

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -177,7 +177,7 @@ class StatementLoop(StatementChildrenHavingBase):
             # If the last statement is a "continue" statement, it can simply
             # be discarded.
             last_statement = statements[-1]
-            if last_statement.isStatementContinueLoop():
+            if last_statement.isStatementLoopContinue():
                 if len(statements) == 1:
                     self.setLoopBody(None)
                     loop_body = None
@@ -205,7 +205,7 @@ Removed useless terminal 'continue' as last statement of loop."""
             statements = loop_body.getStatements()
             assert statements # Cannot be empty
 
-            if len(statements) == 1 and statements[-1].isStatementBreakLoop():
+            if len(statements) == 1 and statements[-1].isStatementLoopBreak():
                 return None, "new_statements", """\
 Removed useless loop with immediate 'break' statement."""
 
@@ -217,8 +217,8 @@ Removed useless loop with immediate 'break' statement."""
         return self, None, None
 
 
-class StatementContinueLoop(NodeBase):
-    kind = "STATEMENT_CONTINUE_LOOP"
+class StatementLoopContinue(NodeBase):
+    kind = "STATEMENT_LOOP_CONTINUE"
 
     def __init__(self, source_ref):
         NodeBase.__init__(self, source_ref = source_ref)
@@ -239,8 +239,8 @@ class StatementContinueLoop(NodeBase):
         return self, None, None
 
 
-class StatementBreakLoop(NodeBase):
-    kind = "STATEMENT_BREAK_LOOP"
+class StatementLoopBreak(NodeBase):
+    kind = "STATEMENT_LOOP_BREAK"
 
     def __init__(self, source_ref):
         NodeBase.__init__(self, source_ref = source_ref)

@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -48,8 +48,8 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence
 )
+from nuitka.PythonVersions import python_version
 from nuitka.tree.Helpers import makeReraiseExceptionStatement
-from nuitka.utils import Utils
 
 from .Helpers import (
     buildNode,
@@ -127,7 +127,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
 
     # The "__enter__" and "__exit__" were normal attribute lookups under
     # CPython2.6, but that changed with CPython2.7.
-    if Utils.python_version < 270:
+    if python_version < 270:
         attribute_lookup_class = ExpressionAttributeLookup
     else:
         attribute_lookup_class = ExpressionAttributeLookupSpecial
@@ -274,7 +274,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                     ),
                     source_ref = source_ref
                 ),
-                public_exc     = Utils.python_version >= 270,
+                public_exc     = python_version >= 270,
                 source_ref     = source_ref
             ),
             final      = StatementConditional(

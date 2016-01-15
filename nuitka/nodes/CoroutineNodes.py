@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,7 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from nuitka.utils import Utils
+from nuitka.PythonVersions import python_version
 
 from .Checkers import checkStatementsSequenceOrNone
 from .FunctionNodes import ExpressionFunctionBodyBase
@@ -95,10 +95,10 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
         "body" : checkStatementsSequenceOrNone
     }
 
-    if Utils.python_version >= 340:
+    if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, source_ref):
+    def __init__(self, provider, name, flags, source_ref):
         while provider.isExpressionOutlineBody():
             provider = provider.getParentVariableProvider()
 
@@ -108,6 +108,7 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
             name        = name,
             code_prefix = "coroutine",
             is_class    = False,
+            flags       = flags,
             source_ref  = source_ref
         )
 
@@ -122,10 +123,6 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
 
     def getFunctionQualname(self):
         return self.getParentVariableProvider().getFunctionQualname()
-
-    @staticmethod
-    def isExpressionFunctionBody():
-        return True
 
     def markAsNeedsGeneratorReturnHandling(self, value):
         self.needs_generator_return_exit = max(

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -35,7 +35,7 @@ for filename in ("README.pdf", "Changelog.pdf", "Developer_Manual.pdf"):
 if branch_name.startswith("release") or branch_name == "master":
     pass
 elif branch_name == "develop":
-    for remote in "origin", "bitbucket", "github":
+    for remote in "origin", "bitbucket", "github", "gitlab":
         assert 0 == os.system("git push --tags -f %s develop" % remote)
         assert 0 == os.system("git push %s master" % remote)
 else:

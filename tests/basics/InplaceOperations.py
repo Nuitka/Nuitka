@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,41 +15,43 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
+
 x = 1
 x += 2
 
-print "Plain inplace:", x
+print("Plain in-place:", x)
 
 z = [1, 2, 3]
 z[1] += 5
 
-print "List inplace:", z[1]
+print("List in-place:", z[1])
 
 h = { 'a' : 3 }
 h['a'] += 2
 
-print "Dict inplace:", h['a']
+print("Dictionary in-place:", h['a'])
 
 class B:
     a = 1
 
 B.a += 2
 
-print "Class attribute inplace:", B.a
+print("Class attribute in-place:", B.a)
 
 h = [1, 2, 3, 4]
 h[1:2] += (2,3)
 
-print "List sclice inplace [x:y]", h
+print("List 'sclice' in-place [x:y]", h)
 
 h[:1] += (9,9)
 
-print "List sclice inplace [:y]", h
+print("List 'sclice' in-place [:y]", h)
 
 h[2:] += (6,6)
 
-print "List sclice inplace [y:]", h
+print("List 'sclice' in-place [y:]", h)
 
 h[:] += (5,5,5)
 
-print "List sclice inplace [:]", h
+print("List 'sclice' in-place [:]", h)

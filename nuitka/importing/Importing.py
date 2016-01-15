@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -42,6 +42,7 @@ from logging import warning
 from nuitka import Options
 from nuitka.containers import oset
 from nuitka.plugins.PluginBase import Plugins
+from nuitka.PythonVersions import python_version
 from nuitka.utils import Utils
 
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
@@ -75,7 +76,7 @@ def isPackageDir(dirname):
 
     return Utils.isDir(dirname) and \
            (
-               Utils.python_version >= 330 or
+               python_version >= 330 or
                Utils.isFile(Utils.joinpath(dirname, "__init__.py")) or
                isPreloadedPackagePath(dirname)
            )
@@ -324,7 +325,7 @@ def _findModuleInPath2(module_name, search_path):
                     )
                     break
             else:
-                if Utils.python_version >= 330:
+                if python_version >= 330:
                     candidates.add(
                         (entry, 2, package_directory)
                     )

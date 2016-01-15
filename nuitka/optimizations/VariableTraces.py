@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -127,6 +127,7 @@ class VariableTraceBase:
         # TODO: Temporarily disable far reaching of assumptions, until value
         # escaping can be trusted.
         if self.variable.isModuleVariable() or \
+           self.variable.isMaybeLocalVariable() or \
            self.variable.isSharedTechnically():
             return False
 

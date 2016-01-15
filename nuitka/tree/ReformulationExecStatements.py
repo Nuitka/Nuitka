@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -274,7 +274,7 @@ exec: arg 1 must be a string, file, or code object""",
                 source_ref      = source_ref
             )
 
-    if provider.isExpressionFunctionBody():
+    if not provider.isCompiledPythonModule():
         provider.markAsExecContaining()
 
         if orig_globals is None:

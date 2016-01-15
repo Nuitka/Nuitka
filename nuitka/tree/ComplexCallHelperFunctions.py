@@ -1,4 +1,4 @@
-#     Copyright 2015, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -57,7 +57,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
-from nuitka.nodes.LoopNodes import StatementBreakLoop, StatementLoop
+from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
     ExpressionOperationNOT
@@ -77,7 +77,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.utils.Utils import python_version
+from nuitka.PythonVersions import python_version
 
 from .Helpers import (
     makeConditionalStatement,
@@ -136,14 +136,16 @@ def getCallableNameDescBody():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called",),
+            normal_args   = (
+                "called",
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -495,7 +497,7 @@ def _makeIteratingLoopStatement(tmp_iter_variable, tmp_item_variable, statements
                 source_ref   = internal_source_ref
             ),
             exception_name = "StopIteration",
-            handler_body   = StatementBreakLoop(
+            handler_body   = StatementLoopBreak(
                 source_ref = internal_source_ref
             ),
             source_ref     = internal_source_ref
@@ -1042,14 +1044,16 @@ def getFunctionCallHelperStarList():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called", "star_arg_list"),
+            normal_args   = (
+                "called", "star_arg_list"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1147,14 +1151,16 @@ def getFunctionCallHelperKeywordsStarList():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = orderArgs("called", "kw", "star_arg_list"),
+            normal_args   = orderArgs(
+                "called", "kw", "star_arg_list"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1266,14 +1272,16 @@ def getFunctionCallHelperPosStarList():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called", "args", "star_arg_list"),
+            normal_args   = (
+                "called", "args", "star_arg_list"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1388,16 +1396,17 @@ def getFunctionCallHelperPosKeywordsStarList():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = orderArgs("called", "args", "kw", "star_arg_list"),
+            normal_args   = orderArgs(
+                "called", "args", "kw", "star_arg_list"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
-
 
     called_variable = result.getVariableForAssignment(
         variable_name = "called"
@@ -1537,14 +1546,16 @@ def getFunctionCallHelperStarDict():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called", "star_arg_dict"),
+            normal_args   = (
+                "called", "star_arg_dict"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1657,14 +1668,16 @@ def getFunctionCallHelperPosStarDict():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called", "args", "star_arg_dict"),
+            normal_args   = (
+                "called", "args", "star_arg_dict"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1815,14 +1828,16 @@ def getFunctionCallHelperKeywordsStarDict():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called", "kw", "star_arg_dict"),
+            normal_args   = (
+                "called", "kw", "star_arg_dict"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1973,16 +1988,17 @@ def getFunctionCallHelperPosKeywordsStarDict():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called", "args", "kw", "star_arg_dict"),
+            normal_args   = (
+                "called", "args", "kw", "star_arg_dict"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
-
 
     called_variable = result.getVariableForAssignment(
         variable_name = "called"
@@ -2091,14 +2107,16 @@ def getFunctionCallHelperStarListStarDict():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called", "star_arg_list", "star_arg_dict"),
+            normal_args   = (
+                "called", "star_arg_list", "star_arg_dict"
+            ),
             list_star_arg = None,
             dict_star_arg = None,
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2220,8 +2238,8 @@ def getFunctionCallHelperPosStarListStarDict():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2360,8 +2378,8 @@ def getFunctionCallHelperKeywordsStarListStarDict():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2496,8 +2514,8 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2640,14 +2658,16 @@ def getFunctionCallHelperDictionaryUnpacking():
         doc        = None,
         parameters = ParameterSpec(
             name          = helper_name,
-            normal_args   = ("called",),
+            normal_args   = (
+                "called",
+            ),
             list_star_arg = "args",
             dict_star_arg = None,
             default_count = 0,
             kw_only_args  = ()
         ),
-        source_ref = internal_source_ref,
-        is_class   = False
+        flags      = set(),
+        source_ref = internal_source_ref
     )
 
     args_variable = result.getVariableForAssignment(
