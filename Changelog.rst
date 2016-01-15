@@ -1,5 +1,5 @@
-Nuitka Release 0.5.18 (Draft)
-=============================
+Nuitka Release 0.5.18
+=====================
 
 This release mainly has a scalability focus. While there are few compatibility
 improvements, the larger goal has been to make Nuitka compilation and the final
