@@ -20,14 +20,11 @@
 Subscripts are important when working with lists and dictionaries. Tracking
 them can allow to achieve more compact code, or predict results at compile time.
 
-There will be a method "computeExpressionSubscript" to aid predicting them.
+There is be a method "computeExpressionSubscript" to aid predicting them in the
+other nodes.
 """
 
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
-from .NodeMakingHelpers import (
-    makeStatementExpressionOnlyReplacementNode,
-    makeStatementOnlyNodesFromExpressions
-)
 
 
 class StatementAssignmentSubscript(StatementChildrenHavingBase):
@@ -55,53 +52,39 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
     getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(
-            expression = self.getAssignSource()
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            constraint_collection = constraint_collection
         )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        subscribed = self.getSubscribed()
+        subscript = self.getSubscript()
         source = self.getAssignSource()
 
-        # No assignment will occur, if the assignment source raises, so strip it
-        # away.
-        if source.willRaiseException(BaseException):
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression = source,
-                node       = self
+        if subscribed.hasShapeDictionaryExact():
+            from .ContainerOperationNodes import StatementDictOperationSet
+
+            new_node = StatementDictOperationSet(
+                dict_arg   = subscribed,
+                key        = subscript,
+                value      = source,
+                source_ref = self.getSourceReference()
             )
 
-            return result, "new_raise", """\
-Subscript assignment raises exception in assigned value, removed assignment."""
+            constraint_collection.removeKnowledge(subscribed)
+            constraint_collection.removeKnowledge(subscript)
+            constraint_collection.removeKnowledge(source)
 
-        constraint_collection.onExpression(self.getSubscribed())
-        subscribed = self.getSubscribed()
+            # Any code could be run, note that.
+            constraint_collection.onControlFlowEscape(self)
 
-        if subscribed.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    source,
-                    subscribed
-                )
-            )
+            # Any exception may be raised.
+            constraint_collection.onExceptionRaiseExit(BaseException)
 
-            return result, "new_raise", """\
-Subscript assignment raises exception in subscribed, removed assignment."""
-
-        constraint_collection.onExpression(
-            self.getSubscript()
-        )
-        subscript = self.getSubscript()
-
-        if subscript.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    source,
-                    subscribed,
-                    subscript
-                )
-            )
-
-            return result, "new_raise", """
-Subscript assignment raises exception in subscript value, removed \
-assignment."""
+            return new_node, "new_expression", """
+Subscript assignment to dictionary lowered to dictionary assignment."""
 
         return subscribed.computeExpressionSetSubscript(
             set_node              = self,
@@ -109,6 +92,9 @@ assignment."""
             value_node            = source,
             constraint_collection = constraint_collection
         )
+
+    def getStatementNiceName(self):
+        return "subscript assignment statement"
 
 
 class StatementDelSubscript(StatementChildrenHavingBase):
@@ -133,37 +119,24 @@ class StatementDelSubscript(StatementChildrenHavingBase):
     getSubscript = StatementChildrenHavingBase.childGetter("subscript")
 
     def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(self.getSubscribed())
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            constraint_collection = constraint_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
         subscribed = self.getSubscribed()
-
-        if subscribed.willRaiseException(BaseException):
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression = subscribed,
-                node       = self
-            )
-
-            return result, "new_raise", """\
-Subscript 'del' raises exception in subscribed value, removed del."""
-
-        constraint_collection.onExpression(self.getSubscript())
         subscript = self.getSubscript()
-
-        if subscript.willRaiseException(BaseException):
-            result = makeStatementOnlyNodesFromExpressions(
-                expressions = (
-                    subscribed,
-                    subscript
-                )
-            )
-
-            return result, "new_raise", """\
-Subscript 'del' raises exception in subscript value, removed del."""
 
         return subscribed.computeExpressionDelSubscript(
             set_node              = self,
             subscript             = subscript,
             constraint_collection = constraint_collection
         )
+
+    def getStatementNiceName(self):
+        return "subscript del statement"
 
 
 class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):

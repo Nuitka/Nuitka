@@ -46,7 +46,7 @@ from nuitka.nodes.ComparisonNodes import ExpressionComparison
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.ContainerOperationNodes import ExpressionDictOperationSet
+from nuitka.nodes.ContainerOperationNodes import StatementDictOperationSet
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
     StatementRaiseException
@@ -2708,27 +2708,23 @@ def getFunctionCallHelperDictionaryUnpacking():
             no_branch  = None,
             source_ref = internal_source_ref
         ),
+        StatementDictOperationSet(
+            dict_arg   = ExpressionTempVariableRef(
+                variable   = tmp_result_variable,
+                source_ref = internal_source_ref
 
-        StatementExpressionOnly(
-            expression = ExpressionDictOperationSet(
-                dict_arg   = ExpressionTempVariableRef(
-                    variable   = tmp_result_variable,
+            ),
+            key        = ExpressionTempVariableRef(
+                variable   = tmp_key_variable,
+                source_ref = internal_source_ref
+            ),
+            value      = ExpressionSubscriptLookup(
+                subscribed = ExpressionTempVariableRef(
+                    variable   = tmp_item_variable,
                     source_ref = internal_source_ref
-
                 ),
-                key        = ExpressionTempVariableRef(
+                subscript  = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
-                    source_ref = internal_source_ref
-                ),
-                value      = ExpressionSubscriptLookup(
-                    subscribed = ExpressionTempVariableRef(
-                        variable   = tmp_item_variable,
-                        source_ref = internal_source_ref
-                    ),
-                    subscript  = ExpressionTempVariableRef(
-                        variable   = tmp_key_variable,
-                        source_ref = internal_source_ref
-                    ),
                     source_ref = internal_source_ref
                 ),
                 source_ref = internal_source_ref

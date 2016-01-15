@@ -301,40 +301,52 @@ def generateDictOperationGetCode(to_name, expression, emit, context):
     context.addCleanupTempName(to_name)
 
 
-def generateDictOperationSetCode(to_name, expression, emit, context):
-    dict_name, key_name, value_name = generateChildExpressionsCode(
-        expression = expression,
+def generateDictOperationSetCode(statement, emit, context):
+    value_arg_name = context.allocateTempName("dictset_value")
+    generateExpressionCode(
+        to_name    = value_arg_name,
+        expression = statement.getValue(),
         emit       = emit,
         context    = context
     )
+
+    dict_arg_name = context.allocateTempName("dictset_dict")
+    generateExpressionCode(
+        to_name    = dict_arg_name,
+        expression = statement.getDict(),
+        emit       = emit,
+        context    = context
+    )
+
+    key_arg_name = context.allocateTempName("dictset_key")
+    generateExpressionCode(
+        to_name    = key_arg_name,
+        expression = statement.getKey(),
+        emit       = emit,
+        context    = context
+    )
+    context.setCurrentSourceCodeReference(statement.getSourceReference())
 
     res_name = context.getIntResName()
 
     emit(
         "%s = PyDict_SetItem( %s, %s, %s );" % (
             res_name,
-            dict_name,
-            key_name,
-            value_name
+            dict_arg_name,
+            key_arg_name,
+            value_arg_name
         )
     )
 
     getReleaseCodes(
-        release_names = (dict_name, key_name, value_name),
+        release_names = (value_arg_name, dict_arg_name, key_arg_name),
         emit          = emit,
         context       = context
     )
 
     getErrorExitBoolCode(
-        condition = "%s != 0" % res_name,
-        emit      = emit,
-        context   = context
+        condition   = "%s != 0" % res_name,
+        emit        = emit,
+        needs_check = not statement.getKey().isKnownToBeHashable(),
+        context     = context
     )
-
-    # Only assign if necessary.
-    if context.isUsed(to_name):
-        emit(
-            "%s = Py_None;" % to_name
-        )
-    else:
-        context.forgetTempName(to_name)

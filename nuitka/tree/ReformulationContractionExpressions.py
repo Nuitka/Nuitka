@@ -36,9 +36,9 @@ from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerOperationNodes import (
-    ExpressionDictOperationSet,
-    ExpressionListOperationAppend,
-    ExpressionSetOperationAdd
+    StatementDictOperationSet,
+    StatementListOperationAppend,
+    StatementSetOperationAdd
 )
 from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.FunctionNodes import (
@@ -89,7 +89,7 @@ def buildListContractionNode(provider, node, source_ref):
         name            = "list_contraction"
                             if python_version < 300 else
                           "<listcontraction>",
-        emit_class      = ExpressionListOperationAppend,
+        emit_class      = StatementListOperationAppend,
         start_value     = ExpressionConstantRef(
             constant   = [],
             source_ref = source_ref
@@ -108,7 +108,7 @@ def buildSetContractionNode(provider, node, source_ref):
         provider        = provider,
         node            = node,
         name            = "<setcontraction>",
-        emit_class      = ExpressionSetOperationAdd,
+        emit_class      = StatementSetOperationAdd,
         start_value     = ExpressionConstantRef(
             constant   = set(),
             source_ref = source_ref
@@ -125,7 +125,7 @@ def buildDictContractionNode(provider, node, source_ref):
         provider        = provider,
         node            = node,
         name            = "<dictcontraction>",
-        emit_class      = ExpressionDictOperationSet,
+        emit_class      = StatementDictOperationSet,
         start_value     = ExpressionConstantRef(
             constant   = {},
             source_ref = source_ref
@@ -227,9 +227,9 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                 source_ref = source_ref
             )
     else:
-        assert emit_class is ExpressionDictOperationSet
+        assert emit_class is StatementDictOperationSet
 
-        current_body = ExpressionDictOperationSet(
+        current_body = StatementDictOperationSet(
             dict_arg   = ExpressionTempVariableRef(
                 variable   = container_tmp,
                 source_ref = source_ref
@@ -247,10 +247,11 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             source_ref = source_ref
         )
 
-    current_body = StatementExpressionOnly(
-        expression = current_body,
-        source_ref = source_ref
-    )
+    if current_body.isExpression():
+        current_body = StatementExpressionOnly(
+            expression = current_body,
+            source_ref = source_ref
+        )
 
     for count, qual in enumerate(reversed(node.generators)):
         tmp_value_variable = function_body.allocateTempVariable(

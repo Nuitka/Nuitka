@@ -24,8 +24,8 @@ from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
 
 
-class ExpressionListOperationAppend(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_LIST_OPERATION_APPEND"
+class StatementListOperationAppend(StatementChildrenHavingBase):
+    kind = "STATEMENT_LIST_OPERATION_APPEND"
 
     named_children = (
         "list",
@@ -37,7 +37,7 @@ class ExpressionListOperationAppend(ExpressionChildrenHavingBase):
         assert list_arg is not None
         assert value is not None
 
-        ExpressionChildrenHavingBase.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "list"  : list_arg,
@@ -46,10 +46,17 @@ class ExpressionListOperationAppend(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getList = ExpressionChildrenHavingBase.childGetter("list")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
+    getList = StatementChildrenHavingBase.childGetter("list")
+    getValue = StatementChildrenHavingBase.childGetter("value")
 
-    def computeExpression(self, constraint_collection):
+    def computeStatement(self, constraint_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            constraint_collection = constraint_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
         constraint_collection.removeKnowledge(self.getList())
 
         return self, None, None
@@ -115,8 +122,8 @@ class ExpressionListOperationPop(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_SET_OPERATION_ADD"
+class StatementSetOperationAdd(StatementChildrenHavingBase):
+    kind = "STATEMENT_SET_OPERATION_ADD"
 
     named_children = (
         "set",
@@ -128,7 +135,7 @@ class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
         assert set_arg is not None
         assert value is not None
 
-        ExpressionChildrenHavingBase.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "set"   : set_arg,
@@ -137,14 +144,21 @@ class ExpressionSetOperationAdd(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getSet = ExpressionChildrenHavingBase.childGetter(
+    getSet = StatementChildrenHavingBase.childGetter(
         "set"
     )
-    getValue = ExpressionChildrenHavingBase.childGetter(
+    getValue = StatementChildrenHavingBase.childGetter(
         "value"
     )
 
-    def computeExpression(self, constraint_collection):
+    def computeStatement(self, constraint_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            constraint_collection = constraint_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
         constraint_collection.removeKnowledge(self.getSet())
 
         return self, None, None
@@ -185,13 +199,13 @@ class ExpressionSetOperationUpdate(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionDictOperationSet(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_DICT_OPERATION_SET"
+class StatementDictOperationSet(StatementChildrenHavingBase):
+    kind = "STATEMENT_DICT_OPERATION_SET"
 
     named_children = (
+        "value",
         "dict",
         "key",
-        "value"
     )
 
     @calledWithBuiltinArgumentNamesDecorator
@@ -200,7 +214,7 @@ class ExpressionDictOperationSet(ExpressionChildrenHavingBase):
         assert key is not None
         assert value is not None
 
-        ExpressionChildrenHavingBase.__init__(
+        StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "dict"  : dict_arg,
@@ -210,15 +224,41 @@ class ExpressionDictOperationSet(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getDict = ExpressionChildrenHavingBase.childGetter("dict")
-    getKey = ExpressionChildrenHavingBase.childGetter("key")
-    getValue = ExpressionChildrenHavingBase.childGetter("value")
+    getDict = StatementChildrenHavingBase.childGetter("dict")
+    getKey = StatementChildrenHavingBase.childGetter("key")
+    getValue = StatementChildrenHavingBase.childGetter("value")
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.removeKnowledge(self.getDict())
+    def computeStatement(self, constraint_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            constraint_collection = constraint_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
+        key = self.getKey()
+
+        if not key.isKnownToBeHashable():
+            # Any exception may be raised.
+            constraint_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
+    def mayRaiseException(self, exception_type):
+        key = self.getKey()
+
+        if not key.isKnownToBeHashable():
+            return True
+
+        if key.mayRaiseException(exception_type):
+            return True
+
+        value = self.getValue()
+
+        if value.mayRaiseException(exception_type):
+            return True
+
+        return False
 
 class StatementDictOperationRemove(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_REMOVE"

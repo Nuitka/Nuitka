@@ -245,3 +245,6 @@ Removed sequence creation for unused sequence."""
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
         return iter_node, None, None
+
+
+# class StatementDictOperationSet

@@ -102,6 +102,9 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
             constraint_collection = constraint_collection
         )
 
+    def getStatementNiceName(self):
+        return "attribute assignment statement"
+
 
 class StatementDelAttribute(StatementChildrenHavingBase):
     """ Deletion of an attribute.
@@ -158,6 +161,9 @@ class StatementDelAttribute(StatementChildrenHavingBase):
             attribute_name        = self.attribute_name,
             constraint_collection = constraint_collection
         )
+
+    def getStatementNiceName(self):
+        return "attribute del statement"
 
 
 class ExpressionAttributeLookup(ExpressionChildrenHavingBase):

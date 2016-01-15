@@ -1387,6 +1387,8 @@ class ExpressionMixin:
     def onContentEscapes(self, constraint_collection):
         pass
 
+    def hasShapeDictionaryExact(self):
+        return False
 
 
 class CompileTimeConstantExpressionMixin(ExpressionMixin):
@@ -1619,13 +1621,16 @@ class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
                 return (
                     wrapped_expression,
                     "new_raise",
-                    "For '%s' the expression '%s' will raise." % (
-                        self.getChildNameNice(),
+                    lambda : "For %s the expression '%s' will raise." % (
+                        self.getStatementNiceName(),
                         expression.getChildNameNice()
                     )
                 )
 
         return self, None, None
+
+    def getStatementNiceName(self):
+        return "undescribed statement"
 
 
 class ExpressionBuiltinNoArgBase(NodeBase, ExpressionMixin):

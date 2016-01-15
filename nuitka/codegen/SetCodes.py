@@ -74,14 +74,26 @@ def generateSetCreationCode(to_name, expression, emit, context):
             context.removeCleanupTempName(element_name)
 
 
-def generateSetOperationAddCode(to_name, expression, emit, context):
-    res_name = context.getIntResName()
-
-    set_arg_name, value_arg_name = generateChildExpressionsCode(
-        expression = expression,
+def generateSetOperationAddCode(statement, emit, context):
+    set_arg_name = context.allocateTempName("append_list")
+    generateExpressionCode(
+        to_name    = set_arg_name,
+        expression = statement.getSet(),
         emit       = emit,
         context    = context
     )
+
+    value_arg_name = context.allocateTempName("append_value")
+    generateExpressionCode(
+        to_name    = value_arg_name,
+        expression = statement.getValue(),
+        emit       = emit,
+        context    = context
+    )
+
+    context.setCurrentSourceCodeReference(statement.getSourceReference())
+
+    res_name = context.getIntResName()
 
     emit("assert( PySet_Check( %s ) );" % set_arg_name)
     emit(
@@ -103,14 +115,6 @@ def generateSetOperationAddCode(to_name, expression, emit, context):
         emit      = emit,
         context   = context
     )
-
-    # Only assign if necessary.
-    if context.isUsed(to_name):
-        emit(
-            "%s = Py_None;" % to_name
-        )
-    else:
-        context.forgetTempName(to_name)
 
 
 def generateSetOperationUpdateCode(to_name, expression, emit, context):

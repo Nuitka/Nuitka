@@ -202,6 +202,9 @@ Replaced read-only module attribute '__package__' with constant value."""
 
         return call_node, None, None
 
+    def hasShapeDictionaryExact(self):
+        return self.variable_trace.hasShapeDictionaryExact()
+
     def onContentEscapes(self, constraint_collection):
         constraint_collection.onVariableContentEscapes(self.variable)
 

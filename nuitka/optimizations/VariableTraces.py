@@ -147,6 +147,10 @@ class VariableTraceBase:
 
         return None
 
+    def hasShapeDictionaryExact(self):
+        return False
+
+
 
 class VariableTraceUninit(VariableTraceBase):
     def __init__(self, variable, version, previous):
@@ -331,6 +335,9 @@ class VariableTraceAssign(VariableTraceBase):
             return self.replace_it(usage)
         else:
             return None
+
+    def hasShapeDictionaryExact(self):
+        return self.assign_node.getAssignSource().hasShapeDictionaryExact()
 
 
 class VariableTraceMerge(VariableTraceBase):

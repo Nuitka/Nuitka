@@ -306,3 +306,6 @@ Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
             constraint_collection.onExceptionRaiseExit(TypeError)
 
         return iter_node, None, None
+
+    def hasShapeDictionaryExact(self):
+        return type(self.constant) is dict
