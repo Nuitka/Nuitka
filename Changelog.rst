@@ -1,6 +1,18 @@
 Nuitka Release 0.5.19 (Draft)
 =============================
 
+Bug Fixes
+---------
+
+- Fix, attribute assignments or deletions where the assigned value or the
+  attribute source was statically raising crashed the compiler.
+
+- Fix, the order of evaluation during optimization was considered in the wrong
+  order for attribute assignments source and value.
+
+Summary
+-------
+
 This release is not done yet.
 
 
