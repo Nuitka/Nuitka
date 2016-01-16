@@ -40,7 +40,6 @@ def generateAssignmentAttributeCode(statement, emit, context):
     value          = statement.getAssignSource()
 
     value_name = context.allocateTempName("assattr_name")
-
     generateExpressionCode(
         to_name    = value_name,
         expression = value,

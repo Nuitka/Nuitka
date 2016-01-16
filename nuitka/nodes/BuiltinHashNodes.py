@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Node the calls to the 'hash' builtin.
+""" Node the calls to the 'hash' built-in.
 
 This is a specific thing, which must be calculated at run time, but we can
 predict things about its type, and the fact that it won't raise an exception
