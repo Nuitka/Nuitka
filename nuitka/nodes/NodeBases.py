@@ -32,8 +32,8 @@ from nuitka.VariableRegistry import addVariableUsage, removeVariableUsage
 
 from .NodeMakingHelpers import (
     getComputationResult,
-    wrapExpressionWithSideEffects,
-    makeStatementOnlyNodesFromExpressions
+    makeStatementOnlyNodesFromExpressions,
+    wrapExpressionWithSideEffects
 )
 
 
@@ -1239,9 +1239,6 @@ class ExpressionMixin:
                                    constraint_collection):
         # By default, an subscript may change everything about the lookup
         # source.
-        constraint_collection.removeKnowledge(self)
-        constraint_collection.removeKnowledge(subscript)
-
         # Any code could be run, note that.
         constraint_collection.onControlFlowEscape(self)
 
@@ -1253,10 +1250,6 @@ class ExpressionMixin:
                                       constraint_collection):
         # By default, an subscript may change everything about the lookup
         # source.
-        constraint_collection.removeKnowledge(self)
-        constraint_collection.removeKnowledge(subscript)
-        constraint_collection.removeKnowledge(value_node)
-
         # Any code could be run, note that.
         constraint_collection.onControlFlowEscape(self)
 
@@ -1265,20 +1258,17 @@ class ExpressionMixin:
 
         return set_node, None, None
 
-    def computeExpressionDelSubscript(self, set_node, subscript,
+    def computeExpressionDelSubscript(self, del_node, subscript,
                                       constraint_collection):
         # By default, an subscript may change everything about the lookup
         # source.
-        constraint_collection.removeKnowledge(self)
-        constraint_collection.removeKnowledge(subscript)
-
         # Any code could be run, note that.
         constraint_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
         constraint_collection.onExceptionRaiseExit(BaseException)
 
-        return set_node, None, None
+        return del_node, None, None
 
     def computeExpressionSlice(self, lookup_node, lower, upper,
                                constraint_collection):

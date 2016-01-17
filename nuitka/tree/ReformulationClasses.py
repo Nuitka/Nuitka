@@ -46,7 +46,7 @@ from nuitka.nodes.ConditionalNodes import (
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.ContainerOperationNodes import (
+from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationGet,
     StatementDictOperationRemove
 )

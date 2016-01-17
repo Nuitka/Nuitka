@@ -25,6 +25,11 @@ and its expressions, changing the meaning of course dramatically.
 from nuitka import Builtins, VariableRegistry, Variables
 
 from .ConstantRefNodes import ExpressionConstantRef
+from .DictionaryNodes import (
+    ExpressionDictOperationGet,
+    StatementDictOperationRemove,
+    StatementDictOperationSet
+)
 from .NodeBases import ExpressionMixin, NodeBase
 
 
@@ -201,6 +206,86 @@ Replaced read-only module attribute '__package__' with constant value."""
             constraint_collection.onLocalsUsage()
 
         return call_node, None, None
+
+    def computeExpressionSetSubscript(self, set_node, subscript, value_node,
+                                      constraint_collection):
+        tags = None
+        message = None
+
+        # By default, an subscript may change everything about the lookup
+        # source.
+        if self.variable_trace.hasShapeDictionaryExact():
+            set_node = StatementDictOperationSet(
+                dict_arg   = self,
+                key        = subscript,
+                value      = value_node,
+                source_ref = set_node.getSourceReference()
+            )
+
+            tags = "new_statements"
+            message = """\
+Subscript assignment to dictionary lowered to dictionary assignment."""
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Any exception might be raised.
+        if set_node.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return set_node, tags, message
+
+    def computeExpressionDelSubscript(self, del_node, subscript,
+                                      constraint_collection):
+        tags = None
+        message = None
+
+        # By default, an subscript may change everything about the lookup
+        # source.
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        if self.variable_trace.hasShapeDictionaryExact():
+            del_node = StatementDictOperationRemove(
+                dict_arg   = self,
+                key        = subscript,
+                source_ref = del_node.getSourceReference()
+            )
+
+            tags = "new_statements"
+            message = """\
+Subscript del to dictionary lowered to dictionary del."""
+
+
+        # Any exception might be raised.
+        if del_node.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return del_node, tags, message
+
+    def computeExpressionSubscript(self, lookup_node, subscript, constraint_collection):
+        tags = None
+        message = None
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        if self.variable_trace.hasShapeDictionaryExact():
+            lookup_node = ExpressionDictOperationGet(
+                dict_arg   = self,
+                key        = subscript,
+                source_ref = lookup_node.getSourceReference()
+            )
+
+            tags = "new_expression"
+            message = """\
+Subscript look-up to dictionary lowered to dictionary look-up."""
+
+        # Any exception might be raised.
+        if lookup_node.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return lookup_node, tags, message
 
     def hasShapeDictionaryExact(self):
         return self.variable_trace.hasShapeDictionaryExact()

@@ -59,37 +59,10 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
         if result is not self:
             return result, change_tags, change_desc
 
-        subscribed = self.getSubscribed()
-        subscript = self.getSubscript()
-        source = self.getAssignSource()
-
-        if subscribed.hasShapeDictionaryExact():
-            from .ContainerOperationNodes import StatementDictOperationSet
-
-            new_node = StatementDictOperationSet(
-                dict_arg   = subscribed,
-                key        = subscript,
-                value      = source,
-                source_ref = self.getSourceReference()
-            )
-
-            constraint_collection.removeKnowledge(subscribed)
-            constraint_collection.removeKnowledge(subscript)
-            constraint_collection.removeKnowledge(source)
-
-            # Any code could be run, note that.
-            constraint_collection.onControlFlowEscape(self)
-
-            # Any exception may be raised.
-            constraint_collection.onExceptionRaiseExit(BaseException)
-
-            return new_node, "new_expression", """
-Subscript assignment to dictionary lowered to dictionary assignment."""
-
-        return subscribed.computeExpressionSetSubscript(
+        return self.getSubscribed().computeExpressionSetSubscript(
             set_node              = self,
-            subscript             = subscript,
-            value_node            = source,
+            subscript             = self.getSubscript(),
+            value_node            = self.getAssignSource(),
             constraint_collection = constraint_collection
         )
 
@@ -126,12 +99,9 @@ class StatementDelSubscript(StatementChildrenHavingBase):
         if result is not self:
             return result, change_tags, change_desc
 
-        subscribed = self.getSubscribed()
-        subscript = self.getSubscript()
-
-        return subscribed.computeExpressionDelSubscript(
-            set_node              = self,
-            subscript             = subscript,
+        return self.getSubscribed().computeExpressionDelSubscript(
+            del_node              = self,
+            subscript             = self.getSubscript(),
             constraint_collection = constraint_collection
         )
 

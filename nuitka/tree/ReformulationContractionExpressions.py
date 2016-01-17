@@ -36,10 +36,10 @@ from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerOperationNodes import (
-    StatementDictOperationSet,
     StatementListOperationAppend,
     StatementSetOperationAdd
 )
+from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
