@@ -157,3 +157,6 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 return True
 
         return False
+
+    def hasShapeDictionaryExact(self):
+        return True
