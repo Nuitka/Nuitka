@@ -248,6 +248,9 @@ Removed sequence creation for unused sequence."""
     def computeExpressionIter1(self, iter_node, constraint_collection):
         return iter_node, None, None
 
+    def hasShapeDictionaryExact(self):
+        return True
+
 
 class StatementDictOperationSet(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_SET"
