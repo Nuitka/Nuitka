@@ -117,6 +117,7 @@ extern bool parseArgumentsMethodPos( Nuitka_FunctionObject const *function, PyOb
 
 extern PyObject *Nuitka_CallFunctionPosArgsKwArgs( Nuitka_FunctionObject const *function, PyObject **args, Py_ssize_t args_size, PyObject *kw );
 
+extern PyObject *Nuitka_CallMethodFunctionNoArgs( Nuitka_FunctionObject const *function, PyObject *object );
 extern PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs( Nuitka_FunctionObject const *function, PyObject *object, PyObject **args, Py_ssize_t args_size, PyObject *kw );
 
 #endif

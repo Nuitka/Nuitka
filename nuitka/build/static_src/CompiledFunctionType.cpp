@@ -2237,6 +2237,93 @@ PyObject *Nuitka_CallFunctionPosArgsKwArgs( Nuitka_FunctionObject const *functio
     return function->m_c_code( function, python_pars );
 }
 
+PyObject *Nuitka_CallMethodFunctionNoArgs( Nuitka_FunctionObject const *function, PyObject *object )
+{
+#ifdef _MSC_VER
+    PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_overall_count );
+#else
+    PyObject *python_pars[ function->m_args_overall_count ];
+#endif
+    memset( python_pars, 0, function->m_args_overall_count * sizeof(PyObject *) );
+
+
+    bool result;
+
+#if PYTHON_VERSION >= 330
+    bool kw_only_error;
+#endif
+
+    result = handleMethodArgumentsPlainOnly( function, python_pars, object, NULL, 0 );
+
+    if ( result == false ) goto error_exit;
+
+#if PYTHON_VERSION >= 300
+
+    // For Python3.3 the keyword only errors are all reported at once.
+#if PYTHON_VERSION >= 330
+    kw_only_error = false;
+#endif
+
+    for( Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++ )
+    {
+        if ( python_pars[ i ] == NULL )
+        {
+            PyObject *arg_name = function->m_varnames[ i ];
+
+            python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+
+#if PYTHON_VERSION < 330
+            if (unlikely( python_pars[ i ] == NULL ))
+            {
+                PyErr_Format(
+                    PyExc_TypeError,
+                    "%s() needs keyword-only argument %s",
+                    Nuitka_String_AsString( function->m_name ),
+                    Nuitka_String_AsString( arg_name )
+                );
+
+                goto error_exit;
+            }
+
+            Py_INCREF( python_pars[ i ] );
+#else
+            if ( python_pars[ i ] == NULL )
+            {
+                kw_only_error = true;
+            }
+            else
+            {
+                Py_INCREF( python_pars[ i ] );
+            }
+#endif
+        }
+    }
+
+#if PYTHON_VERSION >= 330
+    if (unlikely( kw_only_error ))
+    {
+        formatErrorTooFewKwOnlyArguments( function, &python_pars[ function->m_args_positional_count ] );
+
+        goto error_exit;
+    }
+#endif
+
+#endif
+
+    if ( function->m_args_star_dict_index != -1 )
+    {
+        python_pars[ function->m_args_star_dict_index ] = PyDict_New();
+    }
+
+    return function->m_c_code( function, python_pars );
+
+error_exit:
+
+    releaseParameters( function, python_pars );
+    return NULL;
+
+}
+
 PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs( Nuitka_FunctionObject const *function, PyObject *object, PyObject **args, Py_ssize_t args_size, PyObject *kw )
 {
 #ifdef _MSC_VER
