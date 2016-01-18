@@ -608,22 +608,22 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
         parameter_objects_decl += getFunctionDirectClosureArgs(closure_variables)
 
         result += function_direct_body_template % {
-            "file_scope"                   : file_scope,
-            "function_identifier"          : function_identifier,
-            "direct_call_arg_spec"         : ", ".join(
+            "file_scope"           : file_scope,
+            "function_identifier"  : function_identifier,
+            "direct_call_arg_spec" : ", ".join(
                 parameter_objects_decl
             ),
-            "function_locals"              : indented(function_locals),
-            "function_body"                : indented(function_codes),
-            "function_exit"                : function_exit
+            "function_locals"      : indented(function_locals),
+            "function_body"        : indented(function_codes),
+            "function_exit"        : function_exit
         }
     else:
         result += template_function_body % {
-            "function_identifier"          : function_identifier,
-            "parameter_objects_decl"       : ", ".join(parameter_objects_decl),
-            "function_locals"              : indented(function_locals),
-            "function_body"                : indented(function_codes),
-            "function_exit"                : function_exit
+            "function_identifier"    : function_identifier,
+            "parameter_objects_decl" : ", ".join(parameter_objects_decl),
+            "function_locals"        : indented(function_locals),
+            "function_body"          : indented(function_codes),
+            "function_exit"          : function_exit
         }
 
     return result
