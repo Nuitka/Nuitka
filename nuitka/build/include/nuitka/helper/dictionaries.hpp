@@ -237,7 +237,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM( PyObject *dict, PyObject *k
 }
 
 
-// Convert to dictionary, helper for builtin dict mainly.
+// Convert to dictionary, helper for built-in "dict" mainly.
 NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict_obj )
 {
     PyObject *result = PyDict_New();

@@ -490,11 +490,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 }
 
 
-#include "nuitka/helper/indexes.hpp"
 #include "nuitka/helper/subscripts.hpp"
-#include "nuitka/helper/slices.hpp"
 #include "nuitka/helper/attributes.hpp"
 #include "nuitka/helper/iterators.hpp"
+#include "nuitka/helper/slices.hpp"
 
 #include "nuitka/builtins.hpp"
 

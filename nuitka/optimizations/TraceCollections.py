@@ -769,9 +769,6 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
             parent = parent
         )
 
-        # TODO: Useless cyclic dependency.
-        self.function_body = function_body
-
 
 class ConstraintCollectionModule(CollectionStartpointMixin,
                                  ConstraintCollectionBase,
