@@ -29,7 +29,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
 {
     CHECK_OBJECT( (PyObject *)dict_builtin );
     CHECK_OBJECT( name );
-    assert( Nuitka_String_Check( name ) );
+    assert( Nuitka_String_CheckExact( name ) );
 
     PyObject *result = GET_STRING_DICT_VALUE(
         dict_builtin,

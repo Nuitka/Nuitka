@@ -63,7 +63,7 @@ static PyObject *Nuitka_Function_tp_repr( Nuitka_FunctionObject *function )
 static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw )
 {
     CHECK_OBJECT( tuple_args );
-    assert( PyTuple_Check( tuple_args ) );
+    assert( PyTuple_CheckExact( tuple_args ) );
 
     if ( kw == NULL )
     {
@@ -117,8 +117,6 @@ static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObj
     }
     else
     {
-        assert( PyDict_Check( kw ) );
-
         return Nuitka_CallFunctionPosArgsKwArgs( function, &PyTuple_GET_ITEM( tuple_args, 0 ), PyTuple_GET_SIZE( tuple_args ), kw );
     }
 }
@@ -2108,6 +2106,8 @@ static bool parseArgumentsFull( Nuitka_FunctionObject const *function, PyObject 
 #endif
 
     Py_ssize_t arg_count = function->m_args_keywords_count;
+
+    assert( kw == NULL || PyDict_CheckExact( kw ) );
 
     if (unlikely( arg_count == 0 && function->m_args_simple && args_size + kw_size > 0 ))
     {

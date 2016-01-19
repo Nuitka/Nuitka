@@ -42,7 +42,10 @@ from nuitka.nodes.CallNodes import (
     ExpressionCallKeywordsOnly,
     ExpressionCallNoKeywords
 )
-from nuitka.nodes.ComparisonNodes import ExpressionComparison
+from nuitka.nodes.ComparisonNodes import (
+    ExpressionComparison,
+    ExpressionComparisonIsNOT
+)
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
@@ -386,14 +389,14 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
                                           star_list_target_variable_ref,
                                           star_list_variable_ref):
     return makeConditionalStatement(
-        condition  = ExpressionOperationNOT(
-            operand    = ExpressionBuiltinIsinstance(
-                instance   = star_list_variable_ref.makeClone(),
-                classes    = ExpressionBuiltinRef(
-                    builtin_name = "tuple",
-                    source_ref   = internal_source_ref
-                ),
+        condition  = ExpressionComparisonIsNOT(
+            left       = ExpressionBuiltinType1(
+                value      = star_list_variable_ref.makeClone(),
                 source_ref = internal_source_ref
+            ),
+            right      = ExpressionBuiltinRef(
+                builtin_name = "tuple",
+                source_ref   = internal_source_ref
             ),
             source_ref = internal_source_ref
         ),
@@ -623,14 +626,14 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
     )
 
     tried = StatementConditional(
-        condition  = ExpressionOperationNOT(
-            operand    = ExpressionBuiltinIsinstance(
-                instance   = star_dict_variable_ref.makeClone(),
-                classes    = ExpressionBuiltinRef(
-                    builtin_name = "dict",
-                    source_ref   = internal_source_ref
-                ),
+        condition  = ExpressionComparisonIsNOT(
+            left       = ExpressionBuiltinType1(
+                value      = star_dict_variable_ref.makeClone(),
                 source_ref = internal_source_ref
+            ),
+            right      = ExpressionBuiltinRef(
+                builtin_name = "dict",
+                source_ref   = internal_source_ref
             ),
             source_ref = internal_source_ref
         ),
@@ -992,14 +995,14 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     )
 
     tried = StatementConditional(
-        condition  = ExpressionOperationNOT(
-            operand    = ExpressionBuiltinIsinstance(
-                instance   = star_dict_variable_ref.makeClone(),
-                classes    = ExpressionBuiltinRef(
-                    builtin_name = "dict",
-                    source_ref   = internal_source_ref
-                ),
+        condition  = ExpressionComparisonIsNOT(
+            left       = ExpressionBuiltinType1(
+                value      = star_dict_variable_ref.makeClone(),
                 source_ref = internal_source_ref
+            ),
+            right      = ExpressionBuiltinRef(
+                builtin_name = "dict",
+                source_ref   = internal_source_ref
             ),
             source_ref = internal_source_ref
         ),
