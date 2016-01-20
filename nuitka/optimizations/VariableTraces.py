@@ -148,6 +148,7 @@ class VariableTraceBase:
         return None
 
     def hasShapeDictionaryExact(self):
+        # Virtual method, pylint: disable=R0201
         return False
 
 

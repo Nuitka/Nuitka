@@ -61,10 +61,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.OperatorNodes import (
-    ExpressionOperationBinary,
-    ExpressionOperationNOT
-)
+from nuitka.nodes.OperatorNodes import ExpressionOperationBinary
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SubscriptNodes import (
