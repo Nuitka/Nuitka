@@ -425,6 +425,13 @@ class VariableTraceMerge(VariableTraceBase):
             for previous in self.previous:
                 previous.addPotentialUsage()
 
+    def hasShapeDictionaryExact(self):
+        for previous in self.previous:
+            if not previous.hasShapeDictionaryExact():
+                return False
+
+        return True
+
 
 class VariableTraceLoopMerge(VariableTraceBase):
     """ Merge of loop wrap around with loop start value.
