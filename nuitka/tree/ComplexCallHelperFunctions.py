@@ -64,7 +64,6 @@ from nuitka.nodes.OperatorNodes import (
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import (
     ExpressionSubscriptLookup,
     StatementAssignmentSubscript

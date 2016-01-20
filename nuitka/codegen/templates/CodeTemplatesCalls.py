@@ -364,7 +364,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
 
 
 template_call_method_with_args_decl = """\
-extern PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *called_instance, PyObject *attribute_name, PyObject **args );"""
+extern PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *called_instance, PyObject *attribute_name, PyObject **args );\
+"""
 
 template_call_method_with_args_impl = """\
 PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_name, PyObject **args )

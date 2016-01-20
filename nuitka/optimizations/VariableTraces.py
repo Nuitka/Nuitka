@@ -330,7 +330,6 @@ class VariableTraceAssign(VariableTraceBase):
         self.replace_it = replacement
 
     def getReplacementNode(self, usage):
-
         if self.replace_it is not None:
             return self.replace_it(usage)
         else:

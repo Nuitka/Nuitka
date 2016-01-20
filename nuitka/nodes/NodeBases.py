@@ -1237,20 +1237,21 @@ class ExpressionMixin:
 
     def computeExpressionSubscript(self, lookup_node, subscript,
                                    constraint_collection):
-        # By default, an subscript may change everything about the lookup
-        # source.
-        # Any code could be run, note that.
+        # By default, an subscript can execute any code and change all values
+        # that escaped. This is a virtual method that may consider the subscript
+        # but generally we don't know what to do. pylint: disable=W0613
         constraint_collection.onControlFlowEscape(self)
 
+        # Any exception may be raised.
         constraint_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
 
     def computeExpressionSetSubscript(self, set_node, subscript, value_node,
                                       constraint_collection):
-        # By default, an subscript may change everything about the lookup
-        # source.
-        # Any code could be run, note that.
+        # By default, an subscript can execute any code and change all values
+        # that escaped. This is a virtual method that may consider the subscript
+        # but generally we don't know what to do. pylint: disable=W0613
         constraint_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
@@ -1260,9 +1261,9 @@ class ExpressionMixin:
 
     def computeExpressionDelSubscript(self, del_node, subscript,
                                       constraint_collection):
-        # By default, an subscript may change everything about the lookup
-        # source.
-        # Any code could be run, note that.
+        # By default, an subscript can execute any code and change all values
+        # that escaped. This is a virtual method that may consider the subscript
+        # but generally we don't know what to do. pylint: disable=W0613
         constraint_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
@@ -1378,6 +1379,7 @@ class ExpressionMixin:
         pass
 
     def hasShapeDictionaryExact(self):
+        # Virtual method, pylint: disable=R0201
         return False
 
 
@@ -1620,6 +1622,7 @@ class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
         return self, None, None
 
     def getStatementNiceName(self):
+        # Virtual method, pylint: disable=R0201
         return "undescribed statement"
 
 

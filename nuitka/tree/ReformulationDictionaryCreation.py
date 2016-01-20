@@ -59,7 +59,6 @@ from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import ExpressionOperationBinary
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
