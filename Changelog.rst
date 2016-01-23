@@ -10,6 +10,31 @@ Bug Fixes
 - Fix, the order of evaluation during optimization was considered in the wrong
   order for attribute assignments source and value.
 
+Optimization
+------------
+
+- When a variable is known to have dictionary shape (assigned from a constant
+  value, result of ``dict`` built-in, or a general dictionary creation), or
+  the branch merge thereof, we lower subscripts from expecting mapping nodes
+  to dictionary specific nodes. These generate more efficient code, and some
+  are then known to not raise an exception.
+
+  .. code-block:: python
+
+    def someFunction(a,b):
+        value = {a : b}
+        value["c"] = 1
+        return value
+
+  The above function is not yet fully optimized (dictionary key/value tracing
+  is not yet finished), however it at least knows that no exception can raise
+  from assigning ``value["c"]`` anymore and creates more efficient code for the
+  typical ``result = {}`` functions.
+
+- The use of "logical" sharing during optimization has been replaced with checks
+  for actual sharing. So closure variables that were written to in dead code no
+  longer inhibit optimization of the then no more shared local variable.
+
 Summary
 -------
 
