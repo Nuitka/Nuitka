@@ -82,13 +82,6 @@ def removeVariableUsage(variable, user):
     variable_info.removeUser(user)
 
 
-# TODO: This seems practically unused and not needed.
-def isSharedLogically(variable):
-    variable_info = variable_registry[variable]
-
-    return len(variable_info.users) > 1
-
-
 def isSharedAmongScopes(variable):
     variable_info = variable_registry[variable]
 
@@ -145,10 +138,10 @@ class GlobalVariableTrace:
 
     __del__ = counted_del()
 
-    def add(self, variable_trace):
+    def addTrace(self, variable_trace):
         self.traces.add(variable_trace)
 
-    def remove(self, variable_trace):
+    def removeTrace(self, variable_trace):
         self.traces.remove(variable_trace)
 
     def hasDefiniteWrites(self):
@@ -168,11 +161,17 @@ class GlobalVariableTrace:
     def hasWritesOutsideOf(self, provider):
         for trace in self.traces:
             if trace.isAssignTrace():
-                if trace.getAssignNode().getParentVariableProvider() is not provider:
+                if trace.owner is not provider:
                     return True
 
         return False
 
+    def hasAccessesOutsideOf(self, provider):
+        for trace in self.traces:
+            if trace.owner is not provider:
+                return True
+
+        return False
 
 
 def updateFromCollection(old_collection, new_collection):
@@ -180,7 +179,7 @@ def updateFromCollection(old_collection, new_collection):
         for variable_trace in old_collection.getVariableTracesAll().values():
             variable = variable_trace.getVariable()
 
-            variable_traces[variable].remove(variable_trace)
+            variable_traces[variable].removeTrace(variable_trace)
 
     if new_collection is not None:
         for variable_trace in new_collection.getVariableTracesAll().values():
@@ -189,7 +188,7 @@ def updateFromCollection(old_collection, new_collection):
             if variable not in variable_traces:
                 variable_traces[variable] = GlobalVariableTrace()
 
-            variable_traces[variable].add(variable_trace)
+            variable_traces[variable].addTrace(variable_trace)
 
         # Release the memory, and prevent the "active" state from being ever
         # inspected, it's useless now.

@@ -410,7 +410,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def computeModule(self):
         old_collection = self.constraint_collection
 
-        self.constraint_collection = ConstraintCollectionModule()
+        self.constraint_collection = ConstraintCollectionModule(self)
 
         module_body = self.getBody()
 

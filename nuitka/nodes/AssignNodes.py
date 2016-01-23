@@ -162,7 +162,6 @@ Reduced assignment of variable '%s' from itself to mere access of it.""" % varia
                 return None, "new_statements", """\
 Removed assignment of variable '%s' from itself which is known to be defined.""" % variable.getName()
 
-
         # If the assignment source has side effects, we can simply evaluate them
         # beforehand, we have already visited and evaluated them before.
         if source.isExpressionSideEffects():
@@ -203,36 +202,37 @@ Side effects of assignments promoted to statements.""",
 
         global_trace = VariableRegistry.getGlobalVariableTrace(variable)
 
-        if global_trace is not None: # and Options.isExperimental():
-            last_trace = global_trace.getMatchingAssignTrace(self)
+        if global_trace is not None:
+            provider = self.getParentVariableProvider()
 
-            if last_trace is not None:
-                if variable.isLocalVariable() or variable.isTempVariable():
-                    if source.isCompileTimeConstant():
+            if not global_trace.hasAccessesOutsideOf(provider):
+                last_trace = global_trace.getMatchingAssignTrace(self)
 
-                        # Can safely forward propagate only non-mutable constants.
-                        if not source.isMutable():
-                            provider = self.getParentVariableProvider()
+                if last_trace is not None:
+                    if variable.isLocalVariable() or variable.isTempVariable():
+                        if source.isCompileTimeConstant():
 
-                            if variable.isTempVariable() or \
-                               (not provider.isExpressionClassBody() and \
-                                not provider.isUnoptimized()
-                                ):
+                            # Can safely forward propagate only non-mutable constants.
+                            if not source.isMutable():
+                                provider = self.getParentVariableProvider()
 
-                                if last_trace.hasDefiniteUsages():
-                                    self.variable_trace.setReplacementNode(
-                                        lambda usage : source.makeClone()
-                                    )
-                                    propagated = True
-                                else:
-                                    propagated = False
+                                if variable.isTempVariable() or \
+                                   (not provider.isExpressionClassBody() and \
+                                    not provider.isUnoptimized()
+                                    ):
 
-                                if not last_trace.hasPotentialUsages() and not last_trace.hasNameUsages():
-                                    # This limitation may fall later.
-                                    if not variable.isSharedLogically():
+                                    if last_trace.hasDefiniteUsages():
+                                        self.variable_trace.setReplacementNode(
+                                            lambda usage : source.makeClone()
+                                        )
+                                        propagated = True
+                                    else:
+                                        propagated = False
 
+                                    if not last_trace.hasPotentialUsages() and not last_trace.hasNameUsages():
                                         if not last_trace.getPrevious().isUninitTrace():
-                                            # TODO: We could well decide, if that's even necessary.
+                                            # TODO: We could well decide, if that's even necessary, but for now
+                                            # the "StatementDelVariable" is tasked with that.
                                             result = StatementDelVariable(
                                                 variable_ref = self.getTargetVariableRef(),
                                                 tolerant     = True,
@@ -249,27 +249,23 @@ Side effects of assignments promoted to statements.""",
                                                self.getTargetVariableRef().getVariableName()
                                             )
                                         )
-                        else:
-                            # Something might be possible still.
+                            else:
+                                # Something might be possible still.
 
-                            pass
-                    elif Options.isExperimental() and \
-                        source.isExpressionFunctionCreation() and \
-                        not source.getFunctionRef().getFunctionBody().isExpressionGeneratorBody() and \
-                        not source.getFunctionRef().getFunctionBody().isExpressionClassBody() and \
-                        not source.getDefaults() and  \
-                        not source.getKwDefaults() and \
-                        not source.getAnnotations():
-                        # TODO: These are very mutable, right?
+                                pass
+                        elif Options.isExperimental() and \
+                            source.isExpressionFunctionCreation() and \
+                            source.getFunctionRef().getFunctionBody().isExpressionFunctionBody() and \
+                            not source.getDefaults() and  \
+                            not source.getKwDefaults() and \
+                            not source.getAnnotations():
+                            # TODO: These are very mutable, right?
 
-                        provider = self.getParentVariableProvider()
+                            provider = self.getParentVariableProvider()
 
-                        if variable.isTempVariable() or \
-                           (not provider.isUnoptimized() and \
-                            not provider.isExpressionClassBody()):
-
-                            # This limitation may fall later.
-                            if not variable.isSharedLogically():
+                            if variable.isTempVariable() or \
+                               (not provider.isUnoptimized() and \
+                                not provider.isExpressionClassBody()):
 
                                 if last_trace.getDefiniteUsages() <= 1 and \
                                    not last_trace.hasPotentialUsages() and \
@@ -301,10 +297,9 @@ Side effects of assignments promoted to statements.""",
                                            self.getTargetVariableRef().getVariableName()
                                         )
                                     )
-
-                    else:
-                        # More cases thinkable.
-                        pass
+                        else:
+                            # More cases thinkable.
+                            pass
 
         return self, None, None
 
@@ -428,25 +423,18 @@ class StatementDelVariable(StatementChildrenHavingBase):
             return False
         else:
             if self.variable_trace is not None:
-
                 variable = self.getTargetVariableRef().getVariable()
 
-                # TODO: This condition must become unnecessary, but enhancing
-                # SSA to notice potential escapes.
-                if not variable.isModuleVariable() and \
-                   not variable.isMaybeLocalVariable() and not \
-                    variable.isSharedTechnically():
+                # Temporary variables deletions won't raise, just because we
+                # don't create them that way. We can avoid going through SSA in
+                # these cases.
+                if variable.isTempVariable():
+                    return False
 
-                    # Temporary variables deletions won't raise, just because we don't
-                    # create them that way. We can avoid going through SSA in these
-                    # cases.
-                    if variable.isTempVariable():
-                        return False
-
-                    # If SSA knows, that's fine.
-                    if self.previous_trace is not None and \
-                       self.previous_trace.mustHaveValue():
-                        return False
+                # If SSA knows, that's fine.
+                if self.previous_trace is not None and \
+                   self.previous_trace.mustHaveValue():
+                    return False
 
             return True
 

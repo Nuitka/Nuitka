@@ -39,7 +39,8 @@ class VariableTraceBase:
     # We are going to have many instance attributes, pylint: disable=R0902
 
     @InstanceCounters.counted_init
-    def __init__(self, variable, version, previous):
+    def __init__(self, owner, variable, version, previous):
+        self.owner = owner
         self.variable = variable
         self.version = version
 
@@ -154,9 +155,10 @@ class VariableTraceBase:
 
 
 class VariableTraceUninit(VariableTraceBase):
-    def __init__(self, variable, version, previous):
+    def __init__(self, owner, variable, version, previous):
         VariableTraceBase.__init__(
             self,
+            owner    = owner,
             variable = variable,
             version  = version,
             previous = previous
@@ -191,9 +193,10 @@ class VariableTraceUninit(VariableTraceBase):
 
 
 class VariableTraceInit(VariableTraceBase):
-    def __init__(self, variable, version):
+    def __init__(self, owner, variable, version):
         VariableTraceBase.__init__(
             self,
+            owner    = owner,
             variable = variable,
             version  = version,
             previous = None
@@ -228,9 +231,10 @@ class VariableTraceInit(VariableTraceBase):
 
 
 class VariableTraceUnknown(VariableTraceBase):
-    def __init__(self, variable, version, previous):
+    def __init__(self, owner, variable, version, previous):
         VariableTraceBase.__init__(
             self,
+            owner    = owner,
             variable = variable,
             version  = version,
             previous = previous
@@ -286,9 +290,10 @@ class VariableTraceUnknown(VariableTraceBase):
 
 
 class VariableTraceAssign(VariableTraceBase):
-    def __init__(self, assign_node, variable, version, previous):
+    def __init__(self, owner, assign_node, variable, version, previous):
         VariableTraceBase.__init__(
             self,
+            owner    = owner,
             variable = variable,
             version  = version,
             previous = previous
@@ -350,6 +355,7 @@ class VariableTraceMerge(VariableTraceBase):
     def __init__(self, variable, version, traces):
         VariableTraceBase.__init__(
             self,
+            owner    = traces[0].owner,
             variable = variable,
             version  = version,
             previous = tuple(traces)
@@ -448,6 +454,7 @@ class VariableTraceLoopMerge(VariableTraceBase):
     def __init__(self, variable, version, previous):
         VariableTraceBase.__init__(
             self,
+            owner    = previous.owner,
             variable = variable,
             version  = version,
             previous = previous
