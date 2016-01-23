@@ -840,4 +840,8 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionMixin,
             constant = self.function_body.getFunctionQualname()
         )
 
-        return result, "new_constant", "Delayed __qualname__ resolution."
+        return (
+            result,
+            "new_constant",
+            "Executed '__qualname__' resolution to '%s'." % self.function_body.getFunctionQualname()
+        )
