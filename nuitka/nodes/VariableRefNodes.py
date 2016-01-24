@@ -22,7 +22,7 @@ and its expressions, changing the meaning of course dramatically.
 
 """
 
-from nuitka import Builtins, VariableRegistry, Variables
+from nuitka import Builtins, Variables
 
 from .ConstantRefNodes import ExpressionConstantRef
 from .DictionaryNodes import (
@@ -127,7 +127,7 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
                 BaseException
             )
 
-        self.global_trace = VariableRegistry.getGlobalVariableTrace(variable)
+        self.global_trace = variable.getGlobalVariableTrace()
 
         # TODO: Maybe local variables are factored into this strangely.
         if self.global_trace is None and variable.isModuleVariable():

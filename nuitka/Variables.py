@@ -40,10 +40,25 @@ class Variable:
 
         self.version_number = 0
 
+        self.global_trace = None
+
     __del__ = InstanceCounters.counted_del()
 
     def getName(self):
         return self.variable_name
+
+    def getOwner(self):
+        return self.owner
+
+    def getGlobalVariableTrace(self):
+        # Monkey patched later to then use it, pylint: disable=R0201
+        return None
+
+    def _getGlobalVariableTrace(self):
+        return self.global_trace
+
+    def setGlobalVariableTrace(self, global_trace):
+        self.global_trace = global_trace
 
     def getCodeName(self):
         var_name = self.variable_name
@@ -51,9 +66,6 @@ class Variable:
         var_name = Utils.encodeNonAscii(var_name)
 
         return var_name
-
-    def getOwner(self):
-        return self.owner
 
     def getReadOnlyIndicator(self):
         return self.read_only_indicator

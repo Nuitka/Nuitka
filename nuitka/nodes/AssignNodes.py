@@ -30,7 +30,7 @@ the traces.
 
 """
 
-from nuitka import Options, VariableRegistry
+from nuitka import Options
 
 from .NodeBases import NodeBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
@@ -200,7 +200,7 @@ Side effects of assignments promoted to statements.""",
             assign_node = self
         )
 
-        global_trace = VariableRegistry.getGlobalVariableTrace(variable)
+        global_trace = variable.getGlobalVariableTrace()
 
         if global_trace is not None:
             provider = self.getParentVariableProvider()

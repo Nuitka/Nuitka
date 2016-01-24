@@ -228,7 +228,7 @@ def optimizeUnusedClosureVariables(function_body):
             read_only = areReadOnlyTraces(variable_traces)
 
             if read_only:
-                global_trace = VariableRegistry.getGlobalVariableTrace(closure_variable)
+                global_trace = closure_variable.getGlobalVariableTrace()
 
                 if global_trace is not None:
                     if not global_trace.hasWritesOutsideOf(function_body):
@@ -334,9 +334,7 @@ after that. Memory usage {memory}:""".format(
 
                     function.constraint_collection = None
 
-        if not VariableRegistry.complete:
-            VariableRegistry.complete = True
-
+        if VariableRegistry.considerCompletion():
             finished = False
 
         for current_module in ModuleRegistry.getDoneModules():
