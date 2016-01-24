@@ -520,7 +520,7 @@ def makeDiffable(output):
 
         # This is also a bug potentially, but only visible under
         # CPython
-        line = python_win_lib_re.sub(r"C:\Python\1Lib", line)
+        line = python_win_lib_re.sub(r"C:\\Python\1Lib", line)
 
         # Port numbers can be random, lets ignore them
         line = local_port_re.sub(r"\1:xxxxx", line)
