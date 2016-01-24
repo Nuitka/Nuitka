@@ -1,6 +1,11 @@
 Nuitka Release 0.5.19 (Draft)
 =============================
 
+This release brings optimization improvements for dictionary using code. This
+is now lowering subscripts to dictionary accesses where possible and adds new
+code generation for known dictionary values. Besides this there is the usual
+range of bug fixes.
+
 Bug Fixes
 ---------
 
@@ -9,6 +14,17 @@ Bug Fixes
 
 - Fix, the order of evaluation during optimization was considered in the wrong
   order for attribute assignments source and value.
+
+- Windows: Fix, when ``g++`` is the path, it was not used automatically, but
+  now it is.
+
+- Windows: Detect the 32 bits variant of MinGW64 too.
+
+- Python3.4: The finalize of compiled generators could corrupt reference counts
+  for shared generator objects. Fixed in 0.5.18.1 already.
+
+- Python3.5: The finalize of compiled coroutines could corrupt reference counts
+  for shared generator objects.
 
 Optimization
 ------------
@@ -35,10 +51,35 @@ Optimization
   for actual sharing. So closure variables that were written to in dead code no
   longer inhibit optimization of the then no more shared local variable.
 
+- Global variable traces are now faster to decide definite writes without need
+  to check traces for this each time.
+
+Cleanups
+--------
+
+- No more using "logical sharing" allowed to remove that function entirely.
+
+- Using "technical sharing" less often for decisions during optimization and
+  instead rely more often on proper variable registry.
+
+- Connected variables with their global variable trace statically avoid the
+  need to check in variable registry for it.
+
+- Removed old and mostly unused  "assume unclear locals" indications, we use
+  global variable traces for this now.
+
 Summary
 -------
 
-This release is not done yet.
+This release aimed at dictionary tracing. As a first step, the value assign is
+now traced to have a dictionary shape, and this this then used to lower the
+operations which used to be normal subscript operations to mapping, but now
+can be more specific.
+
+Making use of the dictionary values knowledge, tracing keys and values is not
+yet inside the scope, but expected to follow. We got the first signs of type
+inference here, but to really take advantage, more specific shape tracing will
+be needed.
 
 
 Nuitka Release 0.5.18
