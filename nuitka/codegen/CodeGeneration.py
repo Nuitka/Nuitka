@@ -82,6 +82,7 @@ from .DictCodes import (
     generateBuiltinDictCode,
     generateDictionaryCreationCode,
     generateDictOperationGetCode,
+    generateDictOperationInCode,
     generateDictOperationRemoveCode,
     generateDictOperationSetCode,
     generateDictOperationUpdateCode
@@ -553,6 +554,8 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_COMPARISON_NOT_IN"              : generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_EXCEPTION_MATCH"     : generateComparisonExpressionCode,
         "EXPRESSION_DICT_OPERATION_GET"             : generateDictOperationGetCode,
+        "EXPRESSION_DICT_OPERATION_IN"              : generateDictOperationInCode,
+        "EXPRESSION_DICT_OPERATION_NOT_IN"          : generateDictOperationInCode,
         "EXPRESSION_FUNCTION_CREATION"              : generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL"                  : generateFunctionCallCode,
         "EXPRESSION_IMPORT_MODULE"                  : generateImportModuleCode,

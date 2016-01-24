@@ -27,6 +27,8 @@ from nuitka import Builtins, VariableRegistry, Variables
 from .ConstantRefNodes import ExpressionConstantRef
 from .DictionaryNodes import (
     ExpressionDictOperationGet,
+    ExpressionDictOperationIn,
+    ExpressionDictOperationNOTIn,
     StatementDictOperationRemove,
     StatementDictOperationSet
 )
@@ -286,6 +288,41 @@ Subscript look-up to dictionary lowered to dictionary look-up."""
             constraint_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, tags, message
+
+    def computeExpressionComparisonIn(self, in_node, value_node, constraint_collection):
+        tags = None
+        message = None
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(in_node)
+
+        if self.variable_trace.hasShapeDictionaryExact():
+            tags = "new_expression"
+            message = """\
+Check '%s' on dictionary lowered to dictionary '%s'.""" % (
+                in_node.comparator,
+                in_node.comparator
+            )
+
+            if in_node.comparator == "In":
+                in_node = ExpressionDictOperationIn(
+                    key        = value_node,
+                    dict_arg   = self,
+                    source_ref = in_node.getSourceReference()
+                )
+            else:
+                in_node = ExpressionDictOperationNOTIn(
+                    key        = value_node,
+                    dict_arg   = self,
+                    source_ref = in_node.getSourceReference()
+                )
+
+
+        # Any exception may be raised.
+        if in_node.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return in_node, tags, message
 
     def hasShapeDictionaryExact(self):
         return self.variable_trace.hasShapeDictionaryExact()

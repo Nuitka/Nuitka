@@ -1376,7 +1376,7 @@ class ExpressionMixin:
         return not_node, None, None
 
     def computeExpressionComparisonIn(self, in_node, value_node, constraint_collection):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=R0201,W0613
 
         # Any code could be run, note that.
         constraint_collection.onControlFlowEscape(in_node)

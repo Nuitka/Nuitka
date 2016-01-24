@@ -247,6 +247,48 @@ def generateDictOperationGetCode(to_name, expression, emit, context):
     context.addCleanupTempName(to_name)
 
 
+def generateDictOperationInCode(to_name, expression, emit, context):
+    inverted = expression.isExpressionDictOperationNOTIn()
+
+    dict_name, key_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    res_name = context.getIntResName()
+
+    emit(
+        "%s = PyDict_Contains( %s, %s );" % (
+            res_name,
+            key_name,
+            dict_name
+        )
+    )
+
+
+    getReleaseCodes(
+        release_names = (dict_name, key_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitBoolCode(
+        condition   = "%s == -1" % res_name,
+        needs_check = expression.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
+    )
+
+    emit(
+        "%s = BOOL_FROM( %s == %s );" % (
+            to_name,
+            res_name,
+            '1' if not inverted else '0'
+        )
+    )
+
+
 def generateDictOperationSetCode(statement, emit, context):
     value_arg_name = context.allocateTempName("dictset_value", unique = True)
     generateExpressionCode(

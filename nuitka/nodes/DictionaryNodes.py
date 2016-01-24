@@ -435,3 +435,69 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
         constraint_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+
+class ExpressionDictOperationIn(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_IN"
+
+    # Follow the reversed nature of "in", with the dictionary on the right
+    # side of things.
+    named_children = (
+        "key",
+        "dict"
+    )
+
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, key, dict_arg, source_ref):
+        assert dict_arg is not None
+        assert key is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "dict" : dict_arg,
+                "key"  : key,
+            },
+            source_ref = source_ref
+        )
+
+    getDict = ExpressionChildrenHavingBase.childGetter("dict")
+    getKey = ExpressionChildrenHavingBase.childGetter("key")
+
+    def computeExpression(self, constraint_collection):
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+
+class ExpressionDictOperationNOTIn(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_DICT_OPERATION_NOT_IN"
+
+    # Follow the reversed nature of "in", with the dictionary on the right
+    # side of things.
+    named_children = (
+        "key",
+        "dict"
+    )
+
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, key, dict_arg, source_ref):
+        assert dict_arg is not None
+        assert key is not None
+
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "dict" : dict_arg,
+                "key"  : key,
+            },
+            source_ref = source_ref
+        )
+
+    getDict = ExpressionChildrenHavingBase.childGetter("dict")
+    getKey = ExpressionChildrenHavingBase.childGetter("key")
+
+    def computeExpression(self, constraint_collection):
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
