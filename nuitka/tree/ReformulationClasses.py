@@ -39,7 +39,7 @@ from nuitka.nodes.ClassNodes import (
     ExpressionSelectMetaclass
 )
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ComparisonNodes import ExpressionComparison
+from nuitka.nodes.ComparisonNodes import ExpressionComparisonIn
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
@@ -395,8 +395,7 @@ def _buildClassNode3(provider, node, source_ref):
             ),
             source       = ExpressionSelectMetaclass(
                 metaclass  = ExpressionConditional(
-                    condition      = ExpressionComparison(
-                        comparator = "In",
+                    condition      = ExpressionComparisonIn(
                         left       = ExpressionConstantRef(
                             constant      = "metaclass",
                             source_ref    = source_ref,
@@ -457,8 +456,7 @@ def _buildClassNode3(provider, node, source_ref):
             source_ref   = source_ref_orig
         ),
         StatementConditional(
-            condition  = ExpressionComparison(
-                comparator = "In",
+            condition  = ExpressionComparisonIn(
                 left       = ExpressionConstantRef(
                     constant      = "metaclass",
                     source_ref    = source_ref,
@@ -722,8 +720,7 @@ def _buildClassNode2(provider, node, source_ref):
                 source_ref = source_ref
             ),
             source       = ExpressionConditional(
-                condition      =  ExpressionComparison(
-                    comparator = "In",
+                condition      =  ExpressionComparisonIn(
                     left       = ExpressionConstantRef(
                         constant      = "__metaclass__",
                         source_ref    = source_ref,

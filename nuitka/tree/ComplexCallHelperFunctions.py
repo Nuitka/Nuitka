@@ -43,7 +43,7 @@ from nuitka.nodes.CallNodes import (
     ExpressionCallNoKeywords
 )
 from nuitka.nodes.ComparisonNodes import (
-    ExpressionComparison,
+    ExpressionComparisonIn,
     ExpressionComparisonIsNOT
 )
 from nuitka.nodes.ConditionalNodes import StatementConditional
@@ -755,8 +755,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
 
     mapping_loop_body = (
         StatementConditional(
-            condition  = ExpressionComparison(
-                comparator = "In",
+            condition  = ExpressionComparisonIn(
                 left       = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
                     source_ref = internal_source_ref
@@ -905,8 +904,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
             source_ref   = internal_source_ref
         ),
         StatementConditional(
-            condition  = ExpressionComparison(
-                comparator = "In",
+            condition  = ExpressionComparisonIn(
                 left       = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
                     source_ref = internal_source_ref
@@ -2686,8 +2684,7 @@ def getFunctionCallHelperDictionaryUnpacking():
 
     update_body = (
         StatementConditional(
-            condition  = ExpressionComparison(
-                comparator = "In",
+            condition  = ExpressionComparisonIn(
                 left       = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
                     source_ref = internal_source_ref

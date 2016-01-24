@@ -549,6 +549,8 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_COMPARISON"                     : generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_IS"                  : generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_IS_NOT"              : generateComparisonExpressionCode,
+        "EXPRESSION_COMPARISON_IN"                  : generateComparisonExpressionCode,
+        "EXPRESSION_COMPARISON_NOT_IN"              : generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_EXCEPTION_MATCH"     : generateComparisonExpressionCode,
         "EXPRESSION_DICT_OPERATION_GET"             : generateDictOperationGetCode,
         "EXPRESSION_FUNCTION_CREATION"              : generateFunctionCreationCode,

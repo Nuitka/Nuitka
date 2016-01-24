@@ -266,7 +266,9 @@ def makeComparisonNode(left, right, comparator, source_ref):
     from .ComparisonNodes import (
         ExpressionComparison,
         ExpressionComparisonIs,
-        ExpressionComparisonIsNOT
+        ExpressionComparisonIsNOT,
+        ExpressionComparisonIn,
+        ExpressionComparisonNOTIn
     )
 
     if comparator == "Is":
@@ -277,10 +279,22 @@ def makeComparisonNode(left, right, comparator, source_ref):
         )
     elif comparator == "IsNot":
         result = ExpressionComparisonIsNOT(
-                left       = left,
-                right      = right,
-                source_ref = source_ref
-            )
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "In":
+        result = ExpressionComparisonIn(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "NotIn":
+        result = ExpressionComparisonNOTIn(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
     else:
         result = ExpressionComparison(
             left       = left,

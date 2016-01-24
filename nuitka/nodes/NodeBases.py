@@ -464,6 +464,12 @@ class NodeBase(NodeMetaClassBase):
 
         return True
 
+    def mayRaiseExceptionIn(self, exception_type, checked_value):
+        """ Unless we are told otherwise, everything may raise being iterated. """
+        # Virtual method, pylint: disable=R0201,W0613
+
+        return True
+
     def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
         """ Unless we are told otherwise, everything may raise for attribute access. """
         # Virtual method, pylint: disable=R0201,W0613
@@ -1369,6 +1375,17 @@ class ExpressionMixin:
 
         return not_node, None, None
 
+    def computeExpressionComparisonIn(self, in_node, value_node, constraint_collection):
+        # Virtual method, pylint: disable=R0201
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(in_node)
+
+        # Any exception may be raised.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return in_node, None, None
+
     def computeExpressionDrop(self, statement, constraint_collection):
         if not self.mayHaveSideEffects():
             return None, "new_statements", "Removed statement without effect."
@@ -1537,6 +1554,23 @@ Slicing of constant with constant upper index only."""
                 )
 
         return lookup_node, None, None
+
+    def computeExpressionComparisonIn(self, in_node, value_node, constraint_collection):
+        if value_node.isCompileTimeConstant():
+            return getComputationResult(
+                node        = in_node,
+                computation = lambda : in_node.getSimulator()(
+                    value_node.getCompileTimeConstant(),
+                    self.getCompileTimeConstant()
+                ),
+                description = """\
+Predicted '%s' on compiled time constant values.""" % in_node.comparator
+            )
+
+        # Look-up of __contains__ on compile time constants does mostly nothing.
+        constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return in_node, None, None
 
 
 class ExpressionSpecBasedComputationMixin(ExpressionMixin):
