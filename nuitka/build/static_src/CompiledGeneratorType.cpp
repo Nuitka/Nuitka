@@ -402,9 +402,6 @@ static void Nuitka_Generator_tp_del( Nuitka_GeneratorObject *generator )
     }
 
     // Revive temporarily.
-    assert( Py_REFCNT( generator ) == 0 );
-    Py_REFCNT( generator ) = 1;
-
     PyObject *error_type, *error_value;
     PyTracebackObject *error_traceback;
 
@@ -424,18 +421,7 @@ static void Nuitka_Generator_tp_del( Nuitka_GeneratorObject *generator )
     /* Restore the saved exception. */
     RESTORE_ERROR_OCCURRED( error_type, error_value, error_traceback );
 
-    assert( Py_REFCNT( generator ) > 0 );
-    Py_REFCNT( generator ) -= 1;
-
-    Py_ssize_t refcnt = Py_REFCNT( generator );
-
-    if (unlikely( refcnt != 0 ))
-    {
-        _Py_NewReference( (PyObject *)generator );
-        Py_REFCNT( generator ) = refcnt;
-
-        _Py_DEC_REFTOTAL;
-    }
+    Py_DECREF( generator );
 }
 #endif
 

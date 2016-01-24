@@ -576,7 +576,7 @@ without any risk.
 .. admonition:: Status
 
    This is considered done. For every kind of operation, we trace if it may
-   raise an exception. We do however *not* track properly yes, what can do
+   raise an exception. We do however *not* track properly yet, what can do
    a ``ValueError`` and what cannot.
 
 
