@@ -468,11 +468,6 @@ static PyObject *Nuitka_Coroutine_throw( Nuitka_CoroutineObject *coroutine, PyOb
 
 static void Nuitka_Coroutine_tp_del( Nuitka_CoroutineObject *coroutine )
 {
-    if ( coroutine->m_status != status_Running )
-    {
-        return;
-    }
-
     // Revive temporarily.
     assert( Py_REFCNT( coroutine ) == 0 );
     Py_REFCNT( coroutine ) = 1;
@@ -495,19 +490,6 @@ static void Nuitka_Coroutine_tp_del( Nuitka_CoroutineObject *coroutine )
 
     /* Restore the saved exception. */
     RESTORE_ERROR_OCCURRED( error_type, error_value, error_traceback );
-
-    assert( Py_REFCNT( coroutine ) > 0 );
-    Py_REFCNT( coroutine ) -= 1;
-
-    Py_ssize_t refcnt = Py_REFCNT( coroutine );
-
-    if (unlikely( refcnt != 0 ))
-    {
-        _Py_NewReference( (PyObject *)coroutine );
-        Py_REFCNT( coroutine ) = refcnt;
-
-        _Py_DEC_REFTOTAL;
-    }
 }
 
 static void Nuitka_Coroutine_tp_dealloc( Nuitka_CoroutineObject *coroutine )
