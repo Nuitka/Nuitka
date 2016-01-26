@@ -152,10 +152,6 @@ class CollectionStartpointMixin:
         # this is.
         self.variable_traces = {}
 
-        # Cannot mess with local variables that much, as "locals" and "eval"
-        # calls may not yet be known.
-        self.unclear_locals = False
-
         self.break_collections = None
         self.continue_collections = None
         self.return_collections = None
@@ -322,12 +318,6 @@ class CollectionStartpointMixin:
 
         return trace
 
-    def assumeUnclearLocals(self):
-        self.unclear_locals = True
-
-    def hasUnclearLocals(self):
-        return self.unclear_locals
-
     def updateFromCollection(self, old_collection):
         VariableRegistry.updateFromCollection(old_collection, self)
 
@@ -422,9 +412,6 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         self.removes_knowledge = True
 
         self.markActiveVariablesAsUnknown()
-
-    def assumeUnclearLocals(self):
-        self.parent.assumeUnclearLocals()
 
     def getVariableTrace(self, variable, version):
         return self.parent.getVariableTrace(variable, version)

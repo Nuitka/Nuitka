@@ -36,8 +36,6 @@ class Variable:
         self.variable_name = variable_name
         self.owner = owner
 
-        self.read_only_indicator = None
-
         self.version_number = 0
 
         self.global_trace = None
@@ -66,14 +64,6 @@ class Variable:
         var_name = Utils.encodeNonAscii(var_name)
 
         return var_name
-
-    def getReadOnlyIndicator(self):
-        return self.read_only_indicator
-
-    def setReadOnlyIndicator(self, value):
-        assert value in (True, False)
-
-        self.read_only_indicator = value
 
     def allocateTargetNumber(self):
         self.version_number += 1

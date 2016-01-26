@@ -122,7 +122,7 @@ def optimizePythonModule(module):
 
     Plugins.considerImplicitImports(module, signal_change = signalChange)
 
-    return touched or module.hasUnclearLocals()
+    return touched
 
 
 def optimizeShlibModule(module):
@@ -266,8 +266,7 @@ def optimizeUnusedTempVariables(provider):
 
 def optimizeVariables(module):
     for function_body in module.getUsedFunctions():
-        constraint_collection = function_body.constraint_collection
-        if constraint_collection.unclear_locals:
+        if not VariableRegistry.complete:
             continue
 
         optimizeUnusedUserVariables(function_body)

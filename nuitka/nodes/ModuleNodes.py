@@ -440,13 +440,6 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         for function in self.getUsedFunctions():
             yield function.constraint_collection
 
-    def hasUnclearLocals(self):
-        for collection in self.getTraceCollections():
-            if collection.hasUnclearLocals():
-                return True
-
-        return False
-
 
 class CompiledPythonPackage(CompiledPythonModule):
     kind = "COMPILED_PYTHON_PACKAGE"

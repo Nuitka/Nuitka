@@ -35,17 +35,6 @@ from .DictionaryNodes import (
 from .NodeBases import ExpressionMixin, NodeBase
 
 
-def _isReadOnlyUnterdeterminedModuleVariable(variable):
-    return variable.isModuleVariable() and \
-           variable.getReadOnlyIndicator() is None
-
-def _isReadOnlyModuleVariable(variable):
-    return (
-        variable.isModuleVariable() and \
-        variable.getReadOnlyIndicator() is True
-    ) or variable.isMaybeLocalVariable()
-
-
 class ExpressionVariableRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_VARIABLE_REF"
 
@@ -130,9 +119,8 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
         self.global_trace = variable.getGlobalVariableTrace()
 
         # TODO: Maybe local variables are factored into this strangely.
-        if self.global_trace is None and variable.isModuleVariable():
-            constraint_collection.assumeUnclearLocals()
-        elif (variable.isModuleVariable() and not self.global_trace.hasDefiniteWrites() ) or \
+        if self.global_trace is not None and \
+           (variable.isModuleVariable() and not self.global_trace.hasDefiniteWrites() ) or \
              variable.isMaybeLocalVariable():
             if self.variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
