@@ -99,7 +99,8 @@ Requirements
 
 .. [#] Download MinGW64 from here http://mingw-w64.org/ and choose 64 or 32
        bits matching your Python. Use both MinGW64 and 64 bits Python if you
-       have the choice of which Python to use.
+       have the choice of which Python to use. Install it to "C:\MinGW64" or
+       "\MinGW64" (same disk root) to find it automatically.
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx

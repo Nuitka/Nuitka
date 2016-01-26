@@ -44,11 +44,8 @@ import SCons.Util
 
 
 def find(env):
-    # Nuitka: Check for MinGW64 or MinGW32.
-    if env["TARGET_ARCH"] == "x86_64":
-        key_program = 'x86_64-w64-mingw32-g++'
-    else:
-        key_program = "mingw32-g++"
+    # Nuitka: Check for MinGW64.
+    key_program = 'g++'
 
     # First search in the SCons path
     path=env.WhereIs(key_program)
@@ -61,8 +58,16 @@ def find(env):
 
     # If that doesn't work try default location for mingw
     save_path=env['ENV']['PATH']
-    env.AppendENVPath('PATH',r'c:\MinGW\bin')
-    env.AppendENVPath('PATH',r'\MinGW\bin')
+
+    # This should allow installing both into the same place and picking arch
+    # just automatically.
+    if env["TARGET_ARCH"] == "x86_64":
+        env.AppendENVPath('PATH',r'c:\MinGW64\bin')
+        env.AppendENVPath('PATH',r'\MinGW64\bin')
+    else:
+        env.AppendENVPath('PATH',r'c:\MinGW64\mingw32\bin')
+        env.AppendENVPath('PATH',r'\MinGW64\mingw32\bin')
+
     path =env.WhereIs(key_program)
     if not path:
         env['ENV']['PATH']=save_path
