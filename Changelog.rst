@@ -1,5 +1,5 @@
-Nuitka Release 0.5.19 (Draft)
-=============================
+Nuitka Release 0.5.19
+=====================
 
 This release brings optimization improvements for dictionary using code. This
 is now lowering subscripts to dictionary accesses where possible and adds new
