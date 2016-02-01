@@ -1,4 +1,4 @@
-#!/usr/bin/env python -u
+#!/usr/bin/env PYTHONUNBUFFERED=1 python
 #     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
