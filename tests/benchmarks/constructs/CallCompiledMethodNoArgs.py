@@ -17,13 +17,27 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
-print(not bool)
-print(not {})
-print(not 7)
-# TODO: Needs some SSA now.
-# print(bool or len)
-# print(False or dict)
-print(type(Ellipsis))
-print("a" in "abba")
-print("a" not in "abba")
+class C:
+    def compiled_method(self):
+        return self
+
+def calledRepeatedly():
+    inst = C()
+
+    # This is supposed to make a call to a non-compiled function, which is
+    # being optimized separately.
+# construct_begin
+    inst.compiled_method()
+    inst.compiled_method()
+    inst.compiled_method()
+
+# construct_alternative
+    pass
+# construct_end
+
+for x in xrange(50000):
+    calledRepeatedly()
+
+print("OK.")

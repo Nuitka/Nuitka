@@ -54,7 +54,7 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
 
         self.comparator = comparator
 
-        if comparator in ("Is", "IsNot"):
+        if comparator in ("Is", "IsNot", "In", "NotIn"):
             assert self.__class__ is not ExpressionComparison
 
     def getOperands(self):
@@ -78,7 +78,8 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
         return PythonOperators.all_comparison_functions[self.comparator]
 
     def computeExpression(self, constraint_collection):
-        left, right = self.getOperands()
+        left = self.getLeft()
+        right = self.getRight()
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
@@ -263,3 +264,75 @@ class ExpressionComparisonExceptionMatch(ExpressionComparison):
         assert False
 
         return PythonOperators.all_comparison_functions[self.comparator]
+
+
+class ExpressionComparisonInNotInBase(ExpressionComparison):
+    def __init__(self, left, right, comparator, source_ref):
+        ExpressionComparison.__init__(
+            self,
+            left       = left,
+            right      = right,
+            comparator = comparator,
+            source_ref = source_ref
+        )
+
+        assert comparator in ("In", "NotIn")
+
+    def getDetailsForDisplay(self):
+        return ExpressionComparison.getDetails(self)
+
+    def getDetails(self):
+        return {}
+
+    def isExpressionComparison(self):
+        # Virtual method, pylint: disable=R0201
+        return True
+
+    def mayRaiseException(self, exception_type):
+        left = self.getLeft()
+
+        if left.mayRaiseException(exception_type):
+            return True
+
+        right = self.getRight()
+
+        if right.mayRaiseException(exception_type):
+            return True
+
+        return right.mayRaiseExceptionIn(exception_type, left)
+
+    def mayRaiseExceptionBool(self, exception_type):
+        return False
+
+    def computeExpression(self, constraint_collection):
+        return self.getRight().computeExpressionComparisonIn(
+            in_node               = self,
+            value_node            = self.getLeft(),
+            constraint_collection = constraint_collection
+        )
+
+
+class ExpressionComparisonIn(ExpressionComparisonInNotInBase):
+    kind = "EXPRESSION_COMPARISON_IN"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionComparisonInNotInBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            comparator = "In",
+            source_ref = source_ref
+        )
+
+
+class ExpressionComparisonNOTIn(ExpressionComparisonInNotInBase):
+    kind = "EXPRESSION_COMPARISON_NOT_IN"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionComparisonInNotInBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            comparator = "NotIn",
+            source_ref = source_ref
+        )

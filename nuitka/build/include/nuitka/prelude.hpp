@@ -125,6 +125,7 @@
 #define Nuitka_String_AsString PyString_AsString
 #define Nuitka_String_AsString_Unchecked PyString_AS_STRING
 #define Nuitka_String_Check PyString_Check
+#define Nuitka_String_CheckExact PyString_CheckExact
 #define Nuitka_StringObject PyStringObject
 #define Nuitka_StringIntern PyString_InternInPlace
 #else
@@ -134,6 +135,7 @@
  */
 #define Nuitka_String_AsString_Unchecked _PyUnicode_AS_STRING
 #define Nuitka_String_Check PyUnicode_Check
+#define Nuitka_String_CheckExact PyUnicode_CheckExact
 #define Nuitka_StringObject PyUnicodeObject
 #define Nuitka_StringIntern PyUnicode_InternInPlace
 #endif

@@ -47,6 +47,21 @@ def dictOrderCheck():
         }
     )
 
+    try:
+        (1/0)[1.0j/0] = (1.0/0)
+    except ZeroDivisionError as e:
+        print("Expected exception caught:", repr(e))
+    try:
+        (1/0)[1.0/0] = 1
+    except ZeroDivisionError as e:
+        print("Expected exception caught:", repr(e))
+    try:
+        (1/0)[1] = (1.0/0)
+    except ZeroDivisionError as e:
+        print("Expected exception caught:", repr(e))
+
+
+
 def listOrderCheck():
     def value1():
         print("value1 called")
@@ -180,6 +195,12 @@ def attributeOrderCheck():
         print("Expected exception caught:", repr(e))
     else:
         assert False
+
+    try:
+        (1/0).x = (1.0/0)
+    except ZeroDivisionError as e:
+        print("Expected exception caught:", repr(e))
+
 
 def compareOrderCheck():
     def lvalue():

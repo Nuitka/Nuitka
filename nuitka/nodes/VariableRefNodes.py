@@ -22,21 +22,17 @@ and its expressions, changing the meaning of course dramatically.
 
 """
 
-from nuitka import Builtins, VariableRegistry, Variables
+from nuitka import Builtins, Variables
 
 from .ConstantRefNodes import ExpressionConstantRef
+from .DictionaryNodes import (
+    ExpressionDictOperationGet,
+    ExpressionDictOperationIn,
+    ExpressionDictOperationNOTIn,
+    StatementDictOperationRemove,
+    StatementDictOperationSet
+)
 from .NodeBases import ExpressionMixin, NodeBase
-
-
-def _isReadOnlyUnterdeterminedModuleVariable(variable):
-    return variable.isModuleVariable() and \
-           variable.getReadOnlyIndicator() is None
-
-def _isReadOnlyModuleVariable(variable):
-    return (
-        variable.isModuleVariable() and \
-        variable.getReadOnlyIndicator() is True
-    ) or variable.isMaybeLocalVariable()
 
 
 class ExpressionVariableRef(NodeBase, ExpressionMixin):
@@ -120,12 +116,11 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
                 BaseException
             )
 
-        self.global_trace = VariableRegistry.getGlobalVariableTrace(variable)
+        self.global_trace = variable.getGlobalVariableTrace()
 
         # TODO: Maybe local variables are factored into this strangely.
-        if self.global_trace is None and variable.isModuleVariable():
-            constraint_collection.assumeUnclearLocals()
-        elif (variable.isModuleVariable() and not self.global_trace.hasDefiniteWrites() ) or \
+        if self.global_trace is not None and \
+           (variable.isModuleVariable() and not self.global_trace.hasDefiniteWrites() ) or \
              variable.isMaybeLocalVariable():
             if self.variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
@@ -201,6 +196,124 @@ Replaced read-only module attribute '__package__' with constant value."""
             constraint_collection.onLocalsUsage()
 
         return call_node, None, None
+
+    def computeExpressionSetSubscript(self, set_node, subscript, value_node,
+                                      constraint_collection):
+        tags = None
+        message = None
+
+        # By default, an subscript may change everything about the lookup
+        # source.
+        if self.variable_trace.hasShapeDictionaryExact():
+            set_node = StatementDictOperationSet(
+                dict_arg   = self,
+                key        = subscript,
+                value      = value_node,
+                source_ref = set_node.getSourceReference()
+            )
+
+            tags = "new_statements"
+            message = """\
+Subscript assignment to dictionary lowered to dictionary assignment."""
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        # Any exception might be raised.
+        if set_node.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return set_node, tags, message
+
+    def computeExpressionDelSubscript(self, del_node, subscript,
+                                      constraint_collection):
+        tags = None
+        message = None
+
+        # By default, an subscript may change everything about the lookup
+        # source.
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        if self.variable_trace.hasShapeDictionaryExact():
+            del_node = StatementDictOperationRemove(
+                dict_arg   = self,
+                key        = subscript,
+                source_ref = del_node.getSourceReference()
+            )
+
+            tags = "new_statements"
+            message = """\
+Subscript del to dictionary lowered to dictionary del."""
+
+
+        # Any exception might be raised.
+        if del_node.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return del_node, tags, message
+
+    def computeExpressionSubscript(self, lookup_node, subscript, constraint_collection):
+        tags = None
+        message = None
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(self)
+
+        if self.variable_trace.hasShapeDictionaryExact():
+            lookup_node = ExpressionDictOperationGet(
+                dict_arg   = self,
+                key        = subscript,
+                source_ref = lookup_node.getSourceReference()
+            )
+
+            tags = "new_expression"
+            message = """\
+Subscript look-up to dictionary lowered to dictionary look-up."""
+
+        # Any exception might be raised.
+        if lookup_node.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return lookup_node, tags, message
+
+    def computeExpressionComparisonIn(self, in_node, value_node, constraint_collection):
+        tags = None
+        message = None
+
+        # Any code could be run, note that.
+        constraint_collection.onControlFlowEscape(in_node)
+
+        if self.variable_trace.hasShapeDictionaryExact():
+            tags = "new_expression"
+            message = """\
+Check '%s' on dictionary lowered to dictionary '%s'.""" % (
+                in_node.comparator,
+                in_node.comparator
+            )
+
+            if in_node.comparator == "In":
+                in_node = ExpressionDictOperationIn(
+                    key        = value_node,
+                    dict_arg   = self,
+                    source_ref = in_node.getSourceReference()
+                )
+            else:
+                in_node = ExpressionDictOperationNOTIn(
+                    key        = value_node,
+                    dict_arg   = self,
+                    source_ref = in_node.getSourceReference()
+                )
+
+
+        # Any exception may be raised.
+        if in_node.mayRaiseException(BaseException):
+            constraint_collection.onExceptionRaiseExit(BaseException)
+
+        return in_node, tags, message
+
+    def hasShapeDictionaryExact(self):
+        return self.variable_trace.hasShapeDictionaryExact()
 
     def onContentEscapes(self, constraint_collection):
         constraint_collection.onVariableContentEscapes(self.variable)

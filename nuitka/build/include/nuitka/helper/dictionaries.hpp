@@ -46,7 +46,7 @@ typedef PyDictEntry *Nuitka_DictEntryHandle;
 static PyDictEntry *GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_StringObject *key )
 {
     assert( PyDict_CheckExact( dict ) );
-    assert( Nuitka_String_Check( key ) );
+    assert( Nuitka_String_CheckExact( key ) );
 
 #if PYTHON_VERSION < 300
     Py_hash_t hash = key->ob_shash;
@@ -122,7 +122,7 @@ typedef PyObject **Nuitka_DictEntryHandle;
 static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_StringObject *key )
 {
     assert( PyDict_CheckExact( dict ) );
-    assert( Nuitka_String_Check( key ) );
+    assert( Nuitka_String_CheckExact( key ) );
 
     Py_hash_t hash = key->_base._base.hash;
 
@@ -201,7 +201,7 @@ NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM( PyObject *dict, PyObject *key
 NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM( PyObject *dict, PyObject *key )
 {
     CHECK_OBJECT( dict );
-    assert( PyDict_Check( dict ) );
+    assert( PyDict_CheckExact( dict ) );
 
     CHECK_OBJECT( key );
 
@@ -214,7 +214,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM( PyObject *dict, PyObject *k
             return NULL;
         }
 
-        PyErr_SetObject( PyExc_KeyError, key );
+        /* Wrap all kinds of tuples, because normalization will later unwrap
+         * it, but then that changes the key for the KeyError, which is not
+         * welcome. The check is inexact, as the unwrapping one is too.
+         */
+        if ( PyTuple_Check( key ) )
+        {
+            PyObject *tuple = PyTuple_Pack( 1, key );
+            PyErr_SetObject( PyExc_KeyError, tuple );
+            Py_DECREF( tuple );
+        }
+        else
+        {
+            PyErr_SetObject( PyExc_KeyError, key );
+        }
         return NULL;
     }
     else
@@ -224,7 +237,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM( PyObject *dict, PyObject *k
 }
 
 
-// Convert to dictionary, helper for builtin dict mainly.
+// Convert to dictionary, helper for built-in "dict" mainly.
 NUITKA_MAY_BE_UNUSED static PyObject *TO_DICT( PyObject *seq_obj, PyObject *dict_obj )
 {
     PyObject *result = PyDict_New();

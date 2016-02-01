@@ -2518,10 +2518,9 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 
             if ( function->m_args_simple && 1 == function->m_args_positional_count )
             {
-                PyObject *args[] = { method->m_object };
                 Py_INCREF( method->m_object );
 
-                result = function->m_c_code( function, args );
+                result = function->m_c_code( function, &method->m_object );
             }
             else if ( function->m_args_simple && function->m_defaults_given == function->m_args_positional_count - 1 )
             {
@@ -2542,20 +2541,7 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
             }
             else
             {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_overall_count );
-#else
-                PyObject *python_pars[ function->m_args_overall_count ];
-#endif
-                memset( python_pars, 0, function->m_args_overall_count * sizeof(PyObject *) );
-                if ( parseArgumentsMethodPos( function, python_pars, method->m_object, NULL, 0 ))
-                {
-                    result = function->m_c_code( function, python_pars );
-                }
-                else
-                {
-                    result = NULL;
-                }
+                result = Nuitka_CallMethodFunctionNoArgs( function, method->m_object );
             }
 
             Py_LeaveRecursiveCall();

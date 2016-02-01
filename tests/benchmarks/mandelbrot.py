@@ -17,13 +17,21 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+import numpy as np
 
-print(not bool)
-print(not {})
-print(not 7)
-# TODO: Needs some SSA now.
-# print(bool or len)
-# print(False or dict)
-print(type(Ellipsis))
-print("a" in "abba")
-print("a" not in "abba")
+def mandelbrot(z,maxiter):
+    c = z
+    for n in range(maxiter):
+        if abs(z) > 2:
+            return n
+        z = z*z + c
+    return maxiter
+
+def mandelbrot_set(xmin,xmax,ymin,ymax,width,height,maxiter):
+    r1 = np.linspace(xmin, xmax, width)
+    r2 = np.linspace(ymin, ymax, height)
+    return [ mandelbrot(complex(r, i),maxiter) for r in r1 for i in r2 ]
+
+if __name__ == '__main__' :
+    mandelbrot_set(-2.0,0.5,-1.25,1.25,1000,1000,80)
+    # harder_stmt = 'mandelbrot_set(-0.74877,-0.74872,0.06505,0.06510,1000,1000,2048)'

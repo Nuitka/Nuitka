@@ -48,7 +48,7 @@ version_line, = [ line for line in open("nuitka/Options.py") if line.startswith(
 
 old_version = version_line[ 8:].rstrip()
 
-if options.mode == "prerelease":
+if options.mode.startswith("pre"):
     if "pre" in old_version:
         parts = old_version.split("pre")
 

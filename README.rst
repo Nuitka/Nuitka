@@ -45,7 +45,7 @@ Requirements
   * The clang compiler on MacOS X or FreeBSD, based on LLVM version 3.2
     or higher.
 
-  * The MinGW64 [#]_ compiler on Windows
+  * The MinGW64 [#]_ compiler on Windows.
 
   * Visual Studio 2015 or higher on Windows [#]_
 
@@ -68,7 +68,7 @@ Requirements
   .. admonition:: Binary filename suffix ".exe" even on Linux
 
      The created binaries have an ".exe" suffix, that you are free to remove
-     and yes, they are still Linux binaries. The suffix is just to be sure
+     that and yes, they are still Linux binaries. The suffix is just to be sure
      that the original script name and the binary name do not collide.
 
   .. admonition:: It has to be CPython, maybe WinPython or AnaConda
@@ -76,10 +76,10 @@ Requirements
      You need the standard Python implementation, called "CPython", to execute
      Nuitka, because it is closely tied to using it.
 
-     On Windows, the so called "WinPython" and "AnaConda" distributions but will
-     cause issues for acceleration mode. Standalone and creating extension
-     modules or packages will also work. For acceleration mode, you need to
-     copy the "PythonXX.DLL" alongside of it.
+     On Windows, the so called "WinPython" and "AnaConda" distributions work,
+     but will cause issues for acceleration mode. Standalone mode and creating
+     extension modules or packages will work. For acceleration mode, you need
+     to copy the "PythonXX.DLL" alongside of it.
 
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
 
@@ -99,7 +99,8 @@ Requirements
 
 .. [#] Download MinGW64 from here http://mingw-w64.org/ and choose 64 or 32
        bits matching your Python. Use both MinGW64 and 64 bits Python if you
-       have the choice of which Python to use.
+       have the choice of which Python to use. Install it to "C:\MinGW64" or
+       "\MinGW64" (same disk root) to find it automatically.
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
@@ -109,7 +110,8 @@ Requirements
 Command Line
 ------------
 
-No environment variable changes are needed, you can call the ``nuitka`` and
+No environment variable changes are needed, most noteworthy, you do not have to
+mess with ``PYTHONPATH`` at all for Nuitka. You just execute the ``nuitka`` and
 ``nuitka-run`` scripts directly without any changes to the environment. You may
 want to add the ``bin`` directory to your ``PATH`` for your convenience, but
 that step is optional.
@@ -245,6 +247,7 @@ Subscribe to its mailing lists
 Please visit the `mailing list page
 <http://www.nuitka.net/pages/mailinglist.html>`__ in order to subscribe the
 relatively low volume mailing list. All Nuitka issues can be discussed there.
+Also this is the place to stay informed of what's coming.
 
 Report issues or bugs
 ---------------------
@@ -280,15 +283,23 @@ Best practices for reporting bugs:
 Contact me via email with your questions
 ----------------------------------------
 
-You are welcome to `contact me via email <mailto:Kay.Hayen@gmail.com>`__ with
-your questions. But it is increasingly true that for user questions the
-mailing list is the best place to go.
+The best place to ask questions is the mailing list. You are welcome to
+`contact me via email <mailto:Kay.Hayen@gmail.com>`__ with your questions. But
+it is increasingly true that for user questions the mailing list is the best
+place to go. Often somebody there knows more about what you are doing.
+
+Follow me on Twitter
+--------------------
+
+Nuitka announcements and interesting stuff is pointed to on the Twitter account,
+but obviously with no details. `@KayHayen <https://twitter.com/KayHayen>`_.
 
 Word of Warning
 ---------------
 
-Consider using this software with caution. Your feedback and patches to Nuitka
-are very welcome.
+Consider using this software with caution. Even though many tests are applied
+before releases, things are potentially breaking. Your feedback and patches to
+Nuitka are very welcome.
 
 Especially report it please, if you find that anything doesn't work, because the
 project is now at the stage that this should not happen and most definitely will
@@ -438,14 +449,14 @@ level read only variables:
    This works for all built-in names. When an assignment is done to such a
    name, or it's even local, then of course it is not done.
 
-Builtin Call Prediction
------------------------
+Built-in Call Prediction
+------------------------
 
-For builtin calls like ``type``, ``len``, or ``range`` it is often possible to
+For built-in calls like ``type``, ``len``, or ``range`` it is often possible to
 predict the result at compile time, esp. for constant inputs the resulting value
 often can be precomputed by Nuitka. It can simply determine the result or the
-raised exception and replace the builtin call with it allowing for more constant
-folding or code path folding.
+raised exception and replace the built-in call with that value, allowing for
+more constant folding or code path reduction.
 
 .. code-block:: python
 
@@ -456,7 +467,7 @@ folding or code path folding.
 
 .. admonition:: Status
 
-   The builtin call prediction is considered implemented. We can simply during
+   The built-in call prediction is considered implemented. We can simply during
    compile time emulate the call and use its result or raised exception. But we
    may not cover all the built-ins there are yet.
 
@@ -530,14 +541,14 @@ The ``(1 / 0)`` can be predicted to raise a ``ZeroDivisionError`` exception,
 which will be propagated through the ``+`` operation. That part is just Constant
 Propagation as normal.
 
-The call to ``side_effect_having`` will have to be retained though, but the
-``print`` statement does and can be turned into an explicit raise. The statement
-sequence can then be aborted and as such the ``something_else`` call needs no
-code generation or consideration anymore.
+The call `side_effect_having()`` will have to be retained though, but the
+``print`` statement does not and can be turned into an explicit raise. The
+statement sequence can then be aborted and as such the ``something_else`` call
+needs no code generation or consideration anymore.
 
-To that end, Nuitka works with a special node that raises an exception and has
-so called "side_effects" children, yet can be used in generated code as an
-expression.
+To that end, Nuitka works with a special node that raises an exception and is
+wrapped with a so called "side_effects" expression, but yet can be used in code
+as an expression having a value.
 
 .. admonition:: Status
 
@@ -576,14 +587,15 @@ without any risk.
 .. admonition:: Status
 
    This is considered done. For every kind of operation, we trace if it may
-   raise an exception. We do however *not* track properly yet, what can do
+   raise an exception. We do however *not* track properly yes, what can do
    a ``ValueError`` and what cannot.
 
 
 Exception Block Inlining
 ------------------------
 
-With the exception propagation it is then possible to transform this code:
+With the exception propagation it is then becomes possible to transform this
+code:
 
 .. code-block:: python
 

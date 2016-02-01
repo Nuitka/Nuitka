@@ -2123,17 +2123,26 @@ efficient binding as if it were written manually with Python C-API or better.
 Goals/Allowances to the task
 ----------------------------
 
-1. Goal: Must not use any pre-existing C/C++ language file headers, only
-   generate declarations in generated C code ourselves. We would rather write
-   or use tools that turn an existing a C header to ``ctypes`` declarations
-   if it needs to be, but not mix and use declarations from existing header
-   code.
+1. Goal: Must not ourselves use any pre-existing C/C++ language file headers,
+   only generate declarations in generated C code ourselves. We would rather
+   write or use tools that turn an existing a C header to some ``ctypes``
+   declarations if it needs to be, but not mix and use declarations from
+   existing header code.
+
+   ..note::
+
+      The "cffi" interface won't have the issue, but it's not something we
+      need to write or test the code for.
+
 2. Allowance: May use ``ctypes`` module at compile time to ask things about
    ``ctypes`` and its types.
+
 3. Goal: Should make use of ``ctypes``, to e.g. not hard code in Nuitka what
    ``ctypes.c_int()`` gives on the current platform, unless there is a specific
    benefit.
+
 4. Allowance: Not all ``ctypes`` usages must be supported immediately.
+
 5. Goal: Try and be as general as possible. For the compiler, ``ctypes`` support
    should be hidden behind a generic interface of some sort. Supporting ``math``
    module should be the same thing.
@@ -2206,12 +2215,12 @@ used at compile time and cope with reduced knowledge, already here:
 
 Instead, we would probably say that for this expression:
 
-   - The result is a ``str`` or ``PyStringObject``.
+   - The result is a ``str`` aka ``PyStringObject *``.
    - We know its length exactly, it's ``10000000000000``.
    - Can predict every of its elements when sub-scripted, sliced, etc., if need
      be, with a function we may create.
 
-Similar is true for this horrible thing:
+Similar is true for this horrible (in Python2) thing:
 
 .. code-block:: python
 
@@ -2219,7 +2228,7 @@ Similar is true for this horrible thing:
 
 So it's a rather general problem, this time we know:
 
-   - The result is a ``list`` or ``PyListObject``
+   - The result is a ``list`` or ``PyListObject *``
    - We know its length exactly, ``10000000000000``
    - Can predict every of its elements when index, sliced, etc., if need be,
      with a function.
@@ -2355,9 +2364,9 @@ propagate forward, how to handle this:
 
       return a
 
-We would annotate that ``a`` is first a "unknown but defined parameter object",
-then later on something that definitely has an ``append`` attribute, when
-returned. Otherwise an exception occurs.
+We annotate that ``a`` is first a "unknown but defined parameter object", then
+later on something that definitely has an ``append`` attribute, when returned,
+as otherwise an exception occurs.
 
 The type of ``a`` changes to that after ``a.append`` look-up succeeds. It might
 be many kinds of an object, but e.g. it could have a higher probability of being

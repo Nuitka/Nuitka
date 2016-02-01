@@ -106,9 +106,9 @@ from optparse import OptionParser
 parser = OptionParser()
 
 parser.add_option(
-    "--hide-todos", "--no-todos",
+    "--show-todos", "--todos",
     action  = "store_true",
-    dest    = "no_todos",
+    dest    = "todos",
     default = False,
     help    = """\
     Default is %default."""
@@ -125,7 +125,7 @@ parser.add_option(
 
 options, positional_args = parser.parse_args()
 
-if os.environ.get("TODO", 0) or options.no_todos:
+if not options.todos:
     pylint_options.append("--notes=")
 
 blacklist = (

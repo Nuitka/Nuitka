@@ -122,7 +122,7 @@ def optimizePythonModule(module):
 
     Plugins.considerImplicitImports(module, signal_change = signalChange)
 
-    return touched or module.hasUnclearLocals()
+    return touched
 
 
 def optimizeShlibModule(module):
@@ -228,7 +228,7 @@ def optimizeUnusedClosureVariables(function_body):
             read_only = areReadOnlyTraces(variable_traces)
 
             if read_only:
-                global_trace = VariableRegistry.getGlobalVariableTrace(closure_variable)
+                global_trace = closure_variable.getGlobalVariableTrace()
 
                 if global_trace is not None:
                     if not global_trace.hasWritesOutsideOf(function_body):
@@ -266,8 +266,7 @@ def optimizeUnusedTempVariables(provider):
 
 def optimizeVariables(module):
     for function_body in module.getUsedFunctions():
-        constraint_collection = function_body.constraint_collection
-        if constraint_collection.unclear_locals:
+        if not VariableRegistry.complete:
             continue
 
         optimizeUnusedUserVariables(function_body)
@@ -334,9 +333,7 @@ after that. Memory usage {memory}:""".format(
 
                     function.constraint_collection = None
 
-        if not VariableRegistry.complete:
-            VariableRegistry.complete = True
-
+        if VariableRegistry.considerCompletion():
             finished = False
 
         for current_module in ModuleRegistry.getDoneModules():

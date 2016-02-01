@@ -49,20 +49,14 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         context    = context
     )
 
-    getComparisonExpressionCode(
-        to_name     = to_name,
-        comparator  = expression.getComparator(),
-        left_name   = left_name,
-        right_name  = right_name,
-        needs_check = expression.mayRaiseExceptionBool(BaseException),
-        emit        = emit,
-        context     = context
-    )
+    comparator  = expression.getComparator()
 
-
-def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
-                                needs_check, emit, context):
     if comparator in OperatorCodes.normal_comparison_codes:
+        needs_check = expression.getRight().mayRaiseExceptionIn(
+            BaseException,
+            expression.getLeft()
+        )
+
         helper = OperatorCodes.normal_comparison_codes[ comparator ]
         assert helper.startswith("SEQUENCE_CONTAINS")
 
@@ -93,6 +87,8 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
             context     = context
         )
     elif comparator in OperatorCodes.rich_comparison_codes:
+        needs_check = expression.mayRaiseExceptionBool(BaseException)
+
         helper = "RICH_COMPARE_%s" % (
             OperatorCodes.rich_comparison_codes[ comparator ]
         )
@@ -152,6 +148,8 @@ def getComparisonExpressionCode(to_name, comparator, left_name, right_name,
             context       = context
         )
     elif comparator == "exception_match":
+        needs_check = expression.mayRaiseExceptionBool(BaseException)
+
         operator_res_name = context.allocateTempName(
             "cmp_exception_match",
             "int"

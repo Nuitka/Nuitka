@@ -435,6 +435,8 @@ NUITKA_MAY_BE_UNUSED static inline int EXCEPTION_MATCH_BOOL( PyObject *exception
     CHECK_OBJECT( exception_checked );
 
 #if PYTHON_VERSION >= 300
+    /* Note: Exact matching tuples seems to needed, despite using GET_ITEM later
+       on, this probably cannot be overloaded that deep. */
     if ( PyTuple_Check( exception_checked ))
     {
         Py_ssize_t length = PyTuple_Size( exception_checked );

@@ -66,15 +66,26 @@ def generateListCreationCode(to_name, expression, emit, context):
         )
 
 
-def generateListOperationAppendCode(to_name, expression, emit, context):
-    res_name = context.getIntResName()
-
-    list_arg_name, value_arg_name = generateChildExpressionsCode(
-        expression = expression,
+def generateListOperationAppendCode(statement, emit, context):
+    list_arg_name = context.allocateTempName("append_list")
+    generateExpressionCode(
+        to_name    = list_arg_name,
+        expression = statement.getList(),
         emit       = emit,
         context    = context
     )
 
+    value_arg_name = context.allocateTempName("append_value")
+    generateExpressionCode(
+        to_name    = value_arg_name,
+        expression = statement.getValue(),
+        emit       = emit,
+        context    = context
+    )
+
+    context.setCurrentSourceCodeReference(statement.getSourceReference())
+
+    res_name = context.getIntResName()
 
     emit("assert( PyList_Check( %s ) );" % list_arg_name)
     emit(
@@ -96,14 +107,6 @@ def generateListOperationAppendCode(to_name, expression, emit, context):
         emit      = emit,
         context   = context
     )
-
-    # Only assign if necessary.
-    if context.isUsed(to_name):
-        emit(
-            "%s = Py_None;" % to_name
-        )
-    else:
-        context.forgetTempName(to_name)
 
 
 def generateListOperationExtendCode(to_name, expression, emit, context):

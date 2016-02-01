@@ -25,7 +25,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *kl
     CHECK_OBJECT( attr_name );
 
     assert( PyClass_Check( klass ));
-    assert( PyString_Check( attr_name ) );
+    assert( PyString_CheckExact( attr_name ) );
 
     PyObject *result = GET_STRING_DICT_VALUE( (PyDictObject *)klass->cl_dict, (PyStringObject *)attr_name );
 
@@ -58,7 +58,7 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
     CHECK_OBJECT( attr_name );
 
     assert( PyInstance_Check( source ) );
-    assert( PyString_Check( attr_name ) );
+    assert( PyString_CheckExact( attr_name ) );
 
     PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
@@ -412,6 +412,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE_DICT_SLOT( PyObject *target, PyOb
     {
         PyInstanceObject *target_instance = (PyInstanceObject *)target;
 
+        /* Note seems this doesn't have to be an exact dictionary. */
         if (unlikely( !PyDict_Check( value ) ))
         {
             PyErr_SetString( PyExc_TypeError, "__dict__ must be set to a dictionary" );

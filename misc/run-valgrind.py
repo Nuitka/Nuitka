@@ -39,6 +39,10 @@ output_binary = os.path.join(
 
 os.environ[ "PYTHONHASHSEED" ] = '0'
 
+# To make that python run well despite the "-S" flag for things that need site
+# to expand sys.path.
+os.environ["PYTHONPATH"] = os.pathsep.join(sys.path)
+
 os.system(
     "%s --exe --python-flag=-S --output-dir=%s %s %s %s" % (
         nuitka_binary,

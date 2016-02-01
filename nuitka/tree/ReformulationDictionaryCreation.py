@@ -40,10 +40,10 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 )
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.ContainerOperationNodes import ExpressionDictOperationUpdate
 from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
-    ExpressionMakeDict
+    ExpressionMakeDict,
+    StatementDictOperationUpdate
 )
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
@@ -59,7 +59,6 @@ from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import ExpressionOperationBinary
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
-from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
@@ -148,16 +147,13 @@ def getDictUnpackingHelper():
             source_ref     = internal_source_ref
         ),
         makeTryExceptSingleHandlerNode(
-            tried          = StatementExpressionOnly(
-                expression = ExpressionDictOperationUpdate(
-                    dict_arg   = ExpressionTempVariableRef(
-                        variable   = tmp_result_variable,
-                        source_ref = internal_source_ref
-                    ),
-                    value      = ExpressionTempVariableRef(
-                        variable   = tmp_item_variable,
-                        source_ref = internal_source_ref
-                    ),
+            tried          = StatementDictOperationUpdate(
+                dict_arg   = ExpressionTempVariableRef(
+                    variable   = tmp_result_variable,
+                    source_ref = internal_source_ref
+                ),
+                value      = ExpressionTempVariableRef(
+                    variable   = tmp_item_variable,
                     source_ref = internal_source_ref
                 ),
                 source_ref = internal_source_ref

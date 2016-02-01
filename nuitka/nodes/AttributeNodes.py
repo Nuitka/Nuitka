@@ -88,23 +88,22 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
     getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
     def computeStatement(self, constraint_collection):
-        lookup_source = self.getLookupSource()
-        source = self.getAssignSource()
-
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            constraint_collection = constraint_collection,
-            expressions           = (lookup_source, source),
+            constraint_collection = constraint_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
-        return lookup_source.computeExpressionSetAttribute(
+        return self.getLookupSource().computeExpressionSetAttribute(
             set_node              = self,
             attribute_name        = self.attribute_name,
-            value_node            = source,
+            value_node            = self.getAssignSource(),
             constraint_collection = constraint_collection
         )
+
+    def getStatementNiceName(self):
+        return "attribute assignment statement"
 
 
 class StatementDelAttribute(StatementChildrenHavingBase):
@@ -150,21 +149,21 @@ class StatementDelAttribute(StatementChildrenHavingBase):
     getLookupSource = StatementChildrenHavingBase.childGetter("expression")
 
     def computeStatement(self, constraint_collection):
-        lookup_source = self.getLookupSource()
-
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             constraint_collection = constraint_collection,
-            expressions           = (lookup_source,)
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
-        return lookup_source.computeExpressionDelAttribute(
+        return self.getLookupSource().computeExpressionDelAttribute(
             set_node              = self,
             attribute_name        = self.attribute_name,
             constraint_collection = constraint_collection
         )
+
+    def getStatementNiceName(self):
+        return "attribute del statement"
 
 
 class ExpressionAttributeLookup(ExpressionChildrenHavingBase):

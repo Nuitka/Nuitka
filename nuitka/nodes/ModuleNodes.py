@@ -410,7 +410,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def computeModule(self):
         old_collection = self.constraint_collection
 
-        self.constraint_collection = ConstraintCollectionModule()
+        self.constraint_collection = ConstraintCollectionModule(self)
 
         module_body = self.getBody()
 
@@ -439,13 +439,6 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         for function in self.getUsedFunctions():
             yield function.constraint_collection
-
-    def hasUnclearLocals(self):
-        for collection in self.getTraceCollections():
-            if collection.hasUnclearLocals():
-                return True
-
-        return False
 
 
 class CompiledPythonPackage(CompiledPythonModule):

@@ -105,6 +105,7 @@ class CollectionTracingMixin:
                 variable = variable,
                 version  = version,
                 trace    = VariableTraceUnknown(
+                    owner    = self.owner,
                     variable = variable,
                     version  = version,
                     previous = current
@@ -150,10 +151,6 @@ class CollectionStartpointMixin:
         # The full trace of a variable with a version for the function or module
         # this is.
         self.variable_traces = {}
-
-        # Cannot mess with local variables that much, as "locals" and "eval"
-        # calls may not yet be known.
-        self.unclear_locals = False
 
         self.break_collections = None
         self.continue_collections = None
@@ -276,6 +273,7 @@ class CollectionStartpointMixin:
 
     def _initVariableUnknown(self, variable):
         trace = VariableTraceUnknown(
+            owner    = self.owner,
             variable = variable,
             version  = 0,
             previous = None
@@ -291,8 +289,9 @@ class CollectionStartpointMixin:
 
     def _initVariableInit(self, variable):
         trace = VariableTraceInit(
+            owner    = self.owner,
             variable = variable,
-            version  = 0,
+            version  = 0
         )
 
         self.addVariableTrace(
@@ -305,6 +304,7 @@ class CollectionStartpointMixin:
 
     def _initVariableUninit(self, variable):
         trace = VariableTraceUninit(
+            owner    = self.owner,
             variable = variable,
             version  = 0,
             previous = None
@@ -317,12 +317,6 @@ class CollectionStartpointMixin:
         )
 
         return trace
-
-    def assumeUnclearLocals(self):
-        self.unclear_locals = True
-
-    def hasUnclearLocals(self):
-        return self.unclear_locals
 
     def updateFromCollection(self, old_collection):
         VariableRegistry.updateFromCollection(old_collection, self)
@@ -355,9 +349,10 @@ class CollectionStartpointMixin:
             self.exception_collections = old_exception_collections
 
 class ConstraintCollectionBase(CollectionTracingMixin):
-    def __init__(self, name, parent):
+    def __init__(self, owner, name, parent):
         CollectionTracingMixin.__init__(self)
 
+        self.owner = owner
         self.parent = parent
         self.name = name
 
@@ -418,9 +413,6 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         self.markActiveVariablesAsUnknown()
 
-    def assumeUnclearLocals(self):
-        self.parent.assumeUnclearLocals()
-
     def getVariableTrace(self, variable, version):
         return self.parent.getVariableTrace(variable, version)
 
@@ -440,6 +432,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         variable = variable_ref.getVariable()
 
         variable_trace = VariableTraceAssign(
+            owner       = self.owner,
             assign_node = assign_node,
             variable    = variable,
             version     = version,
@@ -469,6 +462,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         old_trace = self.getVariableCurrentTrace(variable)
 
         variable_trace = VariableTraceUninit(
+            owner    = self.owner,
             variable = variable,
             version  = version,
             previous = old_trace
@@ -709,6 +703,7 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
     def __init__(self, name, parent):
         ConstraintCollectionBase.__init__(
             self,
+            owner  = parent.owner,
             name   = name,
             parent = parent
         )
@@ -765,22 +760,21 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
         ConstraintCollectionBase.__init__(
             self,
-            name   = "function " + str(function_body),
+            owner  = function_body,
+            name   = "function_" + str(function_body),
             parent = parent
         )
-
-        # TODO: Useless cyclic dependency.
-        self.function_body = function_body
 
 
 class ConstraintCollectionModule(CollectionStartpointMixin,
                                  ConstraintCollectionBase,
                                  VariableUsageTrackingMixin):
-    def __init__(self):
+    def __init__(self, module):
         CollectionStartpointMixin.__init__(self)
 
         ConstraintCollectionBase.__init__(
             self,
+            owner  = module,
             name   = "module",
             parent = None
         )

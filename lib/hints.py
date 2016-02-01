@@ -16,3 +16,41 @@
 #     limitations under the License.
 #
 
+from __future__ import print_function
+
+original_import = __import__
+
+_indentation = 0
+
+def enableImportTracing():
+
+
+    def _ourimport(name, globals = None, locals = None, fromlist = None,
+                   level = -1):
+        global _indentation
+        try:
+            _indentation += 1
+
+            print(_indentation * " " + "name=%r level=%d" % (name, level))
+
+
+            for entry in traceback.extract_stack()[:-1]:
+                if entry[2] == "_ourimport":
+                    print("__import__")
+                else:
+                    print("|".join(str(s) for s in entry))
+
+            print(_indentation * " " + "*" * 40)
+
+            result = original_import(name, globals, locals, fromlist, level)
+            print(_indentation * " " + "RESULT:", result)
+            return result
+        finally:
+            _indentation -= 1
+    try:
+        import __builtin__ as builtins
+    except ImportError:
+        import builtins
+
+    import traceback
+    builtins.__import__ = _ourimport
