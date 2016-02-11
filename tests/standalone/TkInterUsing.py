@@ -17,4 +17,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import tkinter
+
+# Python3 changed module name.
+try:
+    import Tkinter as tkinter
+except ImportError:
+    import tkinter
+
+assert tkinter

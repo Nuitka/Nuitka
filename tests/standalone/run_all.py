@@ -189,16 +189,60 @@ for filename in sorted(os.listdir('.')):
             continue
 
     if filename == "TkInterUsing.py":
-        if not hasModule("tkinter"):
+        if python_version.startswith("2"):
+            if not hasModule("Tkinter"):
+                my_print(
+                    "Skipping", filename, "Tkinter not installed for",
+                    python_version, "but test needs it."
+                )
+                continue
+        else:
+            if not hasModule("tkinter"):
+                my_print(
+                    "Skipping", filename, "tkinter not installed for",
+                    python_version, "but test needs it."
+                )
+                continue
+
+            # For the warnings.
+            extra_flags.append("ignore_stderr")
+
+
+    if filename == "FlaskUsing.py":
+        if not hasModule("flask"):
             my_print(
-                "Skipping", filename, "tkinter not installed for",
+                "Skipping", filename, "flask not installed for",
                 python_version, "but test needs it."
             )
             continue
 
+        # For the warnings.
+        extra_flags.append("ignore_stderr")
+
+    if filename == "NumpyUsing.py":
+        if not hasModule("numpy"):
+            my_print(
+                "Skipping", filename, "numpy not installed for",
+                python_version, "but test needs it."
+            )
+            continue
+
+        extra_flags.append("plugin_enable:data-files")
+
+    if filename == "PmwUsing.py":
+        if not hasModule("Pwm"):
+            my_print(
+                "Skipping", filename, "Pwm not installed for",
+                python_version, "but test needs it."
+            )
+            continue
+
+        extra_flags.append("plugin_enable:pmw-freeze")
+
     if filename not in ("PySideUsing.py", "PyQt4Using.py", "PyQt5Using.py",
                         "PyQt4Plugins.py", "PyQt5Plugins.py", "GtkUsing.py",
-                        "LxmlUsing.py", "Win32ComUsing.py", "IdnaUsing.py"):
+                        "LxmlUsing.py", "Win32ComUsing.py", "IdnaUsing.py",
+                        "NumpyUsing.py", "FlaskUsing.py"):
         extra_flags += [
             "no_site"
         ]
