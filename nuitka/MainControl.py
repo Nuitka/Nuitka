@@ -738,9 +738,6 @@ def main():
                     Plugins.considerExtraDlls(dist_dir, module)
                 )
 
-            if Utils.getOS() == "NetBSD":
-                warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
-
             copyUsedDLLs(
                 dist_dir                = dist_dir,
                 standalone_entry_points = standalone_entry_points

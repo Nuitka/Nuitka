@@ -714,6 +714,9 @@ if options.is_standalone:
     options.executable = True
     options.recurse_all = True
 
+    if Utils.getOS() == "NetBSD":
+        logging.warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
+
 def shallTraceExecution():
     return options.trace_execution
 
