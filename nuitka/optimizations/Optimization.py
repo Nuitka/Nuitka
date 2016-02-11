@@ -28,7 +28,7 @@ from logging import debug, info, warning
 
 from nuitka import ModuleRegistry, Options, VariableRegistry
 from nuitka.optimizations import TraceCollections
-from nuitka.plugins.PluginBase import Plugins
+from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import printLine
 from nuitka.utils import Utils
 

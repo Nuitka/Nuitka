@@ -56,7 +56,14 @@ try:
 except ImportError:
     from urllib import urlretrieve
 
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 # For PyLint to be happy.
 assert long
 assert unicode
 assert urlretrieve
+assert StringIO

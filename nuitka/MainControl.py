@@ -29,7 +29,7 @@ import sys
 from logging import info, warning
 
 from nuitka.importing import Importing, Recursion
-from nuitka.plugins.PluginBase import Plugins
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import isUninstalledPython, python_version
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import InstanceCounters, Utils
@@ -74,10 +74,12 @@ def createNodeTree(filename):
     if not Options.shallOnlyExecCppCall():
         cleanSourceDirectory(source_dir)
 
+    # Prepare the ".dist" directory, throwing away what was there before.
     if Options.isStandaloneMode():
         standalone_dir = getStandaloneDirectoryPath(main_module)
         shutil.rmtree(standalone_dir, ignore_errors = True)
         Utils.makePath(standalone_dir)
+
     Utils.deleteFile(
         path       = getResultFullpath(main_module),
         must_exist = False
@@ -743,13 +745,23 @@ def main():
                 standalone_entry_points = standalone_entry_points
             )
 
+
+            for module in ModuleRegistry.getDoneModules():
+                data_files.extend(
+                    Plugins.considerDataFiles(module)
+                )
+
             for source_filename, target_filename in data_files:
+                target_filename = Utils.joinpath(
+                    getStandaloneDirectoryPath(main_module),
+                    target_filename
+                )
+
+                Utils.makePath(Utils.dirname(target_filename))
+
                 shutil.copy2(
                     source_filename,
-                    Utils.joinpath(
-                        getStandaloneDirectoryPath(main_module),
-                        target_filename
-                    )
+                    target_filename
                 )
 
         # Modules should not be executable, but Scons creates them like it, fix

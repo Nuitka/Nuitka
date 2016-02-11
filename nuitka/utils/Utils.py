@@ -150,8 +150,8 @@ def deleteFile(path, must_exist):
 
 
 def makePath(path):
-    os.makedirs(path)
-
+    if not os.path.isdir(path):
+        os.makedirs(path)
 
 def getCoreCount():
     cpu_count = 0

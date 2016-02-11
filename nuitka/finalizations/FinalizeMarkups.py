@@ -35,7 +35,7 @@ from logging import warning
 
 from nuitka import Options, Tracing
 from nuitka.importing import StandardLibrary
-from nuitka.plugins.PluginBase import Plugins
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 
 from .FinalizeBase import FinalizationVisitorBase

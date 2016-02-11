@@ -327,6 +327,7 @@ if Utils.getOS() != "Windows":
     ignore_modules.append("wintypes.py")
     ignore_modules.append("cp65001.py")
 
+
 def scanStandardLibraryPath(stdlib_dir):
     # There is a lot of black-listing here, done in branches, so there
     # is many of them, but that's acceptable, pylint: disable=R0912
@@ -351,6 +352,14 @@ def scanStandardLibraryPath(stdlib_dir):
                 filenames.remove("ensurepip")
             if "ensurepip" in dirs:
                 dirs.remove("ensurepip")
+
+            # Ignore "lib-dynload" and "lib-tk" and alikes.
+            dirs = [
+                dirname
+                for dirname in
+                dirs
+                if not dirname.startswith("lib-")
+            ]
 
         if import_path in ("tkinter", "importlib", "ctypes", "unittest",
                            "sqlite3", "distutils"):

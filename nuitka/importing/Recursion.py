@@ -26,7 +26,7 @@ from logging import debug, warning
 import marshal
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
-from nuitka.plugins.PluginBase import Plugins
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
@@ -137,7 +137,6 @@ def decideRecursion(module_filename, module_name, module_package, module_kind):
         module_package,
         module_kind
     )
-
 
     if module_kind == "shlib":
         if Options.isStandaloneMode():
