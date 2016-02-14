@@ -30,7 +30,7 @@ from nuitka import ModuleRegistry, Options, VariableRegistry
 from nuitka.optimizations import TraceCollections
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import printLine
-from nuitka.utils import Utils
+from nuitka.utils import MemoryUsage
 
 from .Tags import TagSet
 
@@ -88,7 +88,7 @@ def optimizePythonModule(module):
     touched = False
 
     if _progress:
-        memory_watch = Utils.MemoryWatch()
+        memory_watch = MemoryUsage.MemoryWatch()
 
     while True:
         tag_set.clear()
@@ -310,7 +310,7 @@ Optimizing module '{module_name}', {remaining:d} more modules to go \
 after that. Memory usage {memory}:""".format(
                         module_name = current_module.getFullName(),
                         remaining   = ModuleRegistry.remainingCount(),
-                        memory      = Utils.getHumanReadableProcessMemoryUsage()
+                        memory      = MemoryUsage.getHumanReadableProcessMemoryUsage()
                     )
                 )
 

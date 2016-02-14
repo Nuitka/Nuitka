@@ -94,7 +94,7 @@ from nuitka.tree.ReformulationForLoopStatements import (
     buildForLoopNode
 )
 from nuitka.tree.ReformulationWhileLoopStatements import buildWhileLoopNode
-from nuitka.utils import Utils
+from nuitka.utils import MemoryUsage, Utils
 
 from . import SyntaxErrors
 from .Helpers import (
@@ -1022,7 +1022,7 @@ class CodeTooComplexCode(Exception):
 
 def createModuleTree(module, source_ref, source_code, is_main):
     if Options.isShowProgress():
-        memory_watch = Utils.MemoryWatch()
+        memory_watch = MemoryUsage.MemoryWatch()
 
     try:
         module_body = buildParseTree(

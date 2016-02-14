@@ -32,7 +32,7 @@ from nuitka.importing import Importing, Recursion
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import isUninstalledPython, python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.utils import InstanceCounters, Utils
+from nuitka.utils import InstanceCounters, MemoryUsage, Utils
 
 from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface
@@ -628,7 +628,7 @@ def compileTree(main_module):
     if Options.isShowProgress() or Options.isShowMemory():
         Tracing.printLine(
             "Total memory usage before running scons: {memory}:".format(
-                memory = Utils.getHumanReadableProcessMemoryUsage()
+                memory = MemoryUsage.getHumanReadableProcessMemoryUsage()
             )
         )
 
