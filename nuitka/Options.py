@@ -700,7 +700,8 @@ if not options.immediate_execution and len(positional_args) > 1:
     parser.print_help()
 
     sys.exit("""
-Error, need only one positional argument unless --run is specified.""")
+Error, need only one positional argument unless "--run" is specified to
+pass them to the compiled program execution.""")
 
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)

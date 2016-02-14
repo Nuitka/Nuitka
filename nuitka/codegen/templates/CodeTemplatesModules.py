@@ -155,9 +155,6 @@ MOD_INIT_DECL( %(module_identifier)s )
     patchBuiltinModule();
     patchTypeComparison();
 
-#endif
-
-#if _NUITKA_MODULE
     // Enable meta path based loader if not already done.
     setupMetaPathBasedLoader();
 #endif

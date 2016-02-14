@@ -15,8 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-"""
-Scons interface.
+""" Scons interface.
 
 Interaction with scons. Find the binary, and run it with a set of given
 options.

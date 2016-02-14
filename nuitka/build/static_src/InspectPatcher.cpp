@@ -15,8 +15,9 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-// This is responsible for updating parts of CPython to better work with Nuitka
-// by replacing CPython implementations with enhanced versions.
+/* This is responsible for updating parts of CPython to better work with Nuitka
+ * by replacing CPython implementations with enhanced versions.
+ */
 
 #include "nuitka/prelude.hpp"
 
@@ -119,7 +120,7 @@ static PyObject *_types_coroutine_replacement( PyObject *self, PyObject *args, P
 {
     PyObject *func;
 
-    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:getcoroutinestate", kwlist_func, &func, NULL ))
+    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:coroutine", kwlist_func, &func, NULL ))
     {
         return NULL;
     }
