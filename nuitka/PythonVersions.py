@@ -106,3 +106,65 @@ def isUninstalledPython():
     return "Anaconda" in sys.version or \
            "WinPython" in sys.version or \
            (os.name == "nt" and python_version >= 350)
+
+
+def getRunningPythonDLLPath():
+    import ctypes.wintypes
+
+    GetModuleHandle = ctypes.windll.kernel32.GetModuleHandleW
+    GetModuleHandle.argtypes = (
+        ctypes.wintypes.LPWSTR,
+    )
+    GetModuleHandle.restype = ctypes.wintypes.DWORD
+
+    big, major = sys.version_info[0:2]
+
+    dll_module_name = "python%d%d" % (big, major)
+    module_handle = GetModuleHandle(dll_module_name)
+
+    if module_handle == 0:
+        dll_module_name += "_d"
+        module_handle = GetModuleHandle(dll_module_name)
+
+    assert module_handle, (sys.executable, dll_module_name, sys.flags.debug)
+
+    MAX_PATH = 4096
+    buf = ctypes.create_unicode_buffer(MAX_PATH)
+
+    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW
+    GetModuleFileName.argtypes = (
+        ctypes.wintypes.HANDLE,
+        ctypes.wintypes.LPWSTR,
+        ctypes.wintypes.DWORD
+    )
+    GetModuleFileName.restype = ctypes.wintypes.DWORD
+
+    res = GetModuleFileName(module_handle, buf, MAX_PATH)
+    assert res != 0
+
+    dll_path = os.path.normcase(buf.value)
+    assert os.path.exists(dll_path), dll_path
+
+    return dll_path
+
+
+def getTargetPythonDLLPath():
+    dll_path = getRunningPythonDLLPath()
+
+    from nuitka.Options import isPythonDebug
+
+    if dll_path.endswith("_d.dll"):
+        if not isPythonDebug():
+            dll_path = dll_path[:-5] + ".dll"
+
+        if not os.path.exists(dll_path):
+            sys.exit("Error, cannot switch to non-debug Python, not installed.")
+
+    else:
+        if isPythonDebug():
+            dll_path = dll_path[:-4] + "_d.dll"
+
+        if not os.path.exists(dll_path):
+            sys.exit("Error, cannot switch to debug Python, not installed.")
+
+    return dll_path
