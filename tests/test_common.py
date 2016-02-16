@@ -168,10 +168,12 @@ def convertUsing2to3(path, force = False):
         path
     ]
 
-    if not force and "xrange" not in open(path).read():
-        with open(os.devnull, 'w') as stderr:
-            if check_result(command, stderr = stderr):
-                return path, False
+    if not force:
+        with open(path) as source_file:
+            if "xrange" not in source_file.read():
+                with open(os.devnull, 'w') as stderr:
+                    if check_result(command, stderr = stderr):
+                        return path, False
 
     filename = os.path.basename(path)
 
