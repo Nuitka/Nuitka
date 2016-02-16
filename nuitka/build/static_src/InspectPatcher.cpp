@@ -170,8 +170,8 @@ static PyMethodDef _method_def_types_coroutine_replacement =
 
 #endif
 
-// Replace inspect functions with ones that accept compiled types too.
-static void patchInspectModule( void )
+/* Replace inspect functions with ones that handle compiles types too. */
+void patchInspectModule( void )
 {
 #if PYTHON_VERSION >= 300
 #ifdef _NUITKA_EXE
@@ -183,7 +183,7 @@ static void patchInspectModule( void )
 
         if ( site_module == NULL )
         {
-            // Ignore ImportError, site is not a must.
+            // Ignore "ImportError", having a "site" module is not a must.
             CLEAR_ERROR_OCCURRED();
         }
     }
@@ -326,10 +326,6 @@ void patchBuiltinModule()
     CHECK_OBJECT( builtin_isinstance_replacement );
 
     PyObject_SetAttrString( (PyObject *)builtin_module, "isinstance", builtin_isinstance_replacement );
-
-#if PYTHON_VERSION >= 300
-    patchInspectModule();
-#endif
 }
 
 static richcmpfunc original_PyType_tp_richcompare = NULL;

@@ -105,6 +105,7 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
                                 ),
                                 is_package    = module.isCompiledPythonPackage(),
                                 user_provided = True,
+                                technical     = False
                             )
 
                             ModuleRegistry.addUncompiledModule(module)

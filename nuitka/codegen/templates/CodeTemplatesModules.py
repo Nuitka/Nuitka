@@ -157,6 +157,11 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     // Enable meta path based loader if not already done.
     setupMetaPathBasedLoader();
+
+#if PYTHON_VERSION >= 300
+    patchInspectModule();
+#endif
+
 #endif
 
     createModuleConstants();

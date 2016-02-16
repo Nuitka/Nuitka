@@ -459,7 +459,7 @@ class CompiledPythonPackage(CompiledPythonModule):
 
 
 def makeUncompiledPythonModule(module_name, filename, bytecode, is_package,
-                               user_provided):
+                               user_provided, technical):
     parts = module_name.rsplit('.', 1)
     name = parts[-1]
 
@@ -473,6 +473,7 @@ def makeUncompiledPythonModule(module_name, filename, bytecode, is_package,
             bytecode      = bytecode,
             filename      = filename,
             user_provided = user_provided,
+            technical     = technical,
             source_ref    = source_ref
         )
     else:
@@ -482,6 +483,7 @@ def makeUncompiledPythonModule(module_name, filename, bytecode, is_package,
             bytecode      = bytecode,
             filename      = filename,
             user_provided = user_provided,
+            technical     = technical,
             source_ref    = source_ref
         )
 
@@ -494,7 +496,7 @@ class UncompiledPythonModule(PythonModuleMixin, NodeBase):
     kind = "UNCOMPILED_PYTHON_MODULE"
 
     def __init__(self, name, package_name, bytecode, filename, user_provided,
-                 source_ref):
+                 technical, source_ref):
         NodeBase.__init__(
             self,
             source_ref = source_ref
@@ -510,9 +512,14 @@ class UncompiledPythonModule(PythonModuleMixin, NodeBase):
         self.filename = filename
 
         self.user_provided = user_provided
+        self.technical = technical
 
     def isUserProvided(self):
         return self.user_provided
+
+    def isTechnical(self):
+        """ Must be bytecode as it's used in CPython library initialization. """
+        return self.technical
 
     def getByteCode(self):
         return self.bytecode

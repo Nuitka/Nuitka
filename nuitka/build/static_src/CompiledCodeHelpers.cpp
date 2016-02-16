@@ -2575,22 +2575,10 @@ void setEarlyFrozenModulesFileAttribute( void )
     Py_ssize_t ppos = 0;
     PyObject *key, *value;
 
-    PyObject *file_value = getBinaryDirectoryObject();
-
-    char sep[2] = { SEP, 0 };
-
 #if PYTHON_VERSION < 300
-    file_value = PyNumber_InPlaceAdd( file_value, PyString_FromString( sep ) );
+    PyObject *file_value = MAKE_RELATIVE_PATH( PyString_FromString( "not_present.py" ) );
 #else
-    file_value = PyNumber_InPlaceAdd( file_value, PyUnicode_FromString( sep ) );
-#endif
-
-    assert( file_value );
-
-#if PYTHON_VERSION < 300
-    file_value = PyNumber_InPlaceAdd( file_value, PyString_FromString( "not_present.py" ) );
-#else
-    file_value = PyNumber_InPlaceAdd( file_value, PyUnicode_FromString( "not_present.py" ) );
+    PyObject *file_value = MAKE_RELATIVE_PATH( PyUnicode_FromString( "not_present.py" ) );
 #endif
 
     assert( file_value );
@@ -2605,6 +2593,8 @@ void setEarlyFrozenModulesFileAttribute( void )
             }
         }
     }
+
+    Py_DECREF( file_value );
 
     assert( !ERROR_OCCURRED() );
 }
@@ -2753,28 +2743,23 @@ PyObject *MAKE_RELATIVE_PATH( PyObject *relative )
 #endif
     }
 
-    CHECK_OBJECT( our_path_object );
+    char sep[2] = { SEP, 0 };
 
-    static PyObject *os_path_join = NULL;
+#if PYTHON_VERSION < 300
+    PyObject *result = PyNumber_Add( our_path_object, PyString_FromString( sep ) );
+#else
+    PyObject *result = PyNumber_Add( our_path_object, PyUnicode_FromString( sep ) );
+#endif
 
-    if ( os_path_join == NULL )
-    {
-        PyObject *os_path = PyImport_ImportModule("os.path");
-        CHECK_OBJECT(os_path);
+    assert( result );
 
-        os_path_join = PyObject_GetAttrString(os_path, "join");
-        CHECK_OBJECT(os_path_join);
+#if PYTHON_VERSION < 300
+    result = PyNumber_InPlaceAdd( result, relative );
+#else
+    result = PyNumber_InPlaceAdd( result, relative );
+#endif
 
-        Py_DECREF(os_path);
-    }
-
-    PyObject *result = PyObject_CallFunctionObjArgs( os_path_join, our_path_object, relative, NULL );
-
-    if (unlikely( result == NULL ))
-    {
-        PyErr_Print();
-        abort();
-    }
+    assert( result );
 
     return result;
 }

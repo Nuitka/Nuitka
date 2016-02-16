@@ -39,11 +39,7 @@ from .build import SconsInterface
 from .codegen import CodeGeneration, ConstantCodes, MainCodes
 from .finalizations import Finalization
 from .freezer.BytecodeModuleFreezer import generateBytecodeFrozenCode
-from .freezer.Standalone import (
-    copyUsedDLLs,
-    detectEarlyImports,
-    detectLateImports
-)
+from .freezer.Standalone import copyUsedDLLs, detectEarlyImports
 from .optimizations import Optimization
 from .tree import Building
 
@@ -459,7 +455,9 @@ def runScons(main_module, quiet):
         "python_prefix"   : sys.prefix,
         "nuitka_src"      : SconsInterface.getSconsDataPath(),
         "module_count"    : "%d" % (
-            len(ModuleRegistry.getDoneUserModules()) + 1
+            1 + \
+            len(ModuleRegistry.getDoneUserModules()) + \
+            len(ModuleRegistry.getUncompiledNonTechnicalModules())
         )
     }
 
@@ -482,9 +480,9 @@ def runScons(main_module, quiet):
        isUninstalledPython():
         options["uninstalled_python"] = "true"
 
-    if ModuleRegistry.getUncompiledModules():
+    if ModuleRegistry.getUncompiledTechnicalModules():
         options["frozen_modules"] = str(
-            len(ModuleRegistry.getUncompiledModules())
+            len(ModuleRegistry.getUncompiledTechnicalModules())
         )
 
     if Options.isShowScons():
@@ -599,14 +597,9 @@ def compileTree(main_module):
             main_module = main_module
         )
 
-        if Options.isStandaloneMode():
-            for module in detectLateImports():
-                ModuleRegistry.addUncompiledModule(module)
-
         frozen_code = generateBytecodeFrozenCode()
 
         if frozen_code is not None:
-
             writeSourceCode(
                 filename    = Utils.joinpath(
                     source_dir,

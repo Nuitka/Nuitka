@@ -646,6 +646,11 @@ extern bool setCommandLineParameters( int argc, argv_type_t argv, bool initial )
 // Replace built-in functions with ones that accept compiled types too.
 extern void patchBuiltinModule( void );
 
+/* Replace inspect functions with ones that handle compiles types too. */
+#if PYTHON_VERSION >= 300
+extern void patchInspectModule( void );
+#endif
+
 // Replace type comparison with one that accepts compiled types too, will work
 // for "==" and "!=", but not for "is" checks.
 extern void patchTypeComparison( void );
@@ -772,7 +777,10 @@ extern char *getBinaryDirectoryHostEncoded();
 extern void setEarlyFrozenModulesFileAttribute( void );
 #endif
 
-// For making paths relative to where we got loaded from.
+/* For making paths relative to where we got loaded from. Do not provide any
+ * absolute paths as relative value, this is not as capable as "os.path.join",
+ * instead just works on strings.
+ */
 extern PyObject *MAKE_RELATIVE_PATH( PyObject *relative );
 
 #include <nuitka/threading.hpp>

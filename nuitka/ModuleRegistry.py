@@ -62,9 +62,30 @@ def addUncompiledModule(module):
     uncompiled_modules.add(module)
 
 
-def getUncompiledModules():
+def getUncompiledTechnicalModules():
+    result = [
+        module
+        for module in
+        uncompiled_modules
+        if module.isTechnical()
+    ]
+
     return sorted(
-        uncompiled_modules,
+        result,
+        key = lambda module : module.getFullName()
+    )
+
+
+def getUncompiledNonTechnicalModules():
+    result = [
+        module
+        for module in
+        uncompiled_modules
+        if not module.isTechnical()
+    ]
+
+    return sorted(
+        result,
         key = lambda module : module.getFullName()
     )
 

@@ -130,6 +130,14 @@ class NuitkaPluginBase:
         # Virtual method, pylint: disable=R0201,W0613
         return source_code
 
+    def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
+        # Virtual method, pylint: disable=R0201,W0613
+        return source_code
+
+    def onFrozenModuleBytecode(self, module_name, is_package, bytecode):
+        # Virtual method, pylint: disable=R0201,W0613
+        return bytecode
+
     @staticmethod
     def _createTriggerLoadedModule(module, trigger_name, code):
         from nuitka.tree.Building import createModuleTree

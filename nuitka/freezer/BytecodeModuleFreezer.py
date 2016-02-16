@@ -34,14 +34,14 @@ from nuitka.codegen import ConstantCodes
 from nuitka.codegen.Indentation import indented
 from nuitka.codegen.templates. \
     CodeTemplatesFreezer import template_frozen_modules
-from nuitka.ModuleRegistry import getUncompiledModules
+from nuitka.ModuleRegistry import getUncompiledTechnicalModules
 
 stream_data = ConstantCodes.stream_data
 
 def generateBytecodeFrozenCode():
     frozen_defs = []
 
-    for uncompiled_module in getUncompiledModules():
+    for uncompiled_module in getUncompiledTechnicalModules():
         module_name = uncompiled_module.getFullName()
         code_data = uncompiled_module.getByteCode()
         is_package = uncompiled_module.isPackage()

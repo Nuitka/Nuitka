@@ -31,7 +31,6 @@ from logging import debug, info, warning
 import marshal
 from nuitka import Options, SourceCodeReferences, Tracing
 from nuitka.__past__ import iterItems
-from nuitka.codegen.ConstantCodes import needsPickleInit
 from nuitka.importing import ImportCache
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
@@ -41,6 +40,7 @@ from nuitka.nodes.ModuleNodes import (
     PythonShlibModule,
     makeUncompiledPythonModule
 )
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
@@ -56,14 +56,16 @@ def loadCodeObjectData(precompiled_filename):
 
 module_names = set()
 
-def _detectedPrecompiledFile(filename, module_name, result, user_provided):
+def _detectedPrecompiledFile(filename, module_name, result, user_provided,
+                             technical):
     if filename.endswith(".pyc"):
         if Utils.isFile(filename[:-1]):
             return _detectedSourceFile(
                 filename      = filename[:-1],
                 module_name   = module_name,
                 result        = result,
-                user_provided = user_provided
+                user_provided = user_provided,
+                technical     = technical
             )
 
     if module_name in module_names:
@@ -83,14 +85,15 @@ def _detectedPrecompiledFile(filename, module_name, result, user_provided):
             ),
             is_package    = "__init__" in filename,
             filename      = filename,
-            user_provided = user_provided
+            user_provided = user_provided,
+            technical     = technical
         )
     )
 
     module_names.add(module_name)
 
 
-def _detectedSourceFile(filename, module_name, result, user_provided):
+def _detectedSourceFile(filename, module_name, result, user_provided, technical):
     if module_name in module_names:
         return
 
@@ -99,7 +102,8 @@ def _detectedSourceFile(filename, module_name, result, user_provided):
             filename      = filename,
             module_name   = "_collections_abc",
             result        = result,
-            user_provided = user_provided
+            user_provided = user_provided,
+            technical     = technical
         )
 
     source_code = readSourceCodeFromFilename(module_name, filename)
@@ -121,15 +125,32 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
         filename
     )
 
+    is_package = Utils.basename(filename) == "__init__.py"
+    source_code = Plugins.onFrozenModuleSourceCode(
+        module_name = module_name,
+        is_package  = is_package,
+        source_code = source_code
+    )
+
+    bytecode = compile(source_code, filename, "exec")
+
+    bytecode = Plugins.onFrozenModuleBytecode(
+        module_name = module_name,
+        is_package  = is_package,
+        bytecode    = bytecode
+    )
+
+
     result.append(
         makeUncompiledPythonModule(
             module_name   = module_name,
             bytecode      = marshal.dumps(
-                compile(source_code, filename, "exec")
+                bytecode
             ),
-            is_package    = Utils.basename(filename) == "__init__.py",
+            is_package    = is_package,
             filename      = filename,
-            user_provided = user_provided
+            user_provided = user_provided,
+            technical     = technical
         )
     )
 
@@ -169,7 +190,7 @@ def _detectedShlibFile(filename, module_name):
     module_names.add(module_name)
 
 
-def _detectImports(command, user_provided):
+def _detectImports(command, user_provided, technical):
     # This is pretty complicated stuff, with variants to deal with.
     # pylint: disable=R0912,R0914,R0915
 
@@ -253,7 +274,8 @@ def _detectImports(command, user_provided):
                     filename      = filename,
                     module_name   = module_name,
                     result        = result,
-                    user_provided = user_provided
+                    user_provided = user_provided,
+                    technical     = technical
                 )
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile "):]
@@ -269,7 +291,8 @@ def _detectImports(command, user_provided):
                         filename      = filename,
                         module_name   = module_name,
                         result        = result,
-                        user_provided = user_provided
+                        user_provided = user_provided,
+                        technical     = technical
                     )
                 elif not filename.endswith("<frozen>"):
                     _detectedShlibFile(
@@ -294,28 +317,6 @@ def _detectImports(command, user_provided):
 
     return result
 
-
-def detectLateImports():
-    command = ""
-    # When we are using pickle internally (for some hard constant cases we do),
-    # we need to make sure it will be available as well.
-    if needsPickleInit():
-        command += "import {pickle};".format(
-            pickle = "pickle" if python_version >= 300 else "cPickle"
-        )
-
-    # For Python3 we patch inspect without knowing if it is used.
-    if python_version >= 300:
-        command += "import inspect;"
-
-    if command:
-        result = _detectImports(command, True)
-
-        debug("Finished detecting late imports.")
-
-        return result
-    else:
-        return ()
 
 # Some modules we want to blacklist.
 ignore_modules = [
@@ -412,7 +413,21 @@ def detectEarlyImports():
 
     import_code += "import locale;"
 
-    result = _detectImports(import_code, False)
+    # For Python3 we patch inspect without knowing if it is used.
+    if python_version >= 300:
+        import_code += "import inspect;"
+
+    # We might need the pickle module when creating global constants.
+    if python_version >= 300:
+        import_code += "import pickle;"
+    else:
+        import_code += "import cPickle;"
+
+    result = _detectImports(
+        command       = import_code,
+        user_provided = False,
+        technical     = True
+    )
 
     if Options.shallFreezeAllStdlib():
         stdlib_modules = set()
@@ -436,7 +451,11 @@ def detectEarlyImports():
 
         result += [
             module
-            for module in _detectImports(import_code, False)
+            for module in _detectImports(
+                command       = import_code,
+                user_provided = False,
+                technical     = False
+            )
             if module.getFullName() not in early_names
         ]
 
