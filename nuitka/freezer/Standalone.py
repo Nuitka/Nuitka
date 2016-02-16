@@ -295,6 +295,13 @@ def _detectImports(command, user_provided, technical):
                         technical     = technical
                     )
                 elif not filename.endswith("<frozen>"):
+                    # Python3 started lying in "__name__" for the "_decimal"
+                    # calls itself "decimal", which then is wrong and also
+                    # clashes with "decimal" proper
+                    if python_version >= 300:
+                        if module_name == "decimal":
+                            module_name = "_decimal"
+
                     _detectedShlibFile(
                         filename    = filename,
                         module_name = module_name
