@@ -496,9 +496,10 @@ static PyObject *loadModule( PyObject *module_name, Nuitka_MetaPathBasedLoaderEn
         module = PyImport_ExecCodeModuleEx( (char *)entry->name, code_object, Nuitka_String_AsString_Unchecked( module_path ) );
         Py_DECREF( module_path );
 
+#if PYTHON_VERSION >= 330
         res = PyObject_SetAttr( module, const_str_plain___loader__, metapath_based_loader );
         if (unlikely( res != 0 )) return NULL;
-
+#endif
     }
     else
     {
@@ -821,6 +822,9 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
     CHECK_OBJECT( loader_is_package );
     PyDict_SetItemString( method_dict, "is_package", loader_is_package );
 
+#if PYTHON_VERSION >= 330
+    PyDict_SetItemString( method_dict, "__module__", Py_None );
+#endif
 
 #if PYTHON_VERSION >= 340
     PyObject *loader_repr_module = PyCFunction_New(

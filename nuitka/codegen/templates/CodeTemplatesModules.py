@@ -106,6 +106,10 @@ static struct PyModuleDef mdef_%(module_identifier)s =
   };
 #endif
 
+#if PYTHON_VERSION >= 300
+extern PyObject *metapath_based_loader;
+#endif
+
 // The exported interface to CPython. On import of the module, this function
 // gets called. It has to have an exact function name, in cases it's a shared
 // library export. This is hidden behind the MOD_INIT_DECL.
@@ -227,11 +231,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     }
 
 #if PYTHON_VERSION >= 330
-#if _MODULE_LOADER
     PyDict_SetItem( module_dict, const_str_plain___loader__, metapath_based_loader );
-#else
-    PyDict_SetItem( module_dict, const_str_plain___loader__, Py_None );
-#endif
 #endif
 
     // Temp variables if any

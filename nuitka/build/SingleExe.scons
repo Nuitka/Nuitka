@@ -1214,8 +1214,9 @@ def discoverSourceFiles():
         if filename.endswith(".cpp"):
             result.append(os.path.join(source_dir, filename))
 
-    # If more than one module is included, we need the unfreezer.
-    if module_count > 1:
+    # If more than one module is included, we need the unfreezer. For Python3,
+    # we needed as the "__loader__" attribute of "__main__ "already.
+    if module_count > 1 or python_version >= 330:
         result.append(getStatic("MetaPathBasedLoader.cpp"))
 
     if constants_generated_filename is not None:
