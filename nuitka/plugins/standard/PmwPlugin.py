@@ -63,13 +63,13 @@ class NuitkaPluginPmw(NuitkaPluginBase):
 
     def _packagePmw(self, pmw_path):
         # From the "__init__.py" of Pwm:
-        def _hasLoader(dir):  # @ReservedAssignment
+        def _hasLoader(dirname):  # @ReservedAssignment
             # Only accept Pmw_V_R_P with single digits, since ordering will
             # not work correctly with multiple digits (for example, Pmw_10_0
             # will be before Pmw_9_9).
-            if re.search("^Pmw_[0-9]_[0-9](_[0-9])?$", dir) is not None:
+            if re.search("^Pmw_[0-9]_[0-9](_[0-9])?$", dirname) is not None:
                 for suffix in (".py", ".pyc", ".pyo"):
-                    path = os.path.join(pmw_path, dir, "lib", "PmwLoader" + suffix)
+                    path = os.path.join(pmw_path, dirname, "lib", "PmwLoader" + suffix)
                     if os.path.isfile(path):
                         return 1
             return 0
@@ -97,9 +97,9 @@ class NuitkaPluginPmw(NuitkaPluginBase):
             # other Pmw files.
             filename = "Pmw" + filename + ".py"
             text = open(os.path.join(srcdir, filename)).read()
-            text = re.sub("import Pmw\>", "", text)
+            text = re.sub(r"import Pmw\>", "", text)
             text = re.sub("INITOPT = Pmw.INITOPT", "", text)
-            text = re.sub("\<Pmw\.", "", text)
+            text = re.sub(r"\<Pmw\.", "", text)
             text = '\n' + ('#' * 70) + '\n' + "### File: " + filename + '\n' + text
             return text
 

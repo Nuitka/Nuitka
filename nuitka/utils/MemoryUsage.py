@@ -15,6 +15,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Tools for tracing memory usage at compiled time.
+
+"""
 
 from .Utils import getOS
 

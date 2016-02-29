@@ -32,6 +32,7 @@ it being used.
 import sys
 from logging import info, warning
 
+from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils import Utils
@@ -58,8 +59,9 @@ class NuitkaPluginBase:
     plugin_name = None
 
     def getPluginOptionBool(self, option_name, default_value):
-        # TODO: Actually parse command line.
-        return default_value
+        plugin_options = Options.getPluginOptions(self.plugin_name)
+
+        return plugin_options.get(option_name, default_value)
 
     def considerImplicitImports(self, module, signal_change):
         """ Consider module imports.
