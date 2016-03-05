@@ -64,6 +64,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gi._error"
         elif full_name in ("Tkinter", "tkinter"):
             yield "_tkinter"
+        elif full_name in ("cryptography.hazmat.bindings._openssl",):
+            yield "_cffi_backend"
 
     module_aliases = {
         "requests.packages.urllib3" : "urllib3",
