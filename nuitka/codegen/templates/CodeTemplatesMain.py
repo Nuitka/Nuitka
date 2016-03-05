@@ -25,6 +25,7 @@ template_main_program = """\
 // calls the initialization code of the "__main__" module.
 
 #include "structseq.h"
+#include "osdefs.h"
 
 #if %(python_no_warnings)d
 extern PyObject *const_str_plain_ignore;
@@ -67,6 +68,20 @@ int main( int argc, char **argv )
     puts("main(): Prepare standalone environment.");
 #endif
     prepareStandaloneEnvironment();
+#else
+    /* For Python installations that need the PYTHONHOME set. */
+#if defined(PYTHON_HOME_PATH)
+    puts("main(): Prepare run environment.");
+    {
+        char buffer[MAXPATHLEN+10];
+
+        strcpy(buffer, "PYTHONHOME=");
+        strcat(buffer, PYTHON_HOME_PATH);
+
+        int res = putenv(buffer);
+        assert( res == 0 );
+    }
+#endif
 #endif
 
     // Initialize CPython library environment.
