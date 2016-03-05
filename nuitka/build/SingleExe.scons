@@ -422,11 +422,12 @@ if "g++" in (env["CXX"] or "") and "clang" not in (env["CXX"] or ""):
 # Detect compiler to be used from supported ones, if there is no usable g++
 # link.
 if not win_target and env["CXX"] is None:
-    # Try out the Debian names, as no "gcc" default compiler package needs to
-    # be installed.
+    # Try out the Debian/EPEL names, so no "gcc" default compiler package needs
+    # to be installed or might be ignored due to too low version.
 
-    for candidate in ("g++-5.1", "g++-4.9", "g++-4.8", "g++-4.7", "g++-4.6",
-                      "g++-4.5", "g++-4.4", "g++44", "clang", "eg++"):
+    for candidate in ("g++-5.3", "g++-5.1", "g++-4.9", "g++-4.8", "g++-4.7",
+                      "g++-4.6", "g++-4.5", "g++-4.4", "g++44", "clang",
+                      "eg++"):
 
         for system_path in ("/usr/bin", "/usr/local/bin"):
             if os.path.exists(os.path.join(system_path, candidate)):
