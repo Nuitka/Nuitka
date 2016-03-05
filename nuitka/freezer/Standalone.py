@@ -718,9 +718,7 @@ def detectBinaryDLLs(binary_filename, package_name):
     """
 
 
-    if Utils.getOS() in ("Linux", "NetBSD"):
-        # TODO: FreeBSD may work the same way, not tested.
-
+    if Utils.getOS() in ("Linux", "NetBSD", "FreeBSD"):
         return _detectBinaryPathDLLsLinuxBSD(
             binary_filename = binary_filename
         )

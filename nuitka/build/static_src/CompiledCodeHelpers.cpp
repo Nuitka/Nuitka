@@ -2117,8 +2117,9 @@ char *getBinaryDirectoryUTF8Encoded()
     strncpy(binary_directory, dirname(binary_directory), MAXPATHLEN + 1);
 
 #elif defined( __FreeBSD__ )
-    // Not all of FreeBSD has /proc file system, so use the appropriate
-    // "sysctl" instead.
+    /* Not all of FreeBSD has /proc file system, so use the appropriate
+     * "sysctl" instead.
+     */
     int mib[4];
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROC;
@@ -2126,6 +2127,9 @@ char *getBinaryDirectoryUTF8Encoded()
     mib[3] = -1;
     size_t cb = sizeof(binary_directory);
     sysctl(mib, 4, binary_directory, &cb, NULL, 0);
+
+    /* We want the dirname, the above gives the full exe name. */
+    strcpy(binary_directory, dirname(binary_directory));
 #else
     // The remaining platforms, mostly Linux.
 

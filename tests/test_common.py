@@ -373,17 +373,23 @@ def getRuntimeTraceOfLoadedFiles(path, trace_error = True):
     result = []
 
     if os.name == "posix":
-        if sys.platform == "darwin":
+        if sys.platform == "darwin" or \
+           sys.platform.startswith("freebsd"):
             if not isExecutableCommand("dtruss"):
                 sys.exit(
                     """\
 Error, needs 'dtruss' on your system to scan used libraries."""
                 )
 
+            if not isExecutableCommand("sudo"):
+                sys.exit(
+                    """\
+Error, needs 'sudo' on your system to scan used libraries."""
+                )
+
             args = (
                 "sudo",
                 "dtruss",
-                "-f",
                 "-t",
                 "open",
                 path

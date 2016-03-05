@@ -399,6 +399,10 @@ for filename in sorted(os.listdir('.')):
         if loaded_filename in ("/sys/fs/selinux", "/selinux"):
             continue
 
+        # Allow reading time zone info of local system.
+        if loaded_filename.startswith("/usr/share/zoneinfo/"):
+            continue
+
         # The access to .pth files has no effect.
         if loaded_filename.endswith(".pth"):
             continue
