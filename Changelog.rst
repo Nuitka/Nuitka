@@ -3,6 +3,54 @@ Nuitka Release 0.5.20 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Standalone Python3.5: The ``_decimal`` module at least is using a ``__name__``
+  that doesn't match the name at load time, causing programs that use it to
+  crash.
+
+- Compatibility: For Python3.3 the ``__loader__`` attribute is now set in all
+  cases, and it needs to have a ``__module__`` attribute. This makes inspection
+  as done by e.g. ``flask`` working.
+
+- Standalone: Added missing hidden dependencies for ``Tkinter`` module, adding
+  support for this to work properly.
+
+- Windows: Detecting the Python DLL and EXE used at compile time and preserving
+  this information use during backend compilation. This should make sure we use
+  the proper ones, and avoids hacks for specific Python variants, enhancing the
+  support for Anaconda, WinPython, and CPython installations.
+
+- Windows: The ``--python-debug`` flag now properly detects if the run time
+  is supporting things and error exits if it's not available. For a CPython3.5
+  installation, it will switch between debug and non-debug Python binaries and
+  DLLs.
+
+- Standalone: Added plug-in for the ``Pwm`` package to properly combine it into
+  a single file, suitable for distribution.
+
+- Standalone: Packages from standard library, e.g. ``xml`` now have proper
+  ``__path__`` as a list and not as a string value, which breaks code of e.g.
+  PyXML.
+
+Cleanups
+--------
+
+- Moved memory related stuff to dedicated utils package ``nuitka.utils.MemoryUsage``
+  as part of an effort to have more topical modules.
+
+- Plug-ins how have a dedicated module through which the core accesses the API,
+  which was partially cleaned up.
+
+- No more "early" and "late" import detections for standalone mode. We now scan
+  everything at the start.
+
+Summary
+-------
+
+This release is not done yet.
+
 
 Nuitka Release 0.5.19
 =====================
