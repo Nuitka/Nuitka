@@ -733,6 +733,11 @@ def main():
                     Plugins.considerExtraDlls(dist_dir, module)
                 )
 
+            for module in ModuleRegistry.getUncompiledModules():
+                standalone_entry_points.extend(
+                    Plugins.considerExtraDlls(dist_dir, module)
+                )
+
             copyUsedDLLs(
                 dist_dir                = dist_dir,
                 standalone_entry_points = standalone_entry_points

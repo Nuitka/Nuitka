@@ -709,6 +709,7 @@ SxS
 
     return result
 
+
 def detectBinaryDLLs(binary_filename, package_name):
     """ Detect the DLLs used by a binary.
 

@@ -92,6 +92,10 @@ def normpath(path):
     return os.path.normpath(path)
 
 
+def realpath(path):
+    return os.path.realpath(path)
+
+
 def normcase(path):
     return os.path.normcase(path)
 

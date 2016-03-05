@@ -22,8 +22,12 @@ be told that. This encodes the knowledge we have for various modules. Feel free
 to add to this and submit patches to make it more complete.
 """
 
+import shutil
+from sys import getfilesystemencoding
+
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
+from nuitka.utils.Utils import basename, getOS, joinpath
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
@@ -88,3 +92,48 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             return True
 
         return False
+
+    def locateDLL(self, dll_name):
+        import ctypes.util
+
+        dll_name = ctypes.util.find_library(dll_name)
+
+        import subprocess
+        process = subprocess.Popen(
+            args   = ["/sbin/ldconfig", "-p"],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+        )
+        stdout, _stderr = process.communicate()
+
+        dll_map = {}
+
+        for line in stdout.splitlines()[1:]:
+            assert line.count(b"=>") == 1, line
+            left, right = line.strip().split(b" => ")
+            assert b" (" in left, line
+            left = left[:left.rfind(b" (")]
+
+            if python_version >= 300:
+                left = left.decode(getfilesystemencoding())
+                right = right.decode(getfilesystemencoding())
+
+            if left not in dll_map:
+                dll_map[left] = right
+
+        return dll_map[dll_name]
+
+    def considerExtraDlls(self, dist_dir, module):
+        full_name = module.getFullName()
+
+        if getOS() == "Linux" and full_name == "uuid":
+            uuid_dll_path = self.locateDLL("uuid")
+            dist_dll_path = joinpath(dist_dir, basename(uuid_dll_path))
+
+            shutil.copy(uuid_dll_path, dist_dir)
+
+            return (
+                (dist_dll_path, None),
+            )
+
+        return ()
