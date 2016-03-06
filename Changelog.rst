@@ -1,7 +1,9 @@
 Nuitka Release 0.5.20 (Draft)
 =============================
 
-This release is not done yet.
+This release is mostly about catching up with issues. Most address standalone
+problems with special modules, but there are also some general compatibility
+corrections, as well as important fixes for Python3.5 and coroutines.
 
 Bug Fixes
 ---------
@@ -20,7 +22,7 @@ Bug Fixes
 - Windows: Detecting the Python DLL and EXE used at compile time and preserving
   this information use during backend compilation. This should make sure we use
   the proper ones, and avoids hacks for specific Python variants, enhancing the
-  support for Anaconda, WinPython, and CPython installations.
+  support for AnaConda, WinPython, and CPython installations.
 
 - Windows: The ``--python-debug`` flag now properly detects if the run time
   is supporting things and error exits if it's not available. For a CPython3.5
@@ -32,7 +34,28 @@ Bug Fixes
 
 - Standalone: Packages from standard library, e.g. ``xml`` now have proper
   ``__path__`` as a list and not as a string value, which breaks code of e.g.
-  PyXML.
+  PyXML. `Issue#183 <http://bugs.nuitka.net/issue183>`__.
+
+- Standalone: Added missing dependency of ``twisted.protocols.tls``. `Issue#288
+  <http://bugs.nuitka.net/issue288>`__.
+
+- Python3.5: When finalizing coroutines that were not finished, a corruption of
+  its reference count could happen under some circumstances.
+
+- Standalone: Added missing DLL dependency of the ``uuid`` module at run time,
+  which uses ctypes to load it.
+
+New Features
+------------
+
+- Added support for AnaConda Python on this Linux. Both accelerated and standalone
+  mode work now. `Issue#295 <http://bugs.nuitka.net/issue295>`__.
+
+- Added support for standalone mode on FreeBSD. `Issue#294
+  <http://bugs.nuitka.net/issue294>`__.
+
+- The plug-in framework was expanded with new features to allow addressing some
+  specific issues.
 
 Cleanups
 --------
@@ -49,7 +72,10 @@ Cleanups
 Summary
 -------
 
-This release is not done yet.
+This release focused on expanding plugins. These were then used to enhance the
+success of standalone compatibility. Eventually this should lead to a finished
+and documented plug-in API, which will open up the Nuitka core to easier hacks
+and more user contribution for these topics.
 
 
 Nuitka Release 0.5.19
