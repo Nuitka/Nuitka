@@ -89,6 +89,8 @@ for filename in sorted(os.listdir('.')):
     if filename.startswith("Referencing"):
         extra_flags.append("python_debug")
 
+        extra_flags.append("recurse_not:test_common")
+
     # This tests warns about __import__() used.
     if filename == "OrderChecks.py":
         extra_flags.append("ignore_warnings")
