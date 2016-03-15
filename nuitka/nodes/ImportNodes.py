@@ -29,6 +29,7 @@ compile time constant.
 
 from logging import warning
 
+from nuitka.__past__ import unicode  # pylint: disable=W0622
 from nuitka.importing.Importing import (
     findModule,
     getModuleNameAndKindFromFilename
@@ -54,7 +55,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
     _warned_about = set()
 
     def __init__(self, module_name, import_list, level, source_ref):
-        assert type(module_name) is str, type(module_name)
+        assert type(module_name) in (str, unicode), type(module_name)
 
         NodeBase.__init__(
             self,
@@ -229,7 +230,6 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             for found_module in self.found_modules:
                 addUsedModule(found_module)
 
-
         # When a module is recursed to and included, we know it won't raise,
         # right? But even if you import, that successful import may still raise
         # and we don't know how to check yet.
@@ -337,7 +337,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
            fromlist.isExpressionConstantRef() and \
            level.isExpressionConstantRef():
 
-            if module_name.isStringConstant():
+            if module_name.isStringConstant() or module_name.isUnicodeConstant():
                 new_node = ExpressionImportModule(
                     module_name = module_name.getConstant(),
                     import_list = fromlist.getConstant(),
@@ -363,7 +363,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 )
 
                 # Must fail, must not go on when it doesn't.
-                assert change_tags == "new_raise"
+                assert change_tags == "new_raise", module_name
 
                 return new_node, change_tags, message
 
