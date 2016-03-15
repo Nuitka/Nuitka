@@ -79,7 +79,9 @@ from nuitka.nodes.ModuleNodes import (
     CompiledPythonPackage,
     ExpressionModuleFileAttributeRef,
     PythonMainModule,
-    PythonShlibModule
+    PythonShlibModule,
+    UncompiledPythonModule,
+    UncompiledPythonPackage
 )
 from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
@@ -88,6 +90,7 @@ from nuitka.nodes.OperatorNodes import (
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.ReformulationForLoopStatements import (
     buildAsyncForLoopNode,
@@ -902,7 +905,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
 
 def decideModuleTree(filename, package, is_shlib, is_top, is_main):
-    # Many variables, branches, due to the many cases, pylint: disable=R0912
+    # Many variables, branches, due to the many cases, pylint: disable=R0912,R0915
 
     assert package is None or type(package) is str
     assert filename is not None
@@ -964,11 +967,49 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 source_ref = source_ref
             )
         else:
-            result = CompiledPythonModule(
-                name         = module_name,
-                package_name = package,
-                source_ref   = source_ref
-            )
+            if package is not None:
+                full_name = package + "." + module_name
+            else:
+                full_name = module_name
+
+            decision = Plugins.decideCompilation(full_name, source_ref)
+
+            if decision == "compiled":
+                result = CompiledPythonModule(
+                    name         = module_name,
+                    package_name = package,
+                    source_ref   = source_ref
+                )
+            else:
+                source_code = readSourceCodeFromFilename(module_name, filename)
+
+                source_code = Plugins.onFrozenModuleSourceCode(
+                    module_name = full_name,
+                    is_package  = False,
+                    source_code = source_code
+                )
+
+                bytecode = compile(source_code, filename, "exec")
+
+                bytecode = Plugins.onFrozenModuleBytecode(
+                    module_name = module_name,
+                    is_package  = False,
+                    bytecode    = bytecode
+                )
+
+                result = UncompiledPythonModule(
+                    name         = module_name,
+                    package_name = package,
+                    bytecode     = bytecode,
+                    filename     = filename,
+                    user_provided = True,
+                    technical    = False,
+                    source_ref   = source_ref
+                )
+
+                # Don't read it anymore.
+                source_filename = None
+
     elif Importing.isPackageDir(filename):
         if is_top:
             package_name = Utils.splitpath(filename)[-1]
@@ -988,11 +1029,40 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 filename = Utils.abspath(source_filename),
             )
 
-            result = CompiledPythonPackage(
-                name         = package_name,
-                package_name = package,
-                source_ref   = source_ref
-            )
+            if package is not None:
+                full_name = package + "." + package_name
+            else:
+                full_name = package_name
+
+            decision = Plugins.decideCompilation(full_name, source_ref)
+
+            if decision == "compiled":
+                result = CompiledPythonPackage(
+                    name         = package_name,
+                    package_name = package,
+                    source_ref   = source_ref
+                )
+            else:
+                bytecode = compile(source_code, filename, "exec")
+
+                bytecode = Plugins.onFrozenModuleBytecode(
+                    module_name = module_name,
+                    is_package  = False,
+                    bytecode    = bytecode
+                )
+
+                result = UncompiledPythonPackage(
+                    name         = module_name,
+                    package_name = package,
+                    bytecode     = bytecode,
+                    filename     = filename,
+                    user_provided = True,
+                    technical    = False,
+                    source_ref   = source_ref
+                )
+
+                # Don't read it anymore.
+                source_filename = None
     else:
         sys.stderr.write(
             "%s: can't open file '%s'.\n" % (

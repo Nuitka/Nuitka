@@ -215,3 +215,14 @@ class Plugins:
                 return True
 
         return False
+
+    @staticmethod
+    def decideCompilation(module_name, source_ref):
+        for plugin in active_plugin_list:
+            value = plugin.decideCompilation(module_name, source_ref)
+
+            if value is not None:
+                assert value in ("compiled", "bytecode")
+                return value
+
+        return "compiled"

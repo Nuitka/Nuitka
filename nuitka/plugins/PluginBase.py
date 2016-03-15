@@ -282,6 +282,10 @@ class NuitkaPluginBase:
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
+    def decideCompilation(self, module_name, source_ref):
+        # Virtual method, pylint: disable=R0201,W0613
+        return None
+
     def warnUnusedPlugin(self, message):
         if self.plugin_name not in warned_unused_plugins:
             warned_unused_plugins.add(self.plugin_name)

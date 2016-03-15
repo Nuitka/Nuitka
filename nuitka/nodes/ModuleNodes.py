@@ -528,6 +528,10 @@ class UncompiledPythonModule(PythonModuleMixin, NodeBase):
     def isPackage():
         return False
 
+    def getFilename(self):
+        return self.filename
+
+
 class UncompiledPythonPackage(UncompiledPythonModule):
     kind = "UNCOMPILED_PYTHON_PACKAGE"
 
@@ -634,7 +638,6 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
 
     def startTraversal(self):
         pass
-
 
 
 class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
