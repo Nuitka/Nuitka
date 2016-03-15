@@ -23,10 +23,10 @@ import os
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.utils.Utils import isFile, joinpath
+from nuitka.utils.Utils import isFile, joinpath, normpath
 
 known_data_files = {
-    "nose.core" : ("usage.txt",),
+    "nose.core" : ("../usage.txt",),
 }
 
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
@@ -41,14 +41,23 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
             for filename in known_data_files[module.getFullName()]:
                 source_path = joinpath(
                     module.getCompileTimeFilename(),
-                    "..",
                     filename
                 )
+
+                # so we can ".." out from what is a filename, we have to
+                # normalize the result, or else checking for existance or
+                # opening it will fail.
+                source_path = normpath(source_path)
 
                 if isFile(source_path):
                     yield (
                         source_path,
-                        module.getFullName().replace('.', os.path.sep)
+                        normpath(
+                            joinpath(
+                                module.getFullName().replace('.', os.path.sep),
+                                filename
+                            )
+                        )
                     )
 
 
