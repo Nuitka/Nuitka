@@ -2,3 +2,7 @@
 # will build extensions or programs that embedd CPython. Only the builder
 # arch needs to be installed.
 nuitka source: build-depends-on-python-dev-with-no-arch-any
+
+# I am doing test builds on Debian stable, while the upload target is
+# unstable. For these, ignore the too new standards version.
+nuitka source: newer-standards-version
