@@ -1,9 +1,11 @@
-Nuitka Release 0.5.20 (Draft)
-=============================
+Nuitka Release 0.5.20
+=====================
 
 This release is mostly about catching up with issues. Most address standalone
 problems with special modules, but there are also some general compatibility
-corrections, as well as important fixes for Python3.5 and coroutines.
+corrections, as well as important fixes for Python3.5 and coroutines and to
+improve compatibility with special Python variants like AnaConda under the
+Windows system.
 
 Bug Fixes
 ---------
