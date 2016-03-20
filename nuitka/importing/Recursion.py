@@ -26,7 +26,7 @@ from logging import debug, warning
 import marshal
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
-from nuitka.plugins.PluginBase import Plugins
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
@@ -105,6 +105,7 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
                                 ),
                                 is_package    = module.isCompiledPythonPackage(),
                                 user_provided = True,
+                                technical     = False
                             )
 
                             ModuleRegistry.addUncompiledModule(module)
@@ -137,7 +138,6 @@ def decideRecursion(module_filename, module_name, module_package, module_kind):
         module_package,
         module_kind
     )
-
 
     if module_kind == "shlib":
         if Options.isStandaloneMode():
@@ -236,7 +236,7 @@ def isSameModulePath(path1, path2):
 
 
 def _checkPluginPath(plugin_filename, module_package):
-    # Many branches, for the decision is very complex, pylint: disable=R0912
+    # Many branches, for the decision is very complex
 
     debug(
         "Checking detail plug-in path '%s' '%s':",
@@ -281,6 +281,8 @@ def _checkPluginPath(plugin_filename, module_package):
                 module
             )
 
+            ImportCache.addImportedModule(module)
+
             if module.isCompiledPythonPackage():
                 package_filename = module.getFilename()
 
@@ -292,18 +294,16 @@ def _checkPluginPath(plugin_filename, module_package):
 
                     # Only include it, if it contains actual modules, which will
                     # recurse to this one and find it again.
-                    useful = False
                 else:
                     package_dir = Utils.dirname(package_filename)
 
                     # Real packages will always be included.
-                    useful = True
+                    ModuleRegistry.addRootModule(module)
 
                 debug(
                     "Package directory %s",
                     package_dir
                 )
-
 
                 for sub_path, sub_filename in Utils.listDir(package_dir):
                     if sub_filename in ("__init__.py", "__pycache__"):
@@ -314,13 +314,9 @@ def _checkPluginPath(plugin_filename, module_package):
                     if Importing.isPackageDir(sub_path) or \
                        sub_path.endswith(".py"):
                         _checkPluginPath(sub_path, module.getFullName())
-            else:
-                # Modules should always be included.
-                useful = True
 
-            if useful:
+            elif module.isCompiledPythonModule():
                 ModuleRegistry.addRootModule(module)
-                ImportCache.addImportedModule(module)
 
         else:
             warning("Failed to include module from '%s'.", plugin_info[0])

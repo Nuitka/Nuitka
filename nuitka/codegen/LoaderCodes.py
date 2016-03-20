@@ -22,9 +22,14 @@ or distribution folder.
 """
 
 
+from nuitka.ModuleRegistry import getUncompiledNonTechnicalModules
+from nuitka.PythonVersions import python_version
+
+from . import ConstantCodes
 from .Indentation import indented
 from .templates.CodeTemplatesLoader import (
     template_metapath_loader_body,
+    template_metapath_loader_bytecode_module_entry,
     template_metapath_loader_compiled_module_entry,
     template_metapath_loader_compiled_package_entry,
     template_metapath_loader_shlib_module_entry
@@ -52,6 +57,8 @@ def getModuleMetapathLoaderEntryCode(module_name, module_identifier,
         }
 
 
+stream_data = ConstantCodes.stream_data
+
 def getMetapathLoaderBodyCode(other_modules):
     metapath_loader_inittab = []
     metapath_module_decls = []
@@ -71,9 +78,29 @@ def getMetapathLoaderBodyCode(other_modules):
                 "MOD_INIT_DECL( %s );" % other_module.getCodeName()
             )
 
+    for uncompiled_module in getUncompiledNonTechnicalModules():
+        code_data = uncompiled_module.getByteCode()
+        is_package = uncompiled_module.isPackage()
+
+        flags = ["NUITKA_BYTECODE_FLAG"]
+        if is_package:
+            flags.append("NUITKA_PACKAGE_FLAG")
+
+        metapath_loader_inittab.append(
+            template_metapath_loader_bytecode_module_entry % {
+                "module_name" : uncompiled_module.getFullName(),
+                "bytecode"    : stream_data.getStreamDataCode(
+                    value      = code_data,
+                    fixed_size = True
+                ),
+                "size"        : len(code_data),
+                "flags"       : " | ".join(flags)
+            }
+        )
+
 
     return template_metapath_loader_body % {
-        "use_loader" : 1 if other_modules else 0,
-        "metapath_module_decls" : indented(metapath_module_decls, 0),
+        "use_loader"              : 1 if (metapath_loader_inittab or python_version >= 330) else 0,
+        "metapath_module_decls"   : indented(metapath_module_decls, 0),
         "metapath_loader_inittab" : indented(metapath_loader_inittab)
     }

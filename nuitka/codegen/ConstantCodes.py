@@ -80,24 +80,13 @@ def _isAttributeName(value):
     # used for generator expressions, iterator value.
     return _match_attribute_names.match(value) or value == ".0"
 
-# Indicator to standalone mode code, if we need pickling module early on, which
-# we try to avoid, but can happen with things we cannot create directly.
-_needs_pickle = False
-
-def needsPickleInit():
-    return _needs_pickle
 
 
 def _getUnstreamCode2(constant_value):
     saved = getStreamedConstant(
         constant_value = constant_value
     )
-
     assert type(saved) is bytes
-
-    # We need to remember having to use pickle, pylint: disable=W0603
-    global _needs_pickle
-    _needs_pickle = True
 
     return stream_data.getStreamDataCode(saved)
 

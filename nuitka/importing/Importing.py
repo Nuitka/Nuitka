@@ -41,7 +41,7 @@ from logging import warning
 
 from nuitka import Options
 from nuitka.containers import oset
-from nuitka.plugins.PluginBase import Plugins
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.utils import Utils
 

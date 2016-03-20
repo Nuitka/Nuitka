@@ -15,8 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-"""
-Scons interface.
+""" Scons interface.
 
 Interaction with scons. Find the binary, and run it with a set of given
 options.
@@ -30,7 +29,7 @@ import subprocess
 import sys
 
 from nuitka import Options, Tracing
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Utils
 
 
@@ -128,6 +127,11 @@ def setupSconsEnvironment():
             "scons-2.3.2"
         )
 
+        # On Windows, we use the Python.DLL path for some things. We pass it
+        # via environment variable
+        os.environ["NUITKA_PYTHON_DLL_PATH"] = getTargetPythonDLLPath()
+
+        os.environ["NUITKA_PYTHON_EXE_PATH"] = sys.executable
     # Remove environment variables that can only harm if we have to switch
     # major Python versions, these cannot help Python2 to execute scons, this
     # is a bit of noise, but helpful.
@@ -152,6 +156,10 @@ def setupSconsEnvironment():
 
         if old_pythonhome is not None:
             os.environ["PYTHONHOME"] = old_pythonhome
+
+    if Utils.getOS() == "Windows":
+        del os.environ["NUITKA_PYTHON_DLL_PATH"]
+        del os.environ["NUITKA_PYTHON_EXE_PATH"]
 
 
 def buildSconsCommand(quiet, options):

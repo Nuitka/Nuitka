@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.19.1
+Nuitka V0.5.20
 Copyright (C) 2016 Kay Hayen."""
 
 import logging
@@ -700,7 +700,8 @@ if not options.immediate_execution and len(positional_args) > 1:
     parser.print_help()
 
     sys.exit("""
-Error, need only one positional argument unless --run is specified.""")
+Error, need only one positional argument unless "--run" is specified to
+pass them to the compiled program execution.""")
 
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
@@ -713,6 +714,9 @@ else:
 if options.is_standalone:
     options.executable = True
     options.recurse_all = True
+
+    if Utils.getOS() == "NetBSD":
+        logging.warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
 
 def shallTraceExecution():
     return options.trace_execution

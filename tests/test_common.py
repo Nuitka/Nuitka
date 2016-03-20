@@ -168,10 +168,12 @@ def convertUsing2to3(path, force = False):
         path
     ]
 
-    if not force and "xrange" not in open(path).read():
-        with open(os.devnull, 'w') as stderr:
-            if check_result(command, stderr = stderr):
-                return path, False
+    if not force:
+        with open(path) as source_file:
+            if "xrange" not in source_file.read():
+                with open(os.devnull, 'w') as stderr:
+                    if check_result(command, stderr = stderr):
+                        return path, False
 
     filename = os.path.basename(path)
 
@@ -371,17 +373,23 @@ def getRuntimeTraceOfLoadedFiles(path, trace_error = True):
     result = []
 
     if os.name == "posix":
-        if sys.platform == "darwin":
+        if sys.platform == "darwin" or \
+           sys.platform.startswith("freebsd"):
             if not isExecutableCommand("dtruss"):
                 sys.exit(
                     """\
 Error, needs 'dtruss' on your system to scan used libraries."""
                 )
 
+            if not isExecutableCommand("sudo"):
+                sys.exit(
+                    """\
+Error, needs 'sudo' on your system to scan used libraries."""
+                )
+
             args = (
                 "sudo",
                 "dtruss",
-                "-f",
                 "-t",
                 "open",
                 path
@@ -648,8 +656,10 @@ def createSearchMode():
                 dirname,
                 filename,
                 filename.replace(".py", ""),
+                filename.split(".")[0],
                 path,
-                path.replace(".py", "")
+                path.replace(".py", ""),
+
             )
 
         def isCoverage(self):
@@ -794,6 +804,7 @@ def indentedCode(codes, count):
     """
     return '\n'.join( ' ' * count + line if line else "" for line in codes )
 
+
 def convertToPython(doctests, line_filter = None):
     """ Convert give doctest string to static Python code.
 
@@ -864,7 +875,7 @@ except Exception as __e:
             continue
 
         if inside and len(line) > 0 and line[0].isalnum() and not isOpener(line):
-            output.append(getTried('\n'.join(chunk)))
+            output.append(getTried('\n'.join(chunk)))  # @UndefinedVariable
 
             chunk = []
             inside = False
@@ -891,3 +902,56 @@ except Exception as __e:
             output.append(getTried(line))
 
     return '\n'.join(output).rstrip() + '\n'
+
+
+def compileLibraryPath(search_mode, path, stage_dir, decide, action):
+    my_print("Checking standard library path:", path)
+    global active
+
+    for root, dirnames, filenames in os.walk(path):
+        dirnames_to_remove = [
+            dirname
+            for dirname in dirnames
+            if "-" in dirname
+        ]
+
+        for dirname in dirnames_to_remove:
+            dirnames.remove(dirname)
+
+        dirnames.sort()
+
+        filenames = [
+            filename
+            for filename in filenames
+            if decide(root, filename)
+        ]
+
+        for filename in sorted(filenames):
+            if not search_mode.consider(root, filename):
+                continue
+
+            full_path = os.path.join(root, filename)
+
+            my_print(full_path, ':', end = ' ')
+            sys.stdout.flush()
+
+            action(stage_dir, path, full_path)
+
+
+def compileLibraryTest(search_mode, stage_dir, decide, action):
+    my_dirname = os.path.dirname(__file__)
+
+    paths = [
+        path
+        for path in
+        sys.path
+        if not path.startswith(my_dirname)
+    ]
+
+    my_print("Using standard library paths:")
+    for path in paths:
+        my_print(path)
+
+
+    for path in paths:
+        compileLibraryPath(search_mode, path, stage_dir, decide, action)

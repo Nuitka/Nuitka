@@ -75,6 +75,13 @@ for count, arg in reversed(tuple(enumerate(args))):
         plugins_disabled.append(arg[len("plugin_disable:"):])
         del args[count]
 
+recurse_not = []
+
+for count, arg in reversed(tuple(enumerate(args))):
+    if arg.startswith("recurse_not:"):
+        recurse_not.append(arg[len("recurse_not:"):])
+        del args[count]
+
 if args:
     sys.exit("Error, non understood mode(s) '%s'," % ','.join(args))
 
@@ -235,6 +242,9 @@ if recurse_none:
 
 if recurse_all:
     extra_options.append("--recurse-all")
+
+if recurse_not:
+    extra_options.extend("--recurse-not-to=" + v for v in recurse_not)
 
 if coverage_mode:
     extra_options.append("--must-not-re-execute")

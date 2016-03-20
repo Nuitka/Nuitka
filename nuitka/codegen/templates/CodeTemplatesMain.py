@@ -25,6 +25,7 @@ template_main_program = """\
 // calls the initialization code of the "__main__" module.
 
 #include "structseq.h"
+#include "osdefs.h"
 
 #if %(python_no_warnings)d
 extern PyObject *const_str_plain_ignore;
@@ -67,6 +68,20 @@ int main( int argc, char **argv )
     puts("main(): Prepare standalone environment.");
 #endif
     prepareStandaloneEnvironment();
+#else
+    /* For Python installations that need the PYTHONHOME set. */
+#if defined(PYTHON_HOME_PATH)
+    puts("main(): Prepare run environment.");
+    {
+        char buffer[MAXPATHLEN+10];
+
+        strcpy(buffer, "PYTHONHOME=");
+        strcat(buffer, PYTHON_HOME_PATH);
+
+        int res = putenv(buffer);
+        assert( res == 0 );
+    }
+#endif
 #endif
 
     // Initialize CPython library environment.
@@ -200,6 +215,9 @@ int main( int argc, char **argv )
     _initSlotIternext();
 #endif
 
+#ifdef _NUITKA_TRACE
+    puts("main(): Calling enhancePythonTypes().");
+#endif
     enhancePythonTypes();
 
     // Set the sys.executable path to the original Python executable on Linux
@@ -209,7 +227,13 @@ int main( int argc, char **argv )
         %(sys_executable)s
     );
 
+#ifdef _NUITKA_TRACE
+    puts("main(): Calling patchBuiltinModule().");
+#endif
     patchBuiltinModule();
+#ifdef _NUITKA_TRACE
+    puts("main(): Calling patchTypeComparison().");
+#endif
     patchTypeComparison();
 
     // Allow to override the ticker value, to remove checks for threads in
@@ -222,8 +246,22 @@ int main( int argc, char **argv )
     }
 
 #ifdef _NUITKA_STANDALONE
+#ifdef _NUITKA_TRACE
+    puts("main(): Calling setEarlyFrozenModulesFileAttribute().");
+#endif
+#if PYTHON_VERSION >= 300
+    PyObject *os_module = PyImport_ImportModule("os");
+    CHECK_OBJECT( os_module );
+#endif
     setEarlyFrozenModulesFileAttribute();
 #endif
+
+#ifdef _NUITKA_TRACE
+    puts("main(): Calling setupMetaPathBasedLoader().");
+#endif
+    /* Enable meta path based loader. */
+    setupMetaPathBasedLoader();
+
 
     // Disable Python warnings if requested to.
 #if %(python_no_warnings)d
@@ -251,8 +289,12 @@ int main( int argc, char **argv )
     }
 #endif
 
-    // Enable meta path based loader.
-    setupMetaPathBasedLoader();
+#if PYTHON_VERSION >= 300
+#ifdef _NUITKA_TRACE
+    puts("main(): Calling patchInspectModule().");
+#endif
+    patchInspectModule();
+#endif
 
 #if _NUITKA_PROFILE
     startProfiling();

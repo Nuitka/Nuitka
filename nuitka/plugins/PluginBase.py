@@ -34,7 +34,6 @@ from logging import info, warning
 
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils import Utils
 
@@ -59,6 +58,11 @@ class NuitkaPluginBase:
     # plug-in.
     plugin_name = None
 
+    def getPluginOptionBool(self, option_name, default_value):
+        plugin_options = Options.getPluginOptions(self.plugin_name)
+
+        return plugin_options.get(option_name, default_value)
+
     def considerImplicitImports(self, module, signal_change):
         """ Consider module imports.
 
@@ -69,7 +73,6 @@ class NuitkaPluginBase:
             calls, as the "signal_change" part of this API is not to be cared
             about. Most prominently "getImplicitImports()".
         """
-
         for full_name in self.getImplicitImports(module.getFullName()):
             module_name = full_name.split('.')[-1]
             module_package = '.'.join(full_name.split('.')[:-1]) or None
@@ -128,6 +131,14 @@ class NuitkaPluginBase:
     def onModuleSourceCode(self, module_name, source_code):
         # Virtual method, pylint: disable=R0201,W0613
         return source_code
+
+    def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
+        # Virtual method, pylint: disable=R0201,W0613
+        return source_code
+
+    def onFrozenModuleBytecode(self, module_name, is_package, bytecode):
+        # Virtual method, pylint: disable=R0201,W0613
+        return bytecode
 
     @staticmethod
     def _createTriggerLoadedModule(module, trigger_name, code):
@@ -257,7 +268,11 @@ class NuitkaPluginBase:
 
     def considerExtraDlls(self, dist_dir, module):
         # Virtual method, pylint: disable=R0201,W0613
-        return []
+        return ()
+
+    def considerDataFiles(self, module):
+        # Virtual method, pylint: disable=R0201,W0613
+        return ()
 
     def suppressBuiltinImportWarning(self, module_name, source_ref):
         # Virtual method, pylint: disable=R0201,W0613
@@ -267,85 +282,20 @@ class NuitkaPluginBase:
         # Virtual method, pylint: disable=R0201,W0613
         return False
 
+    def decideCompilation(self, module_name, source_ref):
+        # Virtual method, pylint: disable=R0201,W0613
+        return None
+
     def warnUnusedPlugin(self, message):
         if self.plugin_name not in warned_unused_plugins:
             warned_unused_plugins.add(self.plugin_name)
 
             warning(
-                "Use --plugin-enable=%s for: %s" % (
+                "Use '--plugin-enable=%s' for: %s" % (
                     self.plugin_name,
                     message
                 )
             )
-
-
-class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
-    """ This is for implicit imports.
-
-        When C extension modules import other modules, we cannot see this
-        and need to be told that. This encodes the knowledge we have for
-        various modules. Feel free to add to this and submit patches to
-        make it more complete.
-    """
-    def getImplicitImports(self, full_name):
-        elements = full_name.split('.')
-
-        if elements[0] in ("PyQt4", "PyQt5"):
-            if python_version < 300:
-                yield "atexit"
-
-            yield "sip"
-
-            child = elements[1] if len(elements) > 1 else None
-
-            if child == "QtGui":
-                yield elements[0] + ".QtCore"
-
-            if child == "QtWidgets":
-                yield elements[0] + ".QtGui"
-        elif full_name == "lxml.etree":
-            yield "gzip"
-            yield "lxml._elementpath"
-        elif full_name == "gtk._gtk":
-            yield "pangocairo"
-            yield "pango"
-            yield "cairo"
-            yield "gio"
-            yield "atk"
-        elif full_name == "reportlab.rl_config":
-            yield "reportlab.rl_settings"
-        elif full_name == "ctypes":
-            yield "_ctypes"
-        elif full_name == "gi._gi":
-            yield "gi._error"
-
-    module_aliases = {
-        "requests.packages.urllib3" : "urllib3",
-        "requests.packages.chardet" : "chardet"
-    }
-
-    def onModuleSourceCode(self, module_name, source_code):
-        if module_name == "numexpr.cpuinfo":
-
-            # We cannot intercept "is" tests, but need it to be "isinstance",
-            # so we patch it on the file. TODO: This is only temporary, in
-            # the future, we may use optimization that understands the right
-            # hand size of the "is" argument well enough to allow for our
-            # type too.
-            return source_code.replace(
-                "type(attr) is types.MethodType",
-                "isinstance(attr, types.MethodType)"
-            )
-
-
-        # Do nothing by default.
-        return source_code
-
-    def suppressBuiltinImportWarning(self, module_name, source_ref):
-        if module_name == "setuptools":
-            return True
-
-        return False
 
 
 class UserPluginBase(NuitkaPluginBase):
@@ -357,148 +307,3 @@ class UserPluginBase(NuitkaPluginBase):
     # You must provide this as a string which then can be used to enable the
     # plug-in.
     plugin_name = None
-
-
-active_plugin_list = [
-    NuitkaPluginPopularImplicitImports(),
-]
-
-from .standard.ConsiderPyLintAnnotationsPlugin import (  # isort:skip
-    NuitkaPluginDetectorPylintEclipseAnnotations,
-    NuitkaPluginPylintEclipseAnnotations
-)
-from .standard.MultiprocessingPlugin import (  # isort:skip
-    NuitkaPluginDetectorMultiprocessingWorkaorunds,
-    NuitkaPluginMultiprocessingWorkaorunds
-)
-from .standard.PySidePyQtPlugin import (  # isort:skip
-    NuitkaPluginDetectorPyQtPySidePlugins,
-    NuitkaPluginPyQtPySidePlugins
-)
-
-# The standard plug-ins have their list hard-coded here. User plug-ins will
-# be scanned later, TODO.
-
-# List of optional plug-in classes. Until we have the meta class to do it, just
-# add your class here. The second one is a detector, which is supposed to give
-# a missing plug-in message, should it find the condition to make it useful.
-optional_plugin_classes = (
-    (NuitkaPluginMultiprocessingWorkaorunds, NuitkaPluginDetectorMultiprocessingWorkaorunds),
-    (NuitkaPluginPyQtPySidePlugins, NuitkaPluginDetectorPyQtPySidePlugins),
-    (NuitkaPluginPylintEclipseAnnotations, NuitkaPluginDetectorPylintEclipseAnnotations),
-)
-
-plugin_name2plugin_classes = dict(
-    (plugin[0].plugin_name, plugin)
-    for plugin in
-    optional_plugin_classes
-)
-
-for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
-    if plugin_name not in plugin_name2plugin_classes:
-        sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
-
-    if plugin_name in Options.getPluginsEnabled() and \
-       plugin_name in Options.getPluginsDisabled():
-        sys.exit("Error, conflicting enable/disable of plug-in '%s'." % plugin_name)
-
-for plugin_name, (plugin_class, plugin_detector) in plugin_name2plugin_classes.items():
-    if plugin_name in Options.getPluginsEnabled():
-        active_plugin_list.append(
-            plugin_class(
-                **Options.getPluginOptions(plugin_name)
-            )
-        )
-    elif plugin_name not in Options.getPluginsDisabled():
-        if plugin_detector is not None \
-           and Options.shallDetectMissingPlugins() and \
-           plugin_detector.isRelevant():
-            active_plugin_list.append(
-                plugin_detector()
-            )
-
-class Plugins:
-    @staticmethod
-    def considerImplicitImports(module, signal_change):
-        for plugin in active_plugin_list:
-            plugin.considerImplicitImports(module, signal_change)
-
-        # Post load code may have been created, if so indicate it's used.
-        full_name = module.getFullName()
-
-        if full_name in post_modules:
-            addUsedModule(post_modules[full_name])
-
-        if full_name in pre_modules:
-            addUsedModule(pre_modules[full_name])
-
-    @staticmethod
-    def considerExtraDlls(dist_dir, module):
-        result = []
-
-        for plugin in active_plugin_list:
-            for extra_dll in plugin.considerExtraDlls(dist_dir, module):
-                assert Utils.isFile(extra_dll[0])
-
-                result.append(extra_dll)
-
-        return result
-
-    @staticmethod
-    def onModuleDiscovered(module):
-        for plugin in active_plugin_list:
-            plugin.onModuleDiscovered(module)
-
-    @staticmethod
-    def onModuleSourceCode(module_name, source_code):
-        assert type(module_name) is str
-        assert type(source_code) is str
-
-        for plugin in active_plugin_list:
-            source_code = plugin.onModuleSourceCode(module_name, source_code)
-
-        return source_code
-
-    @staticmethod
-    def onModuleEncounter(module_filename, module_name, module_package,
-                          module_kind):
-        for plugin in active_plugin_list:
-            plugin.onModuleEncounter(
-                module_filename,
-                module_name,
-                module_package,
-                module_kind
-            )
-
-    @staticmethod
-    def considerFailedImportReferrals(module_name):
-        for plugin in active_plugin_list:
-            new_module_name = plugin.considerFailedImportReferrals(module_name)
-
-            if new_module_name is not None:
-                return new_module_name
-
-        return None
-
-    @staticmethod
-    def suppressBuiltinImportWarning(module_name, source_ref):
-        for plugin in active_plugin_list:
-            if plugin.suppressBuiltinImportWarning(module_name, source_ref):
-                return True
-
-        return False
-
-    @staticmethod
-    def suppressUnknownImportWarning(importing, module_name):
-        if importing.isCompiledPythonModule():
-            importing_module = importing
-        else:
-            importing_module = importing.getParentModule()
-
-        source_ref = importing.getSourceReference()
-
-        for plugin in active_plugin_list:
-            if plugin.suppressUnknownImportWarning(importing_module, module_name, source_ref):
-                return True
-
-        return False

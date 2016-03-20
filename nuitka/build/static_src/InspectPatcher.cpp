@@ -15,8 +15,9 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-// This is responsible for updating parts of CPython to better work with Nuitka
-// by replacing CPython implementations with enhanced versions.
+/* This is responsible for updating parts of CPython to better work with Nuitka
+ * by replacing CPython implementations with enhanced versions.
+ */
 
 #include "nuitka/prelude.hpp"
 
@@ -119,7 +120,7 @@ static PyObject *_types_coroutine_replacement( PyObject *self, PyObject *args, P
 {
     PyObject *func;
 
-    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:getcoroutinestate", kwlist_func, &func, NULL ))
+    if ( !PyArg_ParseTupleAndKeywords( args, kwds, "O:coroutine", kwlist_func, &func, NULL ))
     {
         return NULL;
     }
@@ -169,8 +170,8 @@ static PyMethodDef _method_def_types_coroutine_replacement =
 
 #endif
 
-// Replace inspect functions with ones that accept compiled types too.
-static void patchInspectModule( void )
+/* Replace inspect functions with ones that handle compiles types too. */
+void patchInspectModule( void )
 {
 #if PYTHON_VERSION >= 300
 #ifdef _NUITKA_EXE
@@ -182,7 +183,7 @@ static void patchInspectModule( void )
 
         if ( site_module == NULL )
         {
-            // Ignore ImportError, site is not a must.
+            // Ignore "ImportError", having a "site" module is not a must.
             CLEAR_ERROR_OCCURRED();
         }
     }
@@ -325,10 +326,6 @@ void patchBuiltinModule()
     CHECK_OBJECT( builtin_isinstance_replacement );
 
     PyObject_SetAttrString( (PyObject *)builtin_module, "isinstance", builtin_isinstance_replacement );
-
-#if PYTHON_VERSION >= 300
-    patchInspectModule();
-#endif
 }
 
 static richcmpfunc original_PyType_tp_richcompare = NULL;

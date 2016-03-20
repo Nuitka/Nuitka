@@ -870,6 +870,19 @@ class ClassWithGeneratorMethod:
 def simpleFunction104():
     return list(ClassWithGeneratorMethod().generator_method())
 
+
+def simpleFunction105():
+    """ Delete a started generator, not properly closing it before releasing.
+    """
+    def generator():
+        yield 1
+        yield 2
+
+    g = generator()
+    next(g)
+
+    del g
+
 ####################################
 
 

@@ -25,7 +25,7 @@ and then later active again, via another import, and in this case, we should
 not start anew, but reuse what we already found out about it.
 """
 
-from nuitka.plugins.PluginBase import Plugins
+from nuitka.plugins.Plugins import Plugins
 from nuitka.utils import Utils
 
 imported_modules = {}

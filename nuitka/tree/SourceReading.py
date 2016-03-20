@@ -24,7 +24,7 @@ and version differences of Python versions.
 import re
 
 from nuitka import Options, PythonVersions, SourceCodeReferences
-from nuitka.plugins.PluginBase import Plugins
+from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
 

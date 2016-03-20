@@ -44,10 +44,12 @@ open("README.rst", "wb").write(contents)
 contents = open("README.rst", "rb").read()
 assert b".. contents" not in contents
 
+print("Creating documentation.")
 assert 0 == os.system("misc/make-doc.py")
+print("Creating source distribution and uploading it.")
 assert 0 == os.system("python setup.py sdist upload")
 
-for i in range(60):
+for _i in range(60):
     # Wait some time for PyPI to catch up with us. Without delay
     # the old version will still appear. Since this is running
     # in a Buildbot, we need not be optimal.

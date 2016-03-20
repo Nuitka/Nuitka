@@ -401,7 +401,6 @@ static void Nuitka_Generator_tp_del( Nuitka_GeneratorObject *generator )
         return;
     }
 
-    // Revive temporarily.
     PyObject *error_type, *error_value;
     PyTracebackObject *error_traceback;
 
@@ -418,15 +417,14 @@ static void Nuitka_Generator_tp_del( Nuitka_GeneratorObject *generator )
         Py_DECREF( close_result );
     }
 
-    /* Restore the saved exception. */
+    /* Restore the saved exception if any. */
     RESTORE_ERROR_OCCURRED( error_type, error_value, error_traceback );
-
-    Py_DECREF( generator );
 }
 #endif
 
 static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
 {
+    // Revive temporarily.
     assert( Py_REFCNT( generator ) == 0 );
     Py_REFCNT( generator ) = 1;
 
@@ -435,15 +433,18 @@ static void Nuitka_Generator_tp_dealloc( Nuitka_GeneratorObject *generator )
     PyTracebackObject *save_exception_tb;
     FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
 
-    PyObject *close_result = Nuitka_Generator_close( generator, NULL );
+    if ( generator->m_status == status_Running )
+    {
+        PyObject *close_result = Nuitka_Generator_close( generator, NULL );
 
-    if (unlikely( close_result == NULL ))
-    {
-        PyErr_WriteUnraisable( (PyObject *)generator );
-    }
-    else
-    {
-        Py_DECREF( close_result );
+        if (unlikely( close_result == NULL ))
+        {
+            PyErr_WriteUnraisable( (PyObject *)generator );
+        }
+        else
+        {
+            Py_DECREF( close_result );
+        }
     }
 
     Nuitka_Generator_release_closure( generator );

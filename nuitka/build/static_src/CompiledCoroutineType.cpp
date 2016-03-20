@@ -468,9 +468,10 @@ static PyObject *Nuitka_Coroutine_throw( Nuitka_CoroutineObject *coroutine, PyOb
 
 static void Nuitka_Coroutine_tp_del( Nuitka_CoroutineObject *coroutine )
 {
-    // Revive temporarily.
-    assert( Py_REFCNT( coroutine ) == 0 );
-    Py_REFCNT( coroutine ) = 1;
+    if ( coroutine->m_status != status_Running )
+    {
+        return;
+    }
 
     PyObject *error_type, *error_value;
     PyTracebackObject *error_traceback;
@@ -488,12 +489,13 @@ static void Nuitka_Coroutine_tp_del( Nuitka_CoroutineObject *coroutine )
         Py_DECREF( close_result );
     }
 
-    /* Restore the saved exception. */
+    /* Restore the saved exception if any. */
     RESTORE_ERROR_OCCURRED( error_type, error_value, error_traceback );
 }
 
 static void Nuitka_Coroutine_tp_dealloc( Nuitka_CoroutineObject *coroutine )
 {
+    // Revive temporarily.
     assert( Py_REFCNT( coroutine ) == 0 );
     Py_REFCNT( coroutine ) = 1;
 

@@ -57,7 +57,6 @@ def hasRootModule(module_name):
 
     return False
 
-
 def addUncompiledModule(module):
     uncompiled_modules.add(module)
 
@@ -65,6 +64,34 @@ def addUncompiledModule(module):
 def getUncompiledModules():
     return sorted(
         uncompiled_modules,
+        key = lambda module : module.getFullName()
+    )
+
+
+def getUncompiledTechnicalModules():
+    result = [
+        module
+        for module in
+        uncompiled_modules
+        if module.isTechnical()
+    ]
+
+    return sorted(
+        result,
+        key = lambda module : module.getFullName()
+    )
+
+
+def getUncompiledNonTechnicalModules():
+    result = [
+        module
+        for module in
+        uncompiled_modules
+        if not module.isTechnical()
+    ]
+
+    return sorted(
+        result,
         key = lambda module : module.getFullName()
     )
 

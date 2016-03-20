@@ -21,22 +21,28 @@
 
 
 template_metapath_loader_compiled_module_entry = """\
-{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NUITKA_COMPILED_MODULE },"""
+{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NULL, 0, NUITKA_COMPILED_MODULE },"""
 
 template_metapath_loader_compiled_package_entry = """\
-{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NUITKA_COMPILED_PACKAGE },"""
+{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NULL, 0, NUITKA_PACKAGE_FLAG },"""
 
 template_metapath_loader_shlib_module_entry = """\
-{ (char *)"%(module_name)s", NULL, NUITKA_SHLIB_MODULE },"""
+{ (char *)"%(module_name)s", NULL, NULL, 0, NUITKA_SHLIB_FLAG },"""
+
+template_metapath_loader_bytecode_module_entry = """\
+{ (char *)"%(module_name)s", NULL, %(bytecode)s, %(size)d, %(flags)s },"""
+
 
 template_metapath_loader_body = """\
-// Code to register embedded modules if any.
+/* Code to register embedded modules for meta path based loading if any. */
 #if %(use_loader)d == 1
 
 #include "nuitka/unfreezing.hpp"
 
-// Table for lookup to find "frozen" modules or DLLs, i.e. the ones included in
-// or along this binary.
+/* Table for lookup to find compiled or bytecode modules included in this
+ * binary or module, or put along this binary as extension modules. We do
+ * our own loading for each of these.
+ */
 %(metapath_module_decls)s
 static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
 {

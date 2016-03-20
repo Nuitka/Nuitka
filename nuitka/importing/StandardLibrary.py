@@ -98,6 +98,12 @@ def getStandardLibraryPaths():
                 )
             )
 
+        for stdlib_path in set(stdlib_paths):
+            candidate = Utils.joinpath(stdlib_path, "lib-tk")
+
+            if Utils.isDir(candidate):
+                stdlib_paths.add(candidate)
+
         getStandardLibraryPaths.result = [
             Utils.normcase(stdlib_path)
             for stdlib_path in

@@ -2071,10 +2071,6 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
 #include <libgen.h>
 #endif
 
-#if defined(_WIN32) && !defined(PATH_MAX)
-#define PATH_MAX MAXPATHLEN
-#endif
-
 #if defined( __FreeBSD__ )
 #include <sys/sysctl.h>
 #endif
@@ -2083,7 +2079,7 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
 
 char *getBinaryDirectoryUTF8Encoded()
 {
-    static char binary_directory[ PATH_MAX + 1 ];
+    static char binary_directory[ MAXPATHLEN + 1 ];
     static bool init_done = false;
 
     if ( init_done )
@@ -2094,21 +2090,21 @@ char *getBinaryDirectoryUTF8Encoded()
 #if defined(_WIN32)
 
 #if PYTHON_VERSION >= 300
-    WCHAR binary_directory2[ PATH_MAX + 1 ];
+    WCHAR binary_directory2[ MAXPATHLEN + 1 ];
     binary_directory2[0] = 0;
 
-    DWORD res = GetModuleFileNameW( NULL, binary_directory2, PATH_MAX + 1 );
+    DWORD res = GetModuleFileNameW( NULL, binary_directory2, MAXPATHLEN + 1 );
     assert( res != 0 );
 
-    int res2 = WideCharToMultiByte( CP_UTF8, 0, binary_directory2, -1, binary_directory, PATH_MAX+1, NULL, NULL );
+    int res2 = WideCharToMultiByte( CP_UTF8, 0, binary_directory2, -1, binary_directory, MAXPATHLEN + 1, NULL, NULL );
     assert( res2 != 0 );
 #else
-    DWORD res = GetModuleFileName( NULL, binary_directory, PATH_MAX + 1 );
+    DWORD res = GetModuleFileName( NULL, binary_directory, MAXPATHLEN + 1 );
     assert( res != 0 );
 #endif
     PathRemoveFileSpec( binary_directory );
 #elif defined(__APPLE__)
-    uint32_t bufsize = PATH_MAX + 1;
+    uint32_t bufsize = MAXPATHLEN + 1;
     int res =_NSGetExecutablePath( binary_directory, &bufsize );
 
     if (unlikely( res != 0 ))
@@ -2118,11 +2114,12 @@ char *getBinaryDirectoryUTF8Encoded()
 
     // On MacOS, the "dirname" call creates a separate internal string, we can
     // safely copy back.
-    strncpy(binary_directory, dirname(binary_directory), PATH_MAX + 1);
+    strncpy(binary_directory, dirname(binary_directory), MAXPATHLEN + 1);
 
 #elif defined( __FreeBSD__ )
-    // Not all of FreeBSD has /proc file system, so use the appropiate
-    // "sysctl" instead.
+    /* Not all of FreeBSD has /proc file system, so use the appropriate
+     * "sysctl" instead.
+     */
     int mib[4];
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROC;
@@ -2130,12 +2127,16 @@ char *getBinaryDirectoryUTF8Encoded()
     mib[3] = -1;
     size_t cb = sizeof(binary_directory);
     sysctl(mib, 4, binary_directory, &cb, NULL, 0);
+
+    /* We want the dirname, the above gives the full exe name. */
+    strcpy(binary_directory, dirname(binary_directory));
 #else
     // The remaining platforms, mostly Linux.
+
     // The "readlink" does not terminate result, so fill zeros there, then
     // it is a proper C string right away.
-    memset( binary_directory, 0, PATH_MAX + 1 );
-    ssize_t res = readlink( "/proc/self/exe", binary_directory, PATH_MAX );
+    memset( binary_directory, 0, MAXPATHLEN + 1 );
+    ssize_t res = readlink( "/proc/self/exe", binary_directory, MAXPATHLEN );
 
     if (unlikely( res == -1 ))
     {
@@ -2151,7 +2152,7 @@ char *getBinaryDirectoryUTF8Encoded()
 char *getBinaryDirectoryHostEncoded()
 {
 #if defined(_WIN32)
-    static char binary_directory[ PATH_MAX + 1 ];
+    static char binary_directory[ MAXPATHLEN + 1 ];
     static bool init_done = false;
 
     if ( init_done )
@@ -2160,16 +2161,16 @@ char *getBinaryDirectoryHostEncoded()
     }
 
 #if PYTHON_VERSION >= 300
-    WCHAR binary_directory2[ PATH_MAX + 1 ];
+    WCHAR binary_directory2[ MAXPATHLEN + 1 ];
     binary_directory2[0] = 0;
 
-    DWORD res = GetModuleFileNameW( NULL, binary_directory2, PATH_MAX + 1 );
+    DWORD res = GetModuleFileNameW( NULL, binary_directory2, MAXPATHLEN + 1 );
     assert( res != 0 );
 
-    int res2 = WideCharToMultiByte( CP_ACP, 0, binary_directory2, -1, binary_directory, PATH_MAX+1, NULL, NULL );
+    int res2 = WideCharToMultiByte( CP_ACP, 0, binary_directory2, -1, binary_directory, MAXPATHLEN + 1, NULL, NULL );
     assert( res2 != 0 );
 #else
-    DWORD res = GetModuleFileName( NULL, binary_directory, PATH_MAX + 1 );
+    DWORD res = GetModuleFileName( NULL, binary_directory, MAXPATHLEN + 1 );
     assert( res != 0 );
 #endif
     PathRemoveFileSpec( binary_directory );
@@ -2209,12 +2210,12 @@ static PyObject *getBinaryDirectoryObject()
 static char *getDllDirectory()
 {
 #if defined(_WIN32)
-    static char path[ PATH_MAX ];
+    static char path[ MAXPATHLEN + 1 ];
     HMODULE hm = NULL;
     path[0] = '\0';
 
 #if PYTHON_VERSION >= 300
-    WCHAR path2[ PATH_MAX + 1 ];
+    WCHAR path2[ MAXPATHLEN + 1 ];
     path2[0] = 0;
 
     int res = GetModuleHandleExA(
@@ -2224,7 +2225,7 @@ static char *getDllDirectory()
     );
     assert( res != 0 );
 
-    int res2 = WideCharToMultiByte(CP_UTF8, 0, path2, -1, path, PATH_MAX+1, NULL, NULL);
+    int res2 = WideCharToMultiByte(CP_UTF8, 0, path2, -1, path, MAXPATHLEN + 1, NULL, NULL);
     assert( res2 != 0 );
 #else
     int res = GetModuleHandleExA(
@@ -2575,22 +2576,10 @@ void setEarlyFrozenModulesFileAttribute( void )
     Py_ssize_t ppos = 0;
     PyObject *key, *value;
 
-    PyObject *file_value = getBinaryDirectoryObject();
-
-    char sep[2] = { SEP, 0 };
-
 #if PYTHON_VERSION < 300
-    file_value = PyNumber_InPlaceAdd( file_value, PyString_FromString( sep ) );
+    PyObject *file_value = MAKE_RELATIVE_PATH( PyString_FromString( "not_present.py" ) );
 #else
-    file_value = PyNumber_InPlaceAdd( file_value, PyUnicode_FromString( sep ) );
-#endif
-
-    assert( file_value );
-
-#if PYTHON_VERSION < 300
-    file_value = PyNumber_InPlaceAdd( file_value, PyString_FromString( "not_present.py" ) );
-#else
-    file_value = PyNumber_InPlaceAdd( file_value, PyUnicode_FromString( "not_present.py" ) );
+    PyObject *file_value = MAKE_RELATIVE_PATH( PyUnicode_FromString( "not_present.py" ) );
 #endif
 
     assert( file_value );
@@ -2605,6 +2594,8 @@ void setEarlyFrozenModulesFileAttribute( void )
             }
         }
     }
+
+    Py_DECREF( file_value );
 
     assert( !ERROR_OCCURRED() );
 }
@@ -2753,28 +2744,23 @@ PyObject *MAKE_RELATIVE_PATH( PyObject *relative )
 #endif
     }
 
-    CHECK_OBJECT( our_path_object );
+    char sep[2] = { SEP, 0 };
 
-    static PyObject *os_path_join = NULL;
+#if PYTHON_VERSION < 300
+    PyObject *result = PyNumber_Add( our_path_object, PyString_FromString( sep ) );
+#else
+    PyObject *result = PyNumber_Add( our_path_object, PyUnicode_FromString( sep ) );
+#endif
 
-    if ( os_path_join == NULL )
-    {
-        PyObject *os_path = PyImport_ImportModule("os.path");
-        CHECK_OBJECT(os_path);
+    assert( result );
 
-        os_path_join = PyObject_GetAttrString(os_path, "join");
-        CHECK_OBJECT(os_path_join);
+#if PYTHON_VERSION < 300
+    result = PyNumber_InPlaceAdd( result, relative );
+#else
+    result = PyNumber_InPlaceAdd( result, relative );
+#endif
 
-        Py_DECREF(os_path);
-    }
-
-    PyObject *result = PyObject_CallFunctionObjArgs( os_path_join, our_path_object, relative, NULL );
-
-    if (unlikely( result == NULL ))
-    {
-        PyErr_Print();
-        abort();
-    }
+    assert( result );
 
     return result;
 }

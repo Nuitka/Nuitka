@@ -326,6 +326,7 @@ def _getConstantDefaultPopulation():
         "__dict__",
         "__doc__",
         "__file__",
+        "__path__",
         "__enter__",
         "__exit__",
         "__builtins__",
@@ -340,13 +341,14 @@ def _getConstantDefaultPopulation():
         "compile",
         "range",
         "open",
-        "__import__"
+        "__import__",
     ]
 
     if python_version >= 300:
         # For Python3 modules
-        result.append(
-            "__cached__"
+        result += (
+            "__cached__",
+            "__loader__",
         )
 
         # For Python3 print
