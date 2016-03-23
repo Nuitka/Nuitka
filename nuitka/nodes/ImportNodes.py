@@ -352,14 +352,14 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 return (
                     new_node,
                     "new_import",
-                    "Replaced __import__ call with module import expression."
+                    "Replaced '__import__' call with module import expression."
                 )
             else:
                 # Non-strings is going to raise an error.
                 new_node, change_tags, message = constraint_collection.getCompileTimeComputationResult(
                     node        = self,
                     computation = lambda : __import__(module_name.getConstant()),
-                    description = "Replaced __import__ call with non-string module name argument."
+                    description = "Replaced '__import__' call with non-string module name argument."
                 )
 
                 # Must fail, must not go on when it doesn't.
@@ -425,7 +425,9 @@ class ExpressionImportName(ExpressionChildrenHavingBase):
         return self.import_name
 
     def getDetails(self):
-        return { "import_name" : self.getImportName() }
+        return {
+            "import_name" : self.getImportName()
+        }
 
     def getDetail(self):
         return "import %s from %s" % (

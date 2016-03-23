@@ -968,7 +968,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             )
         else:
             if package is not None:
-                full_name = package + "." + module_name
+                full_name = package + '.' + module_name
             else:
                 full_name = module_name
 
@@ -998,13 +998,13 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 )
 
                 result = UncompiledPythonModule(
-                    name         = module_name,
-                    package_name = package,
-                    bytecode     = bytecode,
-                    filename     = filename,
+                    name          = module_name,
+                    package_name  = package,
+                    bytecode      = bytecode,
+                    filename      = filename,
                     user_provided = True,
-                    technical    = False,
-                    source_ref   = source_ref
+                    technical     = False,
+                    source_ref    = source_ref
                 )
 
                 # Don't read it anymore.
@@ -1030,7 +1030,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             )
 
             if package is not None:
-                full_name = package + "." + package_name
+                full_name = package + '.' + package_name
             else:
                 full_name = package_name
 
@@ -1052,13 +1052,13 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 )
 
                 result = UncompiledPythonPackage(
-                    name         = module_name,
-                    package_name = package,
-                    bytecode     = bytecode,
-                    filename     = filename,
+                    name          = module_name,
+                    package_name  = package,
+                    bytecode      = bytecode,
+                    filename      = filename,
                     user_provided = True,
-                    technical    = False,
-                    source_ref   = source_ref
+                    technical     = False,
+                    source_ref    = source_ref
                 )
 
                 # Don't read it anymore.
@@ -1091,7 +1091,7 @@ class CodeTooComplexCode(Exception):
 
 
 def createModuleTree(module, source_ref, source_code, is_main):
-    if Options.isShowProgress():
+    if Options.isShowMemory():
         memory_watch = MemoryUsage.MemoryWatch()
 
     try:
@@ -1120,7 +1120,7 @@ def createModuleTree(module, source_ref, source_code, is_main):
 
     completeVariableClosures(module)
 
-    if Options.isShowProgress():
+    if Options.isShowMemory():
         memory_watch.finish()
 
         Tracing.printLine(
