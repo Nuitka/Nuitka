@@ -24,10 +24,10 @@ make others possible.
 
 
 import inspect
-from logging import debug, info, warning
+from logging import debug, info
 
 from nuitka import ModuleRegistry, Options, VariableRegistry
-from nuitka.optimizations import TraceCollections
+from nuitka.optimizations import Graphs, TraceCollections
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import printLine
 from nuitka.utils import MemoryUsage
@@ -69,8 +69,6 @@ def signalChange(tags, source_ref, message):
 # Use this globally from there, without cyclic dependency.
 TraceCollections.signalChange = signalChange
 
-graph = None
-computation_counters = {}
 
 def optimizePythonModule(module):
     if _progress:
@@ -80,14 +78,9 @@ def optimizePythonModule(module):
             )
         )
 
-    # The tag set is global, so it can react to changes without context.
-    # pylint: disable=W0603
-    global tag_set
-    tag_set = TagSet()
-
     touched = False
 
-    if _progress:
+    if _progress and Options.isShowMemory():
         memory_watch = MemoryUsage.MemoryWatch()
 
     while True:
@@ -99,18 +92,21 @@ def optimizePythonModule(module):
             info("Interrupted while working on '%s'." % module)
             raise
 
-        if not tag_set:
+        Graphs.onModuleOptimizationStep(module)
+
+        # Search for local change tags.
+        for tag in tag_set:
+            if tag == "new_code":
+                continue
+
+            break
+        else:
             break
 
-        if graph is not None:
-            computation_counters[module] = computation_counters.get(module, 0) + 1
-            module_graph = module.asGraph(computation_counters[module])
-
-            graph.subgraph(module_graph)
-
+        # Otherwise we did stuff, so note that for return value.
         touched = True
 
-    if _progress:
+    if _progress and Options.isShowMemory():
         memory_watch.finish()
 
         printLine(
@@ -128,11 +124,6 @@ def optimizePythonModule(module):
 def optimizeShlibModule(module):
     # Pick up parent package if any.
     _attemptRecursion(module)
-
-    # The tag set is global, so it can react to changes without context.
-    # pylint: disable=W0603
-    global tag_set
-    tag_set = TagSet()
 
     Plugins.considerImplicitImports(module, signal_change = signalChange)
 
@@ -278,75 +269,82 @@ def optimizeVariables(module):
     optimizeUnusedTempVariables(module)
 
 
-def optimize():
-    # This is somewhat complex with many cases, pylint: disable=R0912
+def makeOptimizationPass():
+    """ Make a single pass for optimization, indication potential completion.
 
-    # We maintain this globally to make it accessible, pylint: disable=W0603
-    global graph
+    """
+    finished = True
 
-    if Options.shouldCreateGraph():
-
-        try:
-            from graphviz import Digraph # pylint: disable=F0401,I0021
-            graph = Digraph('G')
-        except ImportError:
-            warning("Cannot import graphviz module, no graphing capability.")
+    ModuleRegistry.startTraversal()
 
     while True:
-        finished = True
+        current_module = ModuleRegistry.nextModule()
 
-        ModuleRegistry.startTraversal()
-
-        while True:
-            current_module = ModuleRegistry.nextModule()
-
-            if current_module is None:
-                break
-
-            if _progress:
-                printLine(
-                    """\
-Optimizing module '{module_name}', {remaining:d} more modules to go \
-after that. Memory usage {memory}:""".format(
-                        module_name = current_module.getFullName(),
-                        remaining   = ModuleRegistry.remainingCount(),
-                        memory      = MemoryUsage.getHumanReadableProcessMemoryUsage()
-                    )
-                )
-
-            if current_module.isPythonShlibModule():
-                optimizeShlibModule(current_module)
-            else:
-                changed = optimizePythonModule(current_module)
-
-                if changed:
-                    finished = False
-
-        # Unregister collection traces from now unused code.
-        for current_module in ModuleRegistry.getDoneModules():
-            if not current_module.isPythonShlibModule():
-                for function in current_module.getUnusedFunctions():
-                    VariableRegistry.updateFromCollection(
-                        old_collection = function.constraint_collection,
-                        new_collection = None
-                    )
-
-                    function.constraint_collection = None
-
-        if VariableRegistry.considerCompletion():
-            finished = False
-
-        for current_module in ModuleRegistry.getDoneModules():
-            if not current_module.isPythonShlibModule():
-                optimizeVariables(current_module)
-
-        if finished:
+        if current_module is None:
             break
 
+        if _progress:
+            output = """\
+Optimizing module '{module_name}', {remaining:d} more modules to go \
+after that.""".format(
+                    module_name = current_module.getFullName(),
+                    remaining   = ModuleRegistry.remainingCount(),
+            )
 
-    if graph is not None:
-        graph.engine = "dot"
-        graph.graph_attr["rankdir"] = "TB"
-        graph.render("something.dot")
+            if Options.isShowMemory():
+                output += "Memory usage {memory}:".format(
+                    memory = MemoryUsage.getHumanReadableProcessMemoryUsage()
+                )
 
-        printLine(graph.source)
+            printLine(output)
+
+        # The tag set is global, so it can react to changes without context.
+        # pylint: disable=W0603
+        global tag_set
+        tag_set = TagSet()
+
+        if current_module.isPythonShlibModule():
+            optimizeShlibModule(current_module)
+        else:
+            changed = optimizePythonModule(current_module)
+
+            if changed:
+                finished = False
+
+    # Unregister collection traces from now unused code.
+    for current_module in ModuleRegistry.getDoneModules():
+        if not current_module.isPythonShlibModule():
+            for function in current_module.getUnusedFunctions():
+                VariableRegistry.updateFromCollection(
+                    old_collection = function.constraint_collection,
+                    new_collection = None
+                )
+
+                function.constraint_collection = None
+
+    for current_module in ModuleRegistry.getDoneModules():
+        if not current_module.isPythonShlibModule():
+            optimizeVariables(current_module)
+
+    return finished
+
+
+def optimize():
+    Graphs.startGraph()
+
+    # First pass.
+    if _progress:
+        info("PASS 1:")
+
+    makeOptimizationPass()
+    VariableRegistry.considerCompletion()
+
+    # Second, endless pass.
+    if _progress:
+        info("PASS 2..:")
+
+    finished = False
+    while not finished:
+        finished = makeOptimizationPass()
+
+    Graphs.endGraph()

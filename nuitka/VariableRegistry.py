@@ -230,6 +230,9 @@ def considerCompletion():
 
     global complete
 
+    # TODO: This is now only called once.
+    assert not complete
+
     if not complete:
         complete = True
 
