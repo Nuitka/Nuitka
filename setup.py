@@ -129,14 +129,17 @@ class NuitkaInstallScripts(install_scripts):
             if b'\0' in data:
                 continue
 
+            old_data = data
+
             data = data.replace(b"@LIBDIR@", libdir.encode("unicode_escape"))
 
             if patch_bats and outfile.endswith(".bat"):
                 data = data.replace(b"..\\",b"")
 
-            fp = open(outfile, "wb")
-            fp.write(data)
-            fp.close()
+            if data != old_data:
+                fp = open(outfile, "wb")
+                fp.write(data)
+                fp.close()
 
 cmdclass = {
     "install_scripts" : NuitkaInstallScripts
