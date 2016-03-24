@@ -867,56 +867,45 @@ def makeWindowsMingGW64Lib(win_lib_path):
     if not os.path.exists(new_win_lib_path):
         os.makedirs(new_win_lib_path)
 
-    command = "gendef - %s" % getWindowsPythonDLLPath()
-
-    defs_filename = os.path.join(
-        new_win_lib_path,
-        "python%s.defs" % python_version.replace('.', "")
-    )
-    defs_file = open(
-        defs_filename,
-        'w'
+    gendef_tool = os.path.join(
+        os.path.dirname(
+            getExecutablePath(env["CXX"], initial = False)
+        ),
+        "gendef"
     )
 
-    startupinfo = subprocess.STARTUPINFO()
+    command = [gendef_tool, "-", getWindowsPythonDLLPath()]
 
-    # CPython2.6 compatibility
-    try:
-        from subprocess import STARTF_USESHOWWINDOW
-    except ImportError:
-        from _subprocess import STARTF_USESHOWWINDOW
-
-    startupinfo.dwFlags |= STARTF_USESHOWWINDOW
+    if show_scons_mode:
+        print "Scons: Creating Python library defs with:", command
 
     try:
         proc = subprocess.Popen(
             command,
             stdin       = subprocess.PIPE,
-            stdout      = defs_file,
+            stdout      = subprocess.PIPE,
             stderr      = subprocess.PIPE,
-            startupinfo = startupinfo,
             shell       = False
         )
     except WindowsError:
-        sys.exit("Error, cannot find gendef.exe which is required though.")
+        sys.exit('Error, cannot find "gendef.exe" which is required though.')
 
-    data, err = proc.communicate()
+    defs, stderr = proc.communicate()
     rv = proc.wait()
 
-    assert rv == 0
+    if rv != 0:
+        sys.exit('Error, unexpected error from "gendef.exe" %s.' % stderr)
 
-    defs_file.close()
-    defs_file = open(
-        defs_filename,
-        'r'
+    defs_filename = os.path.join(
+        new_win_lib_path,
+        "python%s.defs" % python_version.replace('.', "")
     )
-    defs = defs_file.read()
-    defs_file.close()
+
     defs_file = open(
         defs_filename,
         'w'
     )
-    defs_file.write(defs.replace("Py_InitModule4", "Py_InitModule4_64"))
+    defs_file.write(defs)
     defs_file.close()
 
     shutil.copy(
@@ -949,6 +938,8 @@ def makeWindowsMingGW64Lib(win_lib_path):
 
     if result != 0:
         sys.exit("Error, call to 'dlltool.exe' failed.")
+
+    return new_win_lib_path
 
 
 if win_target:
