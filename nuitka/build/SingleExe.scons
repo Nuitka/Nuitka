@@ -279,7 +279,6 @@ def setupSpawn(env):
             args[1:]
         )
         cmdline = cmd + ' ' + newargs
-        startupinfo = subprocess.STARTUPINFO()
 
         # Remove useless quoted include directories to "windres", which does not
         # handle them properly in its command line parsing, while they are not
@@ -287,20 +286,11 @@ def setupSpawn(env):
         if cmd == "windres":
             cmdline = re.sub('--include-dir ".*?"', "", cmdline)
 
-        # CPython2.6 compatibility
-        try:
-            from subprocess import STARTF_USESHOWWINDOW
-        except ImportError:
-            from _subprocess import STARTF_USESHOWWINDOW
-
-        startupinfo.dwFlags |= STARTF_USESHOWWINDOW
-
         proc = subprocess.Popen(
             cmdline,
             stdin       = subprocess.PIPE,
             stdout      = subprocess.PIPE,
             stderr      = subprocess.PIPE,
-            startupinfo = startupinfo,
             shell       = False,
             env         = env
         )
@@ -360,25 +350,47 @@ def setupSpawn(env):
     env["SPAWN"] = spawn
 
 def getGccVersion():
-    # Update CXXVERSION in env, after we changed it.
-    import SCons  # @UnresolvedImport
+    try:
+        proc = subprocess.Popen(
+            ["gcc", "-v"],
+            stdin       = subprocess.PIPE,
+            stdout      = subprocess.PIPE,
+            stderr      = subprocess.PIPE,
+            shell       = False,
+        )
+    except OSError:
+        return None, None
 
-    pipe = SCons.Action._subproc(
-        env,
-        [env["CXX"], "--version"],
-        stdin  = "devnull",
-        stderr = "devnull",
-        stdout = subprocess.PIPE
-    )
+    _stdout, stderr = proc.communicate()
+    _rv = proc.wait()
 
-    line = pipe.stdout.readline()
+    lines = stderr.splitlines()
 
-    match = re.search(r'[0-9]+(\.[0-9]+){2}', line)
+    version = None
+    arch = None
 
-    if match:
-        return match.group(0)
-    else:
-        return None
+    if lines:
+        line = lines[-1]
+
+        match = re.search(r'[0-9]+(\.[0-9]+){2}', line)
+
+        if match:
+            version = match.group(0)
+
+        for line in lines:
+            if line.startswith("Target: "):
+                arch = line.split(": ", 2)[1]
+
+                if win_target:
+                    if "i686" in arch:
+                        arch = "x86"
+                    elif "x86_64" in arch:
+                        arch = "x86_64"
+                    else:
+                        arch = None
+
+    return version, arch
+
 
 def getClangVersion():
     import SCons # @UnresolvedImport
@@ -414,10 +426,13 @@ orig_cxx_version = env.get("CXXVERSION", None)
 # Remove "g++" as the compiler, in case it's not really existing or not high
 # enough version.
 if "g++" in (env["CXX"] or "") and "clang" not in (env["CXX"] or ""):
-    gpp_version = getGccVersion()
+    gpp_version, compiler_arch = getGccVersion()
 
     if gpp_version is None or int(gpp_version.replace('.', "")) < 440:
         env["CXX"] = None
+    elif win_target and compiler_arch != target_arch:
+        env["CXX"] = None
+
 
 # Detect compiler to be used from supported ones, if there is no usable g++
 # link.
@@ -436,7 +451,7 @@ if not win_target and env["CXX"] is None:
 
                 if "clang" not in candidate:
                     # Update CXXVERSION in env, after we changed it.
-                    env["CXXVERSION"] = getGccVersion()
+                    env["CXXVERSION"] = getGccVersion()[0]
 
                 break
 
@@ -462,10 +477,9 @@ b) To make it find Visual Studio execute from Start Menu the 'Visual Studio
    Command Prompt' or "vcvarsall.bat". That will add Visual Studio to the
    PATH. And it will be detected.
 
-c) Install MinGW to 'C:\\MinGW64' or '\\MinGW', where then it is automatically
-   detected. But be sure to pick the proper variant (32/64 bits, your Python
-   arch is '%s'). If you have it installed, using the matching Python will be
-   required.
+c) Install MinGW64 to 'C:\\MinGW64' or '\\MinGW', where then it is automatically
+   detected or add it to PATH before executing Nuitka. But be sure to pick the
+   proper variant (32/64 bits, your Python arch is '%s').
 """ % (sys.exec_prefix, target_arch))
     else:
         sys.exit("Error, cannot locate suitable C++ compiler.")
@@ -551,7 +565,7 @@ if "g++" in env["CXX"] and "clang" not in env["CXX"]:
 
     if env.get("CXXVERSION", None) is None or \
        env.get("CXXVERSION").count('.') < 2:
-        env["CXXVERSION"] = getGccVersion()
+        env["CXXVERSION"] = getGccVersion()[0]
 
     # Version dependent options.
     gpp_version = int(env["CXXVERSION"].replace('.', ""))
