@@ -142,6 +142,7 @@ def createNamespacePackage(package_name, module_relpath):
     package_package_name = '.'.join(parts[:-1]) or None
     package = CompiledPythonPackage(
         name         = parts[-1],
+        mode         = "compiled",
         package_name = package_package_name,
         source_ref   = source_ref,
     )

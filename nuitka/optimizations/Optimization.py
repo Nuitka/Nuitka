@@ -32,6 +32,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import printLine
 from nuitka.utils import MemoryUsage
 
+from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
 
 _progress = Options.isShowProgress()
@@ -126,6 +127,16 @@ def optimizeShlibModule(module):
     _attemptRecursion(module)
 
     Plugins.considerImplicitImports(module, signal_change = signalChange)
+
+
+def optimizeModule(module):
+    if module.isPythonShlibModule():
+        optimizeShlibModule(module)
+        changed = False
+    else:
+        changed = optimizePythonModule(module)
+
+    return changed
 
 
 def areEmptyTraces(variable_traces):
@@ -256,26 +267,49 @@ def optimizeUnusedTempVariables(provider):
 
 
 def optimizeVariables(module):
-    for function_body in module.getUsedFunctions():
-        if not VariableRegistry.complete:
-            continue
+    if module.isCompiledPythonModule():
+        for function_body in module.getUsedFunctions():
+            if not VariableRegistry.complete:
+                continue
 
-        optimizeUnusedUserVariables(function_body)
+            optimizeUnusedUserVariables(function_body)
 
-        optimizeUnusedClosureVariables(function_body)
+            optimizeUnusedClosureVariables(function_body)
 
-        optimizeUnusedTempVariables(function_body)
+            optimizeUnusedTempVariables(function_body)
 
-    optimizeUnusedTempVariables(module)
+        optimizeUnusedTempVariables(module)
 
 
-def makeOptimizationPass():
+def _traceProgress(current_module):
+    output = """\
+Optimizing module '{module_name}', {remaining:d} more modules to go \
+after that.""".format(
+            module_name = current_module.getFullName(),
+            remaining   = ModuleRegistry.remainingCount(),
+    )
+
+    if Options.isShowMemory():
+        output += "Memory usage {memory}:".format(
+            memory = MemoryUsage.getHumanReadableProcessMemoryUsage()
+        )
+
+    printLine(output)
+
+
+def makeOptimizationPass(initial_pass):
     """ Make a single pass for optimization, indication potential completion.
 
     """
     finished = True
 
     ModuleRegistry.startTraversal()
+
+    if _progress:
+        if initial_pass:
+            printLine("Initial optimization pass.")
+        else:
+            printLine("Next global optimization pass.")
 
     while True:
         current_module = ModuleRegistry.nextModule()
@@ -284,34 +318,20 @@ def makeOptimizationPass():
             break
 
         if _progress:
-            output = """\
-Optimizing module '{module_name}', {remaining:d} more modules to go \
-after that.""".format(
-                    module_name = current_module.getFullName(),
-                    remaining   = ModuleRegistry.remainingCount(),
-            )
-
-            if Options.isShowMemory():
-                output += "Memory usage {memory}:".format(
-                    memory = MemoryUsage.getHumanReadableProcessMemoryUsage()
-                )
-
-            printLine(output)
+            _traceProgress(current_module)
 
         # The tag set is global, so it can react to changes without context.
         # pylint: disable=W0603
         global tag_set
         tag_set = TagSet()
 
-        if current_module.isPythonShlibModule():
-            optimizeShlibModule(current_module)
-        else:
-            changed = optimizePythonModule(current_module)
+        changed = optimizeModule(current_module)
 
-            if changed:
-                finished = False
+        if changed:
+            finished = False
 
-    # Unregister collection traces from now unused code.
+    # Unregister collection traces from now unused code, dropping the trace
+    # collections of functions no longer used.
     for current_module in ModuleRegistry.getDoneModules():
         if not current_module.isPythonShlibModule():
             for function in current_module.getUnusedFunctions():
@@ -323,8 +343,7 @@ after that.""".format(
                 function.constraint_collection = None
 
     for current_module in ModuleRegistry.getDoneModules():
-        if not current_module.isPythonShlibModule():
-            optimizeVariables(current_module)
+        optimizeVariables(current_module)
 
     return finished
 
@@ -336,15 +355,23 @@ def optimize():
     if _progress:
         info("PASS 1:")
 
-    makeOptimizationPass()
+    makeOptimizationPass(False)
     VariableRegistry.considerCompletion()
+    finished = makeOptimizationPass(False)
+
+    # Demote to bytecode if now.
+    for module in ModuleRegistry.getDoneUserModules():
+        if module.isPythonShlibModule():
+            continue
+
+        if module.mode == "bytecode":
+            demoteCompiledModuleToBytecode(module)
 
     # Second, endless pass.
     if _progress:
         info("PASS 2..:")
 
-    finished = False
     while not finished:
-        finished = makeOptimizationPass()
+        finished = makeOptimizationPass(True)
 
     Graphs.endGraph()

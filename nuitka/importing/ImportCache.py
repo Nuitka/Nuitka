@@ -71,3 +71,19 @@ def getImportedModuleByPath(module_relpath):
             return imported_modules[key]
 
     raise KeyError(module_relpath)
+
+
+def replaceImportedModule(old, new):
+    for key, value in imported_by_name.items():
+        if value == old:
+            imported_by_name[key] = new
+            break
+    else:
+        assert False
+
+    for key, value in imported_modules.items():
+        if value == old:
+            imported_modules[key] = new
+            break
+    else:
+        assert False

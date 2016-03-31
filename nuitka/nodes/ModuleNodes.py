@@ -183,7 +183,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         "body": checkStatementsSequenceOrNone
     }
 
-    def __init__(self, name, package_name, source_ref):
+    def __init__(self, name, package_name, mode, source_ref):
         ClosureGiverNodeBase.__init__(
             self,
             name        = name,
@@ -203,6 +203,8 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
                 "body" : None # delayed
             },
         )
+
+        self.mode = mode
 
         self.variables = {}
 
@@ -444,13 +446,14 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 class CompiledPythonPackage(CompiledPythonModule):
     kind = "COMPILED_PYTHON_PACKAGE"
 
-    def __init__(self, name, package_name, source_ref):
+    def __init__(self, name, package_name, mode, source_ref):
         assert name
 
         CompiledPythonModule.__init__(
             self,
             name         = name,
             package_name = package_name,
+            mode         = mode,
             source_ref   = source_ref
         )
 
@@ -551,11 +554,12 @@ class SingleCreationMixin:
 class PythonMainModule(CompiledPythonModule, SingleCreationMixin):
     kind = "PYTHON_MAIN_MODULE"
 
-    def __init__(self, main_added, source_ref):
+    def __init__(self, main_added, mode, source_ref):
         CompiledPythonModule.__init__(
             self,
             name         = "__main__",
             package_name = None,
+            mode         = mode,
             source_ref   = source_ref
         )
 
@@ -582,6 +586,7 @@ class PythonInternalModule(CompiledPythonModule, SingleCreationMixin):
             self,
             name         = "__internal__",
             package_name = None,
+            mode         = "compiled",
             source_ref   = SourceCodeReference.fromFilenameAndLine(
                 filename    = "internal",
                 line        = 0,

@@ -28,6 +28,11 @@ from logging import debug
 
 from nuitka import Tracing, VariableRegistry
 from nuitka.__past__ import iterItems  # Python3 compatibility.
+from nuitka.importing.ImportCache import (
+    getImportedModuleByName,
+    isImportedModuleByName
+)
+from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.PythonVersions import python_version
 
@@ -371,6 +376,9 @@ class ConstraintCollectionBase(CollectionTracingMixin):
     def signalChange(tags, source_ref, message):
         # This is monkey patched from another module, pylint: disable=E1102
         signalChange(tags, source_ref, message)
+
+    def onUsedModule(self, module):
+        return self.parent.onUsedModule(module)
 
     @staticmethod
     def mustAlias(a, b):
@@ -778,3 +786,12 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
             name   = "module",
             parent = None
         )
+
+        self.used_modules = set()
+
+    def onUsedModule(self, module_name):
+        self.used_modules.add(module_name)
+
+        if isImportedModuleByName(module_name):
+            module = getImportedModuleByName(module_name)
+            addUsedModule(module)
