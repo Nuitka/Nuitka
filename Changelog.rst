@@ -1,6 +1,34 @@
 Nuitka Release 0.5.21 (Draft)
 =============================
 
+Bug Fixes
+---------
+
+- Windows: Support for newer MinGW64 was broken by a workaround for older
+  MinGW64 versions.
+
+New Features
+------------
+
+- Windows: Detect the MinGW compiler arch and compare it to the Python arch. In
+  case of a mismatch, the compiler is not used. Otherwise compilation or
+  linking gives hard to understand errors. This also rules out MinGW32 as
+  a compiler that can be used, as its arch doesn't match MinGW64 32 bits
+  variant.
+
+- Compile modules in two passes with the option to specify which modules will
+  be considered for a second pass at all (compiled without program optimization)
+  or even become bytecode.
+
+Cleanups
+--------
+
+- The progress tracing and the memory tracing and now more clearly separate
+  and therefore more readable.
+
+Summary
+-------
+
 This release is not done yet.
 
 
