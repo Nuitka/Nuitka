@@ -21,7 +21,10 @@
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 
-from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase
+)
 
 
 class StatementListOperationAppend(StatementChildrenHavingBase):

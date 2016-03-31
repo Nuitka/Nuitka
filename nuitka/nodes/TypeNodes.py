@@ -26,7 +26,10 @@ will then know it's limited after the fact.
 
 from nuitka.Builtins import builtin_names
 
-from .BuiltinRefNodes import ExpressionBuiltinAnonymousRef, ExpressionBuiltinRef
+from .BuiltinRefNodes import (
+    ExpressionBuiltinAnonymousRef,
+    ExpressionBuiltinRef
+)
 from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase

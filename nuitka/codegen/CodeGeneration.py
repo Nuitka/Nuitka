@@ -102,7 +102,10 @@ from .ExceptionCodes import (
     generateExceptionPublishCode,
     generateExceptionRefCode
 )
-from .ExpressionCodes import generateExpressionOnlyCode, generateSideEffectsCode
+from .ExpressionCodes import (
+    generateExpressionOnlyCode,
+    generateSideEffectsCode
+)
 from .FrameCodes import (
     generateFramePreserveExceptionCode,
     generateFrameRestoreExceptionCode,

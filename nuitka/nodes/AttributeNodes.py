@@ -36,7 +36,10 @@ and annotation is happening in the nodes that implement these compute slots.
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 
-from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase
+)
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
 

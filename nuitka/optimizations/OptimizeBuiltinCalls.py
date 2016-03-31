@@ -80,7 +80,10 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinTuple
 )
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
-from nuitka.nodes.CallNodes import ExpressionCallEmpty, ExpressionCallNoKeywords
+from nuitka.nodes.CallNodes import (
+    ExpressionCallEmpty,
+    ExpressionCallNoKeywords
+)
 from nuitka.nodes.ClassNodes import ExpressionBuiltinType3
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import (
@@ -124,8 +127,8 @@ from nuitka.tree.Helpers import (
     makeStatementsSequenceFromStatement
 )
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
-from nuitka.tree. \
-    ReformulationTryFinallyStatements import makeTryFinallyStatement
+from nuitka.tree.ReformulationTryFinallyStatements import \
+    makeTryFinallyStatement
 from nuitka.VariableRegistry import addVariableUsage
 
 from . import BuiltinOptimization
