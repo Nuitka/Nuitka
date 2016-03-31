@@ -33,7 +33,6 @@ from nuitka.utils import Utils
 
 
 def logRecursion(*args):
-    # False alarm, pylint: disable=E1120
     if Options.isShowInclusion():
         info(*args)
     else:
@@ -58,7 +57,7 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
         # learn the new filename, and continue build if its not.
         if not ImportCache.isImportedModuleByName(module.getFullName()):
             logRecursion(
-                "Recurse to import '%s' from %s. (%s)",
+                "Recurse to import '%s' from '%s'. (%s)",
                 module.getFullName(),
                 module_relpath,
                 reason

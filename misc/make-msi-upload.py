@@ -15,7 +15,16 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import shutil, sys, os, subprocess
+""" Release: Create and upload Windows MSI files for Nuitka
+
+"""
+
+from __future__ import print_function
+
+import os
+import shutil
+import subprocess
+import sys
 
 if os.path.isdir("dist"):
     shutil.rmtree("dist")

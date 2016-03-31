@@ -369,7 +369,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
     @staticmethod
     def signalChange(tags, source_ref, message):
-        # This is monkey patches from another module, pylint: disable=E1102
+        # This is monkey patched from another module, pylint: disable=E1102
         signalChange(tags, source_ref, message)
 
     @staticmethod
