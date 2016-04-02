@@ -64,23 +64,43 @@ def getMetapathLoaderBodyCode(other_modules):
     metapath_module_decls = []
 
     for other_module in other_modules:
-        metapath_loader_inittab.append(
-            getModuleMetapathLoaderEntryCode(
-                module_name       = other_module.getFullName(),
-                module_identifier = other_module.getCodeName(),
-                is_shlib          = other_module.isPythonShlibModule(),
-                is_package        = other_module.isCompiledPythonPackage()
-            )
-        )
+        if other_module.isUncompiledPythonModule():
+            code_data = other_module.getByteCode()
+            is_package = other_module.isUncompiledPythonPackage()
 
-        if not other_module.isPythonShlibModule():
+            flags = ["NUITKA_BYTECODE_FLAG"]
+            if is_package:
+                flags.append("NUITKA_PACKAGE_FLAG")
+
+            metapath_loader_inittab.append(
+                template_metapath_loader_bytecode_module_entry % {
+                    "module_name" : other_module.getFullName(),
+                    "bytecode"    : stream_data.getStreamDataCode(
+                        value      = code_data,
+                        fixed_size = True
+                    ),
+                    "size"        : len(code_data),
+                    "flags"       : " | ".join(flags)
+                }
+            )
+        else:
+            metapath_loader_inittab.append(
+                getModuleMetapathLoaderEntryCode(
+                    module_name       = other_module.getFullName(),
+                    module_identifier = other_module.getCodeName(),
+                    is_shlib          = other_module.isPythonShlibModule(),
+                    is_package        = other_module.isCompiledPythonPackage()
+                )
+            )
+
+        if other_module.isCompiledPythonModule():
             metapath_module_decls.append(
                 "MOD_INIT_DECL( %s );" % other_module.getCodeName()
             )
 
     for uncompiled_module in getUncompiledNonTechnicalModules():
         code_data = uncompiled_module.getByteCode()
-        is_package = uncompiled_module.isPackage()
+        is_package = uncompiled_module.isUncompiledPythonPackage()
 
         flags = ["NUITKA_BYTECODE_FLAG"]
         if is_package:

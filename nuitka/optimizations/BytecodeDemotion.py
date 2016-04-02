@@ -19,14 +19,18 @@
 
 """
 
+import marshal
 from nuitka.importing.ImportCache import replaceImportedModule
-from nuitka.nodes.ModuleNodes import UncompiledPythonModule
+from nuitka.ModuleRegistry import replaceRootModule
+from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 from nuitka.plugins.Plugins import Plugins
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 
 
 def demoteCompiledModuleToBytecode(module):
+    """ Demote a compiled module to uncompiled (bytecode).
 
+    """
     full_name = module.getFullName()
     filename = module.getCompileTimeFilename()
 
@@ -46,17 +50,24 @@ def demoteCompiledModuleToBytecode(module):
         bytecode    = bytecode
     )
 
-    uncompiled_module = UncompiledPythonModule(
-        name          = module.getName(),
-        package_name  = module.getPackage(),
-        bytecode      = bytecode,
+    uncompiled_module = makeUncompiledPythonModule(
+        module_name   = module.getFullName(),
         filename      = filename,
+        bytecode      = marshal.dumps(bytecode),
+        is_package    = module.isCompiledPythonPackage(),
         user_provided = True,
-        technical     = False,
-        source_ref    = module.source_ref
+        technical     = False
     )
 
     replaceImportedModule(
         old = module,
         new = uncompiled_module
     )
+
+    replaceRootModule(
+        old = module,
+        new = uncompiled_module
+    )
+
+    assert module.constraint_collection is not None
+    uncompiled_module.setUsedModules(module.constraint_collection.getUsedModules())

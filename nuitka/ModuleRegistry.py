@@ -57,6 +57,19 @@ def hasRootModule(module_name):
 
     return False
 
+
+def replaceRootModule(old, new):
+    # Using global here, as this is really a singleton, in the form of a module,
+    # pylint: disable=W0603
+    global root_modules
+    new_root_modules = OrderedSet()
+
+    for module in root_modules:
+        new_root_modules.add(module if module is not old else new)
+
+    root_modules = new_root_modules
+
+
 def addUncompiledModule(module):
     uncompiled_modules.add(module)
 

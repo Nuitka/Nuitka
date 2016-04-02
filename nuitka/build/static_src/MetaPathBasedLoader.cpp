@@ -432,6 +432,11 @@ static PyObject *loadModule( PyObject *module_name, Nuitka_MetaPathBasedLoaderEn
     if ( ( entry->flags & NUITKA_BYTECODE_FLAG ) != 0 )
     {
         PyObject *code_object = PyMarshal_ReadObjectFromString( (char *)entry->bytecode_str, entry->bytecode_size );
+        if ( code_object == NULL)
+        {
+            PyErr_Print();
+            abort();
+        }
         assert (code_object != NULL);
 
         PyObject *modules = PyImport_GetModuleDict();

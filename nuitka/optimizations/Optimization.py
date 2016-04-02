@@ -27,6 +27,7 @@ import inspect
 from logging import debug, info
 
 from nuitka import ModuleRegistry, Options, VariableRegistry
+from nuitka.importing import ImportCache
 from nuitka.optimizations import Graphs, TraceCollections
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import printLine
@@ -71,7 +72,7 @@ def signalChange(tags, source_ref, message):
 TraceCollections.signalChange = signalChange
 
 
-def optimizePythonModule(module):
+def optimizeCompiledPythonModule(module):
     if _progress:
         printLine(
             "Doing module local optimizations for '{module_name}'.".format(
@@ -121,6 +122,24 @@ def optimizePythonModule(module):
 
     return touched
 
+def optimizeUncompiledPythonModule(module):
+    if _progress:
+        printLine(
+            "Doing module dependency considerations for '{module_name}':".format(
+                module_name = module.getFullName()
+            )
+        )
+
+    for used_module_name in module.getUsedModules():
+        used_module = ImportCache.getImportedModuleByName(used_module_name)
+        ModuleRegistry.addUsedModule(used_module)
+
+    package_name = module.getPackage()
+
+    if package_name is not None:
+        used_module = ImportCache.getImportedModuleByName(package_name)
+        ModuleRegistry.addUsedModule(used_module)
+
 
 def optimizeShlibModule(module):
     # Pick up parent package if any.
@@ -133,8 +152,11 @@ def optimizeModule(module):
     if module.isPythonShlibModule():
         optimizeShlibModule(module)
         changed = False
+    elif module.isCompiledPythonModule():
+        changed = optimizeCompiledPythonModule(module)
     else:
-        changed = optimizePythonModule(module)
+        optimizeUncompiledPythonModule(module)
+        changed = False
 
     return changed
 
@@ -333,7 +355,7 @@ def makeOptimizationPass(initial_pass):
     # Unregister collection traces from now unused code, dropping the trace
     # collections of functions no longer used.
     for current_module in ModuleRegistry.getDoneModules():
-        if not current_module.isPythonShlibModule():
+        if current_module.isCompiledPythonModule():
             for function in current_module.getUnusedFunctions():
                 VariableRegistry.updateFromCollection(
                     old_collection = function.constraint_collection,

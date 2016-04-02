@@ -28,6 +28,7 @@ from logging import debug
 
 from nuitka import Tracing, VariableRegistry
 from nuitka.__past__ import iterItems  # Python3 compatibility.
+from nuitka.containers.oset import OrderedSet
 from nuitka.importing.ImportCache import (
     getImportedModuleByName,
     isImportedModuleByName
@@ -46,7 +47,6 @@ from .VariableTraces import (
 )
 
 signalChange = None
-
 
 class VariableUsageTrackingMixin:
 
@@ -787,7 +787,7 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
             parent = None
         )
 
-        self.used_modules = set()
+        self.used_modules = OrderedSet()
 
     def onUsedModule(self, module_name):
         self.used_modules.add(module_name)
@@ -795,3 +795,6 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
         if isImportedModuleByName(module_name):
             module = getImportedModuleByName(module_name)
             addUsedModule(module)
+
+    def getUsedModules(self):
+        return self.used_modules

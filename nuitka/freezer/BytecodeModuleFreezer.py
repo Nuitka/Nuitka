@@ -44,7 +44,7 @@ def generateBytecodeFrozenCode():
     for uncompiled_module in getUncompiledTechnicalModules():
         module_name = uncompiled_module.getFullName()
         code_data = uncompiled_module.getByteCode()
-        is_package = uncompiled_module.isPackage()
+        is_package = uncompiled_module.isUncompiledPythonPackage()
 
         size = len(code_data)
 

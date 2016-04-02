@@ -435,7 +435,6 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         self.constraint_collection.updateFromCollection(old_collection)
 
-
     def getTraceCollections(self):
         yield self.constraint_collection
 
@@ -517,6 +516,12 @@ class UncompiledPythonModule(PythonModuleMixin, NodeBase):
         self.user_provided = user_provided
         self.technical = technical
 
+        self.used_modules = ()
+
+    @staticmethod
+    def isUncompiledPythonModule():
+        return True
+
     def isUserProvided(self):
         return self.user_provided
 
@@ -527,20 +532,21 @@ class UncompiledPythonModule(PythonModuleMixin, NodeBase):
     def getByteCode(self):
         return self.bytecode
 
-    @staticmethod
-    def isPackage():
-        return False
-
     def getFilename(self):
         return self.filename
+
+    def getUsedModules(self):
+        return self.used_modules
+
+    def setUsedModules(self, used_modules):
+        self.used_modules = used_modules
+
+    def startTraversal(self):
+        pass
 
 
 class UncompiledPythonPackage(UncompiledPythonModule):
     kind = "UNCOMPILED_PYTHON_PACKAGE"
-
-    @staticmethod
-    def isPackage():
-        return True
 
 
 class SingleCreationMixin:

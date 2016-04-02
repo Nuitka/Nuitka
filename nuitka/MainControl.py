@@ -264,7 +264,7 @@ def makeSourceDirectory(main_module):
 
     """
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=R0912,R0914
+    # no sense, pylint: disable=R0912,R0914,R0915
 
     assert main_module.isCompiledPythonModule()
 
@@ -367,7 +367,6 @@ def makeSourceDirectory(main_module):
 
             if Options.isShowInclusion():
                 info("Included compiled module '%s'." % module.getFullName())
-
         elif module.isPythonShlibModule():
             target_filename = Utils.joinpath(
                 getStandaloneDirectoryPath(main_module),
@@ -392,6 +391,8 @@ def makeSourceDirectory(main_module):
             standalone_entry_points.append(
                 (target_filename, module.getPackage())
             )
+        elif module.isUncompiledPythonModule():
+            pass
         else:
             assert False, module
 

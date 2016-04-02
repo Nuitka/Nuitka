@@ -140,7 +140,6 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
         bytecode    = bytecode
     )
 
-
     result.append(
         makeUncompiledPythonModule(
             module_name   = module_name,
