@@ -45,7 +45,7 @@ for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
     args = []
 
     if document != "Changelog.rst":
-        args.append("-s misc/page-styles.txt")
+        args.append("-s doc/page-styles.txt")
 
         args.append('--header="###Title### - ###Section###"')
         args.append('--footer="###Title### - page ###Page### - ###Section###"')
