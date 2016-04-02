@@ -19,5 +19,5 @@
 
 for filename in $(find nuitka -name \*.py -a \! -path \*inline_copy\*; find bin -name \*.py; echo bin/nuitka nuitka/build/SingleExe.scons);
 do
-    echo isort -ot -m3 -ns __init__.py $filename
-done
+    echo $filename
+done | xargs echo isort -ot -m3 -ns __init__.py -p nuitka
