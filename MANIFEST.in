@@ -14,12 +14,12 @@ include misc/check-with-pylint
 include tests/run-tests
 
 # Logo with source
-include misc/Logo/Nuitka-Logo-Symbol.svg
-include misc/Logo/Nuitka-Logo-Vertical.svg
-include misc/Logo/Nuitka-Logo-Horizontal.svg
-include images/Nuitka-Logo-Symbol.png
-include images/Nuitka-Logo-Vertical.png
-include images/Nuitka-Logo-Horizontal.png
+include doc/Logo/Nuitka-Logo-Symbol.svg
+include doc/Logo/Nuitka-Logo-Vertical.svg
+include doc/Logo/Nuitka-Logo-Horizontal.svg
+include doc/images/Nuitka-Logo-Symbol.png
+include doc/images/Nuitka-Logo-Vertical.png
+include doc/images/Nuitka-Logo-Horizontal.png
 
 recursive-include lib *.py
 

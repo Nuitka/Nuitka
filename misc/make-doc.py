@@ -23,22 +23,22 @@ import sys, os, subprocess
 # identical, so made this optional.
 
 if "logo" in sys.argv:
-    assert 0 == os.system("convert -background none misc/Logo/Nuitka-Logo-Vertical.svg images/Nuitka-Logo-Vertical.png")
-    assert 0 == os.system("convert -background none misc/Logo/Nuitka-Logo-Symbol.svg images/Nuitka-Logo-Symbol.png")
-    assert 0 == os.system("convert -background none misc/Logo/Nuitka-Logo-Horizontal.svg images/Nuitka-Logo-Horizontal.png")
+    assert 0 == os.system("convert -background none doc/Logo/Nuitka-Logo-Vertical.svg doc/images/Nuitka-Logo-Vertical.png")
+    assert 0 == os.system("convert -background none doc/Logo/Nuitka-Logo-Symbol.svg doc/images/Nuitka-Logo-Symbol.png")
+    assert 0 == os.system("convert -background none doc/Logo/Nuitka-Logo-Horizontal.svg doc/images/Nuitka-Logo-Horizontal.png")
 
-    assert 0 == os.system("optipng -o2 images/Nuitka-Logo-Vertical.png")
-    assert 0 == os.system("optipng -o2 images/Nuitka-Logo-Symbol.png")
-    assert 0 == os.system("optipng -o2 images/Nuitka-Logo-Horizontal.png")
+    assert 0 == os.system("optipng -o2 doc/images/Nuitka-Logo-Vertical.png")
+    assert 0 == os.system("optipng -o2 doc/images/Nuitka-Logo-Symbol.png")
+    assert 0 == os.system("optipng -o2 doc/images/Nuitka-Logo-Horizontal.png")
 
-    if os.path.exists("web/nikola-site"):
-        assert 0 == os.system("convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.ico")
-        assert 0 == os.system("convert -resize 32x32 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.png")
+    if os.path.exists("../nikola-site"):
+        assert 0 == os.system("convert -resize 32x32 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.ico")
+        assert 0 == os.system("convert -resize 32x32 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/favicon.png")
 
-        assert 0 == os.system("convert -resize 72x72 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad.png")
-        assert 0 == os.system("convert -resize 144x144 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad3.png")
-        assert 0 == os.system("convert -resize 57x57 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone.png")
-        assert 0 == os.system("convert -resize 114x114 misc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone4.png")
+        assert 0 == os.system("convert -resize 72x72 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad.png")
+        assert 0 == os.system("convert -resize 144x144 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-ipad3.png")
+        assert 0 == os.system("convert -resize 57x57 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone.png")
+        assert 0 == os.system("convert -resize 114x114 doc/Logo/Nuitka-Logo-Symbol.svg ../nikola-site/files/apple-touch-icon-iphone4.png")
 
 
 for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):

@@ -1,7 +1,7 @@
 Nuitka Developer Manual
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. image:: images/Nuitka-Logo-Symbol.png
+.. image:: doc/images/Nuitka-Logo-Symbol.png
 
 .. contents::
 
@@ -508,19 +508,19 @@ Nuitka Logo
 -----------
 
 The logo was submitted by "dr. Equivalent". It's source is contained in
-``misc/Logo`` where 3 variants of the logo in SVG are placed.
+``doc/Logo`` where 3 variants of the logo in SVG are placed.
 
 * Symbol only (symbol)
 
-  .. image:: images/Nuitka-Logo-Symbol.png
+  .. image:: doc/images/Nuitka-Logo-Symbol.png
 
 * Text next to symbol (horizontal)
 
-  .. image:: images/Nuitka-Logo-Horizontal.png
+  .. image:: doc/images/Nuitka-Logo-Horizontal.png
 
 * Text beneath symbol (vertical)
 
-  .. image:: images/Nuitka-Logo-Vertical.png
+  .. image:: doc/images/Nuitka-Logo-Vertical.png
 
 From these logos, PNG images, and "favicons", and are derived.
 
@@ -529,13 +529,13 @@ each time, the commands are also replicated here:
 
 .. code-block:: sh
 
-   convert -background none misc/Logo/Nuitka-Logo-Symbol.svg images/Nuitka-Logo-Symbol.png
-   convert -background none misc/Logo/Nuitka-Logo-Vertical.svg images/Nuitka-Logo-Vertical.png
-   convert -background none misc/Logo/Nuitka-Logo-Horizontal.svg images/Nuitka-Logo-Horizontal.png
+   convert -background none doc/Logo/Nuitka-Logo-Symbol.svg doc/images/Nuitka-Logo-Symbol.png
+   convert -background none doc/Logo/Nuitka-Logo-Vertical.svg doc/images/Nuitka-Logo-Vertical.png
+   convert -background none doc/Logo/Nuitka-Logo-Horizontal.svg doc/images/Nuitka-Logo-Horizontal.png
 
-   optipng -o2 images/Nuitka-Logo-Symbol.png
-   optipng -o2 images/Nuitka-Logo-Vertical.png
-   optipng -o2 images/Nuitka-Logo-Horizontal.png
+   optipng -o2 doc/images/Nuitka-Logo-Symbol.png
+   optipng -o2 doc/images/Nuitka-Logo-Vertical.png
+   optipng -o2 doc/images/Nuitka-Logo-Horizontal.png
 
 
 Choice of the Target Language
