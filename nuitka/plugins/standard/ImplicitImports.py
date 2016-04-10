@@ -177,3 +177,21 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             )
 
         return ()
+
+    unworthy_namespaces = (
+        "setuptools",      # Not performance relevant.
+        "pkg_resources",   # Not performance relevant.
+        "numpy.distutils", # Largely unused, and a lot of modules.
+        "numpy.f2py",      # Mostly unused, only numpy.distutils import it.
+        "numpy.testing",   # Useless.
+        "nose",            # Not performance relevant.
+        "Cython",          # Mostly unused, and a lot of modules.
+        "IPython",         # Mostly unused, and a lot of modules.
+        "wx._core",        # Too large generated code
+    )
+
+    def decideCompilation(self, module_name, source_ref):
+        for unworthy_namespace in self.unworthy_namespaces:
+            if module_name == unworthy_namespace or \
+               module_name.startswith(unworthy_namespace + "."):
+                return "bytecode"
