@@ -19,7 +19,10 @@
 
 from __future__ import print_function
 
-import subprocess, StringIO, sys, csv
+import csv
+import StringIO
+import subprocess
+import sys
 
 print("Querying openSUSE build service status of Nuitka packages.")
 

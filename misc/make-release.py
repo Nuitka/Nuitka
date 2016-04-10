@@ -17,8 +17,9 @@
 #     limitations under the License.
 #
 
-import os, shutil, subprocess
-
+import os
+import shutil
+import subprocess
 from optparse import OptionParser
 
 parser = OptionParser()

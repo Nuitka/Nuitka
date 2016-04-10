@@ -17,7 +17,11 @@
 #     limitations under the License.
 #
 
-import subprocess, re, os, sys, tempfile
+import os
+import re
+import subprocess
+import sys
+import tempfile
 
 _handle, tempfile1 = tempfile.mkstemp()
 

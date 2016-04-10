@@ -17,7 +17,9 @@
 #     limitations under the License.
 #
 
-import sys, os, subprocess
+import os
+import subprocess
+import sys
 
 # Not really re-creating the images ever, cannot make sure they are binary
 # identical, so made this optional.

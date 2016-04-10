@@ -17,7 +17,12 @@
 #     limitations under the License.
 #
 
-import os, sys, commands, subprocess, shutil, tempfile
+import commands
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
 
 input_file = sys.argv[1]
 nuitka_binary = os.environ.get(

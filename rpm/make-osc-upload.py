@@ -17,7 +17,10 @@
 #     limitations under the License.
 #
 
-import os, sys, shutil, subprocess
+import os
+import shutil
+import subprocess
+import sys
 
 nuitka_version = subprocess.check_output(
     "./bin/nuitka --version", shell = True

@@ -111,7 +111,7 @@ def isUninstalledPython():
 def getRunningPythonDLLPath():
     import ctypes.wintypes
 
-    GetModuleHandle = ctypes.windll.kernel32.GetModuleHandleW
+    GetModuleHandle = ctypes.windll.kernel32.GetModuleHandleW  # @UndefinedVariable
     GetModuleHandle.argtypes = (
         ctypes.wintypes.LPWSTR,
     )
@@ -131,7 +131,7 @@ def getRunningPythonDLLPath():
     MAX_PATH = 4096
     buf = ctypes.create_unicode_buffer(MAX_PATH)
 
-    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW
+    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW  # @UndefinedVariable
     GetModuleFileName.argtypes = (
         ctypes.wintypes.HANDLE,
         ctypes.wintypes.LPWSTR,

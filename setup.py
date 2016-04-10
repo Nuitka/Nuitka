@@ -16,7 +16,10 @@
 #     limitations under the License.
 #
 
-import sys, os
+import os
+import sys
+from distutils.command.install_scripts import install_scripts
+from distutils.core import setup
 
 os.chdir(os.path.dirname(__file__) or '.')
 
@@ -81,7 +84,6 @@ def find_packages():
 
 package = find_packages()
 
-from distutils.command.install_scripts import install_scripts
 class NuitkaInstallScripts(install_scripts):
     """
     This is a specialization of install_scripts that replaces the @LIBDIR@ with
@@ -185,7 +187,6 @@ if sys.version_info >= (3,):
     util.byte_compile = byte_compile
 
 
-from distutils.core import setup
 
 setup(
     name         = project_name,

@@ -17,8 +17,8 @@
 #     limitations under the License.
 #
 
-import os, sys
-
+import os
+import sys
 from optparse import OptionParser
 
 parser = OptionParser()
