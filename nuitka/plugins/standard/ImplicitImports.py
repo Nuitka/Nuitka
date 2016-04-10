@@ -122,12 +122,18 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                            "cryptography.hazmat.bindings._constant_time",
                            "cryptography.hazmat.bindings._padding"):
             yield "_cffi_backend"
+        elif full_name.startswith("cryptography._Cryptography_cffi_"):
+            yield "_cffi_backend"
         elif full_name == "_dbus_glib_bindings":
             yield "_dbus_bindings"
         elif full_name == "_mysql":
             yield "_mysql_exceptions"
         elif full_name == "lxml.objectify":
             yield "lxml.etree"
+        elif full_name == "_yaml":
+            yield "yaml"
+        elif full_name == "apt_inst":
+            yield "apt_pkg"
 
     module_aliases = {
         "requests.packages.urllib3" : "urllib3",
