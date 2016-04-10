@@ -26,6 +26,12 @@ Cleanups
 - The progress tracing and the memory tracing and now more clearly separate
   and therefore more readable.
 
+- Moved RPM related files to new ``rpm`` directory.
+
+- Moved documentation related files to ``doc`` directory.
+
+- Converted import sorting helper script to Python and made it run fast.
+
 Summary
 -------
 
