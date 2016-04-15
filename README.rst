@@ -1,7 +1,7 @@
 Nuitka User Manual
 ~~~~~~~~~~~~~~~~~~
 
-.. image:: images/Nuitka-Logo-Symbol.png
+.. image:: doc/images/Nuitka-Logo-Symbol.png
 
 .. contents::
 
