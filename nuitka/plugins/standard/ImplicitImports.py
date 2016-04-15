@@ -185,7 +185,12 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "numpy.f2py",      # Mostly unused, only numpy.distutils import it.
         "numpy.testing",   # Useless.
         "nose",            # Not performance relevant.
+        "coverage",        # Not performance relevant.
+        "docutils",        # Not performance relevant.
+        "pexpect",         # Not performance relevant.
         "Cython",          # Mostly unused, and a lot of modules.
+        "cython",
+        "pyximport",
         "IPython",         # Mostly unused, and a lot of modules.
         "wx._core",        # Too large generated code
     )
