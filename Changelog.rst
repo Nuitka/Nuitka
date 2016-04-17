@@ -32,6 +32,17 @@ Cleanups
 
 - Converted import sorting helper script to Python and made it run fast.
 
+Organizational
+--------------
+
+- The Buildbot infrastructure for Nuitka was updated to Buildbot 0.8.12 and is
+  now maintained up to date with Ansible.
+
+- Upgraded the Nuitka bug tracker to Roundup 1.5.1 to which I had previously
+  contributed security fixes already active.
+
+- Added SSL certificates from Let's Encrypt for the web server.
+
 Summary
 -------
 
