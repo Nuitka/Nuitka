@@ -20,6 +20,7 @@
 """
 
 import hashlib
+import sys
 
 from nuitka import Options
 from nuitka.__past__ import iterItems
@@ -436,6 +437,11 @@ def _getConstantDefaultPopulation():
         # Patching the types module.
         result.append(
             "types"
+        )
+
+    if not Options.shallMakeModule():
+        result.append(
+            sys.executable
         )
 
     return result

@@ -51,9 +51,12 @@ VariantDir(static_src, os.path.join(nuitka_src, "static_src"), 0)  # @UndefinedV
 # The name of executable or extension module that we produce.
 result_basepath = ARGUMENTS["result_name"]
 
-def getBoolOption(option_name, default):
+def getBoolOption(option_name, default = None):
     """ Small helper for boolean mode flags."""
-    value = ARGUMENTS.get(option_name, "True" if default else "False")
+    if default is None:
+        value = ARGUMENTS[option_name]
+    else:
+        value = ARGUMENTS.get(option_name, "True" if default else "False")
 
     return value.lower() in ("yes", "true", '1')
 
@@ -142,6 +145,23 @@ icon_path = ARGUMENTS.get("icon_path", None)
 
 # Forced MSVC version (windows-only)
 msvc_version = ARGUMENTS.get("msvc_version", None)
+
+no_python_warnings = getBoolOption("no_python_warnings", False)
+
+# sys.flags values to pass along
+# python_sysflag_py3k_warning
+python_sysflag_py3k_warning = getBoolOption("python_sysflag_py3k_warning", False)
+# python_sysflag_division_warning
+python_sysflag_division_warning = getBoolOption("python_sysflag_division_warning", False)
+# python_sysflag_division_warning
+python_sysflag_bytes_warning = getBoolOption("python_sysflag_bytes_warning", False)
+# python_sysflag_no_site
+python_sysflag_no_site = getBoolOption("python_sysflag_no_site", False)
+# python_sysflag_verbose
+python_sysflag_verbose = getBoolOption("python_sysflag_verbose", False)
+# python_sysflag_unicode
+python_sysflag_unicode = getBoolOption("python_sysflag_unicode", False)
+
 
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")  # @UndefinedVariable
@@ -730,6 +750,38 @@ if standalone_mode:
             LIBS = ["dl"]
         )
 
+if no_python_warnings:
+    env.Append(
+        CPPDEFINES = ["_NUITKA_NO_PYTHON_WARNINGS"]
+    )
+
+if python_version < "3":
+    env.Append(
+        CPPDEFINES = ["_NUITKA_SYSFLAG_PY3K_WARNING=%d" % (1 if python_sysflag_py3k_warning else 0)]
+    )
+
+    env.Append(
+        CPPDEFINES = ["_NUITKA_SYSFLAG_DIVISION_WARNING=%d" % (1 if python_sysflag_division_warning else 0)]
+    )
+
+    env.Append(
+        CPPDEFINES = ["_NUITKA_SYSFLAG_UNICODE=%d" % (1 if python_sysflag_unicode else 0)]
+    )
+
+env.Append(
+    CPPDEFINES = ["_NUITKA_SYSFLAG_BYTES_WARNING=%d" % (1 if python_sysflag_bytes_warning else 0)]
+)
+
+env.Append(
+    CPPDEFINES = ["_NUITKA_SYSFLAG_NO_SITE=%d" % (1 if python_sysflag_no_site else 0)]
+)
+
+env.Append(
+    CPPDEFINES = ["_NUITKA_SYSFLAG_VERBOSE=%d" % (1 if python_sysflag_verbose else 0)]
+)
+
+
+
 if win_target:
     # For MinGW and cross compilation, we need to tell the subsystem
     # to target as well as to automatically import everything used.
@@ -1196,6 +1248,7 @@ def discoverSourceFiles():
     result.append(getStatic("CompiledFrameType.cpp"))
     result.append(getStatic("CompiledCodeHelpers.cpp"))
     result.append(getStatic("InspectPatcher.cpp"))
+    result.append(getStatic("MetaPathBasedLoader.cpp"))
 
     if win_target:
         result.append(getStatic("win32_ucontext_src/fibers_win32.cpp"))
@@ -1221,10 +1274,8 @@ def discoverSourceFiles():
         if filename.endswith(".cpp"):
             result.append(os.path.join(source_dir, filename))
 
-    # If more than one module is included, we need the unfreezer. For Python3,
-    # we needed as the "__loader__" attribute of "__main__ "already.
-    if module_count > 1 or python_version >= 330:
-        result.append(getStatic("MetaPathBasedLoader.cpp"))
+    if not module_mode:
+        result.append(getStatic("MainProgram.cpp"))
 
     if constants_generated_filename is not None:
         result.append(constants_generated_filename)

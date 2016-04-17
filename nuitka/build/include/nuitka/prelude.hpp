@@ -18,7 +18,7 @@
 #ifndef __NUITKA_PRELUDE_H__
 #define __NUITKA_PRELUDE_H__
 
-/* Disable assert statements if asked to not assert. */
+
 #ifdef __NUITKA_NO_ASSERT__
 #define NDEBUG
 #endif
@@ -29,8 +29,9 @@
 #include "patchlevel.h"
 #define PYTHON_VERSION (PY_MAJOR_VERSION*100+PY_MINOR_VERSION*10+PY_MICRO_VERSION)
 
-/* This is needed or else we can't create modules name "proc" or "func". For */
-/* Python3, the name collision can't happen, so we can limit it to Python2.  */
+/* This is needed or else we can't create modules name "proc" or "func". For
+ * Python3, the name collision can't happen, so we can limit it to Python2.
+ */
 #if PYTHON_VERSION < 300
 #define initproc python_initproc
 #define initfunc python_initfunc
@@ -75,7 +76,7 @@
 
 /* A way to not give warnings about things that are declared, but might not
  * be used like in-line helper functions in headers or static per module
-   variables from headers.
+ * variables from headers.
  */
 #ifdef __GNUC__
 #define NUITKA_MAY_BE_UNUSED __attribute__((__unused__))

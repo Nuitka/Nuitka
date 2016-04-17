@@ -30,6 +30,7 @@ for a single module only.
 import ctypes
 import re
 import struct
+import sys
 from logging import warning
 
 import marshal
@@ -1001,8 +1002,14 @@ def getConstantsDefinitionCode(context):
         context = context
     )
 
+    if Options.shallMakeModule():
+        sys_executable = None
+    else:
+        sys_executable = context.getConstantCode(sys.executable)
+
     return template_constants_reading % {
         "constant_declarations" : '\n'.join(constant_declarations),
         "constant_inits"        : indented(constant_inits),
-        "constant_checks"       : indented(constant_checks)
+        "constant_checks"       : indented(constant_checks),
+        "sys_executable"        : sys_executable
     }

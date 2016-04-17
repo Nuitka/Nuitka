@@ -60,6 +60,14 @@ static void _createGlobalConstants( void )
 #endif
 
 %(constant_inits)s
+
+#if _NUITKA_EXE
+    /* Set the "sys.executable" path to the original CPython executable. */
+    PySys_SetObject(
+        (char *)"executable",
+        %(sys_executable)s
+    );
+#endif
 }
 
 // In debug mode we can check that the constants were not tampered with in any

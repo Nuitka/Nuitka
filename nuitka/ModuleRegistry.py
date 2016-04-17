@@ -190,7 +190,6 @@ def getDoneUserModules():
             for module in
             done_modules
             if not module.isInternalModule()
-            if not module.isMainModule()
         ],
         key = lambda module : module.getFullName()
     )

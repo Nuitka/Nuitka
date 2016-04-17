@@ -23,7 +23,6 @@ or distribution folder.
 
 
 from nuitka.ModuleRegistry import getUncompiledNonTechnicalModules
-from nuitka.PythonVersions import python_version
 
 from . import ConstantCodes
 from .Indentation import indented
@@ -120,7 +119,6 @@ def getMetapathLoaderBodyCode(other_modules):
 
 
     return template_metapath_loader_body % {
-        "use_loader"              : 1 if (metapath_loader_inittab or python_version >= 330) else 0,
         "metapath_module_decls"   : indented(metapath_module_decls, 0),
         "metapath_loader_inittab" : indented(metapath_loader_inittab)
     }
