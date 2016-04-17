@@ -19,7 +19,7 @@
 
 from __future__ import print_function
 
-import os, sys, subprocess, tempfile, atexit, shutil, re, ast, doctest
+import os, sys, subprocess, tempfile, atexit, shutil, re, ast
 
 # Make sure we flush after every print, the "-u" option does more than that
 # and this is easy enough.
@@ -809,7 +809,7 @@ def convertToPython(doctests, line_filter = None):
     """ Convert give doctest string to static Python code.
 
     """
-
+    import doctest
     code = doctest.script_from_examples(doctests)
 
     if code.endswith('\n'):
