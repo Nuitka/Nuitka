@@ -1707,7 +1707,7 @@ bool setCommandLineParameters( int argc, argv_type_t argv, bool initial )
 
     if ( initial )
     {
-        // We need to skip what multiprocessing has told Python otherwise.
+        /* We might need to skip what multiprocessing has told us. */
         for ( int i = 1; i < argc; i++ )
         {
 #if PYTHON_VERSION < 300
@@ -2125,16 +2125,16 @@ char *getBinaryDirectoryUTF8Encoded()
     mib[1] = KERN_PROC;
     mib[2] = KERN_PROC_PATHNAME;
     mib[3] = -1;
-    size_t cb = sizeof(binary_directory);
-    sysctl(mib, 4, binary_directory, &cb, NULL, 0);
+    size_t cb = sizeof( binary_directory );
+    sysctl( mib, 4, binary_directory, &cb, NULL, 0 );
 
-    /* We want the dirname, the above gives the full exe name. */
-    strcpy(binary_directory, dirname(binary_directory));
+    /* We want the directory name, the above gives the full executable name. */
+    strcpy( binary_directory, dirname( binary_directory ) );
 #else
-    // The remaining platforms, mostly Linux.
+    /* The remaining platforms, mostly Linux or compatible. */
 
-    // The "readlink" does not terminate result, so fill zeros there, then
-    // it is a proper C string right away.
+    /* The "readlink" call does not terminate result, so fill zeros there, then
+     * it is a proper C string right away. */
     memset( binary_directory, 0, MAXPATHLEN + 1 );
     ssize_t res = readlink( "/proc/self/exe", binary_directory, MAXPATHLEN );
 

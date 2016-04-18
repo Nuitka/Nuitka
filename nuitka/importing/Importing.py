@@ -377,13 +377,13 @@ def getPackageSearchPath(package_name):
     if package_name is None:
         return [os.getcwd(), main_path] + sys.path
     elif '.' in package_name:
-        parent_package_name, package_name = package_name.rsplit('.', 1)
+        parent_package_name, child_package_name = package_name.rsplit('.', 1)
 
         result = []
         for element in getPackageSearchPath(parent_package_name):
             package_dir = Utils.joinpath(
                 element,
-                package_name
+                child_package_name
             )
 
             if isPackageDir(package_dir):
@@ -400,14 +400,13 @@ def getPackageSearchPath(package_name):
         def getPackageDirCandidates(element):
             yield Utils.joinpath(element, package_name), False
 
-            # Hack for PyWin32. TODO: Move this __path__ extensions to
+            # Hack for PyWin32. TODO: Move this "__path__" extensions to be
             # plug-in decisions.
             if package_name == "win32com":
                 yield Utils.joinpath(element, "win32comext"), True
 
         result = []
         for element in getPackageSearchPath(None):
-
             for package_dir, force_package in getPackageDirCandidates(element):
                 if isPackageDir(package_dir) or force_package:
                     result.append(package_dir)
