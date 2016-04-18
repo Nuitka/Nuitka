@@ -60,6 +60,7 @@ recurse_all        = hasArg("recurse_all")
 timing             = hasArg("timing")
 coverage_mode      = hasArg("coverage")
 original_file      = hasArg("original_file")
+no_warnings        = not hasArg("warnings")
 
 plugins_enabled = []
 
@@ -158,20 +159,36 @@ if two_step_execution:
     filename = os.path.abspath(filename)
 
 if module_mode:
-    cpython_cmd = [
-        os.environ["PYTHON"],
-        "-W", "ignore",
-        "-c", "import sys; sys.path.append(%s); import %s" % (
-            repr(os.path.dirname(filename)),
-            os.path.basename(filename)
-        )
-    ]
+    if no_warnings:
+        cpython_cmd = [
+            os.environ["PYTHON"],
+            "-W", "ignore",
+            "-c", "import sys; sys.path.append(%s); import %s" % (
+                repr(os.path.dirname(filename)),
+                os.path.basename(filename)
+            )
+        ]
+    else:
+        cpython_cmd = [
+            os.environ["PYTHON"],
+            "-c", "import sys; sys.path.append(%s); import %s" % (
+                repr(os.path.dirname(filename)),
+                os.path.basename(filename)
+            )
+        ]
+
 else:
-    cpython_cmd = [
-        os.environ["PYTHON"],
-        "-W", "ignore",
-        filename
-    ]
+    if no_warnings:
+        cpython_cmd = [
+            os.environ["PYTHON"],
+            "-W", "ignore",
+            filename
+        ]
+    else:
+        cpython_cmd = [
+            os.environ["PYTHON"],
+            filename
+        ]
 
 if no_site:
     cpython_cmd.insert(1, "-S")
@@ -204,6 +221,9 @@ else:
 
 if python_debug:
     extra_options.append("--python-debug")
+
+if no_warnings:
+    extra_options.append("--python-flag=no_warnings")
 
 if remove_output:
     extra_options.append("--remove-output")
@@ -260,13 +280,13 @@ for plugin_disabled in plugins_disabled:
 if not two_step_execution:
     if module_mode:
         nuitka_cmd = nuitka_call + extra_options + \
-          ["--execute", "--python-flag=no_warnings", "--module", filename]
+          ["--execute", "--module", filename]
     elif standalone_mode:
         nuitka_cmd = nuitka_call + extra_options + \
-          ["--execute", "--python-flag=no_warnings", "--standalone", filename]
+          ["--execute", "--standalone", filename]
     else:
         nuitka_cmd = nuitka_call + extra_options + \
-          ["--execute", "--python-flag=no_warnings", filename]
+          ["--execute", filename]
 
     if no_site:
         nuitka_cmd.insert(len(nuitka_cmd) - 1, "--python-flag=-S")
@@ -274,13 +294,13 @@ if not two_step_execution:
 else:
     if module_mode:
         nuitka_cmd1 = nuitka_call + extra_options + \
-          ["--python-flag=no_warnings", "--module", os.path.abspath(filename)]
+          ["--module", os.path.abspath(filename)]
     elif standalone_mode:
         nuitka_cmd1 = nuitka_call + extra_options + \
-          ["--python-flag=no_warnings", "--standalone", filename]
+          ["--standalone", filename]
     else:
         nuitka_cmd1 = nuitka_call + extra_options + \
-          ["--python-flag=no_warnings", filename]
+          [filename]
 
     if no_site:
         nuitka_cmd1.insert(len(nuitka_cmd1) - 1, "--python-flag=-S")
