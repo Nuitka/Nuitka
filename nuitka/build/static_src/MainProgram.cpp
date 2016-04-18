@@ -41,6 +41,13 @@ extern PyObject *const_str_plain___main__;
 extern PyObject *const_str_plain_ignore;
 #endif
 
+/* For later use in "Py_GetArgcArgv" */
+static char **orig_argv;
+static int orig_argc;
+#if PYTHON_VERSION >= 300
+static wchar_t **argv_unicode;
+#endif
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmdLine, int nCmdShow )
 {
@@ -60,6 +67,9 @@ int main( int argc, char **argv )
 #ifdef _NUITKA_TRACE
     puts("main(): Entered.");
 #endif
+
+    orig_argv = argv;
+    orig_argc = argc;
 
 #ifdef __FreeBSD__
     /* 754 requires that FP exceptions run in "no stop" mode by default, and
@@ -130,9 +140,7 @@ int main( int argc, char **argv )
     puts("main(): Calling convert/setCommandLineParameters.");
 #endif
 
-#if PYTHON_VERSION >= 300
-    wchar_t **argv_unicode = convertCommandLineParameters( argc, argv );
-#endif
+    argv_unicode = convertCommandLineParameters( argc, argv );
 
 #if PYTHON_VERSION < 300
     bool is_multiprocess_forking = setCommandLineParameters( argc, argv, true );
@@ -376,3 +384,31 @@ int main( int argc, char **argv )
      */
     NUITKA_CANNOT_GET_HERE( main );
 }
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if defined( __GNUC__ )
+__attribute__(( visibility( "default" )))
+#endif
+
+#if PYTHON_VERSION >= 300
+void Py_GetArgcArgv( int *argc, wchar_t ***argv )
+{
+    *argc = orig_argc;
+    *argv = argv_unicode;
+}
+
+#else
+void Py_GetArgcArgv( int *argc, char ***argv )
+{
+    *argc = orig_argc;
+    *argv = orig_argv;
+}
+#endif
+
+#ifdef __cplusplus
+}
+#endif
