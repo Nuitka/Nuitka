@@ -1,11 +1,17 @@
 Nuitka Release 0.5.21 (Draft)
 =============================
 
+This release focused on scalability work. Making Nuitka more usable in the
+common case, and covering more standalone use cases.
+
 Bug Fixes
 ---------
 
 - Windows: Support for newer MinGW64 was broken by a workaround for older
   MinGW64 versions.
+
+- Compatibility: Added support for the (inofficial) C-Python API ``Py_GetArgcArgv``
+  that was causing ``prctl`` module to fail loading on ARM platforms.
 
 New Features
 ------------
@@ -19,6 +25,13 @@ New Features
 - Compile modules in two passes with the option to specify which modules will
   be considered for a second pass at all (compiled without program optimization)
   or even become bytecode.
+
+Optimization
+------------
+
+- Popular modules known to not be performance relevant are no longer C compiled,
+  e.g. ``numpy.distutils`` and so on.
+
 
 Cleanups
 --------
@@ -46,7 +59,9 @@ Organizational
 Summary
 -------
 
-This release is not done yet.
+This release advances the scalability of Nuitka somewhat. The two pass approach
+does not yet carry all possible fruits. Caching of single pass compiled modules
+should follow for it to become consistently fast.
 
 
 Nuitka Release 0.5.20
