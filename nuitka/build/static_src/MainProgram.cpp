@@ -140,7 +140,9 @@ int main( int argc, char **argv )
     puts("main(): Calling convert/setCommandLineParameters.");
 #endif
 
+#if PYTHON_VERSION >= 300
     argv_unicode = convertCommandLineParameters( argc, argv );
+#endif
 
 #if PYTHON_VERSION < 300
     bool is_multiprocess_forking = setCommandLineParameters( argc, argv, true );
