@@ -13,6 +13,13 @@ Bug Fixes
 - Compatibility: Added support for the (inofficial) C-Python API ``Py_GetArgcArgv``
   that was causing ``prctl`` module to fail loading on ARM platforms.
 
+- Compatibility: The proper error message template for complex call arguments
+  is now detected as compile time. There are changes comming, that are already
+  in some pre-releases.
+
+- Standalone: Wasn't properly ignoring ``Tools`` and other directories in the
+  standard library.
+
 New Features
 ------------
 
@@ -25,6 +32,9 @@ New Features
 - Compile modules in two passes with the option to specify which modules will
   be considered for a second pass at all (compiled without program optimization)
   or even become bytecode.
+
+- The developer mode installation of Nuitka in ``develop`` mode with the
+  command ``pip install -e nuitka_git_checkout_dir`` is now supported too.
 
 Optimization
 ------------
