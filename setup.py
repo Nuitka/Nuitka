@@ -48,8 +48,8 @@ version = detectVersion()
 if os.name == "nt" and "bdist_msi" in sys.argv:
 
     # Pre-releases are always smaller, official releases get the "1".
-    middle = 1 if "pre" not in version else 0
-    version = version.replace("pre", "")
+    middle = 1 if "rc" not in version else 0
+    version = version.replace("rc", "")
     parts = version.split('.')
     major, first, last = parts[:3]
     hotfix = parts[3] if len(parts) > 3 else 0

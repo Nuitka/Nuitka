@@ -15,7 +15,7 @@ Bug Fixes
 
 - Compatibility: The proper error message template for complex call arguments
   is now detected as compile time. There are changes comming, that are already
-  in some pre-releases.
+  in some pre-releases of CPython.
 
 - Standalone: Wasn't properly ignoring ``Tools`` and other directories in the
   standard library.
