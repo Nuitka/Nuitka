@@ -98,6 +98,9 @@ class PythonModuleMixin:
             if python_version >= 330 and not package_filename:
                 return []
 
+            if self.package_name == "uniconvertor.app.modules":
+                return []
+
             assert package_filename is not None, self.package_name
 
             _package_name, package_kind = getModuleNameAndKindFromFilename(package_filename)

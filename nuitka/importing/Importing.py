@@ -388,6 +388,10 @@ def getPackageSearchPath(package_name):
 
             if isPackageDir(package_dir):
                 result.append(package_dir)
+                # Hack for "uniconverter". TODO: Move this to plug-in decision. This
+                # fails the above test, but at run time should be a package.
+            elif package_name == "uniconvertor.app.modules":
+                result.append(package_dir)
 
         return result
 
