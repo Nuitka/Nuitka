@@ -180,6 +180,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
     unworthy_namespaces = (
         "setuptools",      # Not performance relevant.
+        "distutils",       # Not performance relevant.
         "pkg_resources",   # Not performance relevant.
         "numpy.distutils", # Largely unused, and a lot of modules.
         "numpy.f2py",      # Mostly unused, only numpy.distutils import it.
