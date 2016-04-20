@@ -321,7 +321,7 @@ int main( int argc, char **argv )
 #ifdef _NUITKA_TRACE
         puts("main(): Calling __parents_main__.");
 #endif
-        IMPORT_COMPILED_MODULE(PyUnicode_FromString("__parents_main__"), "__parents_main__");
+        IMPORT_EMBEDDED_MODULE(PyUnicode_FromString("__parents_main__"), "__parents_main__");
     }
     else
 #endif
@@ -333,7 +333,7 @@ int main( int argc, char **argv )
 #endif
         /* Execute the "__main__" module. */
         PyDict_DelItemString(PySys_GetObject((char *)"modules"), "__main__");
-        IMPORT_COMPILED_MODULE(const_str_plain___main__, "__main__");
+        IMPORT_EMBEDDED_MODULE(const_str_plain___main__, "__main__");
     }
 
 #if _NUITKA_PROFILE
