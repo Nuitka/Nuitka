@@ -76,7 +76,10 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import (
+    getComplexCallSequenceErrorTemplate,
+    python_version
+)
 
 from .Helpers import (
     makeConditionalStatement,
@@ -335,8 +338,7 @@ def makeStarListArgumentErrorRaise(called_variable_ref, star_list_variable_ref):
                 ExpressionOperationBinary(
                     operator   = "Mod",
                     left       =  ExpressionConstantRef(
-                        constant      = """\
-%s argument after * must be a sequence, not %s""",
+                        constant      = getComplexCallSequenceErrorTemplate(),
                         source_ref    = internal_source_ref,
                         user_provided = True
                     ),

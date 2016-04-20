@@ -102,6 +102,20 @@ def f():
         return e.message.replace("'f'", "'%s'")
 
 
+def getComplexCallSequenceErrorTemplate():
+    if not hasattr(getComplexCallSequenceErrorTemplate, "result"):
+        try:
+            f = None
+            f(*None)
+        except TypeError as e:
+            result = e.args[0].replace("NoneType object", "%s").replace("NoneType", "%s")
+            getComplexCallSequenceErrorTemplate.result = result
+        else:
+            sys.exit("Error, cannot detect expected error message.")
+
+    return getComplexCallSequenceErrorTemplate.result
+
+
 def isUninstalledPython():
     return "Anaconda" in sys.version or \
            "WinPython" in sys.version or \
