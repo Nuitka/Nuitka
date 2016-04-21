@@ -387,16 +387,18 @@ int main( int argc, char **argv )
     NUITKA_CANNOT_GET_HERE( main );
 }
 
-
+/* This is an inofficial API, not available on Windows, but on Linux and others
+ * it is exported, and has been used by some code.
+ */
+#ifndef _WIN32
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#if PYTHON_VERSION >= 300
 #if defined( __GNUC__ )
 __attribute__(( visibility( "default" )))
 #endif
-
-#if PYTHON_VERSION >= 300
 void Py_GetArgcArgv( int *argc, wchar_t ***argv )
 {
     *argc = orig_argc;
@@ -404,6 +406,9 @@ void Py_GetArgcArgv( int *argc, wchar_t ***argv )
 }
 
 #else
+#if defined( __GNUC__ )
+__attribute__(( visibility( "default" )))
+#endif
 void Py_GetArgcArgv( int *argc, char ***argv )
 {
     *argc = orig_argc;
@@ -413,4 +418,6 @@ void Py_GetArgcArgv( int *argc, char ***argv )
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
