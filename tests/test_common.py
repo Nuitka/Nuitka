@@ -954,4 +954,10 @@ def compileLibraryTest(search_mode, stage_dir, decide, action):
 
 
     for path in paths:
-        compileLibraryPath(search_mode, path, stage_dir, decide, action)
+        compileLibraryPath(
+            search_mode = search_mode,
+            path        = path,
+            stage_dir   = stage_dir,
+            decide      = decide,
+            action      = action
+        )
