@@ -13,6 +13,7 @@
 *.exe
 *.build
 *.dist
+Nuitka.egg-info
 tests/reflected/nuitka/
 tests/reflected/nuitka.py
 tests/basics/BigConstants.py
