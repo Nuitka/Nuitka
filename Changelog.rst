@@ -40,8 +40,8 @@ Optimization
 ------------
 
 - Popular modules known to not be performance relevant are no longer C compiled,
-  e.g. ``numpy.distutils`` and so on.
-
+  e.g. ``numpy.distutils`` and many others frequently imported (from some other
+  module), but mostly not used and definitely not performance relevant.
 
 Cleanups
 --------
@@ -72,6 +72,9 @@ Summary
 This release advances the scalability of Nuitka somewhat. The two pass approach
 does not yet carry all possible fruits. Caching of single pass compiled modules
 should follow for it to become consistently fast.
+
+More work will be needed to achieve fast and scalable compilation, and that is
+going to remain the focus for some time.
 
 
 Nuitka Release 0.5.20
