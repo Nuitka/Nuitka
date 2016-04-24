@@ -23,38 +23,40 @@ stuff related to importing, and of course the generated code license.
 """
 
 template_global_copyright = """\
-// Generated code for Python source for module '%(name)s'
-// created by Nuitka version %(version)s
-
-// This code is in part copyright %(year)s Kay Hayen.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/* Generated code for Python source for module '%(name)s'
+ * created by Nuitka version %(version)s
+ *
+ * This code is in part copyright %(year)s Kay Hayen.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 """
 template_module_body_template = """
 #include "nuitka/prelude.hpp"
 
 #include "__helpers.hpp"
 
-// The _module_%(module_identifier)s is a Python object pointer of module type.
+/* The _module_%(module_identifier)s is a Python object pointer of module type. */
 
-// Note: For full compatibility with CPython, every module variable access
-// needs to go through it except for cases where the module cannot possibly
-// have changed in the mean time.
+/* Note: For full compatibility with CPython, every module variable access
+ * needs to go through it except for cases where the module cannot possibly
+ * have changed in the mean time.
+ */
 
 PyObject *module_%(module_identifier)s;
 PyDictObject *moduledict_%(module_identifier)s;
 
-// The module constants used
+/* The module constants used, if any. */
 %(constant_decl_codes)s
 
 static bool constants_created = false;

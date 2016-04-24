@@ -26,7 +26,10 @@ from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBool
 from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
 
 from .Checkers import checkStatementsSequenceOrNone
-from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase
+)
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     wrapExpressionWithNodeSideEffects,

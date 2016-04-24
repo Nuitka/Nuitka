@@ -102,6 +102,22 @@ def f():
         return e.message.replace("'f'", "'%s'")
 
 
+def getComplexCallSequenceErrorTemplate():
+    if not hasattr(getComplexCallSequenceErrorTemplate, "result"):
+        try:
+            # We are doing this on purpose, to get the exception.
+            # pylint: disable=E1133,E1102
+            f = None
+            f(*None)
+        except TypeError as e:
+            result = e.args[0].replace("NoneType object", "%s").replace("NoneType", "%s")
+            getComplexCallSequenceErrorTemplate.result = result
+        else:
+            sys.exit("Error, cannot detect expected error message.")
+
+    return getComplexCallSequenceErrorTemplate.result
+
+
 def isUninstalledPython():
     return "Anaconda" in sys.version or \
            "WinPython" in sys.version or \
@@ -111,7 +127,7 @@ def isUninstalledPython():
 def getRunningPythonDLLPath():
     import ctypes.wintypes
 
-    GetModuleHandle = ctypes.windll.kernel32.GetModuleHandleW
+    GetModuleHandle = ctypes.windll.kernel32.GetModuleHandleW  # @UndefinedVariable
     GetModuleHandle.argtypes = (
         ctypes.wintypes.LPWSTR,
     )
@@ -131,7 +147,7 @@ def getRunningPythonDLLPath():
     MAX_PATH = 4096
     buf = ctypes.create_unicode_buffer(MAX_PATH)
 
-    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW
+    GetModuleFileName = ctypes.windll.kernel32.GetModuleFileNameW  # @UndefinedVariable
     GetModuleFileName.argtypes = (
         ctypes.wintypes.HANDLE,
         ctypes.wintypes.LPWSTR,

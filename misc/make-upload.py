@@ -17,7 +17,10 @@
 #     limitations under the License.
 #
 
-import os, sys, shutil, subprocess
+import os
+import shutil
+import subprocess
+import sys
 
 assert os.path.isfile("setup.py") and open(".git/description").read().strip() == "Nuitka Staging"
 

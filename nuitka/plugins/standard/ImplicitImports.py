@@ -122,12 +122,18 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                            "cryptography.hazmat.bindings._constant_time",
                            "cryptography.hazmat.bindings._padding"):
             yield "_cffi_backend"
+        elif full_name.startswith("cryptography._Cryptography_cffi_"):
+            yield "_cffi_backend"
         elif full_name == "_dbus_glib_bindings":
             yield "_dbus_bindings"
         elif full_name == "_mysql":
             yield "_mysql_exceptions"
         elif full_name == "lxml.objectify":
             yield "lxml.etree"
+        elif full_name == "_yaml":
+            yield "yaml"
+        elif full_name == "apt_inst":
+            yield "apt_pkg"
 
     module_aliases = {
         "requests.packages.urllib3" : "urllib3",
@@ -171,3 +177,27 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             )
 
         return ()
+
+    unworthy_namespaces = (
+        "setuptools",      # Not performance relevant.
+        "distutils",       # Not performance relevant.
+        "pkg_resources",   # Not performance relevant.
+        "numpy.distutils", # Largely unused, and a lot of modules.
+        "numpy.f2py",      # Mostly unused, only numpy.distutils import it.
+        "numpy.testing",   # Useless.
+        "nose",            # Not performance relevant.
+        "coverage",        # Not performance relevant.
+        "docutils",        # Not performance relevant.
+        "pexpect",         # Not performance relevant.
+        "Cython",          # Mostly unused, and a lot of modules.
+        "cython",
+        "pyximport",
+        "IPython",         # Mostly unused, and a lot of modules.
+        "wx._core",        # Too large generated code
+    )
+
+    def decideCompilation(self, module_name, source_ref):
+        for unworthy_namespace in self.unworthy_namespaces:
+            if module_name == unworthy_namespace or \
+               module_name.startswith(unworthy_namespace + "."):
+                return "bytecode"

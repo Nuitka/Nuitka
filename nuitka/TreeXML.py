@@ -65,11 +65,17 @@ except ImportError:
 
         Element = xml.etree.ElementTree.Element
         xml_tostring = lambda tree: xml_module.tostring(indent(tree))
-
     except ImportError:
         xml_module = None
         Element = None
         xml_tostring = None
+
+try:
+    import lxml.xmlfile
+
+    xml_writer = lxml.xmlfile
+except ImportError:
+    xml_writer = None
 
 
 def toString(tree):

@@ -203,7 +203,7 @@ class Plugins:
 
     @staticmethod
     def suppressUnknownImportWarning(importing, module_name):
-        if importing.isCompiledPythonModule():
+        if importing.isCompiledPythonModule() or importing.isPythonShlibModule():
             importing_module = importing
         else:
             importing_module = importing.getParentModule()

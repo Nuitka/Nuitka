@@ -36,7 +36,6 @@ from test_common import (
     setup,               # @UnresolvedImport
     my_print,            # @UnresolvedImport
     createSearchMode,    # @UnresolvedImport
-    compareWithCPython,  # @UnresolvedImport
     compileLibraryTest   # @UnresolvedImport
 )
 
@@ -65,7 +64,7 @@ def decide(root, filename):
     if filename.endswith("linux-gnu_d.so"):
         return False
 
-    return filename.endswith(".so") and \
+    return filename.endswith((".so", ".pyd")) and \
            not filename.startswith("libpython")
 
 

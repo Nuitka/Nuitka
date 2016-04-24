@@ -25,7 +25,10 @@ to do.
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import ExpressionChildrenHavingBase, StatementChildrenHavingBase
+from .NodeBases import (
+    ExpressionChildrenHavingBase,
+    StatementChildrenHavingBase
+)
 from .NodeMakingHelpers import (
     convertNoneConstantToNone,
     makeStatementOnlyNodesFromExpressions

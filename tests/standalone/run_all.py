@@ -39,7 +39,8 @@ from test_common import (
     compareWithCPython,
     decideFilenameVersionSkip,
     getRuntimeTraceOfLoadedFiles,
-    createSearchMode
+    createSearchMode,
+    reportSkip
 )
 
 python_version = setup(needs_io_encoding = True)
@@ -78,14 +79,11 @@ for filename in sorted(os.listdir('.')):
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or \
            python_version.startswith("3.2"):
-            my_print("Skipping", filename, "not relevant.")
+            reportSkip(".", filename, "irrelevant Python version.")
             continue
 
         if not hasModule("PySide.QtCore"):
-            my_print(
-                "Skipping", filename, "PySide not installed for",
-                python_version, "but test needs it."
-            )
+            reportSkip(".", filename, "PySide not installed for this Python version, but test needs it.")
             continue
 
         # For the warnings.
@@ -96,14 +94,11 @@ for filename in sorted(os.listdir('.')):
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or \
            python_version.startswith("3.2"):
-            my_print("Skipping", filename, "not relevant.")
+            reportSkip(".", filename, "irrelevant Python version.")
             continue
 
         if not hasModule("PyQt4.QtGui"):
-            my_print(
-                "Skipping", filename, "PyQt4 not installed for",
-                python_version, "but test needs it."
-            )
+            reportSkip(".", filename, "PyQt4 not installed for this Python version, but test needs it.")
             continue
 
         # For the plug-in information.
@@ -111,10 +106,7 @@ for filename in sorted(os.listdir('.')):
 
     if "Idna" in filename:
         if not hasModule("idna.core"):
-            my_print(
-                "Skipping", filename, "idna not installed for",
-                python_version, "but test needs it."
-            )
+            reportSkip(".", filename, "idna not installed for this Python version, but test needs it.")
             continue
 
         # For the warnings of Python2.
@@ -126,14 +118,11 @@ for filename in sorted(os.listdir('.')):
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or \
            python_version.startswith("3.2"):
-            my_print("Skipping", filename, "not relevant.")
+            reportSkip(".", filename, "irrelevant Python version.")
             continue
 
         if not hasModule("PyQt5.QtGui"):
-            my_print(
-                "Skipping", filename, "PyQt5 not installed for",
-                python_version, "but test needs it."
-            )
+            reportSkip(".", filename, "PyQt5 not installed for this Python version, but test needs it.")
             continue
 
         # For the plug-in information.
@@ -154,14 +143,11 @@ for filename in sorted(os.listdir('.')):
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or \
            python_version.startswith("3.2"):
-            my_print("Skipping", filename, "not relevant.")
+            reportSkip(".", filename, "irrelevant Python version.")
             continue
 
         if not hasModule("pygtk"):
-            my_print(
-                "Skipping", filename, "pygtk not installed for",
-                python_version, "but test needs it."
-            )
+            reportSkip(".", filename, "pygtk not installed for this Python version, but test needs it.")
             continue
 
         # For the warnings.
@@ -169,39 +155,27 @@ for filename in sorted(os.listdir('.')):
 
     if filename.startswith("Win"):
         if os.name != "nt":
-            my_print("Skipping", filename, "windows only.")
+            reportSkip(".", filename, "Windows only test.")
             continue
 
     if filename == "Win32ComUsing.py":
         if not hasModule("win32com"):
-            my_print(
-                "Skipping", filename, "win32com not installed for",
-                python_version, "but test needs it."
-            )
+            reportSkip(".", filename, "win32com not installed for this Python version, but test needs it.")
             continue
 
     if filename == "LxmlUsing.py":
         if not hasModule("lxml.etree"):
-            my_print(
-                "Skipping", filename, "lxml.etree not installed for",
-                python_version, "but test needs it."
-            )
+            reportSkip(".", filename, "lxml.etree not installed for this Python version, but test needs it.")
             continue
 
     if filename == "TkInterUsing.py":
         if python_version.startswith("2"):
             if not hasModule("Tkinter"):
-                my_print(
-                    "Skipping", filename, "Tkinter not installed for",
-                    python_version, "but test needs it."
-                )
+                reportSkip(".", filename, "Tkinter not installed for this Python version, but test needs it.")
                 continue
         else:
             if not hasModule("tkinter"):
-                my_print(
-                    "Skipping", filename, "tkinter not installed for",
-                    python_version, "but test needs it."
-                )
+                reportSkip(".", filename, "tkinter not installed for this Python version, but test needs it.")
                 continue
 
             # For the warnings.
@@ -210,31 +184,26 @@ for filename in sorted(os.listdir('.')):
 
     if filename == "FlaskUsing.py":
         if not hasModule("flask"):
-            my_print(
-                "Skipping", filename, "flask not installed for",
-                python_version, "but test needs it."
-            )
+            reportSkip(".", filename, "flask not installed for this Python version, but test needs it.")
             continue
 
         # For the warnings.
         extra_flags.append("ignore_stderr")
 
     if filename == "NumpyUsing.py":
+        # TODO: Disabled for now.
+        reportSkip(".", filename, "numpy.test not fully working yet.")
+        continue
+
         if not hasModule("numpy"):
-            my_print(
-                "Skipping", filename, "numpy not installed for",
-                python_version, "but test needs it."
-            )
+            reportSkip(".", filename, "numpy not installed for this Python version, but test needs it.")
             continue
 
         extra_flags.append("plugin_enable:data-files")
 
     if filename == "PmwUsing.py":
         if not hasModule("Pwm"):
-            my_print(
-                "Skipping", filename, "Pwm not installed for",
-                python_version, "but test needs it."
-            )
+            reportSkip(".", filename, "Pwm not installed for this Python version, but test needs it.")
             continue
 
         extra_flags.append("plugin_enable:pmw-freeze")

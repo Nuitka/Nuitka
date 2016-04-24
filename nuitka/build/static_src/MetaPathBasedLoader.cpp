@@ -432,6 +432,11 @@ static PyObject *loadModule( PyObject *module_name, Nuitka_MetaPathBasedLoaderEn
     if ( ( entry->flags & NUITKA_BYTECODE_FLAG ) != 0 )
     {
         PyObject *code_object = PyMarshal_ReadObjectFromString( (char *)entry->bytecode_str, entry->bytecode_size );
+        if ( code_object == NULL)
+        {
+            PyErr_Print();
+            abort();
+        }
         assert (code_object != NULL);
 
         PyObject *modules = PyImport_GetModuleDict();
@@ -523,7 +528,7 @@ static PyObject *loadModule( PyObject *module_name, Nuitka_MetaPathBasedLoaderEn
 
 // Note: This may become an entry point for hard coded imports of compiled
 // stuff.
-PyObject *IMPORT_COMPILED_MODULE( PyObject *module_name, char const *name )
+PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, char const *name )
 {
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
     bool frozen_import = entry == NULL && hasFrozenModule( name );
@@ -607,7 +612,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
         PySys_WriteStderr( "Loading %s\n", name );
     }
 
-    return IMPORT_COMPILED_MODULE( module_name, name );
+    return IMPORT_EMBEDDED_MODULE( module_name, name );
 }
 
 static PyObject *_path_unfreezer_is_package( PyObject *self, PyObject *args, PyObject *kwds )

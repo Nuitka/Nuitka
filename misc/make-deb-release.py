@@ -17,8 +17,9 @@
 #     limitations under the License.
 #
 
-import os, shutil, subprocess
-
+import os
+import shutil
+import subprocess
 from optparse import OptionParser
 
 parser = OptionParser()
@@ -124,7 +125,7 @@ for filename in os.listdir('.'):
         # Fixup for py2dsc not taking our custom suffix into account, so we need
         # to rename it ourselves.
         before_deb_name = filename[:-7].lower().replace('-', '_')
-        after_deb_name = before_deb_name.replace("pre", "~pre")
+        after_deb_name = before_deb_name.replace("rc", "~rc")
 
         assert 0 == os.system(
             "mv 'deb_dist/%s.orig.tar.gz' 'deb_dist/%s+ds.orig.tar.gz'" % (

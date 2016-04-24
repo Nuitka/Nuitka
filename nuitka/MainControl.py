@@ -18,7 +18,9 @@
 """ This is the main actions of Nuitka.
 
 This can do all the steps to translate one module to a target language using
-the Python C/API, to compile it to either an executable or an extension module.
+the Python C/API, to compile it to either an executable or an extension
+module, potentially with bytecode included and used library copied into
+a distribution folder.
 
 """
 
@@ -29,6 +31,7 @@ import sys
 from logging import info, warning
 
 from nuitka.importing import Importing, Recursion
+from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import isUninstalledPython, python_version
 from nuitka.tree import SyntaxErrors
@@ -36,7 +39,7 @@ from nuitka.utils import InstanceCounters, MemoryUsage, Utils
 
 from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface
-from .codegen import CodeGeneration, ConstantCodes, MainCodes
+from .codegen import CodeGeneration, ConstantCodes
 from .finalizations import Finalization
 from .freezer.BytecodeModuleFreezer import generateBytecodeFrozenCode
 from .freezer.Standalone import copyUsedDLLs, detectEarlyImports
@@ -352,14 +355,6 @@ def makeSourceDirectory(main_module):
                 template_values = template_values
             )
 
-            # The main of an executable module gets a bit different code.
-            if module is main_module and not Options.shallMakeModule():
-                source_code = MainCodes.generateMainCode(
-                    main_module = main_module,
-                    context     = module_context,
-                    codes       = source_code
-                )
-
             writeSourceCode(
                 filename    = cpp_filename,
                 source_code = source_code
@@ -367,7 +362,6 @@ def makeSourceDirectory(main_module):
 
             if Options.isShowInclusion():
                 info("Included compiled module '%s'." % module.getFullName())
-
         elif module.isPythonShlibModule():
             target_filename = Utils.joinpath(
                 getStandaloneDirectoryPath(main_module),
@@ -392,6 +386,8 @@ def makeSourceDirectory(main_module):
             standalone_entry_points.append(
                 (target_filename, module.getPackage())
             )
+        elif module.isUncompiledPythonModule():
+            pass
         else:
             assert False, module
 
@@ -508,6 +504,28 @@ def runScons(main_module, quiet):
 
     if Options.isProfile():
         options["profile_mode"] = "true"
+
+    if "no_warnings" in getPythonFlags():
+        options["no_python_warnings"] = "true"
+
+    if python_version < 300 and sys.flags.py3k_warning:
+        options["python_sysflag_py3k_warning"] = "true"
+
+    if python_version < 300 and (sys.flags.division_warning or sys.flags.py3k_warning):
+        options["python_sysflag_division_warning"] = "true"
+
+    if sys.flags.bytes_warning:
+        options["python_sysflag_bytes_warning"] = "true"
+
+    if int(os.environ.get("NUITKA_SITE_FLAG", "no_site" in Options.getPythonFlags())):
+        options["python_sysflag_no_site"] = "true"
+
+    if "trace_imports" in Options.getPythonFlags():
+        options["python_sysflag_verbose"] = "true"
+
+    if python_version < 300 and sys.flags.unicode:
+        options["python_sysflag_unicode"] = "true"
+
 
     return SconsInterface.runScons(options, quiet), options
 

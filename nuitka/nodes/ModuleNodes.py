@@ -98,6 +98,9 @@ class PythonModuleMixin:
             if python_version >= 330 and not package_filename:
                 return []
 
+            if self.package_name == "uniconvertor.app.modules":
+                return []
+
             assert package_filename is not None, self.package_name
 
             _package_name, package_kind = getModuleNameAndKindFromFilename(package_filename)
@@ -183,7 +186,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         "body": checkStatementsSequenceOrNone
     }
 
-    def __init__(self, name, package_name, source_ref):
+    def __init__(self, name, package_name, mode, source_ref):
         ClosureGiverNodeBase.__init__(
             self,
             name        = name,
@@ -203,6 +206,8 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
                 "body" : None # delayed
             },
         )
+
+        self.mode = mode
 
         self.variables = {}
 
@@ -433,7 +438,6 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         self.constraint_collection.updateFromCollection(old_collection)
 
-
     def getTraceCollections(self):
         yield self.constraint_collection
 
@@ -444,13 +448,14 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 class CompiledPythonPackage(CompiledPythonModule):
     kind = "COMPILED_PYTHON_PACKAGE"
 
-    def __init__(self, name, package_name, source_ref):
+    def __init__(self, name, package_name, mode, source_ref):
         assert name
 
         CompiledPythonModule.__init__(
             self,
             name         = name,
             package_name = package_name,
+            mode         = mode,
             source_ref   = source_ref
         )
 
@@ -514,6 +519,12 @@ class UncompiledPythonModule(PythonModuleMixin, NodeBase):
         self.user_provided = user_provided
         self.technical = technical
 
+        self.used_modules = ()
+
+    @staticmethod
+    def isUncompiledPythonModule():
+        return True
+
     def isUserProvided(self):
         return self.user_provided
 
@@ -524,20 +535,21 @@ class UncompiledPythonModule(PythonModuleMixin, NodeBase):
     def getByteCode(self):
         return self.bytecode
 
-    @staticmethod
-    def isPackage():
-        return False
-
     def getFilename(self):
         return self.filename
+
+    def getUsedModules(self):
+        return self.used_modules
+
+    def setUsedModules(self, used_modules):
+        self.used_modules = used_modules
+
+    def startTraversal(self):
+        pass
 
 
 class UncompiledPythonPackage(UncompiledPythonModule):
     kind = "UNCOMPILED_PYTHON_PACKAGE"
-
-    @staticmethod
-    def isPackage():
-        return True
 
 
 class SingleCreationMixin:
@@ -551,11 +563,12 @@ class SingleCreationMixin:
 class PythonMainModule(CompiledPythonModule, SingleCreationMixin):
     kind = "PYTHON_MAIN_MODULE"
 
-    def __init__(self, main_added, source_ref):
+    def __init__(self, main_added, mode, source_ref):
         CompiledPythonModule.__init__(
             self,
             name         = "__main__",
             package_name = None,
+            mode         = mode,
             source_ref   = source_ref
         )
 
@@ -582,6 +595,7 @@ class PythonInternalModule(CompiledPythonModule, SingleCreationMixin):
             self,
             name         = "__internal__",
             package_name = None,
+            mode         = "compiled",
             source_ref   = SourceCodeReference.fromFilenameAndLine(
                 filename    = "internal",
                 line        = 0,

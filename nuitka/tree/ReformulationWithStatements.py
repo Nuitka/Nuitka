@@ -33,7 +33,10 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
     ExpressionAttributeLookupSpecial
 )
-from nuitka.nodes.CallNodes import ExpressionCallEmpty, ExpressionCallNoKeywords
+from nuitka.nodes.CallNodes import (
+    ExpressionCallEmpty,
+    ExpressionCallNoKeywords
+)
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
@@ -60,8 +63,8 @@ from .Helpers import (
     makeStatementsSequenceFromStatement
 )
 from .ReformulationAssignmentStatements import buildAssignmentStatements
-from . \
-    ReformulationTryExceptStatements import makeTryExceptSingleHandlerNodeWithPublish
+from .ReformulationTryExceptStatements import \
+    makeTryExceptSingleHandlerNodeWithPublish
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 

@@ -23,7 +23,10 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
-from nuitka.nodes.ReturnNodes import ExpressionReturnedValueRef, StatementReturn
+from nuitka.nodes.ReturnNodes import (
+    ExpressionReturnedValueRef,
+    StatementReturn
+)
 from nuitka.nodes.StatementNodes import (
     StatementPreserveFrameException,
     StatementPublishException,

@@ -27,7 +27,7 @@ import runpy
 import sys
 import tempfile
 
-import vmprof  # pylint: disable=F0401,I0021
+import vmprof  # @UnresolvedImport pylint: disable=F0401,I0021
 
 
 def _namelen(e):

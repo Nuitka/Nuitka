@@ -34,7 +34,7 @@ branch_name = subprocess.check_output(
 ).strip()
 
 assert branch_name == "master", branch_name
-assert "pre" not in nuitka_version
+assert "pre" not in nuitka_version and "rc" not in nuitka_version
 
 # Need to remove the contents from the Rest, or else PyPI will not render
 # it. Stupid but true.

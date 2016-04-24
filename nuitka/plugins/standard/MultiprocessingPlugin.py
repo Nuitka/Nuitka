@@ -88,6 +88,47 @@ Monkey patching "multiprocessing" for compiled methods."""
 
         return None, None
 
+    @staticmethod
+    def _addSlaveMainModule(root_module):
+        from nuitka.tree.Building import CompiledPythonModule, readSourceCodeFromFilename, createModuleTree
+        from nuitka.ModuleRegistry import addRootModule
+        from nuitka.plugins.Plugins import Plugins
+        # First, build the module node and then read again from the
+        # source code.
+        module_name = "__parents_main__"
+        source_ref = root_module.getSourceReference()
+
+        mode = Plugins.decideCompilation(module_name, source_ref)
+
+        slave_main_module = CompiledPythonModule(
+            name         = module_name,
+            package_name = None,
+            mode         = mode,
+            source_ref   = root_module.getSourceReference()
+        )
+
+        source_code = readSourceCodeFromFilename(
+            "__parents_main__",
+            root_module.getFilename()
+        )
+
+        # For the call stack, this may look bad or different to what
+        # CPython does. Using the "__import__" built-in to not spoil
+        # or use the module namespace.
+        source_code += """
+__import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
+__import__("multiprocessing.forking").forking.main()"""
+
+        createModuleTree(
+            module      = slave_main_module,
+            source_ref  = root_module.getSourceReference(),
+            source_code = source_code,
+            is_main     = False
+        )
+
+        # This is an alternative entry point of course.
+        addRootModule(slave_main_module)
+
     def onModuleEncounter(self, module_filename, module_name, module_package,
                           module_kind):
         if module_name == "multiprocessing" and \
@@ -95,42 +136,11 @@ Monkey patching "multiprocessing" for compiled methods."""
            and not self.multiprocessing_added:
             self.multiprocessing_added = True
 
-            from nuitka.ModuleRegistry import getRootModules, addRootModule
-            from nuitka.tree.Building import CompiledPythonModule, readSourceCodeFromFilename, createModuleTree
+            from nuitka.ModuleRegistry import getRootModules
 
             for root_module in getRootModules():
                 if root_module.isMainModule():
-                    # First, build the module node and then read again from the
-                    # source code.
-
-                    slave_main_module = CompiledPythonModule(
-                        name         = "__parents_main__",
-                        package_name = None,
-                        source_ref   = root_module.getSourceReference()
-                    )
-
-                    source_code = readSourceCodeFromFilename(
-                        "__parents_main__",
-                        root_module.getFilename()
-                    )
-
-                    # For the call stack, this may look bad or different to what
-                    # CPython does. Using the "__import__" built-in to not spoil
-                    # or use the module namespace.
-                    source_code += """
-__import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
-__import__("multiprocessing.forking").forking.main()"""
-
-                    createModuleTree(
-                        module      = slave_main_module,
-                        source_ref  = root_module.getSourceReference(),
-                        source_code = source_code,
-                        is_main     = False
-                    )
-
-                    # This is an alternative entry point of course.
-                    addRootModule(slave_main_module)
-
+                    self._addSlaveMainModule(root_module)
                     break
             else:
                 assert False

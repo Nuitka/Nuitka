@@ -140,7 +140,6 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
         bytecode    = bytecode
     )
 
-
     result.append(
         makeUncompiledPythonModule(
             module_name   = module_name,
@@ -362,7 +361,7 @@ def scanStandardLibraryPath(stdlib_dir):
                 dirs.remove("ensurepip")
 
             # Ignore "lib-dynload" and "lib-tk" and alikes.
-            dirs = [
+            dirs[:] = [
                 dirname
                 for dirname in
                 dirs

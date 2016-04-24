@@ -32,8 +32,8 @@ from logging import info
 from nuitka import Options
 from nuitka.codegen import ConstantCodes
 from nuitka.codegen.Indentation import indented
-from nuitka.codegen.templates. \
-    CodeTemplatesFreezer import template_frozen_modules
+from nuitka.codegen.templates.CodeTemplatesFreezer import \
+    template_frozen_modules
 from nuitka.ModuleRegistry import getUncompiledTechnicalModules
 
 stream_data = ConstantCodes.stream_data
@@ -44,7 +44,7 @@ def generateBytecodeFrozenCode():
     for uncompiled_module in getUncompiledTechnicalModules():
         module_name = uncompiled_module.getFullName()
         code_data = uncompiled_module.getByteCode()
-        is_package = uncompiled_module.isPackage()
+        is_package = uncompiled_module.isUncompiledPythonPackage()
 
         size = len(code_data)
 

@@ -79,9 +79,7 @@ from nuitka.nodes.ModuleNodes import (
     CompiledPythonPackage,
     ExpressionModuleFileAttributeRef,
     PythonMainModule,
-    PythonShlibModule,
-    UncompiledPythonModule,
-    UncompiledPythonPackage
+    PythonShlibModule
 )
 from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinary,
@@ -964,51 +962,21 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         elif is_main:
             result = PythonMainModule(
                 main_added = main_added,
+                mode       = Plugins.decideCompilation("__main__", source_ref),
                 source_ref = source_ref
             )
         else:
             if package is not None:
-                full_name = package + "." + module_name
+                full_name = package + '.' + module_name
             else:
                 full_name = module_name
 
-            decision = Plugins.decideCompilation(full_name, source_ref)
-
-            if decision == "compiled":
-                result = CompiledPythonModule(
-                    name         = module_name,
-                    package_name = package,
-                    source_ref   = source_ref
-                )
-            else:
-                source_code = readSourceCodeFromFilename(module_name, filename)
-
-                source_code = Plugins.onFrozenModuleSourceCode(
-                    module_name = full_name,
-                    is_package  = False,
-                    source_code = source_code
-                )
-
-                bytecode = compile(source_code, filename, "exec")
-
-                bytecode = Plugins.onFrozenModuleBytecode(
-                    module_name = module_name,
-                    is_package  = False,
-                    bytecode    = bytecode
-                )
-
-                result = UncompiledPythonModule(
-                    name         = module_name,
-                    package_name = package,
-                    bytecode     = bytecode,
-                    filename     = filename,
-                    user_provided = True,
-                    technical    = False,
-                    source_ref   = source_ref
-                )
-
-                # Don't read it anymore.
-                source_filename = None
+            result = CompiledPythonModule(
+                name         = module_name,
+                package_name = package,
+                mode         = Plugins.decideCompilation(full_name, source_ref),
+                source_ref   = source_ref
+            )
 
     elif Importing.isPackageDir(filename):
         if is_top:
@@ -1030,39 +998,16 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             )
 
             if package is not None:
-                full_name = package + "." + package_name
+                full_name = package + '.' + package_name
             else:
                 full_name = package_name
 
-            decision = Plugins.decideCompilation(full_name, source_ref)
-
-            if decision == "compiled":
-                result = CompiledPythonPackage(
-                    name         = package_name,
-                    package_name = package,
-                    source_ref   = source_ref
-                )
-            else:
-                bytecode = compile(source_code, filename, "exec")
-
-                bytecode = Plugins.onFrozenModuleBytecode(
-                    module_name = module_name,
-                    is_package  = False,
-                    bytecode    = bytecode
-                )
-
-                result = UncompiledPythonPackage(
-                    name         = module_name,
-                    package_name = package,
-                    bytecode     = bytecode,
-                    filename     = filename,
-                    user_provided = True,
-                    technical    = False,
-                    source_ref   = source_ref
-                )
-
-                # Don't read it anymore.
-                source_filename = None
+            result = CompiledPythonPackage(
+                name         = package_name,
+                package_name = package,
+                mode         = Plugins.decideCompilation(full_name, source_ref),
+                source_ref   = source_ref
+            )
     else:
         sys.stderr.write(
             "%s: can't open file '%s'.\n" % (
@@ -1091,7 +1036,7 @@ class CodeTooComplexCode(Exception):
 
 
 def createModuleTree(module, source_ref, source_code, is_main):
-    if Options.isShowProgress():
+    if Options.isShowMemory():
         memory_watch = MemoryUsage.MemoryWatch()
 
     try:
@@ -1120,7 +1065,7 @@ def createModuleTree(module, source_ref, source_code, is_main):
 
     completeVariableClosures(module)
 
-    if Options.isShowProgress():
+    if Options.isShowMemory():
         memory_watch.finish()
 
         Tracing.printLine(

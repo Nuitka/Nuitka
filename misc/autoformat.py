@@ -19,7 +19,10 @@
 
 from __future__ import print_function
 
-import sys, os, shutil, re
+import os
+import re
+import shutil
+import sys
 
 from redbaron import RedBaron  # @UnresolvedImport
 
@@ -35,7 +38,7 @@ def updateCall(call_node):
         if argument.type == "argument_generator_comprehension":
             return
 
-        if argument.target is not None:
+        if hasattr(argument, "target") and argument.target is not None:
             key = argument.target.value
         else:
             key = None
@@ -48,7 +51,7 @@ def updateCall(call_node):
         del call_node.third_formatting[:]
 
     for argument in call_node:
-        if argument.target is not None:
+        if hasattr(argument, "target") and argument.target is not None:
             key = argument.target.value
         else:
             key = None
@@ -77,7 +80,7 @@ def updateTuple(tuple_node):
         tuple_node.second_formatting = ""
         tuple_node.third_formatting = ""
 
-        if tuple_node.with_parenthesis:
+        if tuple_node.type == "tuple" and tuple_node.with_parenthesis:
             if len(tuple_node.value.node_list) > 0:
                 tuple_node.value.node_list[-1].second_formatting = ""
 
@@ -87,7 +90,8 @@ def updateTuple(tuple_node):
 
 def updateString(string_node):
     # Skip doc strings for now.
-    if string_node.parent.type in ("class", "def", None):
+    if not hasattr( node.parent, "type") or \
+       string_node.parent.type in ("class", "def", None):
         return
 
     value = string_node.value

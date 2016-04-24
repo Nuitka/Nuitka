@@ -3,6 +3,7 @@ Maintainer: Kay Hayen <kay.hayen@gmail.com>
 Section: python
 Priority: optional
 Build-Depends: debhelper (>= 7.4.3),
+               dh-python,
                python (>= 2.6.6-2),
                python-all-dbg (>= 2.6.6-2),
                python-all-dev (>= 2.6.6-2),

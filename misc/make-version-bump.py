@@ -17,8 +17,8 @@
 #     limitations under the License.
 #
 
-import os, sys
-
+import os
+import sys
 from optparse import OptionParser
 
 parser = OptionParser()
@@ -49,19 +49,19 @@ version_line, = [ line for line in open("nuitka/Options.py") if line.startswith(
 old_version = version_line[ 8:].rstrip()
 
 if options.mode.startswith("pre"):
-    if "pre" in old_version:
-        parts = old_version.split("pre")
+    if "rc" in old_version:
+        parts = old_version.split("rc")
 
-        new_version = "pre".join([parts[0], str(int(parts[1]) + 1) ])
+        new_version = "rc".join([parts[0], str(int(parts[1]) + 1) ])
     else:
         old_version = '.'.join(old_version.split('.')[:3])
         parts = old_version.split('.')
         parts[-1] = str(int(parts[-1]) + 1)
 
-        new_version = '.'.join(parts) + "pre1"
+        new_version = '.'.join(parts) + "rc1"
 elif options.mode == "release":
-    if "pre" in old_version:
-        old_version = old_version[ : old_version.find("pre") ]
+    if "rc" in old_version:
+        old_version = old_version[ : old_version.find("rc") ]
         was_pre = True
     else:
         was_pre = False
@@ -74,7 +74,7 @@ elif options.mode == "release":
 
         new_version = '.'.join(parts)
 elif options.mode == "hotfix":
-    assert "pre" not in old_version
+    assert "pre" not in old_version and "rc" not in old_version
 
     parts = old_version.split('.')
 
@@ -99,16 +99,16 @@ with open("nuitka/Options.py", 'w') as options_file:
         options_file.write(line)
 
 print old_version, "->", new_version
-debian_version = new_version.replace("pre", "~pre") + "+ds-1"
+debian_version = new_version.replace("rc", "~rc") + "+ds-1"
 
-if "pre" in new_version:
-    if "pre1" in new_version:
+if "rc" in new_version:
+    if "rc1" in new_version:
         os.system('debchange -R "New upstream pre-release."')
         os.system('debchange --newversion=%s ""'  % debian_version)
     else:
         os.system('debchange --newversion=%s ""'  % debian_version)
 else:
-    if "pre" in version_line:
+    if "rc" in version_line:
         # Initial final release after pre-releases.
         changelog_lines = open("debian/changelog").readlines()
         with open("debian/changelog", 'w') as output:

@@ -35,7 +35,6 @@ template_metapath_loader_bytecode_module_entry = """\
 
 template_metapath_loader_body = """\
 /* Code to register embedded modules for meta path based loading if any. */
-#if %(use_loader)d == 1
 
 #include "nuitka/unfreezing.hpp"
 
@@ -60,13 +59,6 @@ void setupMetaPathBasedLoader( void )
         init_done = true;
     }
 }
-#else
-
-void setupMetaPathBasedLoader( void )
-{
-}
-
-#endif
 """
 
 from . import TemplateDebugWrapper # isort:skip

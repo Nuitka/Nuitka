@@ -21,7 +21,7 @@
 
 import glob
 import sys
-from logging import debug, warning
+from logging import debug, info, warning
 
 import marshal
 from nuitka import ModuleRegistry, Options
@@ -30,6 +30,13 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
+
+
+def logRecursion(*args):
+    if Options.isShowInclusion():
+        info(*args)
+    else:
+        debug(*args)
 
 
 def recurseTo(module_package, module_filename, module_relpath, module_kind,
@@ -49,8 +56,8 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
         # Check if the module name is known. In order to avoid duplicates,
         # learn the new filename, and continue build if its not.
         if not ImportCache.isImportedModuleByName(module.getFullName()):
-            debug(
-                "Recurse to import '%s' from %s. (%s)",
+            logRecursion(
+                "Recurse to import '%s' from '%s'. (%s)",
                 module.getFullName(),
                 module_relpath,
                 reason

@@ -16,7 +16,10 @@
 #     limitations under the License.
 #
 
-import sys, os
+import os
+import sys
+from distutils.command.install_scripts import install_scripts
+from distutils.core import setup
 
 os.chdir(os.path.dirname(__file__) or '.')
 
@@ -45,8 +48,8 @@ version = detectVersion()
 if os.name == "nt" and "bdist_msi" in sys.argv:
 
     # Pre-releases are always smaller, official releases get the "1".
-    middle = 1 if "pre" not in version else 0
-    version = version.replace("pre", "")
+    middle = 1 if "rc" not in version else 0
+    version = version.replace("rc", "")
     parts = version.split('.')
     major, first, last = parts[:3]
     hotfix = parts[3] if len(parts) > 3 else 0
@@ -81,7 +84,6 @@ def find_packages():
 
 package = find_packages()
 
-from distutils.command.install_scripts import install_scripts
 class NuitkaInstallScripts(install_scripts):
     """
     This is a specialization of install_scripts that replaces the @LIBDIR@ with
@@ -129,18 +131,42 @@ class NuitkaInstallScripts(install_scripts):
             if b'\0' in data:
                 continue
 
+            old_data = data
+
             data = data.replace(b"@LIBDIR@", libdir.encode("unicode_escape"))
 
             if patch_bats and outfile.endswith(".bat"):
                 data = data.replace(b"..\\",b"")
 
-            fp = open(outfile, "wb")
-            fp.write(data)
-            fp.close()
+            if data != old_data:
+                fp = open(outfile, "wb")
+                fp.write(data)
+                fp.close()
 
 cmdclass = {
-    "install_scripts" : NuitkaInstallScripts
+    "install_scripts" : NuitkaInstallScripts,
 }
+
+
+try:
+    import setuptools.command.easy_install
+except ImportError:
+    pass
+else:
+    orig_easy_install = setuptools.command.easy_install.easy_install
+
+    class NuitkaEasyInstall(setuptools.command.easy_install.easy_install):
+        @staticmethod
+        def _load_template(dev_path):
+            result = orig_easy_install._load_template(dev_path)
+            result = result.replace(
+                "__import__('pkg_resources')",
+                "# __import__('pkg_resources')",
+            )
+
+            return result
+
+    setuptools.command.easy_install.easy_install = NuitkaEasyInstall
 
 if os.path.exists("/usr/bin/scons") and \
    "sdist" not in sys.argv and \
@@ -182,7 +208,6 @@ if sys.version_info >= (3,):
     util.byte_compile = byte_compile
 
 
-from distutils.core import setup
 
 setup(
     name         = project_name,
