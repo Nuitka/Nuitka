@@ -1,5 +1,5 @@
-Nuitka Release 0.5.21 (Draft)
-=============================
+Nuitka Release 0.5.21
+=====================
 
 This release focused on scalability work. Making Nuitka more usable in the
 common case, and covering more standalone use cases.
