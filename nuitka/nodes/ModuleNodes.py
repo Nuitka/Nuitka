@@ -33,6 +33,7 @@ from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
+from nuitka.TreeXML import Element
 from nuitka.utils import Utils
 
 from .Checkers import checkStatementsSequenceOrNone
@@ -242,8 +243,14 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def asXml(self):
         result = super(CompiledPythonModule, self).asXml()
 
+        functions_node = Element("role")
+        functions_node.attrib["name"] = "functions"
+        functions_node.attrib["type"] = "list"
+
         for function_body in self.active_functions:
-            result.append(function_body.asXml())
+            functions_node.append(function_body.asXml())
+
+        result.append(functions_node)
 
         return result
 
@@ -552,15 +559,7 @@ class UncompiledPythonPackage(UncompiledPythonModule):
     kind = "UNCOMPILED_PYTHON_PACKAGE"
 
 
-class SingleCreationMixin:
-    created = set()
-
-    def __init__(self):
-        assert self.__class__ not in self.created
-        self.created.add(self.__class__)
-
-
-class PythonMainModule(CompiledPythonModule, SingleCreationMixin):
+class PythonMainModule(CompiledPythonModule):
     kind = "PYTHON_MAIN_MODULE"
 
     def __init__(self, main_added, mode, source_ref):
@@ -572,9 +571,15 @@ class PythonMainModule(CompiledPythonModule, SingleCreationMixin):
             source_ref   = source_ref
         )
 
-        SingleCreationMixin.__init__(self)
-
         self.main_added = main_added
+
+    def getDetails(self):
+        return {
+            "filename"   : self.source_ref.getFilename(),
+            "main_added" : self.main_added,
+            "mode"       : self.mode
+        }
+
 
     @staticmethod
     def isMainModule():
@@ -587,7 +592,7 @@ class PythonMainModule(CompiledPythonModule, SingleCreationMixin):
             return CompiledPythonModule.getOutputFilename(self)
 
 
-class PythonInternalModule(CompiledPythonModule, SingleCreationMixin):
+class PythonInternalModule(CompiledPythonModule):
     kind = "PYTHON_INTERNAL_MODULE"
 
     def __init__(self):
@@ -602,8 +607,6 @@ class PythonInternalModule(CompiledPythonModule, SingleCreationMixin):
                 future_spec = FutureSpec()
             )
         )
-
-        SingleCreationMixin.__init__(self)
 
     @staticmethod
     def isInternalModule():

@@ -319,6 +319,16 @@ after that.""".format(
     printLine(output)
 
 
+def restoreFromXML(text):
+    from nuitka.TreeXML import fromString
+    from nuitka.nodes.NodeBases import fromXML
+    xml = fromString(text)
+    open("out.xml", "w").write(text)
+
+    module = fromXML(xml)
+    assert False, module
+
+
 def makeOptimizationPass(initial_pass):
     """ Make a single pass for optimization, indication potential completion.
 
@@ -381,7 +391,17 @@ def optimize():
     VariableRegistry.considerCompletion()
     finished = makeOptimizationPass(False)
 
-    # Demote to bytecode if now.
+    if Options.isExperimental():
+        for module in ModuleRegistry.getDoneUserModules():
+            if module.isPythonShlibModule():
+                continue
+
+            text = module.asXmlText()
+
+            restoreFromXML(text)
+
+    # Demote to bytecode, now that imports had a chance to be resolved, and
+    # dependencies were handled.
     for module in ModuleRegistry.getDoneUserModules():
         if module.isPythonShlibModule():
             continue

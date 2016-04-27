@@ -27,6 +27,7 @@ from nuitka.__past__ import iterItems
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.containers.odict import OrderedDict
 from nuitka.PythonVersions import python_version
+from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 from nuitka.VariableRegistry import addVariableUsage, removeVariableUsage
 
@@ -38,7 +39,7 @@ from .NodeMakingHelpers import (
 
 
 class NodeCheckMetaClass(type):
-    kinds = set()
+    kinds = {}
 
     def __new__(cls, name, bases, dictionary):
         # This is in conflict with either PyDev or Pylint, pylint: disable=C0204
@@ -54,7 +55,8 @@ class NodeCheckMetaClass(type):
             assert type(kind) is str, name
             assert kind not in NodeCheckMetaClass.kinds, name
 
-            NodeCheckMetaClass.kinds.add(kind)
+            NodeCheckMetaClass.kinds[kind] = cls
+            NodeCheckMetaClass.kinds[name] = cls
 
             def convert(value):
                 if value in ("AND", "OR", "NOT"):
@@ -329,13 +331,15 @@ class NodeBase(NodeMetaClassBase):
             result.set(key, str(value))
 
         for name, children in self.getVisitableNodesNamed():
-            if type(children) not in (list, tuple):
-                children = (children,)
-
             role = TreeXML.Element(
                 "role",
                 name = name
             )
+
+            if type(children) not in (list, tuple):
+                children = (children,)
+            else:
+                role.attrib["type"] = "list"
 
             result.append(role)
 
@@ -1731,3 +1735,43 @@ class SideEffectsFromChildrenMixin:
             )
 
         return tuple(result)
+
+
+def fromXML(xml, source_ref = None):
+    assert xml.tag == "node", xml
+
+    kind = xml.attrib["kind"]
+
+    node_class = NodeCheckMetaClass.kinds[kind]
+
+    args = dict(xml.attrib)
+    del args["kind"]
+
+    if source_ref is None:
+        source_ref = SourceCodeReference.fromFilenameAndLine(args["filename"], int(args["line"]), None)
+        del args["filename"]
+        del args["line"]
+    else:
+        source_ref = source_ref.atLineNumber(int(args["line"]))
+        del args["line"]
+
+    for child in xml:
+        assert child.tag == "role", child.tag
+        child_name = child.attrib["name"]
+
+        if child.attrib.get("type") == "list":
+            value = [
+                fromXML(sub_child, source_ref)
+                for sub_child in
+                child
+            ]
+        else:
+            value = fromXML(child[0], source_ref)
+
+        args[child_name] = value
+
+    try:
+        return node_class( source_ref = source_ref, **args )
+    except TypeError:
+        print(node_class)
+        raise
