@@ -1,6 +1,22 @@
 Nuitka Release 0.5.22 (Draft)
 =============================
 
+This is currently in progress.
+
+Bug Fixes
+---------
+
+- Compatibility: Classes with decorated ``__new__`` functions could miss
+  out on the ``staticmethod`` decorator that is implicit. It's now applied
+  always, unless of course it's already done manually. This corrects an
+  issue found with Pandas. Fixed in 0.5.22.1 already.
+
+- Standalone: For at least Python 3.4 or higher, it could happen that the
+  locale needed was not importable. Fixed in 0.5.22.1 already.
+
+Summary
+-------
+
 This release is not done yet.
 
 
