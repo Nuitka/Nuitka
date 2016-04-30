@@ -103,7 +103,7 @@ def _insertFinalReturnStatement(function_statements_body, return_class,
 
 
 def buildFunctionNode(provider, node, source_ref):
-    # Functions have way too many details, pylint: disable=R0914
+    # Functions have way too many details, pylint: disable=R0914,R0912
 
     assert getKind(node) == "FunctionDef"
 

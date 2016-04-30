@@ -1773,5 +1773,5 @@ def fromXML(xml, source_ref = None):
     try:
         return node_class( source_ref = source_ref, **args )
     except TypeError:
-        print(node_class)
+        Tracing.printLine(node_class)
         raise
