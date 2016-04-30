@@ -218,15 +218,19 @@ def buildFunctionNode(provider, node, source_ref):
     # CPython made these optional, but secretly applies them when it does
     # "class __new__".  We add them earlier, so our optimization will see it.
     if node.name == "__new__" and \
-       not decorators and \
        provider.isExpressionClassBody():
 
-        decorators = (
-            ExpressionBuiltinRef(
-                builtin_name = "staticmethod",
-                source_ref   = source_ref
-            ),
-        )
+        for decorator in decorators:
+            if decorator.isExpressionVariableRef() and \
+               decorator.getVariableName() == "staticmethod":
+                break
+        else:
+            decorators.append(
+                ExpressionBuiltinRef(
+                    builtin_name = "staticmethod",
+                    source_ref   = source_ref
+                )
+            )
 
     decorated_function = function_creation
     for decorator in decorators:
