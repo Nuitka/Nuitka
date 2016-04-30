@@ -145,7 +145,9 @@ for filename in os.listdir('.'):
         assert 0 == os.system("gunzip " + new_name)
         assert 0 == os.system(
             "tar --wildcards --delete --file " + new_name[:-3] + \
-            " Nuitka*/tests/benchmarks Nuitka*/*.pdf Nuitka*/build/inline_copy"
+            " Nuitka*/tests/benchmarks Nuitka*/*.pdf" + \
+            " Nuitka*/build/inline_copy" + \
+            " Nuitka*/Nuitka.egg-info"
         )
         assert 0 == os.system("gzip -9 -n " + new_name[:-3])
 
