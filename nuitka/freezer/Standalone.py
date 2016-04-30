@@ -408,17 +408,27 @@ def scanStandardLibraryPath(stdlib_dir):
 
 
 def detectEarlyImports():
-    # TODO: Should recursively include all of encodings module.
-    import_code = "import encodings.utf_8;import encodings.ascii;import encodings.idna;"
+    encoding_names = [
+        filename[:-3]
+        for _path, filename in
+        Utils.listDir(Utils.dirname(sys.modules["encodings"].__file__))
+        if filename.endswith(".py")
+        if "__init__" not in filename
+    ]
 
-    if Utils.getOS() == "Windows":
-        import_code += "import encodings.mbcs;import encodings.cp437;"
+    if Utils.getOS() != "Windows":
+        encoding_names.remove("mbcs")
 
-    # String method hex depends on it.
-    if python_version < 300:
-        import_code += "import encodings.hex_codec;"
+        if "cp65001" in encoding_names:
+            encoding_names.remove("cp65001")
 
-    import_code += "import locale;"
+    import_code = ";".join(
+        "import encodings.%s" % encoding_name
+        for encoding_name in
+        encoding_names
+    )
+
+    import_code += ";import locale;"
 
     # For Python3 we patch inspect without knowing if it is used.
     if python_version >= 300:
