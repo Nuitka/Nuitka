@@ -22,6 +22,7 @@ import shutil
 import subprocess
 import sys
 
+
 def checkAtHome():
     assert os.path.isfile("setup.py")
 
