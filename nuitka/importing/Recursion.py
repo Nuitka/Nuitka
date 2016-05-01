@@ -243,7 +243,7 @@ def isSameModulePath(path1, path2):
 
 
 def _checkPluginPath(plugin_filename, module_package):
-    # Many branches, for the decision is very complex
+    # Many branches, for the decision is very complex, pylint: disable=R0912
 
     debug(
         "Checking detail plug-in path '%s' '%s':",
@@ -251,82 +251,90 @@ def _checkPluginPath(plugin_filename, module_package):
         module_package
     )
 
-    plugin_info = considerFilename(
-        module_filename = plugin_filename
-    )
+    module_name, module_kind = Importing.getModuleNameAndKindFromFilename(plugin_filename)
 
-    if plugin_info is not None:
-        module, is_added = recurseTo(
-            module_filename = plugin_info[0],
-            module_relpath  = plugin_info[1],
+    if module_kind is not None:
+        decision, _reason = decideRecursion(
+            module_filename = plugin_filename,
+            module_name     = module_name,
             module_package  = module_package,
-            module_kind     = "py",
-            reason          = "Lives in plug-in directory."
+            module_kind     = module_kind
         )
 
-        if module:
-            if not is_added:
-                warning(
-                    "Recursed to %s '%s' at '%s' twice.",
-                    "package" if module.isCompiledPythonPackage() else "module",
-                    module.getName(),
-                    plugin_info[0]
-                )
+        if decision:
+            module_relpath = Utils.relpath(plugin_filename)
 
-                if not isSameModulePath(module.getFilename(), plugin_info[0]):
-                    warning(
-                        "Duplicate ignored '%s'.",
-                        plugin_info[1]
-                    )
-
-                    return
-
-            debug(
-                "Recursed to %s %s %s",
-                module.getName(),
-                module.getPackage(),
-                module
+            module, is_added = recurseTo(
+                module_filename = plugin_filename,
+                module_relpath  = module_relpath,
+                module_package  = module_package,
+                module_kind     = "py",
+                reason          = "Lives in plug-in directory."
             )
 
-            ImportCache.addImportedModule(module)
+            if module:
+                if not is_added:
+                    warning(
+                        "Recursed to %s '%s' at '%s' twice.",
+                        "package" if module.isCompiledPythonPackage() else "module",
+                        module.getName(),
+                        plugin_filename
+                    )
 
-            if module.isCompiledPythonPackage():
-                package_filename = module.getFilename()
+                    if not isSameModulePath(module.getFilename(), plugin_filename):
+                        warning(
+                            "Duplicate ignored '%s'.",
+                            plugin_filename
+                        )
 
-                if Utils.isDir(package_filename):
-                    # Must be a namespace package.
-                    assert python_version >= 330
-
-                    package_dir = package_filename
-
-                    # Only include it, if it contains actual modules, which will
-                    # recurse to this one and find it again.
-                else:
-                    package_dir = Utils.dirname(package_filename)
-
-                    # Real packages will always be included.
-                    ModuleRegistry.addRootModule(module)
+                        return
 
                 debug(
-                    "Package directory %s",
-                    package_dir
+                    "Recursed to %s %s %s",
+                    module.getName(),
+                    module.getPackage(),
+                    module
                 )
 
-                for sub_path, sub_filename in Utils.listDir(package_dir):
-                    if sub_filename in ("__init__.py", "__pycache__"):
-                        continue
+                ImportCache.addImportedModule(module)
 
-                    assert sub_path != plugin_filename
+                if module.isCompiledPythonPackage():
+                    package_filename = module.getFilename()
 
-                    if Importing.isPackageDir(sub_path) or \
-                       sub_path.endswith(".py"):
-                        _checkPluginPath(sub_path, module.getFullName())
+                    if Utils.isDir(package_filename):
+                        # Must be a namespace package.
+                        assert python_version >= 330
 
-            elif module.isCompiledPythonModule():
-                ModuleRegistry.addRootModule(module)
+                        package_dir = package_filename
 
-        else:
-            warning("Failed to include module from '%s'.", plugin_info[0])
+                        # Only include it, if it contains actual modules, which will
+                        # recurse to this one and find it again.
+                    else:
+                        package_dir = Utils.dirname(package_filename)
+
+                        # Real packages will always be included.
+                        ModuleRegistry.addRootModule(module)
+
+                    debug(
+                        "Package directory %s",
+                        package_dir
+                    )
+
+                    for sub_path, sub_filename in Utils.listDir(package_dir):
+                        if sub_filename in ("__init__.py", "__pycache__"):
+                            continue
+
+                        assert sub_path != plugin_filename
+
+                        if Importing.isPackageDir(sub_path) or \
+                           sub_path.endswith(".py"):
+                            _checkPluginPath(sub_path, module.getFullName())
+
+                elif module.isCompiledPythonModule():
+                    ModuleRegistry.addRootModule(module)
+
+            else:
+                warning("Failed to include module from '%s'.", plugin_filename)
 
 
 def checkPluginPath(plugin_filename, module_package):
