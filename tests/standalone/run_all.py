@@ -271,18 +271,6 @@ for filename in sorted(os.listdir('.')):
         if loaded_filename.startswith("/usr/share/X11/locale/"):
             continue
 
-        if loaded_filename.startswith("/lib/libc.") or \
-           loaded_filename.startswith("/lib64/libc."):
-            continue
-
-        if loaded_filename.startswith("/lib/libdl.") or \
-           loaded_filename.startswith("/lib64/libdl."):
-            continue
-
-        if loaded_filename.startswith("/lib/libm.") or \
-           loaded_filename.startswith("/lib64/libm."):
-            continue
-
         if loaded_filename.startswith("/lib/libz.") or \
            loaded_filename.startswith("/lib64/libz."):
             continue
@@ -291,12 +279,15 @@ for filename in sorted(os.listdir('.')):
            loaded_filename.startswith("/lib64/libutil."):
             continue
 
-        if loaded_filename.startswith("/lib/libpthread.") or \
-           loaded_filename.startswith("/lib64/libpthread."):
-            continue
-
         if loaded_filename.startswith("/lib/libgcc_s.") or \
            loaded_filename.startswith("/lib64/libgcc_s."):
+            continue
+
+        # System C libraries are to be expected.
+        if os.path.basename(loaded_filename).startswith("libc.so.") or \
+           os.path.basename(loaded_filename).startswith("libpthread.so.") or \
+           os.path.basename(loaded_filename).startswith("libdl.so.") or \
+           os.path.basename(loaded_filename).startswith("libm.so."):
             continue
 
         # Loaded by C library potentially for DNS lookups.
