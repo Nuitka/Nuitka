@@ -524,10 +524,10 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
     # TODO: Remove default and correct argument order later.
-    def __init__(self, variable_name, source_ref, variable = None):
+    def __init__(self, variable_name, source_ref, variable = None, version = None):
         ExpressionVariableRef.__init__(self, variable_name, source_ref)
 
-        self.variable_version = None
+        self.variable_version = version
 
         # TODO: Remove setVariable, once not needed anymore and in-line to
         # here.
@@ -538,13 +538,12 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
     def getDetailsForDisplay(self):
         if self.variable is None:
             return {
-                "name" : self.variable_name
+                "variable_name" : self.variable_name
             }
         else:
             return {
-                "name"     : self.variable_name,
-                "variable" : self.variable,
-                "version"  : self.variable_version
+                "variable_name" : self.variable_name,
+                "version"       : self.variable_version
             }
 
 

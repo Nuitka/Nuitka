@@ -62,16 +62,6 @@ class StatementsSequence(StatementChildrenHavingBase):
     getStatements = StatementChildrenHavingBase.childGetter("statements")
     setStatements = StatementChildrenHavingBase.childSetter("statements")
 
-    def getDetailsForDisplay(self):
-        if self.getStatements():
-            return {
-                "statement_count" : len(self.getStatements())
-            }
-        else:
-            return {
-                "statement_count" : 0
-            }
-
     # Overloading name based automatic check, so that derived ones know it too.
     def isStatementsSequence(self):
         # Virtual method, pylint: disable=R0201

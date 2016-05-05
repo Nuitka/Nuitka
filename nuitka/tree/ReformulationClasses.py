@@ -70,9 +70,9 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.PythonVersions import python_version
 
 from .Helpers import (
+    buildFrameNode,
     buildNode,
     buildNodeList,
-    buildStatementsNode,
     extractDocFromBody,
     getKind,
     makeDictCreationOrConstant,
@@ -161,7 +161,7 @@ def _buildClassNode3(provider, node, source_ref):
         has_stardict  = False
     )
 
-    body = buildStatementsNode(
+    body = buildFrameNode(
         provider    = class_creation_function,
         nodes       = class_statement_nodes,
         code_object = code_object,
@@ -605,7 +605,7 @@ def _buildClassNode2(provider, node, source_ref):
         has_stardict  = False
     )
 
-    body = buildStatementsNode(
+    body = buildFrameNode(
         provider    = function_body,
         nodes       = class_statement_nodes,
         code_object = code_object,

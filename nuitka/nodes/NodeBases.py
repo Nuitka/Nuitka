@@ -336,15 +336,18 @@ class NodeBase(NodeMetaClassBase):
                 name = name
             )
 
-            if type(children) not in (list, tuple):
-                children = (children,)
+            result.append(role)
+
+            if children is None:
+                role.attrib["type"] = "none"
+            elif type(children) not in (list, tuple):
+                role.append(
+                    children.asXml()
+                )
             else:
                 role.attrib["type"] = "list"
 
-            result.append(role)
-
-            for child in children:
-                if child is not None:
+                for child in children:
                     role.append(
                         child.asXml()
                     )
@@ -1758,20 +1761,26 @@ def fromXML(xml, source_ref = None):
     for child in xml:
         assert child.tag == "role", child.tag
         child_name = child.attrib["name"]
+        child_type = child.attrib.get("type")
 
-        if child.attrib.get("type") == "list":
+        if child_type == "list":
             value = [
                 fromXML(sub_child, source_ref)
                 for sub_child in
                 child
             ]
+        elif child_type == "none":
+            value = None
         else:
             value = fromXML(child[0], source_ref)
 
         args[child_name] = value
 
     try:
-        return node_class( source_ref = source_ref, **args )
+        return node_class(
+            source_ref = source_ref,
+            **args
+        )
     except TypeError:
-        Tracing.printLine(node_class)
+        Tracing.printLine(node_class, args)
         raise

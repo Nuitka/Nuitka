@@ -345,7 +345,7 @@ def makeModuleFrame(module, statements, source_ref):
     )
 
 
-def buildStatementsNode(provider, nodes, source_ref, code_object = None):
+def buildStatementsNode(provider, nodes, source_ref):
     # We are not creating empty statement sequences.
     if nodes is None:
         return None
@@ -360,50 +360,63 @@ def buildStatementsNode(provider, nodes, source_ref, code_object = None):
     if not statements:
         return None
 
-    # In case of a frame is desired, build it instead.
-    if code_object:
-        if provider.isExpressionGeneratorObjectBody():
-            # TODO: Could do this earlier and on the outside.
-            statements.insert(
-                0,
-                StatementGeneratorEntry(
-                    source_ref = source_ref
-                )
-            )
-            result = StatementsFrame(
-                statements  = statements,
-                guard_mode  = "generator",
-                code_object = code_object,
-                source_ref  = source_ref
-            )
-        elif provider.isExpressionCoroutineObjectBody():
-            # TODO: That might be wrong
-
-            result = StatementsFrame(
-                statements  = statements,
-                guard_mode  = "generator",
-                code_object = code_object,
-                source_ref  = source_ref
-            )
-        elif provider.isExpressionFunctionBody() or \
-             provider.isExpressionClassBody():
-            result = StatementsFrame(
-                statements  = statements,
-                guard_mode  = "full",
-                code_object = code_object,
-                source_ref  = source_ref
-            )
-        else:
-            result = makeModuleFrame(
-                module     = provider,
-                statements = statements,
-                source_ref = source_ref
-            )
     else:
         result = StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
+
+    return result
+
+
+def buildFrameNode(provider, nodes, code_object, source_ref):
+    # We are not creating empty statement sequences.
+    if nodes is None:
+        return None
+
+    # Build as list of statements, throw away empty ones, and remove useless
+    # nesting.
+    statements = buildNodeList(provider, nodes, source_ref, allow_none = True)
+    statements = mergeStatements(statements)
+
+    # We are not creating empty statement sequences. Might be empty, because
+    # e.g. a global node generates not really a statement, or pass statements.
+    if not statements:
+        return None
+
+    if provider.isExpressionGeneratorObjectBody():
+        # TODO: Could do this earlier and on the outside.
+        statements.insert(
+            0,
+            StatementGeneratorEntry(
+                source_ref = source_ref
+            )
+        )
+        result = StatementsFrame(
+            statements  = statements,
+            guard_mode  = "generator",
+            code_object = code_object,
+            source_ref  = source_ref
+        )
+    elif provider.isExpressionCoroutineObjectBody():
+        # TODO: That might be wrong
+
+        result = StatementsFrame(
+            statements  = statements,
+            guard_mode  = "generator",
+            code_object = code_object,
+            source_ref  = source_ref
+        )
+    elif provider.isExpressionFunctionBody() or \
+         provider.isExpressionClassBody():
+        result = StatementsFrame(
+            statements  = statements,
+            guard_mode  = "full",
+            code_object = code_object,
+            source_ref  = source_ref
+        )
+    else:
+        assert False
 
     return result
 

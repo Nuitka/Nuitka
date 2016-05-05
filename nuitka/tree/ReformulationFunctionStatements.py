@@ -63,9 +63,9 @@ from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
 
 from .Helpers import (
+    buildFrameNode,
     buildNode,
     buildNodeList,
-    buildStatementsNode,
     detectFunctionBodyKind,
     extractDocFromBody,
     getKind,
@@ -175,7 +175,7 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref    = source_ref
     )
 
-    function_statements_body = buildStatementsNode(
+    function_statements_body = buildFrameNode(
         provider    = code_body,
         nodes       = function_statement_nodes,
         code_object = code_object,
@@ -294,7 +294,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         source_ref = source_ref
     )
 
-    function_statements_body = buildStatementsNode(
+    function_statements_body = buildFrameNode(
         provider    = function_body,
         nodes       = function_statement_nodes,
         code_object = code_object,

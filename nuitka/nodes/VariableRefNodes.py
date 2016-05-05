@@ -65,6 +65,11 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
                 "variable"      : self.variable
             }
 
+    def getDetailsForDisplay(self):
+        return {
+            "variable_name" : self.variable_name
+        }
+
     def getDetail(self):
         if self.variable is None:
             return self.variable_name

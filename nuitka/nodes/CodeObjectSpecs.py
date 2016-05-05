@@ -22,8 +22,6 @@ objects, as well as tracebacks. They might be shared.
 
 """
 
-from nuitka.PythonVersions import python_version
-
 
 class CodeObjectSpec:
     def __init__(self, code_name, code_kind, arg_names, kw_only_count, has_starlist,
@@ -51,7 +49,7 @@ class CodeObjectSpec:
 <CodeObjectSpec %(code_kind)s '%(code_name)s' with %(arg_names)r args, %(local_names)s locals>""" % self.getDetails()
 
     def getDetails(self):
-        result = {
+        return {
             "code_name"     : self.code_name,
             "code_kind"     : self.code_kind,
             "arg_names"     : self.arg_names,
@@ -59,12 +57,7 @@ class CodeObjectSpec:
             "kw_only_count" : self.kw_only_count,
             "has_starlist"  : self.has_starlist,
             "has_stardict"  : self.has_stardict,
-         }
-
-        if python_version >= 300:
-            result["kw_only_count"] = self.kw_only_count
-
-        return result
+        }
 
     def getKind(self):
         return self.code_kind

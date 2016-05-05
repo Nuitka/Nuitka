@@ -677,18 +677,14 @@ error""" % self.getName()
 class ExpressionFunctionRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_FUNCTION_REF"
 
-    def __init__(self, function_body, source_ref):
-        assert function_body.isExpressionFunctionBody() or \
-               function_body.isExpressionClassBody() or \
-               function_body.isExpressionGeneratorObjectBody() or \
-               function_body.isExpressionCoroutineObjectBody()
-
+    def __init__(self, source_ref, function_body = None, code_name = None):
         NodeBase.__init__(
             self,
             source_ref = source_ref
         )
 
         self.function_body = function_body
+        self.function_code_name = code_name
 
     def getName(self):
         return self.function_body.getName()
@@ -700,7 +696,7 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
     def getDetailsForDisplay(self):
         return {
-            "function" : self.function_body.getCodeName()
+            "code_name" : self.function_body.getCodeName()
         }
 
     def getFunctionBody(self):
