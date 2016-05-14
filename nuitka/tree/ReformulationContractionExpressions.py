@@ -452,12 +452,13 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         assert iter_tmp.isParameterVariable()
 
     code_object = CodeObjectSpec(
-        code_name     = name,
-        code_kind     = "Generator" if emit_class is ExpressionYield else "Function",
-        arg_names     = () if assign_provider else function_body.getParameters().getParameterNames(),
-        kw_only_count = 0,
-        has_starlist  = False,
-        has_stardict  = False,
+        co_name           = name,
+        co_kind           = "Generator" if emit_class is ExpressionYield else "Function",
+        co_varnames       = () if assign_provider else function_body.getParameters().getParameterNames(),
+        co_argcount       = 0 if assign_provider else len(function_body.getParameters().getParameterNames()),
+        co_kwonlyargcount = 0,
+        co_has_starlist   = False,
+        co_has_stardict   = False,
     )
 
     if emit_class is ExpressionYield:

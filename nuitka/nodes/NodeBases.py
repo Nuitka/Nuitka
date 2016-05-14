@@ -187,6 +187,7 @@ class NodeBase(NodeMetaClassBase):
             assert False, (self,  self.source_ref)
 
         return self.parent
+
     def getChildName(self):
         """ Return the role in the current parent, subject to changes.
 
@@ -353,6 +354,10 @@ class NodeBase(NodeMetaClassBase):
                     )
 
         return result
+
+    @classmethod
+    def fromXML(cls, source_ref, **args):
+        return cls(source_ref = source_ref, **args)
 
     def asXmlText(self):
         xml = self.asXml()
@@ -1003,12 +1008,14 @@ class ClosureTakerMixin:
         for variable in self.taken:
             if variable.getName() == variable_name:
                 return True
+
         return False
 
     def getTakenVariable(self, variable_name):
         for variable in self.taken:
             if variable.getName() == variable_name:
                 return variable
+
         return None
 
     def isEarlyClosure(self):
@@ -1777,10 +1784,12 @@ def fromXML(xml, source_ref = None):
         args[child_name] = value
 
     try:
-        return node_class(
+        result = node_class.fromXML(
             source_ref = source_ref,
             **args
         )
     except TypeError:
         Tracing.printLine(node_class, args)
         raise
+
+    return result

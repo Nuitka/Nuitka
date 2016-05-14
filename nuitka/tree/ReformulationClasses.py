@@ -153,12 +153,13 @@ def _buildClassNode3(provider, node, source_ref):
         )
 
     code_object = CodeObjectSpec(
-        code_name     = node.name,
-        code_kind     = "Class",
-        arg_names     = (),
-        kw_only_count = 0,
-        has_starlist  = False,
-        has_stardict  = False
+        co_name           = node.name,
+        co_kind           = "Class",
+        co_varnames       = (),
+        co_argcount       = 0,
+        co_kwonlyargcount = 0,
+        co_has_starlist   = False,
+        co_has_stardict   = False
     )
 
     body = buildFrameNode(
@@ -597,12 +598,13 @@ def _buildClassNode2(provider, node, source_ref):
     )
 
     code_object = CodeObjectSpec(
-        code_name     = node.name,
-        code_kind     = "Class",
-        arg_names     = (),
-        kw_only_count = 0,
-        has_starlist  = False,
-        has_stardict  = False
+        co_name           = node.name,
+        co_kind           = "Class",
+        co_varnames       = (),
+        co_argcount       = 0,
+        co_kwonlyargcount = 0,
+        co_has_starlist   = False,
+        co_has_stardict   = False
     )
 
     body = buildFrameNode(

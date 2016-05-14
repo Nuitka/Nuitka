@@ -60,7 +60,8 @@ from .ParameterSpecs import TooManyArguments, matchCall
 class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
                                  ClosureGiverNodeBase, ExpressionMixin):
 
-    def __init__(self, provider, name, code_prefix, is_class, flags, source_ref):
+    def __init__(self, provider, name, code_prefix, is_class, flags, source_ref,
+                 body = None):
         ClosureTakerMixin.__init__(
             self,
             provider      = provider,
@@ -77,10 +78,12 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         ChildrenHavingMixin.__init__(
             self,
             values = {
-                "body" : None # delayed
+                "body" : body # Might be None initially in some cases.
             }
         )
 
+        # Special things, "has_super" indicates presence of "super" in variable
+        # usage, which modifies some behaviors.
         self.flags = flags
 
         # Hack: This allows some APIs to work although this is not yet
@@ -315,7 +318,8 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, doc, parameters, flags, source_ref):
+    def __init__(self, provider, name, doc, parameters, flags, source_ref,
+                 body = None):
         while provider.isExpressionOutlineBody():
             provider = provider.getParentVariableProvider()
 
@@ -329,6 +333,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
             code_prefix = "function",
             is_class    = False,
             flags       = flags,
+            body        = body,
             source_ref  = source_ref
         )
 
@@ -364,6 +369,13 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
             "parameters" : self.getParameters(),
             "provider"   : self.provider.getCodeName(),
             "doc"        : self.doc
+        }
+
+    def getDetailsForDisplay(self):
+        return {
+            "name"       : self.getFunctionName(),
+            "doc"        : self.doc,
+            "flags"      : self.flags
         }
 
     def getDetail(self):

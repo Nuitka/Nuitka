@@ -103,7 +103,7 @@ def _insertFinalReturnStatement(function_statements_body, return_class,
 
 
 def buildFunctionNode(provider, node, source_ref):
-    # Functions have way too many details, pylint: disable=R0914,R0912
+    # Functions have way too many details, pylint: disable=R0912,R0914
 
     assert getKind(node) == "FunctionDef"
 
@@ -572,12 +572,13 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
         )
 
     code_object = CodeObjectSpec(
-        code_name     = name,
-        code_kind     = function_kind,
-        arg_names     = parameters.getParameterNames(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None
+        co_name           = name,
+        co_kind           = function_kind,
+        co_varnames       = parameters.getParameterNames(),
+        co_argcount       = parameters.getArgumentCount(),
+        co_kwonlyargcount = parameters.getKwOnlyParameterCount(),
+        co_has_starlist   = parameters.getStarListArgumentName() is not None,
+        co_has_stardict   = parameters.getStarDictArgumentName() is not None
     )
 
     outer_body = ExpressionFunctionBody(

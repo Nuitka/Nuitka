@@ -323,7 +323,7 @@ def restoreFromXML(text):
     from nuitka.TreeXML import fromString
     from nuitka.nodes.NodeBases import fromXML
     xml = fromString(text)
-    open("out.xml", "w").write(text)
+    open("out.xml", 'w').write(text)
 
     module = fromXML(xml)
     assert False, module

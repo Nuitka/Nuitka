@@ -24,72 +24,73 @@ objects, as well as tracebacks. They might be shared.
 
 
 class CodeObjectSpec:
-    def __init__(self, code_name, code_kind, arg_names, kw_only_count, has_starlist,
-                 has_stardict):
-        assert type(has_starlist) is bool
-        assert type(has_stardict) is bool
+    def __init__(self, co_name, co_kind, co_varnames, co_argcount,
+                 co_kwonlyargcount, co_has_starlist, co_has_stardict):
 
-        self.code_name = code_name
-        self.code_kind = code_kind
+        self.co_name = co_name
+        self.co_kind = co_kind
 
-        self.arg_names = tuple(arg_names)
+        # Strings happens from XML parsing, make sure to convert them.
+        if type(co_varnames) is str:
+            co_varnames = co_varnames.split(',')
+        if type(co_has_starlist) is not bool:
+            co_has_starlist = co_has_starlist != "False"
+        if type(co_has_stardict) is not bool:
+            co_has_stardict = co_has_stardict != "False"
 
-        for arg_name in arg_names:
-            assert type(arg_name) is str
+        self.co_varnames = tuple(co_varnames)
 
-        self.kw_only_count = kw_only_count
+        self.co_argcount = int(co_argcount)
+        self.co_kwonlyargcount = int(co_kwonlyargcount)
 
-        self.has_starlist = has_starlist
-        self.has_stardict = has_stardict
+        self.co_has_starlist = co_has_starlist
+        self.co_has_stardict = co_has_stardict
 
-        self.local_names = ()
+
 
     def __repr__(self):
         return """\
-<CodeObjectSpec %(code_kind)s '%(code_name)s' with %(arg_names)r args, %(local_names)s locals>""" % self.getDetails()
+<CodeObjectSpec %(co_kind)s '%(co_name)s' with %(co_varnames)r>""" % self.getDetails()
 
     def getDetails(self):
         return {
-            "code_name"     : self.code_name,
-            "code_kind"     : self.code_kind,
-            "arg_names"     : self.arg_names,
-            "local_names"   : self.local_names,
-            "kw_only_count" : self.kw_only_count,
-            "has_starlist"  : self.has_starlist,
-            "has_stardict"  : self.has_stardict,
+            "co_name"     : self.co_name,
+            "co_kind"     : self.co_kind,
+            "co_varnames"     : ','.join(self.co_varnames),
+            "co_argcount" : self.co_argcount,
+            "co_kwonlyargcount" : self.co_kwonlyargcount,
+            "co_has_starlist"  : self.co_has_starlist,
+            "co_has_stardict"  : self.co_has_stardict,
         }
 
     def getKind(self):
-        return self.code_kind
+        return self.co_kind
 
     def updateLocalNames(self, local_names):
         """ Add detected local variables after closure has been decided.
 
         """
-        self.local_names = tuple(
+        self.co_varnames += tuple(
             local_name
             for local_name in
             local_names
-            if local_name not in self.arg_names
+            if local_name not in self.co_varnames
         )
 
     def getVarNames(self):
-        return self.arg_names + self.local_names
+        return self.co_varnames
 
     def getArgumentCount(self):
-        return len(self.arg_names) -           \
-            (1 if self.has_stardict else 0)  - \
-            (1 if self.has_starlist else 0)  - \
-            self.kw_only_count
+        return self.co_argcount
 
     def getKwOnlyParameterCount(self):
-        return self.kw_only_count
+        return self.co_kwonlyargcount
 
     def getCodeObjectName(self):
-        return self.code_name
+        return self.co_name
 
     def hasStarListArg(self):
-        return self.has_starlist
+        return self.co_has_starlist
 
     def hasStarDictArg(self):
-        return self.has_stardict
+        return self.co_has_stardict

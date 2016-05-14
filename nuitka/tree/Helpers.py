@@ -334,12 +334,13 @@ def makeModuleFrame(module, statements, source_ref):
         statements  = statements,
         guard_mode  = "once",
         code_object = CodeObjectSpec(
-            code_name     = code_name,
-            code_kind     = "Module",
-            arg_names     = (),
-            kw_only_count = 0,
-            has_starlist  = False,
-            has_stardict  = False,
+            co_name           = code_name,
+            co_kind           = "Module",
+            co_varnames       = (),
+            co_argcount       = 0,
+            co_kwonlyargcount = 0,
+            co_has_starlist   = False,
+            co_has_stardict   = False,
         ),
         source_ref  = source_ref
     )
