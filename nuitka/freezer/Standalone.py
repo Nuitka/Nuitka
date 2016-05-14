@@ -422,7 +422,7 @@ def detectEarlyImports():
         if "cp65001" in encoding_names:
             encoding_names.remove("cp65001")
 
-    import_code = ";".join(
+    import_code = ';'.join(
         "import encodings.%s" % encoding_name
         for encoding_name in
         encoding_names
@@ -519,6 +519,17 @@ def _detectBinaryPathDLLsLinuxBSD(binary_filename):
 
         # Sometimes might use stuff not found.
         if filename == "not found":
+            continue
+
+        # Do not include kernel specific libraries.
+        if Utils.basename(filename).startswith(
+                (
+                    "libc.so.",
+                    "libpthread.so.",
+                    "libm.so.",
+                    "libdl.so."
+                )
+            ):
             continue
 
         result.add(filename)
