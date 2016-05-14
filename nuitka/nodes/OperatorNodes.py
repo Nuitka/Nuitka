@@ -242,7 +242,8 @@ class ExpressionOperationNOT(ExpressionOperationUnary):
         )
 
     def mayRaiseException(self, exception_type):
-        return self.getOperand().mayRaiseExceptionBool(exception_type)
+        return self.getOperand().mayRaiseException(exception_type) or \
+               self.getOperand().mayRaiseExceptionBool(exception_type)
 
     def mayRaiseExceptionBool(self, exception_type):
         return self.getOperand().mayRaiseExceptionBool(exception_type)
