@@ -108,7 +108,8 @@ constant_builtin_types = (
     set,
     dict,
     slice,
-    complex
+    complex,
+    NoneType,
 )
 
 if python_version >= 300:

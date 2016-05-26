@@ -54,6 +54,9 @@ assert branch_name in (
     b"hotfix/" + nuitka_version
 ), branch_name
 
+if str is not bytes:
+    branch_name = branch_name.decode()
+
 def checkChangeLog(message):
     for line in open("debian/changelog"):
         if line.startswith(" --"):
@@ -176,11 +179,15 @@ assert 0 == os.system(
 os.chdir("../../..")
 assert os.path.exists("dist/deb_dist")
 
-# Check with pylint in pedantic mode and don't procede if there were any
-# warnings given. Nuitka is lintian clean and shall remain that way.
-assert 0 == os.system(
-    "lintian --pedantic --fail-on-warnings --allow-root dist/deb_dist/*.changes"
-)
+# Check with pylint in pedantic mode and don't proceed if there were any
+# warnings given. Nuitka is lintian clean and shall remain that way. For
+# hotfix releases, i.e. "master" builds, we skip this test though.
+if branch_name != "master":
+    assert 0 == os.system(
+        "lintian --pedantic --fail-on-warnings --allow-root dist/deb_dist/*.changes"
+    )
+else:
+    print("Skipped lintian checks for stable releases.")
 
 os.system("cp dist/deb_dist/*.deb dist/")
 
