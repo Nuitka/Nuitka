@@ -325,7 +325,10 @@ def restoreFromXML(text):
     xml = fromString(text)
     open("out.xml", 'w').write(text)
 
-    module = fromXML(xml)
+    module = fromXML(
+        provider = None,
+        xml      = xml
+    )
     assert False, module
 
 

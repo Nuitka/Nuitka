@@ -54,7 +54,7 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects
 )
-from .ParameterSpecs import TooManyArguments, matchCall
+from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
 
 class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
@@ -372,11 +372,35 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         }
 
     def getDetailsForDisplay(self):
-        return {
+        result = {
             "name"       : self.getFunctionName(),
             "doc"        : self.doc,
             "flags"      : self.flags
         }
+
+        result.update(self.parameters.getDetails())
+
+        return result
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        parameter_spec_args = {}
+        other_args = {}
+
+        for key, value in args.items():
+            if key.startswith("ps_"):
+                parameter_spec_args[key] = value
+            else:
+                other_args[key] = value
+
+        parameters = ParameterSpec(**parameter_spec_args)
+
+        return cls(
+            provider   = provider,
+            parameters = parameters,
+            source_ref = source_ref,
+            **other_args
+        )
 
     def getDetail(self):
         return "named %s with %s" % (self.getFunctionName(), self.parameters)

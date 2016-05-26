@@ -338,7 +338,11 @@ class StatementDelVariable(StatementChildrenHavingBase):
     def __init__(self, variable_ref, tolerant, source_ref):
         assert variable_ref is not None
         assert variable_ref.isTargetVariableRef()
-        assert tolerant is True or tolerant is False
+
+        if type(tolerant) is str:
+            tolerant = tolerant == "True"
+
+        assert tolerant is True or tolerant is False, repr(tolerant)
 
         StatementChildrenHavingBase.__init__(
             self,

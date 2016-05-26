@@ -90,6 +90,7 @@ NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object,), {})
 
 
 class NodeBase(NodeMetaClassBase):
+    # String to identify the node class, to be consistent with its name.
     kind = None
 
     @counted_init
@@ -356,7 +357,8 @@ class NodeBase(NodeMetaClassBase):
         return result
 
     @classmethod
-    def fromXML(cls, source_ref, **args):
+    def fromXML(cls, provider, source_ref, **args):
+        # Only some things need a provider, pylint: disable=W0613
         return cls(source_ref = source_ref, **args)
 
     def asXmlText(self):
@@ -1747,7 +1749,30 @@ class SideEffectsFromChildrenMixin:
         return tuple(result)
 
 
-def fromXML(xml, source_ref = None):
+def makeChild(provider, child, source_ref):
+    child_type = child.attrib.get("type")
+
+    if child_type == "list":
+        return [
+            fromXML(
+                provider   = provider,
+                xml        = sub_child,
+                source_ref = source_ref
+            )
+            for sub_child in
+            child
+        ]
+    elif child_type == "none":
+        return None
+    else:
+        return fromXML(
+            provider   = provider,
+            xml        = child[0],
+            source_ref = source_ref
+        )
+
+
+def fromXML(provider, xml, source_ref = None):
     assert xml.tag == "node", xml
 
     kind = xml.attrib["kind"]
@@ -1765,31 +1790,45 @@ def fromXML(xml, source_ref = None):
         source_ref = source_ref.atLineNumber(int(args["line"]))
         del args["line"]
 
+    if kind in ("ExpressionFunctionBody", "PythonMainModule"):
+        delayed = node_class.named_children
+    else:
+        delayed = ()
+
     for child in xml:
         assert child.tag == "role", child.tag
+
         child_name = child.attrib["name"]
-        child_type = child.attrib.get("type")
 
-        if child_type == "list":
-            value = [
-                fromXML(sub_child, source_ref)
-                for sub_child in
-                child
-            ]
-        elif child_type == "none":
-            value = None
-        else:
-            value = fromXML(child[0], source_ref)
+        # Might want to want until provider is updated.
+        if child_name in delayed:
+            continue
 
-        args[child_name] = value
+        args[child_name] = makeChild(provider, child, source_ref)
 
     try:
         result = node_class.fromXML(
+            provider   = provider,
             source_ref = source_ref,
             **args
         )
     except TypeError:
         Tracing.printLine(node_class, args)
         raise
+
+    if delayed:
+        assert result.isParentVariableProvider()
+        provider = result
+
+        for child in xml:
+            child_name = child.attrib["name"]
+
+            if child_name not in delayed:
+                continue
+
+            result.setChild(
+                name  = child_name,
+                value = makeChild(provider, child, source_ref)
+            )
 
     return result

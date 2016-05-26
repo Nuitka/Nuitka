@@ -549,18 +549,18 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
     normal_args = extractNormalArgs(node.args.args)
 
     parameters = ParameterSpec(
-        name          = name,
-        normal_args   = normal_args,
-        kw_only_args  = [
+        ps_name          = name,
+        ps_normal_args   = normal_args,
+        ps_kw_only_args  = [
             extractArg(arg)
             for arg in
             node.args.kwonlyargs
             ]
               if python_version >= 300 else
             [],
-        list_star_arg = extractArg(node.args.vararg),
-        dict_star_arg = extractArg(node.args.kwarg),
-        default_count = len(node.args.defaults)
+        ps_list_star_arg = extractArg(node.args.vararg),
+        ps_dict_star_arg = extractArg(node.args.kwarg),
+        ps_default_count = len(node.args.defaults)
     )
 
     message = parameters.checkValid()
@@ -706,12 +706,12 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                 inner_arg_names.append(arg_name)
 
         inner_parameters = ParameterSpec(
-            name          = inner_name,
-            normal_args   = inner_arg_names,
-            kw_only_args  = (),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = None
+            ps_name          = inner_name,
+            ps_normal_args   = inner_arg_names,
+            ps_kw_only_args  = (),
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = None
         )
 
         function_body = ExpressionFunctionBody(

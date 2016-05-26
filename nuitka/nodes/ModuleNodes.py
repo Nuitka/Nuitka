@@ -180,6 +180,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     named_children = (
         "body",
+        "functions"
     )
 
     checkers = {
@@ -203,16 +204,14 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         ChildrenHavingMixin.__init__(
             self,
             values = {
-                "body" : None # delayed
+                "body" : None, # delayed
+                "functions" : (),
             },
         )
 
         self.mode = mode
 
         self.variables = {}
-
-        # The list functions contained in that module.
-        self.functions = OrderedSet()
 
         self.active_functions = OrderedSet()
         self.cross_used_functions = OrderedSet()
@@ -286,6 +285,9 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
 
+    getFunctions = ChildrenHavingMixin.childGetter("functions")
+    setFunctions = ChildrenHavingMixin.childSetter("functions")
+
     @staticmethod
     def isCompiledPythonModule():
         return True
@@ -352,18 +354,16 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         )
 
     def addFunction(self, function_body):
-        assert function_body not in self.functions
-
-        self.functions.add(function_body)
-
-    def getFunctions(self):
-        return self.functions
+        functions = self.getFunctions()
+        assert function_body not in functions
+        functions += (function_body,)
+        self.setFunctions(functions)
 
     def startTraversal(self):
         self.active_functions = OrderedSet()
 
     def addUsedFunction(self, function_body):
-        assert function_body in self.functions
+        assert function_body in self.getFunctions()
 
         assert function_body.isExpressionFunctionBody() or \
                function_body.isExpressionClassBody() or \
@@ -377,7 +377,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         return self.active_functions
 
     def getUnusedFunctions(self):
-        for function in self.functions:
+        for function in self.getFunctions():
             if function not in self.active_functions:
                 yield function
 
