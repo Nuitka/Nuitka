@@ -30,6 +30,7 @@ def getOwnProcessMemoryUsage():
     if getOS() == "Windows":
         # adapted from http://code.activestate.com/recipes/578513
         import ctypes
+        import ctypes.wintypes
 
         # Lets allow this to match Windows API it reflects,
         # pylint: disable=C0103
