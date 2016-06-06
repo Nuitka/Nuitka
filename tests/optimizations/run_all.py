@@ -121,10 +121,10 @@ def checkSequence(statements):
 
             source_kind = getKind(assign_source)
 
-            if source_kind not in("ConstantRef",
-                                  "ImportModuleHard",
-                                  "ModuleFileAttributeRef"):
-                sys.exit("Error, assignment from of non-constant %s." % source_kind)
+            if not source_kind.startswith("Constant") and \
+                   source_kind not in("ImportModuleHard",
+                                      "ModuleFileAttributeRef"):
+                sys.exit("Error, assignment from non-constant %s." % source_kind)
             continue
 
         print(lxml.etree.tostring(statement, pretty_print = True))
