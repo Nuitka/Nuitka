@@ -484,7 +484,10 @@ class PythonGlobalContext:
             if constant is str and python_version > 300:
                 type_name = "unicode"
 
-            key = "(PyObject *)&Py%s_Type" % type_name.title()
+            if type_name != "NoneType":
+                key = "(PyObject *)&Py%s_Type" % type_name.title()
+            else:
+                key = "(PyObject *)Py_TYPE( Py_None )"
         else:
             key = "const_" + namifyConstant(constant)
 
