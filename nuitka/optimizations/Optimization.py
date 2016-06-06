@@ -323,13 +323,13 @@ def restoreFromXML(text):
     from nuitka.TreeXML import fromString
     from nuitka.nodes.NodeBases import fromXML
     xml = fromString(text)
-    open("out.xml", 'w').write(text)
 
     module = fromXML(
         provider = None,
         xml      = xml
     )
-    assert False, module
+
+    return module
 
 
 def makeOptimizationPass(initial_pass):
@@ -400,8 +400,19 @@ def optimize():
                 continue
 
             text = module.asXmlText()
+            open("out.xml", 'w').write(text)
 
-            restoreFromXML(text)
+            restored = restoreFromXML(text)
+            retext = restored.asXmlText()
+
+            import difflib
+            for line in difflib.unified_diff(
+                text.splitlines(),
+                retext.splitlines(),
+                "xml orig",
+                "xml reloaded"
+            ):
+                printLine(line)
 
     # Demote to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.

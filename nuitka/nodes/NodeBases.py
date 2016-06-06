@@ -626,7 +626,11 @@ class CodeNodeBase(NodeBase):
             else:
                 name = uid
 
-            self.code_name = "%s%s_of_%s" % (self.code_prefix, name, parent_name)
+            self.code_name = "%s$$$%s%s" % (
+                parent_name,
+                self.code_prefix,
+                name
+            )
 
         return self.code_name
 

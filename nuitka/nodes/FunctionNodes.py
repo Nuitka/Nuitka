@@ -714,13 +714,16 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_FUNCTION_REF"
 
     def __init__(self, source_ref, function_body = None, code_name = None):
+        assert function_body is not None or code_name is not None
+        assert code_name != "None"
+
         NodeBase.__init__(
             self,
             source_ref = source_ref
         )
 
         self.function_body = function_body
-        self.function_code_name = code_name
+        self.code_name = code_name
 
     def getName(self):
         return self.function_body.getName()
@@ -732,10 +735,18 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
     def getDetailsForDisplay(self):
         return {
-            "code_name" : self.function_body.getCodeName()
+            "code_name" : self.getFunctionBody().getCodeName()
         }
 
     def getFunctionBody(self):
+        if self.function_body is None:
+            module_code_name, _ = self.code_name.split("$$$", 1)
+
+            from nuitka.ModuleRegistry import getModuleFromCodeName
+            module = getModuleFromCodeName(module_code_name)
+
+            self.function_body = module.getFunctionFromCodeName(self.code_name)
+
         return self.function_body
 
     def computeExpressionRaw(self, constraint_collection):

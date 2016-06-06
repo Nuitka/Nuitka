@@ -197,3 +197,12 @@ def getDoneUserModules():
 
 def removeDoneModule(module):
     done_modules.remove(module)
+
+
+def getModuleFromCodeName(code_name):
+    # TODO: We need something to just load modules.
+    for module in root_modules:
+        if module.getCodeName() == code_name:
+            return module
+
+    assert False, code_name

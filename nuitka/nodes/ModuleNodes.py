@@ -21,8 +21,6 @@ The top of the tree. Packages are also modules. Modules are what hold a program
 together and cross-module optimizations are the most difficult to tackle.
 """
 
-import re
-
 from nuitka import Options, Variables
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing.Importing import (
@@ -35,6 +33,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
 from nuitka.TreeXML import Element
 from nuitka.utils import Utils
+from nuitka.utils.CStrings import encodePythonIdentifierToC
 
 from .Checkers import checkStatementsSequenceOrNone
 from .ConstantRefNodes import makeConstantRefNode
@@ -340,18 +339,10 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         return True
 
     def getCodeName(self):
-        def r(match):
-            c = match.group()
-            if c == '.':
-                return '$'
-            else:
-                return "$$%d$" % ord(c)
+        # For code name of modules, we need to translate to C identifiers,
+        # removing characters illegal for that.
 
-        return "".join(
-            re.sub("[^a-zA-Z0-9_]", r ,c)
-            for c in
-            self.getFullName()
-        )
+        return encodePythonIdentifierToC(self.getFullName())
 
     def addFunction(self, function_body):
         functions = self.getFunctions()
@@ -387,6 +378,11 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     def getCrossUsedFunctions(self):
         return self.cross_used_functions
+
+    def getFunctionFromCodeName(self, code_name):
+        for function in self.getFunctions():
+            if function.getCodeName() == code_name:
+                return function
 
     def getOutputFilename(self):
         main_filename = self.getFilename()
