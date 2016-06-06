@@ -38,7 +38,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
     ExpressionBuiltinNext1
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
@@ -165,7 +165,7 @@ def getDictUnpackingHelper():
                     args           = (
                         ExpressionOperationBinary(
                             operator   = "Mod",
-                            left       =  ExpressionConstantRef(
+                            left       =  makeConstantRefNode(
                                 constant      = """\
 '%s' object is not a mapping""",
                                 source_ref    = internal_source_ref,
@@ -241,7 +241,7 @@ def getDictUnpackingHelper():
                 variable   = tmp_result_variable,
                 source_ref = internal_source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant   = {},
                 source_ref = internal_source_ref
             ),
@@ -289,9 +289,9 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
                 ExpressionMakeDict(
                     pairs      = (
                         ExpressionKeyValuePair(
-                            key        = ExpressionConstantRef(
-                                            constant   = key,
-                                            source_ref = source_ref
+                            key        = makeConstantRefNode(
+                                constant   = key,
+                                source_ref = source_ref
                             ),
                             value      = buildNode(provider, value, source_ref),
                             source_ref = source_ref

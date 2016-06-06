@@ -38,7 +38,7 @@ from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.utils import Utils
 
-from .ConstantRefNodes import ExpressionConstantRef
+from .ConstantRefNodes import makeConstantRefNode
 from .NodeBases import (
     ExpressionChildrenHavingBase,
     ExpressionMixin,
@@ -286,7 +286,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
     def __init__(self, name, import_globals, import_locals, fromlist, level,
                 source_ref):
         if fromlist is None:
-            fromlist = ExpressionConstantRef(
+            fromlist = makeConstantRefNode(
                 constant   = (),
                 source_ref = source_ref
             )
@@ -294,7 +294,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         if level is None:
             level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
 
-            level = ExpressionConstantRef(
+            level = makeConstantRefNode(
                 constant   = level,
                 source_ref = source_ref
             )

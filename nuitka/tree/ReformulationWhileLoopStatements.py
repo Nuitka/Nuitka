@@ -30,7 +30,7 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
@@ -72,7 +72,7 @@ def buildWhileLoopNode(provider, node, source_ref):
                     variable   = tmp_break_indicator,
                     source_ref = source_ref
                 ),
-                source       = ExpressionConstantRef(
+                source       = makeConstantRefNode(
                     constant   = True,
                     source_ref = source_ref
                 ),
@@ -133,7 +133,7 @@ def buildWhileLoopNode(provider, node, source_ref):
                     variable   = tmp_break_indicator,
                     source_ref = source_ref
                 ),
-                source       = ExpressionConstantRef(
+                source       = makeConstantRefNode(
                     constant   = False,
                     source_ref = source_ref
                 ),
@@ -146,7 +146,7 @@ def buildWhileLoopNode(provider, node, source_ref):
                         variable   = tmp_break_indicator,
                         source_ref = source_ref
                     ),
-                    right      = ExpressionConstantRef(
+                    right      = makeConstantRefNode(
                         constant   = True,
                         source_ref = source_ref
                     ),

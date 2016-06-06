@@ -389,7 +389,10 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
     @staticmethod
     def mustNotAlias(a, b):
-        # TODO: not yet really implemented, pylint: disable=W0613
+        # TODO: not yet really implemented
+        if a.isExpressionConstantDictRef() and b.isExpressionConstantRef():
+            return True
+
         return False
 
     def removeKnowledge(self, node):

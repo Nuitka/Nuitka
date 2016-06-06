@@ -65,7 +65,11 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantEllipsisRef,
+    ExpressionConstantNoneRef,
+    makeConstantRefNode
+)
 from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
@@ -164,7 +168,7 @@ def buildVariableReferenceNode(provider, node, source_ref):
 
 # Python3.4 or higher, True and False, are not given as variables anymore.
 def buildNamedConstantNode(node, source_ref):
-    return ExpressionConstantRef(
+    return makeConstantRefNode(
         constant   = node.value,
         source_ref = source_ref
     )
@@ -471,7 +475,7 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
 def buildStringNode(node, source_ref):
     assert type(node.s) in (str, unicode)
 
-    return ExpressionConstantRef(
+    return makeConstantRefNode(
         constant      = node.s,
         source_ref    = source_ref,
         user_provided = True
@@ -481,7 +485,7 @@ def buildStringNode(node, source_ref):
 def buildNumberNode(node, source_ref):
     assert type(node.n) in (int, long, float, complex), type(node.n)
 
-    return ExpressionConstantRef(
+    return makeConstantRefNode(
         constant      = node.n,
         source_ref    = source_ref,
         user_provided = True
@@ -489,7 +493,7 @@ def buildNumberNode(node, source_ref):
 
 
 def buildBytesNode(node, source_ref):
-    return ExpressionConstantRef(
+    return makeConstantRefNode(
         constant      = node.s,
         source_ref    = source_ref,
         user_provided = True
@@ -497,8 +501,7 @@ def buildBytesNode(node, source_ref):
 
 
 def buildEllipsisNode(source_ref):
-    return ExpressionConstantRef(
-        constant      = Ellipsis,
+    return ExpressionConstantEllipsisRef(
         source_ref    = source_ref,
         user_provided = True
     )
@@ -569,8 +572,7 @@ def buildReturnNode(provider, node, source_ref):
             )
 
     if expression is None:
-        expression = ExpressionConstantRef(
-            constant      = None,
+        expression = ExpressionConstantNoneRef(
             source_ref    = source_ref,
             user_provided = True
         )
@@ -784,7 +786,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                     variable_name = "__doc__",
                     source_ref    = internal_source_ref
                 ),
-                source       = ExpressionConstantRef(
+                source       = makeConstantRefNode(
                     constant      = doc,
                     source_ref    = internal_source_ref,
                     user_provided = True
@@ -819,8 +821,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                     variable_name = "__cached__",
                     source_ref    = internal_source_ref
                 ),
-                source       = ExpressionConstantRef(
-                    constant      = None,
+                source       = ExpressionConstantNoneRef(
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
@@ -837,7 +838,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                     variable_name = "__package__",
                     source_ref    = internal_source_ref
                 ),
-                source       = ExpressionConstantRef(
+                source       = makeConstantRefNode(
                     constant      = provider.getFullName()
                                       if provider.isCompiledPythonPackage() else
                                     provider.getPackage(),
@@ -859,7 +860,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                     variable_name = "__initializing__",
                     source_ref    = internal_source_ref
                 ),
-                source       = ExpressionConstantRef(
+                source       = makeConstantRefNode(
                     constant      = True,
                     source_ref    = internal_source_ref,
                     user_provided = True
@@ -882,7 +883,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                     variable_name = "__initializing__",
                     source_ref    = internal_source_ref
                 ),
-                source       = ExpressionConstantRef(
+                source       = makeConstantRefNode(
                     constant      = False,
                     source_ref    = internal_source_ref,
                     user_provided = True

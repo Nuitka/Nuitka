@@ -26,7 +26,7 @@ Consult the developer manual for information. TODO: Add ability to sync
 source code comments with developer manual sections.
 """
 
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
 from nuitka.nodes.SliceNodes import (
     ExpressionBuiltinSlice,
     ExpressionSliceLookup
@@ -112,8 +112,7 @@ def buildSubscriptNode(provider, node, source_ref):
     elif kind == "Ellipsis":
         return ExpressionSubscriptLookup(
             subscribed = buildNode(provider, node.value, source_ref),
-            subscript  = ExpressionConstantRef(
-                constant   = Ellipsis,
+            subscript  = ExpressionConstantEllipsisRef(
                 source_ref = source_ref
             ),
             source_ref = source_ref

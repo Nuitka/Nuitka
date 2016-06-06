@@ -28,7 +28,7 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable
 )
 from nuitka.nodes.CallNodes import makeExpressionCall
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
@@ -190,7 +190,7 @@ def buildCallNode(provider, node, source_ref):
 
     for keyword in keywords:
         keys.append(
-            ExpressionConstantRef(
+            makeConstantRefNode(
                 constant      = keyword.arg,
                 source_ref    = source_ref,
                 user_provided = True

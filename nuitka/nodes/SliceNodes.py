@@ -26,7 +26,7 @@ There will be a method "computeExpressionSlice" to aid predicting them.
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
-from .ConstantRefNodes import ExpressionConstantRef
+from .ConstantRefNodes import ExpressionConstantNoneRef
 from .NodeBases import (
     ChildrenHavingMixin,
     ExpressionChildrenHavingBase,
@@ -285,18 +285,15 @@ class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
         )
 
         if start is None:
-            start = ExpressionConstantRef(
-                constant   = None,
+            start = ExpressionConstantNoneRef(
                 source_ref = source_ref
             )
         if stop is None:
-            stop = ExpressionConstantRef(
-                constant   = None,
+            stop = ExpressionConstantNoneRef(
                 source_ref = source_ref
             )
         if step is None:
-            step = ExpressionConstantRef(
-                constant   = None,
+            step = ExpressionConstantNoneRef(
                 source_ref = source_ref
             )
 

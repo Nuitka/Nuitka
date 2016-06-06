@@ -36,7 +36,10 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantNoneRef,
+    makeConstantRefNode
+)
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
@@ -79,10 +82,8 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 def _insertFinalReturnStatement(function_statements_body, return_class,
                                 source_ref):
     return_statement = return_class(
-        expression = ExpressionConstantRef(
-            constant      = None,
-            user_provided = True,
-            source_ref    = source_ref
+        expression = ExpressionConstantNoneRef(
+            source_ref = source_ref
         ),
         source_ref = source_ref
     )
@@ -394,7 +395,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
               zip(kw_only_names, node.args.kw_defaults):
                 if kw_default is not None:
                     keys.append(
-                        ExpressionConstantRef(
+                        makeConstantRefNode(
                             constant   = kw_only_name,
                             source_ref = source_ref
                         )
@@ -436,7 +437,7 @@ def buildParameterAnnotations(provider, node, source_ref):
 
     def addAnnotation(key, value):
         keys.append(
-            ExpressionConstantRef(
+            makeConstantRefNode(
                 constant      = mangle(key),
                 source_ref    = source_ref,
                 user_provided = True

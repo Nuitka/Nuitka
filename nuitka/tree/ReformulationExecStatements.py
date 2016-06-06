@@ -39,7 +39,10 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantNoneRef,
+    makeConstantRefNode
+)
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import StatementExec, StatementLocalsDictSync
 from nuitka.nodes.GlobalsLocalsNodes import (
@@ -84,14 +87,12 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
     )
 
     if locals_node is None:
-        locals_node = ExpressionConstantRef(
-            constant   = None,
+        locals_node = ExpressionConstantNoneRef(
             source_ref = source_ref
         )
 
     if globals_node is None:
-        globals_node = ExpressionConstantRef(
-            constant   = None,
+        globals_node = ExpressionConstantNoneRef(
             source_ref = source_ref
         )
 
@@ -126,8 +127,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                 variable   = globals_keeper_variable,
                 source_ref = source_ref
             ),
-            right      = ExpressionConstantRef(
-                constant   = None,
+            right      = ExpressionConstantNoneRef(
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -166,8 +166,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                     variable   = locals_keeper_variable,
                     source_ref = source_ref
                 ),
-                right      = ExpressionConstantRef(
-                    constant   = None,
+                right      = ExpressionConstantNoneRef(
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -191,8 +190,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                     variable   = globals_keeper_variable,
                     source_ref = source_ref
                 ),
-                right      = ExpressionConstantRef(
-                    constant   = None,
+                right      = ExpressionConstantNoneRef(
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -264,7 +262,7 @@ def buildExecNode(provider, node, source_ref):
                     exception_name = "TypeError",
                     source_ref     = source_ref
                 ),
-                exception_value = ExpressionConstantRef(
+                exception_value = makeConstantRefNode(
                     constant   = """\
 exec: arg 1 must be a string, file, or code object""",
                     source_ref = source_ref
@@ -285,16 +283,14 @@ exec: arg 1 must be a string, file, or code object""",
     locals_value  = buildNode(provider, exec_locals, source_ref, True)
 
     if locals_value is None:
-        locals_value = ExpressionConstantRef(
-            constant   = None,
+        locals_value = ExpressionConstantNoneRef(
             source_ref = source_ref
         )
 
     globals_value = buildNode(provider, exec_globals, source_ref, True)
 
     if globals_value is None:
-        globals_value = ExpressionConstantRef(
-            constant   = None,
+        globals_value = ExpressionConstantNoneRef(
             source_ref = source_ref
         )
 
@@ -355,7 +351,7 @@ exec: arg 1 must be a string, file, or code object""",
                 variable   = plain_indicator_variable,
                 source_ref = source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant   = False,
                 source_ref = source_ref
             ),
@@ -367,8 +363,7 @@ exec: arg 1 must be a string, file, or code object""",
                     variable   = globals_keeper_variable,
                     source_ref = source_ref
                 ),
-                right      = ExpressionConstantRef(
-                    constant   = None,
+                right      = ExpressionConstantNoneRef(
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
@@ -390,8 +385,7 @@ exec: arg 1 must be a string, file, or code object""",
                             variable   = locals_keeper_variable,
                             source_ref = source_ref
                         ),
-                        right      = ExpressionConstantRef(
-                            constant   = None,
+                        right      = ExpressionConstantNoneRef(
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
@@ -412,7 +406,7 @@ exec: arg 1 must be a string, file, or code object""",
                                 variable   = plain_indicator_variable,
                                 source_ref = source_ref
                             ),
-                            source       = ExpressionConstantRef(
+                            source       = makeConstantRefNode(
                                 constant   = True,
                                 source_ref = source_ref
                             ),
@@ -430,8 +424,7 @@ exec: arg 1 must be a string, file, or code object""",
                             variable   = locals_keeper_variable,
                             source_ref = source_ref
                         ),
-                        right      = ExpressionConstantRef(
-                            constant   = None,
+                        right      = ExpressionConstantNoneRef(
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
@@ -515,7 +508,7 @@ exec: arg 1 must be a string, file, or code object""",
                         variable   = plain_indicator_variable,
                         source_ref = source_ref
                     ),
-                    right      = ExpressionConstantRef(
+                    right      = makeConstantRefNode(
                         constant   = True,
                         source_ref = source_ref
                     ),

@@ -91,7 +91,7 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
                     left_value,
                     right_value
                 ),
-                description = "Comparison with constant arguments."
+                description = "Comparison of constant arguments."
             )
 
         # The value of these nodes escaped and could change its contents.

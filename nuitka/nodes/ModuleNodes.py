@@ -37,7 +37,7 @@ from nuitka.TreeXML import Element
 from nuitka.utils import Utils
 
 from .Checkers import checkStatementsSequenceOrNone
-from .ConstantRefNodes import ExpressionConstantRef
+from .ConstantRefNodes import makeConstantRefNode
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
     ChildrenHavingMixin,
@@ -660,7 +660,7 @@ class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
         # There is not a whole lot to do here, the path will change at run
         # time
         if Options.getFileReferenceMode() != "runtime":
-            result = ExpressionConstantRef(
+            result = makeConstantRefNode(
                 constant   = self.getRunTimeFilename(),
                 source_ref = self.getSourceReference()
             )

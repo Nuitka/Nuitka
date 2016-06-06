@@ -34,7 +34,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 )
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
     StatementSetOperationAdd
@@ -90,7 +90,7 @@ def buildListContractionNode(provider, node, source_ref):
                             if python_version < 300 else
                           "<listcontraction>",
         emit_class      = StatementListOperationAppend,
-        start_value     = ExpressionConstantRef(
+        start_value     = makeConstantRefNode(
             constant   = [],
             source_ref = source_ref
         ),
@@ -109,7 +109,7 @@ def buildSetContractionNode(provider, node, source_ref):
         node            = node,
         name            = "<setcontraction>",
         emit_class      = StatementSetOperationAdd,
-        start_value     = ExpressionConstantRef(
+        start_value     = makeConstantRefNode(
             constant   = set(),
             source_ref = source_ref
         ),
@@ -126,7 +126,7 @@ def buildDictContractionNode(provider, node, source_ref):
         node            = node,
         name            = "<dictcontraction>",
         emit_class      = StatementDictOperationSet,
-        start_value     = ExpressionConstantRef(
+        start_value     = makeConstantRefNode(
             constant   = {},
             source_ref = source_ref
         ),

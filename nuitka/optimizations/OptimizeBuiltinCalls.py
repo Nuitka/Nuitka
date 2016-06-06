@@ -90,7 +90,7 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ExecEvalNodes import (
     ExpressionBuiltinCompile,
     ExpressionBuiltinEval
@@ -541,7 +541,7 @@ if python_version < 300:
                                 called     = ExpressionAttributeLookup(
                                     source         = ExpressionBuiltinOpen(
                                         filename   = filename,
-                                        mode       = ExpressionConstantRef(
+                                        mode       = makeConstantRefNode(
                                             constant   = "rU",
                                             source_ref = source_ref
                                         ),
@@ -628,7 +628,7 @@ def eval_extractor(node):
             )
         )
 
-        strip_choice =  ExpressionConstantRef(
+        strip_choice =  makeConstantRefNode(
             constant   = (" \t",),
             source_ref = source_ref
         )
@@ -649,7 +649,7 @@ def eval_extractor(node):
                     ),
                     source_ref = source_ref
                 ),
-                expression_yes = ExpressionConstantRef(
+                expression_yes = makeConstantRefNode(
                     constant   = (b" \t",),
                     source_ref = source_ref
                 ),

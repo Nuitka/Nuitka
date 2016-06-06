@@ -35,7 +35,7 @@ from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonIs
 )
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
     ExpressionCaughtExceptionValueRef
@@ -87,7 +87,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
                     variable   = tmp_handler_indicator_variable,
                     source_ref = source_ref.atInternal()
                 ),
-                source       = ExpressionConstantRef(
+                source       = makeConstantRefNode(
                     constant   = False,
                     source_ref = source_ref
                 ),
@@ -118,7 +118,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
                     variable   = tmp_handler_indicator_variable,
                     source_ref = source_ref
                 ),
-                right      = ExpressionConstantRef(
+                right      = makeConstantRefNode(
                     constant   = True,
                     source_ref = source_ref
                 ),
@@ -141,7 +141,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
                 variable   = tmp_handler_indicator_variable,
                 source_ref = source_ref.atInternal()
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant   = True,
                 source_ref = source_ref
             ),

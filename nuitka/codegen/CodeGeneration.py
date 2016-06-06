@@ -70,7 +70,13 @@ from .ConditionalCodes import (
     generateConditionalAndOrCode,
     generateConditionalCode
 )
-from .ConstantCodes import generateConstantReferenceCode
+from .ConstantCodes import (
+    generateConstantEllipsisReferenceCode,
+    generateConstantFalseReferenceCode,
+    generateConstantNoneReferenceCode,
+    generateConstantReferenceCode,
+    generateConstantTrueReferenceCode
+)
 from .CoroutineCodes import (
     generateAsyncIterCode,
     generateAsyncNextCode,
@@ -547,6 +553,13 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_CALL_NO_KEYWORDS"               : generateCallCode,
         "EXPRESSION_CALL"                           : generateCallCode,
         "EXPRESSION_CONSTANT_REF"                   : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_NONE_REF"              : generateConstantNoneReferenceCode,
+        "EXPRESSION_CONSTANT_TRUE_REF"              : generateConstantTrueReferenceCode,
+        "EXPRESSION_CONSTANT_FALSE_REF"             : generateConstantFalseReferenceCode,
+        "EXPRESSION_CONSTANT_ELLIPSIS_REF"          : generateConstantEllipsisReferenceCode,
+        "EXPRESSION_CONSTANT_DICT_REF"              : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_DICT_EMPTY_REF"        : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TUPLE_REF"             : generateConstantReferenceCode,
         "EXPRESSION_CONDITIONAL"                    : generateConditionalCode,
         "EXPRESSION_CONDITIONAL_OR"                 : generateConditionalAndOrCode,
         "EXPRESSION_CONDITIONAL_AND"                : generateConditionalAndOrCode,

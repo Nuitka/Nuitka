@@ -60,6 +60,47 @@ def generateConstantReferenceCode(to_name, expression, emit, context):
         context  = context
     )
 
+
+def generateConstantNoneReferenceCode(to_name, expression, emit, context):
+    """ Assign 'None' to to_name."""
+
+    # No context or other knowledge needed, pylint: disable=W0613
+
+    emit(
+        "%s = Py_None;" % to_name
+    )
+
+
+def generateConstantTrueReferenceCode(to_name, expression, emit, context):
+    """ Assign 'True' to to_name."""
+
+    # No context or other knowledge needed, pylint: disable=W0613
+
+    emit(
+        "%s = Py_True;" % to_name
+    )
+
+
+def generateConstantFalseReferenceCode(to_name, expression, emit, context):
+    """ Assign 'False' to to_name."""
+
+    # No context or other knowledge needed, pylint: disable=W0613
+
+    emit(
+        "%s = Py_False;" % to_name
+    )
+
+
+def generateConstantEllipsisReferenceCode(to_name, expression, emit, context):
+    """ Assign 'Ellipsis' to to_name."""
+
+    # No context or other knowledge needed, pylint: disable=W0613
+
+    emit(
+        "%s = Py_Ellipsis;" % to_name
+    )
+
+
 # One global stream of constant information. In the future it might make
 # sense to have per module ones, for better locality of indexes within it,
 # but we don't do this yet.
@@ -871,8 +912,7 @@ def getConstantAccess(to_name, constant, emit, context):
 
             ref_count = 0
     else:
-        code = getConstantCode(
-            context  = context,
+        code = context.getConstantCode(
             constant = constant
         )
 

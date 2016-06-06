@@ -100,6 +100,10 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
     def getDetail(self):
         return repr(self.constant)
 
+    @staticmethod
+    def isExpressionConstantRef():
+        return True
+
     def computeExpression(self, constraint_collection):
         # Cannot compute any further, this is already the best.
         return self, None, None
@@ -161,7 +165,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
     def getIterationValue(self, count):
         assert count < len(self.constant)
 
-        return ExpressionConstantRef(
+        return makeConstantRefNode(
             constant   = self.constant[count],
             source_ref = self.source_ref
         )
@@ -170,7 +174,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
         source_ref = self.getSourceReference()
 
         return tuple(
-            ExpressionConstantRef(
+            makeConstantRefNode(
                 constant      = value,
                 source_ref    = source_ref,
                 user_provided = self.user_provided
@@ -199,11 +203,11 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
         for key, value in iterItems(self.constant):
             pairs.append(
-                ExpressionConstantRef(
+                makeConstantRefNode(
                     constant   = key,
                     source_ref = source_ref
                 ),
-                ExpressionConstantRef(
+                makeConstantRefNode(
                     constant   = value,
                     source_ref = source_ref
                 )
@@ -222,7 +226,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
             pairs.append(
                 (
                     key,
-                    ExpressionConstantRef(
+                    makeConstantRefNode(
                         constant   = value,
                         source_ref = source_ref
                     )
@@ -276,7 +280,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
             return self
         else:
             try:
-                return ExpressionConstantRef(
+                return makeConstantRefNode(
                     constant      = str(self.constant),
                     user_provided = self.user_provided,
                     source_ref    = self.getSourceReference(),
@@ -287,7 +291,7 @@ class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
 
     def computeExpressionIter1(self, iter_node, constraint_collection):
         if type(self.constant) in (list, set, frozenset, dict):
-            result = ExpressionConstantRef(
+            result = makeConstantRefNode(
                 constant      = tuple(self.constant),
                 user_provided = self.user_provided,
                 source_ref    = self.getSourceReference()
@@ -309,3 +313,164 @@ Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
 
     def hasShapeDictionaryExact(self):
         return type(self.constant) is dict
+
+
+class ExpressionConstantNoneRef(ExpressionConstantRef):
+    kind = "EXPRESSION_CONSTANT_NONE_REF"
+
+    def __init__(self, source_ref, user_provided = False):
+        ExpressionConstantRef.__init__(
+            self,
+            constant      = None,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    def getDetails(self):
+        return {}
+
+
+class ExpressionConstantTrueRef(ExpressionConstantRef):
+    kind = "EXPRESSION_CONSTANT_TRUE_REF"
+
+    def __init__(self, source_ref, user_provided = False):
+        ExpressionConstantRef.__init__(
+            self,
+            constant      = True,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    def getDetails(self):
+        return {}
+
+
+class ExpressionConstantFalseRef(ExpressionConstantRef):
+    kind = "EXPRESSION_CONSTANT_FALSE_REF"
+
+    def __init__(self, source_ref, user_provided = False):
+        ExpressionConstantRef.__init__(
+            self,
+            constant      = False,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    def getDetails(self):
+        return {}
+
+
+class ExpressionConstantEllipsisRef(ExpressionConstantRef):
+    kind = "EXPRESSION_CONSTANT_ELLIPSIS_REF"
+
+    def __init__(self, source_ref, user_provided = False):
+        ExpressionConstantRef.__init__(
+            self,
+            constant      = Ellipsis,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    def getDetails(self):
+        return {}
+
+
+class ExpressionConstantDictRef(ExpressionConstantRef):
+    kind = "EXPRESSION_CONSTANT_DICT_REF"
+
+    def __init__(self, source_ref, constant, user_provided = False):
+        ExpressionConstantRef.__init__(
+            self,
+            constant      = constant,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    @staticmethod
+    def isExpressionConstantDictRef():
+        return True
+
+
+class ExpressionConstantTupleRef(ExpressionConstantRef):
+    kind = "EXPRESSION_CONSTANT_TUPLE_REF"
+
+    def __init__(self, source_ref, constant, user_provided = False):
+        ExpressionConstantRef.__init__(
+            self,
+            constant      = constant,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    @staticmethod
+    def isExpressionConstantTupleRef():
+        return True
+
+
+the_empty_dict = {}
+
+class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
+    kind = "EXPRESSION_CONSTANT_DICT_EMPTY_REF"
+
+    def __init__(self, source_ref, user_provided = False):
+        ExpressionConstantDictRef.__init__(
+            self,
+            constant      = the_empty_dict,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+
+def makeConstantRefNode(constant, source_ref, user_provided = False):
+    # This is dispatching per constant value and types, every case
+    # to be a return statement, pylint: disable=R0911
+
+    # Dispatch based on constants first.
+    if constant is None:
+        return ExpressionConstantNoneRef(
+            source_ref    = source_ref,
+            user_provided = user_provided
+        )
+    elif constant is True:
+        return ExpressionConstantTrueRef(
+            source_ref    = source_ref,
+            user_provided = user_provided
+        )
+    elif constant is False:
+        return ExpressionConstantFalseRef(
+            source_ref    = source_ref,
+            user_provided = user_provided
+        )
+    elif constant is Ellipsis:
+        return ExpressionConstantEllipsisRef(
+            source_ref    = source_ref,
+            user_provided = user_provided
+        )
+    else:
+        # Next, dispatch based on type.
+        constant_type = type(constant)
+
+        if constant_type is dict:
+            if constant:
+                return ExpressionConstantDictRef(
+                    source_ref    = source_ref,
+                    constant      = constant,
+                    user_provided = user_provided
+                )
+            else:
+                return ExpressionConstantDictEmptyRef(
+                    source_ref    = source_ref,
+                    user_provided = user_provided
+                )
+        elif constant_type is tuple:
+            return ExpressionConstantTupleRef(
+                source_ref    = source_ref,
+                constant      = constant,
+                user_provided = user_provided
+            )
+        else:
+            return ExpressionConstantRef(
+                constant      = constant,
+                source_ref    = source_ref,
+                user_provided = user_provided
+            )

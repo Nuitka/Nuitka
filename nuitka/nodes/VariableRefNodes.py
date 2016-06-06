@@ -24,7 +24,7 @@ and its expressions, changing the meaning of course dramatically.
 
 from nuitka import Builtins, Variables
 
-from .ConstantRefNodes import ExpressionConstantRef
+from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import (
     ExpressionDictOperationGet,
     ExpressionDictOperationIn,
@@ -155,7 +155,7 @@ Module variable '%s' found to be built-in reference.""" % (
                     self.variable_name
                 )
             elif self.variable_name == "__name__":
-                new_node = ExpressionConstantRef(
+                new_node = makeConstantRefNode(
                     constant   = variable.getOwner().getParentModule().\
                                    getFullName(),
                     source_ref = self.getSourceReference()
@@ -165,7 +165,7 @@ Module variable '%s' found to be built-in reference.""" % (
                 change_desc = """\
 Replaced read-only module attribute '__name__' with constant value."""
             elif self.variable_name == "__package__":
-                new_node = ExpressionConstantRef(
+                new_node = makeConstantRefNode(
                     constant   = variable.getOwner().getPackage(),
                     source_ref = self.getSourceReference()
                 )

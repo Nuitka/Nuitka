@@ -25,7 +25,7 @@ from logging import warning
 from nuitka import Constants, Options, Tracing
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeList,
     ExpressionMakeSet,
@@ -507,7 +507,7 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
         else:
             assert False, sequence_kind
 
-        result = ExpressionConstantRef(
+        result = makeConstantRefNode(
             constant      = const_type(
                 element.getConstant()
                 for element in
@@ -565,7 +565,7 @@ def makeDictCreationOrConstant(keys, values, source_ref):
         # Unless told otherwise, create the dictionary in its full size, so
         # that no growing occurs and the constant becomes as similar as possible
         # before being marshaled.
-        result = ExpressionConstantRef(
+        result = makeConstantRefNode(
             constant      = Constants.createConstantDict(
                 keys   = [
                     key.getConstant()

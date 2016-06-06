@@ -38,7 +38,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinNext1
 )
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ContainerOperationNodes import (
     ExpressionListOperationExtend,
@@ -208,7 +208,7 @@ def getListUnpackingHelper():
                 variable   = tmp_result_variable,
                 source_ref = internal_source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant   = [],
                 source_ref = internal_source_ref
             ),
@@ -345,7 +345,7 @@ def getSetUnpackingHelper():
                 variable   = tmp_result_variable,
                 source_ref = internal_source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant   = set(),
                 source_ref = internal_source_ref
             ),
