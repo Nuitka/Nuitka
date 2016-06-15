@@ -1794,6 +1794,11 @@ def fromXML(provider, xml, source_ref = None):
         source_ref = source_ref.atLineNumber(int(args["line"]))
         del args["line"]
 
+    if "constant" in args:
+        # TODO: Try and reduce/avoid this, use marshal and/or pickle from a file
+        # global stream     instead. For now, this will do. pylint: disable=W0123
+        args["constant"] = eval(args["constant"])
+
     if kind in ("ExpressionFunctionBody", "PythonMainModule"):
         delayed = node_class.named_children
     else:

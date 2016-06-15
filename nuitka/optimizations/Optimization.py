@@ -405,6 +405,8 @@ def optimize():
             restored = restoreFromXML(text)
             retext = restored.asXmlText()
 
+            open("out2.xml", 'w').write(retext)
+
             import difflib
             for line in difflib.unified_diff(
                 text.splitlines(),

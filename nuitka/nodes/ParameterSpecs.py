@@ -52,6 +52,9 @@ class ParameterSpec:
         if type(ps_normal_args) is str:
             ps_normal_args = ps_normal_args.split(',')
 
+        if type(ps_kw_only_args) is str:
+            ps_kw_only_args = ps_kw_only_args.split(',')
+
         assert None not in ps_normal_args
 
         self.owner = None
@@ -89,8 +92,8 @@ class ParameterSpec:
     def getDetails(self):
         return {
             "ps_name"          : self.name,
-            "ps_normal_args"   : self.normal_args,
-            "ps_kw_only_args"  : self.kw_only_args,
+            "ps_normal_args"   : ",".join(self.normal_args),
+            "ps_kw_only_args"  : ",".join(self.kw_only_args),
             "ps_list_star_arg" : self.list_star_arg,
             "ps_dict_star_arg" : self.dict_star_arg,
             "ps_default_count" : self.default_count
