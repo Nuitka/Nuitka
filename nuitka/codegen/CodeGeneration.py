@@ -552,7 +552,6 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_CALL_KEYWORDS_ONLY"             : generateCallCode,
         "EXPRESSION_CALL_NO_KEYWORDS"               : generateCallCode,
         "EXPRESSION_CALL"                           : generateCallCode,
-        "EXPRESSION_CONSTANT_REF"                   : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_NONE_REF"              : generateConstantNoneReferenceCode,
         "EXPRESSION_CONSTANT_TRUE_REF"              : generateConstantTrueReferenceCode,
         "EXPRESSION_CONSTANT_FALSE_REF"             : generateConstantFalseReferenceCode,

@@ -225,20 +225,6 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
             "name"     : self.name
         }
 
-    def asXml(self):
-        result = super(CompiledPythonModule, self).asXml()
-
-        functions_node = Element("role")
-        functions_node.attrib["name"] = "functions"
-        functions_node.attrib["type"] = "list"
-
-        for function_body in self.active_functions:
-            functions_node.append(function_body.asXml())
-
-        result.append(functions_node)
-
-        return result
-
     def asGraph(self, computation_counter):
         from graphviz import Digraph # @UnresolvedImport pylint: disable=F0401,I0021
 

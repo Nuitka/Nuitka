@@ -389,6 +389,10 @@ class NodeBase(NodeMetaClassBase):
     def isExpressionBuiltin(self):
         return self.kind.startswith("EXPRESSION_BUILTIN_")
 
+    @staticmethod
+    def isExpressionConstantRef():
+        return False
+
     def isExpressionSideEffects(self):
         # Virtual method, pylint: disable=R0201
 

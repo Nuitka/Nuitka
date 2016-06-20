@@ -540,15 +540,10 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
             assert variable.getName() == variable_name
 
     def getDetailsForDisplay(self):
-        if self.variable is None:
-            return {
-                "variable_name" : self.variable_name
-            }
-        else:
-            return {
-                "variable_name" : self.variable_name,
-                "version"       : self.variable_version
-            }
+        return {
+            "variable_name" : self.variable_name,
+            "version"       : self.variable_version
+        }
 
 
     def computeExpression(self, constraint_collection):

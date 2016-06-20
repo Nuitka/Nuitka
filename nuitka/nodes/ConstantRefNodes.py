@@ -40,9 +40,7 @@ from .NodeMakingHelpers import (
 )
 
 
-class ExpressionConstantRef(CompileTimeConstantExpressionMixin, NodeBase):
-    kind = "EXPRESSION_CONSTANT_REF"
-
+class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
     user_provided = False
 
     def __init__(self, constant, source_ref, user_provided = False):
@@ -317,11 +315,11 @@ Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
         return type(self.constant) is dict
 
 
-class ExpressionConstantNoneRef(ExpressionConstantRef):
+class ExpressionConstantNoneRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_NONE_REF"
 
     def __init__(self, source_ref, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = None,
             user_provided = user_provided,
@@ -332,11 +330,11 @@ class ExpressionConstantNoneRef(ExpressionConstantRef):
         return {}
 
 
-class ExpressionConstantTrueRef(ExpressionConstantRef):
+class ExpressionConstantTrueRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TRUE_REF"
 
     def __init__(self, source_ref, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = True,
             user_provided = user_provided,
@@ -347,11 +345,11 @@ class ExpressionConstantTrueRef(ExpressionConstantRef):
         return {}
 
 
-class ExpressionConstantFalseRef(ExpressionConstantRef):
+class ExpressionConstantFalseRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_FALSE_REF"
 
     def __init__(self, source_ref, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = False,
             user_provided = user_provided,
@@ -362,11 +360,11 @@ class ExpressionConstantFalseRef(ExpressionConstantRef):
         return {}
 
 
-class ExpressionConstantEllipsisRef(ExpressionConstantRef):
+class ExpressionConstantEllipsisRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_ELLIPSIS_REF"
 
     def __init__(self, source_ref, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = Ellipsis,
             user_provided = user_provided,
@@ -377,11 +375,11 @@ class ExpressionConstantEllipsisRef(ExpressionConstantRef):
         return {}
 
 
-class ExpressionConstantDictRef(ExpressionConstantRef):
+class ExpressionConstantDictRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_DICT_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -393,11 +391,11 @@ class ExpressionConstantDictRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantTupleRef(ExpressionConstantRef):
+class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TUPLE_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -409,11 +407,11 @@ class ExpressionConstantTupleRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantListRef(ExpressionConstantRef):
+class ExpressionConstantListRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_LIST_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -425,11 +423,11 @@ class ExpressionConstantListRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantSetRef(ExpressionConstantRef):
+class ExpressionConstantSetRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_SET_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -441,11 +439,11 @@ class ExpressionConstantSetRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantIntRef(ExpressionConstantRef):
+class ExpressionConstantIntRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_INT_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -457,11 +455,11 @@ class ExpressionConstantIntRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantLongRef(ExpressionConstantRef):
+class ExpressionConstantLongRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_LONG_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -473,11 +471,11 @@ class ExpressionConstantLongRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantStrRef(ExpressionConstantRef):
+class ExpressionConstantStrRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_STR_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -489,11 +487,11 @@ class ExpressionConstantStrRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantUnicodeRef(ExpressionConstantRef):
+class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_UNICODE_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -505,11 +503,11 @@ class ExpressionConstantUnicodeRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantBytesRef(ExpressionConstantRef):
+class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_BYTES_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -521,11 +519,11 @@ class ExpressionConstantBytesRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantFloatRef(ExpressionConstantRef):
+class ExpressionConstantFloatRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_FLOAT_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -537,11 +535,11 @@ class ExpressionConstantFloatRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantComplexRef(ExpressionConstantRef):
+class ExpressionConstantComplexRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_COMPLEX_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -553,11 +551,11 @@ class ExpressionConstantComplexRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantSliceRef(ExpressionConstantRef):
+class ExpressionConstantSliceRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_SLICE_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -569,11 +567,11 @@ class ExpressionConstantSliceRef(ExpressionConstantRef):
         return True
 
 
-class ExpressionConstantTypeRef(ExpressionConstantRef):
+class ExpressionConstantTypeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TYPE_REF"
 
     def __init__(self, source_ref, constant, user_provided = False):
-        ExpressionConstantRef.__init__(
+        ExpressionConstantRefBase.__init__(
             self,
             constant      = constant,
             user_provided = user_provided,
@@ -713,8 +711,5 @@ def makeConstantRefNode(constant, source_ref, user_provided = False):
                 user_provided = user_provided
             )
         else:
-            return ExpressionConstantRef(
-                constant      = constant,
-                source_ref    = source_ref,
-                user_provided = user_provided
-            )
+            # Missing constant type, ought to not happen, please report.
+            assert False, constant_type
