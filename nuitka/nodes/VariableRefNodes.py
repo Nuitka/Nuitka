@@ -23,6 +23,7 @@ and its expressions, changing the meaning of course dramatically.
 """
 
 from nuitka import Builtins, Variables
+from nuitka.ModuleRegistry import getOwnerFromCodeName
 
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import (
@@ -67,8 +68,26 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
     def getDetailsForDisplay(self):
         return {
-            "variable_name" : self.variable_name
+            "variable_name" : self.variable_name,
+            "owner"         : self.variable.getOwner().getCodeName()
         }
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is ExpressionVariableRef, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+
+        if owner.isCompiledPythonModule():
+            variable = owner.getProvidedVariable(args["variable_name"])
+        else:
+            assert False, owner
+
+        return cls(
+            variable_name = variable.getName(),
+            variable      = variable,
+            source_ref    = source_ref
+        )
 
     def getDetail(self):
         if self.variable is None:

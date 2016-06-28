@@ -50,10 +50,16 @@ class ParameterSpec:
     def __init__(self, ps_name, ps_normal_args, ps_kw_only_args, ps_list_star_arg,
                  ps_dict_star_arg, ps_default_count):
         if type(ps_normal_args) is str:
-            ps_normal_args = ps_normal_args.split(',')
+            if ps_normal_args == "":
+                ps_normal_args = ()
+            else:
+                ps_normal_args = ps_normal_args.split(',')
 
         if type(ps_kw_only_args) is str:
-            ps_kw_only_args = ps_kw_only_args.split(',')
+            if ps_kw_only_args == "":
+                ps_kw_only_args = ()
+            else:
+                ps_kw_only_args = ps_kw_only_args.split(',')
 
         assert None not in ps_normal_args
 
@@ -68,8 +74,8 @@ class ParameterSpec:
         assert ps_dict_star_arg is None or type(ps_dict_star_arg) is str, \
           ps_dict_star_arg
 
-        self.list_star_arg = ps_list_star_arg
-        self.dict_star_arg = ps_dict_star_arg
+        self.list_star_arg = ps_list_star_arg if ps_list_star_arg else None
+        self.dict_star_arg = ps_dict_star_arg if ps_dict_star_arg else None
 
         self.list_star_variable = None
         self.dict_star_variable = None
@@ -94,8 +100,8 @@ class ParameterSpec:
             "ps_name"          : self.name,
             "ps_normal_args"   : ",".join(self.normal_args),
             "ps_kw_only_args"  : ",".join(self.kw_only_args),
-            "ps_list_star_arg" : self.list_star_arg,
-            "ps_dict_star_arg" : self.dict_star_arg,
+            "ps_list_star_arg" : self.list_star_arg if self.list_star_arg is not None else "",
+            "ps_dict_star_arg" : self.dict_star_arg if self.dict_star_arg is not None else "",
             "ps_default_count" : self.default_count
         }
 

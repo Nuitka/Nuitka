@@ -100,7 +100,17 @@ def createNodeTree(filename):
     # Then optimize the tree and potentially recursed modules.
     Optimization.optimize()
 
+    # Main module might change behind our back, look it up again.
     return main_module
+
+    if False:
+        for module in ModuleRegistry.getRootModules():
+            print(module)
+            if module.isMainModule():
+                return module
+        else:
+            assert False
+
 
 def dumpTreeXML(tree):
     xml_root = tree.asXml()

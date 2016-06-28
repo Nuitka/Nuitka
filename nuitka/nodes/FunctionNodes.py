@@ -30,9 +30,12 @@ classes.
 """
 
 from nuitka import Options, VariableRegistry, Variables
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.FutureSpecs import fromFlags
 from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Extractions import updateVariableUsage
+from nuitka.VariableRegistry import addVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
 from .IndicatorMixins import (
@@ -358,9 +361,9 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         self.parameters = parameters
         self.parameters.setOwner(self)
 
-        self.registerProvidedVariables(
-            *self.parameters.getAllVariables()
-        )
+        for variable in self.parameters.getAllVariables():
+            self.registerProvidedVariable(variable)
+            addVariableUsage(variable, self)
 
     def getDetails(self):
         return {
@@ -374,11 +377,15 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
     def getDetailsForDisplay(self):
         result = {
             "name"       : self.getFunctionName(),
-            "doc"        : self.doc,
             "flags"      : self.flags
         }
 
         result.update(self.parameters.getDetails())
+
+        result["code_flags"] = ",".join(self.getSourceReference().getFutureSpec().asFlags())
+
+        if self.doc:
+            result["doc"] = self.doc
 
         return result
 
@@ -390,10 +397,17 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         for key, value in args.items():
             if key.startswith("ps_"):
                 parameter_spec_args[key] = value
+            elif key == "code_flags":
+                source_ref.future_spec = fromFlags(value)
             else:
                 other_args[key] = value
 
         parameters = ParameterSpec(**parameter_spec_args)
+
+        # The empty doc string and no doc string are distinguished by presence. The
+        # most common case is going to be not present.
+        if "doc" not in other_args:
+            other_args["doc"] = None
 
         return cls(
             provider   = provider,
@@ -527,6 +541,28 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         return {
             "code_object" : self.code_object
         }
+
+    def getDetailsForDisplay(self):
+        return self.code_object.getDetails()
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        code_object_specs = {}
+        other_args = {}
+
+        for key, value in args.items():
+            if key.startswith("co_"):
+                code_object_specs[key] = value
+            else:
+                other_args[key] = value
+
+        code_object = CodeObjectSpec(**code_object_specs)
+
+        return cls(
+            code_object = code_object,
+            source_ref  = source_ref,
+            **other_args
+        )
 
     def computeExpression(self, constraint_collection):
         defaults = self.getDefaults()

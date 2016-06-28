@@ -191,10 +191,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         elif node.isExpressionFunctionBody():
             self._handleNonLocal(node)
 
-            for variable in node.getParameters().getAllVariables():
-                addVariableUsage(variable, node)
-
-            # Python3.4 allows for class declarations to be made global, even
+            # Python 3.4 allows for class declarations to be made global, even
             # after they were declared, so we need to fix this up.
             if python_version >= 340:
                 self._handleQualnameSetup(node)

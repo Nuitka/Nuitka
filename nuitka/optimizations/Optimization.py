@@ -395,26 +395,38 @@ def optimize():
     finished = makeOptimizationPass(False)
 
     if Options.isExperimental():
-        for module in ModuleRegistry.getDoneUserModules():
+        new_roots = ModuleRegistry.root_modules.__class__()  # @UndefinedVariable
+
+        for module in tuple(ModuleRegistry.getDoneModules()):
+            ModuleRegistry.root_modules.remove(module)
+
             if module.isPythonShlibModule():
                 continue
 
             text = module.asXmlText()
             open("out.xml", 'w').write(text)
-
             restored = restoreFromXML(text)
             retext = restored.asXmlText()
-
             open("out2.xml", 'w').write(retext)
 
-            import difflib
-            for line in difflib.unified_diff(
-                text.splitlines(),
-                retext.splitlines(),
-                "xml orig",
-                "xml reloaded"
-            ):
-                printLine(line)
+            assert module.getOutputFilename() == restored.getOutputFilename(), (module.getOutputFilename(),restored.getOutputFilename())
+
+            # The variable versions give diffs.
+            if False:
+                import difflib
+                diff = difflib.unified_diff(
+                    text.splitlines(),
+                    retext.splitlines(),
+                    "xml orig",
+                    "xml reloaded"
+                )
+                for line in diff:
+                    printLine(line)
+
+            new_roots.add(restored)
+
+        ModuleRegistry.root_modules = new_roots
+        ModuleRegistry.startTraversal()
 
     # Demote to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.
@@ -425,10 +437,10 @@ def optimize():
         if module.mode == "bytecode":
             demoteCompiledModuleToBytecode(module)
 
-    # Second, endless pass.
     if _progress:
         info("PASS 2..:")
 
+    # Second, "endless" pass.
     while not finished:
         finished = makeOptimizationPass(True)
 

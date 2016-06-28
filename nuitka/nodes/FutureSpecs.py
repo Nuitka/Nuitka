@@ -60,6 +60,9 @@ class FutureSpec:
     def enableFutureDivision(self):
         self.future_division = True
 
+    def isFuturePrint(self):
+        return self.future_print
+
     def enableFuturePrint(self):
         self.future_print = True
 
@@ -84,27 +87,54 @@ class FutureSpec:
     def asFlags(self):
         """ Create a list of C identifiers to represent the flag values.
 
-            This is for use in code generation only.
+            This is for use in code generation and to restore from
+            saved modules.
         """
 
         result = []
 
-        if self.future_division and python_version < 300:
+        if python_version < 300 and self.future_division:
             result.append("CO_FUTURE_DIVISION")
 
         if self.unicode_literals:
             result.append("CO_FUTURE_UNICODE_LITERALS")
 
-        if self.absolute_import and python_version < 300:
+        if python_version < 300 and self.absolute_import:
             result.append("CO_FUTURE_ABSOLUTE_IMPORT")
 
-        if self.future_print and python_version < 300:
+        if python_version < 300 and self.future_print:
             result.append("CO_FUTURE_PRINT_FUNCTION")
 
-        if self.barry_bdfl and python_version >= 300:
+        if python_version >= 300 and self.barry_bdfl:
             result.append("CO_FUTURE_BARRY_AS_BDFL")
 
-        if self.generator_stop and python_version >= 350:
+        if python_version >= 350 and self.generator_stop:
             result.append("CO_FUTURE_GENERATOR_STOP")
 
         return tuple(result)
+
+
+def fromFlags(flags):
+    flags = flags.split(",")
+
+    result = FutureSpec()
+
+    if "CO_FUTURE_DIVISION" in flags:
+        result.enableFutureDivision()
+
+    if "CO_FUTURE_UNICODE_LITERALS" in flags:
+        result.enableUnicodeLiterals()
+
+    if "CO_FUTURE_ABSOLUTE_IMPORT" in flags:
+        result.enableAbsoluteImport()
+
+    if "CO_FUTURE_PRINT_FUNCTION" in flags:
+        result.enableFuturePrint()
+
+    if "CO_FUTURE_BARRY_AS_BDFL" in flags:
+        result.enableBarry()
+
+    if "CO_FUTURE_GENERATOR_STOP" in flags:
+        result.enableGeneratorStop()
+
+    return result

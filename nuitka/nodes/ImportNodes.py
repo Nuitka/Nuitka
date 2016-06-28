@@ -64,7 +64,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
 
         self.module_name = module_name
         self.import_list = import_list
-        self.level = level
+        self.level = int(level)
 
         # Are we pointing to a known module or not. If so, we can expect it to
         # be in the module registry.

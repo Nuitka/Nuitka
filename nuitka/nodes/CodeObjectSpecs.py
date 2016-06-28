@@ -32,7 +32,11 @@ class CodeObjectSpec:
 
         # Strings happens from XML parsing, make sure to convert them.
         if type(co_varnames) is str:
-            co_varnames = co_varnames.split(',')
+            if co_varnames == "":
+                co_varnames = ()
+            else:
+                co_varnames = co_varnames.split(',')
+
         if type(co_has_starlist) is not bool:
             co_has_starlist = co_has_starlist != "False"
         if type(co_has_stardict) is not bool:
@@ -45,8 +49,6 @@ class CodeObjectSpec:
 
         self.co_has_starlist = co_has_starlist
         self.co_has_stardict = co_has_stardict
-
-
 
     def __repr__(self):
         return """\

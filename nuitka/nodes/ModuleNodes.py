@@ -31,7 +31,6 @@ from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
-from nuitka.TreeXML import Element
 from nuitka.utils import Utils
 from nuitka.utils.CStrings import encodePythonIdentifierToC
 
@@ -224,6 +223,14 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
             "package"  : self.package_name,
             "name"     : self.name
         }
+
+    def getDetailsForDisplay(self):
+        result = self.getDetails()
+
+        result["code_flags"] = ",".join(self.source_ref.getFutureSpec().asFlags())
+
+        return result
+
 
     def asGraph(self, computation_counter):
         from graphviz import Digraph # @UnresolvedImport pylint: disable=F0401,I0021
@@ -540,7 +547,7 @@ class PythonMainModule(CompiledPythonModule):
             source_ref   = source_ref
         )
 
-        self.main_added = main_added
+        self.main_added = main_added if type(main_added) is bool else main_added == "True"
 
     def getDetails(self):
         return {

@@ -31,6 +31,7 @@ the traces.
 """
 
 from nuitka import Options
+from nuitka.ModuleRegistry import getOwnerFromCodeName
 
 from .NodeBases import NodeBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
@@ -542,9 +543,27 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
     def getDetailsForDisplay(self):
         return {
             "variable_name" : self.variable_name,
-            "version"       : self.variable_version
+            "version"       : self.variable_version,
+            "owner"         : self.variable.getOwner().getCodeName()
         }
 
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is ExpressionTargetVariableRef, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+
+        if owner.isCompiledPythonModule():
+            variable = owner.getProvidedVariable(args["variable_name"])
+        else:
+            assert False, owner
+
+        return cls(
+            variable_name = variable.getName(),
+            variable      = variable,
+            version       = int(args["version"]),
+            source_ref    = source_ref
+        )
 
     def computeExpression(self, constraint_collection):
         assert False, self.parent

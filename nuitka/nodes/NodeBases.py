@@ -22,10 +22,11 @@ These classes provide the generic base classes available for nodes.
 """
 
 
-from nuitka import Options, Tracing, TreeXML, Variables
+from nuitka import ModuleRegistry, Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.containers.odict import OrderedDict
+from nuitka.nodes.FutureSpecs import fromFlags
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import counted_del, counted_init
@@ -325,11 +326,6 @@ class NodeBase(NodeMetaClassBase):
             result.attrib["compat_line"] = str(compat_line)
 
         for key, value in iterItems(self.getDetailsForDisplay()):
-            value = str(value)
-
-            if value.startswith('<') and value.endswith('>'):
-                value = value[1:-1]
-
             result.set(key, str(value))
 
         for name, children in self.getVisitableNodesNamed():
@@ -886,10 +882,6 @@ class ClosureGiverNodeBase(CodeNodeBase):
         assert type(variable_name) is str
 
         return None
-
-    def registerProvidedVariables(self, *variables):
-        for variable in variables:
-            self.registerProvidedVariable(variable)
 
     def registerProvidedVariable(self, variable):
         assert variable is not None
@@ -1792,8 +1784,13 @@ def fromXML(provider, xml, source_ref = None):
 
     if source_ref is None:
         source_ref = SourceCodeReference.fromFilenameAndLine(args["filename"], int(args["line"]), None)
+
         del args["filename"]
         del args["line"]
+
+        if "code_flags" in args:
+            source_ref.future_spec = fromFlags(args["code_flags"])
+            del args["code_flags"]
     else:
         source_ref = source_ref.atLineNumber(int(args["line"]))
         del args["line"]
@@ -1830,6 +1827,10 @@ def fromXML(provider, xml, source_ref = None):
         raise
 
     if delayed:
+        # TODO: Severely wrong of course.
+        if result.isCompiledPythonModule():
+            ModuleRegistry.addRootModule(result)
+
         assert result.isParentVariableProvider()
         provider = result
 
