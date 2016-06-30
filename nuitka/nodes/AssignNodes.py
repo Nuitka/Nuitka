@@ -254,7 +254,7 @@ Side effects of assignments promoted to statements.""",
                                 # Something might be possible still.
 
                                 pass
-                        elif Options.isExperimental() and \
+                        elif False and Options.isExperimental() and \
                             source.isExpressionFunctionCreation() and \
                             source.getFunctionRef().getFunctionBody().isExpressionFunctionBody() and \
                             not source.getDefaults() and  \

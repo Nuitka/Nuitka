@@ -384,7 +384,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
 
         result["code_flags"] = ",".join(self.getSourceReference().getFutureSpec().asFlags())
 
-        if self.doc:
+        if self.doc is not None:
             result["doc"] = self.doc
 
         return result
@@ -543,7 +543,10 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         }
 
     def getDetailsForDisplay(self):
-        return self.code_object.getDetails()
+        if self.code_object:
+            return self.code_object.getDetails()
+        else:
+            return {}
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):

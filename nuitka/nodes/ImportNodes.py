@@ -63,7 +63,15 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
         )
 
         self.module_name = module_name
+
+        if type(import_list) is str:
+            if import_list == "":
+                import_list = ()
+            else:
+                import_list = import_list.split(",")
+
         self.import_list = import_list
+
         self.level = int(level)
 
         # Are we pointing to a known module or not. If so, we can expect it to
@@ -80,6 +88,32 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
             "level"       : self.level,
             "import_list" : self.import_list
         }
+
+    def getDetailsForDisplay(self):
+        result = {
+            "module_name" : self.module_name,
+            "level"       : self.level,
+        }
+
+        if self.import_list is not None:
+            result["import_list"] = ",".join(self.import_list)
+
+        return result
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        if "import_list" in args:
+            import_list = args["import_list"].split(",")
+            del args["import_list"]
+        else:
+            import_list = None
+
+        return cls(
+            import_list = import_list,
+            source_ref  = source_ref,
+            **args
+        )
+
 
     def getModuleName(self):
         return self.module_name

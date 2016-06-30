@@ -342,14 +342,6 @@ assert( hash_%(constant_identifier)s == DEEP_HASH( %(constant_identifier)s ) );"
              }
         )
 
-        if Options.isExperimental():
-            check(
-                """\
-if ( hash_%(constant_identifier)s == -1 ) puts("Note: Weak hash for: %(constant_identifier)s.");""" % {
-                "constant_identifier" : constant_identifier
-                }
-            )
-
 
 def __addConstantInitCode(context, emit, check, constant_type, constant_value,
                           constant_identifier, module_level):

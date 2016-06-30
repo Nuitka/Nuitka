@@ -82,7 +82,9 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
     assert tried is not None, source_ref
     assert final is not None, source_ref
 
-    if isDebug():
+    # TODO: Currently it's not possible anymore to get at XML for all codes
+    # during the building phase. So this error catcher cannot work currently.
+    if False and isDebug():
         final2 = final.makeClone()
         final2.parent = provider
 
