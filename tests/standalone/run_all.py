@@ -352,6 +352,15 @@ for filename in sorted(os.listdir('.')):
               "/dist-packages/gobject":
             continue
 
+        # PyQt5 seems to do this, but won't use contents then.
+        if loaded_filename in (
+            "/usr/lib/x86_64-linux-gnu/qt5/plugins",
+            "/usr/lib/x86_64-linux-gnu/qt5",
+            "/usr/lib/x86_64-linux-gnu",
+            "/usr/lib"
+        ):
+            continue
+
         if loaded_filename == "/usr/bin/python3.2mu":
             continue
 
