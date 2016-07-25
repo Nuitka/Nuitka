@@ -40,7 +40,7 @@ class Variable:
 
         self.global_trace = None
 
-        self.shared_scopes = 0
+        self.shared_scopes = False
 
     __del__ = InstanceCounters.counted_del()
 
