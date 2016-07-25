@@ -29,7 +29,7 @@ from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.Options import isFullCompat
 from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.VariableRegistry import addVariableUsage, isSharedAmongScopes
+from nuitka.VariableRegistry import addVariableUsage
 
 from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
@@ -346,7 +346,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
             variable = node.getTargetVariableRef().getVariable()
 
             if not variable.isModuleVariable() and \
-               isSharedAmongScopes(variable):
+               variable.isSharedAmongScopes():
                 SyntaxErrors.raiseSyntaxError(
                     reason       = """\
 can not delete variable '%s' referenced in nested scope""" % (

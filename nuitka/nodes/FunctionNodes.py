@@ -377,12 +377,13 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
     def getDetailsForDisplay(self):
         result = {
             "name"       : self.getFunctionName(),
+            "provider"   : self.provider.getCodeName(),
             "flags"      : self.flags
         }
 
         result.update(self.parameters.getDetails())
 
-        result["code_flags"] = ",".join(self.getSourceReference().getFutureSpec().asFlags())
+        result["code_flags"] = ','.join(self.getSourceReference().getFutureSpec().asFlags())
 
         if self.doc is not None:
             result["doc"] = self.doc
@@ -391,6 +392,8 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
+        assert provider is not None
+
         parameter_spec_args = {}
         other_args = {}
 
@@ -559,7 +562,10 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             else:
                 other_args[key] = value
 
-        code_object = CodeObjectSpec(**code_object_specs)
+        if code_object_specs:
+            code_object = CodeObjectSpec(**code_object_specs)
+        else:
+            code_object = None
 
         return cls(
             code_object = code_object,

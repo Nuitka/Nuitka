@@ -28,6 +28,7 @@ from nuitka.importing.Importing import (
     getModuleNameAndKindFromFilename
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
+from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
@@ -41,7 +42,9 @@ from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeBase,
     ExpressionMixin,
-    NodeBase
+    NodeBase,
+    extractKindAndArgsFromXML,
+    fromXML
 )
 
 
@@ -227,9 +230,17 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def getDetailsForDisplay(self):
         result = self.getDetails()
 
-        result["code_flags"] = ",".join(self.source_ref.getFutureSpec().asFlags())
+        result["code_flags"] = ','.join(self.source_ref.getFutureSpec().asFlags())
 
         return result
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        # Modules are not having any provider.
+        assert provider is None
+
+
+        assert False
 
 
     def asGraph(self, computation_counter):
@@ -547,7 +558,7 @@ class PythonMainModule(CompiledPythonModule):
             source_ref   = source_ref
         )
 
-        self.main_added = main_added if type(main_added) is bool else main_added == "True"
+        self.main_added = main_added
 
     def getDetails(self):
         return {
@@ -556,6 +567,63 @@ class PythonMainModule(CompiledPythonModule):
             "mode"       : self.mode
         }
 
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        result = cls(
+            main_added = args["main_added"] == "True",
+            mode       = args["mode"],
+            source_ref = source_ref
+        )
+
+        from nuitka.ModuleRegistry import addRootModule
+        addRootModule(result)
+
+        function_work = []
+
+        for xml in args["functions"]:
+            _kind, node_class, func_args, source_ref = extractKindAndArgsFromXML(xml, source_ref)
+
+            if "provider" in func_args:
+                func_args["provider"] = getOwnerFromCodeName(func_args["provider"])
+            else:
+                func_args["provider"] = result
+
+            if "flags" in args:
+                func_args["flags"] = set(func_args["flags"].split(','))
+
+            if "doc" not in args:
+                func_args["doc"] = None
+
+            function = node_class.fromXML(
+                source_ref = source_ref,
+                **func_args
+            )
+
+            # Could do more checks for look up of body here, but so what...
+            function_work.append(
+                (function, iter(iter(xml).next()).next())
+            )
+
+        for function, xml in function_work:
+            function.setChild(
+                "body",
+                fromXML(
+                    provider   = function,
+                    xml        = xml,
+                    source_ref = function.getSourceReference()
+                )
+            )
+
+        result.setChild(
+            "body",
+            fromXML(
+                provider   = result,
+                xml        = args["body"][0],
+                source_ref = source_ref
+            )
+        )
+
+        return result
 
     @staticmethod
     def isMainModule():

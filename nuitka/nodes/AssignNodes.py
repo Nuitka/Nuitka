@@ -474,16 +474,24 @@ class StatementReleaseVariable(NodeBase):
         }
 
     def getDetailsForDisplay(self):
-        if self.variable.getOwner() is not self.getParentVariableProvider():
-            return {
-                "variable" : self.variable.getName(),
-                "owner"    : self.variable.getOwner().getCodeName()
-            }
-        else:
-            return {
-                "variable" : self.variable.getName(),
-            }
+        return {
+            "variable_name" : self.variable.getName(),
+            "owner"    : self.variable.getOwner().getCodeName()
+        }
 
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is StatementReleaseVariable, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+        assert owner is not None, args["owner"]
+
+        variable = owner.getProvidedVariable(args["variable_name"])
+
+        return cls(
+            variable   = variable,
+            source_ref = source_ref
+        )
 
     def getVariable(self):
         return self.variable
@@ -552,11 +560,9 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
         assert cls is ExpressionTargetVariableRef, cls
 
         owner = getOwnerFromCodeName(args["owner"])
+        assert owner is not None, args["owner"]
 
-        if owner.isCompiledPythonModule():
-            variable = owner.getProvidedVariable(args["variable_name"])
-        else:
-            assert False, owner
+        variable = owner.getProvidedVariable(args["variable_name"])
 
         return cls(
             variable_name = variable.getName(),
@@ -587,10 +593,34 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
 class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
     kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
 
-    def __init__(self, variable, source_ref):
+    def __init__(self, variable, source_ref, version = None):
         ExpressionTempVariableRef.__init__(self, variable, source_ref)
 
-        self.variable_version = variable.allocateTargetNumber()
+        if version is None:
+            version = variable.allocateTargetNumber()
+
+        self.variable_version = version
+
+    def getDetailsForDisplay(self):
+        return {
+            "temp_name" : self.variable.getName(),
+            "version"   : self.variable_version,
+            "owner"     : self.variable.getOwner().getCodeName()
+        }
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is ExpressionTargetTempVariableRef, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+        variable = owner.createTempVariable(args["temp_name"])
+
+        return cls(
+            variable   = variable,
+            version    = int(args["version"]),
+            source_ref = source_ref
+        )
+
 
     def computeExpression(self, constraint_collection):
         assert False, self.parent

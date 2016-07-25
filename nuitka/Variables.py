@@ -40,6 +40,8 @@ class Variable:
 
         self.global_trace = None
 
+        self.shared_scopes = 0
+
     __del__ = InstanceCounters.counted_del()
 
     def getName(self):
@@ -86,6 +88,21 @@ class Variable:
     def isTempVariable(self):
         return False
     # pylint: enable=R0201
+
+    def addVariableUser(self, user):
+        # Update the shared scopes flag.
+        if user is not self.owner:
+            # These are not really scopes.
+
+            if user.isExpressionGeneratorObjectBody() or \
+               user.isExpressionCoroutineObjectBody():
+                if self.owner is user.getParentVariableProvider():
+                    return
+
+            self.shared_scopes = True
+
+    def isSharedAmongScopes(self):
+        return self.shared_scopes
 
     def isSharedTechnically(self):
         from nuitka.VariableRegistry import isSharedTechnically

@@ -138,9 +138,6 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
 
         self.match_value = comparator == "Is"
 
-    def getDetailsForDisplay(self):
-        return ExpressionComparison.getDetails(self)
-
     def getDetails(self):
         return {}
 
@@ -277,9 +274,6 @@ class ExpressionComparisonInNotInBase(ExpressionComparison):
         )
 
         assert comparator in ("In", "NotIn")
-
-    def getDetailsForDisplay(self):
-        return ExpressionComparison.getDetails(self)
 
     def getDetails(self):
         return {}

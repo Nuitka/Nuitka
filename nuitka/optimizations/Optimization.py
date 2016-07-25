@@ -409,10 +409,11 @@ def optimize():
             retext = restored.asXmlText()
             open("out2.xml", 'w').write(retext)
 
-            assert module.getOutputFilename() == restored.getOutputFilename(), (module.getOutputFilename(),restored.getOutputFilename())
+            assert module.getOutputFilename() == restored.getOutputFilename(), \
+               (module.getOutputFilename(),restored.getOutputFilename())
 
             # The variable versions give diffs.
-            if False:
+            if False: # To manually enable, pylint: disable=W0125
                 import difflib
                 diff = difflib.unified_diff(
                     text.splitlines(),

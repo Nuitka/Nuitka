@@ -68,7 +68,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
             if import_list == "":
                 import_list = ()
             else:
-                import_list = import_list.split(",")
+                import_list = import_list.split(',')
 
         self.import_list = import_list
 
@@ -96,14 +96,14 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
         }
 
         if self.import_list is not None:
-            result["import_list"] = ",".join(self.import_list)
+            result["import_list"] = ','.join(self.import_list)
 
         return result
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
         if "import_list" in args:
-            import_list = args["import_list"].split(",")
+            import_list = args["import_list"].split(',')
             del args["import_list"]
         else:
             import_list = None

@@ -22,7 +22,7 @@ These classes provide the generic base classes available for nodes.
 """
 
 
-from nuitka import ModuleRegistry, Options, Tracing, TreeXML, Variables
+from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.containers.odict import OrderedDict
@@ -922,14 +922,24 @@ class ClosureGiverNodeBase(CodeNodeBase):
         # No duplicates please.
         assert full_name not in self.temp_variables, full_name
 
-        result = Variables.TempVariable(
-            owner         = self,
-            variable_name = full_name
+        result = self.createTempVariable(
+            temp_name = full_name
         )
 
-        self.temp_variables[full_name] = result
-
         addVariableUsage(result, self)
+
+        return result
+
+    def createTempVariable(self, temp_name):
+        if temp_name in self.temp_variables:
+            return self.temp_variables[ temp_name ]
+
+        result = Variables.TempVariable(
+            owner         = self,
+            variable_name = temp_name
+        )
+
+        self.temp_variables[temp_name] = result
 
         return result
 
@@ -1772,12 +1782,11 @@ def makeChild(provider, child, source_ref):
         )
 
 
-def fromXML(provider, xml, source_ref = None):
-    assert xml.tag == "node", xml
+def getNodeClassFromName(kind):
+    return NodeCheckMetaClass.kinds[kind]
 
+def extractKindAndArgsFromXML(xml, source_ref):
     kind = xml.attrib["kind"]
-
-    node_class = NodeCheckMetaClass.kinds[kind]
 
     args = dict(xml.attrib)
     del args["kind"]
@@ -1788,12 +1797,23 @@ def fromXML(provider, xml, source_ref = None):
         del args["filename"]
         del args["line"]
 
-        if "code_flags" in args:
-            source_ref.future_spec = fromFlags(args["code_flags"])
-            del args["code_flags"]
     else:
         source_ref = source_ref.atLineNumber(int(args["line"]))
         del args["line"]
+
+    if "code_flags" in args:
+        source_ref.future_spec = fromFlags(args["code_flags"])
+        del args["code_flags"]
+
+    node_class = getNodeClassFromName(kind)
+
+    return kind, node_class, args, source_ref
+
+
+def fromXML(provider, xml, source_ref = None):
+    assert xml.tag == "node", xml
+
+    kind, node_class, args, source_ref = extractKindAndArgsFromXML(xml, source_ref)
 
     if "constant" in args:
         # TODO: Try and reduce/avoid this, use marshal and/or pickle from a file
@@ -1810,39 +1830,20 @@ def fromXML(provider, xml, source_ref = None):
 
         child_name = child.attrib["name"]
 
-        # Might want to want until provider is updated.
-        if child_name in delayed:
-            continue
-
-        args[child_name] = makeChild(provider, child, source_ref)
+        # Might want to want until provider is updated with some
+        # children. In these cases, we pass the XML node, rather
+        # than a Nuitka node.
+        if child_name not in delayed:
+            args[child_name] = makeChild(provider, child, source_ref)
+        else:
+            args[child_name] = child
 
     try:
-        result = node_class.fromXML(
+        return node_class.fromXML(
             provider   = provider,
             source_ref = source_ref,
             **args
         )
-    except TypeError:
-        Tracing.printLine(node_class, args)
+    except (TypeError, AttributeError):
+        Tracing.printLine(node_class, args, source_ref)
         raise
-
-    if delayed:
-        # TODO: Severely wrong of course.
-        if result.isCompiledPythonModule():
-            ModuleRegistry.addRootModule(result)
-
-        assert result.isParentVariableProvider()
-        provider = result
-
-        for child in xml:
-            child_name = child.attrib["name"]
-
-            if child_name not in delayed:
-                continue
-
-            result.setChild(
-                name  = child_name,
-                value = makeChild(provider, child, source_ref)
-            )
-
-    return result

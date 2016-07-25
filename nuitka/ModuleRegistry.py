@@ -210,9 +210,9 @@ def getModuleFromCodeName(code_name):
 
 def getOwnerFromCodeName(code_name):
     if "$$$" in code_name:
-        module_code_name, function_code_name = code_name.split("$$$", 1)
+        module_code_name, _function_code_name = code_name.split("$$$", 1)
 
         module = getModuleFromCodeName(module_code_name)
-        return module.getFunctionFromCodeName(function_code_name)
+        return module.getFunctionFromCodeName(code_name)
     else:
         return getModuleFromCodeName(code_name)

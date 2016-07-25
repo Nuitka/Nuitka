@@ -78,10 +78,7 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
         owner = getOwnerFromCodeName(args["owner"])
 
-        if owner.isCompiledPythonModule():
-            variable = owner.getProvidedVariable(args["variable_name"])
-        else:
-            assert False, owner
+        variable = owner.getProvidedVariable(args["variable_name"])
 
         return cls(
             variable_name = variable.getName(),
@@ -367,13 +364,27 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
 
     def getDetailsForDisplay(self):
         return {
-            "name" : self.variable.getName()
+            "temp_name" : self.variable.getName(),
+            "owner" : self.variable.getOwner().getCodeName()
         }
 
     def getDetails(self):
         return {
             "variable" : self.variable
         }
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is ExpressionTempVariableRef, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+
+        variable = owner.getTempVariable(None, args["temp_name"])
+
+        return cls(
+            variable   = variable,
+            source_ref = source_ref
+        )
 
     def getDetail(self):
         return self.variable.getName()

@@ -596,6 +596,9 @@ class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
             source_ref    = source_ref
         )
 
+    def getDetails(self):
+        return {}
+
 
 def makeConstantRefNode(constant, source_ref, user_provided = False):
     # This is dispatching per constant value and types, every case

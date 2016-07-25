@@ -115,7 +115,7 @@ class FutureSpec:
 
 
 def fromFlags(flags):
-    flags = flags.split(",")
+    flags = flags.split(',')
 
     result = FutureSpec()
 

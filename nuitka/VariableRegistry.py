@@ -35,7 +35,6 @@ class VariableInformation:
     def __init__(self, variable):
         self.variable = variable
 
-        self.users = set()
         self.active_users = set()
 
     def __repr__(self):
@@ -47,7 +46,6 @@ class VariableInformation:
     __del__ = counted_del()
 
     def addUser(self, user):
-        self.users.add(user)
         self.active_users.add(user)
 
     def removeUser(self, user):
@@ -56,14 +54,8 @@ class VariableInformation:
         except KeyError:
             raise KeyError(self, user)
 
-    def getUsers(self):
-        return self.users
-
     def getActiveUsers(self):
         return self.active_users
-
-    def getTopOwner(self):
-        return self.variable.getOwner()
 
 
 def addVariableUsage(variable, user):
@@ -76,38 +68,18 @@ def addVariableUsage(variable, user):
     variable_info = variable_registry[variable]
     variable_info.addUser(user)
 
+    variable.addVariableUser(user)
+
 
 def removeVariableUsage(variable, user):
     variable_info = variable_registry[variable]
     variable_info.removeUser(user)
 
 
-def isSharedAmongScopes(variable):
-    variable_info = variable_registry[variable]
-
-    if not variable.isParameterVariable():
-        return len(variable_info.users) > 1
-
-    count = 0
-
-    for user in variable_info.users:
-        if user.isExpressionGeneratorObjectBody() or \
-           user.isExpressionCoroutineObjectBody():
-            if variable.getOwner() is user.getParentVariableProvider():
-                continue
-
-        count += 1
-
-        if count > 1:
-            return True
-
-    return False
-
-
 def isSharedTechnically(variable):
     variable_info = variable_registry[variable]
 
-    top_owner = variable_info.getTopOwner()
+    top_owner = variable.getOwner()
 
     variable_name = variable.getName()
 

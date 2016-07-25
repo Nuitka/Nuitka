@@ -98,8 +98,8 @@ class ParameterSpec:
     def getDetails(self):
         return {
             "ps_name"          : self.name,
-            "ps_normal_args"   : ",".join(self.normal_args),
-            "ps_kw_only_args"  : ",".join(self.kw_only_args),
+            "ps_normal_args"   : ','.join(self.normal_args),
+            "ps_kw_only_args"  : ','.join(self.kw_only_args),
             "ps_list_star_arg" : self.list_star_arg if self.list_star_arg is not None else "",
             "ps_dict_star_arg" : self.dict_star_arg if self.dict_star_arg is not None else "",
             "ps_default_count" : self.default_count
