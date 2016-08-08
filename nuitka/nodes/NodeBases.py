@@ -30,7 +30,6 @@ from nuitka.nodes.FutureSpecs import fromFlags
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import counted_del, counted_init
-from nuitka.VariableRegistry import addVariableUsage, removeVariableUsage
 
 from .NodeMakingHelpers import (
     getComputationResult,
@@ -926,8 +925,6 @@ class ClosureGiverNodeBase(CodeNodeBase):
             temp_name = full_name
         )
 
-        addVariableUsage(result, self)
-
         return result
 
     def createTempVariable(self, temp_name):
@@ -956,8 +953,6 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
     def removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]
-
-        removeVariableUsage(variable, self)
 
     def allocatePreserverId(self):
         if python_version >= 300:

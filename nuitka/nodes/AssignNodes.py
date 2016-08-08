@@ -201,87 +201,35 @@ Side effects of assignments promoted to statements.""",
             assign_node = self
         )
 
-        global_trace = variable.getGlobalVariableTrace()
+        provider = self.getParentVariableProvider()
 
-        if global_trace is not None:
-            provider = self.getParentVariableProvider()
+        if variable.hasAccessesOutsideOf(provider) is False:
+            last_trace = variable.getMatchingAssignTrace(self)
 
-            if not global_trace.hasAccessesOutsideOf(provider):
-                last_trace = global_trace.getMatchingAssignTrace(self)
+            if last_trace is not None:
+                if variable.isLocalVariable() or variable.isTempVariable():
+                    if source.isCompileTimeConstant():
 
-                if last_trace is not None:
-                    if variable.isLocalVariable() or variable.isTempVariable():
-                        if source.isCompileTimeConstant():
-
-                            # Can safely forward propagate only non-mutable constants.
-                            if not source.isMutable():
-                                provider = self.getParentVariableProvider()
-
-                                if variable.isTempVariable() or \
-                                   (not provider.isExpressionClassBody() and \
-                                    not provider.isUnoptimized()
-                                    ):
-
-                                    if last_trace.hasDefiniteUsages():
-                                        self.variable_trace.setReplacementNode(
-                                            lambda usage : source.makeClone()
-                                        )
-                                        propagated = True
-                                    else:
-                                        propagated = False
-
-                                    if not last_trace.hasPotentialUsages() and not last_trace.hasNameUsages():
-                                        if not last_trace.getPrevious().isUninitTrace():
-                                            # TODO: We could well decide, if that's even necessary, but for now
-                                            # the "StatementDelVariable" is tasked with that.
-                                            result = StatementDelVariable(
-                                                variable_ref = self.getTargetVariableRef(),
-                                                tolerant     = True,
-                                                source_ref   = self.getSourceReference()
-                                            )
-                                        else:
-                                            result = None
-
-                                        return (
-                                            result,
-                                            "new_statements",
-                                            "Dropped %s assignment statement to '%s'." % (
-                                               "propagated" if propagated else "dead",
-                                               self.getTargetVariableRef().getVariableName()
-                                            )
-                                        )
-                            else:
-                                # Something might be possible still.
-
-                                pass
-                        elif False and Options.isExperimental() and \
-                            source.isExpressionFunctionCreation() and \
-                            source.getFunctionRef().getFunctionBody().isExpressionFunctionBody() and \
-                            not source.getDefaults() and  \
-                            not source.getKwDefaults() and \
-                            not source.getAnnotations():
-                            # TODO: These are very mutable, right?
-
-                            provider = self.getParentVariableProvider()
+                        # Can safely forward propagate only non-mutable constants.
+                        if not source.isMutable():
 
                             if variable.isTempVariable() or \
-                               (not provider.isUnoptimized() and \
-                                not provider.isExpressionClassBody()):
+                               (not provider.isExpressionClassBody() and \
+                                not provider.isUnoptimized()
+                                ):
 
-                                if last_trace.getDefiniteUsages() <= 1 and \
-                                   not last_trace.hasPotentialUsages() and \
-                                   not last_trace.hasNameUsages():
+                                if last_trace.hasDefiniteUsages():
+                                    self.variable_trace.setReplacementNode(
+                                        lambda usage : source.makeClone()
+                                    )
+                                    propagated = True
+                                else:
+                                    propagated = False
 
-                                    if last_trace.getDefiniteUsages() == 1:
-                                        self.variable_trace.setReplacementNode(
-                                            lambda usage : source.makeClone()
-                                        )
-                                        propagated = True
-                                    else:
-                                        propagated = False
-
+                                if not last_trace.hasPotentialUsages() and not last_trace.hasNameUsages():
                                     if not last_trace.getPrevious().isUninitTrace():
-                                        # TODO: We could well decide, if that's even necessary.
+                                        # TODO: We could well decide, if that's even necessary, but for now
+                                        # the "StatementDelVariable" is tasked with that.
                                         result = StatementDelVariable(
                                             variable_ref = self.getTargetVariableRef(),
                                             tolerant     = True,
@@ -299,8 +247,56 @@ Side effects of assignments promoted to statements.""",
                                         )
                                     )
                         else:
-                            # More cases thinkable.
+                            # Something might be possible still.
+
                             pass
+                    elif False and Options.isExperimental() and \
+                        source.isExpressionFunctionCreation() and \
+                        source.getFunctionRef().getFunctionBody().isExpressionFunctionBody() and \
+                        not source.getDefaults() and  \
+                        not source.getKwDefaults() and \
+                        not source.getAnnotations():
+                        # TODO: These are very mutable, right?
+
+                        provider = self.getParentVariableProvider()
+
+                        if variable.isTempVariable() or \
+                           (not provider.isUnoptimized() and \
+                            not provider.isExpressionClassBody()):
+
+                            if last_trace.getDefiniteUsages() <= 1 and \
+                               not last_trace.hasPotentialUsages() and \
+                               not last_trace.hasNameUsages():
+
+                                if last_trace.getDefiniteUsages() == 1:
+                                    self.variable_trace.setReplacementNode(
+                                        lambda usage : source.makeClone()
+                                    )
+                                    propagated = True
+                                else:
+                                    propagated = False
+
+                                if not last_trace.getPrevious().isUninitTrace():
+                                    # TODO: We could well decide, if that's even necessary.
+                                    result = StatementDelVariable(
+                                        variable_ref = self.getTargetVariableRef(),
+                                        tolerant     = True,
+                                        source_ref   = self.getSourceReference()
+                                    )
+                                else:
+                                    result = None
+
+                                return (
+                                    result,
+                                    "new_statements",
+                                    "Dropped %s assignment statement to '%s'." % (
+                                       "propagated" if propagated else "dead",
+                                       self.getTargetVariableRef().getVariableName()
+                                    )
+                                )
+                    else:
+                        # More cases thinkable.
+                        pass
 
         return self, None, None
 

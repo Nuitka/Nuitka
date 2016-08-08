@@ -29,7 +29,6 @@ from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.Options import isFullCompat
 from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.VariableRegistry import addVariableUsage
 
 from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
@@ -81,7 +80,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     )
 
                 node.registerProvidedVariable(variable)
-                addVariableUsage(variable, node)
+                variable.addVariableUser(node)
 
     @staticmethod
     def _handleQualnameSetup(node):
@@ -123,7 +122,9 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         if node.isExpressionTargetVariableRef():
             provider = node.getParentVariableProvider()
 
-            if node.getVariable() is None:
+            variable = node.getVariable()
+
+            if variable is None:
                 variable_name = node.getVariableName()
 
                 variable = provider.getVariableForAssignment(
@@ -132,11 +133,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                 node.setVariable(variable)
 
-            addVariableUsage(node.getVariable(), provider)
-        elif node.isExpressionTargetTempVariableRef():
-            provider = node.getParentVariableProvider()
-
-            addVariableUsage(node.getVariable(), provider)
+            variable.addVariableUser(provider)
         elif node.isExpressionVariableRef():
             if node.getVariable() is None:
                 provider = node.getParentVariableProvider()
@@ -323,11 +320,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
             if node.getVariable() is None:
                 self._attachVariable(node, provider)
 
-            addVariableUsage(node.getVariable(), provider)
-        elif node.isExpressionTempVariableRef():
-            provider = node.getParentVariableProvider()
-
-            addVariableUsage(node.getVariable(), provider)
+            node.getVariable().addVariableUser(provider)
 
 
 class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
@@ -386,9 +379,9 @@ def completeVariableClosures(tree):
                 if not function.hasVariableName("__class__"):
                     class_var = function.getClosureVariable("__class__")
                     function.registerProvidedVariable(class_var)
-                    addVariableUsage(class_var, function)
+                    class_var.addVariableUser(function)
 
                 if not function.hasVariableName("self"):
                     self_var = function.getClosureVariable("self")
                     function.registerProvidedVariable(self_var)
-                    addVariableUsage(self_var, function)
+                    self_var.addVariableUser(function)

@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Constraint collection
+""" Trace collection (also often still referred to as constraint collection).
 
 At the core of value propagation there is the collection of constraints that
 allow to propagate knowledge forward or not.
@@ -26,7 +26,7 @@ This is about collecting these constraints and to manage them.
 import contextlib
 from logging import debug
 
-from nuitka import Tracing, VariableRegistry
+from nuitka import Tracing, Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing.ImportCache import (
@@ -324,7 +324,7 @@ class CollectionStartpointMixin:
         return trace
 
     def updateFromCollection(self, old_collection):
-        VariableRegistry.updateFromCollection(old_collection, self)
+        Variables.updateFromCollection(old_collection, self)
 
     @contextlib.contextmanager
     def makeAbortStackContext(self, catch_breaks, catch_continues,
@@ -408,7 +408,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
                 self.markActiveVariableAsUnknown(variable)
 
-            elif python_version >= 300 or variable.isSharedTechnically():
+            elif python_version >= 300 or variable.isSharedTechnically() is not False:
                 # print variable
 
                 # TODO: Could be limited to shared variables that are actually

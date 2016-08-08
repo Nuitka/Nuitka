@@ -29,13 +29,12 @@ Coroutines and generators live in their dedicated module and share base
 classes.
 """
 
-from nuitka import Options, VariableRegistry, Variables
+from nuitka import Options, Variables
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.FutureSpecs import fromFlags
 from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Extractions import updateVariableUsage
-from nuitka.VariableRegistry import addVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
 from .IndicatorMixins import (
@@ -165,8 +164,6 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         self.taken.remove(variable)
 
-        VariableRegistry.removeVariableUsage(variable, self)
-
     def demoteClosureVariable(self, variable):
         assert variable.isLocalVariable()
 
@@ -178,6 +175,10 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             owner         = self,
             variable_name = variable.getName()
         )
+        for variable_trace in variable.traces:
+            if variable_trace.getOwner() is self:
+                new_variable.addTrace(variable_trace)
+        new_variable.updateUsageState()
 
         self.providing[variable.getName()] = new_variable
 
@@ -187,9 +188,6 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             new_variable = new_variable
         )
 
-        VariableRegistry.removeVariableUsage(variable, self)
-        VariableRegistry.addVariableUsage(new_variable, self)
-
     def removeUserVariable(self, variable):
         assert variable in self.providing.values(), (self.providing, variable)
 
@@ -197,8 +195,6 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         assert not variable.isParameterVariable() or \
                variable.getOwner() is not self
-
-        VariableRegistry.removeVariableUsage(variable, self)
 
     def getVariableForAssignment(self, variable_name):
         # print("ASS func", self, variable_name)
@@ -363,7 +359,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
 
         for variable in self.parameters.getAllVariables():
             self.registerProvidedVariable(variable)
-            addVariableUsage(variable, self)
 
     def getDetails(self):
         return {

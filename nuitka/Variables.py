@@ -25,10 +25,14 @@ module variable references.
 
 from nuitka.utils import InstanceCounters, Utils
 
+complete = False
 
 class Variable:
+    # We will need all of these attributes, since we track the global
+    # state and cache some decisions as attributes, pylint: disable=R0902
     @InstanceCounters.counted_init
     def __init__(self, owner, variable_name):
+
         assert type(variable_name) is str, variable_name
         assert type(owner) not in (tuple, list), owner
         assert owner.getFullName
@@ -38,9 +42,14 @@ class Variable:
 
         self.version_number = 0
 
-        self.global_trace = None
-
+        self.shared_users = False
         self.shared_scopes = False
+
+        self.traces = set()
+
+        # Derived from all traces.
+        self.users = None
+        self.writers = None
 
     __del__ = InstanceCounters.counted_del()
 
@@ -49,16 +58,6 @@ class Variable:
 
     def getOwner(self):
         return self.owner
-
-    def getGlobalVariableTrace(self):
-        # Monkey patched later to then use it, pylint: disable=R0201
-        return None
-
-    def _getGlobalVariableTrace(self):
-        return self.global_trace
-
-    def setGlobalVariableTrace(self, global_trace):
-        self.global_trace = global_trace
 
     def getCodeName(self):
         var_name = self.variable_name
@@ -93,6 +92,7 @@ class Variable:
         # Update the shared scopes flag.
         if user is not self.owner:
             # These are not really scopes.
+            self.shared_users = True
 
             if user.isExpressionGeneratorObjectBody() or \
                user.isExpressionCoroutineObjectBody():
@@ -105,8 +105,79 @@ class Variable:
         return self.shared_scopes
 
     def isSharedTechnically(self):
-        from nuitka.VariableRegistry import isSharedTechnically
-        return isSharedTechnically(self)
+        if not self.shared_users:
+            return False
+
+        if not complete:
+            return None
+
+        if not self.users:
+            return False
+
+        for user in self.users:
+            while user is not self.owner and \
+                  (
+                   (user.isExpressionFunctionBody() and not user.needsCreation()) or \
+                   user.isExpressionClassBody()
+                  ):
+                user = user.getParentVariableProvider()
+
+            if user is not self.owner:
+                return True
+
+        return False
+
+    def addTrace(self, variable_trace):
+        self.traces.add(variable_trace)
+
+    def removeTrace(self, variable_trace):
+        variable_trace.variable = None
+        self.traces.remove(variable_trace)
+
+    def updateUsageState(self):
+        writers = set()
+        users = set()
+
+        for trace in self.traces:
+            owner = trace.owner
+            users.add(owner)
+
+            if trace.isAssignTrace():
+                writers.add(owner)
+
+        self.writers = writers
+        self.users = users
+
+    def hasWritesOutsideOf(self, user):
+        if not complete:
+            return None
+        elif user in self.writers:
+            return len(self.writers) > 1
+        else:
+            return bool(self.writers)
+
+    def hasAccessesOutsideOf(self, provider):
+        if not complete:
+            return None
+        elif self.users is None:
+            return False
+        elif provider in self.users:
+            return len(self.users) > 1
+        else:
+            return bool(self.users)
+
+    def hasDefiniteWrites(self):
+        if not complete:
+            return None
+        else:
+            return bool(self.writers)
+
+    def getMatchingAssignTrace(self, assign_node):
+        for trace in self.traces:
+            if trace.isAssignTrace() and trace.getAssignNode() is assign_node:
+                return trace
+
+        return None
 
 
 class LocalVariable(Variable):
@@ -207,3 +278,31 @@ class TempVariable(Variable):
 
     def isTempVariable(self):
         return True
+
+
+def updateFromCollection(old_collection, new_collection):
+    # After removing/adding traces, we need to pre-compute the users state
+    # information.
+    touched_variables = set()
+
+    if old_collection is not None:
+        for variable_trace in old_collection.getVariableTracesAll().values():
+            variable = variable_trace.getVariable()
+
+            variable.removeTrace(variable_trace)
+            touched_variables.add(variable)
+
+    if new_collection is not None:
+        for variable_trace in new_collection.getVariableTracesAll().values():
+            variable = variable_trace.getVariable()
+
+            variable.addTrace(variable_trace)
+            touched_variables.add(variable)
+
+        # Release the memory, and prevent the "active" state from being ever
+        # inspected, it's useless now.
+        new_collection.variable_actives.clear()
+        del new_collection.variable_actives
+
+    for variable in touched_variables:
+        variable.updateUsageState()

@@ -51,7 +51,7 @@ def convertFunctionCallToOutline(provider, function_ref, values):
 
     for variable in function_body.getLocalVariables():
         # TODO: Later we should be able to do that too.
-        assert not variable.isSharedTechnically()
+        assert variable.isSharedTechnically() is False
 
         new_variable = outline_body.allocateTempVariable(
             temp_scope = temp_scope,

@@ -129,7 +129,6 @@ from nuitka.tree.Helpers import (
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from nuitka.tree.ReformulationTryFinallyStatements import \
     makeTryFinallyStatement
-from nuitka.VariableRegistry import addVariableUsage
 
 from . import BuiltinOptimization
 
@@ -870,8 +869,6 @@ def super_extractor(node):
             not (type_arg_owner.isExpressionFunctionBody() or \
                  type_arg_owner.isExpressionClassBody()):
                 type_arg = None
-            else:
-                addVariableUsage(type_arg.getVariable(), provider)
 
             if type_arg is None:
                 return makeRaiseExceptionReplacementExpression(

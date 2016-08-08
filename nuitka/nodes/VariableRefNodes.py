@@ -53,8 +53,6 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
         self.variable_trace = None
 
-        self.global_trace = None
-
     def getDetails(self):
         if self.variable is None:
             return {
@@ -137,12 +135,9 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
                 BaseException
             )
 
-        self.global_trace = variable.getGlobalVariableTrace()
 
-        # TODO: Maybe local variables are factored into this strangely.
-        if self.global_trace is not None and \
-           (variable.isModuleVariable() and not self.global_trace.hasDefiniteWrites() ) or \
-             variable.isMaybeLocalVariable():
+        if (variable.isModuleVariable() or variable.isMaybeLocalVariable()) \
+            and variable.hasDefiniteWrites() is False:
             if self.variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
@@ -210,7 +205,7 @@ Replaced read-only module attribute '__package__' with constant value."""
 
         constraint_collection.onControlFlowEscape(self)
 
-        if self.global_trace is None and \
+        if not Variables.complete and \
            self.variable_name in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
            self.variable.isModuleVariable():
             # Just inform the collection that all escaped.
