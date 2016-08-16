@@ -61,16 +61,38 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
 
         assert self.isEarlyClosure()
 
+    def getDetail(self):
+        return "named %s" % self.getFunctionName()
+
     def getDetails(self):
         return {
             "name"       : self.getFunctionName(),
-            "ref_name"   : self.getCodeName(),
             "provider"   : self.provider.getCodeName(),
-            "doc"        : self.doc
+            "doc"        : self.doc,
+            "flags"      : self.flags
         }
 
-    def getDetail(self):
-        return "named %s" % self.getFunctionName()
+    def getDetailsForDisplay(self):
+        result = {
+            "name"       : self.getFunctionName(),
+            "provider"   : self.provider.getCodeName(),
+            "flags"      : ','.join(sorted(self.flags))
+        }
+
+        result["code_flags"] = ','.join(self.getSourceReference().getFutureSpec().asFlags())
+
+        if self.doc is not None:
+            result["doc"] = self.doc
+
+        return result
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        return cls(
+            provider   = provider,
+            source_ref = source_ref,
+            **args
+        )
 
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")

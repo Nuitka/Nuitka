@@ -34,7 +34,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 )
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
     StatementSetOperationAdd
@@ -90,7 +90,7 @@ def buildListContractionNode(provider, node, source_ref):
                             if python_version < 300 else
                           "<listcontraction>",
         emit_class      = StatementListOperationAppend,
-        start_value     = ExpressionConstantRef(
+        start_value     = makeConstantRefNode(
             constant   = [],
             source_ref = source_ref
         ),
@@ -109,7 +109,7 @@ def buildSetContractionNode(provider, node, source_ref):
         node            = node,
         name            = "<setcontraction>",
         emit_class      = StatementSetOperationAdd,
-        start_value     = ExpressionConstantRef(
+        start_value     = makeConstantRefNode(
             constant   = set(),
             source_ref = source_ref
         ),
@@ -126,7 +126,7 @@ def buildDictContractionNode(provider, node, source_ref):
         node            = node,
         name            = "<dictcontraction>",
         emit_class      = StatementDictOperationSet,
-        start_value     = ExpressionConstantRef(
+        start_value     = makeConstantRefNode(
             constant   = {},
             source_ref = source_ref
         ),
@@ -435,12 +435,12 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
             name       = name,
             doc        = None,
             parameters = ParameterSpec(
-                name          = name,
-                normal_args   = (".0",),
-                list_star_arg = None,
-                dict_star_arg = None,
-                default_count = 0,
-                kw_only_args  = ()
+                ps_name          = name,
+                ps_normal_args   = (".0",),
+                ps_list_star_arg = None,
+                ps_dict_star_arg = None,
+                ps_default_count = 0,
+                ps_kw_only_args  = ()
             ),
             flags      = set(),
             source_ref = source_ref
@@ -452,12 +452,13 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         assert iter_tmp.isParameterVariable()
 
     code_object = CodeObjectSpec(
-        code_name     = name,
-        code_kind     = "Generator" if emit_class is ExpressionYield else "Function",
-        arg_names     = () if assign_provider else function_body.getParameters().getParameterNames(),
-        kw_only_count = 0,
-        has_starlist  = False,
-        has_stardict  = False,
+        co_name           = name,
+        co_kind           = "Generator" if emit_class is ExpressionYield else "Function",
+        co_varnames       = () if assign_provider else function_body.getParameters().getParameterNames(),
+        co_argcount       = 0 if assign_provider else len(function_body.getParameters().getParameterNames()),
+        co_kwonlyargcount = 0,
+        co_has_starlist   = False,
+        co_has_stardict   = False,
     )
 
     if emit_class is ExpressionYield:

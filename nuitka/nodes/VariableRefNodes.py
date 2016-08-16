@@ -23,8 +23,9 @@ and its expressions, changing the meaning of course dramatically.
 """
 
 from nuitka import Builtins, Variables
+from nuitka.ModuleRegistry import getOwnerFromCodeName
 
-from .ConstantRefNodes import ExpressionConstantRef
+from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import (
     ExpressionDictOperationGet,
     ExpressionDictOperationIn,
@@ -52,8 +53,6 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
         self.variable_trace = None
 
-        self.global_trace = None
-
     def getDetails(self):
         if self.variable is None:
             return {
@@ -64,6 +63,26 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
                 "variable_name" : self.variable_name,
                 "variable"      : self.variable
             }
+
+    def getDetailsForDisplay(self):
+        return {
+            "variable_name" : self.variable_name,
+            "owner"         : self.variable.getOwner().getCodeName()
+        }
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is ExpressionVariableRef, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+
+        variable = owner.getProvidedVariable(args["variable_name"])
+
+        return cls(
+            variable_name = variable.getName(),
+            variable      = variable,
+            source_ref    = source_ref
+        )
 
     def getDetail(self):
         if self.variable is None:
@@ -116,12 +135,9 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
                 BaseException
             )
 
-        self.global_trace = variable.getGlobalVariableTrace()
 
-        # TODO: Maybe local variables are factored into this strangely.
-        if self.global_trace is not None and \
-           (variable.isModuleVariable() and not self.global_trace.hasDefiniteWrites() ) or \
-             variable.isMaybeLocalVariable():
+        if (variable.isModuleVariable() or variable.isMaybeLocalVariable()) \
+            and variable.hasDefiniteWrites() is False:
             if self.variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
@@ -150,7 +166,7 @@ Module variable '%s' found to be built-in reference.""" % (
                     self.variable_name
                 )
             elif self.variable_name == "__name__":
-                new_node = ExpressionConstantRef(
+                new_node = makeConstantRefNode(
                     constant   = variable.getOwner().getParentModule().\
                                    getFullName(),
                     source_ref = self.getSourceReference()
@@ -160,7 +176,7 @@ Module variable '%s' found to be built-in reference.""" % (
                 change_desc = """\
 Replaced read-only module attribute '__name__' with constant value."""
             elif self.variable_name == "__package__":
-                new_node = ExpressionConstantRef(
+                new_node = makeConstantRefNode(
                     constant   = variable.getOwner().getPackage(),
                     source_ref = self.getSourceReference()
                 )
@@ -189,7 +205,7 @@ Replaced read-only module attribute '__package__' with constant value."""
 
         constraint_collection.onControlFlowEscape(self)
 
-        if self.global_trace is None and \
+        if not Variables.complete and \
            self.variable_name in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
            self.variable.isModuleVariable():
             # Just inform the collection that all escaped.
@@ -343,13 +359,27 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
 
     def getDetailsForDisplay(self):
         return {
-            "name" : self.variable.getName()
+            "temp_name" : self.variable.getName(),
+            "owner" : self.variable.getOwner().getCodeName()
         }
 
     def getDetails(self):
         return {
             "variable" : self.variable
         }
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is ExpressionTempVariableRef, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+
+        variable = owner.getTempVariable(None, args["temp_name"])
+
+        return cls(
+            variable   = variable,
+            source_ref = source_ref
+        )
 
     def getDetail(self):
         return self.variable.getName()

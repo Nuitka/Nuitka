@@ -39,7 +39,7 @@ from nuitka.nodes.CallNodes import (
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import (
@@ -174,7 +174,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
             variable   = tmp_exit_variable,
             source_ref = source_ref
         ),
-        args       = ExpressionConstantRef(
+        args       = makeConstantRefNode(
             constant   = (None, None, None),
             source_ref = source_ref
         ),
@@ -236,7 +236,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                 variable   = tmp_indicator_variable,
                 source_ref = source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant   = True,
                 source_ref = source_ref
             ),
@@ -260,7 +260,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                                 variable   = tmp_indicator_variable,
                                 source_ref = source_ref
                             ),
-                            source       = ExpressionConstantRef(
+                            source       = makeConstantRefNode(
                                 constant   = False,
                                 source_ref = source_ref
                             ),
@@ -286,7 +286,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                         variable   = tmp_indicator_variable,
                         source_ref = source_ref
                     ),
-                    right      = ExpressionConstantRef(
+                    right      = makeConstantRefNode(
                         constant   = True,
                         source_ref = source_ref
                     ),

@@ -26,6 +26,7 @@ them.
 
 """
 
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.PythonVersions import python_version
 
 from .StatementNodes import StatementsSequence
@@ -81,11 +82,34 @@ class StatementsFrame(StatementsSequence):
         return result
 
     def getDetailsForDisplay(self):
-        result = self.getDetails()
+        result = {
+            "guard_mode"  : self.guard_mode,
+        }
+
+        result.update(StatementsSequence.getDetails(self))
 
         result.update(self.code_object.getDetails())
 
         return result
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        code_object_args = {}
+        other_args = {}
+
+        for key, value in args.items():
+            if key.startswith("co_"):
+                code_object_args[key] = value
+            else:
+                other_args[key] = value
+
+        code_object = CodeObjectSpec(**code_object_args)
+
+        return cls(
+            code_object = code_object,
+            source_ref  = source_ref,
+            **other_args
+        )
 
     def getGuardMode(self):
         return self.guard_mode

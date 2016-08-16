@@ -197,3 +197,22 @@ def getDoneUserModules():
 
 def removeDoneModule(module):
     done_modules.remove(module)
+
+
+def getModuleFromCodeName(code_name):
+    # TODO: We need something to just load modules.
+    for module in root_modules:
+        if module.getCodeName() == code_name:
+            return module
+
+    assert False, code_name
+
+
+def getOwnerFromCodeName(code_name):
+    if "$$$" in code_name:
+        module_code_name, _function_code_name = code_name.split("$$$", 1)
+
+        module = getModuleFromCodeName(module_code_name)
+        return module.getFunctionFromCodeName(code_name)
+    else:
+        return getModuleFromCodeName(code_name)

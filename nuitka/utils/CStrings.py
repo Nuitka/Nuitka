@@ -21,10 +21,12 @@ This contains the code to create string literals for C++ to represent the given
 values and little more.
 """
 
+import re
+
 from nuitka.__past__ import unicode  # pylint: disable=W0622
 
 
-def _encodeString(value):
+def _encodePythonStringToC(value):
     """ Encode a string, so that it gives a C++ string literal.
 
         This doesn't handle limits.
@@ -60,18 +62,48 @@ def _encodeString(value):
 
     return '"%s"' % result
 
-def encodeString(value):
-    """ Encode a string, so that it gives a C++ string literal.
+
+def encodePythonStringToC(value):
+    """ Encode a string, so that it gives a C string literal.
 
     """
 
-    # Not all compilers don't allow arbitrary large C++ strings.
-    result = _encodeString(value[:16000 ])
+    # Not all compilers don't allow arbitrary large C++ strings,
+    # therefore split it up into chunks. That changes nothing to
+    # the meanings, but is easier on the parser. Currently only
+    # MSVC is known to have this issue, but the workaround can be
+    # used universally.
+
+    result = _encodePythonStringToC(value[:16000 ])
     value = value[16000:]
 
     while len(value) > 0:
         result += ' '
-        result += _encodeString(value[:16000 ])
+        result += _encodePythonStringToC(value[:16000 ])
         value = value[16000:]
 
     return result
+
+
+def encodePythonIdentifierToC(value):
+    """ Encode an identifier from a given Python string.
+
+    """
+
+    # Python identifiers allow almost of characters except a very
+    # few, much more than C identifiers support. This attempts to
+    # be bi-directional, so we can reverse it.
+
+    def r(match):
+        c = match.group()
+
+        if c == '.':
+            return '$'
+        else:
+            return "$$%d$" % ord(c)
+
+    return "".join(
+        re.sub("[^a-zA-Z0-9_]", r ,c)
+        for c in
+        value
+    )

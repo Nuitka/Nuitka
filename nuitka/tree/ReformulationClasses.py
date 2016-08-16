@@ -44,7 +44,7 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationGet,
@@ -70,9 +70,9 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.PythonVersions import python_version
 
 from .Helpers import (
+    buildFrameNode,
     buildNode,
     buildNodeList,
-    buildStatementsNode,
     extractDocFromBody,
     getKind,
     makeDictCreationOrConstant,
@@ -153,15 +153,16 @@ def _buildClassNode3(provider, node, source_ref):
         )
 
     code_object = CodeObjectSpec(
-        code_name     = node.name,
-        code_kind     = "Class",
-        arg_names     = (),
-        kw_only_count = 0,
-        has_starlist  = False,
-        has_stardict  = False
+        co_name           = node.name,
+        co_kind           = "Class",
+        co_varnames       = (),
+        co_argcount       = 0,
+        co_kwonlyargcount = 0,
+        co_has_starlist   = False,
+        co_has_stardict   = False
     )
 
-    body = buildStatementsNode(
+    body = buildFrameNode(
         provider    = class_creation_function,
         nodes       = class_statement_nodes,
         code_object = code_object,
@@ -192,7 +193,7 @@ def _buildClassNode3(provider, node, source_ref):
                 variable      = module_variable,
                 source_ref    = source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant      = provider.getParentModule().getFullName(),
                 source_ref    = source_ref,
                 user_provided = True
@@ -213,7 +214,7 @@ def _buildClassNode3(provider, node, source_ref):
                     variable      = doc_variable,
                     source_ref    = source_ref
                 ),
-                source       = ExpressionConstantRef(
+                source       = makeConstantRefNode(
                     constant      = class_doc,
                     source_ref    = source_ref,
                     user_provided = True
@@ -230,7 +231,7 @@ def _buildClassNode3(provider, node, source_ref):
         )
 
         if python_version < 340:
-            qualname_ref = ExpressionConstantRef(
+            qualname_ref = makeConstantRefNode(
                 constant      = qualname,
                 source_ref    = source_ref,
                 user_provided = True
@@ -268,7 +269,7 @@ def _buildClassNode3(provider, node, source_ref):
                 args       = makeSequenceCreationOrConstant(
                     sequence_kind = "tuple",
                     elements      = (
-                        ExpressionConstantRef(
+                        makeConstantRefNode(
                             constant      = node.name,
                             source_ref    = source_ref,
                             user_provided = True
@@ -371,7 +372,7 @@ def _buildClassNode3(provider, node, source_ref):
             ),
             source       = makeDictCreationOrConstant(
                 keys       = [
-                    ExpressionConstantRef(
+                    makeConstantRefNode(
                         constant      = keyword.arg,
                         source_ref    = source_ref,
                         user_provided = True
@@ -396,7 +397,7 @@ def _buildClassNode3(provider, node, source_ref):
             source       = ExpressionSelectMetaclass(
                 metaclass  = ExpressionConditional(
                     condition      = ExpressionComparisonIn(
-                        left       = ExpressionConstantRef(
+                        left       = makeConstantRefNode(
                             constant      = "metaclass",
                             source_ref    = source_ref,
                             user_provided = True
@@ -412,7 +413,7 @@ def _buildClassNode3(provider, node, source_ref):
                             variable   = tmp_class_decl_dict,
                             source_ref = source_ref
                         ),
-                        key        = ExpressionConstantRef(
+                        key        = makeConstantRefNode(
                             constant      = "metaclass",
                             source_ref    = source_ref,
                             user_provided = True
@@ -434,7 +435,7 @@ def _buildClassNode3(provider, node, source_ref):
                                     variable   = tmp_bases,
                                     source_ref = source_ref
                                 ),
-                                subscript  = ExpressionConstantRef(
+                                subscript  = makeConstantRefNode(
                                     constant      = 0,
                                     source_ref    = source_ref,
                                     user_provided = True
@@ -457,7 +458,7 @@ def _buildClassNode3(provider, node, source_ref):
         ),
         StatementConditional(
             condition  = ExpressionComparisonIn(
-                left       = ExpressionConstantRef(
+                left       = makeConstantRefNode(
                     constant      = "metaclass",
                     source_ref    = source_ref,
                     user_provided = True
@@ -475,7 +476,7 @@ def _buildClassNode3(provider, node, source_ref):
                         variable   = tmp_class_decl_dict,
                         source_ref = source_ref
                     ),
-                    key        = ExpressionConstantRef(
+                    key        = makeConstantRefNode(
                         constant      = "metaclass",
                         source_ref    = source_ref,
                         user_provided = True
@@ -496,14 +497,14 @@ def _buildClassNode3(provider, node, source_ref):
                         variable   = tmp_metaclass,
                         source_ref = source_ref
                     ),
-                    name       = ExpressionConstantRef(
+                    name       = makeConstantRefNode(
                         constant      = "__prepare__",
                         source_ref    = source_ref,
                         user_provided = True
                     ),
                     source_ref = source_ref
                 ),
-                expression_no  = ExpressionConstantRef(
+                expression_no  = makeConstantRefNode(
                     constant      = {},
                     source_ref    = source_ref,
                     user_provided = True
@@ -519,7 +520,7 @@ def _buildClassNode3(provider, node, source_ref):
                     ),
                     args       = ExpressionMakeTuple(
                         elements   = (
-                            ExpressionConstantRef(
+                            makeConstantRefNode(
                                 constant      = node.name,
                                 source_ref    = source_ref,
                                 user_provided = True
@@ -597,15 +598,16 @@ def _buildClassNode2(provider, node, source_ref):
     )
 
     code_object = CodeObjectSpec(
-        code_name     = node.name,
-        code_kind     = "Class",
-        arg_names     = (),
-        kw_only_count = 0,
-        has_starlist  = False,
-        has_stardict  = False
+        co_name           = node.name,
+        co_kind           = "Class",
+        co_varnames       = (),
+        co_argcount       = 0,
+        co_kwonlyargcount = 0,
+        co_has_starlist   = False,
+        co_has_stardict   = False
     )
 
-    body = buildStatementsNode(
+    body = buildFrameNode(
         provider    = function_body,
         nodes       = class_statement_nodes,
         code_object = code_object,
@@ -624,7 +626,7 @@ def _buildClassNode2(provider, node, source_ref):
                 variable_name = "__module__",
                 source_ref    = source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant      = provider.getParentModule().getFullName(),
                 source_ref    = source_ref,
                 user_provided = True
@@ -640,7 +642,7 @@ def _buildClassNode2(provider, node, source_ref):
                     variable_name = "__doc__",
                     source_ref    = source_ref
                 ),
-                source       = ExpressionConstantRef(
+                source       = makeConstantRefNode(
                     constant      = class_doc,
                     source_ref    = source_ref,
                     user_provided = True
@@ -721,7 +723,7 @@ def _buildClassNode2(provider, node, source_ref):
             ),
             source       = ExpressionConditional(
                 condition      =  ExpressionComparisonIn(
-                    left       = ExpressionConstantRef(
+                    left       = makeConstantRefNode(
                         constant      = "__metaclass__",
                         source_ref    = source_ref,
                         user_provided = True
@@ -737,7 +739,7 @@ def _buildClassNode2(provider, node, source_ref):
                         variable   = tmp_class_dict,
                         source_ref = source_ref
                     ),
-                    key        = ExpressionConstantRef(
+                    key        = makeConstantRefNode(
                         constant      = "__metaclass__",
                         source_ref    = source_ref,
                         user_provided = True
@@ -768,7 +770,7 @@ def _buildClassNode2(provider, node, source_ref):
                 ),
                 args       = ExpressionMakeTuple(
                     elements   = (
-                        ExpressionConstantRef(
+                        makeConstantRefNode(
                             constant      = node.name,
                             source_ref    = source_ref,
                             user_provided = True

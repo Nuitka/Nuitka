@@ -34,9 +34,9 @@ from nuitka.Options import isDebug, shallWarnImplicitRaises
 
 
 def makeConstantReplacementNode(constant, node):
-    from .ConstantRefNodes import ExpressionConstantRef
+    from .ConstantRefNodes import makeConstantRefNode
 
-    return ExpressionConstantRef(
+    return makeConstantRefNode(
         constant   = constant,
         source_ref = node.getSourceReference()
     )

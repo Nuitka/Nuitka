@@ -24,7 +24,7 @@ source code comments with developer manual sections.
 
 import ast
 
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
 from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
 from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
@@ -62,8 +62,7 @@ def buildYieldNode(provider, node, source_ref):
         )
     else:
         return ExpressionYield(
-            expression = ExpressionConstantRef(
-                constant      = None,
+            expression = ExpressionConstantNoneRef(
                 source_ref    = source_ref,
                 user_provided = True
             ),

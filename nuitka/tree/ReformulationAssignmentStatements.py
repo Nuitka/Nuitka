@@ -42,7 +42,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
 from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryInplace
 from nuitka.nodes.SliceNodes import (
@@ -93,8 +93,7 @@ def buildExtSliceNode(provider, node, source_ref):
                 source_ref = source_ref
             )
         elif dim_kind == "Ellipsis":
-            element = ExpressionConstantRef(
-                constant      = Ellipsis,
+            element = ExpressionConstantEllipsisRef(
                 source_ref    = source_ref,
                 user_provided = True
             )
@@ -437,8 +436,7 @@ def decodeAssignTarget(provider, node, source_ref, allow_none = False):
         elif slice_kind == "Ellipsis":
             return "Subscript", (
                 buildNode(provider, node.value, source_ref),
-                ExpressionConstantRef(
-                    constant   = Ellipsis,
+                ExpressionConstantEllipsisRef(
                     source_ref = source_ref
                 )
             )

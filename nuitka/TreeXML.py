@@ -21,6 +21,7 @@ Means to create XML elements from Nuitka tree nodes and to convert the
 XML tree to ASCII or output it.
 """
 
+from nuitka.__past__ import StringIO
 from nuitka.PythonVersions import python_version
 
 from . import Tracing
@@ -70,6 +71,8 @@ except ImportError:
         Element = None
         xml_tostring = None
 
+# TODO: Use the writer to create the XML we output. That should be more
+# scalable and/or faster.
 try:
     import lxml.xmlfile
 
@@ -85,6 +88,10 @@ def toString(tree):
         result = result.decode("utf-8")
 
     return result
+
+
+def fromString(text):
+    return xml_module.parse(StringIO(text)).getroot()
 
 
 def dump(tree):

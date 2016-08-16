@@ -38,7 +38,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinNext1
 )
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ContainerOperationNodes import (
     ExpressionListOperationExtend,
@@ -113,12 +113,12 @@ def getListUnpackingHelper():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (),
-            list_star_arg = "args",
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_name          = helper_name,
+            ps_normal_args   = (),
+            ps_list_star_arg = "args",
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -208,7 +208,7 @@ def getListUnpackingHelper():
                 variable   = tmp_result_variable,
                 source_ref = internal_source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant   = [],
                 source_ref = internal_source_ref
             ),
@@ -250,12 +250,12 @@ def getSetUnpackingHelper():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (),
-            list_star_arg = "args",
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_name          = helper_name,
+            ps_normal_args   = (),
+            ps_list_star_arg = "args",
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -345,7 +345,7 @@ def getSetUnpackingHelper():
                 variable   = tmp_result_variable,
                 source_ref = internal_source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant   = set(),
                 source_ref = internal_source_ref
             ),

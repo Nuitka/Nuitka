@@ -26,9 +26,10 @@ from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.Constants import isCompileTimeConstantValue
 from nuitka.containers.odict import OrderedDict
+from nuitka.nodes.FutureSpecs import fromFlags
 from nuitka.PythonVersions import python_version
+from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import counted_del, counted_init
-from nuitka.VariableRegistry import addVariableUsage, removeVariableUsage
 
 from .NodeMakingHelpers import (
     getComputationResult,
@@ -38,7 +39,7 @@ from .NodeMakingHelpers import (
 
 
 class NodeCheckMetaClass(type):
-    kinds = set()
+    kinds = {}
 
     def __new__(cls, name, bases, dictionary):
         # This is in conflict with either PyDev or Pylint, pylint: disable=C0204
@@ -54,7 +55,8 @@ class NodeCheckMetaClass(type):
             assert type(kind) is str, name
             assert kind not in NodeCheckMetaClass.kinds, name
 
-            NodeCheckMetaClass.kinds.add(kind)
+            NodeCheckMetaClass.kinds[kind] = cls
+            NodeCheckMetaClass.kinds[name] = cls
 
             def convert(value):
                 if value in ("AND", "OR", "NOT"):
@@ -88,6 +90,7 @@ NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object,), {})
 
 
 class NodeBase(NodeMetaClassBase):
+    # String to identify the node class, to be consistent with its name.
     kind = None
 
     @counted_init
@@ -185,6 +188,7 @@ class NodeBase(NodeMetaClassBase):
             assert False, (self,  self.source_ref)
 
         return self.parent
+
     def getChildName(self):
         """ Return the role in the current parent, subject to changes.
 
@@ -321,17 +325,9 @@ class NodeBase(NodeMetaClassBase):
             result.attrib["compat_line"] = str(compat_line)
 
         for key, value in iterItems(self.getDetailsForDisplay()):
-            value = str(value)
-
-            if value.startswith('<') and value.endswith('>'):
-                value = value[1:-1]
-
             result.set(key, str(value))
 
         for name, children in self.getVisitableNodesNamed():
-            if type(children) not in (list, tuple):
-                children = (children,)
-
             role = TreeXML.Element(
                 "role",
                 name = name
@@ -339,13 +335,26 @@ class NodeBase(NodeMetaClassBase):
 
             result.append(role)
 
-            for child in children:
-                if child is not None:
+            if children is None:
+                role.attrib["type"] = "none"
+            elif type(children) not in (list, tuple):
+                role.append(
+                    children.asXml()
+                )
+            else:
+                role.attrib["type"] = "list"
+
+                for child in children:
                     role.append(
                         child.asXml()
                     )
 
         return result
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        # Only some things need a provider, pylint: disable=W0613
+        return cls(source_ref = source_ref, **args)
 
     def asXmlText(self):
         xml = self.asXml()
@@ -374,6 +383,10 @@ class NodeBase(NodeMetaClassBase):
 
     def isExpressionBuiltin(self):
         return self.kind.startswith("EXPRESSION_BUILTIN_")
+
+    @staticmethod
+    def isExpressionConstantRef():
+        return False
 
     def isExpressionSideEffects(self):
         # Virtual method, pylint: disable=R0201
@@ -612,7 +625,11 @@ class CodeNodeBase(NodeBase):
             else:
                 name = uid
 
-            self.code_name = "%s%s_of_%s" % (self.code_prefix, name, parent_name)
+            self.code_name = "%s$$$%s%s" % (
+                parent_name,
+                self.code_prefix,
+                name
+            )
 
         return self.code_name
 
@@ -865,10 +882,6 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
         return None
 
-    def registerProvidedVariables(self, *variables):
-        for variable in variables:
-            self.registerProvidedVariable(variable)
-
     def registerProvidedVariable(self, variable):
         assert variable is not None
 
@@ -908,14 +921,22 @@ class ClosureGiverNodeBase(CodeNodeBase):
         # No duplicates please.
         assert full_name not in self.temp_variables, full_name
 
-        result = Variables.TempVariable(
-            owner         = self,
-            variable_name = full_name
+        result = self.createTempVariable(
+            temp_name = full_name
         )
 
-        self.temp_variables[full_name] = result
+        return result
 
-        addVariableUsage(result, self)
+    def createTempVariable(self, temp_name):
+        if temp_name in self.temp_variables:
+            return self.temp_variables[ temp_name ]
+
+        result = Variables.TempVariable(
+            owner         = self,
+            variable_name = temp_name
+        )
+
+        self.temp_variables[temp_name] = result
 
         return result
 
@@ -932,8 +953,6 @@ class ClosureGiverNodeBase(CodeNodeBase):
 
     def removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]
-
-        removeVariableUsage(variable, self)
 
     def allocatePreserverId(self):
         if python_version >= 300:
@@ -996,12 +1015,14 @@ class ClosureTakerMixin:
         for variable in self.taken:
             if variable.getName() == variable_name:
                 return True
+
         return False
 
     def getTakenVariable(self, variable_name):
         for variable in self.taken:
             if variable.getName() == variable_name:
                 return variable
+
         return None
 
     def isEarlyClosure(self):
@@ -1731,3 +1752,93 @@ class SideEffectsFromChildrenMixin:
             )
 
         return tuple(result)
+
+
+def makeChild(provider, child, source_ref):
+    child_type = child.attrib.get("type")
+
+    if child_type == "list":
+        return [
+            fromXML(
+                provider   = provider,
+                xml        = sub_child,
+                source_ref = source_ref
+            )
+            for sub_child in
+            child
+        ]
+    elif child_type == "none":
+        return None
+    else:
+        return fromXML(
+            provider   = provider,
+            xml        = child[0],
+            source_ref = source_ref
+        )
+
+
+def getNodeClassFromName(kind):
+    return NodeCheckMetaClass.kinds[kind]
+
+def extractKindAndArgsFromXML(xml, source_ref):
+    kind = xml.attrib["kind"]
+
+    args = dict(xml.attrib)
+    del args["kind"]
+
+    if source_ref is None:
+        source_ref = SourceCodeReference.fromFilenameAndLine(args["filename"], int(args["line"]), None)
+
+        del args["filename"]
+        del args["line"]
+
+    else:
+        source_ref = source_ref.atLineNumber(int(args["line"]))
+        del args["line"]
+
+    if "code_flags" in args:
+        source_ref.future_spec = fromFlags(args["code_flags"])
+        del args["code_flags"]
+
+    node_class = getNodeClassFromName(kind)
+
+    return kind, node_class, args, source_ref
+
+
+def fromXML(provider, xml, source_ref = None):
+    assert xml.tag == "node", xml
+
+    kind, node_class, args, source_ref = extractKindAndArgsFromXML(xml, source_ref)
+
+    if "constant" in args:
+        # TODO: Try and reduce/avoid this, use marshal and/or pickle from a file
+        # global stream     instead. For now, this will do. pylint: disable=W0123
+        args["constant"] = eval(args["constant"])
+
+    if kind in ("ExpressionFunctionBody", "PythonMainModule"):
+        delayed = node_class.named_children
+    else:
+        delayed = ()
+
+    for child in xml:
+        assert child.tag == "role", child.tag
+
+        child_name = child.attrib["name"]
+
+        # Might want to want until provider is updated with some
+        # children. In these cases, we pass the XML node, rather
+        # than a Nuitka node.
+        if child_name not in delayed:
+            args[child_name] = makeChild(provider, child, source_ref)
+        else:
+            args[child_name] = child
+
+    try:
+        return node_class.fromXML(
+            provider   = provider,
+            source_ref = source_ref,
+            **args
+        )
+    except (TypeError, AttributeError):
+        Tracing.printLine(node_class, args, source_ref)
+        raise

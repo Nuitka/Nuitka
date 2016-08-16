@@ -34,7 +34,7 @@ from nuitka.Builtins import (
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
-from .ConstantRefNodes import ExpressionConstantRef
+from .ConstantRefNodes import makeConstantRefNode
 from .ExceptionNodes import ExpressionBuiltinMakeException
 from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
 
@@ -64,7 +64,7 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
         return False
 
     def getStrValue(self):
-        return ExpressionConstantRef(
+        return makeConstantRefNode(
             constant      = str(self.getCompileTimeConstant()),
             user_provided = True,
             source_ref    = self.getSourceReference(),
@@ -99,7 +99,7 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
         }
 
         if self.builtin_name in quick_names:
-            new_node = ExpressionConstantRef(
+            new_node = makeConstantRefNode(
                 constant   = quick_names[self.builtin_name],
                 source_ref = self.getSourceReference()
             )

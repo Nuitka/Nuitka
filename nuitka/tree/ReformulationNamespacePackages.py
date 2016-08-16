@@ -27,7 +27,7 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeList,
     ExpressionMakeTuple
@@ -52,7 +52,7 @@ from .VariableClosure import completeVariableClosures
 
 def createPathAssignment(source_ref):
     if Options.getFileReferenceMode() == "original":
-        path_value = ExpressionConstantRef(
+        path_value = makeConstantRefNode(
             constant      = [
                 dirname(source_ref.getFilename())
             ],
@@ -115,7 +115,7 @@ def createPython3NamespacePath(package_name, module_relpath, source_ref):
                 import_name = "_NamespacePath",
                 source_ref  = source_ref
             ),
-            args       = ExpressionConstantRef(
+            args       = makeConstantRefNode(
                 constant   = (
                     package_name,
                     [module_relpath],

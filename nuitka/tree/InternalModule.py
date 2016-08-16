@@ -25,7 +25,6 @@ own these functions to a random module.
 
 from nuitka.nodes.ModuleNodes import PythonInternalModule
 from nuitka.SourceCodeReferences import fromFilename
-from nuitka.VariableRegistry import addVariableUsage
 
 internal_module = None
 
@@ -35,12 +34,10 @@ internal_source_ref = fromFilename("internal").atInternal()
 def once_decorator(func):
     func.cached_value = None
 
+    # TODO: This doesn't much specific anymore.
     def replacement():
         if func.cached_value is None:
             func.cached_value = func()
-
-        for variable in func.cached_value.getVariables():
-            addVariableUsage(variable, func.cached_value)
 
         return func.cached_value
 

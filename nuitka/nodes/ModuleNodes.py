@@ -21,8 +21,6 @@ The top of the tree. Packages are also modules. Modules are what hold a program
 together and cross-module optimizations are the most difficult to tackle.
 """
 
-import re
-
 from nuitka import Options, Variables
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing.Importing import (
@@ -30,20 +28,23 @@ from nuitka.importing.Importing import (
     getModuleNameAndKindFromFilename
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
+from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
 from nuitka.utils import Utils
+from nuitka.utils.CStrings import encodePythonIdentifierToC
 
 from .Checkers import checkStatementsSequenceOrNone
-from .CodeObjectSpecs import CodeObjectSpec
-from .ConstantRefNodes import ExpressionConstantRef
+from .ConstantRefNodes import makeConstantRefNode
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeBase,
     ExpressionMixin,
-    NodeBase
+    NodeBase,
+    extractKindAndArgsFromXML,
+    fromXML
 )
 
 
@@ -180,6 +181,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     named_children = (
         "body",
+        "functions"
     )
 
     checkers = {
@@ -203,7 +205,8 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         ChildrenHavingMixin.__init__(
             self,
             values = {
-                "body" : None # delayed
+                "body" : None, # delayed
+                "functions" : (),
             },
         )
 
@@ -211,26 +214,11 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
         self.variables = {}
 
-        # The list functions contained in that module.
-        self.functions = OrderedSet()
-
         self.active_functions = OrderedSet()
         self.cross_used_functions = OrderedSet()
 
         # SSA trace based information about the module.
         self.constraint_collection = None
-
-        self.code_object = CodeObjectSpec(
-            code_name     = "<module>" if self.isMainModule() else self.getName(),
-            code_kind     = "Module",
-            arg_names     = (),
-            kw_only_count = 0,
-            has_stardict  = False,
-            has_starlist  = False,
-        )
-
-    def getCodeObject(self):
-        return self.code_object
 
     def getDetails(self):
         return {
@@ -239,13 +227,21 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
             "name"     : self.name
         }
 
-    def asXml(self):
-        result = super(CompiledPythonModule, self).asXml()
+    def getDetailsForDisplay(self):
+        result = self.getDetails()
 
-        for function_body in self.active_functions:
-            result.append(function_body.asXml())
+        result["code_flags"] = ','.join(self.source_ref.getFutureSpec().asFlags())
 
         return result
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        # Modules are not having any provider.
+        assert provider is None
+
+
+        assert False
+
 
     def asGraph(self, computation_counter):
         from graphviz import Digraph # @UnresolvedImport pylint: disable=F0401,I0021
@@ -291,6 +287,9 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
+
+    getFunctions = ChildrenHavingMixin.childGetter("functions")
+    setFunctions = ChildrenHavingMixin.childSetter("functions")
 
     @staticmethod
     def isCompiledPythonModule():
@@ -344,32 +343,22 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         return True
 
     def getCodeName(self):
-        def r(match):
-            c = match.group()
-            if c == '.':
-                return '$'
-            else:
-                return "$$%d$" % ord(c)
+        # For code name of modules, we need to translate to C identifiers,
+        # removing characters illegal for that.
 
-        return "".join(
-            re.sub("[^a-zA-Z0-9_]", r ,c)
-            for c in
-            self.getFullName()
-        )
+        return encodePythonIdentifierToC(self.getFullName())
 
     def addFunction(self, function_body):
-        assert function_body not in self.functions
-
-        self.functions.add(function_body)
-
-    def getFunctions(self):
-        return self.functions
+        functions = self.getFunctions()
+        assert function_body not in functions
+        functions += (function_body,)
+        self.setFunctions(functions)
 
     def startTraversal(self):
         self.active_functions = OrderedSet()
 
     def addUsedFunction(self, function_body):
-        assert function_body in self.functions
+        assert function_body in self.getFunctions()
 
         assert function_body.isExpressionFunctionBody() or \
                function_body.isExpressionClassBody() or \
@@ -383,7 +372,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         return self.active_functions
 
     def getUnusedFunctions(self):
-        for function in self.functions:
+        for function in self.getFunctions():
             if function not in self.active_functions:
                 yield function
 
@@ -393,6 +382,11 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     def getCrossUsedFunctions(self):
         return self.cross_used_functions
+
+    def getFunctionFromCodeName(self, code_name):
+        for function in self.getFunctions():
+            if function.getCodeName() == code_name:
+                return function
 
     def getOutputFilename(self):
         main_filename = self.getFilename()
@@ -552,15 +546,7 @@ class UncompiledPythonPackage(UncompiledPythonModule):
     kind = "UNCOMPILED_PYTHON_PACKAGE"
 
 
-class SingleCreationMixin:
-    created = set()
-
-    def __init__(self):
-        assert self.__class__ not in self.created
-        self.created.add(self.__class__)
-
-
-class PythonMainModule(CompiledPythonModule, SingleCreationMixin):
+class PythonMainModule(CompiledPythonModule):
     kind = "PYTHON_MAIN_MODULE"
 
     def __init__(self, main_added, mode, source_ref):
@@ -572,9 +558,72 @@ class PythonMainModule(CompiledPythonModule, SingleCreationMixin):
             source_ref   = source_ref
         )
 
-        SingleCreationMixin.__init__(self)
-
         self.main_added = main_added
+
+    def getDetails(self):
+        return {
+            "filename"   : self.source_ref.getFilename(),
+            "main_added" : self.main_added,
+            "mode"       : self.mode
+        }
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        result = cls(
+            main_added = args["main_added"] == "True",
+            mode       = args["mode"],
+            source_ref = source_ref
+        )
+
+        from nuitka.ModuleRegistry import addRootModule
+        addRootModule(result)
+
+        function_work = []
+
+        for xml in args["functions"]:
+            _kind, node_class, func_args, source_ref = extractKindAndArgsFromXML(xml, source_ref)
+
+            if "provider" in func_args:
+                func_args["provider"] = getOwnerFromCodeName(func_args["provider"])
+            else:
+                func_args["provider"] = result
+
+            if "flags" in args:
+                func_args["flags"] = set(func_args["flags"].split(','))
+
+            if "doc" not in args:
+                func_args["doc"] = None
+
+            function = node_class.fromXML(
+                source_ref = source_ref,
+                **func_args
+            )
+
+            # Could do more checks for look up of body here, but so what...
+            function_work.append(
+                (function, iter(iter(xml).next()).next())
+            )
+
+        for function, xml in function_work:
+            function.setChild(
+                "body",
+                fromXML(
+                    provider   = function,
+                    xml        = xml,
+                    source_ref = function.getSourceReference()
+                )
+            )
+
+        result.setChild(
+            "body",
+            fromXML(
+                provider   = result,
+                xml        = args["body"][0],
+                source_ref = source_ref
+            )
+        )
+
+        return result
 
     @staticmethod
     def isMainModule():
@@ -587,7 +636,7 @@ class PythonMainModule(CompiledPythonModule, SingleCreationMixin):
             return CompiledPythonModule.getOutputFilename(self)
 
 
-class PythonInternalModule(CompiledPythonModule, SingleCreationMixin):
+class PythonInternalModule(CompiledPythonModule):
     kind = "PYTHON_INTERNAL_MODULE"
 
     def __init__(self):
@@ -602,8 +651,6 @@ class PythonInternalModule(CompiledPythonModule, SingleCreationMixin):
                 future_spec = FutureSpec()
             )
         )
-
-        SingleCreationMixin.__init__(self)
 
     @staticmethod
     def isInternalModule():
@@ -670,7 +717,7 @@ class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
         # There is not a whole lot to do here, the path will change at run
         # time
         if Options.getFileReferenceMode() != "runtime":
-            result = ExpressionConstantRef(
+            result = makeConstantRefNode(
                 constant   = self.getRunTimeFilename(),
                 source_ref = self.getSourceReference()
             )

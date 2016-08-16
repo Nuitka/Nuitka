@@ -107,6 +107,16 @@ if "rc" in new_version:
         os.system('debchange --newversion=%s ""'  % debian_version)
     else:
         os.system('debchange --newversion=%s ""'  % debian_version)
+
+    changelog = open("Changelog.rst").read()
+    if "(Draft)" not in changelog.splitlines()[0]:
+        title = "Nuitka Release " + new_version[:-3] + " (Draft)"
+
+        with open("Changelog.rst", "w") as changelog_file:
+            changelog_file.write(title + "\n" + ("=" * len(title) + "\n\n"))
+            changelog_file.write("This release is not done yet.\n\n\n")
+            changelog_file.write(changelog)
+
 else:
     if "rc" in version_line:
         # Initial final release after pre-releases.

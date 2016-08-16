@@ -31,6 +31,7 @@ the traces.
 """
 
 from nuitka import Options
+from nuitka.ModuleRegistry import getOwnerFromCodeName
 
 from .NodeBases import NodeBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
@@ -200,87 +201,35 @@ Side effects of assignments promoted to statements.""",
             assign_node = self
         )
 
-        global_trace = variable.getGlobalVariableTrace()
+        provider = self.getParentVariableProvider()
 
-        if global_trace is not None:
-            provider = self.getParentVariableProvider()
+        if variable.hasAccessesOutsideOf(provider) is False:
+            last_trace = variable.getMatchingAssignTrace(self)
 
-            if not global_trace.hasAccessesOutsideOf(provider):
-                last_trace = global_trace.getMatchingAssignTrace(self)
+            if last_trace is not None:
+                if variable.isLocalVariable() or variable.isTempVariable():
+                    if source.isCompileTimeConstant():
 
-                if last_trace is not None:
-                    if variable.isLocalVariable() or variable.isTempVariable():
-                        if source.isCompileTimeConstant():
-
-                            # Can safely forward propagate only non-mutable constants.
-                            if not source.isMutable():
-                                provider = self.getParentVariableProvider()
-
-                                if variable.isTempVariable() or \
-                                   (not provider.isExpressionClassBody() and \
-                                    not provider.isUnoptimized()
-                                    ):
-
-                                    if last_trace.hasDefiniteUsages():
-                                        self.variable_trace.setReplacementNode(
-                                            lambda usage : source.makeClone()
-                                        )
-                                        propagated = True
-                                    else:
-                                        propagated = False
-
-                                    if not last_trace.hasPotentialUsages() and not last_trace.hasNameUsages():
-                                        if not last_trace.getPrevious().isUninitTrace():
-                                            # TODO: We could well decide, if that's even necessary, but for now
-                                            # the "StatementDelVariable" is tasked with that.
-                                            result = StatementDelVariable(
-                                                variable_ref = self.getTargetVariableRef(),
-                                                tolerant     = True,
-                                                source_ref   = self.getSourceReference()
-                                            )
-                                        else:
-                                            result = None
-
-                                        return (
-                                            result,
-                                            "new_statements",
-                                            "Dropped %s assignment statement to '%s'." % (
-                                               "propagated" if propagated else "dead",
-                                               self.getTargetVariableRef().getVariableName()
-                                            )
-                                        )
-                            else:
-                                # Something might be possible still.
-
-                                pass
-                        elif Options.isExperimental() and \
-                            source.isExpressionFunctionCreation() and \
-                            source.getFunctionRef().getFunctionBody().isExpressionFunctionBody() and \
-                            not source.getDefaults() and  \
-                            not source.getKwDefaults() and \
-                            not source.getAnnotations():
-                            # TODO: These are very mutable, right?
-
-                            provider = self.getParentVariableProvider()
+                        # Can safely forward propagate only non-mutable constants.
+                        if not source.isMutable():
 
                             if variable.isTempVariable() or \
-                               (not provider.isUnoptimized() and \
-                                not provider.isExpressionClassBody()):
+                               (not provider.isExpressionClassBody() and \
+                                not provider.isUnoptimized()
+                                ):
 
-                                if last_trace.getDefiniteUsages() <= 1 and \
-                                   not last_trace.hasPotentialUsages() and \
-                                   not last_trace.hasNameUsages():
+                                if last_trace.hasDefiniteUsages():
+                                    self.variable_trace.setReplacementNode(
+                                        lambda usage : source.makeClone()
+                                    )
+                                    propagated = True
+                                else:
+                                    propagated = False
 
-                                    if last_trace.getDefiniteUsages() == 1:
-                                        self.variable_trace.setReplacementNode(
-                                            lambda usage : source.makeClone()
-                                        )
-                                        propagated = True
-                                    else:
-                                        propagated = False
-
+                                if not last_trace.hasPotentialUsages() and not last_trace.hasNameUsages():
                                     if not last_trace.getPrevious().isUninitTrace():
-                                        # TODO: We could well decide, if that's even necessary.
+                                        # TODO: We could well decide, if that's even necessary, but for now
+                                        # the "StatementDelVariable" is tasked with that.
                                         result = StatementDelVariable(
                                             variable_ref = self.getTargetVariableRef(),
                                             tolerant     = True,
@@ -298,8 +247,56 @@ Side effects of assignments promoted to statements.""",
                                         )
                                     )
                         else:
-                            # More cases thinkable.
+                            # Something might be possible still.
+
                             pass
+                    elif False and Options.isExperimental() and \
+                        source.isExpressionFunctionCreation() and \
+                        source.getFunctionRef().getFunctionBody().isExpressionFunctionBody() and \
+                        not source.getDefaults() and  \
+                        not source.getKwDefaults() and \
+                        not source.getAnnotations():
+                        # TODO: These are very mutable, right?
+
+                        provider = self.getParentVariableProvider()
+
+                        if variable.isTempVariable() or \
+                           (not provider.isUnoptimized() and \
+                            not provider.isExpressionClassBody()):
+
+                            if last_trace.getDefiniteUsages() <= 1 and \
+                               not last_trace.hasPotentialUsages() and \
+                               not last_trace.hasNameUsages():
+
+                                if last_trace.getDefiniteUsages() == 1:
+                                    self.variable_trace.setReplacementNode(
+                                        lambda usage : source.makeClone()
+                                    )
+                                    propagated = True
+                                else:
+                                    propagated = False
+
+                                if not last_trace.getPrevious().isUninitTrace():
+                                    # TODO: We could well decide, if that's even necessary.
+                                    result = StatementDelVariable(
+                                        variable_ref = self.getTargetVariableRef(),
+                                        tolerant     = True,
+                                        source_ref   = self.getSourceReference()
+                                    )
+                                else:
+                                    result = None
+
+                                return (
+                                    result,
+                                    "new_statements",
+                                    "Dropped %s assignment statement to '%s'." % (
+                                       "propagated" if propagated else "dead",
+                                       self.getTargetVariableRef().getVariableName()
+                                    )
+                                )
+                    else:
+                        # More cases thinkable.
+                        pass
 
         return self, None, None
 
@@ -338,7 +335,11 @@ class StatementDelVariable(StatementChildrenHavingBase):
     def __init__(self, variable_ref, tolerant, source_ref):
         assert variable_ref is not None
         assert variable_ref.isTargetVariableRef()
-        assert tolerant is True or tolerant is False
+
+        if type(tolerant) is str:
+            tolerant = tolerant == "True"
+
+        assert tolerant is True or tolerant is False, repr(tolerant)
 
         StatementChildrenHavingBase.__init__(
             self,
@@ -469,16 +470,24 @@ class StatementReleaseVariable(NodeBase):
         }
 
     def getDetailsForDisplay(self):
-        if self.variable.getOwner() is not self.getParentVariableProvider():
-            return {
-                "variable" : self.variable.getName(),
-                "owner"    : self.variable.getOwner().getCodeName()
-            }
-        else:
-            return {
-                "variable" : self.variable.getName(),
-            }
+        return {
+            "variable_name" : self.variable.getName(),
+            "owner"    : self.variable.getOwner().getCodeName()
+        }
 
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is StatementReleaseVariable, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+        assert owner is not None, args["owner"]
+
+        variable = owner.getProvidedVariable(args["variable_name"])
+
+        return cls(
+            variable   = variable,
+            source_ref = source_ref
+        )
 
     def getVariable(self):
         return self.variable
@@ -524,10 +533,10 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
     # TODO: Remove default and correct argument order later.
-    def __init__(self, variable_name, source_ref, variable = None):
+    def __init__(self, variable_name, source_ref, variable = None, version = None):
         ExpressionVariableRef.__init__(self, variable_name, source_ref)
 
-        self.variable_version = None
+        self.variable_version = version
 
         # TODO: Remove setVariable, once not needed anymore and in-line to
         # here.
@@ -536,17 +545,27 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
             assert variable.getName() == variable_name
 
     def getDetailsForDisplay(self):
-        if self.variable is None:
-            return {
-                "name" : self.variable_name
-            }
-        else:
-            return {
-                "name"     : self.variable_name,
-                "variable" : self.variable,
-                "version"  : self.variable_version
-            }
+        return {
+            "variable_name" : self.variable_name,
+            "version"       : self.variable_version,
+            "owner"         : self.variable.getOwner().getCodeName()
+        }
 
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is ExpressionTargetVariableRef, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+        assert owner is not None, args["owner"]
+
+        variable = owner.getProvidedVariable(args["variable_name"])
+
+        return cls(
+            variable_name = variable.getName(),
+            variable      = variable,
+            version       = int(args["version"]),
+            source_ref    = source_ref
+        )
 
     def computeExpression(self, constraint_collection):
         assert False, self.parent
@@ -570,10 +589,34 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
 class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
     kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
 
-    def __init__(self, variable, source_ref):
+    def __init__(self, variable, source_ref, version = None):
         ExpressionTempVariableRef.__init__(self, variable, source_ref)
 
-        self.variable_version = variable.allocateTargetNumber()
+        if version is None:
+            version = variable.allocateTargetNumber()
+
+        self.variable_version = version
+
+    def getDetailsForDisplay(self):
+        return {
+            "temp_name" : self.variable.getName(),
+            "version"   : self.variable_version,
+            "owner"     : self.variable.getOwner().getCodeName()
+        }
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is ExpressionTargetTempVariableRef, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+        variable = owner.createTempVariable(args["temp_name"])
+
+        return cls(
+            variable   = variable,
+            version    = int(args["version"]),
+            source_ref = source_ref
+        )
+
 
     def computeExpression(self, constraint_collection):
         assert False, self.parent

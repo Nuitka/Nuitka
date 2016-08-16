@@ -30,7 +30,7 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
 from nuitka.nodes.ImportNodes import ExpressionImportModuleHard
 from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
 
@@ -86,8 +86,7 @@ def buildPrintNode(provider, node, source_ref):
                         variable   = tmp_target_variable,
                         source_ref = source_ref
                     ),
-                    right      = ExpressionConstantRef(
-                        constant   = None,
+                    right      = ExpressionConstantNoneRef(
                         source_ref = source_ref
                     ),
                     source_ref = source_ref

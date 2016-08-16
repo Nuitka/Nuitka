@@ -91,7 +91,7 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
                     left_value,
                     right_value
                 ),
-                description = "Comparison with constant arguments."
+                description = "Comparison of constant arguments."
             )
 
         # The value of these nodes escaped and could change its contents.
@@ -137,9 +137,6 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
         assert comparator in ("Is", "IsNot")
 
         self.match_value = comparator == "Is"
-
-    def getDetailsForDisplay(self):
-        return ExpressionComparison.getDetails(self)
 
     def getDetails(self):
         return {}
@@ -277,9 +274,6 @@ class ExpressionComparisonInNotInBase(ExpressionComparison):
         )
 
         assert comparator in ("In", "NotIn")
-
-    def getDetailsForDisplay(self):
-        return ExpressionComparison.getDetails(self)
 
     def getDetails(self):
         return {}

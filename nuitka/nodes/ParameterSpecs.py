@@ -47,41 +47,63 @@ class ParameterSpec:
     # These got many attributes, in part duplicating name and instance of
     # variables, pylint: disable=R0902
 
-    def __init__(self, name, normal_args, kw_only_args, list_star_arg,
-                 dict_star_arg, default_count):
-        assert None not in normal_args
+    def __init__(self, ps_name, ps_normal_args, ps_kw_only_args, ps_list_star_arg,
+                 ps_dict_star_arg, ps_default_count):
+        if type(ps_normal_args) is str:
+            if ps_normal_args == "":
+                ps_normal_args = ()
+            else:
+                ps_normal_args = ps_normal_args.split(',')
+
+        if type(ps_kw_only_args) is str:
+            if ps_kw_only_args == "":
+                ps_kw_only_args = ()
+            else:
+                ps_kw_only_args = ps_kw_only_args.split(',')
+
+        assert None not in ps_normal_args
 
         self.owner = None
 
-        self.name = name
-        self.normal_args = tuple(normal_args)
+        self.name = ps_name
+        self.normal_args = tuple(ps_normal_args)
         self.normal_variables = None
 
-        assert list_star_arg is None or type(list_star_arg) is str, \
-          list_star_arg
-        assert dict_star_arg is None or type(dict_star_arg) is str, \
-          dict_star_arg
+        assert ps_list_star_arg is None or type(ps_list_star_arg) is str, \
+          ps_list_star_arg
+        assert ps_dict_star_arg is None or type(ps_dict_star_arg) is str, \
+          ps_dict_star_arg
 
-        self.list_star_arg = list_star_arg
-        self.dict_star_arg = dict_star_arg
+        self.list_star_arg = ps_list_star_arg if ps_list_star_arg else None
+        self.dict_star_arg = ps_dict_star_arg if ps_dict_star_arg else None
 
         self.list_star_variable = None
         self.dict_star_variable = None
 
-        self.default_count = default_count
+        self.default_count = ps_default_count
 
-        self.kw_only_args = tuple(kw_only_args)
+        self.kw_only_args = tuple(ps_kw_only_args)
         self.kw_only_variables = None
 
     def makeClone(self):
         return ParameterSpec(
-            name          = self.name,
-            normal_args   = self.normal_args,
-            kw_only_args  = self.kw_only_args,
-            list_star_arg = self.list_star_arg,
-            dict_star_arg = self.dict_star_arg,
-            default_count = self.default_count
+            ps_name          = self.name,
+            ps_normal_args   = self.normal_args,
+            ps_kw_only_args  = self.kw_only_args,
+            ps_list_star_arg = self.list_star_arg,
+            ps_dict_star_arg = self.dict_star_arg,
+            ps_default_count = self.default_count
         )
+
+    def getDetails(self):
+        return {
+            "ps_name"          : self.name,
+            "ps_normal_args"   : ','.join(self.normal_args),
+            "ps_kw_only_args"  : ','.join(self.kw_only_args),
+            "ps_list_star_arg" : self.list_star_arg if self.list_star_arg is not None else "",
+            "ps_dict_star_arg" : self.dict_star_arg if self.dict_star_arg is not None else "",
+            "ps_default_count" : self.default_count
+        }
 
     def checkValid(self):
         arg_names = self.getParameterNames()

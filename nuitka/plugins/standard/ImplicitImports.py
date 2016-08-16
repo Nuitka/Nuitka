@@ -199,5 +199,5 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     def decideCompilation(self, module_name, source_ref):
         for unworthy_namespace in self.unworthy_namespaces:
             if module_name == unworthy_namespace or \
-               module_name.startswith(unworthy_namespace + "."):
+               module_name.startswith(unworthy_namespace + '.'):
                 return "bytecode"

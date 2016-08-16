@@ -17,12 +17,12 @@ Build-Depends: debhelper (>= 7.4.3),
 Vcs-Git: http://git.nuitka.net/Nuitka.git
 Vcs-browser: http://nuitka.net/gitweb/?p=Nuitka.git;a=summary
 Homepage: http://nuitka.net
-Standards-Version: 3.9.7
+Standards-Version: 3.9.8
 X-Python-Version: >= 2.6
 
 Package: nuitka
 Architecture: all
-Depends: g++-5 | g++-4.9 | g++-4.8 | g++-4.7 | g++-4.6 (>= 4.6.1) | g++-4.5 | g++-4.4 | clang (>= 3.0),
+Depends: g++-6 | g++-5 | g++-4.9 | g++-4.8 | g++-4.7 | g++-4.6 (>= 4.6.1) | g++-4.5 | g++-4.4 | clang (>= 3.0),
          scons (>=2.0.0),
          python-dev (>= 2.6.6-2),
          ${misc:Depends},

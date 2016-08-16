@@ -27,7 +27,7 @@ from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 
 from .BuiltinIteratorNodes import ExpressionBuiltinIter1
-from .ConstantRefNodes import ExpressionConstantRef
+from .ConstantRefNodes import makeConstantRefNode
 from .NodeBases import ExpressionChildrenHavingBase
 
 
@@ -49,7 +49,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 "pos_arg" : pos_arg,
                 "pairs"   : tuple(
                     ExpressionKeyValuePair(
-                        ExpressionConstantRef(key, source_ref),
+                        makeConstantRefNode(key, source_ref),
                         value,
                         value.getSourceReference()
                     )

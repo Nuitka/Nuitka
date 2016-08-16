@@ -106,7 +106,7 @@ def getComplexCallSequenceErrorTemplate():
     if not hasattr(getComplexCallSequenceErrorTemplate, "result"):
         try:
             # We are doing this on purpose, to get the exception.
-            # pylint: disable=E1133,E1102
+            # pylint: disable=E1102,E1133
             f = None
             f(*None)
         except TypeError as e:

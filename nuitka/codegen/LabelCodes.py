@@ -22,7 +22,7 @@ exits, finally blocks, etc. this provides just the means to emit a label or
 the goto statement itself.
 """
 
-from .CppStrings import encodeString
+from nuitka.utils.CStrings import encodePythonStringToC
 
 
 def getGotoCode(label, emit):
@@ -81,5 +81,5 @@ else
 
 def getStatementTrace(source_desc, statement_repr):
     return 'puts( "Execute: " %s );' % (
-        encodeString(source_desc + b" " + statement_repr),
+        encodePythonStringToC(source_desc + b" " + statement_repr),
     )

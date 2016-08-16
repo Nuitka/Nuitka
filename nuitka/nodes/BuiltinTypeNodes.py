@@ -21,7 +21,7 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
@@ -265,7 +265,7 @@ class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
 
     def __init__(self, value, source_ref):
         if value is None:
-            value = ExpressionConstantRef(
+            value = makeConstantRefNode(
                 constant   = b"",
                 source_ref = source_ref
             )

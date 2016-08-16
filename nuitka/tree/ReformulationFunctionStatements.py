@@ -36,7 +36,10 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantNoneRef,
+    makeConstantRefNode
+)
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
@@ -63,9 +66,9 @@ from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
 
 from .Helpers import (
+    buildFrameNode,
     buildNode,
     buildNodeList,
-    buildStatementsNode,
     detectFunctionBodyKind,
     extractDocFromBody,
     getKind,
@@ -79,10 +82,8 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 def _insertFinalReturnStatement(function_statements_body, return_class,
                                 source_ref):
     return_statement = return_class(
-        expression = ExpressionConstantRef(
-            constant      = None,
-            user_provided = True,
-            source_ref    = source_ref
+        expression = ExpressionConstantNoneRef(
+            source_ref = source_ref
         ),
         source_ref = source_ref
     )
@@ -103,7 +104,7 @@ def _insertFinalReturnStatement(function_statements_body, return_class,
 
 
 def buildFunctionNode(provider, node, source_ref):
-    # Functions have way too many details, pylint: disable=R0914
+    # Functions have way too many details, pylint: disable=R0912,R0914
 
     assert getKind(node) == "FunctionDef"
 
@@ -175,7 +176,7 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref    = source_ref
     )
 
-    function_statements_body = buildStatementsNode(
+    function_statements_body = buildFrameNode(
         provider    = code_body,
         nodes       = function_statement_nodes,
         code_object = code_object,
@@ -294,7 +295,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         source_ref = source_ref
     )
 
-    function_statements_body = buildStatementsNode(
+    function_statements_body = buildFrameNode(
         provider    = function_body,
         nodes       = function_statement_nodes,
         code_object = code_object,
@@ -394,7 +395,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
               zip(kw_only_names, node.args.kw_defaults):
                 if kw_default is not None:
                     keys.append(
-                        ExpressionConstantRef(
+                        makeConstantRefNode(
                             constant   = kw_only_name,
                             source_ref = source_ref
                         )
@@ -436,7 +437,7 @@ def buildParameterAnnotations(provider, node, source_ref):
 
     def addAnnotation(key, value):
         keys.append(
-            ExpressionConstantRef(
+            makeConstantRefNode(
                 constant      = mangle(key),
                 source_ref    = source_ref,
                 user_provided = True
@@ -549,18 +550,18 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
     normal_args = extractNormalArgs(node.args.args)
 
     parameters = ParameterSpec(
-        name          = name,
-        normal_args   = normal_args,
-        kw_only_args  = [
+        ps_name          = name,
+        ps_normal_args   = normal_args,
+        ps_kw_only_args  = [
             extractArg(arg)
             for arg in
             node.args.kwonlyargs
             ]
               if python_version >= 300 else
             [],
-        list_star_arg = extractArg(node.args.vararg),
-        dict_star_arg = extractArg(node.args.kwarg),
-        default_count = len(node.args.defaults)
+        ps_list_star_arg = extractArg(node.args.vararg),
+        ps_dict_star_arg = extractArg(node.args.kwarg),
+        ps_default_count = len(node.args.defaults)
     )
 
     message = parameters.checkValid()
@@ -572,12 +573,13 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
         )
 
     code_object = CodeObjectSpec(
-        code_name     = name,
-        code_kind     = function_kind,
-        arg_names     = parameters.getParameterNames(),
-        kw_only_count = parameters.getKwOnlyParameterCount(),
-        has_starlist  = parameters.getStarListArgumentName() is not None,
-        has_stardict  = parameters.getStarDictArgumentName() is not None
+        co_name           = name,
+        co_kind           = function_kind,
+        co_varnames       = parameters.getParameterNames(),
+        co_argcount       = parameters.getArgumentCount(),
+        co_kwonlyargcount = parameters.getKwOnlyParameterCount(),
+        co_has_starlist   = parameters.getStarListArgumentName() is not None,
+        co_has_stardict   = parameters.getStarDictArgumentName() is not None
     )
 
     outer_body = ExpressionFunctionBody(
@@ -705,12 +707,12 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                 inner_arg_names.append(arg_name)
 
         inner_parameters = ParameterSpec(
-            name          = inner_name,
-            normal_args   = inner_arg_names,
-            kw_only_args  = (),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = None
+            ps_name          = inner_name,
+            ps_normal_args   = inner_arg_names,
+            ps_kw_only_args  = (),
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = None
         )
 
         function_body = ExpressionFunctionBody(

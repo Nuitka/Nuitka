@@ -26,7 +26,7 @@ make others possible.
 import inspect
 from logging import debug, info
 
-from nuitka import ModuleRegistry, Options, VariableRegistry
+from nuitka import ModuleRegistry, Options, Variables
 from nuitka.importing import ImportCache
 from nuitka.optimizations import Graphs, TraceCollections
 from nuitka.plugins.Plugins import Plugins
@@ -252,17 +252,14 @@ def optimizeUnusedClosureVariables(function_body):
             read_only = areReadOnlyTraces(variable_traces)
 
             if read_only:
-                global_trace = closure_variable.getGlobalVariableTrace()
+                if closure_variable.hasWritesOutsideOf(function_body) is False:
+                    function_body.demoteClosureVariable(closure_variable)
 
-                if global_trace is not None:
-                    if not global_trace.hasWritesOutsideOf(function_body):
-                        function_body.demoteClosureVariable(closure_variable)
-
-                        signalChange(
-                            "var_usage",
-                            function_body.getSourceReference(),
-                            message = "Turn read-only usage of unassigned closure variable to local variable."
-                        )
+                    signalChange(
+                        "var_usage",
+                        function_body.getSourceReference(),
+                        message = "Turn read-only usage of unassigned closure variable to local variable."
+                    )
 
 
 def optimizeUnusedUserVariables(function_body):
@@ -290,15 +287,13 @@ def optimizeUnusedTempVariables(provider):
 
 def optimizeVariables(module):
     if module.isCompiledPythonModule():
-        for function_body in module.getUsedFunctions():
-            if not VariableRegistry.complete:
-                continue
+        if Variables.complete:
+            for function_body in module.getUsedFunctions():
+                optimizeUnusedUserVariables(function_body)
 
-            optimizeUnusedUserVariables(function_body)
+                optimizeUnusedClosureVariables(function_body)
 
-            optimizeUnusedClosureVariables(function_body)
-
-            optimizeUnusedTempVariables(function_body)
+                optimizeUnusedTempVariables(function_body)
 
         optimizeUnusedTempVariables(module)
 
@@ -317,6 +312,19 @@ after that.""".format(
         )
 
     printLine(output)
+
+
+def restoreFromXML(text):
+    from nuitka.TreeXML import fromString
+    from nuitka.nodes.NodeBases import fromXML
+    xml = fromString(text)
+
+    module = fromXML(
+        provider = None,
+        xml      = xml
+    )
+
+    return module
 
 
 def makeOptimizationPass(initial_pass):
@@ -357,7 +365,7 @@ def makeOptimizationPass(initial_pass):
     for current_module in ModuleRegistry.getDoneModules():
         if current_module.isCompiledPythonModule():
             for function in current_module.getUnusedFunctions():
-                VariableRegistry.updateFromCollection(
+                Variables.updateFromCollection(
                     old_collection = function.constraint_collection,
                     new_collection = None
                 )
@@ -378,10 +386,47 @@ def optimize():
         info("PASS 1:")
 
     makeOptimizationPass(False)
-    VariableRegistry.considerCompletion()
+    Variables.complete = True
+
     finished = makeOptimizationPass(False)
 
-    # Demote to bytecode if now.
+    if Options.isExperimental():
+        new_roots = ModuleRegistry.root_modules.__class__()  # @UndefinedVariable
+
+        for module in tuple(ModuleRegistry.getDoneModules()):
+            ModuleRegistry.root_modules.remove(module)
+
+            if module.isPythonShlibModule():
+                continue
+
+            text = module.asXmlText()
+            open("out.xml", 'w').write(text)
+            restored = restoreFromXML(text)
+            retext = restored.asXmlText()
+            open("out2.xml", 'w').write(retext)
+
+            assert module.getOutputFilename() == restored.getOutputFilename(), \
+               (module.getOutputFilename(),restored.getOutputFilename())
+
+            # The variable versions give diffs.
+            if False: # To manually enable, pylint: disable=W0125
+                import difflib
+                diff = difflib.unified_diff(
+                    text.splitlines(),
+                    retext.splitlines(),
+                    "xml orig",
+                    "xml reloaded"
+                )
+                for line in diff:
+                    printLine(line)
+
+            new_roots.add(restored)
+
+        ModuleRegistry.root_modules = new_roots
+        ModuleRegistry.startTraversal()
+
+    # Demote to bytecode, now that imports had a chance to be resolved, and
+    # dependencies were handled.
     for module in ModuleRegistry.getDoneUserModules():
         if module.isPythonShlibModule():
             continue
@@ -389,10 +434,10 @@ def optimize():
         if module.mode == "bytecode":
             demoteCompiledModuleToBytecode(module)
 
-    # Second, endless pass.
     if _progress:
-        info("PASS 2..:")
+        info("PASS 2 ... :")
 
+    # Second, "endless" pass.
     while not finished:
         finished = makeOptimizationPass(True)
 

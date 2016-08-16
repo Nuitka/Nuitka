@@ -56,6 +56,7 @@ if not hasModule("lxml.etree"):
 
 search_mode = createSearchMode()
 
+
 def getKind(node):
     result = node.attrib[ "kind" ]
 
@@ -65,6 +66,7 @@ def getKind(node):
 
     return result
 
+
 def getRole(node, role):
     for child in node:
         if child.tag == "role" and child.attrib["name"] == role:
@@ -72,22 +74,31 @@ def getRole(node, role):
     else:
         return None
 
+
 def getSourceRef(node):
+    global filename
+
     return "%s:%s" % (
         filename,
         node.attrib["line"]
     )
 
+
+def isConstantExpression(expression):
+    kind = getKind(expression)
+
+    return kind.startswith("Constant") or \
+           kind in ("ImportModuleHard",
+                           "ModuleFileAttributeRef")
+
 def checkSequence(statements):
     for statement in statements:
         kind = getKind(statement)
-
         # Printing is fine.
         if kind == "PrintValue":
             print_arg, = getRole(statement, "value")
 
-            if getKind(print_arg) not in ("ConstantRef",
-                                          "ModuleFileAttributeRef"):
+            if not isConstantExpression(print_arg):
                 sys.exit(
                     "%s: Error, print of non-constant %s." % (
                         getSourceRef(statement),
@@ -119,12 +130,9 @@ def checkSequence(statements):
         if kind == "AssignmentVariable":
             assign_source, = getRole(statement, "source")
 
-            source_kind = getKind(assign_source)
+            if not isConstantExpression(assign_source):
+                sys.exit("Error, assignment from non-constant %s." % getKind(assign_source))
 
-            if source_kind not in("ConstantRef",
-                                  "ImportModuleHard",
-                                  "ModuleFileAttributeRef"):
-                sys.exit("Error, assignment from of non-constant %s." % source_kind)
             continue
 
         print(lxml.etree.tostring(statement, pretty_print = True))

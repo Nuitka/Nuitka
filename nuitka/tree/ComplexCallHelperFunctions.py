@@ -47,7 +47,10 @@ from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonIsNOT
 )
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import (
+    ExpressionConstantNoneRef,
+    makeConstantRefNode
+)
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.ExceptionNodes import (
@@ -137,14 +140,14 @@ def getCallableNameDescBody():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (
+            ps_name          = helper_name,
+            ps_normal_args   = (
                 "called",
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -166,7 +169,7 @@ def getCallableNameDescBody():
             StatementReturn(
                 expression = ExpressionOperationBinary(
                     operator   = "Add",
-                    right      = ExpressionConstantRef(
+                    right      = makeConstantRefNode(
                         constant      = "()",
                         source_ref    = internal_source_ref,
                         user_provided = True
@@ -189,7 +192,7 @@ def getCallableNameDescBody():
     no_branch = StatementReturn(
         expression = ExpressionOperationBinary(
             operator   = "Add",
-            right      = ExpressionConstantRef(
+            right      = makeConstantRefNode(
                 constant      = " object",
                 source_ref    = internal_source_ref,
                 user_provided = True
@@ -213,7 +216,7 @@ def getCallableNameDescBody():
         instance_case = StatementReturn(
             expression = ExpressionOperationBinary(
                 operator   = "Add",
-                right      = ExpressionConstantRef(
+                right      = makeConstantRefNode(
                     constant      = " instance",
                     source_ref    = internal_source_ref,
                     user_provided = True
@@ -254,7 +257,7 @@ def getCallableNameDescBody():
         class_case = StatementReturn(
             expression = ExpressionOperationBinary(
                 operator   = "Add",
-                right      = ExpressionConstantRef(
+                right      = makeConstantRefNode(
                     constant      = " constructor",
                     source_ref    = internal_source_ref,
                     user_provided = True
@@ -337,7 +340,7 @@ def makeStarListArgumentErrorRaise(called_variable_ref, star_list_variable_ref):
             args           = (
                 ExpressionOperationBinary(
                     operator   = "Mod",
-                    left       =  ExpressionConstantRef(
+                    left       =  makeConstantRefNode(
                         constant      = getComplexCallSequenceErrorTemplate(),
                         source_ref    = internal_source_ref,
                         user_provided = True
@@ -428,7 +431,7 @@ def _makeRaiseExceptionMustBeMapping(called_variable_ref,
             args           = (
                 ExpressionOperationBinary(
                     operator   = "Mod",
-                    left       =  ExpressionConstantRef(
+                    left       =  makeConstantRefNode(
                         constant      = """\
 %s argument after ** must be a mapping, not %s""",
                         source_ref    = internal_source_ref,
@@ -553,8 +556,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                 variable   = tmp_keys_variable,
                 source_ref = internal_source_ref
             ),
-            source       = ExpressionConstantRef(
-                constant      = None,
+            source       = ExpressionConstantNoneRef(
                 source_ref    = internal_source_ref,
                 user_provided = True
             ),
@@ -602,7 +604,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
                 variable   = tmp_dict_variable,
                 source_ref = internal_source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant      = {},
                 source_ref    = internal_source_ref,
                 user_provided = True
@@ -675,7 +677,7 @@ def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
             args           = (
                 ExpressionOperationBinary(
                     operator   = "Mod",
-                    left       =  ExpressionConstantRef(
+                    left       =  makeConstantRefNode(
                         constant      = """\
 %s got multiple values for keyword argument '%s'""",
                         source_ref    = internal_source_ref,
@@ -801,8 +803,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                 variable   = tmp_keys_variable,
                 source_ref = internal_source_ref
             ),
-            source       = ExpressionConstantRef(
-                constant      = None,
+            source       = ExpressionConstantNoneRef(
                 source_ref    = internal_source_ref,
                 user_provided = True
             ),
@@ -850,7 +851,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                 variable   = tmp_dict_variable,
                 source_ref = internal_source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant      = {},
                 source_ref    = internal_source_ref,
                 user_provided = True
@@ -896,7 +897,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     variable   = tmp_item_variable,
                     source_ref = internal_source_ref
                 ),
-                subscript  = ExpressionConstantRef(
+                subscript  = makeConstantRefNode(
                     constant      = 0,
                     source_ref    = internal_source_ref,
                     user_provided = True
@@ -934,7 +935,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                     variable   = tmp_item_variable,
                     source_ref = internal_source_ref
                 ),
-                subscript  = ExpressionConstantRef(
+                subscript  = makeConstantRefNode(
                     constant      = 1,
                     source_ref    = internal_source_ref,
                     user_provided = True
@@ -1042,14 +1043,14 @@ def getFunctionCallHelperStarList():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (
+            ps_name          = helper_name,
+            ps_normal_args   = (
                 "called", "star_arg_list"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -1149,14 +1150,14 @@ def getFunctionCallHelperKeywordsStarList():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = orderArgs(
+            ps_name          = helper_name,
+            ps_normal_args   = orderArgs(
                 "called", "kw", "star_arg_list"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -1270,14 +1271,14 @@ def getFunctionCallHelperPosStarList():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (
+            ps_name          = helper_name,
+            ps_normal_args   = (
                 "called", "args", "star_arg_list"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -1394,14 +1395,14 @@ def getFunctionCallHelperPosKeywordsStarList():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = orderArgs(
+            ps_name          = helper_name,
+            ps_normal_args   = orderArgs(
                 "called", "args", "kw", "star_arg_list"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -1544,14 +1545,14 @@ def getFunctionCallHelperStarDict():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (
+            ps_name          = helper_name,
+            ps_normal_args   = (
                 "called", "star_arg_dict"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -1666,14 +1667,14 @@ def getFunctionCallHelperPosStarDict():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (
+            ps_name          = helper_name,
+            ps_normal_args   = (
                 "called", "args", "star_arg_dict"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -1826,14 +1827,14 @@ def getFunctionCallHelperKeywordsStarDict():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (
+            ps_name          = helper_name,
+            ps_normal_args   = (
                 "called", "kw", "star_arg_dict"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -1986,14 +1987,14 @@ def getFunctionCallHelperPosKeywordsStarDict():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (
+            ps_name          = helper_name,
+            ps_normal_args   = (
                 "called", "args", "kw", "star_arg_dict"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -2105,14 +2106,14 @@ def getFunctionCallHelperStarListStarDict():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (
+            ps_name          = helper_name,
+            ps_normal_args   = (
                 "called", "star_arg_list", "star_arg_dict"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -2228,14 +2229,14 @@ def getFunctionCallHelperPosStarListStarDict():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (
+            ps_name          = helper_name,
+            ps_normal_args   = (
                 "called", "args", "star_arg_list", "star_arg_dict"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -2368,14 +2369,14 @@ def getFunctionCallHelperKeywordsStarListStarDict():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = orderArgs(
+            ps_name          = helper_name,
+            ps_normal_args   = orderArgs(
                 "called", "kw", "star_arg_list", "star_arg_dict"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -2504,14 +2505,14 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = orderArgs(
+            ps_name          = helper_name,
+            ps_normal_args   = orderArgs(
                 "called", "args", "kw", "star_arg_list", "star_arg_dict"
             ),
-            list_star_arg = None,
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -2656,14 +2657,14 @@ def getFunctionCallHelperDictionaryUnpacking():
         name       = helper_name,
         doc        = None,
         parameters = ParameterSpec(
-            name          = helper_name,
-            normal_args   = (
+            ps_name          = helper_name,
+            ps_normal_args   = (
                 "called",
             ),
-            list_star_arg = "args",
-            dict_star_arg = None,
-            default_count = 0,
-            kw_only_args  = ()
+            ps_list_star_arg = "args",
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
         ),
         flags      = set(),
         source_ref = internal_source_ref
@@ -2768,7 +2769,7 @@ def getFunctionCallHelperDictionaryUnpacking():
                     args           = (
                         ExpressionOperationBinary(
                             operator   = "Mod",
-                            left       =  ExpressionConstantRef(
+                            left       =  makeConstantRefNode(
                                 constant      = """\
 '%s' object is not a mapping""",
                                 source_ref    = internal_source_ref,
@@ -2849,7 +2850,7 @@ def getFunctionCallHelperDictionaryUnpacking():
                 variable   = tmp_result_variable,
                 source_ref = internal_source_ref
             ),
-            source       = ExpressionConstantRef(
+            source       = makeConstantRefNode(
                 constant   = {},
                 source_ref = internal_source_ref
             ),

@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.21.3
+Nuitka V0.5.22
 Copyright (C) 2016 Kay Hayen."""
 
 import logging
@@ -894,6 +894,8 @@ def getIntendedPythonVersion():
     return options.python_version
 
 def isExperimental():
+    """ Are experimental features to be enabled."""
+
     return hasattr(options, "experimental") and options.experimental
 
 def shallExplainImports():

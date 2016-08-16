@@ -90,7 +90,7 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
 )
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ExecEvalNodes import (
     ExpressionBuiltinCompile,
     ExpressionBuiltinEval
@@ -129,7 +129,6 @@ from nuitka.tree.Helpers import (
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from nuitka.tree.ReformulationTryFinallyStatements import \
     makeTryFinallyStatement
-from nuitka.VariableRegistry import addVariableUsage
 
 from . import BuiltinOptimization
 
@@ -541,7 +540,7 @@ if python_version < 300:
                                 called     = ExpressionAttributeLookup(
                                     source         = ExpressionBuiltinOpen(
                                         filename   = filename,
-                                        mode       = ExpressionConstantRef(
+                                        mode       = makeConstantRefNode(
                                             constant   = "rU",
                                             source_ref = source_ref
                                         ),
@@ -628,7 +627,7 @@ def eval_extractor(node):
             )
         )
 
-        strip_choice =  ExpressionConstantRef(
+        strip_choice =  makeConstantRefNode(
             constant   = (" \t",),
             source_ref = source_ref
         )
@@ -649,7 +648,7 @@ def eval_extractor(node):
                     ),
                     source_ref = source_ref
                 ),
-                expression_yes = ExpressionConstantRef(
+                expression_yes = makeConstantRefNode(
                     constant   = (b" \t",),
                     source_ref = source_ref
                 ),
@@ -870,8 +869,6 @@ def super_extractor(node):
             not (type_arg_owner.isExpressionFunctionBody() or \
                  type_arg_owner.isExpressionClassBody()):
                 type_arg = None
-            else:
-                addVariableUsage(type_arg.getVariable(), provider)
 
             if type_arg is None:
                 return makeRaiseExceptionReplacementExpression(

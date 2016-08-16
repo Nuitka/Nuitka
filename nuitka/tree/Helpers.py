@@ -25,7 +25,7 @@ from logging import warning
 from nuitka import Constants, Options, Tracing
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import StatementConditional
-from nuitka.nodes.ConstantRefNodes import ExpressionConstantRef
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeList,
     ExpressionMakeSet,
@@ -334,18 +334,19 @@ def makeModuleFrame(module, statements, source_ref):
         statements  = statements,
         guard_mode  = "once",
         code_object = CodeObjectSpec(
-            code_name     = code_name,
-            code_kind     = "Module",
-            arg_names     = (),
-            kw_only_count = 0,
-            has_starlist  = False,
-            has_stardict  = False,
+            co_name           = code_name,
+            co_kind           = "Module",
+            co_varnames       = (),
+            co_argcount       = 0,
+            co_kwonlyargcount = 0,
+            co_has_starlist   = False,
+            co_has_stardict   = False,
         ),
         source_ref  = source_ref
     )
 
 
-def buildStatementsNode(provider, nodes, source_ref, code_object = None):
+def buildStatementsNode(provider, nodes, source_ref):
     # We are not creating empty statement sequences.
     if nodes is None:
         return None
@@ -360,50 +361,63 @@ def buildStatementsNode(provider, nodes, source_ref, code_object = None):
     if not statements:
         return None
 
-    # In case of a frame is desired, build it instead.
-    if code_object:
-        if provider.isExpressionGeneratorObjectBody():
-            # TODO: Could do this earlier and on the outside.
-            statements.insert(
-                0,
-                StatementGeneratorEntry(
-                    source_ref = source_ref
-                )
-            )
-            result = StatementsFrame(
-                statements  = statements,
-                guard_mode  = "generator",
-                code_object = code_object,
-                source_ref  = source_ref
-            )
-        elif provider.isExpressionCoroutineObjectBody():
-            # TODO: That might be wrong
-
-            result = StatementsFrame(
-                statements  = statements,
-                guard_mode  = "generator",
-                code_object = code_object,
-                source_ref  = source_ref
-            )
-        elif provider.isExpressionFunctionBody() or \
-             provider.isExpressionClassBody():
-            result = StatementsFrame(
-                statements  = statements,
-                guard_mode  = "full",
-                code_object = code_object,
-                source_ref  = source_ref
-            )
-        else:
-            result = makeModuleFrame(
-                module     = provider,
-                statements = statements,
-                source_ref = source_ref
-            )
     else:
         result = StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
+
+    return result
+
+
+def buildFrameNode(provider, nodes, code_object, source_ref):
+    # We are not creating empty statement sequences.
+    if nodes is None:
+        return None
+
+    # Build as list of statements, throw away empty ones, and remove useless
+    # nesting.
+    statements = buildNodeList(provider, nodes, source_ref, allow_none = True)
+    statements = mergeStatements(statements)
+
+    # We are not creating empty statement sequences. Might be empty, because
+    # e.g. a global node generates not really a statement, or pass statements.
+    if not statements:
+        return None
+
+    if provider.isExpressionGeneratorObjectBody():
+        # TODO: Could do this earlier and on the outside.
+        statements.insert(
+            0,
+            StatementGeneratorEntry(
+                source_ref = source_ref
+            )
+        )
+        result = StatementsFrame(
+            statements  = statements,
+            guard_mode  = "generator",
+            code_object = code_object,
+            source_ref  = source_ref
+        )
+    elif provider.isExpressionCoroutineObjectBody():
+        # TODO: That might be wrong
+
+        result = StatementsFrame(
+            statements  = statements,
+            guard_mode  = "generator",
+            code_object = code_object,
+            source_ref  = source_ref
+        )
+    elif provider.isExpressionFunctionBody() or \
+         provider.isExpressionClassBody():
+        result = StatementsFrame(
+            statements  = statements,
+            guard_mode  = "full",
+            code_object = code_object,
+            source_ref  = source_ref
+        )
+    else:
+        assert False
 
     return result
 
@@ -493,7 +507,7 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
         else:
             assert False, sequence_kind
 
-        result = ExpressionConstantRef(
+        result = makeConstantRefNode(
             constant      = const_type(
                 element.getConstant()
                 for element in
@@ -551,7 +565,7 @@ def makeDictCreationOrConstant(keys, values, source_ref):
         # Unless told otherwise, create the dictionary in its full size, so
         # that no growing occurs and the constant becomes as similar as possible
         # before being marshaled.
-        result = ExpressionConstantRef(
+        result = makeConstantRefNode(
             constant      = Constants.createConstantDict(
                 keys   = [
                     key.getConstant()

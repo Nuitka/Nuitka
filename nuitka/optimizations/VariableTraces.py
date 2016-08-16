@@ -129,7 +129,7 @@ class VariableTraceBase:
         # escaping can be trusted.
         if self.variable.isModuleVariable() or \
            self.variable.isMaybeLocalVariable() or \
-           self.variable.isSharedTechnically():
+           self.variable.isSharedTechnically() is not False:
             return False
 
         # Merge traces have this overloaded.
@@ -138,7 +138,7 @@ class VariableTraceBase:
 
     def mustNotHaveValue(self):
         if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically():
+           self.variable.isSharedTechnically() is not False:
             return False
 
         return self.isUninitTrace()
@@ -390,7 +390,7 @@ class VariableTraceMerge(VariableTraceBase):
         # TODO: Temporarily disable far reaching of assumptions, until value
         # escaping can be trusted.
         if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically():
+           self.variable.isSharedTechnically() is not False:
             return False
 
         for previous in self.previous:
@@ -401,7 +401,7 @@ class VariableTraceMerge(VariableTraceBase):
 
     def mustNotHaveValue(self):
         if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically():
+           self.variable.isSharedTechnically() is not False:
             return False
 
         for previous in self.previous:

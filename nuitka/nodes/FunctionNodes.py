@@ -29,7 +29,9 @@ Coroutines and generators live in their dedicated module and share base
 classes.
 """
 
-from nuitka import Options, VariableRegistry, Variables
+from nuitka import Options, Variables
+from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.FutureSpecs import fromFlags
 from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Extractions import updateVariableUsage
@@ -54,13 +56,14 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects
 )
-from .ParameterSpecs import TooManyArguments, matchCall
+from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
 
 class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
                                  ClosureGiverNodeBase, ExpressionMixin):
 
-    def __init__(self, provider, name, code_prefix, is_class, flags, source_ref):
+    def __init__(self, provider, name, code_prefix, is_class, flags, source_ref,
+                 body = None):
         ClosureTakerMixin.__init__(
             self,
             provider      = provider,
@@ -77,10 +80,12 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         ChildrenHavingMixin.__init__(
             self,
             values = {
-                "body" : None # delayed
+                "body" : body # Might be None initially in some cases.
             }
         )
 
+        # Special things, "has_super" indicates presence of "super" in variable
+        # usage, which modifies some behaviors.
         self.flags = flags
 
         # Hack: This allows some APIs to work although this is not yet
@@ -159,8 +164,6 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         self.taken.remove(variable)
 
-        VariableRegistry.removeVariableUsage(variable, self)
-
     def demoteClosureVariable(self, variable):
         assert variable.isLocalVariable()
 
@@ -172,6 +175,10 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             owner         = self,
             variable_name = variable.getName()
         )
+        for variable_trace in variable.traces:
+            if variable_trace.getOwner() is self:
+                new_variable.addTrace(variable_trace)
+        new_variable.updateUsageState()
 
         self.providing[variable.getName()] = new_variable
 
@@ -181,9 +188,6 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             new_variable = new_variable
         )
 
-        VariableRegistry.removeVariableUsage(variable, self)
-        VariableRegistry.addVariableUsage(new_variable, self)
-
     def removeUserVariable(self, variable):
         assert variable in self.providing.values(), (self.providing, variable)
 
@@ -191,8 +195,6 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
 
         assert not variable.isParameterVariable() or \
                variable.getOwner() is not self
-
-        VariableRegistry.removeVariableUsage(variable, self)
 
     def getVariableForAssignment(self, variable_name):
         # print("ASS func", self, variable_name)
@@ -315,7 +317,8 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, doc, parameters, flags, source_ref):
+    def __init__(self, provider, name, doc, parameters, flags, source_ref,
+                 body = None):
         while provider.isExpressionOutlineBody():
             provider = provider.getParentVariableProvider()
 
@@ -329,6 +332,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
             code_prefix = "function",
             is_class    = False,
             flags       = flags,
+            body        = body,
             source_ref  = source_ref
         )
 
@@ -353,9 +357,8 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         self.parameters = parameters
         self.parameters.setOwner(self)
 
-        self.registerProvidedVariables(
-            *self.parameters.getAllVariables()
-        )
+        for variable in self.parameters.getAllVariables():
+            self.registerProvidedVariable(variable)
 
     def getDetails(self):
         return {
@@ -365,6 +368,51 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
             "provider"   : self.provider.getCodeName(),
             "doc"        : self.doc
         }
+
+    def getDetailsForDisplay(self):
+        result = {
+            "name"       : self.getFunctionName(),
+            "provider"   : self.provider.getCodeName(),
+            "flags"      : self.flags
+        }
+
+        result.update(self.parameters.getDetails())
+
+        result["code_flags"] = ','.join(self.getSourceReference().getFutureSpec().asFlags())
+
+        if self.doc is not None:
+            result["doc"] = self.doc
+
+        return result
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert provider is not None
+
+        parameter_spec_args = {}
+        other_args = {}
+
+        for key, value in args.items():
+            if key.startswith("ps_"):
+                parameter_spec_args[key] = value
+            elif key == "code_flags":
+                source_ref.future_spec = fromFlags(value)
+            else:
+                other_args[key] = value
+
+        parameters = ParameterSpec(**parameter_spec_args)
+
+        # The empty doc string and no doc string are distinguished by presence. The
+        # most common case is going to be not present.
+        if "doc" not in other_args:
+            other_args["doc"] = None
+
+        return cls(
+            provider   = provider,
+            parameters = parameters,
+            source_ref = source_ref,
+            **other_args
+        )
 
     def getDetail(self):
         return "named %s with %s" % (self.getFunctionName(), self.parameters)
@@ -491,6 +539,34 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         return {
             "code_object" : self.code_object
         }
+
+    def getDetailsForDisplay(self):
+        if self.code_object:
+            return self.code_object.getDetails()
+        else:
+            return {}
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        code_object_specs = {}
+        other_args = {}
+
+        for key, value in args.items():
+            if key.startswith("co_"):
+                code_object_specs[key] = value
+            else:
+                other_args[key] = value
+
+        if code_object_specs:
+            code_object = CodeObjectSpec(**code_object_specs)
+        else:
+            code_object = None
+
+        return cls(
+            code_object = code_object,
+            source_ref  = source_ref,
+            **other_args
+        )
 
     def computeExpression(self, constraint_collection):
         defaults = self.getDefaults()
@@ -677,11 +753,9 @@ error""" % self.getName()
 class ExpressionFunctionRef(NodeBase, ExpressionMixin):
     kind = "EXPRESSION_FUNCTION_REF"
 
-    def __init__(self, function_body, source_ref):
-        assert function_body.isExpressionFunctionBody() or \
-               function_body.isExpressionClassBody() or \
-               function_body.isExpressionGeneratorObjectBody() or \
-               function_body.isExpressionCoroutineObjectBody()
+    def __init__(self, source_ref, function_body = None, code_name = None):
+        assert function_body is not None or code_name is not None
+        assert code_name != "None"
 
         NodeBase.__init__(
             self,
@@ -689,6 +763,7 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
         )
 
         self.function_body = function_body
+        self.code_name = code_name
 
     def getName(self):
         return self.function_body.getName()
@@ -700,10 +775,18 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
     def getDetailsForDisplay(self):
         return {
-            "function" : self.function_body.getCodeName()
+            "code_name" : self.getFunctionBody().getCodeName()
         }
 
     def getFunctionBody(self):
+        if self.function_body is None:
+            module_code_name, _ = self.code_name.split("$$$", 1)
+
+            from nuitka.ModuleRegistry import getModuleFromCodeName
+            module = getModuleFromCodeName(module_code_name)
+
+            self.function_body = module.getFunctionFromCodeName(self.code_name)
+
         return self.function_body
 
     def computeExpressionRaw(self, constraint_collection):
