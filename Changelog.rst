@@ -1,5 +1,5 @@
-Nuitka Release 0.5.22 (Draft)
-=============================
+Nuitka Release 0.5.22
+=====================
 
 This release is mostly an intermediate release on the way to the large goal
 of having per module compilation that is cachable and requires far less memory
