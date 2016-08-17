@@ -103,7 +103,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         # Register ourselves immediately with the module.
         provider.getParentModule().addFunction(self)
 
-        self.constraint_collection = None
+        self.trace_collection = None
 
     @staticmethod
     def isExpressionFunctionBodyBase():
@@ -282,7 +282,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         else:
             return provider.getFunctionQualname() + ".<locals>." + function_name
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         assert False
 
         # Function body is quite irreplaceable.
@@ -448,7 +448,7 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         self.cross_module_use = True
 
     def computeExpressionCall(self, call_node, call_args, call_kw,
-                              constraint_collection):
+                              trace_collection):
         # TODO: Until we have something to re-order the arguments, we need to
         # skip this. For the immediate need, we avoid this complexity, as a
         # re-ordering will be needed.
@@ -568,7 +568,7 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             **other_args
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         defaults = self.getDefaults()
 
         side_effects = []
@@ -634,9 +634,9 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         return False
 
     def computeExpressionCall(self, call_node, call_args, call_kw,
-                              constraint_collection):
+                              trace_collection):
 
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: Until we have something to re-order the keyword arguments, we
         # need to skip this. For the immediate need, we avoid this complexity,
@@ -789,7 +789,7 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         return self.function_body
 
-    def computeExpressionRaw(self, constraint_collection):
+    def computeExpressionRaw(self, trace_collection):
         function_body = self.getFunctionBody()
 
         owning_module = function_body.getParentModule()
@@ -803,16 +803,16 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
         owning_module.addUsedFunction(function_body)
 
         from nuitka.optimizations.TraceCollections import \
-            ConstraintCollectionFunction
+            TraceCollectionFunction
 
         # TODO: Doesn't this mean, we can do this multiple times by doing it
         # in the reference. We should do it in the body, and there we should
         # limit us to only doing it once per module run, e.g. being based on
         # presence in used functions of the module already.
-        old_collection = function_body.constraint_collection
+        old_collection = function_body.trace_collection
 
-        function_body.constraint_collection = ConstraintCollectionFunction(
-            parent        = constraint_collection,
+        function_body.trace_collection = TraceCollectionFunction(
+            parent        = trace_collection,
             function_body = function_body
         )
 
@@ -825,13 +825,13 @@ class ExpressionFunctionRef(NodeBase, ExpressionMixin):
 
         if statements_sequence is not None:
             result = statements_sequence.computeStatementsSequence(
-                constraint_collection = function_body.constraint_collection
+                trace_collection = function_body.trace_collection
             )
 
             if result is not statements_sequence:
                 function_body.setBody(result)
 
-        function_body.constraint_collection.updateFromCollection(old_collection)
+        function_body.trace_collection.updateFromCollection(old_collection)
 
         # TODO: Function collection may now know something.
         return self, None, None
@@ -868,7 +868,7 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         function = self.getFunction()
 
         values = self.getArgumentValues()
@@ -877,7 +877,7 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         cost = function.getCallCost(values)
 
         if function.getFunctionRef().getFunctionBody().mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         if cost is not None and cost < 50:
             result = function.createOutlineFromCall(
@@ -917,7 +917,7 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionMixin,
 
         self.function_body = function_body
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         result = makeConstantReplacementNode(
             node     = self,
             constant = self.function_body.getFunctionQualname()

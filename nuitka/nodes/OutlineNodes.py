@@ -99,7 +99,7 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
     def getContainingClassDictCreation(self):
         return self.getParentVariableProvider().getContainingClassDictCreation()
 
-    def computeExpressionRaw(self, constraint_collection):
+    def computeExpressionRaw(self, trace_collection):
         owning_module = self.getParentModule()
 
         # Make sure the owning module is added to the used set. This is most
@@ -108,7 +108,7 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         from nuitka.ModuleRegistry import addUsedModule
         addUsedModule(owning_module)
 
-        abort_context = constraint_collection.makeAbortStackContext(
+        abort_context = trace_collection.makeAbortStackContext(
             catch_breaks     = False,
             catch_continues  = False,
             catch_returns    = True,
@@ -119,16 +119,16 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
             body = self.getBody()
 
             result = body.computeStatementsSequence(
-                constraint_collection = constraint_collection
+                trace_collection = trace_collection
             )
 
             if result is not body:
                 self.setBody(result)
                 body = result
 
-            return_collections = constraint_collection.getFunctionReturnCollections()
+            return_collections = trace_collection.getFunctionReturnCollections()
 
-        constraint_collection.mergeMultipleBranches(return_collections)
+        trace_collection.mergeMultipleBranches(return_collections)
 
         if body.getStatements()[0].isStatementReturn():
             return (

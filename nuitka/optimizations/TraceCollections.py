@@ -36,6 +36,7 @@ from nuitka.importing.ImportCache import (
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.PythonVersions import python_version
+from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .VariableTraces import (
     VariableTraceAssign,
@@ -170,7 +171,7 @@ class CollectionStartpointMixin:
             collection = self
 
         self.break_collections.append(
-            ConstraintCollectionBranch(
+            TraceCollectionBranch(
                 parent = collection,
                 name   = "loop break"
             )
@@ -184,7 +185,7 @@ class CollectionStartpointMixin:
             collection = self
 
         self.continue_collections.append(
-            ConstraintCollectionBranch(
+            TraceCollectionBranch(
                 parent = collection,
                 name   = "loop continue"
             )
@@ -196,7 +197,7 @@ class CollectionStartpointMixin:
 
         if self.return_collections is not None:
             self.return_collections.append(
-                ConstraintCollectionBranch(
+                TraceCollectionBranch(
                     parent = collection,
                     name   = "return"
                 )
@@ -210,7 +211,7 @@ class CollectionStartpointMixin:
 
         if self.exception_collections is not None:
             self.exception_collections.append(
-                ConstraintCollectionBranch(
+                TraceCollectionBranch(
                     parent = collection,
                     name   = "exception"
                 )
@@ -353,7 +354,11 @@ class CollectionStartpointMixin:
         if catch_exceptions:
             self.exception_collections = old_exception_collections
 
-class ConstraintCollectionBase(CollectionTracingMixin):
+
+class TraceCollectionBase(CollectionTracingMixin):
+    __del__ = counted_del()
+
+    @counted_init
     def __init__(self, owner, name, parent):
         CollectionTracingMixin.__init__(self)
 
@@ -526,7 +531,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         # Now compute this expression, allowing it to replace itself with
         # something else as part of a local peep hole optimization.
         r = expression.computeExpressionRaw(
-            constraint_collection = self
+            trace_collection = self
         )
         assert type(r) is tuple, expression
 
@@ -710,9 +715,9 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         return new_node, change_tags, message
 
 
-class ConstraintCollectionBranch(ConstraintCollectionBase):
+class TraceCollectionBranch(TraceCollectionBase):
     def __init__(self, name, parent):
-        ConstraintCollectionBase.__init__(
+        TraceCollectionBase.__init__(
             self,
             owner  = parent.owner,
             name   = name,
@@ -724,7 +729,7 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
     def computeBranch(self, branch):
         if branch.isStatementsSequence():
             result = branch.computeStatementsSequence(
-                constraint_collection = self
+                trace_collection = self
             )
 
             if result is not branch:
@@ -756,11 +761,9 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
         Tracing.printSeparator()
 
 
-
-
-class ConstraintCollectionFunction(CollectionStartpointMixin,
-                                   ConstraintCollectionBase,
-                                   VariableUsageTrackingMixin):
+class TraceCollectionFunction(CollectionStartpointMixin,
+                              TraceCollectionBase,
+                              VariableUsageTrackingMixin):
     def __init__(self, parent, function_body):
         assert function_body.isExpressionFunctionBody() or \
                function_body.isExpressionClassBody() or \
@@ -769,7 +772,7 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
         CollectionStartpointMixin.__init__(self)
 
-        ConstraintCollectionBase.__init__(
+        TraceCollectionBase.__init__(
             self,
             owner  = function_body,
             name   = "function_" + str(function_body),
@@ -777,13 +780,13 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
         )
 
 
-class ConstraintCollectionModule(CollectionStartpointMixin,
-                                 ConstraintCollectionBase,
-                                 VariableUsageTrackingMixin):
+class TraceCollectionModule(CollectionStartpointMixin,
+                            TraceCollectionBase,
+                            VariableUsageTrackingMixin):
     def __init__(self, module):
         CollectionStartpointMixin.__init__(self)
 
-        ConstraintCollectionBase.__init__(
+        TraceCollectionBase.__init__(
             self,
             owner  = module,
             name   = "module",

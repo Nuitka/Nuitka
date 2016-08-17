@@ -106,17 +106,17 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
 
         return False
 
-    def computeBuiltinSpec(self, constraint_collection, given_values):
+    def computeBuiltinSpec(self, trace_collection, given_values):
         assert self.builtin_spec is not None, self
 
         if not self.builtin_spec.isCompileTimeComputable(given_values):
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
             # TODO: Raise exception known step 0.
 
             return self, None, None
 
-        return constraint_collection.getCompileTimeComputationResult(
+        return trace_collection.getCompileTimeComputationResult(
             node        = self,
             computation = lambda : self.builtin_spec.simulateCall(
                 given_values
@@ -126,7 +126,7 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
             )
         )
 
-    def computeExpressionIter1(self, iter_node, constraint_collection):
+    def computeExpressionIter1(self, iter_node, trace_collection):
         # TODO: Support Python3 range objects too.
         if python_version >= 300:
             return iter_node, None, None
@@ -189,7 +189,7 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
 
     getLow = ExpressionChildrenHavingBase.childGetter("low")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Support Python3 range objects too.
         if python_version >= 300:
             return self, None, None
@@ -197,8 +197,8 @@ class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
         low  = self.getLow()
 
         return self.computeBuiltinSpec(
-            constraint_collection = constraint_collection,
-            given_values          = (
+            trace_collection = trace_collection,
+            given_values     = (
                 low,
             )
         )
@@ -254,7 +254,7 @@ class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
 
     builtin_spec = BuiltinOptimization.builtin_range_spec
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         if python_version >= 300:
             return self, None, None
 
@@ -262,8 +262,8 @@ class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
         high = self.getHigh()
 
         return self.computeBuiltinSpec(
-            constraint_collection = constraint_collection,
-            given_values          = (
+            trace_collection = trace_collection,
+            given_values     = (
                 low,
                 high
             )
@@ -342,7 +342,7 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
 
     builtin_spec = BuiltinOptimization.builtin_range_spec
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         if python_version >= 300:
             return self, None, None
 
@@ -351,8 +351,8 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
         step = self.getStep()
 
         return self.computeBuiltinSpec(
-            constraint_collection = constraint_collection,
-            given_values          = (
+            trace_collection = trace_collection,
+            given_values     = (
                 low,
                 high,
                 step
@@ -446,7 +446,7 @@ class ExpressionBuiltinXrange(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self, None, None
 
     getLow  = ExpressionChildrenHavingBase.childGetter("low")

@@ -42,7 +42,7 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
     def getIntegerValue(self):
         return self.getValue().getIterationLength()
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         from .NodeMakingHelpers import (
             makeConstantReplacementNode,
             wrapExpressionWithNodeSideEffects
@@ -51,7 +51,7 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
         new_node, change_tags, change_desc = ExpressionBuiltinSingleArgBase.\
           computeExpression(
             self,
-            constraint_collection = constraint_collection
+            trace_collection = trace_collection
         )
 
         if new_node is self:
@@ -75,7 +75,7 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
 class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ITER1"
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         value = self.getValue()
 
         # Iterator of an iterator can be removed.
@@ -83,8 +83,8 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
             return value, "new_builtin", "Eliminated useless iterator creation."
 
         return value.computeExpressionIter1(
-            iter_node             = self,
-            constraint_collection = constraint_collection
+            iter_node        = self,
+            trace_collection = trace_collection
         )
 
     def isIteratorMaking(self):
@@ -137,7 +137,7 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
 
         return iter_length is not None and count <= iter_length
 
-    def onRelease(self, constraint_collection):
+    def onRelease(self, trace_collection):
         # print "onRelease", self
         pass
 
@@ -152,13 +152,13 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Predict iteration result if possible via SSA variable trace of
         # the iterator state.
 
         # Assume exception is possible. TODO: We might query the next from the
         # source with a computeExpressionNext slot, but we delay that.
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -218,12 +218,12 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
 
     getIterator = StatementChildrenHavingBase.childGetter("iterator")
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(self.getIterator())
+    def computeStatement(self, trace_collection):
+        trace_collection.onExpression(self.getIterator())
         iterator = self.getIterator()
 
         if iterator.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -244,7 +244,7 @@ Explicit raise already raises implicitly building exception type."""
             return None, "new_statements", """\
 Determined iteration end check to be always true."""
 
-        constraint_collection.onExceptionRaiseExit(
+        trace_collection.onExceptionRaiseExit(
             BaseException
         )
 
@@ -273,7 +273,7 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
     getCallable = ExpressionChildrenHavingBase.childGetter("callable")
     getSentinel = ExpressionChildrenHavingBase.childGetter("sentinel")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: The "callable" should be investigated here, maybe it is not
         # really callable, or raises an exception.
 
@@ -304,7 +304,7 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
     getIterator = ExpressionChildrenHavingBase.childGetter("iterator")
     getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: The "iterator" should be investigated here, if it is iterable,
         # or if the default is raising.
         return self, None, None
@@ -313,12 +313,12 @@ class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
 class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_ASYNC_ITER"
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         value = self.getValue()
 
         return value.computeExpressionAsyncIter(
-            iter_node             = self,
-            constraint_collection = constraint_collection
+            iter_node        = self,
+            trace_collection = trace_collection
         )
 
     # TODO: Questionable optimization based on this. Better to this in the slot
@@ -373,7 +373,7 @@ class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
 
         return iter_length is not None and count <= iter_length
 
-    def onRelease(self, constraint_collection):
+    def onRelease(self, trace_collection):
         # print "onRelease", self
         pass
 
@@ -388,12 +388,12 @@ class ExpressionAsyncNext(ExpressionBuiltinSingleArgBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Predict iteration result if possible via SSA variable trace of
         # the iterator state.
 
         # Assume exception is possible. TODO: We might query the next from the
         # source with a computeExpressionAsyncNext slot, but we delay that.
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

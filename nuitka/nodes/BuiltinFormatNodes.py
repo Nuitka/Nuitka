@@ -50,7 +50,7 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
 
     builtin_spec = BuiltinOptimization.builtin_id_spec
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # Note: Quite impossible to predict the pointer value or anything, but
         # we know the result will be a long.
         return self, None, None

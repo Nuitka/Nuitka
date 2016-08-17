@@ -235,7 +235,7 @@ def optimizeUnusedClosureVariables(function_body):
         if function_body.hasFlag("has_super") and closure_variable.getName() in ("__class__", "self"):
             continue
 
-        variable_traces = function_body.constraint_collection.getVariableTraces(
+        variable_traces = function_body.trace_collection.getVariableTraces(
             variable = closure_variable
         )
 
@@ -264,7 +264,7 @@ def optimizeUnusedClosureVariables(function_body):
 
 def optimizeUnusedUserVariables(function_body):
     for local_variable in function_body.getUserLocalVariables():
-        variable_traces = function_body.constraint_collection.getVariableTraces(
+        variable_traces = function_body.trace_collection.getVariableTraces(
             variable = local_variable
         )
 
@@ -276,7 +276,7 @@ def optimizeUnusedUserVariables(function_body):
 def optimizeUnusedTempVariables(provider):
     for temp_variable in provider.getTempVariables():
 
-        variable_traces = provider.constraint_collection.getVariableTraces(
+        variable_traces = provider.trace_collection.getVariableTraces(
             variable = temp_variable
         )
 
@@ -366,11 +366,11 @@ def makeOptimizationPass(initial_pass):
         if current_module.isCompiledPythonModule():
             for function in current_module.getUnusedFunctions():
                 Variables.updateFromCollection(
-                    old_collection = function.constraint_collection,
+                    old_collection = function.trace_collection,
                     new_collection = None
                 )
 
-                function.constraint_collection = None
+                function.trace_collection = None
 
     for current_module in ModuleRegistry.getDoneModules():
         optimizeVariables(current_module)

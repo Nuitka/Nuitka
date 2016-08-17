@@ -105,19 +105,19 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
 
         self.variable = variable
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         variable = self.variable
 
         assert variable is not None
 
-        self.variable_trace = constraint_collection.getVariableCurrentTrace(
+        self.variable_trace = trace_collection.getVariableCurrentTrace(
             variable = variable
         )
 
         replacement = self.variable_trace.getReplacementNode(self)
 
         if replacement is not None:
-            constraint_collection.signalChange(
+            trace_collection.signalChange(
                 "new_expression",
                 self.source_ref,
                 "Value propagated for '%s' from '%s'." % (
@@ -127,11 +127,11 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
             )
 
             # Need to compute the replacement still.
-            return replacement.computeExpression(constraint_collection)
+            return replacement.computeExpression(trace_collection)
 
         if not self.variable_trace.mustHaveValue():
             # TODO: This could be way more specific surely.
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -199,22 +199,22 @@ Replaced read-only module attribute '__package__' with constant value."""
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw,
-                              constraint_collection):
+                              trace_collection):
 
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
-        constraint_collection.onControlFlowEscape(self)
+        trace_collection.onControlFlowEscape(self)
 
         if not Variables.complete and \
            self.variable_name in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
            self.variable.isModuleVariable():
             # Just inform the collection that all escaped.
-            constraint_collection.onLocalsUsage()
+            trace_collection.onLocalsUsage()
 
         return call_node, None, None
 
     def computeExpressionSetSubscript(self, set_node, subscript, value_node,
-                                      constraint_collection):
+                                      trace_collection):
         tags = None
         message = None
 
@@ -233,23 +233,23 @@ Replaced read-only module attribute '__package__' with constant value."""
 Subscript assignment to dictionary lowered to dictionary assignment."""
 
         # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
+        trace_collection.onControlFlowEscape(self)
 
         # Any exception might be raised.
         if set_node.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return set_node, tags, message
 
     def computeExpressionDelSubscript(self, del_node, subscript,
-                                      constraint_collection):
+                                      trace_collection):
         tags = None
         message = None
 
         # By default, an subscript may change everything about the lookup
         # source.
         # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
+        trace_collection.onControlFlowEscape(self)
 
         if self.variable_trace.hasShapeDictionaryExact():
             del_node = StatementDictOperationRemove(
@@ -265,16 +265,16 @@ Subscript del to dictionary lowered to dictionary del."""
 
         # Any exception might be raised.
         if del_node.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return del_node, tags, message
 
-    def computeExpressionSubscript(self, lookup_node, subscript, constraint_collection):
+    def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
         tags = None
         message = None
 
         # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
+        trace_collection.onControlFlowEscape(self)
 
         if self.variable_trace.hasShapeDictionaryExact():
             lookup_node = ExpressionDictOperationGet(
@@ -289,16 +289,16 @@ Subscript look-up to dictionary lowered to dictionary look-up."""
 
         # Any exception might be raised.
         if lookup_node.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, tags, message
 
-    def computeExpressionComparisonIn(self, in_node, value_node, constraint_collection):
+    def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
         tags = None
         message = None
 
         # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(in_node)
+        trace_collection.onControlFlowEscape(in_node)
 
         if self.variable_trace.hasShapeDictionaryExact():
             tags = "new_expression"
@@ -324,15 +324,15 @@ Check '%s' on dictionary lowered to dictionary '%s'.""" % (
 
         # Any exception may be raised.
         if in_node.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return in_node, tags, message
 
     def hasShapeDictionaryExact(self):
         return self.variable_trace.hasShapeDictionaryExact()
 
-    def onContentEscapes(self, constraint_collection):
-        constraint_collection.onVariableContentEscapes(self.variable)
+    def onContentEscapes(self, trace_collection):
+        trace_collection.onVariableContentEscapes(self.variable)
 
     def isKnownToBeIterable(self, count):
         return None
@@ -394,8 +394,8 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
     def isTargetVariableRef():
         return False
 
-    def computeExpression(self, constraint_collection):
-        self.variable_trace = constraint_collection.getVariableCurrentTrace(
+    def computeExpression(self, trace_collection):
+        self.variable_trace = trace_collection.getVariableCurrentTrace(
             variable = self.variable
         )
 
@@ -408,8 +408,8 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
         # Nothing to do here.
         return self, None, None
 
-    def onContentEscapes(self, constraint_collection):
-        constraint_collection.onVariableContentEscapes(self.variable)
+    def onContentEscapes(self, trace_collection):
+        trace_collection.onVariableContentEscapes(self.variable)
 
     def mayHaveSideEffects(self):
         # Can't happen

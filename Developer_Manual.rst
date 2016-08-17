@@ -2484,8 +2484,8 @@ difficulties, and might have to be reduced to commonality. In the above example,
 the ``<`` operator will have to check for each version, and then to decide that
 both indeed give the same result.
 
-The constraint collection tracks variable changes in conditional branches, and
-then merges the existing state at conditional statement exits.
+The trace collection tracks variable changes in conditional branches, and then
+merges the existing state at conditional statement exits.
 
 .. note::
 
@@ -2631,9 +2631,9 @@ The following is the intended interface:
 - Iteration with node methods ``computeStatement`` and ``computeExpression``.
 
   These traverse modules and functions (i.e. scopes) and visit everything in the
-  order that Python executes it. The visiting object is ``ConstraintCollection``
-  and pass forward. Some node types, e.g. ``StatementConditional`` new create
-  branch constraint collections and handle the SSA merging at exit.
+  order that Python executes it. The visiting object is ``TraceCollection`` and
+  pass forward. Some node types, e.g. ``StatementConditional`` new create branch
+  trace collections and handle the SSA merging at exit.
 
 - Replacing nodes during the visit.
 
@@ -2654,8 +2654,8 @@ The following is the intended interface:
 - Value escapes are traced too.
 
   When an operation hands over a value to outside code, it indicates so to the
-  constraint collection. This is for it to know, when e.g. a constant value,
-  might be mutated meanwhile.
+  trace collection. This is for it to know, when e.g. a constant value, might
+  be mutated meanwhile.
 
 - Nodes can be queried about their properties.
 
@@ -2749,7 +2749,7 @@ The following examples:
    a + b
 
 The optimization is mostly performed by walking of the tree and performing
-constraint collection. When it encounters assignments and references to them, it
+trace collection. When it encounters assignments and references to them, it
 considers current state of traces and uses it for ``computeExpression``.
 
 .. note::
@@ -2795,8 +2795,8 @@ Initial Implementation
 ----------------------
 
 The basic interface will be added to *all* expressions and a node may override
-it, potentially using constraint collection state, as attached during
-"computeExpression".
+it, potentially using trace collection state, as attached during
+``computeExpression``.
 
 Goal 1
 ++++++
@@ -3080,7 +3080,7 @@ etc.
 
 * Keeping track of iterations
 
-  The constraint collection trace should become the place, where variables or
+  The trace collection trace should become the place, where variables or
   values track their use state. The iterator should keep track of the "next()"
   calls made to it, so it can tell which value to given in that case.
 
@@ -3234,11 +3234,11 @@ etc.
     version. This happens during tree building phase.
 
   * References need to back track to the last assignment on their path, which
-    may be a merge. Constraint collection can do that.
+    may be a merge. Trace collection can do that.
 
   * Data structures
 
-    Every constraint collection has these:
+    Every trace collection has these:
 
     * variable_actives
 

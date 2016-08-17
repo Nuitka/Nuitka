@@ -91,13 +91,13 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # This is using many returns based on many conditions,
         # pylint: disable=R0912
 
         # TODO: May go down to MemoryError for compile time constant overflow
         # ones.
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         operator = self.getOperator()
         operands = self.getOperands()
@@ -141,7 +141,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
                 if iter_length > 256:
                     return self, None, None
 
-            return constraint_collection.getCompileTimeComputationResult(
+            return trace_collection.getCompileTimeComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(
                     left_value,
@@ -151,11 +151,11 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             )
         else:
             # The value of these nodes escaped and could change its contents.
-            constraint_collection.removeKnowledge(left)
-            constraint_collection.removeKnowledge(right)
+            trace_collection.removeKnowledge(left)
+            trace_collection.removeKnowledge(right)
 
             # Any code could be run, note that.
-            constraint_collection.onControlFlowEscape(self)
+            trace_collection.onControlFlowEscape(self)
 
             return self, None, None
 
@@ -184,14 +184,14 @@ class ExpressionOperationUnary(ExpressionOperationBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         operator = self.getOperator()
         operand = self.getOperand()
 
         if operand.isCompileTimeConstant():
             operand_value = operand.getCompileTimeConstant()
 
-            return constraint_collection.getCompileTimeComputationResult(
+            return trace_collection.getCompileTimeComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(
                     operand_value,
@@ -201,13 +201,13 @@ class ExpressionOperationUnary(ExpressionOperationBase):
         else:
             # TODO: May go down to MemoryError for compile time constant overflow
             # ones.
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
             # The value of that node escapes and could change its contents.
-            constraint_collection.removeKnowledge(operand)
+            trace_collection.removeKnowledge(operand)
 
             # Any code could be run, note that.
-            constraint_collection.onControlFlowEscape(self)
+            trace_collection.onControlFlowEscape(self)
 
             return self, None, None
 
@@ -235,10 +235,10 @@ class ExpressionOperationNOT(ExpressionOperationUnary):
     def getDetails(self):
         return {}
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self.getOperand().computeExpressionOperationNot(
-            not_node              = self,
-            constraint_collection = constraint_collection
+            not_node         = self,
+            trace_collection = trace_collection
         )
 
     def mayRaiseException(self, exception_type):
@@ -295,7 +295,7 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
     def isExpressionOperationBinary():
         return True
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # In-place operation requires extra care to avoid corruption of
         # values.
         left = self.getLeft()
@@ -313,23 +313,23 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
                 source_ref = source_ref
             )
 
-            constraint_collection.signalChange(
+            trace_collection.signalChange(
                 tags       = "new_expression",
                 source_ref = source_ref,
                 message    = """\
 Lowered in-place binary operation of compile time constant to binary operation."""
             )
 
-            return result.computeExpression(constraint_collection)
+            return result.computeExpression(trace_collection)
 
         # Any exception may be raised.
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         # The value of these nodes escaped and could change its contents.
-        constraint_collection.removeKnowledge(left)
-        constraint_collection.removeKnowledge(right)
+        trace_collection.removeKnowledge(left)
+        trace_collection.removeKnowledge(right)
 
         # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
+        trace_collection.onControlFlowEscape(self)
 
         return self, None, None

@@ -64,13 +64,13 @@ class ExpressionYield(ExpressionChildrenHavingBase):
 
     getExpression = ExpressionChildrenHavingBase.childGetter("expression")
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.removeKnowledge(self.getExpression())
+    def computeExpression(self, trace_collection):
+        trace_collection.removeKnowledge(self.getExpression())
 
         # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
+        trace_collection.onControlFlowEscape(self)
 
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
         # Nothing possible really here.
         return self, None, None
 
@@ -110,13 +110,13 @@ class ExpressionYieldFrom(ExpressionChildrenHavingBase):
 
     getExpression = ExpressionChildrenHavingBase.childGetter("expression")
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.removeKnowledge(self.getExpression())
+    def computeExpression(self, trace_collection):
+        trace_collection.removeKnowledge(self.getExpression())
 
         # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
+        trace_collection.onControlFlowEscape(self)
 
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         # Nothing possible really here.
         return self, None, None

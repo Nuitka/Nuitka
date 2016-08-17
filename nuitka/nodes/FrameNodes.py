@@ -177,7 +177,7 @@ class StatementsFrame(StatementsSequence):
                               asFlags()
         )
 
-    def computeStatementsSequence(self, constraint_collection):
+    def computeStatementsSequence(self, trace_collection):
         # The extraction of parts of the frame that can be moved before or after
         # the frame scope, takes it toll to complexity, pylint: disable=R0912
         new_statements = []
@@ -188,10 +188,10 @@ class StatementsFrame(StatementsSequence):
             # May be frames embedded.
             if statement.isStatementsFrame():
                 new_statement = statement.computeStatementsSequence(
-                    constraint_collection = constraint_collection
+                    trace_collection = trace_collection
                 )
             else:
-                new_statement = constraint_collection.onStatement(
+                new_statement = trace_collection.onStatement(
                     statement = statement
                 )
 
@@ -204,7 +204,7 @@ class StatementsFrame(StatementsSequence):
 
                 if statement is not statements[-1] and \
                    new_statement.isStatementAborting():
-                    constraint_collection.signalChange(
+                    trace_collection.signalChange(
                         "new_statements",
                         statements[count+1].getSourceReference(),
                         "Removed dead statements."
@@ -248,7 +248,7 @@ class StatementsFrame(StatementsSequence):
                     node       = self
                 )
             else:
-                constraint_collection.signalChange(
+                trace_collection.signalChange(
                     "new_statements",
                     self.getSourceReference(),
                     "Removed useless frame object of '%s'." % self.code_object.getCodeObjectName()

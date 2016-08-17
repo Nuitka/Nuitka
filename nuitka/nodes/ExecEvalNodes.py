@@ -59,7 +59,7 @@ class ExpressionBuiltinEval(ExpressionChildrenHavingBase):
     getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
     getLocals = ExpressionChildrenHavingBase.childGetter("locals")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Attempt for constant values to do it.
         return self, None, None
 
@@ -81,11 +81,11 @@ if python_version >= 300:
         def needsLocalsDict(self):
             return True
 
-        def computeExpression(self, constraint_collection):
+        def computeExpression(self, trace_collection):
             # TODO: Attempt for constant values to do it.
             return self, None, None
 
-        def computeExpressionDrop(self, statement, constraint_collection):
+        def computeExpressionDrop(self, statement, trace_collection):
             if self.getParentVariableProvider().isEarlyClosure():
                 result = StatementExec(
                     source_code = self.getSourceCode(),
@@ -119,7 +119,7 @@ if python_version < 300:
         def needsLocalsDict(self):
             return True
 
-        def computeExpressionDrop(self, statement, constraint_collection):
+        def computeExpressionDrop(self, statement, trace_collection):
             # In this case, the copy-back must be done and will only be done
             # correctly by the code for exec statements.
             provider = self.getParentVariableProvider()
@@ -171,14 +171,14 @@ class StatementExec(StatementChildrenHavingBase):
     def needsLocalsDict(self):
         return self.getLocals().mayBeNone()
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(
+    def computeStatement(self, trace_collection):
+        trace_collection.onExpression(
             expression = self.getSourceCode()
         )
         source_code = self.getSourceCode()
 
         if source_code.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -192,14 +192,14 @@ class StatementExec(StatementChildrenHavingBase):
 Exec statement raises implicitly when determining source code argument."""
             )
 
-        constraint_collection.onExpression(
+        trace_collection.onExpression(
             expression = self.getGlobals(),
             allow_none = True
         )
         globals_arg = self.getGlobals()
 
         if globals_arg is not None and globals_arg.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -219,14 +219,14 @@ Exec statement raises implicitly when determining source code argument."""
 Exec statement raises implicitly when determining globals argument."""
             )
 
-        constraint_collection.onExpression(
+        trace_collection.onExpression(
             expression = self.getLocals(),
             allow_none = True
         )
         locals_arg = self.getLocals()
 
         if locals_arg is not None and locals_arg.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -247,7 +247,7 @@ Exec statement raises implicitly when determining globals argument."""
 Exec statement raises implicitly when determining locals argument."""
             )
 
-        constraint_collection.onExceptionRaiseExit(
+        trace_collection.onExceptionRaiseExit(
             BaseException
         )
 
@@ -286,11 +286,11 @@ class StatementLocalsDictSync(StatementChildrenHavingBase):
             source_ref = source_ref,
         )
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         if self.getParentVariableProvider().isCompiledPythonModule():
             return None, "new_statements", "Removed sync back to locals without locals."
 
-        constraint_collection.removeAllKnowledge()
+        trace_collection.removeAllKnowledge()
 
         return self, None, None
 
@@ -334,8 +334,8 @@ class ExpressionBuiltinCompile(ExpressionChildrenHavingBase):
     getDontInherit = ExpressionChildrenHavingBase.childGetter("dont_inherit")
     getOptimize = ExpressionChildrenHavingBase.childGetter("optimize")
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.onExceptionRaiseExit(BaseException)
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: Attempt for constant values to do it.
         return self, None, None

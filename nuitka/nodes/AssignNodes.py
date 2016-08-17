@@ -109,14 +109,14 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
     def mayRaiseException(self, exception_type):
         return self.getAssignSource().mayRaiseException(exception_type)
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         # This is very complex stuff, pylint: disable=R0912
 
         # TODO: Way too ugly to have global trace kinds just here, and needs to
         # be abstracted somehow. But for now we let it live here: pylint: disable=R0915
 
         # Let assignment source may re-compute first.
-        constraint_collection.onExpression(self.getAssignSource())
+        trace_collection.onExpression(self.getAssignSource())
         source = self.getAssignSource()
 
         # No assignment will occur, if the assignment source raises, so give up
@@ -188,7 +188,7 @@ Removed assignment of variable '%s' from itself which is known to be defined."""
             self.setAssignSource(source.getExpression())
             source = self.getAssignSource()
 
-            constraint_collection.signalChange(
+            trace_collection.signalChange(
                 tags       = "new_statements",
                 message    = """\
 Side effects of assignments promoted to statements.""",
@@ -197,7 +197,7 @@ Side effects of assignments promoted to statements.""",
 
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
-        self.variable_trace = constraint_collection.onVariableSet(
+        self.variable_trace = trace_collection.onVariableSet(
             assign_node = self
         )
 
@@ -376,11 +376,11 @@ class StatementDelVariable(StatementChildrenHavingBase):
         "variable_ref"
     )
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         variable_ref = self.getTargetVariableRef()
         variable = variable_ref.getVariable()
 
-        self.previous_trace = constraint_collection.getVariableCurrentTrace(variable)
+        self.previous_trace = trace_collection.getVariableCurrentTrace(variable)
 
         # First eliminate us entirely if we can.
         if self.tolerant and self.previous_trace.isUninitTrace():
@@ -398,21 +398,21 @@ class StatementDelVariable(StatementChildrenHavingBase):
 
         # If not tolerant, we may exception exit now during the __del__
         if not self.tolerant and not self.previous_trace.mustHaveValue():
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         # Record the deletion, needs to start a new version then.
-        constraint_collection.onVariableDel(
+        trace_collection.onVariableDel(
             variable_ref = variable_ref
         )
 
-        constraint_collection.onVariableContentEscapes(variable)
+        trace_collection.onVariableContentEscapes(variable)
 
         # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
+        trace_collection.onControlFlowEscape(self)
 
         # Need to fetch the potentially invalidated variable. A "del" on a
         # or shared value, may easily assign the global variable in "__del__".
-        self.variable_trace = constraint_collection.getVariableCurrentTrace(variable)
+        self.variable_trace = trace_collection.getVariableCurrentTrace(variable)
 
         return self, None, None
 
@@ -495,8 +495,8 @@ class StatementReleaseVariable(NodeBase):
     def setVariable(self, variable):
         self.variable = variable
 
-    def computeStatement(self, constraint_collection):
-        self.variable_trace = constraint_collection.onVariableRelease(
+    def computeStatement(self, trace_collection):
+        self.variable_trace = trace_collection.onVariableRelease(
             variable = self.variable
         )
 
@@ -509,10 +509,10 @@ class StatementReleaseVariable(NodeBase):
                 )
             )
 
-        constraint_collection.onVariableContentEscapes(self.variable)
+        trace_collection.onVariableContentEscapes(self.variable)
 
         # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
+        trace_collection.onControlFlowEscape(self)
 
         # TODO: We might be able to remove ourselves based on the trace
         # we belong to.
@@ -567,7 +567,7 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
             source_ref    = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         assert False, self.parent
 
     @staticmethod
@@ -618,7 +618,7 @@ class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
         )
 
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         assert False, self.parent
 
     @staticmethod

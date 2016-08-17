@@ -104,12 +104,12 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
     def isExpressionConstantRef():
         return True
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # Cannot compute any further, this is already the best.
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw,
-                              constraint_collection):
+                              trace_collection):
 
         # The arguments don't matter. All constant values cannot be called, and
         # we just need to make and error out of that.
@@ -123,7 +123,7 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
             side_effects = call_node.extractPreCallSideEffects()
         )
 
-        constraint_collection.onExceptionRaiseExit(TypeError)
+        trace_collection.onExceptionRaiseExit(TypeError)
 
         return new_node, "new_raise", "Predicted call of constant value to exception raise."
 
@@ -289,7 +289,7 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
                 # Unicode constants may not be possible to encode.
                 return None
 
-    def computeExpressionIter1(self, iter_node, constraint_collection):
+    def computeExpressionIter1(self, iter_node, trace_collection):
         if type(self.constant) in (list, set, frozenset, dict):
             result = makeConstantRefNode(
                 constant      = tuple(self.constant),
@@ -307,7 +307,7 @@ Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
 
         if not isIterableConstant(self.constant):
             # Any exception may be raised.
-            constraint_collection.onExceptionRaiseExit(TypeError)
+            trace_collection.onExceptionRaiseExit(TypeError)
 
         return iter_node, None, None
 

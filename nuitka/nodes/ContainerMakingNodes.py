@@ -65,7 +65,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
         # Abstract method, pylint: disable=R0201
         return None
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         elements = self.getElements()
 
         for count, element in enumerate(elements):
@@ -126,7 +126,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
     def mayBeNone(self):
         return False
 
-    def computeExpressionDrop(self, statement, constraint_collection):
+    def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementOnlyNodesFromExpressions(
             expressions = self.getElements()
         )
@@ -170,7 +170,7 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
     def getIterationLength(self):
         return len(self.getElements())
 
-    def computeExpressionIter1(self, iter_node, constraint_collection):
+    def computeExpressionIter1(self, iter_node, trace_collection):
         result = ExpressionMakeTuple(
             elements   = self.getElements(),
             source_ref = self.source_ref
@@ -226,7 +226,7 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
 
         return False
 
-    def computeExpressionIter1(self, iter_node, constraint_collection):
+    def computeExpressionIter1(self, iter_node, trace_collection):
         result = ExpressionMakeTuple(
             elements   = self.getElements(),
             source_ref = self.source_ref

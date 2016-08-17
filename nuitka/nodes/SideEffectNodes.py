@@ -70,7 +70,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
     def isExpressionSideEffects(self):
         return True
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         side_effects = self.getSideEffects()
         new_side_effects = []
 
@@ -107,7 +107,7 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
     def getTruthValue(self):
         return self.getExpression().getTruthValue()
 
-    def computeExpressionDrop(self, statement, constraint_collection):
+    def computeExpressionDrop(self, statement, trace_collection):
         # Side effects can  become statements.
 
         expressions = self.getSideEffects() + (self.getExpression(),)

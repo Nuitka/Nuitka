@@ -22,7 +22,7 @@ when it returns, break, continues, or raises an exception. See Developer
 Manual for how this maps to try/finally and try/except as in Python.
 """
 
-from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
+from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 
 from .Checkers import checkStatementsSequence, checkStatementsSequenceOrNone
 from .NodeBases import StatementChildrenHavingBase
@@ -98,7 +98,7 @@ class StatementTry(StatementChildrenHavingBase):
         "return_handler"
     )
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         # This node has many children to handle, pylint: disable=R0912,R0914
         tried = self.getBlockTry()
 
@@ -109,12 +109,12 @@ class StatementTry(StatementChildrenHavingBase):
 
         # The tried block must be considered as a branch, if it is not empty
         # already.
-        collection_start = ConstraintCollectionBranch(
-            parent = constraint_collection,
+        collection_start = TraceCollectionBranch(
+            parent = trace_collection,
             name   = "try start"
         )
 
-        abort_context = constraint_collection.makeAbortStackContext(
+        abort_context = trace_collection.makeAbortStackContext(
             catch_breaks     = break_handler is not None,
             catch_continues  = continue_handler is not None,
             catch_returns    = return_handler is not None,
@@ -125,7 +125,7 @@ class StatementTry(StatementChildrenHavingBase):
             # As a branch point for the many types of handlers.
 
             result = tried.computeStatementsSequence(
-                constraint_collection = constraint_collection
+                trace_collection = trace_collection
             )
 
             # We might be done entirely already.
@@ -137,10 +137,10 @@ class StatementTry(StatementChildrenHavingBase):
                 self.setBlockTry(result)
                 tried = result
 
-            break_collections = constraint_collection.getLoopBreakCollections()
-            continue_collections = constraint_collection.getLoopContinueCollections()
-            return_collections = constraint_collection.getFunctionReturnCollections()
-            exception_collections = constraint_collection.getExceptionRaiseCollections()
+            break_collections = trace_collection.getLoopBreakCollections()
+            continue_collections = trace_collection.getLoopContinueCollections()
+            return_collections = trace_collection.getFunctionReturnCollections()
+            exception_collections = trace_collection.getExceptionRaiseCollections()
 
         tried_may_raise = tried.mayRaiseException(BaseException)
         # Exception handling is useless if no exception is to be raised.
@@ -153,7 +153,7 @@ class StatementTry(StatementChildrenHavingBase):
         # If tried may raise, even empty exception handler has a meaning to
         # ignore that exception.
         if tried_may_raise:
-            collection_exception_handling = ConstraintCollectionBranch(
+            collection_exception_handling = TraceCollectionBranch(
                 parent = collection_start,
                 name   = "except handler"
             )
@@ -169,7 +169,7 @@ class StatementTry(StatementChildrenHavingBase):
 
             if except_handler is not None:
                 result = except_handler.computeStatementsSequence(
-                    constraint_collection = collection_exception_handling
+                    trace_collection = collection_exception_handling
                 )
 
                 # Might be changed.
@@ -183,7 +183,7 @@ class StatementTry(StatementChildrenHavingBase):
                 break_handler = None
 
         if break_handler is not None:
-            collection_break = ConstraintCollectionBranch(
+            collection_break = TraceCollectionBranch(
                 parent = collection_start,
                 name   = "break handler"
             )
@@ -191,7 +191,7 @@ class StatementTry(StatementChildrenHavingBase):
             collection_break.mergeMultipleBranches(break_collections)
 
             result = break_handler.computeStatementsSequence(
-                constraint_collection = collection_break
+                trace_collection = collection_break
             )
 
             # Might be changed.
@@ -205,7 +205,7 @@ class StatementTry(StatementChildrenHavingBase):
                 continue_handler = None
 
         if continue_handler is not None:
-            collection_continue = ConstraintCollectionBranch(
+            collection_continue = TraceCollectionBranch(
                 parent = collection_start,
                 name   = "continue handler"
             )
@@ -213,7 +213,7 @@ class StatementTry(StatementChildrenHavingBase):
             collection_continue.mergeMultipleBranches(continue_collections)
 
             result = continue_handler.computeStatementsSequence(
-                constraint_collection = collection_continue
+                trace_collection = collection_continue
             )
 
             # Might be changed.
@@ -227,7 +227,7 @@ class StatementTry(StatementChildrenHavingBase):
                 return_handler = None
 
         if return_handler is not None:
-            collection_return = ConstraintCollectionBranch(
+            collection_return = TraceCollectionBranch(
                 parent = collection_start,
                 name   = "return handler"
             )
@@ -235,7 +235,7 @@ class StatementTry(StatementChildrenHavingBase):
             collection_return.mergeMultipleBranches(return_collections)
 
             result = return_handler.computeStatementsSequence(
-                constraint_collection = collection_return
+                trace_collection = collection_return
             )
 
             # Might be changed.
@@ -256,7 +256,7 @@ class StatementTry(StatementChildrenHavingBase):
                except_handler is None or \
                not except_handler.isStatementAborting()
             ):
-            constraint_collection.mergeBranches(
+            trace_collection.mergeBranches(
                 collection_yes = collection_exception_handling,
                 collection_no  = None
             )

@@ -89,7 +89,7 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     def getCompileTimeConstant(self):
         return __builtins__[ self.builtin_name ]
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         quick_names = {
             "None"      : None,
             "True"      : True,
@@ -110,12 +110,12 @@ Built-in constant '%s' resolved.""" % self.builtin_name
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw,
-                              constraint_collection):
+                              trace_collection):
         from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
 
         # Anything may happen. On next pass, if replaced, we might be better
         # but not now.
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         new_node, tags, message = computeBuiltinCall(
             call_node = call_node,
@@ -124,7 +124,7 @@ Built-in constant '%s' resolved.""" % self.builtin_name
 
         if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
             # Just inform the collection that all has escaped.
-            constraint_collection.onLocalsUsage()
+            trace_collection.onLocalsUsage()
 
         return new_node, tags, message
 
@@ -144,7 +144,7 @@ class ExpressionBuiltinOriginalRef(ExpressionBuiltinRef):
         # one should be.
         return False
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
 
         # Needs whole program analysis, we don't really know much about it.
         return self, None, None
@@ -168,7 +168,7 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     def getCompileTimeConstant(self):
         return builtin_anon_names[ self.builtin_name ]
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self, None, None
 
     def getStringValue(self):
@@ -203,12 +203,12 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     def getCompileTimeConstant(self):
         return builtin_exception_values[self.builtin_name]
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # Not much that can be done here.
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw,
-                              constraint_collection):
+                              trace_collection):
         exception_name = self.getExceptionName()
 
         # TODO: Keyword only arguments of it, are not properly handled yet by

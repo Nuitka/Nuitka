@@ -39,7 +39,7 @@ from .NodeBases import (
 class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_TYPE1"
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         value = self.getValue()
 
         if value.isCompileTimeConstant():
@@ -69,7 +69,7 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 
         return self, None, None
 
-    def computeExpressionDrop(self, statement, constraint_collection):
+    def computeExpressionDrop(self, statement, trace_collection):
         from .NodeMakingHelpers import \
           makeStatementExpressionOnlyReplacementNode
 
@@ -109,8 +109,8 @@ class ExpressionBuiltinSuper(ExpressionChildrenHavingBase):
     getType = ExpressionChildrenHavingBase.childGetter("type")
     getObject = ExpressionChildrenHavingBase.childGetter("object")
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.onExceptionRaiseExit(BaseException)
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
@@ -138,7 +138,7 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
     getInstance = ExpressionChildrenHavingBase.childGetter("instance")
     getCls = ExpressionChildrenHavingBase.childGetter("classes")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict.
 
         instance = self.getInstance()
@@ -146,19 +146,19 @@ class ExpressionBuiltinIsinstance(ExpressionChildrenHavingBase):
         # TODO: Should be possible to query run time type instead, but we don't
         # have that method yet. Later this will be essential.
         if not instance.isCompileTimeConstant():
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
 
         cls = self.getCls()
 
         if not cls.isCompileTimeConstant():
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
 
         # So if both are compile time constant, we are able to compute it.
-        return constraint_collection.getCompileTimeComputationResult(
+        return trace_collection.getCompileTimeComputationResult(
             node        = self,
             computation = lambda : isinstance(
                 instance.getCompileTimeConstant(),

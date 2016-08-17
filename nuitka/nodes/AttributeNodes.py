@@ -90,19 +90,19 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
     getLookupSource = StatementChildrenHavingBase.childGetter("expression")
     getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            constraint_collection = constraint_collection
+            trace_collection = trace_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
         return self.getLookupSource().computeExpressionSetAttribute(
-            set_node              = self,
-            attribute_name        = self.attribute_name,
-            value_node            = self.getAssignSource(),
-            constraint_collection = constraint_collection
+            set_node         = self,
+            attribute_name   = self.attribute_name,
+            value_node       = self.getAssignSource(),
+            trace_collection = trace_collection
         )
 
     def getStatementNiceName(self):
@@ -151,18 +151,18 @@ class StatementDelAttribute(StatementChildrenHavingBase):
 
     getLookupSource = StatementChildrenHavingBase.childGetter("expression")
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            constraint_collection = constraint_collection,
+            trace_collection = trace_collection,
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
         return self.getLookupSource().computeExpressionDelAttribute(
-            set_node              = self,
-            attribute_name        = self.attribute_name,
-            constraint_collection = constraint_collection
+            set_node         = self,
+            attribute_name   = self.attribute_name,
+            trace_collection = trace_collection
         )
 
     def getStatementNiceName(self):
@@ -213,11 +213,11 @@ class ExpressionAttributeLookup(ExpressionChildrenHavingBase):
         "source"
     )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self.getLookupSource().computeExpressionAttribute(
-            lookup_node           = self,
-            attribute_name        = self.getAttributeName(),
-            constraint_collection = constraint_collection
+            lookup_node      = self,
+            attribute_name   = self.getAttributeName(),
+            trace_collection = trace_collection
         )
 
     def mayRaiseException(self, exception_type):
@@ -244,11 +244,11 @@ class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
 
     kind = "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL"
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self.getLookupSource().computeExpressionAttributeSpecial(
-            lookup_node           = self,
-            attribute_name        = self.getAttributeName(),
-            constraint_collection = constraint_collection
+            lookup_node      = self,
+            attribute_name   = self.getAttributeName(),
+            trace_collection = trace_collection
         )
 
 
@@ -280,8 +280,8 @@ class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
     getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.onExceptionRaiseExit(BaseException)
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         default = self.getDefault()
 
@@ -347,8 +347,8 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
     getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
     getValue = ExpressionChildrenHavingBase.childGetter("value")
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.onExceptionRaiseExit(BaseException)
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         # Note: Might be possible to predict or downgrade to mere attribute set.
         return self, None, None
@@ -373,7 +373,7 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
     getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # We do at least for compile time constants optimization here, but more
         # could be done, were we to know shapes.
         source = self.getLookupSource()
@@ -387,7 +387,7 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
 
                 # If source or attribute have side effects, they must be
                 # evaluated, before the lookup.
-                result, tags, change_desc = constraint_collection.getCompileTimeComputationResult(
+                result, tags, change_desc = trace_collection.getCompileTimeComputationResult(
                     node        = self,
                     computation = lambda : hasattr(
                         source.getCompileTimeConstant(),
@@ -407,6 +407,6 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
 
                 return result, tags, change_desc
 
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
