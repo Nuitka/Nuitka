@@ -131,7 +131,10 @@ class Variable:
         self.traces.add(variable_trace)
 
     def removeTrace(self, variable_trace):
+        # Make it unusable, and break GC cycles while at it.
         variable_trace.variable = None
+        variable_trace.previous = None
+
         self.traces.remove(variable_trace)
 
     def updateUsageState(self):
