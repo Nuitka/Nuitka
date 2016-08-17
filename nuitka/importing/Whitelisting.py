@@ -270,6 +270,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # reportlab does use this if present only and warns about itself.
         "pyfribidi2", "macfs",
+
+        # psutils
+        "_psutil_windows",
     )
 
 
