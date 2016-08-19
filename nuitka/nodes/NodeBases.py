@@ -848,7 +848,7 @@ class ChildrenHavingMixin:
 
 
 class ClosureGiverNodeBase(CodeNodeBase):
-    """ Mix-in for nodes that provide variables for closure takers. """
+    """ Blass class for nodes that provide variables for closure takers. """
     def __init__(self, name, code_prefix, source_ref):
         CodeNodeBase.__init__(
             self,
@@ -971,8 +971,6 @@ class ClosureTakerMixin:
         self.early_closure = early_closure
 
         self.taken = set()
-
-        self.temp_variables = set()
 
     def getParentVariableProvider(self):
         return self.provider
