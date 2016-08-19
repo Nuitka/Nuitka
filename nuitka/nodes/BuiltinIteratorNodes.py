@@ -173,8 +173,8 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
             source_ref = source_ref
         )
 
-        self.count = count
-        self.expected = expected
+        self.count = int(count)
+        self.expected = int(expected)
 
     def getDetails(self):
         result = ExpressionBuiltinNext1.getDetails(self)
@@ -206,7 +206,7 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-        self.count = count
+        self.count = int(count)
 
     def getDetails(self):
         return {

@@ -610,10 +610,13 @@ class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
 
         owner = getOwnerFromCodeName(args["owner"])
         variable = owner.createTempVariable(args["temp_name"])
+        version = int(args["version"])
+
+        variable.version_number = max(variable.version_number, version)
 
         return cls(
             variable   = variable,
-            version    = int(args["version"]),
+            version    = version,
             source_ref = source_ref
         )
 
