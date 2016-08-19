@@ -21,8 +21,8 @@ from __future__ import print_function
 
 # This test is playing with configuration settings and checking that works.
 
-from PyQt5.QtCore import QSettings
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QSettings  # @UnresolvedImport
+from PyQt5.QtCore import QCoreApplication  # @UnresolvedImport
 
 import sys
 
@@ -37,6 +37,7 @@ settings.setValue("bogus_byte_string",byte_string)
 settings.sync()
 return_string = settings.value("bogus_byte_string",b'\x00\x00\x00\x00')
 if sys.version_info >= (3,):
+    return_string = return_string.asstring(4)
     assert return_string == byte_string, (repr(return_string), "!=", byte_string)
 print("OK.")
 
