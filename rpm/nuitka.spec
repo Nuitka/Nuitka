@@ -18,6 +18,10 @@ BuildRequires:  python-devel
 BuildRequires: python3-devel
 BuildRequires: python-tools
 %endif
+%if 0%{?fedora} >= 24
+BuildRequires: python-libs
+BuildRequires: python-debug
+%endif
 BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  chrpath
