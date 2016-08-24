@@ -27,3 +27,19 @@ print(not 7)
 print(type(Ellipsis))
 print("a" in "abba")
 print("a" not in "abba")
+
+# TODO: Add support for functions
+# def testInplaceOperations():
+#     x = 2
+#     x += 1
+#     x *= 2
+#     x **= 2
+#     x -= 8
+#     x //= 5
+#     x %= 3
+#     x &= 2
+#     x |= 5
+#     x ^= 1
+#     x /= 2
+#
+#     print(x)

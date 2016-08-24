@@ -89,7 +89,7 @@ def isConstantExpression(expression):
 
     return kind.startswith("Constant") or \
            kind in ("ImportModuleHard",
-                           "ModuleFileAttributeRef")
+                    "ModuleFileAttributeRef")
 
 def checkSequence(statements):
     for statement in statements:
@@ -130,7 +130,10 @@ def checkSequence(statements):
         if kind == "AssignmentVariable":
             assign_source, = getRole(statement, "source")
 
-            if not isConstantExpression(assign_source):
+            if getKind(assign_source) == "FunctionCreation":
+                continue
+
+            elif not isConstantExpression(assign_source):
                 sys.exit("Error, assignment from non-constant %s." % getKind(assign_source))
 
             continue
@@ -214,6 +217,14 @@ for filename in sorted(os.listdir('.')):
         module_statements = next(iter(module_statements_sequence))
 
         checkSequence(module_statements)
+
+        for function in root.xpath('role[@name="functions"]/node'):
+            function_body, = function.xpath('role[@name="body"]')
+            function_statements_sequence = function_body[0]
+            assert len(function_statements_sequence) == 1
+            function_statements = next(iter(function_statements_sequence))
+
+            checkSequence(function_statements)
 
         if changed:
             os.unlink(filename)
