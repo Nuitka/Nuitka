@@ -43,3 +43,6 @@ print("a" not in "abba")
 #     x /= 2
 #
 #     print(x)
+
+print(len("a"*10000))
+print(len(10000*"a"))
