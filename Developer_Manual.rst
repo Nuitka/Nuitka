@@ -2123,7 +2123,7 @@ efficient binding as if it were written manually with Python C-API or better.
 Goals/Allowances to the task
 ----------------------------
 
-1. Goal: Must not ourselves use any pre-existing C/C++ language file headers,
+1. Goal: Must not directly use any pre-existing C/C++ language file headers,
    only generate declarations in generated C code ourselves. We would rather
    write or use tools that turn an existing a C header to some ``ctypes``
    declarations if it needs to be, but not mix and use declarations from
@@ -2131,8 +2131,8 @@ Goals/Allowances to the task
 
    ..note::
 
-      The "cffi" interface won't have the issue, but it's not something we
-      need to write or test the code for.
+      The "cffi" interface maybe won't have the issue, but it's not something
+      we need to write or test the code for.
 
 2. Allowance: May use ``ctypes`` module at compile time to ask things about
    ``ctypes`` and its types.
@@ -2155,8 +2155,9 @@ means that a and b now "alias". And if you know the value of ``b`` you can
 assume to know the value of ``a``. This is called "aliasing".
 
 When assigning ``a`` to something new, that won't change ``b`` at all. But when
-an attribute is set, a method called of it, that impacts the actual value,
-referenced by both. We need to understand mutable vs. immutable though.
+an attribute is set, a method called of it, that might impact the actual value,
+referenced by both. We need to understand mutable vs. immutable though, as some
+things are not affectable by aliasing in any way.
 
 .. code-block:: python
 
@@ -2180,9 +2181,10 @@ already. We avoid too large constants, and we properly trace value assignments,
 but not yet aliases.
 
 In order to fully benefit from type knowledge, the new type system must be able
-to be fully friends with existing built-in types.  The behavior of a type
-``long``, ``str``, etc. ought to be implemented as far as possible with the
-built-in ``long``, ``str`` at compiled time as well.
+to be fully friends with existing built-in types, but for classes to also work
+with it, it should not be tied to them.  The behavior of a type ``long``,
+``str``, etc. ought to be implemented as far as possible with the built-in
+``long``, ``str`` at compiled time as well.
 
 .. note::
 
@@ -2215,7 +2217,7 @@ used at compile time and cope with reduced knowledge, already here:
 
 Instead, we would probably say that for this expression:
 
-   - The result is a ``str`` aka ``PyStringObject *``.
+   - The result is a ``str`` or a C level ``PyStringObject *``.
    - We know its length exactly, it's ``10000000000000``.
    - Can predict every of its elements when sub-scripted, sliced, etc., if need
      be, with a function we may create.
@@ -2228,7 +2230,7 @@ Similar is true for this horrible (in Python2) thing:
 
 So it's a rather general problem, this time we know:
 
-   - The result is a ``list`` or ``PyListObject *``
+   - The result is a ``list`` or C level ``PyListObject *``
    - We know its length exactly, ``10000000000000``
    - Can predict every of its elements when index, sliced, etc., if need be,
      with a function.
@@ -2288,7 +2290,7 @@ generates an exception.
 Applying this to "ctypes"
 -------------------------
 
-The not so specific problem to be solved to understand ``ctypes`` declarations
+The *not so specific* problem to be solved to understand ``ctypes`` declarations
 is maybe as follows:
 
 .. code-block:: python
@@ -2304,7 +2306,7 @@ So that part is "easy", and it's what will happen. During optimization, when the
 module ``__import__`` expression is examined, it should say:
 
    - ``ctypes`` is a module
-   - ``ctypes`` is from standard library (if it is, may not be true)
+   - ``ctypes`` is from standard library (if it is, might not be true)
    - ``ctypes`` then has code behind it, called ``ModuleFriend`` that knows
      things about it attributes, that should be asked.
 
