@@ -4080,9 +4080,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
         PyInt_Check( value )     ||
 #endif
         PyBool_Check( value )    ||
-#if PYTHON_VERSION >= 300
         PyRange_Check( value )   ||
-#endif
         PySlice_Check( value )
         )
     {

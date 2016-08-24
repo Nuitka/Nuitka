@@ -989,10 +989,10 @@ def getConstantInitCodes(module_context):
 
 def allocateNestedConstants(module_context):
     def considerForDeferral(constant_value):
+        module_context.getConstantCode(constant_value)
+
         if isMarshalConstant(constant_value):
             return
-
-        module_context.getConstantCode(constant_value)
 
         constant_type = type(constant_value)
 

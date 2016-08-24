@@ -447,6 +447,8 @@ class ExpressionBuiltinXrange(ExpressionChildrenHavingBase):
         )
 
     def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
     getLow  = ExpressionChildrenHavingBase.childGetter("low")

@@ -28,6 +28,7 @@ from nuitka.PythonVersions import python_version
 from .NodeBases import (
     ChildrenHavingMixin,
     ExpressionBuiltinSingleArgBase,
+    ExpressionChildrenHavingBase,
     ExpressionSpecBasedComputationMixin,
     NodeBase
 )
@@ -41,19 +42,64 @@ class ExpressionBuiltinTypeBase(ExpressionBuiltinSingleArgBase):
     pass
 
 
-class ExpressionBuiltinTuple(ExpressionBuiltinTypeBase):
+class ExpressionBuiltinContainerBase(ExpressionChildrenHavingBase,
+                                     ExpressionSpecBasedComputationMixin):
+
+    builtin_spec = None
+
+    named_children = (
+        "value",
+    )
+
+    def __init__(self, value, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "value" : value,
+            },
+            source_ref = source_ref
+        )
+
+    getValue = ExpressionChildrenHavingBase.childGetter(
+        "value"
+    )
+
+    def computeExpression(self, trace_collection):
+        value = self.getValue()
+
+        if value is None:
+            return self.computeBuiltinSpec(
+                trace_collection = trace_collection,
+                given_values     = ()
+            )
+        elif value.isExpressionConstantXrangeRef():
+            if value.getIterationLength() <= 256:
+                return self.computeBuiltinSpec(
+                    trace_collection = trace_collection,
+                    given_values     = (value,)
+                )
+            else:
+                return self, None, None
+        else:
+            return self.computeBuiltinSpec(
+                trace_collection = trace_collection,
+                given_values     = (value,)
+            )
+
+
+class ExpressionBuiltinTuple(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_TUPLE"
 
     builtin_spec = BuiltinOptimization.builtin_tuple_spec
 
 
-class ExpressionBuiltinList(ExpressionBuiltinTypeBase):
+class ExpressionBuiltinList(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_LIST"
 
     builtin_spec = BuiltinOptimization.builtin_list_spec
 
 
-class ExpressionBuiltinSet(ExpressionBuiltinTypeBase):
+class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_SET"
 
     builtin_spec = BuiltinOptimization.builtin_set_spec

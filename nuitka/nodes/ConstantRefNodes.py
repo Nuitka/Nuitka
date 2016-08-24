@@ -61,10 +61,12 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
 
                 if type(constant) in (str, unicode):
                     max_size = 1000
+                elif type(constant) is xrange:
+                    max_size = None
                 else:
                     max_size = 256
 
-                if size > max_size:
+                if max_size is not None and size > max_size:
                     warning(
                         "Too large constant (%s %d) encountered at %s.",
                         type(constant),
