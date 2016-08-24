@@ -32,6 +32,10 @@ from .NodeBases import (
     ExpressionChildrenHavingBase,
     StatementChildrenHavingBase
 )
+from .NodeMakingHelpers import (
+    makeConstantReplacementNode,
+    wrapExpressionWithNodeSideEffects
+)
 
 
 class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
@@ -43,11 +47,6 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
         return self.getValue().getIterationLength()
 
     def computeExpression(self, trace_collection):
-        from .NodeMakingHelpers import (
-            makeConstantReplacementNode,
-            wrapExpressionWithNodeSideEffects
-        )
-
         new_node, change_tags, change_desc = ExpressionBuiltinSingleArgBase.\
           computeExpression(
             self,
@@ -59,7 +58,7 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
 
             if arg_length is not None:
                 change_tags = "new_constant"
-                change_desc = "Predicted len argument"
+                change_desc = "Predicted 'len' argument"
 
                 new_node = wrapExpressionWithNodeSideEffects(
                     new_node = makeConstantReplacementNode(arg_length, self),
@@ -68,6 +67,8 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
 
                 if new_node.isExpressionSideEffects():
                     change_desc += " maintaining side effects"
+
+                change_desc += '.'
 
         return new_node, change_tags, change_desc
 

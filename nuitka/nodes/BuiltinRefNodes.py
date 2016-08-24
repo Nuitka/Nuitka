@@ -166,7 +166,7 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
         return True
 
     def getCompileTimeConstant(self):
-        return builtin_anon_names[ self.builtin_name ]
+        return builtin_anon_names[self.builtin_name]
 
     def computeExpression(self, trace_collection):
         return self, None, None
