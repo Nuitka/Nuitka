@@ -56,7 +56,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.OperatorNodes import ExpressionOperationBinary
+from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
@@ -163,7 +163,7 @@ def getDictUnpackingHelper():
                 exception_type  = ExpressionBuiltinMakeException(
                     exception_name = "TypeError",
                     args           = (
-                        ExpressionOperationBinary(
+                        makeBinaryOperationNode(
                             operator   = "Mod",
                             left       =  makeConstantRefNode(
                                 constant      = """\

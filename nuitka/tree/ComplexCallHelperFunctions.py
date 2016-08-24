@@ -70,7 +70,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.OperatorNodes import ExpressionOperationBinary
+from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SubscriptNodes import (
@@ -173,7 +173,7 @@ def getCallableNameDescBody():
     functions_case = makeStatementsSequenceFromStatement(
         statement = (
             StatementReturn(
-                expression = ExpressionOperationBinary(
+                expression = makeBinaryOperationNode(
                     operator   = "Add",
                     right      = makeConstantRefNode(
                         constant      = "()",
@@ -196,7 +196,7 @@ def getCallableNameDescBody():
     )
 
     no_branch = StatementReturn(
-        expression = ExpressionOperationBinary(
+        expression = makeBinaryOperationNode(
             operator   = "Add",
             right      = makeConstantRefNode(
                 constant      = " object",
@@ -220,7 +220,7 @@ def getCallableNameDescBody():
 
     if python_version < 300:
         instance_case = StatementReturn(
-            expression = ExpressionOperationBinary(
+            expression = makeBinaryOperationNode(
                 operator   = "Add",
                 right      = makeConstantRefNode(
                     constant      = " instance",
@@ -261,7 +261,7 @@ def getCallableNameDescBody():
         )
 
         class_case = StatementReturn(
-            expression = ExpressionOperationBinary(
+            expression = makeBinaryOperationNode(
                 operator   = "Add",
                 right      = makeConstantRefNode(
                     constant      = " constructor",
@@ -344,7 +344,7 @@ def makeStarListArgumentErrorRaise(called_variable_ref, star_list_variable_ref):
         exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
             args           = (
-                ExpressionOperationBinary(
+                makeBinaryOperationNode(
                     operator   = "Mod",
                     left       =  makeConstantRefNode(
                         constant      = getComplexCallSequenceErrorTemplate(),
@@ -467,7 +467,7 @@ def _makeRaiseExceptionMustBeMapping(called_variable_ref,
         exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
             args           = (
-                ExpressionOperationBinary(
+                makeBinaryOperationNode(
                     operator   = "Mod",
                     left       =  makeConstantRefNode(
                         constant      = """\
@@ -713,7 +713,7 @@ def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
         exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
             args           = (
-                ExpressionOperationBinary(
+                makeBinaryOperationNode(
                     operator   = "Mod",
                     left       =  makeConstantRefNode(
                         constant      = """\
@@ -1359,7 +1359,7 @@ def getFunctionCallHelperPosStarList():
                     variable      = called_variable,
                     source_ref    = internal_source_ref
                 ),
-                args       = ExpressionOperationBinary(
+                args       = makeBinaryOperationNode(
                     operator   = "Add",
                     left       = ExpressionVariableRef(
                         variable_name = "args",
@@ -1487,7 +1487,7 @@ def getFunctionCallHelperPosKeywordsStarList():
                     variable      = called_variable,
                     source_ref    = internal_source_ref
                 ),
-                args       = ExpressionOperationBinary(
+                args       = makeBinaryOperationNode(
                     operator   = "Add",
                     left       = ExpressionVariableRef(
                         variable_name = "args",
@@ -2339,7 +2339,7 @@ def getFunctionCallHelperPosStarListStarDict():
                     variable      = called_variable,
                     source_ref    = internal_source_ref
                 ),
-                args       = ExpressionOperationBinary(
+                args       = makeBinaryOperationNode(
                     operator   = "Add",
                     left       = ExpressionVariableRef(
                         variable_name = "args",
@@ -2624,7 +2624,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
                     variable      = called_variable,
                     source_ref    = internal_source_ref
                 ),
-                args       = ExpressionOperationBinary(
+                args       = makeBinaryOperationNode(
                     operator   = "Add",
                     left       = ExpressionVariableRef(
                         variable_name = "args",
@@ -2805,7 +2805,7 @@ def getFunctionCallHelperDictionaryUnpacking():
                 exception_type  = ExpressionBuiltinMakeException(
                     exception_name = "TypeError",
                     args           = (
-                        ExpressionOperationBinary(
+                        makeBinaryOperationNode(
                             operator   = "Mod",
                             left       =  makeConstantRefNode(
                                 constant      = """\

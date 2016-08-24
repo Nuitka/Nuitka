@@ -91,10 +91,67 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, trace_collection):
-        # This is using many returns based on many conditions,
-        # pylint: disable=R0912
+    @staticmethod
+    def isExpressionOperationBinary():
+        return True
 
+    def computeExpression(self, trace_collection):
+        # TODO: May go down to MemoryError for compile time constant overflow
+        # ones.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        operator = self.getOperator()
+        operands = self.getOperands()
+
+        assert operator not in ("Mult", "Add")
+
+        left, right = operands
+
+        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
+            left_value = left.getCompileTimeConstant()
+            right_value = right.getCompileTimeConstant()
+
+            return trace_collection.getCompileTimeComputationResult(
+                node        = self,
+                computation = lambda : self.getSimulator()(
+                    left_value,
+                    right_value
+                ),
+                description = "Operator '%s' with constant arguments." % operator
+            )
+
+        # The value of these nodes escaped and could change its contents.
+        trace_collection.removeKnowledge(left)
+        trace_collection.removeKnowledge(right)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        return self, None, None
+
+    def getOperands(self):
+        return (self.getLeft(), self.getRight())
+
+    getLeft = ExpressionChildrenHavingBase.childGetter("left")
+    getRight = ExpressionChildrenHavingBase.childGetter("right")
+
+
+class ExpressionOperationBinaryAdd(ExpressionOperationBinary):
+    kind = "EXPRESSION_OPERATION_BINARY_ADD"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinary.__init__(
+            self,
+            operator   = "Add",
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+    def getDetails(self):
+        return {}
+
+    def computeExpression(self, trace_collection):
         # TODO: May go down to MemoryError for compile time constant overflow
         # ones.
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -108,7 +165,83 @@ class ExpressionOperationBinary(ExpressionOperationBase):
             left_value = left.getCompileTimeConstant()
             right_value = right.getCompileTimeConstant()
 
-            if operator == "Mult" and right.isNumberConstant():
+            if left.isKnownToBeIterable(None) and \
+               right.isKnownToBeIterable(None):
+
+                iter_length = left.getIterationLength() + \
+                              right.getIterationLength()
+
+                if iter_length > 256:
+                    return self, None, None
+
+            return trace_collection.getCompileTimeComputationResult(
+                node        = self,
+                computation = lambda : self.getSimulator()(
+                    left_value,
+                    right_value
+                ),
+                description = "Operator '%s' with constant arguments." % operator
+            )
+
+        # The value of these nodes escaped and could change its contents.
+        trace_collection.removeKnowledge(left)
+        trace_collection.removeKnowledge(right)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        return self, None, None
+
+
+class ExpressionOperationBinaryMult(ExpressionOperationBinary):
+    kind = "EXPRESSION_OPERATION_BINARY_MULT"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinary.__init__(
+            self,
+            operator   = "Mult",
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+    def getDetails(self):
+        return {}
+
+    def getIterationLength(self):
+        left_length = self.getLeft().getIterationLength()
+
+        if left_length is not None:
+            right_value = self.getRight().getIntegerValue()
+
+            if right_value is not None:
+                return left_length * right_value
+
+        right_length = self.getRight().getIterationLength()
+
+        if right_length is not None:
+            left_value = self.getLeft().getIntegerValue()
+
+            if left_value is not None:
+                return right_length * left_value
+
+        return ExpressionOperationBase.getIterationLength(self)
+
+    def computeExpression(self, trace_collection):
+        # TODO: May go down to MemoryError for compile time constant overflow
+        # ones.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        operator = self.getOperator()
+        operands = self.getOperands()
+
+        left, right = operands
+
+        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
+            left_value = left.getCompileTimeConstant()
+            right_value = right.getCompileTimeConstant()
+
+            if right.isNumberConstant():
                 iter_length = left.getIterationLength()
 
                 if iter_length is not None:
@@ -125,21 +258,12 @@ class ExpressionOperationBinary(ExpressionOperationBase):
                             if math.log10(abs(left_value)) + math.log10(abs(right_value)) > 20:
                                 return self, None, None
 
-            elif operator == "Mult" and left.isNumberConstant():
+            elif left.isNumberConstant():
                 iter_length = right.getIterationLength()
 
                 if iter_length is not None:
                     if iter_length * left_value > 256:
                         return self, None, None
-            elif operator == "Add" and \
-                left.isKnownToBeIterable(None) and \
-                right.isKnownToBeIterable(None):
-
-                iter_length = left.getIterationLength() + \
-                              right.getIterationLength()
-
-                if iter_length > 256:
-                    return self, None, None
 
             return trace_collection.getCompileTimeComputationResult(
                 node        = self,
@@ -149,21 +273,56 @@ class ExpressionOperationBinary(ExpressionOperationBase):
                 ),
                 description = "Operator '%s' with constant arguments." % operator
             )
-        else:
-            # The value of these nodes escaped and could change its contents.
-            trace_collection.removeKnowledge(left)
-            trace_collection.removeKnowledge(right)
 
-            # Any code could be run, note that.
-            trace_collection.onControlFlowEscape(self)
+        # The value of these nodes escaped and could change its contents.
+        trace_collection.removeKnowledge(left)
+        trace_collection.removeKnowledge(right)
 
-            return self, None, None
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
 
-    def getOperands(self):
-        return (self.getLeft(), self.getRight())
+        return self, None, None
 
-    getLeft = ExpressionChildrenHavingBase.childGetter("left")
-    getRight = ExpressionChildrenHavingBase.childGetter("right")
+    def extractSideEffects(self):
+        left_length = self.getLeft().getIterationLength()
+
+        if left_length is not None:
+            right_value = self.getRight().getIntegerValue()
+
+            if right_value is not None:
+                return self.getLeft().extractSideEffects() + self.getRight().extractSideEffects()
+
+        right_length = self.getRight().getIterationLength()
+
+        if right_length is not None:
+            left_value = self.getLeft().getIntegerValue()
+
+            if left_value is not None:
+                return self.getLeft().extractSideEffects() + self.getRight().extractSideEffects()
+
+        return ExpressionOperationBinary.extractSideEffects(self)
+
+
+def makeBinaryOperationNode(operator, left, right, source_ref):
+    if operator == "Add":
+        return ExpressionOperationBinaryAdd(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif operator == "Mult":
+        return ExpressionOperationBinaryMult(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    else:
+        return ExpressionOperationBinary(
+            operator   = operator,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
 
 
 class ExpressionOperationUnary(ExpressionOperationBase):
@@ -306,10 +465,10 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
             assert not left.isMutable(), self
             source_ref = self.getSourceReference()
 
-            result = ExpressionOperationBinary(
+            result = makeBinaryOperationNode(
+                operator   = self.getOperator()[1:],
                 left       = left,
                 right      = right,
-                operator   = self.getOperator()[1:],
                 source_ref = source_ref
             )
 

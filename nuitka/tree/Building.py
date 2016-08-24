@@ -86,8 +86,8 @@ from nuitka.nodes.ModuleNodes import (
     PythonShlibModule
 )
 from nuitka.nodes.OperatorNodes import (
-    ExpressionOperationBinary,
-    ExpressionOperationUnary
+    ExpressionOperationUnary,
+    makeBinaryOperationNode
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
@@ -626,7 +626,7 @@ def buildBinaryOpNode(provider, node, source_ref):
     left       = buildNode(provider, node.left, source_ref)
     right      = buildNode(provider, node.right, source_ref)
 
-    result = ExpressionOperationBinary(
+    result = makeBinaryOperationNode(
         operator   = operator,
         left       = left,
         right      = right,

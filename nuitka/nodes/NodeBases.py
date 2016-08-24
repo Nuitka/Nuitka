@@ -388,6 +388,10 @@ class NodeBase(NodeMetaClassBase):
     def isExpressionConstantRef():
         return False
 
+    @staticmethod
+    def isExpressionOperationBinary():
+        return False
+
     def isExpressionSideEffects(self):
         # Virtual method, pylint: disable=R0201
 
