@@ -24,7 +24,7 @@ import math
 
 from nuitka.PythonVersions import python_version
 
-from .__past__ import iterItems, long, unicode  # pylint: disable=W0622
+from .__past__ import iterItems, long, unicode, xrange  # pylint: disable=W0622
 from .Builtins import builtin_anon_names
 
 NoneType = type(None)
@@ -90,11 +90,11 @@ def compareConstants(a, b):
                     return False
         return True
 
-    if type(a) is range:
+    if type(a) is xrange:
         return str(a) == str(b)
 
     # The NaN values of float and complex may let this fail, even if the
-    # constants are built in the same way.
+    # constants are built in the same way, therefore above checks.
     return a == b
 
 # These built-in type references are kind of constant too. TODO: The list is
@@ -109,12 +109,12 @@ constant_builtin_types = (
     dict,
     slice,
     complex,
+    xrange,
     NoneType,
 )
 
 if python_version >= 300:
     constant_builtin_types += (
-        range,
         bytes,
     )
 else:
@@ -124,6 +124,7 @@ else:
         # This has no name in Python, but the natural one in C-API.
         builtin_anon_names["instance"]
     )
+
 
 def isConstant(constant):
     # Too many cases and all return, that is how we do it here,
@@ -144,14 +145,12 @@ def isConstant(constant):
                 return False
         return True
     elif constant_type in (str, unicode, complex, int, long, bool, float,
-                           NoneType, range, bytes, set):
+                           NoneType, range, bytes, set, slice, xrange):
         return True
     elif constant in (Ellipsis, NoneType):
         return True
     elif constant_type is type:
         return constant in constant_builtin_types
-    elif constant_type is slice:
-        return True
     else:
         return False
 
@@ -166,7 +165,7 @@ def isMutable(constant):
     constant_type = type(constant)
 
     if constant_type in (str, unicode, complex, int, long, bool, float,
-                         NoneType, range, bytes, slice):
+                         NoneType, range, bytes, slice, xrange):
         return False
     elif constant_type in (dict, list, set):
         return True
@@ -196,7 +195,7 @@ def isHashable(constant):
     constant_type = type(constant)
 
     if constant_type in (str, unicode, complex, int, long, bool, float,
-                         NoneType, range, bytes):
+                         NoneType, xrange, bytes):
         return True
     elif constant_type in (dict, list, set):
         return False
@@ -217,7 +216,7 @@ def isHashable(constant):
 
 def isIterableConstant(constant):
     return type(constant) in (
-        str, unicode, list, tuple, set, frozenset, dict, range, bytes
+        str, unicode, list, tuple, set, frozenset, dict, xrange, bytes
     )
 
 

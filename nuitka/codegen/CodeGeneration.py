@@ -57,7 +57,9 @@ from .BuiltinCodes import (
     generateBuiltinRefCode,
     generateBuiltinType1Code,
     generateBuiltinType3Code,
-    generateBuiltinXrangeCode
+    generateBuiltinXrange1Code,
+    generateBuiltinXrange2Code,
+    generateBuiltinXrange3Code
 )
 from .CallCodes import generateCallCode, getCallsCode, getCallsDecls
 from .ClassCodes import (
@@ -540,7 +542,9 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_RANGE1"                 : generateBuiltinRange1Code,
         "EXPRESSION_BUILTIN_RANGE2"                 : generateBuiltinRange2Code,
         "EXPRESSION_BUILTIN_RANGE3"                 : generateBuiltinRange3Code,
-        "EXPRESSION_BUILTIN_XRANGE"                 : generateBuiltinXrangeCode,
+        "EXPRESSION_BUILTIN_XRANGE1"                : generateBuiltinXrange1Code,
+        "EXPRESSION_BUILTIN_XRANGE2"                : generateBuiltinXrange2Code,
+        "EXPRESSION_BUILTIN_XRANGE3"                : generateBuiltinXrange3Code,
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION"         : generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_REF"                    : generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF"          : generateExceptionRefCode,
@@ -569,6 +573,7 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_CONSTANT_LIST_REF"              : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_REF"               : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SLICE_REF"             : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_XRANGE_REF"            : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_REF"              : generateConstantReferenceCode,
         "EXPRESSION_CONDITIONAL"                    : generateConditionalCode,
         "EXPRESSION_CONDITIONAL_OR"                 : generateConditionalAndOrCode,

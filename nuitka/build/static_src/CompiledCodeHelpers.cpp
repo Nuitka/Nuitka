@@ -809,46 +809,54 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
 #if PYTHON_VERSION < 300
 extern PyObject *const_str_plain_xrange;
-
 static PythonBuiltin _python_builtin_xrange( &const_str_plain_xrange );
-
-PyObject *BUILTIN_XRANGE( PyObject *low, PyObject *high, PyObject *step )
-{
-    if ( step != NULL )
-    {
-        PyObject *args[] = {
-            low,
-            high,
-            step
-        };
-        return CALL_FUNCTION_WITH_ARGS3(
-            _python_builtin_xrange.asObject0(),
-            args
-        );
-    }
-    else if ( high != NULL )
-    {
-        PyObject *args[] = {
-            low,
-            high
-        };
-        return CALL_FUNCTION_WITH_ARGS2(
-            _python_builtin_xrange.asObject0(),
-            args
-        );
-    }
-    else
-    {
-        PyObject *args[] = {
-            low
-        };
-        return CALL_FUNCTION_WITH_ARGS1(
-            _python_builtin_xrange.asObject0(),
-            args
-        );
-    }
-}
+#else
+extern PyObject *const_str_plain_range;
+static PythonBuiltin _python_builtin_xrange( &const_str_plain_range );
 #endif
+
+
+/* Built-in xrange (Python2) or xrange (Python3) with one argument. */
+PyObject *BUILTIN_XRANGE1( PyObject *low )
+{
+    PyObject *args[1] = {
+        low
+    };
+
+    return CALL_FUNCTION_WITH_ARGS1(
+        _python_builtin_xrange.asObject0(),
+        args
+    );
+}
+
+/* Built-in xrange (Python2) or xrange (Python3) with two arguments. */
+PyObject *BUILTIN_XRANGE2( PyObject *low, PyObject *high )
+{
+    PyObject *args[2] = {
+        low,
+        high
+    };
+
+    return CALL_FUNCTION_WITH_ARGS2(
+        _python_builtin_xrange.asObject0(),
+        args
+    );
+}
+
+/* Built-in xrange (Python2) or xrange (Python3) with three arguments. */
+PyObject *BUILTIN_XRANGE3( PyObject *low, PyObject *high, PyObject *step )
+{
+    PyObject *args[] = {
+        low,
+        high,
+        step
+    };
+
+    return CALL_FUNCTION_WITH_ARGS3(
+        _python_builtin_xrange.asObject0(),
+        args
+    );
+}
 
 PyObject *BUILTIN_LEN( PyObject *value )
 {
@@ -3828,9 +3836,7 @@ PyObject *DEEP_COPY( PyObject *value )
         PyBool_Check( value )    ||
         PyFloat_Check( value )   ||
         PyBytes_Check( value )   ||
-#if PYTHON_VERSION >= 300
         PyRange_Check( value )   ||
-#endif
         PyType_Check( value )    ||
         PySlice_Check( value )   ||
         PyComplex_Check( value ) ||

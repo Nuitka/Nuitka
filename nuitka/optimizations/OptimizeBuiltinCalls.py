@@ -61,7 +61,11 @@ from nuitka.nodes.BuiltinRangeNodes import (
     ExpressionBuiltinRange0,
     ExpressionBuiltinRange1,
     ExpressionBuiltinRange2,
-    ExpressionBuiltinRange3
+    ExpressionBuiltinRange3,
+    ExpressionBuiltinXrange0,
+    ExpressionBuiltinXrange1,
+    ExpressionBuiltinXrange2,
+    ExpressionBuiltinXrange3
 )
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
@@ -400,14 +404,34 @@ def range_extractor(node):
         empty_special_class = ExpressionBuiltinRange0
     )
 
-if python_version < 300:
-    from nuitka.nodes.BuiltinRangeNodes import ExpressionBuiltinXrange
 
-    def xrange_extractor(node):
-        return BuiltinOptimization.extractBuiltinArgs(
-            node          = node,
-            builtin_class = ExpressionBuiltinXrange,
-            builtin_spec  = BuiltinOptimization.builtin_xrange_spec
+
+def xrange_extractor(node):
+    def selectXrangeBuiltin(low, high, step, source_ref):
+        if high is None:
+            return ExpressionBuiltinXrange1(
+                low        = low,
+                source_ref = source_ref
+            )
+        elif step is None:
+            return ExpressionBuiltinXrange2(
+                low        = low,
+                high       = high,
+                source_ref = source_ref
+            )
+        else:
+            return ExpressionBuiltinXrange3(
+                low        = low,
+                high       = high,
+                step       = step,
+                source_ref = source_ref
+            )
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node                = node,
+        builtin_class       = selectXrangeBuiltin,
+        builtin_spec        = BuiltinOptimization.builtin_xrange_spec,
+        empty_special_class = ExpressionBuiltinXrange0
     )
 
 
@@ -1033,7 +1057,6 @@ _dispatch_dict = {
     "type"       : type_extractor,
     "iter"       : iter_extractor,
     "next"       : next_extractor,
-    "range"      : range_extractor,
     "tuple"      : tuple_extractor,
     "list"       : list_extractor,
     "dict"       : dict_extractor,
@@ -1063,10 +1086,13 @@ if python_version < 300:
     _dispatch_dict["execfile"] = execfile_extractor
 
     _dispatch_dict["xrange"] = xrange_extractor
+    _dispatch_dict["range"] = range_extractor
 
     # The handling of 'open' built-in for Python3 is not yet correct.
     _dispatch_dict["open"] = open_extractor
 else:
+    # The Python3 range is really an xrange, use that.
+    _dispatch_dict["range"] = xrange_extractor
     _dispatch_dict["exec"] = exec_extractor
 
 def check():

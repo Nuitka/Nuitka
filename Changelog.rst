@@ -1,7 +1,29 @@
 Nuitka Release 0.5.23 (Draft)
 =============================
 
-This release is not done yet.
+This release is focusing on optimization, the most significant part being
+memory usage, but also structural improvements for loop optimization and
+static analysis of iterators.
+
+Optimization
+------------
+
+- Properly detect the ``len`` of multiplications at compile time, so that
+  this is e.g. statically optimized.
+
+  .. code-block:: python
+
+    print(len("*" * 10000000000))
+
+- Added support for optimization of the ``xrange`` built-in for Python2.
+
+- Used only about 66% of the memory compared to last release, which is
+  important for scalability.
+
+Cleanups
+--------
+
+- Moved range related helper functions to a dedicated include file.
 
 
 Nuitka Release 0.5.22

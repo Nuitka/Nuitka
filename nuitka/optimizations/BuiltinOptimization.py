@@ -196,11 +196,12 @@ if python_version < 300:
         ("string", "encoding", "errors"),
         3
     )
-    builtin_xrange_spec = BuiltinParameterSpec(
-        "xrange",
-        ("start", "stop", "step"),
-        2
-    )
+
+builtin_xrange_spec = BuiltinParameterSpecNoKeywords(
+    "xrange" if python_version < 300 else "range",
+    ("start", "stop", "step"),
+    2
+)
 
 
 builtin_bool_spec = BuiltinParameterSpec("bool", ('x',), 1)

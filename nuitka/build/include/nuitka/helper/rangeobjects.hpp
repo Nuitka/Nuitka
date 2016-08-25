@@ -15,12 +15,24 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-#ifndef __NUITKA_RANGEOBJECTS_H__
-#define __NUITKA_RANGEOBJECTS_H__
+#ifndef __NUITKA_HELPER_RANGEOBJECTS_H__
+#define __NUITKA_HELPER_RANGEOBJECTS_H__
 
-// Python3 range objects
+/* For built-in built-in range() functionality. */
+
+extern PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step );
+extern PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high );
+extern PyObject *BUILTIN_RANGE( PyObject *boundary );
+
+/* For built-in built-in xrange() functionality. */
+
+extern PyObject *BUILTIN_XRANGE1( PyObject *low );
+extern PyObject *BUILTIN_XRANGE2( PyObject *low, PyObject *high );
+extern PyObject *BUILTIN_XRANGE3( PyObject *low, PyObject *high, PyObject *step );
+
 #if PYTHON_VERSION >= 300
 
+/* Python3 range objects */
 typedef struct {
     PyObject_HEAD
     PyObject *start;
@@ -42,6 +54,61 @@ NUITKA_MAY_BE_UNUSED static PyObject *PyRange_Stop( PyObject *range )
 NUITKA_MAY_BE_UNUSED static PyObject *PyRange_Step( PyObject *range )
 {
     return ((_rangeobject *)range)->step;
+}
+
+#else
+
+typedef struct {
+    PyObject_HEAD
+    long        start;
+    long        step;
+    long        len;
+} rangeobject;
+
+
+/* Same as CPython: */
+static unsigned long getLengthOfRange( long lo, long hi, long step )
+{
+     assert( step != 0 );
+
+     if (step > 0 && lo < hi)
+     {
+         return 1UL + (hi - 1UL - lo) / step;
+     }
+     else if (step < 0 && lo > hi)
+     {
+         return 1UL + (lo - 1UL - hi) / (0UL - step);
+     }
+     else
+     {
+         return 0UL;
+     }
+}
+
+/* Create a "xrange" object from C long values. Used for constant ranges. */
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_XRANGE( long start, long stop, long step )
+{
+    /* TODO: It would be sweet to calculate that on user side already. */
+
+    long n = getLengthOfRange( start, stop, step );
+
+    if (n > (unsigned long)LONG_MAX || (long)n > PY_SSIZE_T_MAX) {
+        PyErr_SetString(
+            PyExc_OverflowError,
+            "xrange() result has too many items"
+        );
+
+        return NULL;
+    }
+
+    rangeobject *result = PyObject_New( rangeobject, &PyRange_Type );
+    assert (result != NULL);
+
+    result->start = start;
+    result->len   = (long)n;
+    result->step  = step;
+
+    return (PyObject *)result;
 }
 
 #endif

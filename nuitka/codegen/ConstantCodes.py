@@ -35,13 +35,19 @@ from logging import warning
 
 import marshal
 from nuitka import Options
-from nuitka.__past__ import iterItems, long, unicode  # pylint: disable=W0622
+from nuitka.__past__ import (  # pylint: disable=W0622
+    iterItems,
+    long,
+    unicode,
+    xrange
+)
 from nuitka.codegen import Emission
 from nuitka.Constants import (
     constant_builtin_types,
     getConstantWeight,
     isMutable
 )
+from nuitka.PythonVersions import python_version
 
 from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
@@ -166,10 +172,13 @@ def _getConstantInitValueCode(constant_value, constant_type):
     # This function is a case driven by returns, pylint: disable=R0911
 
     if constant_type is unicode:
+        # Python3: Strings that can be encoded as UTF-8 are done more or less
+        # directly. When they cannot be expressed as UTF-8, that is rare not we
+        # can indeed use pickling.
         try:
             encoded = constant_value.encode("utf-8")
 
-            if str is not unicode:
+            if str is bytes:
                 return "UNSTREAM_UNICODE( %s )" % (
                     stream_data.getStreamDataCode(encoded)
                 )
@@ -183,10 +192,7 @@ def _getConstantInitValueCode(constant_value, constant_type):
             # TODO: try and use "surrogateescape" for this
             return None
     elif constant_type is str:
-        # Python3: Strings that can be encoded as UTF-8 are done more or less
-        # directly. When they cannot be expressed as UTF-8, that is rare not we
-        # can indeed use pickling.
-        assert str is not unicode
+        assert str is bytes
 
         if len(constant_value) == 1:
             return "UNSTREAM_CHAR( %d, %d )" % (
@@ -199,7 +205,7 @@ def _getConstantInitValueCode(constant_value, constant_type):
                 1 if _isAttributeName(constant_value) else 0
             )
     elif constant_type is bytes:
-        assert str is unicode
+        assert str is not bytes
 
         return "UNSTREAM_BYTES( %s )" % (
             stream_data.getStreamDataCode(constant_value)
@@ -233,6 +239,8 @@ def decideMarshal(constant_value):
         for element_value in constant_value:
             if not decideMarshal(element_value):
                 return False
+    elif constant_type is xrange:
+        return False
 
     return True
 
@@ -262,7 +270,7 @@ def isMarshalConstant(constant_value):
     marshal_value = marshal.dumps(constant_value)
     restored = marshal.loads(marshal_value)
 
-    # TODO: Potentially warn about these.
+    # TODO: Potentially warn about these, where that is not the case.
     return constant_value == restored
 
 
@@ -447,7 +455,7 @@ CHECK_OBJECT( const_int_pos_1 );
         try:
             encoded = constant_value.encode("utf-8")
 
-            if str is not unicode:
+            if str is bytes:
                 emit(
                     "%s = UNSTREAM_UNICODE( %s );" % (
                         constant_identifier,
@@ -471,7 +479,7 @@ CHECK_OBJECT( const_int_pos_1 );
         # Python3: Strings that can be encoded as UTF-8 are done more or less
         # directly. When they cannot be expressed as UTF-8, that is rare not we
         # can indeed use pickling.
-        assert str is not unicode
+        assert str is bytes
 
         if len(constant_value) == 1:
             emit(
@@ -493,7 +501,7 @@ CHECK_OBJECT( const_int_pos_1 );
         return
     elif constant_type is bytes:
         # Python3 only, for Python2, bytes do not happen.
-        assert str is unicode
+        assert str is not bytes
 
         emit(
             "%s = UNSTREAM_BYTES( %s );" % (
@@ -745,10 +753,82 @@ CHECK_OBJECT( const_int_pos_1 );
 
         return
 
+    if constant_type is xrange:
+        # Strip const_xrange.
+        assert constant_identifier.startswith("const_xrange_")
+
+        # For Python2, xrange needs only long values to be created, so avoid objects.
+        range_args =  constant_identifier[13:].split('_')
+
+        # Default start.
+        if len(range_args) == 1:
+            range_args.insert(0, '0')
+
+        # Default step
+        if len(range_args) < 3:
+            range_args.append('1')
+
+
+        # Negative values are encoded with "neg" prefix.
+        range_args = [int(range_arg.replace("neg", '-')) for range_arg in range_args]
+
+        if xrange is not range:
+            emit(
+                 "%s = MAKE_XRANGE( %s, %s, %s );" % (
+                    constant_identifier,
+                    range_args[0],
+                    range_args[1],
+                    range_args[2]
+                )
+            )
+        else:
+            range1_name = getConstantCodeName(context, range_args[0])
+            _addConstantInitCode(
+                emit                = emit,
+                check               = check,
+                constant_type       = type(range_args[0]),
+                constant_value      = range_args[0],
+                constant_identifier = range1_name,
+                module_level        = module_level,
+                context             = context
+            )
+            range2_name = getConstantCodeName(context, range_args[1])
+            _addConstantInitCode(
+                emit                = emit,
+                check               = check,
+                constant_type       = type(range_args[1]),
+                constant_value      = range_args[1],
+                constant_identifier = range2_name,
+                module_level        = module_level,
+                context             = context
+            )
+            range3_name = getConstantCodeName(context, range_args[2])
+            _addConstantInitCode(
+                emit                = emit,
+                check               = check,
+                constant_type       = type(range_args[2]),
+                constant_value      = range_args[2],
+                constant_identifier = range3_name,
+                module_level        = module_level,
+                context             = context
+            )
+
+            emit(
+                 "%s = BUILTIN_XRANGE3( %s, %s, %s );" % (
+                    constant_identifier,
+                    range1_name,
+                    range2_name,
+                    range3_name
+                )
+            )
+
+        return
+
+
     # TODO: Ranges could very well be created for Python3. And "frozenset" and
     # set, are to be examined.
 
-    if constant_type in (frozenset, complex, unicode, long, range):
+    if constant_type in (frozenset, complex, unicode, long, xrange):
         # Lets attempt marshal these.
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
@@ -988,6 +1068,8 @@ def getConstantInitCodes(module_context):
 
 
 def allocateNestedConstants(module_context):
+    # Lots of types to deal with, pylint: disable=R0912
+
     def considerForDeferral(constant_value):
         module_context.getConstantCode(constant_value)
 
@@ -1007,6 +1089,27 @@ def allocateNestedConstants(module_context):
             considerForDeferral(constant_value.start)
             considerForDeferral(constant_value.step)
             considerForDeferral(constant_value.stop)
+        elif constant_type is xrange:
+            if xrange is range:
+                if python_version >= 330:
+                    # For Python2 ranges, we use C long values directly.
+                    considerForDeferral(constant_value.start)
+                    considerForDeferral(constant_value.step)
+                    considerForDeferral(constant_value.stop)
+                else:
+                    parts = [
+                        int(value)
+                        for value in
+                        str(constant_value)[6:-1].split(',')
+                    ]
+
+                    if len(parts) <= 1:
+                        parts.append(0)
+                    if len(parts) <= 2:
+                        parts.append(1)
+
+                    for value in parts:
+                        considerForDeferral(value)
 
     for constant_identifier in set(module_context.getConstants()):
         constant_value = module_context.global_context.constants[
@@ -1015,7 +1118,7 @@ def allocateNestedConstants(module_context):
 
         constant_type = type(constant_value)
 
-        if constant_type in (tuple, dict, list, set, frozenset, slice):
+        if constant_type in (tuple, dict, list, set, frozenset, slice, xrange):
             considerForDeferral(constant_value)
 
 

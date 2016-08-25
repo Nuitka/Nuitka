@@ -21,7 +21,12 @@
 
 from logging import warning
 
-from nuitka.__past__ import iterItems, long, unicode  # pylint: disable=W0622
+from nuitka.__past__ import (  # pylint: disable=W0622
+    iterItems,
+    long,
+    unicode,
+    xrange
+)
 from nuitka.Constants import (
     getConstantIterationLength,
     isConstant,
@@ -57,8 +62,6 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
 
         if not user_provided and isDebug():
             try:
-                size = len(constant)
-
                 if type(constant) in (str, unicode):
                     max_size = 1000
                 elif type(constant) is xrange:
@@ -66,11 +69,11 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
                 else:
                     max_size = 256
 
-                if max_size is not None and size > max_size:
+                if max_size is not None and len(constant) > max_size:
                     warning(
                         "Too large constant (%s %d) encountered at %s.",
                         type(constant),
-                        size,
+                        len(constant),
                         source_ref.getAsString()
                     )
             except TypeError:
@@ -568,6 +571,30 @@ class ExpressionConstantSliceRef(ExpressionConstantRefBase):
     def isExpressionConstantSliceRef():
         return True
 
+class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
+    kind = "EXPRESSION_CONSTANT_XRANGE_REF"
+
+    def __init__(self, source_ref, constant, user_provided = False):
+        ExpressionConstantRefBase.__init__(
+            self,
+            constant      = constant,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    @staticmethod
+    def isExpressionConstantXrangeRef():
+        return True
+
+    def getStartValue(self):
+        # There is no attributes to check.
+        str_value = str(self.constant)
+        assert str_value.startswith("xrange(")
+        str_values = str_value[6:-1].split(",")
+
+        assert False, str_values
+
+
 
 class ExpressionConstantTypeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TYPE_REF"
@@ -711,6 +738,12 @@ def makeConstantRefNode(constant, source_ref, user_provided = False):
             )
         elif constant_type is type:
             return ExpressionConstantTypeRef(
+                source_ref    = source_ref,
+                constant      = constant,
+                user_provided = user_provided
+            )
+        elif constant_type is xrange:
+            return ExpressionConstantXrangeRef(
                 source_ref    = source_ref,
                 constant      = constant,
                 user_provided = user_provided

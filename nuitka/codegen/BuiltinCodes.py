@@ -173,10 +173,41 @@ def generateBuiltinRange3Code(to_name, expression, emit, context):
     )
 
 
-def generateBuiltinXrangeCode(to_name, expression, emit, context):
+def generateBuiltinXrange1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name    = to_name,
-        capi       = "BUILTIN_XRANGE",
+        capi       = "BUILTIN_XRANGE1",
+        arg_desc   = (
+            ("xrange_low", expression.getLow()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context,
+        none_null  = True
+    )
+
+
+def generateBuiltinXrange2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_XRANGE2",
+        arg_desc   = (
+            ("xrange_low", expression.getLow()),
+            ("xrange_high", expression.getHigh()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context,
+        none_null  = True,
+    )
+
+
+def generateBuiltinXrange3Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_XRANGE3",
         arg_desc   = (
             ("xrange_low", expression.getLow()),
             ("xrange_high", expression.getHigh()),

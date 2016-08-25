@@ -83,8 +83,6 @@ extern void stopProfiling( void );
 
 #include "nuitka/helper/dictionaries.hpp"
 
-#include "nuitka/helper/rangeobjects.hpp"
-
 #if PYTHON_VERSION >= 300
 static char *_PyUnicode_AS_STRING( PyObject *unicode )
 {
@@ -494,6 +492,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 #include "nuitka/helper/attributes.hpp"
 #include "nuitka/helper/iterators.hpp"
 #include "nuitka/helper/slices.hpp"
+#include "nuitka/helper/rangeobjects.hpp"
 
 #include "nuitka/builtins.hpp"
 
@@ -559,13 +558,6 @@ extern PyObject *BUILTIN_TYPE1( PyObject *arg );
 // For quicker type() functionality if 3 arguments are given (to build a new
 // type).
 extern PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict );
-
-// For built-in built-in range() functionality.
-extern PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step );
-extern PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high );
-extern PyObject *BUILTIN_RANGE( PyObject *boundary );
-
-extern PyObject *BUILTIN_XRANGE( PyObject *low, PyObject *high, PyObject *step );
 
 // For built-in built-in len() functionality.
 extern PyObject *BUILTIN_LEN( PyObject *boundary );
