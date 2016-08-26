@@ -103,14 +103,16 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
 
     def extractSideEffects(self):
         # Iterator making is the side effect itself.
-        if self.getValue().isCompileTimeConstant():
+        value = self.getValue()
+
+        if value.isCompileTimeConstant() and value.isKnownToBeIterable(None):
             return ()
         else:
             return (self,)
 
     def mayHaveSideEffects(self):
         if self.getValue().isCompileTimeConstant():
-            return self.getValue().isKnownToBeIterable(None)
+            return not self.getValue().isKnownToBeIterable(None)
 
         return True
 

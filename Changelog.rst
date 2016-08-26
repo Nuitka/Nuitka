@@ -20,6 +20,13 @@ Optimization
 - Used only about 66% of the memory compared to last release, which is
   important for scalability.
 
+- Fix, was falsely optimizing away unused iterations for non-iterable compile
+  time constants.
+
+  .. code-block:: python
+
+    iter(1) # needs to raise.
+
 Cleanups
 --------
 
