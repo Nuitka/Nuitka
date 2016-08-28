@@ -42,7 +42,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
             return NULL;
         }
 
-        Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
+        struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)called;
         PyObject *result;
 
         if ( function->m_args_simple && %(args_count)d == function->m_args_positional_count )
@@ -96,7 +96,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
     }
     else if ( Nuitka_Method_Check( called ) )
     {
-        Nuitka_MethodObject *method = (Nuitka_MethodObject *)called;
+        struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
         if ( method->m_object != NULL )
@@ -106,7 +106,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
                 return NULL;
             }
 
-            Nuitka_FunctionObject *function = method->m_function;
+            struct Nuitka_FunctionObject *function = method->m_function;
 
             PyObject *result;
 
@@ -467,7 +467,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
             return NULL;
         }
 
-        Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
+        struct Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
         PyObject *result;
 
         if ( function->m_args_simple && %(args_count)d == function->m_args_positional_count )
@@ -521,7 +521,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
     }
     else if ( Nuitka_Method_Check( called ) )
     {
-        Nuitka_MethodObject *method = (Nuitka_MethodObject *)called;
+        struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
         if ( method->m_object != NULL )
@@ -531,7 +531,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
                 return NULL;
             }
 
-            Nuitka_FunctionObject *function = method->m_function;
+            struct Nuitka_FunctionObject *function = method->m_function;
 
             PyObject *result;
 

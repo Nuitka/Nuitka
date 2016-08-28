@@ -437,7 +437,7 @@ Defaults to off."""
 )
 
 debug_group.add_option(
-    "--recompile-c++-only",
+    "--recompile-c++-only", "--recompile-c-only",
     action  = "store_true",
     dest    = "recompile_cpp_only",
     default = False,

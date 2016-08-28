@@ -36,14 +36,14 @@ static PyObject *Nuitka_Function_descr_get( PyObject *function, PyObject *object
 #endif
 
     return Nuitka_Method_New(
-        (Nuitka_FunctionObject *)function,
+        (struct Nuitka_FunctionObject *)function,
         object == Py_None ? NULL : object,
         klass
     );
 }
 
  // tp_repr slot, decide how compiled function shall be output to "repr" built-in
-static PyObject *Nuitka_Function_tp_repr( Nuitka_FunctionObject *function )
+static PyObject *Nuitka_Function_tp_repr( struct Nuitka_FunctionObject *function )
 {
 #if PYTHON_VERSION < 300
     return PyString_FromFormat(
@@ -60,7 +60,7 @@ static PyObject *Nuitka_Function_tp_repr( Nuitka_FunctionObject *function )
     );
 }
 
-static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw )
+static PyObject *Nuitka_Function_tp_call( struct Nuitka_FunctionObject *function, PyObject *tuple_args, PyObject *kw )
 {
     CHECK_OBJECT( tuple_args );
     assert( PyTuple_CheckExact( tuple_args ) );
@@ -121,7 +121,7 @@ static PyObject *Nuitka_Function_tp_call( Nuitka_FunctionObject *function, PyObj
     }
 }
 
-static long Nuitka_Function_tp_traverse( Nuitka_FunctionObject *function, visitproc visit, void *arg )
+static long Nuitka_Function_tp_traverse( struct Nuitka_FunctionObject *function, visitproc visit, void *arg )
 {
     // TODO: Identify the impact of not visiting other owned objects. It appears
     // to be mostly harmless, as these are strings.
@@ -138,17 +138,17 @@ static long Nuitka_Function_tp_traverse( Nuitka_FunctionObject *function, visitp
     return 0;
 }
 
-static long Nuitka_Function_tp_hash( Nuitka_FunctionObject *function )
+static long Nuitka_Function_tp_hash( struct Nuitka_FunctionObject *function )
 {
     return function->m_counter;
 }
 
-static PyObject *Nuitka_Function_get_name( Nuitka_FunctionObject *object )
+static PyObject *Nuitka_Function_get_name( struct Nuitka_FunctionObject *object )
 {
     return INCREASE_REFCOUNT( object->m_name );
 }
 
-static int Nuitka_Function_set_name( Nuitka_FunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_name( struct Nuitka_FunctionObject *object, PyObject *value )
 {
 #if PYTHON_VERSION < 300
     if (unlikely( value == NULL || PyString_Check( value ) == 0 ))
@@ -168,12 +168,12 @@ static int Nuitka_Function_set_name( Nuitka_FunctionObject *object, PyObject *va
 }
 
 #if PYTHON_VERSION >= 330
-static PyObject *Nuitka_Function_get_qualname( Nuitka_FunctionObject *object )
+static PyObject *Nuitka_Function_get_qualname( struct Nuitka_FunctionObject *object )
 {
     return INCREASE_REFCOUNT( object->m_qualname );
 }
 
-static int Nuitka_Function_set_qualname( Nuitka_FunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_qualname( struct Nuitka_FunctionObject *object, PyObject *value )
 {
     if (unlikely( value == NULL || PyUnicode_Check( value ) == 0 ))
     {
@@ -189,12 +189,12 @@ static int Nuitka_Function_set_qualname( Nuitka_FunctionObject *object, PyObject
 }
 #endif
 
-static PyObject *Nuitka_Function_get_doc( Nuitka_FunctionObject *object )
+static PyObject *Nuitka_Function_get_doc( struct Nuitka_FunctionObject *object )
 {
     return INCREASE_REFCOUNT( object->m_doc );
 }
 
-static int Nuitka_Function_set_doc( Nuitka_FunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_doc( struct Nuitka_FunctionObject *object, PyObject *value )
 {
     PyObject *old = object->m_doc;
 
@@ -211,7 +211,7 @@ static int Nuitka_Function_set_doc( Nuitka_FunctionObject *object, PyObject *val
     return 0;
 }
 
-static PyObject *Nuitka_Function_get_dict( Nuitka_FunctionObject *object )
+static PyObject *Nuitka_Function_get_dict( struct Nuitka_FunctionObject *object )
 {
     if ( object->m_dict == NULL )
     {
@@ -221,7 +221,7 @@ static PyObject *Nuitka_Function_get_dict( Nuitka_FunctionObject *object )
     return INCREASE_REFCOUNT( object->m_dict );
 }
 
-static int Nuitka_Function_set_dict( Nuitka_FunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_dict( struct Nuitka_FunctionObject *object, PyObject *value )
 {
     if (unlikely( value == NULL ))
     {
@@ -244,18 +244,18 @@ static int Nuitka_Function_set_dict( Nuitka_FunctionObject *object, PyObject *va
     }
 }
 
-static PyObject *Nuitka_Function_get_code( Nuitka_FunctionObject *object )
+static PyObject *Nuitka_Function_get_code( struct Nuitka_FunctionObject *object )
 {
     return INCREASE_REFCOUNT( (PyObject *)object->m_code_object );
 }
 
-static int Nuitka_Function_set_code( Nuitka_FunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_code( struct Nuitka_FunctionObject *object, PyObject *value )
 {
     PyErr_Format( PyExc_RuntimeError, "__code__ is not writable in Nuitka" );
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_closure( Nuitka_FunctionObject *object )
+static PyObject *Nuitka_Function_get_closure( struct Nuitka_FunctionObject *object )
 {
     if ( object->m_closure )
     {
@@ -277,7 +277,7 @@ static PyObject *Nuitka_Function_get_closure( Nuitka_FunctionObject *object )
 }
 
 
-static int Nuitka_Function_set_closure( Nuitka_FunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_closure( struct Nuitka_FunctionObject *object, PyObject *value )
 {
     PyErr_Format(
 #if PYTHON_VERSION < 300
@@ -292,12 +292,12 @@ static int Nuitka_Function_set_closure( Nuitka_FunctionObject *object, PyObject 
 }
 
 
-static PyObject *Nuitka_Function_get_defaults( Nuitka_FunctionObject *object )
+static PyObject *Nuitka_Function_get_defaults( struct Nuitka_FunctionObject *object )
 {
     return INCREASE_REFCOUNT( (PyObject *)object->m_defaults );
 }
 
-static void onUpdatedDefaultsValue( Nuitka_FunctionObject *function )
+static void onUpdatedDefaultsValue( struct Nuitka_FunctionObject *function )
 {
     if ( function->m_defaults == Py_None )
     {
@@ -309,7 +309,7 @@ static void onUpdatedDefaultsValue( Nuitka_FunctionObject *function )
     }
 }
 
-static int Nuitka_Function_set_defaults( Nuitka_FunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_defaults( struct Nuitka_FunctionObject *object, PyObject *value )
 {
     if ( value == NULL )
     {
@@ -344,12 +344,12 @@ static int Nuitka_Function_set_defaults( Nuitka_FunctionObject *object, PyObject
 }
 
 #if PYTHON_VERSION >= 300
-static PyObject *Nuitka_Function_get_kwdefaults( Nuitka_FunctionObject *object )
+static PyObject *Nuitka_Function_get_kwdefaults( struct Nuitka_FunctionObject *object )
 {
     return INCREASE_REFCOUNT( (PyObject *)object->m_kwdefaults );
 }
 
-static int Nuitka_Function_set_kwdefaults( Nuitka_FunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_kwdefaults( struct Nuitka_FunctionObject *object, PyObject *value )
 {
     if ( value == NULL )
     {
@@ -368,12 +368,12 @@ static int Nuitka_Function_set_kwdefaults( Nuitka_FunctionObject *object, PyObje
 
     return 0;
 }
-static PyObject *Nuitka_Function_get_annotations( Nuitka_FunctionObject *object )
+static PyObject *Nuitka_Function_get_annotations( struct Nuitka_FunctionObject *object )
 {
     return INCREASE_REFCOUNT( (PyObject *)object->m_annotations );
 }
 
-static int Nuitka_Function_set_annotations( Nuitka_FunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_annotations( struct Nuitka_FunctionObject *object, PyObject *value )
 {
     // CPython silently converts None to empty dictionary.
     if ( value == Py_None || value == NULL )
@@ -396,20 +396,20 @@ static int Nuitka_Function_set_annotations( Nuitka_FunctionObject *object, PyObj
 
 #endif
 
-static int Nuitka_Function_set_globals( Nuitka_FunctionObject *function, PyObject *value )
+static int Nuitka_Function_set_globals( struct Nuitka_FunctionObject *function, PyObject *value )
 {
     PyErr_Format( PyExc_TypeError, "readonly attribute" );
     return -1;
 }
 
-static PyObject *Nuitka_Function_get_globals( Nuitka_FunctionObject *function )
+static PyObject *Nuitka_Function_get_globals( struct Nuitka_FunctionObject *function )
 {
     return INCREASE_REFCOUNT( PyModule_GetDict( function->m_module ) );
 }
 
 extern PyObject *const_str_plain___module__;
 
-static int Nuitka_Function_set_module( Nuitka_FunctionObject *object, PyObject *value )
+static int Nuitka_Function_set_module( struct Nuitka_FunctionObject *object, PyObject *value )
 {
     if ( object->m_dict == NULL )
     {
@@ -424,7 +424,7 @@ static int Nuitka_Function_set_module( Nuitka_FunctionObject *object, PyObject *
     return PyDict_SetItem( object->m_dict, const_str_plain___module__, value );
 }
 
-static PyObject *Nuitka_Function_get_module( Nuitka_FunctionObject *object )
+static PyObject *Nuitka_Function_get_module( struct Nuitka_FunctionObject *object )
 {
     if ( object->m_dict )
     {
@@ -482,7 +482,7 @@ static PyGetSetDef Nuitka_Function_getset[] =
    { NULL }
 };
 
-static PyObject *Nuitka_Function_reduce( Nuitka_FunctionObject *function )
+static PyObject *Nuitka_Function_reduce( struct Nuitka_FunctionObject *function )
 {
 #if PYTHON_VERSION < 330
     return INCREASE_REFCOUNT( function->m_name );
@@ -498,7 +498,7 @@ static PyMethodDef Nuitka_Function_methods[] =
 };
 
 
-static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
+static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
 {
 #ifndef __NUITKA_NO_ASSERT__
     // Save the current exception, if any, we must to not corrupt it.
@@ -552,18 +552,11 @@ static void Nuitka_Function_tp_dealloc( Nuitka_FunctionObject *function )
 #endif
 }
 
-static const long tp_flags =
-    Py_TPFLAGS_DEFAULT       |
-#if PYTHON_VERSION < 300
-    Py_TPFLAGS_HAVE_WEAKREFS |
-#endif
-    Py_TPFLAGS_HAVE_GC;
-
 PyTypeObject Nuitka_Function_Type =
 {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     "compiled_function",                            /* tp_name */
-    sizeof(Nuitka_FunctionObject),                  /* tp_basicsize */
+    sizeof(struct Nuitka_FunctionObject),           /* tp_basicsize */
     0,                                              /* tp_itemsize */
     (destructor)Nuitka_Function_tp_dealloc,         /* tp_dealloc */
     0,                                              /* tp_print */
@@ -580,12 +573,16 @@ PyTypeObject Nuitka_Function_Type =
     PyObject_GenericGetAttr,                        /* tp_getattro */
     0,                                              /* tp_setattro */
     0,                                              /* tp_as_buffer */
-    tp_flags,                                       /* tp_flags */
+    Py_TPFLAGS_DEFAULT       |
+#if PYTHON_VERSION < 300
+    Py_TPFLAGS_HAVE_WEAKREFS |
+#endif
+    Py_TPFLAGS_HAVE_GC,                             /* tp_flags */
     0,                                              /* tp_doc */
     (traverseproc)Nuitka_Function_tp_traverse,      /* tp_traverse */
     0,                                              /* tp_clear */
     0,                                              /* tp_richcompare */
-    offsetof( Nuitka_FunctionObject, m_weakrefs ),  /* tp_weaklistoffset */
+    offsetof( struct Nuitka_FunctionObject, m_weakrefs ),  /* tp_weaklistoffset */
     0,                                              /* tp_iter */
     0,                                              /* tp_iternext */
     Nuitka_Function_methods,                        /* tp_methods */
@@ -595,7 +592,7 @@ PyTypeObject Nuitka_Function_Type =
     0,                                              /* tp_dict */
     Nuitka_Function_descr_get,                      /* tp_descr_get */
     0,                                              /* tp_descr_set */
-    offsetof( Nuitka_FunctionObject, m_dict ),      /* tp_dictoffset */
+    offsetof( struct Nuitka_FunctionObject, m_dict ),      /* tp_dictoffset */
     0,                                              /* tp_init */
     0,                                              /* tp_alloc */
     0,                                              /* tp_new */
@@ -621,7 +618,7 @@ static inline PyObject *make_compiled_function( function_impl_code c_code, PyObj
 static inline PyObject *make_compiled_function( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
 #endif
 {
-    Nuitka_FunctionObject *result = PyObject_GC_New( Nuitka_FunctionObject, &Nuitka_Function_Type );
+    struct Nuitka_FunctionObject *result = PyObject_GC_New( struct Nuitka_FunctionObject, &Nuitka_Function_Type );
 
     assert( result );
 
@@ -734,23 +731,23 @@ PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyObje
 
 // Make a function with closure.
 #if PYTHON_VERSION < 300
-PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
 {
     return make_compiled_function( c_code, name, code_object, defaults, module, doc, closure, closure_given );
 }
 #elif PYTHON_VERSION < 330
-PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
 {
     return make_compiled_function( c_code, name, code_object, defaults, kwdefaults, annotations, module, doc, closure, closure_given );
 }
 #else
-PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
 {
     return make_compiled_function( c_code, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, closure, closure_given );
 }
 #endif
 
-static void formatErrorNoArgumentAllowed( Nuitka_FunctionObject const *function,
+static void formatErrorNoArgumentAllowed( struct Nuitka_FunctionObject const *function,
 #if PYTHON_VERSION >= 330
                                           PyObject *kw,
 #endif
@@ -793,7 +790,7 @@ static void formatErrorNoArgumentAllowed( Nuitka_FunctionObject const *function,
 #endif
 }
 
-static void formatErrorMultipleValuesGiven( Nuitka_FunctionObject const *function, Py_ssize_t index )
+static void formatErrorMultipleValuesGiven( struct Nuitka_FunctionObject const *function, Py_ssize_t index )
 {
     char const *function_name =
        Nuitka_String_AsString( function->m_name );
@@ -811,7 +808,7 @@ static void formatErrorMultipleValuesGiven( Nuitka_FunctionObject const *functio
 }
 
 #if PYTHON_VERSION < 330
-static void formatErrorTooFewArguments( Nuitka_FunctionObject const *function,
+static void formatErrorTooFewArguments( struct Nuitka_FunctionObject const *function,
 #if PYTHON_VERSION < 270
                                         Py_ssize_t kw_size,
 #endif
@@ -865,7 +862,7 @@ static void formatErrorTooFewArguments( Nuitka_FunctionObject const *function,
 #endif
 }
 #else
-static void formatErrorTooFewArguments( Nuitka_FunctionObject const *function,
+static void formatErrorTooFewArguments( struct Nuitka_FunctionObject const *function,
                                         PyObject **values )
 {
     char const *function_name =
@@ -969,7 +966,7 @@ static void formatErrorTooFewArguments( Nuitka_FunctionObject const *function,
 }
 #endif
 
-static void formatErrorTooManyArguments( Nuitka_FunctionObject const *function,
+static void formatErrorTooManyArguments( struct Nuitka_FunctionObject const *function,
                                          Py_ssize_t given
 #if PYTHON_VERSION < 270
                                        , Py_ssize_t kw_size
@@ -1069,7 +1066,7 @@ static void formatErrorTooManyArguments( Nuitka_FunctionObject const *function,
 }
 
 #if PYTHON_VERSION >= 330
-static void formatErrorTooFewKwOnlyArguments( Nuitka_FunctionObject const *function,
+static void formatErrorTooFewKwOnlyArguments( struct Nuitka_FunctionObject const *function,
                                               PyObject **kw_vars )
 {
     char const *function_name = Nuitka_String_AsString( function->m_name );
@@ -1176,9 +1173,9 @@ static void formatErrorTooFewKwOnlyArguments( Nuitka_FunctionObject const *funct
 
 
 #if PYTHON_VERSION < 300
-static Py_ssize_t handleKeywordArgs( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw )
+static Py_ssize_t handleKeywordArgs( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw )
 #else
-static Py_ssize_t handleKeywordArgs( Nuitka_FunctionObject const *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
+static Py_ssize_t handleKeywordArgs( struct Nuitka_FunctionObject const *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
 #endif
 {
     Py_ssize_t keywords_count = function->m_args_keywords_count;
@@ -1281,7 +1278,7 @@ static Py_ssize_t handleKeywordArgs( Nuitka_FunctionObject const *function, PyOb
 }
 
 
-static bool MAKE_STAR_DICT_DICTIONARY_COPY( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw )
+static bool MAKE_STAR_DICT_DICTIONARY_COPY( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw )
 {
     Py_ssize_t star_dict_index = function->m_args_star_dict_index;
     assert( star_dict_index != -1 );
@@ -1347,7 +1344,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY( Nuitka_FunctionObject const *functio
             Py_ssize_t size = mp->ma_keys->dk_size;
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
-                PyDictKeyEntry *entry = &split_copy->ma_keys->dk_entries[ i ];
+                struct PyDictKeyEntry *entry = &split_copy->ma_keys->dk_entries[ i ];
 
                 if ( ( entry->me_key != NULL ) && unlikely( !PyUnicode_Check( entry->me_key ) ))
                 {
@@ -1375,7 +1372,7 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY( Nuitka_FunctionObject const *functio
             Py_ssize_t size = mp->ma_keys->dk_size;
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
-                PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+                struct PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
 
                 // TODO: One of these cases has been dealt with above.
                 PyObject *value;
@@ -1422,9 +1419,9 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY( Nuitka_FunctionObject const *functio
 
 
 #if PYTHON_VERSION < 300
-static Py_ssize_t handleKeywordArgsWithStarDict( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw )
+static Py_ssize_t handleKeywordArgsWithStarDict( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw )
 #else
-static Py_ssize_t handleKeywordArgsWithStarDict( Nuitka_FunctionObject const *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
+static Py_ssize_t handleKeywordArgsWithStarDict( struct Nuitka_FunctionObject const *function, PyObject **python_pars, Py_ssize_t *kw_only_found, PyObject *kw )
 #endif
 {
     assert( function->m_args_star_dict_index != -1 );
@@ -1476,7 +1473,7 @@ static Py_ssize_t handleKeywordArgsWithStarDict( Nuitka_FunctionObject const *fu
     return kw_found;
 }
 
-static void makeStarListTupleCopy( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size )
+static void makeStarListTupleCopy( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size )
 {
     assert( function->m_args_star_list_index != -1 );
     Py_ssize_t list_star_index = function->m_args_star_list_index;
@@ -1501,7 +1498,7 @@ static void makeStarListTupleCopy( Nuitka_FunctionObject const *function, PyObje
     }
 }
 
-static void makeStarListTupleCopyMethod( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size )
+static void makeStarListTupleCopyMethod( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size )
 {
     assert( function->m_args_star_list_index != -1 );
     Py_ssize_t list_star_index = function->m_args_star_list_index;
@@ -1527,7 +1524,7 @@ static void makeStarListTupleCopyMethod( Nuitka_FunctionObject const *function, 
 }
 
 
-static bool _handleArgumentsPlainOnly( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size )
+static bool _handleArgumentsPlainOnly( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size )
 {
     Py_ssize_t arg_count = function->m_args_positional_count;
 
@@ -1626,7 +1623,7 @@ static bool _handleArgumentsPlainOnly( Nuitka_FunctionObject const *function, Py
     return true;
 }
 
-static bool handleMethodArgumentsPlainOnly( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *object, PyObject **args, Py_ssize_t args_size )
+static bool handleMethodArgumentsPlainOnly( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *object, PyObject **args, Py_ssize_t args_size )
 {
     Py_ssize_t arg_count = function->m_args_positional_count;
 
@@ -1752,11 +1749,11 @@ static bool handleMethodArgumentsPlainOnly( Nuitka_FunctionObject const *functio
 
 
 #if PYTHON_VERSION < 270
-static bool handleArgumentsPlain( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found, Py_ssize_t kw_size )
+static bool handleArgumentsPlain( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found, Py_ssize_t kw_size )
 #elif PYTHON_VERSION < 300
-static bool handleArgumentsPlain( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found )
+static bool handleArgumentsPlain( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found )
 #else
-static bool handleArgumentsPlain( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found, Py_ssize_t kw_only_found )
+static bool handleArgumentsPlain( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *kw, PyObject **args, Py_ssize_t args_size, Py_ssize_t kw_found, Py_ssize_t kw_only_found )
 #endif
 {
     Py_ssize_t arg_count = function->m_args_positional_count;
@@ -1905,7 +1902,7 @@ static bool handleArgumentsPlain( Nuitka_FunctionObject const *function, PyObjec
 
 
 // Release them all in case of an error.
-static void releaseParameters( Nuitka_FunctionObject const *function, PyObject **python_pars )
+static void releaseParameters( struct Nuitka_FunctionObject const *function, PyObject **python_pars )
 {
     Py_ssize_t arg_count = function->m_args_overall_count;
 
@@ -1915,7 +1912,7 @@ static void releaseParameters( Nuitka_FunctionObject const *function, PyObject *
     }
 }
 
-bool parseArgumentsPos( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size )
+bool parseArgumentsPos( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size )
 {
     bool result;
 
@@ -2014,7 +2011,7 @@ error_exit:
 }
 
 
-bool parseArgumentsMethodPos( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *object, PyObject **args, Py_ssize_t args_size )
+bool parseArgumentsMethodPos( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *object, PyObject **args, Py_ssize_t args_size )
 {
     bool result;
 
@@ -2093,7 +2090,7 @@ error_exit:
 }
 
 
-static bool parseArgumentsFull( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size, PyObject *kw )
+static bool parseArgumentsFull( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size, PyObject *kw )
 {
     Py_ssize_t kw_size = kw ? DICT_SIZE( kw ) : 0;
     Py_ssize_t kw_found;
@@ -2224,7 +2221,7 @@ error_exit:
     return false;
 }
 
-PyObject *Nuitka_CallFunctionPosArgsKwArgs( Nuitka_FunctionObject const *function, PyObject **args, Py_ssize_t args_size, PyObject *kw )
+PyObject *Nuitka_CallFunctionPosArgsKwArgs( struct Nuitka_FunctionObject const *function, PyObject **args, Py_ssize_t args_size, PyObject *kw )
 {
 #ifdef _MSC_VER
     PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_overall_count );
@@ -2237,7 +2234,7 @@ PyObject *Nuitka_CallFunctionPosArgsKwArgs( Nuitka_FunctionObject const *functio
     return function->m_c_code( function, python_pars );
 }
 
-PyObject *Nuitka_CallMethodFunctionNoArgs( Nuitka_FunctionObject const *function, PyObject *object )
+PyObject *Nuitka_CallMethodFunctionNoArgs( struct Nuitka_FunctionObject const *function, PyObject *object )
 {
 #ifdef _MSC_VER
     PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_overall_count );
@@ -2324,7 +2321,7 @@ error_exit:
 
 }
 
-PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs( Nuitka_FunctionObject const *function, PyObject *object, PyObject **args, Py_ssize_t args_size, PyObject *kw )
+PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs( struct Nuitka_FunctionObject const *function, PyObject *object, PyObject **args, Py_ssize_t args_size, PyObject *kw )
 {
 #ifdef _MSC_VER
     PyObject **new_args = (PyObject **)_alloca( sizeof( PyObject * ) *( args_size + 1 ) );

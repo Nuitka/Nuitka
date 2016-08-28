@@ -29,7 +29,7 @@
 struct Nuitka_FunctionObject;
 
 // The actual function code with arguments as an array.
-typedef PyObject *(*function_impl_code)( Nuitka_FunctionObject const *, PyObject ** );
+typedef PyObject *(*function_impl_code)( struct Nuitka_FunctionObject const *, PyObject ** );
 
 // The Nuitka_FunctionObject is the storage associated with a compiled function
 // instance of which there can be many for each code.
@@ -95,11 +95,11 @@ extern PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name,
 
 // Make a function with context.
 #if PYTHON_VERSION < 300
-extern PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
 #elif PYTHON_VERSION < 330
-extern PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
 #else
-extern PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
 #endif
 
 static inline bool Nuitka_Function_Check( PyObject *object )
@@ -109,15 +109,15 @@ static inline bool Nuitka_Function_Check( PyObject *object )
 
 static inline PyObject *Nuitka_Function_GetName( PyObject *object )
 {
-    return ((Nuitka_FunctionObject *)object)->m_name;
+    return ((struct Nuitka_FunctionObject *)object)->m_name;
 }
 
-extern bool parseArgumentsPos( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size );
-extern bool parseArgumentsMethodPos( Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *object, PyObject **args, Py_ssize_t args_size );
+extern bool parseArgumentsPos( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size );
+extern bool parseArgumentsMethodPos( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *object, PyObject **args, Py_ssize_t args_size );
 
-extern PyObject *Nuitka_CallFunctionPosArgsKwArgs( Nuitka_FunctionObject const *function, PyObject **args, Py_ssize_t args_size, PyObject *kw );
+extern PyObject *Nuitka_CallFunctionPosArgsKwArgs( struct Nuitka_FunctionObject const *function, PyObject **args, Py_ssize_t args_size, PyObject *kw );
 
-extern PyObject *Nuitka_CallMethodFunctionNoArgs( Nuitka_FunctionObject const *function, PyObject *object );
-extern PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs( Nuitka_FunctionObject const *function, PyObject *object, PyObject **args, Py_ssize_t args_size, PyObject *kw );
+extern PyObject *Nuitka_CallMethodFunctionNoArgs( struct Nuitka_FunctionObject const *function, PyObject *object );
+extern PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs( struct Nuitka_FunctionObject const *function, PyObject *object, PyObject **args, Py_ssize_t args_size, PyObject *kw );
 
 #endif

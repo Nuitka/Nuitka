@@ -21,9 +21,13 @@
 #if defined( _WIN32 )
 #include <windows.h>
 #elif defined( __OpenBSD__ )
+#ifdef __cplusplus
 extern "C" {
+#endif
 #include "coro.h"
+#ifdef __cplusplus
 }
+#endif
 #else
 #include <ucontext.h>
 #endif
@@ -41,10 +45,17 @@ typedef struct _Fiber
 #endif
 } Fiber;
 
+#ifdef __cplusplus
 extern "C" void _initFiber( Fiber *to );
 extern "C" void _swapFiber( Fiber *to, Fiber *from );
 extern "C" int _prepareFiber( Fiber *to, void *code, uintptr_t arg );
 extern "C" void _releaseFiber( Fiber *to );
+#else
+void _initFiber( Fiber *to );
+void _swapFiber( Fiber *to, Fiber *from );
+int _prepareFiber( Fiber *to, void *code, uintptr_t arg );
+void _releaseFiber( Fiber *to );
+#endif
 
 // Have centralized assertions as wrappers in debug mode, or directly access
 // the fiber implementions of a given platform.

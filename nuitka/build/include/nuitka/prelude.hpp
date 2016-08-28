@@ -55,9 +55,18 @@
 /* Include the C header files most often used. */
 #include <stdio.h>
 
-/* Using "_alloca" extension due to MSVC restrictions. */
+/* Using "_alloca" extension due to MSVC restrictions for array variables
+ * on the local stack.
+ */
 #ifdef _MSC_VER
 #include <malloc.h>
+#endif
+
+/* C bool type */
+#ifndef __cplusplus
+typedef int bool;
+#define true 1
+#define false 0
 #endif
 
 /* An idea I first saw used with Cython, hint the compiler about branches

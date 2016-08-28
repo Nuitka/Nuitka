@@ -48,7 +48,7 @@ static PyObject *_inspect_getgeneratorstate_replacement( PyObject *self, PyObjec
 
     if ( Nuitka_Generator_Check( object ) )
     {
-        Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)object;
+        struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)object;
 
         if ( generator->m_running )
         {
@@ -87,7 +87,7 @@ static PyObject *_inspect_getcoroutinestate_replacement( PyObject *self, PyObjec
 
     if ( Nuitka_Coroutine_Check( object ) )
     {
-        Nuitka_CoroutineObject *coroutine = (Nuitka_CoroutineObject *)object;
+        struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)object;
 
         if ( coroutine->m_running )
         {
@@ -127,7 +127,7 @@ static PyObject *_types_coroutine_replacement( PyObject *self, PyObject *args, P
 
     if ( Nuitka_Function_Check( func ) )
     {
-        Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)func;
+        struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)func;
 
         if ( function->m_code_object->co_flags & CO_GENERATOR )
         {

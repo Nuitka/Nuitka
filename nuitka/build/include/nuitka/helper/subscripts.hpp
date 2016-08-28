@@ -18,7 +18,7 @@
 #ifndef __NUITKA_HELPER_SUBSCRIPTS_H__
 #define __NUITKA_HELPER_SUBSCRIPTS_H__
 
-extern PyObject *BUILTIN_CHR( unsigned char c );
+extern PyObject *STRING_FROM_CHAR( unsigned char c );
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, PyObject *const_subscript, Py_ssize_t int_subscript )
 {
@@ -82,7 +82,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
             }
 
             unsigned char c = ((PyStringObject *)source)->ob_sval[ int_subscript ];
-            return BUILTIN_CHR( c );
+            return STRING_FROM_CHAR( c );
         }
 #else
         else if ( PyUnicode_CheckExact( source ) )

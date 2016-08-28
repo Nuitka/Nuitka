@@ -90,9 +90,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_XRANGE( long start, long stop, long s
 {
     /* TODO: It would be sweet to calculate that on user side already. */
 
-    long n = getLengthOfRange( start, stop, step );
+    unsigned long n = getLengthOfRange( start, stop, step );
 
-    if (n > (unsigned long)LONG_MAX || (long)n > PY_SSIZE_T_MAX) {
+    if ( n > (unsigned long)LONG_MAX || (long)n > PY_SSIZE_T_MAX)
+    {
         PyErr_SetString(
             PyExc_OverflowError,
             "xrange() result has too many items"

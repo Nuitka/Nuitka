@@ -264,7 +264,10 @@ def pickSourceFilenames(source_dir, modules):
 
         base_filename += hash_suffix
 
-        module_filenames[module] = base_filename + ".cpp"
+        if int(os.environ.get("TRY_C", '0')):
+            module_filenames[module] = base_filename + ".c"
+        else:
+            module_filenames[module] = base_filename + ".cpp"
 
     return module_filenames
 
@@ -276,7 +279,7 @@ def makeSourceDirectory(main_module):
 
     """
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=R0912,R0914
+    # no sense, pylint: disable=R0912,R0914,R0915
 
     assert main_module.isCompiledPythonModule()
 
@@ -400,12 +403,20 @@ def makeSourceDirectory(main_module):
         else:
             assert False, module
 
-    writeSourceCode(
-        filename    = Utils.joinpath(source_dir, "__constants.cpp"),
-        source_code = ConstantCodes.getConstantsDefinitionCode(
-            context = global_context
+    if int(os.environ.get("TRY_C", '0')):
+        writeSourceCode(
+            filename    = Utils.joinpath(source_dir, "__constants.c"),
+            source_code = ConstantCodes.getConstantsDefinitionCode(
+                context = global_context
+            )
         )
-    )
+    else:
+        writeSourceCode(
+            filename    = Utils.joinpath(source_dir, "__constants.cpp"),
+            source_code = ConstantCodes.getConstantsDefinitionCode(
+                context = global_context
+            )
+        )
 
     helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode(
         ModuleRegistry.getDoneUserModules()
@@ -416,10 +427,16 @@ def makeSourceDirectory(main_module):
         source_code = helper_decl_code
     )
 
-    writeSourceCode(
-        filename    = Utils.joinpath(source_dir, "__helpers.cpp"),
-        source_code = helper_impl_code
-    )
+    if int(os.environ.get("TRY_C", '0')):
+        writeSourceCode(
+            filename    = Utils.joinpath(source_dir, "__helpers.c"),
+            source_code = helper_impl_code
+        )
+    else:
+        writeSourceCode(
+            filename    = Utils.joinpath(source_dir, "__helpers.cpp"),
+            source_code = helper_impl_code
+        )
 
 
 def runScons(main_module, quiet):

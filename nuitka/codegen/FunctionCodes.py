@@ -596,7 +596,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
         )
 
     if context.isForCreatedFunction():
-        parameter_objects_decl = ["Nuitka_FunctionObject const *self"]
+        parameter_objects_decl = ["struct Nuitka_FunctionObject const *self"]
     else:
         parameter_objects_decl = []
 

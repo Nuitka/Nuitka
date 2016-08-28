@@ -30,15 +30,22 @@
 #include "fibers.hpp"
 
 // Status of the generator object.
+#ifdef __cplusplus
 enum Generator_Status {
     status_Unused,  // Not used so far
     status_Running, // Running, used but didn't stop yet
     status_Finished // Stopped, no more values to come
 };
+#else
+typedef int Generator_Status;
+static const int status_Unused = 0;
+static const int status_Running = 1;
+static const int status_Finished = 2;
+#endif
 
 // The Nuitka_GeneratorObject is the storage associated with a compiled
 // generator object instance of which there can be many for each code.
-typedef struct {
+struct Nuitka_GeneratorObject {
     PyObject_HEAD
 
     PyObject *m_name;
@@ -72,11 +79,11 @@ typedef struct {
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
-} Nuitka_GeneratorObject;
+};
 
 extern PyTypeObject Nuitka_Generator_Type;
 
-typedef void (*generator_code)( Nuitka_GeneratorObject * );
+typedef void (*generator_code)( struct Nuitka_GeneratorObject * );
 
 #if PYTHON_VERSION < 350
 extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
@@ -91,11 +98,11 @@ static inline bool Nuitka_Generator_Check( PyObject *object )
 
 static inline PyObject *Nuitka_Generator_GetName( PyObject *object )
 {
-    return ((Nuitka_GeneratorObject *)object)->m_name;
+    return ((struct Nuitka_GeneratorObject *)object)->m_name;
 }
 
 
-static inline PyObject *YIELD( Nuitka_GeneratorObject *generator, PyObject *value )
+static inline PyObject *YIELD( struct Nuitka_GeneratorObject *generator, PyObject *value )
 {
     CHECK_OBJECT( value );
 
@@ -133,7 +140,7 @@ static inline PyObject *YIELD( Nuitka_GeneratorObject *generator, PyObject *valu
 }
 
 #if PYTHON_VERSION >= 300
-static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *value )
+static inline PyObject *YIELD_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *value )
 {
     CHECK_OBJECT( value );
 
@@ -213,8 +220,8 @@ static inline PyObject *YIELD_IN_HANDLER( Nuitka_GeneratorObject *generator, PyO
 #endif
 
 #if PYTHON_VERSION >= 330
-extern PyObject *YIELD_FROM( Nuitka_GeneratorObject *generator, PyObject *target );
-extern PyObject *YIELD_FROM_IN_HANDLER( Nuitka_GeneratorObject *generator, PyObject *target );
+extern PyObject *YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject *target );
+extern PyObject *YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *target );
 #endif
 
 #endif

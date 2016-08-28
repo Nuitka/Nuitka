@@ -15,20 +15,22 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-// Implementations of compiled code helpers.
+/* Implementations of compiled code helpers.
 
-// The definition of a compiled code helper is that it's being used in
-// generated C++ code and provides part of the operations implementation.
+ * The definition of a compiled code helper is that it's being used in
+ * generated C code and provides part of the operations implementation.
+ *
+ * Currently we also have standalone mode related code here, patches to CPython
+ * runtime that we do, and e.g. the built-in module. TODO: Move these to their
+ * own files for clarity.
+ */
 
-// Currently we also have standalone mode related code here, patches to CPython
-// runtime that we do, and e.g. the built-in module. TODO: Move these to their
-// own files for clarity.
 
 #include "nuitka/prelude.hpp"
 
 extern PyObject *const_str_plain_compile;
 
-static PythonBuiltin _python_builtin_compile( &const_str_plain_compile );
+NUITKA_DEFINE_BUILTIN( compile )
 
 #if PYTHON_VERSION < 300
 PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags, PyObject *dont_inherit )
@@ -70,8 +72,10 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     }
 #endif
 
+    NUITKA_ASSIGN_BUILTIN( compile );
+
     PyObject *result = CALL_FUNCTION(
-        _python_builtin_compile.asObject0(),
+        NUITKA_ACCESS_BUILTIN( compile ),
         pos_args,
         kw_args
     );
@@ -129,16 +133,16 @@ PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
     return result;
 }
 
-extern PyObject *const_str_plain_open;
-
-static PythonBuiltin _python_builtin_open( &const_str_plain_open );
+NUITKA_DEFINE_BUILTIN( open );
 
 PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering )
 {
+    NUITKA_ASSIGN_BUILTIN( open );
+
     if ( file_name == NULL )
     {
         return CALL_FUNCTION_NO_ARGS(
-            _python_builtin_open.asObject0()
+            NUITKA_ACCESS_BUILTIN( open )
         );
     }
     else if ( mode == NULL )
@@ -147,7 +151,7 @@ PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering
             file_name
         };
         return CALL_FUNCTION_WITH_ARGS1(
-            _python_builtin_open.asObject0(),
+            NUITKA_ACCESS_BUILTIN( open ),
             args
         );
 
@@ -159,7 +163,7 @@ PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering
             mode
         };
         return CALL_FUNCTION_WITH_ARGS2(
-            _python_builtin_open.asObject0(),
+            NUITKA_ACCESS_BUILTIN( open ),
             args
         );
     }
@@ -171,13 +175,13 @@ PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering
             buffering
         };
         return CALL_FUNCTION_WITH_ARGS3(
-            _python_builtin_open.asObject0(),
+            NUITKA_ACCESS_BUILTIN( open ),
             args
         );
     }
 }
 
-PyObject *BUILTIN_CHR( unsigned char c )
+PyObject *STRING_FROM_CHAR( unsigned char c )
 {
     // TODO: A switch statement might be faster, because no object needs to be
     // created at all, this here is how CPython does it.
@@ -232,7 +236,7 @@ PyObject *BUILTIN_ORD( PyObject *value )
 
         if (likely( size == 1 ))
         {
-            result = long( ((unsigned char *)PyBytes_AS_STRING( value ))[0] );
+            result = (long)( ((unsigned char *)PyBytes_AS_STRING( value ))[0] );
         }
         else
         {
@@ -246,7 +250,7 @@ PyObject *BUILTIN_ORD( PyObject *value )
 
         if (likely( size == 1 ))
         {
-            result = long( ((unsigned char *)PyByteArray_AS_STRING( value ))[0] );
+            result = (long)( ((unsigned char *)PyByteArray_AS_STRING( value ))[0] );
         }
         else
         {
@@ -270,9 +274,9 @@ PyObject *BUILTIN_ORD( PyObject *value )
         if (likely( size == 1 ))
         {
 #if PYTHON_VERSION >= 330
-            result = long( PyUnicode_READ_CHAR( value, 0 ) );
+            result = (long)( PyUnicode_READ_CHAR( value, 0 ) );
 #else
-            result = long( *PyUnicode_AS_UNICODE( value ) );
+            result = (long)( *PyUnicode_AS_UNICODE( value ) );
 #endif
         }
         else
@@ -589,13 +593,11 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 }
 #endif
 
-extern PyObject *const_str_plain_range;
+NUITKA_DEFINE_BUILTIN( range );
 
-static PythonBuiltin _python_builtin_range( &const_str_plain_range );
-
+#if PYTHON_VERSION < 300
 PyObject *BUILTIN_RANGE( PyObject *boundary )
 {
-#if PYTHON_VERSION < 300
     PyObject *boundary_temp = TO_RANGE_ARG( boundary, "end" );
 
     if (unlikely( boundary_temp == NULL ))
@@ -611,8 +613,10 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
 
         PyObject *args[] = { boundary_temp };
 
+        NUITKA_ASSIGN_BUILTIN( range );
+
         PyObject *result = CALL_FUNCTION_WITH_ARGS1(
-            _python_builtin_range.asObject0(),
+            NUITKA_ACCESS_BUILTIN( range ),
             args
         );
 
@@ -623,19 +627,10 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
     Py_DECREF( boundary_temp );
 
     return _BUILTIN_RANGE_INT( start );
-#else
-    PyObject *args[] = { boundary };
-
-    return CALL_FUNCTION_WITH_ARGS1(
-       _python_builtin_range.asObject0(),
-       args
-    );
-#endif
 }
 
 PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 {
-#if PYTHON_VERSION < 300
     PyObject *low_temp = TO_RANGE_ARG( low, "start" );
 
     if (unlikely( low_temp == NULL ))
@@ -675,8 +670,10 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
         PyTuple_SET_ITEM( pos_args, 0, low_temp );
         PyTuple_SET_ITEM( pos_args, 1, high_temp );
 
+        NUITKA_ASSIGN_BUILTIN( range );
+
         PyObject *result = CALL_FUNCTION_WITH_POSARGS(
-            _python_builtin_range.asObject0(),
+            NUITKA_ACCESS_BUILTIN( range ),
             pos_args
         );
 
@@ -691,25 +688,10 @@ PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high )
 
         return _BUILTIN_RANGE_INT2( start, end );
     }
-#else
-    PyObject *pos_args = PyTuple_New( 2 );
-    PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( low ) );
-    PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( high ) );
-
-    PyObject *result = CALL_FUNCTION_WITH_POSARGS(
-        _python_builtin_range.asObject0(),
-        pos_args
-    );
-
-     Py_DECREF( pos_args );
-
-     return result;
-#endif
 }
 
 PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 {
-#if PYTHON_VERSION < 300
     PyObject *low_temp = TO_RANGE_ARG( low, "start" );
 
     if (unlikely( low_temp == NULL ))
@@ -767,8 +749,10 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
         PyTuple_SET_ITEM( pos_args, 1, high_temp );
         PyTuple_SET_ITEM( pos_args, 2, step_temp );
 
+        NUITKA_ASSIGN_BUILTIN( range );
+
         PyObject *result = CALL_FUNCTION_WITH_POSARGS(
-            _python_builtin_range.asObject0(),
+            NUITKA_ACCESS_BUILTIN( range ),
             pos_args
         );
 
@@ -790,31 +774,13 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 
         return _BUILTIN_RANGE_INT3( start, end, step_long );
     }
-#else
-    PyObject *pos_args = PyTuple_New( 3 );
-    PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( low ) );
-    PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( high ) );
-    PyTuple_SET_ITEM( pos_args, 2, INCREASE_REFCOUNT( step ) );
-
-    PyObject *result = CALL_FUNCTION_WITH_POSARGS(
-        _python_builtin_range.asObject0(),
-        pos_args
-    );
-
-    Py_DECREF( pos_args );
-
-    return result;
-#endif
 }
 
-#if PYTHON_VERSION < 300
-extern PyObject *const_str_plain_xrange;
-static PythonBuiltin _python_builtin_xrange( &const_str_plain_xrange );
-#else
-extern PyObject *const_str_plain_range;
-static PythonBuiltin _python_builtin_xrange( &const_str_plain_range );
 #endif
 
+#if PYTHON_VERSION < 300
+NUITKA_DEFINE_BUILTIN( xrange );
+#endif
 
 /* Built-in xrange (Python2) or xrange (Python3) with one argument. */
 PyObject *BUILTIN_XRANGE1( PyObject *low )
@@ -823,10 +789,21 @@ PyObject *BUILTIN_XRANGE1( PyObject *low )
         low
     };
 
+#if PYTHON_VERSION < 300
+    NUITKA_ASSIGN_BUILTIN( xrange );
+
     return CALL_FUNCTION_WITH_ARGS1(
-        _python_builtin_xrange.asObject0(),
+        NUITKA_ACCESS_BUILTIN( xrange ),
         args
     );
+#else
+    NUITKA_ASSIGN_BUILTIN( range );
+
+    return CALL_FUNCTION_WITH_ARGS1(
+        NUITKA_ACCESS_BUILTIN( range ),
+        args
+    );
+#endif
 }
 
 /* Built-in xrange (Python2) or xrange (Python3) with two arguments. */
@@ -837,10 +814,21 @@ PyObject *BUILTIN_XRANGE2( PyObject *low, PyObject *high )
         high
     };
 
+#if PYTHON_VERSION < 300
+    NUITKA_ASSIGN_BUILTIN( xrange );
+
     return CALL_FUNCTION_WITH_ARGS2(
-        _python_builtin_xrange.asObject0(),
+        NUITKA_ACCESS_BUILTIN( xrange ),
         args
     );
+#else
+    NUITKA_ASSIGN_BUILTIN( range );
+
+    return CALL_FUNCTION_WITH_ARGS2(
+        NUITKA_ACCESS_BUILTIN( range ),
+        args
+    );
+#endif
 }
 
 /* Built-in xrange (Python2) or xrange (Python3) with three arguments. */
@@ -852,10 +840,22 @@ PyObject *BUILTIN_XRANGE3( PyObject *low, PyObject *high, PyObject *step )
         step
     };
 
+#if PYTHON_VERSION < 300
+    NUITKA_ASSIGN_BUILTIN( xrange );
+
     return CALL_FUNCTION_WITH_ARGS3(
-        _python_builtin_xrange.asObject0(),
+        NUITKA_ACCESS_BUILTIN( xrange ),
         args
     );
+#else
+    NUITKA_ASSIGN_BUILTIN( range );
+
+    return CALL_FUNCTION_WITH_ARGS3(
+        NUITKA_ACCESS_BUILTIN( range ),
+        args
+    );
+
+#endif
 }
 
 PyObject *BUILTIN_LEN( PyObject *value )
@@ -872,9 +872,7 @@ PyObject *BUILTIN_LEN( PyObject *value )
     return PyInt_FromSsize_t( res );
 }
 
-extern PyObject *const_str_plain___import__;
-
-static PythonBuiltin _python_builtin_import( &const_str_plain___import__ );
+NUITKA_DEFINE_BUILTIN( __import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
@@ -891,8 +889,10 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
     PyTuple_SET_ITEM( pos_args, 3, INCREASE_REFCOUNT( import_items ) );
     PyTuple_SET_ITEM( pos_args, 4, INCREASE_REFCOUNT( level ) );
 
+    NUITKA_ASSIGN_BUILTIN( __import__ );
+
     PyObject *import_result = CALL_FUNCTION_WITH_POSARGS(
-        _python_builtin_import.asObject0(),
+        NUITKA_ACCESS_BUILTIN( __import__ ),
         pos_args
     );
 
@@ -939,8 +939,12 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
         return false;
     }
 
-    while ( PyObject *item = ITERATOR_NEXT( iter ) )
+
+    for(;;)
     {
+        PyObject *item = ITERATOR_NEXT( iter );
+        if ( item == NULL ) break;
+
         assert( Nuitka_String_Check( item ) );
 
         // TODO: Not yet clear, what happens with __all__ and "_" of its
@@ -979,12 +983,11 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
 // behaviour.
 
 #if PYTHON_VERSION >= 300
-extern PyObject *const_str_plain_print;
 extern PyObject *const_str_plain_end;
 extern PyObject *const_str_plain_file;
 extern PyObject *const_str_empty;
 
-static PythonBuiltin _python_builtin_print( &const_str_plain_print );
+NUITKA_DEFINE_BUILTIN( print );
 #endif
 
 
@@ -1012,10 +1015,12 @@ bool PRINT_NEW_LINE_TO( PyObject *file )
     Py_DECREF( file );
     return true;
 #else
+    NUITKA_ASSIGN_BUILTIN( print );
+
     if (likely( file == NULL ))
     {
         PyObject *result = CALL_FUNCTION_NO_ARGS(
-            _python_builtin_print.asObject0()
+            NUITKA_ACCESS_BUILTIN( print )
         );
         Py_XDECREF( result );
         return result != NULL;
@@ -1026,7 +1031,7 @@ bool PRINT_NEW_LINE_TO( PyObject *file )
         PyDict_SetItem( kw_args, const_str_plain_file, GET_STDOUT() );
 
         PyObject *result = CALL_FUNCTION_WITH_KEYARGS(
-            _python_builtin_print.asObject0(),
+            NUITKA_ACCESS_BUILTIN( print ),
             kw_args
         );
 
@@ -1108,12 +1113,14 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
 
     return true;
 #else
+    NUITKA_ASSIGN_BUILTIN( print );
+
     if (likely( file == NULL ))
     {
         PyObject *args[] = { object };
 
         PyObject *result = CALL_FUNCTION_WITH_ARGS1(
-            _python_builtin_print.asObject0(),
+            NUITKA_ACCESS_BUILTIN( print ),
             args
         );
 
@@ -1131,7 +1138,7 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         PyTuple_SET_ITEM( print_args, 0, INCREASE_REFCOUNT( object ) );
 
         PyObject *res = CALL_FUNCTION(
-            _python_builtin_print.asObject0(),
+            NUITKA_ACCESS_BUILTIN( print ),
             print_args,
             print_kw
         );
@@ -1993,8 +2000,6 @@ PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *valu
 PyDictObject *dict_builtin = NULL;
 PyModuleObject *builtin_module = NULL;
 
-#define ASSIGN_BUILTIN( name ) _python_original_builtin_value_##name = LOOKUP_BUILTIN( const_str_plain_##name );
-
 static PyTypeObject Nuitka_BuiltinModule_Type =
 {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
@@ -2024,7 +2029,7 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
     }
     if ( res == 1 )
     {
-        _python_builtin_open.update( value );
+        NUITKA_UPDATE_BUILTIN( open, value );
         found = true;
     }
 
@@ -2039,7 +2044,7 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
 
         if ( res == 1 )
         {
-            _python_builtin_import.update( value );
+            NUITKA_UPDATE_BUILTIN( __import__, value );
             found = true;
         }
     }
@@ -2056,7 +2061,7 @@ int Nuitka_BuiltinModule_SetAttr( PyModuleObject *module, PyObject *name, PyObje
 
         if ( res == 1 )
         {
-            _python_builtin_print.update( value );
+            NUITKA_UPDATE_BUILTIN( print, value );
             found = true;
         }
     }
@@ -2362,7 +2367,7 @@ PyObject *callPythonFunction( PyObject *func, PyObject **args, int count )
     if ( argdefs != NULL )
     {
         defaults = &PyTuple_GET_ITEM( argdefs, 0 );
-        nd = int( Py_SIZE( argdefs ) );
+        nd = (int)( Py_SIZE( argdefs ) );
     }
 
     PyObject *result = PyEval_EvalCodeEx(
@@ -2431,7 +2436,7 @@ static PyObject *_fast_function_noargs( PyObject *func )
     if ( argdefs != NULL )
     {
         defaults = &PyTuple_GET_ITEM( argdefs, 0 );
-        nd = int( Py_SIZE( argdefs ) );
+        nd = (int)( Py_SIZE( argdefs ) );
     }
 
     PyObject *result = PyEval_EvalCodeEx(
@@ -2468,7 +2473,7 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
             return NULL;
         }
 
-        Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
+        struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)called;
 
         PyObject *result;
 
@@ -2512,7 +2517,7 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
     }
     else if ( Nuitka_Method_Check( called ) )
     {
-        Nuitka_MethodObject *method = (Nuitka_MethodObject *)called;
+        struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
 
         // Unbound method without arguments, let the error path be slow.
         if ( method->m_object != NULL )
@@ -2522,7 +2527,7 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
                 return NULL;
             }
 
-            Nuitka_FunctionObject *function = method->m_function;
+            struct Nuitka_FunctionObject *function = method->m_function;
             PyObject *result;
 
             if ( function->m_args_simple && 1 == function->m_args_positional_count )
@@ -2776,28 +2781,25 @@ PyObject *MAKE_RELATIVE_PATH( PyObject *relative )
 
 #ifdef _NUITKA_EXE
 
-#define DEFINE_BUILTIN( name ) extern PyObject *const_str_plain_##name; PyObject *_python_original_builtin_value_##name = NULL;
-
-DEFINE_BUILTIN( type )
-DEFINE_BUILTIN( len )
-DEFINE_BUILTIN( range )
-DEFINE_BUILTIN( repr )
-DEFINE_BUILTIN( int )
-DEFINE_BUILTIN( iter )
+NUITKA_DEFINE_BUILTIN( type )
+NUITKA_DEFINE_BUILTIN( len )
+NUITKA_DEFINE_BUILTIN( repr )
+NUITKA_DEFINE_BUILTIN( int )
+NUITKA_DEFINE_BUILTIN( iter )
 #if PYTHON_VERSION < 300
-DEFINE_BUILTIN( long )
+NUITKA_DEFINE_BUILTIN( long )
 #endif
 
 void _initBuiltinOriginalValues()
 {
-    ASSIGN_BUILTIN( type );
-    ASSIGN_BUILTIN( len );
-    ASSIGN_BUILTIN( range );
-    ASSIGN_BUILTIN( repr );
-    ASSIGN_BUILTIN( int );
-    ASSIGN_BUILTIN( iter );
+    NUITKA_ASSIGN_BUILTIN( type );
+    NUITKA_ASSIGN_BUILTIN( len );
+    NUITKA_ASSIGN_BUILTIN( range );
+    NUITKA_ASSIGN_BUILTIN( repr );
+    NUITKA_ASSIGN_BUILTIN( int );
+    NUITKA_ASSIGN_BUILTIN( iter );
 #if PYTHON_VERSION < 300
-    ASSIGN_BUILTIN( long );
+    NUITKA_ASSIGN_BUILTIN( long );
 #endif
 
     CHECK_OBJECT( _python_original_builtin_value_range );
@@ -3763,7 +3765,7 @@ PyObject *DEEP_COPY( PyObject *value )
             Py_ssize_t size = mp->ma_keys->dk_size;
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
-                PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+                struct PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
 
                 PyObject *value2;
 
@@ -3864,7 +3866,7 @@ static Py_hash_t DEEP_HASH_INIT( PyObject *value )
     // To avoid warnings about reduced sizes, we put an intermediate value
     // that is size_t.
     size_t value2 = (size_t)value;
-    Py_hash_t result = Py_hash_t( value2 );
+    Py_hash_t result = (Py_hash_t)( value2 );
 
     if ( Py_TYPE( value ) != &PyType_Type )
     {
@@ -3878,7 +3880,7 @@ static void DEEP_HASH_BLOB( Py_hash_t *hash, char const *s, Py_ssize_t size )
 {
     while( size > 0 )
     {
-        *hash = ( 1000003 * (*hash) ) ^ Py_hash_t( *s++ );
+        *hash = ( 1000003 * (*hash) ) ^ (Py_hash_t)( *s++ );
         size--;
     }
 }

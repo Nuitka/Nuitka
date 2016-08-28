@@ -172,7 +172,7 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
 };
 
 // tp_repr slot, decide how a function shall be output
-static PyObject *Nuitka_Frame_tp_repr( Nuitka_FrameObject *nuitka_frame )
+static PyObject *Nuitka_Frame_tp_repr( struct Nuitka_FrameObject *nuitka_frame )
 {
 #if PYTHON_VERSION < 300
     return PyString_FromFormat(
@@ -190,7 +190,7 @@ static PyObject *Nuitka_Frame_tp_repr( Nuitka_FrameObject *nuitka_frame )
     );
 }
 
-static void Nuitka_Frame_tp_dealloc( Nuitka_FrameObject *nuitka_frame )
+static void Nuitka_Frame_tp_dealloc( struct Nuitka_FrameObject *nuitka_frame )
 {
 #ifndef __NUITKA_NO_ASSERT__
     // Save the current exception, if any, we must to not corrupt it.
@@ -298,7 +298,7 @@ static void Nuitka_Frame_tp_clear( PyFrameObject *frame )
 
 #if PYTHON_VERSION >= 340
 
-extern PyObject *Nuitka_Generator_close( Nuitka_GeneratorObject *generator, PyObject *args );
+extern PyObject *Nuitka_Generator_close( struct Nuitka_GeneratorObject *generator, PyObject *args );
 
 static PyObject *Nuitka_Frame_clear( PyFrameObject *frame )
 {
@@ -320,7 +320,7 @@ static PyObject *Nuitka_Frame_clear( PyFrameObject *frame )
 
         assert( Nuitka_Generator_Check( frame->f_gen ) );
 
-        Nuitka_GeneratorObject *generator = (Nuitka_GeneratorObject *)frame->f_gen;
+        struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)frame->f_gen;
         frame->f_gen = NULL;
 
         PyObject *close_result = Nuitka_Generator_close(
@@ -356,7 +356,7 @@ static PyObject *Nuitka_Frame_sizeof( PyFrameObject *frame )
         PyTuple_GET_SIZE( frame->f_code->co_cellvars ) +
         PyTuple_GET_SIZE( frame->f_code->co_freevars );
 
-    return PyInt_FromSsize_t( sizeof( Nuitka_FrameObject ) + slots * sizeof(PyObject *) );
+    return PyInt_FromSsize_t( sizeof( struct Nuitka_FrameObject ) + slots * sizeof(PyObject *) );
 }
 
 static PyMethodDef Nuitka_Frame_methods[] =
@@ -372,7 +372,7 @@ PyTypeObject Nuitka_Frame_Type =
 {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     "compiled_frame",
-    sizeof(Nuitka_FrameObject),
+    sizeof(struct Nuitka_FrameObject),
     sizeof(PyObject *),
     (destructor)Nuitka_Frame_tp_dealloc,        // tp_dealloc
     0,                                          // tp_print
@@ -431,7 +431,7 @@ static PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module, bool is_
     Py_ssize_t nfrees = PyTuple_GET_SIZE( code->co_freevars );
     Py_ssize_t extras = code->co_stacksize + code->co_nlocals + ncells + nfrees;
 
-    Nuitka_FrameObject *result = PyObject_GC_NewVar( Nuitka_FrameObject, &Nuitka_Frame_Type, extras );
+    struct Nuitka_FrameObject *result = PyObject_GC_NewVar( struct Nuitka_FrameObject, &Nuitka_Frame_Type, extras );
 
     if (unlikely( result == NULL ))
     {

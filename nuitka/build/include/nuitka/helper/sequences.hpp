@@ -48,7 +48,7 @@ NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_BOOL( PyObject *element, PyOb
 
     if (unlikely( result == -1 ))
     {
-        return NULL;
+        return false;
     }
 
     return result == 1;
@@ -60,7 +60,7 @@ NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *element, 
 
     if (unlikely( result == -1 ))
     {
-        return NULL;
+        return false;
     }
 
     return result == 0;

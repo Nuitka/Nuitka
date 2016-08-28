@@ -22,7 +22,7 @@
 
 #include "structmember.h"
 
-static PyObject *Nuitka_Method_get__doc__( Nuitka_MethodObject *method, void *closure )
+static PyObject *Nuitka_Method_get__doc__( struct Nuitka_MethodObject *method, void *closure )
 {
     return INCREASE_REFCOUNT( method->m_function->m_doc );
 }
@@ -33,7 +33,7 @@ static PyGetSetDef Nuitka_Method_getsets[] =
     { NULL }
 };
 
-#define OFF( x ) offsetof( Nuitka_MethodObject, x )
+#define OFF( x ) offsetof( struct Nuitka_MethodObject, x )
 
 static PyMemberDef Nuitka_Method_members[] =
 {
@@ -45,7 +45,7 @@ static PyMemberDef Nuitka_Method_members[] =
     { NULL }
 };
 
-static PyObject *Nuitka_Method_reduce( Nuitka_MethodObject *method )
+static PyObject *Nuitka_Method_reduce( struct Nuitka_MethodObject *method )
 {
     PyErr_Format(
         PyExc_TypeError,
@@ -55,7 +55,7 @@ static PyObject *Nuitka_Method_reduce( Nuitka_MethodObject *method )
     return NULL;
 }
 
-static PyObject *Nuitka_Method_reduce_ex( Nuitka_MethodObject *method, PyObject *args )
+static PyObject *Nuitka_Method_reduce_ex( struct Nuitka_MethodObject *method, PyObject *args )
 {
     int proto;
 
@@ -72,7 +72,7 @@ static PyObject *Nuitka_Method_reduce_ex( Nuitka_MethodObject *method, PyObject 
     return NULL;
 }
 
-static PyObject *Nuitka_Method_deepcopy( Nuitka_MethodObject *method, PyObject *memo )
+static PyObject *Nuitka_Method_deepcopy( struct Nuitka_MethodObject *method, PyObject *memo )
 {
     assert( Nuitka_Method_Check( (PyObject *)method ));
 
@@ -213,7 +213,7 @@ static char const *GET_CALLABLE_NAME( PyObject *object )
     }
 }
 
-static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *args, PyObject *kw )
+static PyObject *Nuitka_Method_tp_call( struct Nuitka_MethodObject *method, PyObject *args, PyObject *kw )
 {
     Py_ssize_t arg_count = PyTuple_Size( args );
 
@@ -273,7 +273,7 @@ static PyObject *Nuitka_Method_tp_call( Nuitka_MethodObject *method, PyObject *a
 }
 
 
-static PyObject *Nuitka_Method_tp_descr_get( Nuitka_MethodObject *method, PyObject *object, PyObject *klass )
+static PyObject *Nuitka_Method_tp_descr_get( struct Nuitka_MethodObject *method, PyObject *object, PyObject *klass )
 {
     // Don't rebind already bound methods.
     if ( method->m_object != NULL )
@@ -299,7 +299,7 @@ static PyObject *Nuitka_Method_tp_descr_get( Nuitka_MethodObject *method, PyObje
     return Nuitka_Method_New( method->m_function, object, klass );
 }
 
-static PyObject *Nuitka_Method_tp_getattro( Nuitka_MethodObject *method, PyObject *name )
+static PyObject *Nuitka_Method_tp_getattro( struct Nuitka_MethodObject *method, PyObject *name )
 {
     PyObject *descr = _PyType_Lookup( &Nuitka_Method_Type, name );
 
@@ -328,7 +328,7 @@ static PyObject *Nuitka_Method_tp_getattro( Nuitka_MethodObject *method, PyObjec
 }
 
 
-static long Nuitka_Method_tp_traverse( Nuitka_MethodObject *method, visitproc visit, void *arg )
+static long Nuitka_Method_tp_traverse( struct Nuitka_MethodObject *method, visitproc visit, void *arg )
 {
     Py_VISIT( method->m_function );
     Py_VISIT( method->m_object );
@@ -338,7 +338,7 @@ static long Nuitka_Method_tp_traverse( Nuitka_MethodObject *method, visitproc vi
 }
 
  // tp_repr slot, decide how a function shall be output
-static PyObject *Nuitka_Method_tp_repr( Nuitka_MethodObject *method )
+static PyObject *Nuitka_Method_tp_repr( struct Nuitka_MethodObject *method )
 {
     if ( method->m_object == NULL )
     {
@@ -409,7 +409,7 @@ static PyObject *Nuitka_Method_tp_repr( Nuitka_MethodObject *method )
 }
 
 #if PYTHON_VERSION < 300
-static int Nuitka_Method_tp_compare( Nuitka_MethodObject *a, Nuitka_MethodObject *b )
+static int Nuitka_Method_tp_compare( struct Nuitka_MethodObject *a, struct Nuitka_MethodObject *b )
 {
     if ( a->m_function->m_counter < b->m_function->m_counter )
     {
@@ -438,7 +438,7 @@ static int Nuitka_Method_tp_compare( Nuitka_MethodObject *a, Nuitka_MethodObject
 }
 #endif
 
-static PyObject *Nuitka_Method_tp_richcompare( Nuitka_MethodObject *a, Nuitka_MethodObject *b, int op )
+static PyObject *Nuitka_Method_tp_richcompare( struct Nuitka_MethodObject *a, struct Nuitka_MethodObject *b, int op )
 {
     if ( op != Py_EQ && op != Py_NE )
     {
@@ -488,18 +488,18 @@ static PyObject *Nuitka_Method_tp_richcompare( Nuitka_MethodObject *a, Nuitka_Me
 }
 
 
-static long Nuitka_Method_tp_hash( Nuitka_MethodObject *method )
+static long Nuitka_Method_tp_hash( struct Nuitka_MethodObject *method )
 {
     // Just give the hash of the method function, that ought to be good enough.
     return method->m_function->m_counter;
 }
 
 // Cache for method object, try to avoid malloc overhead.
-static Nuitka_MethodObject *method_cache_head = NULL;
+static struct Nuitka_MethodObject *method_cache_head = NULL;
 static int method_cache_size = 0;
 static const int max_method_cache_size = 4096;
 
-static void Nuitka_Method_tp_dealloc( Nuitka_MethodObject *method )
+static void Nuitka_Method_tp_dealloc( struct Nuitka_MethodObject *method )
 {
 #ifndef __NUITKA_NO_ASSERT__
     // Save the current exception, if any, we must to not corrupt it.
@@ -575,21 +575,14 @@ static PyObject *Nuitka_Method_tp_new( PyTypeObject* type, PyObject* args, PyObj
 
     assert( Nuitka_Function_Check( func ) );
 
-    return Nuitka_Method_New( (Nuitka_FunctionObject *)func, self, klass );
+    return Nuitka_Method_New( (struct Nuitka_FunctionObject *)func, self, klass );
 }
-
-static const long tp_flags =
-    Py_TPFLAGS_DEFAULT       |
-#if PYTHON_VERSION < 300
-    Py_TPFLAGS_HAVE_WEAKREFS |
-#endif
-    Py_TPFLAGS_HAVE_GC;
 
 PyTypeObject Nuitka_Method_Type =
 {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
     "compiled_method",
-    sizeof(Nuitka_MethodObject),
+    sizeof(struct Nuitka_MethodObject),
     0,
     (destructor)Nuitka_Method_tp_dealloc,        // tp_dealloc
     0,                                           /* tp_print */
@@ -610,12 +603,16 @@ PyTypeObject Nuitka_Method_Type =
     (getattrofunc)Nuitka_Method_tp_getattro,     /* tp_getattro */
     PyObject_GenericSetAttr,                     /* tp_setattro */
     0,                                           /* tp_as_buffer */
-    tp_flags,                                    /* tp_flags */
+    Py_TPFLAGS_DEFAULT       |
+#if PYTHON_VERSION < 300
+    Py_TPFLAGS_HAVE_WEAKREFS |
+#endif
+    Py_TPFLAGS_HAVE_GC,                          /* tp_flags */
     0,                                           /* tp_doc */
     (traverseproc)Nuitka_Method_tp_traverse,     /* tp_traverse */
     0,                                           /* tp_clear */
     (richcmpfunc)Nuitka_Method_tp_richcompare,   /* tp_richcompare */
-    offsetof( Nuitka_MethodObject, m_weakrefs ), /* tp_weaklistoffset */
+    offsetof(struct Nuitka_MethodObject, m_weakrefs), /* tp_weaklistoffset */
     0,                                           /* tp_iter */
     0,                                           /* tp_iternext */
     Nuitka_Method_methods,                       /* tp_methods */
@@ -643,20 +640,21 @@ PyTypeObject Nuitka_Method_Type =
 #endif
 };
 
-PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, PyObject *klass )
+PyObject *Nuitka_Method_New( struct Nuitka_FunctionObject *function, PyObject *object, PyObject *klass )
 {
-    Nuitka_MethodObject *result = method_cache_head;
+    struct Nuitka_MethodObject *result = method_cache_head;
 
     if ( result != NULL )
     {
-        method_cache_head = (Nuitka_MethodObject *)method_cache_head->m_object;
+        method_cache_head = (struct Nuitka_MethodObject *)method_cache_head->m_object;
         method_cache_size -= 1;
 
-        PyObject_INIT( result, &Nuitka_Method_Type );
+        Py_TYPE( result ) = &Nuitka_Method_Type;
+        _Py_NewReference( (PyObject *)result );
     }
     else
     {
-        result = PyObject_GC_New( Nuitka_MethodObject, &Nuitka_Method_Type );
+        result = PyObject_GC_New(struct Nuitka_MethodObject, &Nuitka_Method_Type);
     }
 
     if (unlikely( result == NULL ))
@@ -670,7 +668,7 @@ PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, 
         return NULL;
     }
 
-    result->m_function = (Nuitka_FunctionObject * )INCREASE_REFCOUNT( (PyObject *)function );
+    result->m_function = (struct Nuitka_FunctionObject *)INCREASE_REFCOUNT( (PyObject *)function );
 
     result->m_object = object;
     Py_XINCREF( object );

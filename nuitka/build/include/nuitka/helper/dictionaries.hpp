@@ -26,16 +26,11 @@ static inline Py_ssize_t DICT_SIZE( PyObject *dict )
     return ((PyDictObject *)dict)->ma_used;
 }
 
-static inline PyDictObject *MODULE_DICT( PyModuleObject *module )
-{
-    PyDictObject *dict = (PyDictObject *)(module->md_dict);
-
-    return dict;
-}
-
 static inline PyDictObject *MODULE_DICT( PyObject *module )
 {
-    return MODULE_DICT( (PyModuleObject *)module );
+    PyDictObject *dict = (PyDictObject *)(((PyModuleObject *)module)->md_dict);
+
+    return dict;
 }
 
 #if PYTHON_VERSION < 330
@@ -105,7 +100,7 @@ struct PyDictKeyEntry
     PyObject *me_value; /* This field is only meaningful for combined tables */
 };
 
-typedef PyDictKeyEntry *(*dict_lookup_func)(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
+typedef struct PyDictKeyEntry *(*dict_lookup_func)(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
 
 // Stolen from CPython3.3 dictobject.c
 struct _dictkeysobject
@@ -114,7 +109,7 @@ struct _dictkeysobject
     Py_ssize_t dk_size;
     dict_lookup_func dk_lookup;
     Py_ssize_t dk_usable;
-    PyDictKeyEntry dk_entries[1];
+    struct PyDictKeyEntry dk_entries[1];
 };
 
 typedef PyObject **Nuitka_DictEntryHandle;
@@ -136,7 +131,7 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_
 
     PyObject **value_addr;
 
-    PyDictKeyEntry *entry = dict->ma_keys->dk_lookup( dict, (PyObject *)key, hash, &value_addr );
+    struct PyDictKeyEntry *entry = dict->ma_keys->dk_lookup( dict, (PyObject *)key, hash, &value_addr );
 
     // The "entry" cannot be NULL, it can only be empty for a string dict lookup, but at
     // least assert it.
@@ -178,11 +173,6 @@ NUITKA_MAY_BE_UNUSED static bool DICT_SET_ITEM( PyObject *dict, PyObject *key, P
     }
 
     return true;
-}
-
-NUITKA_MAY_BE_UNUSED static inline bool DICT_SET_ITEM( PyDictObject *dict, PyObject *key, PyObject *value )
-{
-    return DICT_SET_ITEM( (PyObject *)dict, key, value );
 }
 
 NUITKA_MAY_BE_UNUSED static bool DICT_REMOVE_ITEM( PyObject *dict, PyObject *key )
@@ -294,7 +284,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0( PyDictObject *dict, Nuitka
     }
     else
     {
-        DICT_SET_ITEM( dict, (PyObject *)key, value );
+        DICT_SET_ITEM( (PyObject *)dict, (PyObject *)key, value );
     }
 }
 
@@ -314,7 +304,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1( PyDictObject *dict, Nuitka
     }
     else
     {
-        DICT_SET_ITEM( dict, (PyObject *)key, value );
+        DICT_SET_ITEM( (PyObject *)dict, (PyObject *)key, value );
 
         Py_DECREF( value );
     }

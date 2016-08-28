@@ -1240,15 +1240,26 @@ def discoverSourceFiles():
     def getStatic(sub_path):
         return os.path.join(static_src, sub_path.replace('/', os.path.sep))
 
-    result.append(getStatic("CompiledFunctionType.cpp"))
-    result.append(getStatic("CompiledMethodType.cpp"))
-    result.append(getStatic("CompiledGeneratorType.cpp"))
-    if python_version >= "3.5":
-        result.append(getStatic("CompiledCoroutineType.cpp"))
-    result.append(getStatic("CompiledFrameType.cpp"))
-    result.append(getStatic("CompiledCodeHelpers.cpp"))
-    result.append(getStatic("InspectPatcher.cpp"))
-    result.append(getStatic("MetaPathBasedLoader.cpp"))
+    if int(os.environ.get("TRY_C", "0")):
+        result.append(getStatic("CompiledFunctionType.c"))
+        result.append(getStatic("CompiledMethodType.c"))
+        result.append(getStatic("CompiledGeneratorType.c"))
+        if python_version >= "3.5":
+            result.append(getStatic("CompiledCoroutineType.c"))
+        result.append(getStatic("CompiledFrameType.c"))
+        result.append(getStatic("CompiledCodeHelpers.c"))
+        result.append(getStatic("InspectPatcher.c"))
+        result.append(getStatic("MetaPathBasedLoader.c"))
+    else:
+        result.append(getStatic("CompiledFunctionType.cpp"))
+        result.append(getStatic("CompiledMethodType.cpp"))
+        result.append(getStatic("CompiledGeneratorType.cpp"))
+        if python_version >= "3.5":
+            result.append(getStatic("CompiledCoroutineType.cpp"))
+        result.append(getStatic("CompiledFrameType.cpp"))
+        result.append(getStatic("CompiledCodeHelpers.cpp"))
+        result.append(getStatic("InspectPatcher.cpp"))
+        result.append(getStatic("MetaPathBasedLoader.cpp"))
 
     if win_target:
         result.append(getStatic("win32_ucontext_src/fibers_win32.cpp"))
@@ -1271,14 +1282,14 @@ def discoverSourceFiles():
         result.append(getStatic("gen_ucontext_src/fibers_gen.cpp"))
 
     for filename in os.listdir(source_dir):
-        if filename.endswith(".cpp"):
+        if filename.endswith((".cpp",".c")):
             result.append(os.path.join(source_dir, filename))
 
     if not module_mode:
-        result.append(getStatic("MainProgram.cpp"))
-
-    if constants_generated_filename is not None:
-        result.append(constants_generated_filename)
+        if int(os.environ.get("TRY_C", "0")):
+            result.append(getStatic("MainProgram.c"))
+        else:
+            result.append(getStatic("MainProgram.cpp"))
 
     return result
 
@@ -1512,6 +1523,8 @@ if uninstalled_python:
                    )
             ]
         )
+
+# env["CFLAGS"] = env["CCFLAGS"]
 
 Default(target) # @UndefinedVariable
 

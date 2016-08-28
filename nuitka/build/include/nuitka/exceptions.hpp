@@ -152,12 +152,6 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED_UNTRACED( PyObject *exce
 }
 
 
-NUITKA_MAY_BE_UNUSED static inline PyTracebackObject *INCREASE_REFCOUNT( PyTracebackObject *traceback_object )
-{
-    Py_INCREF( traceback_object );
-    return traceback_object;
-}
-
 // Create a traceback for a given frame. TODO: Probably we ought to have a quick
 // cache for it, in case of repeated usage.
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame, int lineno )
@@ -192,7 +186,7 @@ extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_st
 
 // Helper that sets the current thread exception, releasing the current one, for
 // use in this file only.
-NUITKA_MAY_BE_UNUSED inline void SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb )
+NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb )
 {
     PyThreadState *thread_state = PyThreadState_GET();
 

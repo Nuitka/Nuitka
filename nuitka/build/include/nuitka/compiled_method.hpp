@@ -29,21 +29,21 @@
 // The Nuitka_MethodObject is the storage associated with a compiled method
 // instance of which there can be many for each code.
 
-typedef struct {
+struct Nuitka_MethodObject {
     PyObject_HEAD
 
-    Nuitka_FunctionObject *m_function;
+    struct Nuitka_FunctionObject *m_function;
 
     PyObject *m_weakrefs;
 
     PyObject *m_object;
     PyObject *m_class;
-} Nuitka_MethodObject;
+};
 
 extern PyTypeObject Nuitka_Method_Type;
 
 // Make a method out of a function.
-extern PyObject *Nuitka_Method_New( Nuitka_FunctionObject *function, PyObject *object, PyObject *klass );
+extern PyObject *Nuitka_Method_New( struct Nuitka_FunctionObject *function, PyObject *object, PyObject *klass );
 
 static inline bool Nuitka_Method_Check( PyObject *object )
 {

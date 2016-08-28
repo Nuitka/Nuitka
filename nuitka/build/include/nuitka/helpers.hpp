@@ -605,7 +605,11 @@ extern void checkGlobalConstants( void );
 #include <Windows.h>
 extern const unsigned char* constant_bin;
 #else
+#ifdef __cplusplus
 extern "C" const unsigned char constant_bin[];
+#else
+const unsigned char constant_bin[0];
+#endif
 #endif
 
 extern void UNSTREAM_INIT( void );

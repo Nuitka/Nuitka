@@ -43,7 +43,7 @@ static
 #endif
 PyObject *metapath_based_loader = NULL;
 
-static Nuitka_MetaPathBasedLoaderEntry *loader_entries = NULL;
+static struct Nuitka_MetaPathBasedLoaderEntry *loader_entries = NULL;
 
 static char *_kwlist[] = {
     (char *)"fullname",
@@ -397,7 +397,7 @@ extern PyObject *const_str_plain___path__;
 extern PyObject *const_str_plain___file__;
 extern PyObject *const_str_plain___loader__;
 
-static PyObject *loadModule( PyObject *module_name, Nuitka_MetaPathBasedLoaderEntry *entry )
+static PyObject *loadModule( PyObject *module_name, struct Nuitka_MetaPathBasedLoaderEntry *entry )
 {
 #ifdef _NUITKA_STANDALONE
     if ( ( entry->flags & NUITKA_SHLIB_FLAG ) != 0 )

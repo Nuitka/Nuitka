@@ -44,8 +44,6 @@ struct __initResourceConstants
         );
     }
 } __initResourceConstants_static_initializer;
-#else
-extern "C" const unsigned char constant_bin[];
 #endif
 
 static void _createGlobalConstants( void )

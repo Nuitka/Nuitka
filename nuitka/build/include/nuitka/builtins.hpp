@@ -41,54 +41,25 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
     return result;
 }
 
-class PythonBuiltin
-{
-public:
-    explicit PythonBuiltin( PyObject **name )
-    {
-        this->name = (Nuitka_StringObject **)name;
-        this->value = NULL;
-    }
-
-    PyObject *asObject0()
-    {
-        if ( this->value == NULL )
-        {
-            this->value = LOOKUP_BUILTIN( (PyObject *)*this->name );
-        }
-
-        CHECK_OBJECT( this->value );
-
-        return this->value;
-    }
-
-    void update( PyObject *new_value )
-    {
-        CHECK_OBJECT( new_value );
-
-        this->value = new_value;
-    }
-
-
-private:
-
-    PythonBuiltin( PythonBuiltin const &  ) { assert( false );  }
-
-    Nuitka_StringObject **name;
-    PyObject *value;
-};
-
 extern void _initBuiltinModule();
+
+#define NUITKA_DECLARE_BUILTIN( name ) extern PyObject *_python_original_builtin_value_##name;
+#define NUITKA_DEFINE_BUILTIN( name ) extern PyObject *const_str_plain_##name; PyObject *_python_original_builtin_value_##name = NULL;
+#define NUITKA_ASSIGN_BUILTIN( name ) if ( _python_original_builtin_value_##name == NULL ) _python_original_builtin_value_##name = LOOKUP_BUILTIN( const_str_plain_##name );
+#define NUITKA_UPDATE_BUILTIN( name, value ) _python_original_builtin_value_##name = value;
+#define NUITKA_ACCESS_BUILTIN( name ) ( _python_original_builtin_value_##name )
 
 #ifdef _NUITKA_EXE
 // Original builtin values, currently only used for assertions.
-extern PyObject *_python_original_builtin_value_type;
-extern PyObject *_python_original_builtin_value_len;
-extern PyObject *_python_original_builtin_value_range;
-extern PyObject *_python_original_builtin_value_repr;
-extern PyObject *_python_original_builtin_value_int;
-extern PyObject *_python_original_builtin_value_iter;
-extern PyObject *_python_original_builtin_value_long;
+NUITKA_DECLARE_BUILTIN( type );
+NUITKA_DECLARE_BUILTIN( len );
+NUITKA_DECLARE_BUILTIN( range );
+NUITKA_DECLARE_BUILTIN( repr );
+NUITKA_DECLARE_BUILTIN( int );
+NUITKA_DECLARE_BUILTIN( iter );
+#if PYTHON_VERSION < 300
+NUITKA_DECLARE_BUILTIN( long );
+#endif
 
 extern void _initBuiltinOriginalValues();
 #endif
