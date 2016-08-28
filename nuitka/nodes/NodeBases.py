@@ -1373,6 +1373,17 @@ class ExpressionMixin:
 
         return iter_node, None, None
 
+    def computeExpressionNext1(self, next_node, trace_collection):
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return next_node, None, None
+
     def computeExpressionAsyncIter(self, iter_node, trace_collection):
         self.onContentEscapes(trace_collection)
 

@@ -156,14 +156,10 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
         )
 
     def computeExpression(self, trace_collection):
-        # TODO: Predict iteration result if possible via SSA variable trace of
-        # the iterator state.
-
-        # Assume exception is possible. TODO: We might query the next from the
-        # source with a computeExpressionNext slot, but we delay that.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return self, None, None
+        return self.getValue().computeExpressionNext1(
+            next_node        = self,
+            trace_collection = trace_collection
+        )
 
 
 class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
