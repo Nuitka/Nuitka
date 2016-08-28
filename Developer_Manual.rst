@@ -51,7 +51,7 @@ Milestones
 4. Type inference, detect and special case the handling of strings, integers,
    lists in the program.
 
-   This milestone is considered in progress
+   This milestone is considered in progress.
 
 5. Add interfacing to C code, so Nuitka can turn a ``ctypes`` binding into an
    efficient binding as written with C.
@@ -89,7 +89,7 @@ should express which of these, we consider done.
 - Final:
 
   We will then round it up and call it "Nuitka 1.0" when this works as expected
-  for a bunch of people. The plan is to reach this goal during 2016. This is
+  for a bunch of people. The plan is to reach this goal during 2017. This is
   based on positive assumptions that may not hold up though.
 
 Of course, all of this may be subject to change.
@@ -218,19 +218,10 @@ For the packages, no real code is allowed in them and they must be lower case,
 like e.g. ``nuitka`` or ``codegen``. This is to distinguish them from the
 modules.
 
-Packages shall only be used to group packages. In ``nuitka.codegen`` the code
+Packages shall only be used to group things. In ``nuitka.codegen`` the code
 generation packages are located, while the main interface is
 ``nuitka.codegen.CodeGeneration`` and may then use most of the entries as local
-imports. There is no code in packages.
-
-The use of a global package ``nuitka``, originally introduced by Nicolas, makes
-the packaging of Nuitka with ``distutils`` etc. easier and lowers the
-requirements on changes to the ``sys.path`` if necessary.
-
-.. note::
-
-   There are not yet enough packages inside Nuitka, feel free to propose changes
-   as you see fit.
+imports. There is no code in packages themselves.
 
 Names of modules should be plurals if they contain classes. Example is ``Nodes``
 contains ``Node`` class.
@@ -245,9 +236,9 @@ warning by "PyLint" e.g. "Used built-in function 'map'". We should use list
 contractions instead, because they are more readable.
 
 List contractions are a generalization for all of them. We love readability and
-with Nuitka as a compiler will there won't be any performance difference at all.
+with Nuitka as a compiler, there won't be any performance difference at all.
 
-There are cases where a list contraction are faster because you can avoid to
+There are cases where a list contraction is faster because you can avoid to
 make a function call. And there may be cases, where map is faster, if a function
 must be called. These calls can be very expensive in CPython, and if you
 introduce a function, just for ``map``, then it might be slower.
@@ -296,12 +287,11 @@ no use, and in Nuitka, every API is internal API. One exception may be the
 The "git flow" model
 ====================
 
-* The flow was is used for releases and occasionally subsequent hot fixes.
+* The flow is used for releases and occasionally subsequent hot fixes.
 
   A few feature branches were used so far. It allows for quick delivery of fixes
   to both the stable and the development version, supported by a git plug-in,
-  that can be installed via "apt-get install git-flow" on latest Debian Testing
-  at least.
+  that can be installed via "apt-get install git-flow".
 
 * Stable (master branch)
 
@@ -342,7 +332,7 @@ So, we currently use "PyLint" with options defined in a script.
 
 .. code-block:: sh
 
-   ./misc/check-with-pylint --hide-todos
+   ./misc/check-with-pylint
 
 Ideally the above command gives no warnings. This is currently the case.
 
@@ -410,15 +400,21 @@ For fine grained control, it has the following options::
                         The standard CPython3.4 test suite. Execute this for
                         all corner cases to be covered. With Python 2.x these
                         are not run. Default is True.
-  --no-python2.6        Do not use Python2.6 even if available on the system.
+  --skip-cpython35-tests
+                        The standard CPython3.5 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.x these
+                        are not run. Default is True.
+  --no-python2.6        Do not use Python 2.6 even if available on the system.
                         Default is False.
-  --no-python2.7        Do not use Python2.7 even if available on the system.
+  --no-python2.7        Do not use Python 2.7 even if available on the system.
                         Default is False.
-  --no-python3.2        Do not use Python3.2 even if available on the system.
+  --no-python3.2        Do not use Python 3.2 even if available on the system.
                         Default is False.
-  --no-python3.3        Do not use Python3.3 even if available on the system.
+  --no-python3.3        Do not use Python 3.3 even if available on the system.
                         Default is False.
-  --no-python3.4        Do not use Python3.4 even if available on the system.
+  --no-python3.4        Do not use Python 3.4 even if available on the system.
+                        Default is False.
+  --no-python3.5        Do not use Python 3.5 even if available on the system.
                         Default is False.
   --coverage            Make a coverage analysis, that does not really check.
                         Default is False.
@@ -447,9 +443,10 @@ correct, if these "basic" tests pass. The most important constructs and
 built-ins are excercised.
 
 To control the Python version used for testing, you can set the ``PYTHON``
-environment variable to e.g. ``python3.2`` (can only be a path), or execute
-the ``run_all.py`` script directly with the intended version, it is portable
-across all supported Python versions.
+environment variable to e.g. ``python3.2`` (can also be full path), or simply
+execute the ``run_all.py`` script directly with the intended version, as it is
+portable across all supported Python versions, and defaults testing with the
+Python version is run with.
 
 Syntax Tests
 ------------
@@ -989,6 +986,107 @@ get picked from the argument tuple.
 Otherwise, the length of the argument tuple should be checked against its
 position and if possible, values should be taken from there. If it's already set
 (from the keyword dictionary), raise an error instead.
+
+
+SSA form for Nuitka
+-------------------
+
+The SSA form is critical to how optimization works. The so called trace
+collections builds up traces. These are facts about how this works:
+
+   * Assignments draw from a counter unqiue for the variable, which becomes the
+     variable version. This happens during tree building phase.
+
+   * References are associated to the version of the variable active. This can be
+     a merge of branches. Trace collection does do that and provides nodes with
+     the currently active trace for a variable.
+
+The data structures used for trace collection need to be relatively compact
+as the trace information can become easily much more data than the program
+itself.
+
+Every trace collection has these:
+
+   * variable_actives
+
+     Dictionary, where per "variable" the currently used version is. Used to
+     track situations changes in branches. This is the main input for merge
+     process.
+
+   * variable_traces
+
+     Dictionary, where "variable" and "version" form the key. The values are
+     objects with or without an assignment, and a list of usages, which starts
+     out empty.
+
+     These objects have usages appended to them. In "onVariableSet", a new
+     version is allocated, which gives a new object for the dictionary, with an
+     empty usages list, because each write starts a new version. In
+     "onVariableUsage" the version is detected from the current version. It may
+     be not set yet, which means, it's a read of an undefined value (local
+     variable, not a parameter name), or unknown in case of global variable.
+
+     These objects may be told that their value has escaped. This should
+     influence the value friend they attached to the initial assignment. Each
+     usage may have a current value friend state that is different.
+
+When merging branches of conditional statements, the merge shall apply as
+follows:
+
+  * Branches have their own collection, with deviating sets of
+    "variable_actives". These are children of an outer collections
+
+  * Case a) One branch only.
+
+    For that branch a collection is performed. As usual new assignments
+    generate a new version making it "active", references then related to
+    these "active" versions.
+
+    Then, when the branch is merged, for all "active" variables, it is
+    considered, if that is a change related to before the branch. If it's not
+    the same, a merge trace with the branch condition is created with the one
+    active in the collection before that statement.
+
+  * Case b) Two branches.
+
+    When there are two branches, they both as are treated as above, except for
+    the merge.
+
+    When merging, a difference in active variables between the two branches
+    creates the merge trace.
+
+  .. note::
+
+     For conditional expressions, there are always only two branches. Even if
+     you think you have more than one branch, you do not. It's always nested
+     branches, already when it comes out of the parser.
+
+Trace structure, there are different kinds of traces.
+
+ * Initial write of the version
+
+   There may be a initial write for each version. It can only occur at the
+   start of the scope, but not later, and there is only one. This might be
+   known to be "initialized" (parameter variables of functions are like that)
+   or "uninitialized", or "unknown".
+
+ * Merge of other one or two other versions
+
+   This combines two or more previous versions. In cases of loop exits or
+   entries, there are multiple branches to combine potentially. These branches
+   can have vastly different properties.
+
+ * Becoming unknown.
+
+   When control flow escapes, e.g. for a module variable, any write can occur
+   to it, and it's value cannot be trusted to be unchanged. These are then
+   traced as unknown.
+
+All traces have a base class ``VariableTraceBase`` which provides the interface
+to query facts about the state of a variable in that trace. It's e.g. of some
+interest, if a variable must have a value or must not. This allows to e.g. omit
+checks, know what exceptions might raise.
+
 
 Code Generation towards C
 -------------------------
@@ -2169,7 +2267,7 @@ things are not affectable by aliasing in any way.
    a = [ 3 ]
    b = a
 
-   b += [ 4 ] # a is changed
+   b += [4] # a is changed indeed
 
 If we cannot tell, we must assume that ``a`` might be changed. It's either ``b``
 or what ``a`` was before. If the type is not mutable, we can assume the aliasing
@@ -2226,7 +2324,7 @@ Similar is true for this horrible (in Python2) thing:
 
 .. code-block:: python
 
-   range( 10000000000000 )
+   range(10000000000000)
 
 So it's a rather general problem, this time we know:
 
@@ -2457,12 +2555,15 @@ So the collection for loops needs to be two pass for loops. First, to collect
 assignments, and merge these into the start state, before entering the loop
 body. The need to make two passes is special to loops.
 
-For a start, it is done like this. At loop entry, all knowledge is removed about
-everything assigned or changed in the loop. From that basis, the ``break`` exits
-are analysed, and merged. Then, coming back, ``continue`` exits of the loop
-resulting from this, can replace the initial wide reaching removal of knowledge
-with a far smaller one. Merging this will state before loop, we got close to
-no degradation of knowledge, except what's necessary.
+For a start, it is done like this. At loop entry, all pre-existing, but written
+traces, are turned into loop merges. Knowledge is not completely removed about
+everything assigned or changed in the loop, but then it's not trusted anymore.
+
+From that basis, the ``break`` exits are analysed, and merged, building up the
+post loop state, and ``continue`` exits of the loop replacing the unknown part
+of the loop entry state. The loop end is considered a ``continue`` for this
+purpose.
+
 
 Excursion to Conditions
 -----------------------
@@ -2800,8 +2901,8 @@ The basic interface will be added to *all* expressions and a node may override
 it, potentially using trace collection state, as attached during
 ``computeExpression``.
 
-Goal 1
-++++++
+Goal 1 (Reached)
+++++++++++++++++
 
 Initially most things will only be able to give up on about anything. And it
 will be little more than a tool to do simple look-ups in a general form. It will
@@ -2844,8 +2945,8 @@ and then:
 This depends on SSA form to be able to tell us the values of ``a``, ``b``, and
 ``c`` to be written to by constants, which can be forward propagated at no cost.
 
-Goal 2
-++++++
+Goal 2 (Reached)
+++++++++++++++++
 
 The assignments to ``a``, ``b``, and ``c`` shall all become prey to "unused"
 assignment analysis in the next step. They are all only assigned to, and the
@@ -2916,9 +3017,9 @@ Then third goal is to understand all of this:
       for i in range(1000):
           print a
 
-          a.append( i )
+          a.append(i)
 
-      return len( a )
+      return len(a)
 
 .. note::
 
@@ -2945,12 +3046,12 @@ The code should therefore become equivalent to:
       for i in range(1000):
           print a
 
-          a.append( i )
+          a.append(i)
 
-      return len( a )
+      return len(a)
 
-But no other changes must occur, especially not to the "return" statement, it
-must not assume "a" to be constant "[]" but an unknown "a" instead.
+But no other changes must occur, especially not to the ``return`` statement, it
+must not assume ``a`` to be constant "[]" but an unknown ``a`` instead.
 
 With that, we would handle this code correctly and have some form constant value
 propagation in place, handle loops at least correctly, and while it is not much,
@@ -3155,13 +3256,6 @@ etc.
 
   Which then will be properly handled.
 
-* Shelve for caching
-
-  If we ever came to the conclusion to want and cache complex results of
-  analysis, we could do so with the shelve module. We would have to implement
-  ``__deepcopy__`` and then could store in there optimized node structures from
-  start values after parsing.
-
 * Tail recursion optimization.
 
   Functions that return the results of calls, can be optimized. The Stackless
@@ -3182,7 +3276,7 @@ etc.
         a = 1
         b = 2
 
-        exec( """a+=b;c=1""" )
+        exec("""a+=b;c=1""")
 
         return a, c
 
@@ -3194,8 +3288,8 @@ etc.
         a = 1
         b = 2
 
-        a+=b  #
-        c=1   # MaybeLocalVariables for everything except known local ones.
+        a += b  #
+        c = 1   # MaybeLocalVariables for everything except known local ones.
 
         return a, c
 
@@ -3229,95 +3323,6 @@ etc.
 .. raw:: pdf
 
    PageBreak
-
-* SSA form for Nuitka nodes
-
-  * Assignments collect a counter from the variable, which becomes the variable
-    version. This happens during tree building phase.
-
-  * References need to back track to the last assignment on their path, which
-    may be a merge. Trace collection can do that.
-
-  * Data structures
-
-    Every trace collection has these:
-
-    * variable_actives
-
-      Dictionary, where per "variable" the currently used version is. Used to
-      track situations changes in branches. This is the main input for merge
-      process.
-
-    * variable_traces
-
-      Dictionary, where "variable" and "version" form the key. The values are
-      objects with or without an assignment, and a list of usages, which starts
-      out empty.
-
-      These objects have usages appended to them. In "onVariableSet", a new
-      version is allocated, which gives a new object for the dictionary, with an
-      empty usages list, because each write starts a new version. In
-      "onVariableUsage" the version is detected from the current version. It may
-      be not set yet, which means, it's a read of an undefined value (local
-      variable, not a parameter name), or unknown in case of global variable.
-
-      These objects may be told that their value has escaped. This should
-      influence the value friend they attached to the initial assignment. Each
-      usage may have a current value friend state that is different.
-
-  * When merging branches of conditional statements, the merge shall apply as
-    follows.
-
-    * Branches have their own collection, with deviating sets of
-      "variable_actives". These are children of an outer collections
-
-    * Case a) One branch only.
-
-      For that branch a collection is performed. As usual new assignments
-      generate a new version making it "active", references then related to
-      these "active" versions.
-
-      Then, when the branch is merged, for all "active" variables, it is
-      considered, if that is a change related to before the branch. If it's not
-      the same, a merge trace with the branch condition is created with the one
-      active in the collection before that statement.
-
-    * Case b) Two branches.
-
-      When there are two branches, they both as are treated as above, except for
-      the merge.
-
-      When merging, a difference in active variables between the two branches
-      creates the merge trace.
-
-    .. note::
-
-       For conditional expressions, there are always only two branches. Even if
-       you think you have more than one branch, you do not. It's always nested
-       branches, already when it comes out of the parser.
-
-  * Trace structure
-
-    * Initial write of the version
-
-      There may be a initial write for each version. It can only occur at the
-      start of it, but not later, and there is only one. The "value friend" of
-      it.
-
-    * Merge of other one or two other versions
-
-      One could be empty, i.e. the variable would not be assigned. This is kind
-      of the initial write, and the merge references one or multiple "value
-      friends", which are optional.
-
-    * Bunch of read usages. They may allow escape of the value or not. When they
-      do, it's a change. The value friend must be informed of it. If it's a real
-      escape, usage is not known. If it's merely an alias, e.g. the value is now
-      in another variable trace, they could be linked. Otherwise the "value
-      friend" must be demoted immediately to one that gives more vague
-      information.
-
-    This should be reflected in a class "VariableTrace".
 
 * Recursion checks are expensive.
 
