@@ -110,10 +110,46 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         return self.getAssignSource().mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        # This is very complex stuff, pylint: disable=R0912
+        # This is very complex stuff, pylint: disable=R0911,R0912
 
         # TODO: Way too ugly to have global trace kinds just here, and needs to
         # be abstracted somehow. But for now we let it live here: pylint: disable=R0915
+
+        source = self.getAssignSource()
+
+        if source.isExpressionSideEffects():
+            # If the assignment source has side effects, we can put them into a
+            # sequence and compute that instead.
+            statements = [
+                makeStatementExpressionOnlyReplacementNode(
+                    side_effect,
+                    self
+                )
+                for side_effect in
+                source.getSideEffects()
+            ]
+
+            statements.append(self)
+
+            # Remember out parent, we will assign it for the sequence to use.
+            parent = self.parent
+
+            # Need to update ourselves to no longer reference the side effects,
+            # but go to the wrapped thing.
+            self.setAssignSource(source.getExpression())
+
+            result = makeStatementsSequenceReplacementNode(
+                statements = statements,
+                node       = self,
+            )
+            result.parent = parent
+
+            return (
+                result.computeStatementsSequence(trace_collection),
+                "new_statements",
+"""\
+Side effects of assignments promoted to statements."""
+            )
 
         # Let assignment source may re-compute first.
         trace_collection.onExpression(self.getAssignSource())
@@ -163,37 +199,7 @@ Reduced assignment of variable '%s' from itself to mere access of it.""" % varia
                 return None, "new_statements", """\
 Removed assignment of variable '%s' from itself which is known to be defined.""" % variable.getName()
 
-        # If the assignment source has side effects, we can simply evaluate them
-        # beforehand, we have already visited and evaluated them before.
-        if source.isExpressionSideEffects():
-            statements = [
-                makeStatementExpressionOnlyReplacementNode(
-                    side_effect,
-                    self
-                )
-                for side_effect in
-                source.getSideEffects()
-            ]
 
-            statements.append(self)
-
-            parent = self.parent
-            result = makeStatementsSequenceReplacementNode(
-                statements = statements,
-                node       = self,
-            )
-            result.parent = parent
-
-            # Need to update it.
-            self.setAssignSource(source.getExpression())
-            source = self.getAssignSource()
-
-            trace_collection.signalChange(
-                tags       = "new_statements",
-                message    = """\
-Side effects of assignments promoted to statements.""",
-                source_ref = self.getSourceReference()
-            )
 
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
