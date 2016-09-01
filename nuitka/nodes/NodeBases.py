@@ -33,9 +33,11 @@ from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .NodeMakingHelpers import (
     getComputationResult,
+    makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects
 )
+from .shapes.StandardShapes import ShapeUnknown
 
 
 class NodeCheckMetaClass(type):
@@ -407,10 +409,6 @@ class NodeBase(NodeMetaClassBase):
         # Virtual method, pylint: disable=R0201
         return False
 
-    def isIteratorMaking(self):
-        # Virtual method, pylint: disable=R0201
-        return False
-
     def isNumberConstant(self):
         # Virtual method, pylint: disable=R0201
         return False
@@ -480,6 +478,9 @@ class NodeBase(NodeMetaClassBase):
         # Virtual method, pylint: disable=R0201,W0613
 
         return True
+
+    def hasShapeSlotLen(self):
+        return self.getTypeShape().hasShapeSlotLen()
 
     def mayRaiseExceptionIn(self, exception_type, checked_value):
         """ Unless we are told otherwise, everything may raise being iterated. """
@@ -1041,6 +1042,12 @@ class ClosureTakerMixin:
 
 
 class ExpressionMixin:
+    def getValueShape(self):
+        return None
+
+    def getTypeShape(self):
+        return ShapeUnknown
+
     def isCompileTimeConstant(self):
         """ Has a value that we can use at compile time.
 
@@ -1362,7 +1369,40 @@ class ExpressionMixin:
 
         return call_node, None, None
 
+    def computeExpressionLen(self, len_node, trace_collection):
+        shape = self.getTypeShape()
+
+        if shape.hasShapeSlotLen() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template      = "object of type '%s' has no len()",
+                operation     = "len",
+                original_node = len_node,
+                value_node    = self
+            )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return len_node, None, None
+
     def computeExpressionIter1(self, iter_node, trace_collection):
+        shape = self.getTypeShape()
+
+        assert shape is not None, self
+
+        if shape.hasShapeSlotIter() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template      = "'%s' object is not iterable",
+                operation     = "iter",
+                original_node = iter_node,
+                value_node    = self
+            )
+
         self.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.
@@ -1500,6 +1540,14 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
             computation = lambda : not self.getCompileTimeConstant(),
             description = """\
 Compile time constant negation truth value pre-computed."""
+        )
+
+    def computeExpressionLen(self, len_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node        = len_node,
+            computation = lambda : len(self.getCompileTimeConstant()),
+            description = """\
+Compile time constant len value pre-computed."""
         )
 
     def isKnownToHaveAttribute(self, attribute_name):

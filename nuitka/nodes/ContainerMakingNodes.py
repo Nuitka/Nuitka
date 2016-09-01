@@ -28,6 +28,11 @@ from .NodeMakingHelpers import (
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects
 )
+from .shapes.BuiltinTypeShapes import (
+    ShapeTypeList,
+    ShapeTypeSet,
+    ShapeTypeTuple
+)
 
 
 class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
@@ -103,8 +108,14 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
     def isKnownToBeIterable(self, count):
         return count is None or count == len(self.getElements())
 
+    def isKnownToBeIterableAtMin(self, count):
+        return count <= len(self.getElements())
+
     def getIterationValue(self, count):
         return self.getElements()[count]
+
+    def getIterationValueRange(self, start, stop):
+        return self.getElements()[start:stop]
 
     @staticmethod
     def canPredictIterationValues():
@@ -146,6 +157,9 @@ class ExpressionMakeTuple(ExpressionMakeSequenceBase):
             source_ref    = source_ref
         )
 
+    def getTypeShape(self):
+        return ShapeTypeTuple
+
     def getSimulator(self):
         return tuple
 
@@ -163,6 +177,9 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
             elements      = elements,
             source_ref    = source_ref
         )
+
+    def getTypeShape(self):
+        return ShapeTypeList
 
     def getSimulator(self):
         return list
@@ -192,6 +209,9 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
             elements      = elements,
             source_ref    = source_ref
         )
+
+    def getTypeShape(self):
+        return ShapeTypeSet
 
     def getSimulator(self):
         return set

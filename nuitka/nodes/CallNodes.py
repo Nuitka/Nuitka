@@ -67,7 +67,7 @@ class ExpressionCall(ExpressionChildrenHavingBase):
             trace_collection = trace_collection
         )
 
-    def extractPreCallSideEffects(self):
+    def extractSideEffectsPreCall(self):
         args = self.getCallArgs()
         kw = self.getCallKw()
 
@@ -113,7 +113,7 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
     def isExpressionCall(self):
         return True
 
-    def extractPreCallSideEffects(self):
+    def extractSideEffectsPreCall(self):
         args = self.getCallArgs()
 
         return args.extractSideEffects()
@@ -160,7 +160,7 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
     def isExpressionCall(self):
         return True
 
-    def extractPreCallSideEffects(self):
+    def extractSideEffectsPreCall(self):
         kw = self.getCallKw()
 
         return kw.extractSideEffects()
@@ -209,7 +209,7 @@ class ExpressionCallEmpty(ExpressionChildrenHavingBase):
         return True
 
     @staticmethod
-    def extractPreCallSideEffects():
+    def extractSideEffectsPreCall():
         return ()
 
 

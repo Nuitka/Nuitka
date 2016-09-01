@@ -34,8 +34,11 @@ from .NodeBases import (
 )
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
-    wrapExpressionWithNodeSideEffects
+    wrapExpressionWithNodeSideEffects,
+    wrapExpressionWithSideEffects
 )
+from .shapes.BuiltinTypeShapes import ShapeTypeIntOrLong
+from .shapes.StandardShapes import ShapeIterator
 
 
 class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
@@ -44,33 +47,29 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
     builtin_spec = BuiltinOptimization.builtin_len_spec
 
     def getIntegerValue(self):
-        return self.getValue().getIterationLength()
+        value = self.getValue()
+
+        if value.hasShapeSlotLen():
+            return value.getIterationLength()
+        else:
+            return None
 
     def computeExpression(self, trace_collection):
-        new_node, change_tags, change_desc = ExpressionBuiltinSingleArgBase.\
-          computeExpression(
-            self,
+        return self.getValue().computeExpressionLen(
+            len_node         = self,
             trace_collection = trace_collection
         )
 
-        if new_node is self:
-            arg_length = self.getIntegerValue()
+    def getTypeShape(self):
+        return ShapeTypeIntOrLong
 
-            if arg_length is not None:
-                change_tags = "new_constant"
-                change_desc = "Predicted 'len' argument"
+    def mayRaiseException(self, exception_type):
+        value = self.getValue()
 
-                new_node = wrapExpressionWithNodeSideEffects(
-                    new_node = makeConstantReplacementNode(arg_length, self),
-                    old_node = self.getValue()
-                )
+        if value.mayRaiseException(exception_type):
+            return True
 
-                if new_node.isExpressionSideEffects():
-                    change_desc += " maintaining side effects"
-
-                change_desc += '.'
-
-        return new_node, change_tags, change_desc
+        return not value.getTypeShape().hasShapeSlotLen()
 
 
 class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
@@ -79,17 +78,39 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     def computeExpression(self, trace_collection):
         value = self.getValue()
 
-        # Iterator of an iterator can be removed.
-        if value.isIteratorMaking():
-            return value, "new_builtin", "Eliminated useless iterator creation."
-
         return value.computeExpressionIter1(
             iter_node        = self,
             trace_collection = trace_collection
         )
 
-    def isIteratorMaking(self):
-        return True
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        return self, "new_builtin", "Eliminated useless iterator creation."
+
+    def getTypeShape(self):
+        return self.getValue().getTypeShape().getShapeIter()
+
+    def computeExpressionNext1(self, next_node, trace_collection):
+        value = self.getValue()
+
+        if value.isKnownToBeIterableAtMin(1) and \
+           value.canPredictIterationValues():
+            result = wrapExpressionWithSideEffects(
+                new_node     = value.getIterationValue(0),
+                old_node     = value,
+                side_effects = value.getIterationValueRange(1,None)
+            )
+
+            return result, "new_expression", "Pridicted 'next' value from iteration."
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return next_node, None, None
 
     def isKnownToBeIterable(self, count):
         if count is None:
@@ -278,8 +299,9 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
 
         return self, None, None
 
-    def isIteratorMaking(self):
-        return True
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        return self, "new_builtin", "Eliminated useless iterator creation."
+
 
 
 class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):
@@ -319,11 +341,6 @@ class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
             iter_node        = self,
             trace_collection = trace_collection
         )
-
-    # TODO: Questionable optimization based on this. Better to this in the slot
-    # iteration.
-    def isIteratorMaking(self):
-        return True
 
     def isKnownToBeIterable(self, count):
         if count is None:

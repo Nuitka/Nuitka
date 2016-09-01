@@ -26,6 +26,7 @@ import math
 from nuitka import PythonOperators
 
 from .NodeBases import ExpressionChildrenHavingBase
+from .shapes.StandardShapes import ShapeUnknown
 
 
 class ExpressionOperationBase(ExpressionChildrenHavingBase):
@@ -193,6 +194,38 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinary):
         return self, None, None
 
 
+class ShapeBase:
+    def isConstant(self):
+        return True
+
+    def hasShapeSlotLen(self):
+        """ Does the shape include having "__len__" slot. """
+
+        return None
+
+class ShapeLargeConstantValue:
+    def __init__(self, size, shape):
+        self.size = size
+        self.shape = shape
+
+    def getTypeShape(self):
+        return self.shape
+
+    @staticmethod
+    def isConstant():
+        return True
+
+    def hasShapeSlotLen(self):
+        return self.shape.hasShapeSlotLen()
+
+
+class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
+    def __init__(self, size, predictor, shape):
+        ShapeLargeConstantValue.__init__(self, size, shape)
+
+        self.predictor = predictor
+
+
 class ExpressionOperationBinaryMult(ExpressionOperationBinary):
     kind = "EXPRESSION_OPERATION_BINARY_MULT"
 
@@ -205,8 +238,19 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinary):
             source_ref = source_ref
         )
 
+        self.shape = None
+
     def getDetails(self):
         return {}
+
+    def getValueShape(self):
+        return self.shape
+
+    def getTypeShape(self):
+        if self.shape is not None:
+            return self.shape.getTypeShape()
+        else:
+            return ShapeUnknown
 
     def getIterationLength(self):
         left_length = self.getLeft().getIterationLength()
@@ -232,10 +276,12 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinary):
         # ones.
         trace_collection.onExceptionRaiseExit(BaseException)
 
-        operator = self.getOperator()
-        operands = self.getOperands()
+        # Nothing to do anymore for large constants.
+        if self.shape is not None and self.shape.isConstant():
+            return self, None, None
 
-        left, right = operands
+        left  = self.getLeft()
+        right = self.getRight()
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
@@ -245,7 +291,14 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinary):
                 iter_length = left.getIterationLength()
 
                 if iter_length is not None:
-                    if iter_length * right_value > 256:
+                    size = iter_length * right_value
+                    if size > 256:
+                        self.shape = ShapeLargeConstantValuePredictable(
+                            size      = size,
+                            predictor = None, # predictValuesFromRightAndLeftValue,
+                            shape     = left.getTypeShape()
+                        )
+
                         return self, None, None
 
                 if left.isNumberConstant():
@@ -262,7 +315,14 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinary):
                 iter_length = right.getIterationLength()
 
                 if iter_length is not None:
+                    size = iter_length * left_value
                     if iter_length * left_value > 256:
+                        self.shape = ShapeLargeConstantValuePredictable(
+                            size      = size,
+                            predictor = None, # predictValuesFromRightAndLeftValue,
+                            shape     = right.getTypeShape()
+                        )
+
                         return self, None, None
 
             return trace_collection.getCompileTimeComputationResult(
@@ -271,7 +331,7 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinary):
                     left_value,
                     right_value
                 ),
-                description = "Operator '%s' with constant arguments." % operator
+                description = "Operator '*' with constant arguments."
             )
 
         # The value of these nodes escaped and could change its contents.

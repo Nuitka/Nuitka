@@ -51,6 +51,7 @@ tmp_dir = getTempDir()
 PACKAGE_LIST = (
     "nuitka",
     "nuitka/nodes",
+    "nuitka/nodes/shapes",
     "nuitka/tree",
     "nuitka/importing",
     "nuitka/build",

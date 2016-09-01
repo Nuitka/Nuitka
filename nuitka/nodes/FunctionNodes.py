@@ -706,7 +706,7 @@ function call.""" % self.getName()
                     exception  = e.getRealException()
                 ),
                 old_node     = call_node,
-                side_effects = call_node.extractPreCallSideEffects()
+                side_effects = call_node.extractSideEffectsPreCall()
             )
 
             return (

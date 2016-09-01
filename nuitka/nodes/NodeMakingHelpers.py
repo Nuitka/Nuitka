@@ -52,7 +52,7 @@ def makeRaiseExceptionReplacementExpression(expression, exception_type,
 
     if shallWarnImplicitRaises():
         warning(
-            "%s: Will always raise exception '%s(%s)'",
+            '%s: Will always raise exception: "%s(%s)"',
             expression.getSourceReference().getAsString(),
             exception_type,
             exception_value
@@ -87,6 +87,79 @@ def makeRaiseExceptionReplacementExpressionFromInstance(expression, exception):
         expression      = expression,
         exception_type  = exception.__class__.__name__,
         exception_value = value
+    )
+
+
+def makeRaiseExceptionExpressionFromTemplate(exception_type, template,
+                                             template_args, source_ref):
+    from .ExceptionNodes import ExpressionRaiseException
+    from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+    from .OperatorNodes import makeBinaryOperationNode
+    from .ConstantRefNodes import makeConstantRefNode
+
+    return ExpressionRaiseException(
+        exception_type  = ExpressionBuiltinExceptionRef(
+            exception_name = exception_type,
+            source_ref     = source_ref
+        ),
+        exception_value = makeBinaryOperationNode(
+            operator   = "Mod",
+            left       =  makeConstantRefNode(
+                constant      = template,
+                source_ref    = source_ref,
+                user_provided = True
+            ),
+            right      = template_args,
+            source_ref = source_ref
+        ),
+        source_ref      = source_ref
+    )
+
+def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(template,
+                                                               operation,
+                                                               original_node,
+                                                               value_node):
+    shape = value_node.getTypeShape()
+
+    type_name = shape.getTypeName()
+
+    if type_name is not None:
+        result = makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = original_node,
+            exception  = TypeError(template % type_name)
+        )
+
+        result = wrapExpressionWithNodeSideEffects(
+            new_node = result,
+            old_node = value_node
+        )
+
+    else:
+        from .AttributeNodes import ExpressionAttributeLookup
+        from .TypeNodes import ExpressionBuiltinType1
+
+        source_ref = original_node.getSourceReference()
+
+        result = makeRaiseExceptionExpressionFromTemplate(
+            exception_type = "TypeError",
+            template       = "object of type '%s' has no len()",
+            template_args  = ExpressionAttributeLookup(
+                source         = ExpressionBuiltinType1(
+                    value      = value_node.makeClone(),
+                    source_ref = source_ref
+                ),
+                attribute_name = "__name__",
+                source_ref     = source_ref
+            ),
+            source_ref     = source_ref
+        )
+
+        type_name = shape.__name__
+
+    return result, "new_raise", "Raising for use of '%s' on %s '%s'." % (
+        operation,
+        "type" if type_name is not None else "shape",
+        type_name
     )
 
 
@@ -196,11 +269,19 @@ def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
     from .SideEffectNodes import ExpressionSideEffects
 
     if side_effects:
-        new_node = ExpressionSideEffects(
-            expression   = new_node,
-            side_effects = side_effects,
-            source_ref   = old_node.getSourceReference()
-        )
+        side_effects = [
+            side_effect
+            for side_effect in
+            side_effects
+            if side_effect.mayHaveSideEffects()
+        ]
+
+        if side_effects:
+            new_node = ExpressionSideEffects(
+                expression   = new_node,
+                side_effects = side_effects,
+                source_ref   = old_node.getSourceReference()
+            )
 
     return new_node
 

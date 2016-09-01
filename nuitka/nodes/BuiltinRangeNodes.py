@@ -30,6 +30,7 @@ from nuitka.PythonVersions import python_version
 
 from .NodeBases import ExpressionBuiltinNoArgBase, ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
+from .shapes.BuiltinTypeShapes import ShapeTypeList
 
 
 class ExpressionBuiltinRange0(ExpressionBuiltinNoArgBase):
@@ -42,11 +43,15 @@ class ExpressionBuiltinRange0(ExpressionBuiltinNoArgBase):
             source_ref       = source_ref
         )
 
+    def getTypeShape(self):
+        return ShapeTypeList
+
     def mayHaveSideEffects(self):
         return False
 
     def mayBeNone(self):
         return False
+
 
 
 class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
@@ -60,6 +65,9 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
             values     = values,
             source_ref = source_ref
         )
+
+    def getTypeShape(self):
+        return ShapeTypeList
 
     def getTruthValue(self):
         length = self.getIterationLength()

@@ -43,6 +43,24 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpression,
     wrapExpressionWithSideEffects
 )
+from .shapes.BuiltinTypeShapes import (
+    ShapeTypeBool,
+    ShapeTypeBytes,
+    ShapeTypeDict,
+    ShapeTypeEllipsisType,
+    ShapeTypeFloat,
+    ShapeTypeInt,
+    ShapeTypeList,
+    ShapeTypeLong,
+    ShapeTypeNoneType,
+    ShapeTypeSet,
+    ShapeTypeSlice,
+    ShapeTypeStr,
+    ShapeTypeTuple,
+    ShapeTypeType,
+    ShapeTypeUnicode,
+    ShapeTypeXrange
+)
 
 
 class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
@@ -125,7 +143,7 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
                 exception_value = "'%s' object is not callable" % type(self.constant).__name__
             ),
             old_node     = call_node,
-            side_effects = call_node.extractPreCallSideEffects()
+            side_effects = call_node.extractSideEffectsPreCall()
         )
 
         trace_collection.onExceptionRaiseExit(TypeError)
@@ -152,6 +170,9 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
     def isIndexable(self):
         return self.constant is None or self.isNumberConstant()
 
+    def mayRaiseExceptionIter(self, exception_type):
+        return isIterableConstant(self.constant)
+
     def isKnownToBeIterable(self, count):
         if isIterableConstant(self.constant):
             return count is None or \
@@ -174,6 +195,16 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
             constant   = self.constant[count],
             source_ref = self.source_ref
         )
+
+    def getIterationValueRange(self, start, stop):
+        return [
+            makeConstantRefNode(
+                constant   = value,
+                source_ref = self.source_ref
+            )
+            for value in
+            self.constant[start:stop]
+        ]
 
     def getIterationValues(self):
         source_ref = self.getSourceReference()
@@ -334,6 +365,9 @@ class ExpressionConstantNoneRef(ExpressionConstantRefBase):
     def getDetails(self):
         return {}
 
+    def getTypeShape(self):
+        return ShapeTypeNoneType
+
 
 class ExpressionConstantTrueRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TRUE_REF"
@@ -348,6 +382,9 @@ class ExpressionConstantTrueRef(ExpressionConstantRefBase):
 
     def getDetails(self):
         return {}
+
+    def getTypeShape(self):
+        return ShapeTypeBool
 
 
 class ExpressionConstantFalseRef(ExpressionConstantRefBase):
@@ -364,6 +401,9 @@ class ExpressionConstantFalseRef(ExpressionConstantRefBase):
     def getDetails(self):
         return {}
 
+    def getTypeShape(self):
+        return ShapeTypeBool
+
 
 class ExpressionConstantEllipsisRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_ELLIPSIS_REF"
@@ -378,6 +418,9 @@ class ExpressionConstantEllipsisRef(ExpressionConstantRefBase):
 
     def getDetails(self):
         return {}
+
+    def getTypeShape(self):
+        return ShapeTypeEllipsisType
 
 
 class ExpressionConstantDictRef(ExpressionConstantRefBase):
@@ -395,6 +438,9 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
     def isExpressionConstantDictRef():
         return True
 
+    def getTypeShape(self):
+        return ShapeTypeDict
+
 
 class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TUPLE_REF"
@@ -410,6 +456,9 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     @staticmethod
     def isExpressionConstantTupleRef():
         return True
+
+    def getTypeShape(self):
+        return ShapeTypeTuple
 
 
 class ExpressionConstantListRef(ExpressionConstantRefBase):
@@ -427,6 +476,9 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
     def isExpressionConstantListRef():
         return True
 
+    def getTypeShape(self):
+        return ShapeTypeList
+
 
 class ExpressionConstantSetRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_SET_REF"
@@ -442,6 +494,9 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
     @staticmethod
     def isExpressionConstantSetRef():
         return True
+
+    def getTypeShape(self):
+        return ShapeTypeSet
 
 
 class ExpressionConstantIntRef(ExpressionConstantRefBase):
@@ -459,6 +514,9 @@ class ExpressionConstantIntRef(ExpressionConstantRefBase):
     def isExpressionConstantIntRef():
         return True
 
+    def getTypeShape(self):
+        return ShapeTypeInt
+
 
 class ExpressionConstantLongRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_LONG_REF"
@@ -474,6 +532,9 @@ class ExpressionConstantLongRef(ExpressionConstantRefBase):
     @staticmethod
     def isExpressionConstantLongRef():
         return True
+
+    def getTypeShape(self):
+        return ShapeTypeLong
 
 
 class ExpressionConstantStrRef(ExpressionConstantRefBase):
@@ -491,6 +552,9 @@ class ExpressionConstantStrRef(ExpressionConstantRefBase):
     def isExpressionConstantStrRef():
         return True
 
+    def getTypeShape(self):
+        return ShapeTypeStr
+
 
 class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_UNICODE_REF"
@@ -506,6 +570,9 @@ class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     @staticmethod
     def isExpressionConstantUnicodeRef():
         return True
+
+    def getTypeShape(self):
+        return ShapeTypeUnicode
 
 
 class ExpressionConstantBytesRef(ExpressionConstantRefBase):
@@ -523,6 +590,9 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
     def isExpressionConstantBytesRef():
         return True
 
+    def getTypeShape(self):
+        return ShapeTypeBytes
+
 
 class ExpressionConstantFloatRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_FLOAT_REF"
@@ -538,6 +608,9 @@ class ExpressionConstantFloatRef(ExpressionConstantRefBase):
     @staticmethod
     def isExpressionConstantFloatRef():
         return True
+
+    def getTypeShape(self):
+        return ShapeTypeFloat
 
 
 class ExpressionConstantComplexRef(ExpressionConstantRefBase):
@@ -571,6 +644,10 @@ class ExpressionConstantSliceRef(ExpressionConstantRefBase):
     def isExpressionConstantSliceRef():
         return True
 
+    def getTypeShape(self):
+        return ShapeTypeSlice
+
+
 class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_XRANGE_REF"
 
@@ -586,14 +663,8 @@ class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
     def isExpressionConstantXrangeRef():
         return True
 
-    def getStartValue(self):
-        # There is no attributes to check.
-        str_value = str(self.constant)
-        assert str_value.startswith("xrange(")
-        str_values = str_value[6:-1].split(",")
-
-        assert False, str_values
-
+    def getTypeShape(self):
+        return ShapeTypeXrange
 
 
 class ExpressionConstantTypeRef(ExpressionConstantRefBase):
@@ -610,6 +681,9 @@ class ExpressionConstantTypeRef(ExpressionConstantRefBase):
     @staticmethod
     def isExpressionConstantTypeRef():
         return True
+
+    def getTypeShape(self):
+        return ShapeTypeType
 
 
 the_empty_dict = {}

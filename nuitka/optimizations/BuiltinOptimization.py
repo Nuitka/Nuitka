@@ -58,6 +58,7 @@ class BuiltinParameterSpec(ParameterSpec):
         for value in values:
             if value is not None and not value.isCompileTimeConstant():
                 return False
+
         return True
 
     def simulateCall(self, given_values):
@@ -403,7 +404,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
                 exception  = e.getRealException()
             ),
             old_node     = node,
-            side_effects = node.extractPreCallSideEffects()
+            side_effects = node.extractSideEffectsPreCall()
         )
 
     args_list = []
