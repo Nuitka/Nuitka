@@ -34,6 +34,7 @@ from .DictionaryNodes import (
     StatementDictOperationSet
 )
 from .NodeBases import ExpressionMixin, NodeBase
+from .shapes.StandardShapes import ShapeUnknown
 
 
 class ExpressionVariableRef(NodeBase, ExpressionMixin):
@@ -104,6 +105,12 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
         assert isinstance(variable, Variables.Variable), repr(variable)
 
         self.variable = variable
+
+    def getTypeShape(self):
+        if self.variable_trace.isAssignTrace():
+            return self.variable_trace.getAssignNode().getAssignSource().getTypeShape()
+        else:
+            return ShapeUnknown
 
     def computeExpression(self, trace_collection):
         variable = self.variable
@@ -393,6 +400,12 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
     @staticmethod
     def isTargetVariableRef():
         return False
+
+    def getTypeShape(self):
+        if self.variable_trace.isAssignTrace():
+            return self.variable_trace.getAssignNode().getAssignSource().getTypeShape()
+        else:
+            return ShapeUnknown
 
     def computeExpression(self, trace_collection):
         self.variable_trace = trace_collection.getVariableCurrentTrace(
