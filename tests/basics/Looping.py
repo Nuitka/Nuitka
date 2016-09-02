@@ -15,6 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
 def cond():
     return False
@@ -47,8 +48,8 @@ def loopingFunction(a = 1*2):
             if a == b:
                 z = 0
 
-    print c
-    print f
+    print(c)
+    print(f)
 
     f = 1
 
@@ -56,23 +57,23 @@ def loopingFunction(a = 1*2):
         m = 1
         f += 1
 
-    print "m=", m
+    print("m=", m)
 
     x = [u for u in range(8)]
-    print x
+    print(x)
 
     x = [(u,v) for (u,v) in zip(range(8),reversed(range(8))) ]
-    print x
+    print(x)
 
     x = [(u if u%2==0 else 0) for u in range(10)]
-    print x
+    print(x)
 
     x = [(u if u%2==0 else 0) for u in (a if cond() else range(9))]
-    print x
+    print(x)
 
     y = [ [ 3+ (l if l else -1) for l in [m,m+1] ] for m in [f for f in range(2)] ]
-    print "f=", f
-    print "y=", y
+    print("f=", f)
+    print("y=", y)
 
     if x:
         l = "YES"
@@ -85,65 +86,65 @@ def loopingFunction(a = 1*2):
         if True:
             l = "no"
 
-    print "Triple and chain"
+    print("Triple and chain")
 
     if m and l and f:
-        print "OK"
+        print("OK")
 
-    print "Triple or chain"
+    print("Triple or chain")
     if m or l or f:
-        print "Okey"
+        print("Okey")
 
-    print "Nested if not chain"
+    print("Nested if not chain")
     if not m:
         if not l:
-            print "ok"
+            print("ok")
 
-    print "Braced if not chain with 'or'"
+    print("Braced if not chain with 'or'")
     if not (m or l):
-        print "oki"
+        print("oki")
 
-    print "Braced if not chain with 'and'"
+    print("Braced if not chain with 'and'")
     if not (m and l):
-        print "oki"
+        print("oki")
 
     d=1
-    print "Nested if chain with outer else"
+    print("Nested if chain with outer else")
     if a:
         if b or c:
             if d:
-                print "inside nest"
+                print("inside nest")
 
     else:
-        print "outer else"
+        print("outer else")
 
-    print x
+    print(x)
 
     while False:
         pass
     else:
-        print "Executed else branch for False condition while loop"
+        print("Executed else branch for False condition while loop")
 
     while True:
         break
     else:
-        print "Executed else branch for True condition while loop"
+        print("Executed else branch for True condition while loop")
 
     for x in range(7):
         pass
     else:
-        print "Executed else branch for no break for loop"
+        print("Executed else branch for no break for loop")
 
     for x in range(7):
         break
     else:
-        print "Executed else branch despite break in for loop"
+        print("Executed else branch despite break in for loop")
 
     x = iter(range(5))
 
     while next(x):
         pass
     else:
-        print "Executed else branch of while loop without break"
+        print("Executed else branch of while loop without break")
 
 loopingFunction()

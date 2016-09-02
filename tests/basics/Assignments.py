@@ -38,10 +38,10 @@ def someFunction():
     print("Assignment to variable list:", f, g)
 
     j = [h, i] = (7, 9)
-    print("Complex Assignment from variabe list:", j, type(j), h, i)
+    print("Complex Assignment from variable list:", j, type(j), h, i)
 
     a, (b,c) = 1, (2,3)
-    print("Assigment to nested tuples:", a, b, c)
+    print("Assignment to nested tuples:", a, b, c)
 
     v = [1, 2, 3, 4]
     v[2:3] = (8,9)
