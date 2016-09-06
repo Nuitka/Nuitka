@@ -21,9 +21,8 @@
 print(not bool)
 print(not {})
 print(not 7)
-# TODO: Needs some SSA now.
-# print(bool or len)
-# print(False or dict)
+print(bool or len)
+print(False or dict)
 print(type(Ellipsis))
 print("a" in "abba")
 print("a" not in "abba")
