@@ -201,20 +201,28 @@ def import_extractor(node):
 
 def type_extractor(node):
     args = node.getCallArgs()
-    length = args.getIterationLength()
 
-    if length == 1:
+    if args is None:
+        iter_length = 0
+    else:
+        iter_length = args.getIterationLength()
+
+    if iter_length == 1:
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinType1,
             builtin_spec  = BuiltinOptimization.builtin_type1_spec
         )
-
-    else:
+    elif iter_length == 3:
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinType3,
             builtin_spec  = BuiltinOptimization.builtin_type3_spec
+        )
+    else:
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError("type() takes 1 or 3 arguments")
         )
 
 def iter_extractor(node):
