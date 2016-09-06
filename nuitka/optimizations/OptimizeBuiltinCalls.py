@@ -123,6 +123,7 @@ from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.Options import isDebug, shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Helpers import (
+    makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
 )
@@ -689,6 +690,21 @@ def eval_extractor(node):
             )
         ]
 
+        acceptable_builtin_types = [
+            ExpressionBuiltinAnonymousRef(
+                builtin_name = "code",
+                source_ref   = source_ref,
+            )
+        ]
+
+        if python_version >= 270:
+            acceptable_builtin_types.append(
+                ExpressionBuiltinRef(
+                    builtin_name = "memoryview",
+                    source_ref   = source_ref,
+                )
+            )
+
         statements = (
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
@@ -705,9 +721,10 @@ def eval_extractor(node):
                             variable   = source_variable,
                             source_ref = source_ref
                         ),
-                        classes    = ExpressionBuiltinAnonymousRef(
-                            builtin_name = "code",
-                            source_ref   = source_ref,
+                        classes    = makeSequenceCreationOrConstant(
+                            sequence_kind = "tuple",
+                            elements      = acceptable_builtin_types,
+                            source_ref    = source_ref
                         ),
                         source_ref = source_ref
                     ),

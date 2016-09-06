@@ -319,3 +319,9 @@ def execWithShortTuple():
         return "gives exception: " + repr(e)
 
 print "Exec with too short tuple argument:", execWithShortTuple()
+
+if str is not bytes:
+    def evalMemoryView(value):
+        return eval(memoryview(value))
+
+    print "Eval with memory view:", evalMemoryView(b"27")
