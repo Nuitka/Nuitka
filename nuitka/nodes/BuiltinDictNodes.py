@@ -114,7 +114,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             )
 
             # Just in case, the iteration may do that.
-            if pos_arg.mayRaiseExceptionIter(BaseException):
+            if not pos_arg.hasShapeSlotIter():
                 trace_collection.onExceptionRaiseExit(BaseException)
 
             return (

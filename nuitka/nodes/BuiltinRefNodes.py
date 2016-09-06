@@ -179,7 +179,7 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
 
     def __init__(self, exception_name, source_ref):
-        assert exception_name in builtin_exception_names
+        assert exception_name in builtin_exception_names, exception_name
 
         ExpressionBuiltinRefBase.__init__(
             self,

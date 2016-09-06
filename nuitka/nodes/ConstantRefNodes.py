@@ -170,9 +170,6 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
     def isIndexable(self):
         return self.constant is None or self.isNumberConstant()
 
-    def mayRaiseExceptionIter(self, exception_type):
-        return isIterableConstant(self.constant)
-
     def isKnownToBeIterable(self, count):
         if isIterableConstant(self.constant):
             return count is None or \
@@ -347,9 +344,6 @@ Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
 
         return iter_node, None, None
 
-    def hasShapeDictionaryExact(self):
-        return type(self.constant) is dict
-
 
 class ExpressionConstantNoneRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_NONE_REF"
@@ -440,6 +434,9 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
 
     def getTypeShape(self):
         return ShapeTypeDict
+
+    def hasShapeDictionaryExact(self):
+        return True
 
 
 class ExpressionConstantTupleRef(ExpressionConstantRefBase):

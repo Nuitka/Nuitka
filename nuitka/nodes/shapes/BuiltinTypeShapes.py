@@ -81,6 +81,14 @@ class ShapeTypeInt(ShapeBase):
     def hasShapeSlotInt():
         return True
 
+    @staticmethod
+    def hasShapeSlotIter():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
 
 class ShapeTypeLong(ShapeBase):
     @staticmethod

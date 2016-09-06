@@ -31,9 +31,9 @@ from nuitka.nodes.AssignNodes import (
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionAsyncIter,
     ExpressionAsyncNext,
-    ExpressionBuiltinIter1,
-    ExpressionBuiltinNext1
+    ExpressionBuiltinIter1
 )
+from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode

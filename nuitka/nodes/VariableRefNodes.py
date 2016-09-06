@@ -418,8 +418,43 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
             return replacement, "new_expression", "Value propagated for temp '%s'." % self.variable.getName()
 
         self.variable_trace.addUsage()
+
         # Nothing to do here.
         return self, None, None
+
+    def computeExpressionNext1(self, next_node, trace_collection):
+        if self.variable_trace.isAssignTrace():
+            value = self.variable_trace.getAssignNode().getAssignSource()
+
+            if value.hasShapeSlotNext():
+                current_index = trace_collection.getIteratorNextCount(value)
+                trace_collection.onIteratorNext(value)
+
+                if current_index is not None and \
+                   value.isKnownToBeIterableAtMin(current_index+1) and \
+                   value.canPredictIterationValues():
+
+                    # TODO: Make use of this, pylint: disable=W0125
+                    candidate = value.getIterationValue(current_index)
+
+                    if False:
+                        return candidate, "new_expression", "Predicted 'next' value from iteration."
+            else:
+                # TODO: Could ask it about exception predictability for that case
+                # or warn about it at least.
+                pass
+                # assert False, value
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return next_node, None, None
+
 
     def onContentEscapes(self, trace_collection):
         trace_collection.onVariableContentEscapes(self.variable)

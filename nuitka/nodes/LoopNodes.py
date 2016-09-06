@@ -117,6 +117,8 @@ class StatementLoop(StatementChildrenHavingBase):
                         )
                     )
 
+                # Forget all iterator and other value status.
+                trace_collection.resetValueStates()
 
                 result = loop_body.computeStatementsSequence(
                     trace_collection = trace_collection

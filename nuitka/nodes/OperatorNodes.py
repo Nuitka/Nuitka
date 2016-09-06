@@ -26,7 +26,7 @@ import math
 from nuitka import PythonOperators
 
 from .NodeBases import ExpressionChildrenHavingBase
-from .shapes.StandardShapes import ShapeUnknown
+from .shapes.StandardShapes import ShapeUnknown, vshape_unknown
 
 
 class ExpressionOperationBase(ExpressionChildrenHavingBase):
@@ -97,10 +97,6 @@ class ExpressionOperationBinary(ExpressionOperationBase):
         return True
 
     def computeExpression(self, trace_collection):
-        # TODO: May go down to MemoryError for compile time constant overflow
-        # ones.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
         operator = self.getOperator()
         operands = self.getOperands()
 
@@ -120,6 +116,10 @@ class ExpressionOperationBinary(ExpressionOperationBase):
                 ),
                 description = "Operator '%s' with constant arguments." % operator
             )
+
+        # TODO: May go down to MemoryError for compile time constant overflow
+        # ones.
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         # The value of these nodes escaped and could change its contents.
         trace_collection.removeKnowledge(left)
@@ -194,15 +194,6 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinary):
         return self, None, None
 
 
-class ShapeBase:
-    def isConstant(self):
-        return True
-
-    def hasShapeSlotLen(self):
-        """ Does the shape include having "__len__" slot. """
-
-        return None
-
 class ShapeLargeConstantValue:
     def __init__(self, size, shape):
         self.size = size
@@ -244,7 +235,10 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinary):
         return {}
 
     def getValueShape(self):
-        return self.shape
+        if self.shape is not None:
+            return self.shape
+        else:
+            return vshape_unknown
 
     def getTypeShape(self):
         if self.shape is not None:

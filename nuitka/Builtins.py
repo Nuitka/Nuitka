@@ -81,6 +81,7 @@ def _getBuiltinExceptionNames():
 builtin_exception_names, builtin_exception_values = _getBuiltinExceptionNames()
 
 # Just to make sure it's covering these cases correctly.
+assert "TypeError" in builtin_exception_names
 assert "ValueError" in builtin_exception_names
 assert "StopIteration" in builtin_exception_names
 assert "GeneratorExit" in builtin_exception_names

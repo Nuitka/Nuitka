@@ -49,26 +49,6 @@ from .VariableTraces import (
 
 signalChange = None
 
-class VariableUsageTrackingMixin:
-
-    def initVariable(self, variable):
-        if variable.isParameterVariable():
-            result = self._initVariableInit(variable)
-        elif variable.isLocalVariable():
-            result = self._initVariableUninit(variable)
-        elif variable.isMaybeLocalVariable():
-            result = self._initVariableUnknown(variable)
-        elif variable.isModuleVariable():
-            result = self._initVariableUnknown(variable)
-        elif variable.isTempVariable():
-            result = self._initVariableUninit(variable)
-        else:
-            assert False, variable
-
-        assert result.getVariable() is variable
-
-        return result
-
 
 class CollectionTracingMixin:
     def __init__(self):
@@ -354,6 +334,24 @@ class CollectionStartpointMixin:
         if catch_exceptions:
             self.exception_collections = old_exception_collections
 
+    def initVariable(self, variable):
+        if variable.isParameterVariable():
+            result = self._initVariableInit(variable)
+        elif variable.isLocalVariable():
+            result = self._initVariableUninit(variable)
+        elif variable.isMaybeLocalVariable():
+            result = self._initVariableUnknown(variable)
+        elif variable.isModuleVariable():
+            result = self._initVariableUnknown(variable)
+        elif variable.isTempVariable():
+            result = self._initVariableUninit(variable)
+        else:
+            assert False, variable
+
+        assert result.getVariable() is variable
+
+        return result
+
 
 class TraceCollectionBase(CollectionTracingMixin):
     __del__ = counted_del()
@@ -366,9 +364,8 @@ class TraceCollectionBase(CollectionTracingMixin):
         self.parent = parent
         self.name = name
 
-        # Trust variable_traces, should go away later on, for now we use it to
-        # disable optimization.
-        self.removes_knowledge = False
+        # Value state extra information per node.
+        self.value_states = {}
 
     def __repr__(self):
         return "<%s for %s %d>" % (
@@ -421,12 +418,7 @@ class TraceCollectionBase(CollectionTracingMixin):
 
                 self.markActiveVariableAsUnknown(variable)
 
-
     def removeAllKnowledge(self):
-        # Temporary, we don't have to have this anyway, this will just disable
-        # all uses of variable traces for optimization.
-        self.removes_knowledge = True
-
         self.markActiveVariablesAsUnknown()
 
     def getVariableTrace(self, variable, version):
@@ -468,7 +460,6 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         return variable_trace
 
-
     def onVariableDel(self, variable_ref):
         # Add a new trace, allocating a new version for the variable, and
         # remember the delete of the current
@@ -507,7 +498,6 @@ class TraceCollectionBase(CollectionTracingMixin):
                 )
 
                 variable_trace.addNameUsage()
-
 
     def onVariableRelease(self, variable):
         current = self.getVariableCurrentTrace(variable)
@@ -714,6 +704,21 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         return new_node, change_tags, message
 
+    def getIteratorNextCount(self, iter_node):
+        return self.value_states.get(iter_node, None)
+
+    def initIteratorValue(self, iter_node):
+        # TODO: More complex state information will be needed eventually.
+        self.value_states[iter_node] = 0
+
+    def onIteratorNext(self, iter_node):
+        if iter_node in self.value_states:
+            self.value_states[iter_node] += 1
+
+    def resetValueStates(self):
+        for key in self.value_states:
+            self.value_states[key] = None
+
 
 class TraceCollectionBranch(TraceCollectionBase):
     def __init__(self, name, parent):
@@ -762,8 +767,7 @@ class TraceCollectionBranch(TraceCollectionBase):
 
 
 class TraceCollectionFunction(CollectionStartpointMixin,
-                              TraceCollectionBase,
-                              VariableUsageTrackingMixin):
+                              TraceCollectionBase):
     def __init__(self, parent, function_body):
         assert function_body.isExpressionFunctionBody() or \
                function_body.isExpressionClassBody() or \
@@ -781,8 +785,7 @@ class TraceCollectionFunction(CollectionStartpointMixin,
 
 
 class TraceCollectionModule(CollectionStartpointMixin,
-                            TraceCollectionBase,
-                            VariableUsageTrackingMixin):
+                            TraceCollectionBase):
     def __init__(self, module):
         CollectionStartpointMixin.__init__(self)
 

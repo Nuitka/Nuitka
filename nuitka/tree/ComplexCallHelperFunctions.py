@@ -30,10 +30,8 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionBuiltinHasattr
 )
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
-from nuitka.nodes.BuiltinIteratorNodes import (
-    ExpressionBuiltinIter1,
-    ExpressionBuiltinNext1
-)
+from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
+from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
     ExpressionBuiltinRef

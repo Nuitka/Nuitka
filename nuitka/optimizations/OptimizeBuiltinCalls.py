@@ -51,8 +51,10 @@ from nuitka.nodes.BuiltinFormatNodes import (
 from nuitka.nodes.BuiltinHashNodes import ExpressionBuiltinHash
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
-    ExpressionBuiltinIter2,
-    ExpressionBuiltinLen,
+    ExpressionBuiltinIter2
+)
+from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
+from nuitka.nodes.BuiltinNextNodes import (
     ExpressionBuiltinNext1,
     ExpressionBuiltinNext2
 )

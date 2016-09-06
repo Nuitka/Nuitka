@@ -35,8 +35,10 @@ from .NodeMakingHelpers import (
     getComputationResult,
     makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue,
     makeStatementOnlyNodesFromExpressions,
+    wrapExpressionWithNodeSideEffects,
     wrapExpressionWithSideEffects
 )
+from .shapes.BuiltinTypeShapes import ShapeTypeDict
 from .shapes.StandardShapes import ShapeUnknown
 
 
@@ -473,14 +475,14 @@ class NodeBase(NodeMetaClassBase):
 
         return True
 
-    def mayRaiseExceptionIter(self, exception_type):
-        """ Unless we are told otherwise, everything may raise being iterated. """
-        # Virtual method, pylint: disable=R0201,W0613
-
-        return True
-
     def hasShapeSlotLen(self):
         return self.getTypeShape().hasShapeSlotLen()
+
+    def hasShapeSlotIter(self):
+        return self.getTypeShape().hasShapeSlotIter()
+
+    def hasShapeSlotNext(self):
+        return self.getTypeShape().hasShapeSlotNext()
 
     def mayRaiseExceptionIn(self, exception_type, checked_value):
         """ Unless we are told otherwise, everything may raise being iterated. """
@@ -1043,9 +1045,10 @@ class ClosureTakerMixin:
 
 class ExpressionMixin:
     def getValueShape(self):
-        return None
+        return self
 
     def getTypeShape(self):
+        # Virtual method, pylint: disable=R0201
         return ShapeUnknown
 
     def isCompileTimeConstant(self):
@@ -1370,15 +1373,34 @@ class ExpressionMixin:
         return call_node, None, None
 
     def computeExpressionLen(self, len_node, trace_collection):
-        shape = self.getTypeShape()
+        shape = self.getValueShape()
 
-        if shape.hasShapeSlotLen() is False:
+        has_len = shape.hasShapeSlotLen()
+
+        if has_len is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                 template      = "object of type '%s' has no len()",
                 operation     = "len",
                 original_node = len_node,
                 value_node    = self
             )
+        elif has_len is True:
+            iter_length = self.getIterationLength()
+
+            if iter_length is not None:
+                from .ConstantRefNodes import makeConstantRefNode
+
+                result = makeConstantRefNode(
+                    constant   = int(iter_length), # make sure to downcast long
+                    source_ref = len_node.getSourceReference()
+                )
+
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node = result,
+                    old_node = self
+                )
+
+                return result, "new_constant", "Predicted 'len' result from value shape."
 
         self.onContentEscapes(trace_collection)
 
@@ -1470,8 +1492,11 @@ class ExpressionMixin:
         pass
 
     def hasShapeDictionaryExact(self):
-        # Virtual method, pylint: disable=R0201
-        return False
+        """ Does a node have exactly a dictionary shape.
+
+        """
+
+        return self.getTypeShape() is ShapeTypeDict
 
 
 class CompileTimeConstantExpressionMixin(ExpressionMixin):

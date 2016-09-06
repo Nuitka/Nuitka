@@ -44,6 +44,18 @@ class ShapeUnknown(ShapeBase):
     def hasShapeSlotNext():
         return None
 
+class ValueShapeBase:
+    def hasShapeSlotLen(self):
+        return self.getTypeShape().hasShapeSlotLen()
+
+
+class ValueShapeUnknown(ValueShapeBase):
+    @staticmethod
+    def getTypeShape():
+        return ShapeUnknown
+
+# Singleton value for sharing.
+vshape_unknown = ValueShapeUnknown()
 
 class ShapeIterator(ShapeBase):
     @staticmethod
