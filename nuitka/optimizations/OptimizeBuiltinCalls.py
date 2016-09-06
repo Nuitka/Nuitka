@@ -60,11 +60,9 @@ from nuitka.nodes.BuiltinNextNodes import (
 )
 from nuitka.nodes.BuiltinOpenNodes import ExpressionBuiltinOpen
 from nuitka.nodes.BuiltinRangeNodes import (
-    ExpressionBuiltinRange0,
     ExpressionBuiltinRange1,
     ExpressionBuiltinRange2,
     ExpressionBuiltinRange3,
-    ExpressionBuiltinXrange0,
     ExpressionBuiltinXrange1,
     ExpressionBuiltinXrange2,
     ExpressionBuiltinXrange3
@@ -398,12 +396,19 @@ def range_extractor(node):
                 source_ref = source_ref
             )
 
+    def makeRange0(source_ref):
+        # pylint: disable=W0613
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError("range expected at least 1 arguments, got 0")
+        )
 
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,
         builtin_class       = selectRangeBuiltin,
         builtin_spec        = BuiltinOptimization.builtin_range_spec,
-        empty_special_class = ExpressionBuiltinRange0
+        empty_special_class = makeRange0
     )
 
 
@@ -429,11 +434,23 @@ def xrange_extractor(node):
                 source_ref = source_ref
             )
 
+    def makeXrange0(source_ref):
+        # pylint: disable=W0613
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError(
+                "xrange requires 1-3 int arguments"
+                    if python_version < 300 else
+                "range expected 1 arguments, got 0"
+            )
+        )
+
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,
         builtin_class       = selectXrangeBuiltin,
         builtin_spec        = BuiltinOptimization.builtin_xrange_spec,
-        empty_special_class = ExpressionBuiltinXrange0
+        empty_special_class = makeXrange0
     )
 
 

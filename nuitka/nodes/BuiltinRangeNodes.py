@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Node the calls to the 'range' builtin.
+""" Node the calls to the 'range' built-in.
 
 This is a rather complex beast as it has many cases, is difficult to know if
 it's sizable enough to compute, and there are complex cases, where the bad
@@ -28,30 +28,9 @@ import math
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import ExpressionBuiltinNoArgBase, ExpressionChildrenHavingBase
+from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
 from .shapes.BuiltinTypeShapes import ShapeTypeList
-
-
-class ExpressionBuiltinRange0(ExpressionBuiltinNoArgBase):
-    kind = "EXPRESSION_BUILTIN_RANGE0"
-
-    def __init__(self, source_ref):
-        ExpressionBuiltinNoArgBase.__init__(
-            self,
-            builtin_function = range,
-            source_ref       = source_ref
-        )
-
-    def getTypeShape(self):
-        return ShapeTypeList
-
-    def mayHaveSideEffects(self):
-        return False
-
-    def mayBeNone(self):
-        return False
-
 
 
 class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
@@ -427,23 +406,6 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
 
     def isKnownToBeIterable(self, count):
         return count is None or count == self.getIterationLength()
-
-
-class ExpressionBuiltinXrange0(ExpressionBuiltinNoArgBase):
-    kind = "EXPRESSION_BUILTIN_XRANGE0"
-
-    def __init__(self, source_ref):
-        ExpressionBuiltinNoArgBase.__init__(
-            self,
-            builtin_function = range,
-            source_ref       = source_ref
-        )
-
-    def mayHaveSideEffects(self):
-        return False
-
-    def mayBeNone(self):
-        return False
 
 
 class ExpressionBuiltinXrangeBase(ExpressionChildrenHavingBase):
