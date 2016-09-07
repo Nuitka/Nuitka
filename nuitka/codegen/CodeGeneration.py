@@ -323,7 +323,7 @@ def generateFunctionBodyCode(function_body, context):
             )
         )
 
-    return function_code
+    return function_code, function_context
 
 
 def _generateStatementSequenceCode(statement_sequence, emit, context):
@@ -415,23 +415,27 @@ def prepareModuleCode(global_context, module, module_name):
     function_body_codes = []
 
     for function_body in module.getUsedFunctions():
-        function_code = generateFunctionBodyCode(
+        function_code, function_context = generateFunctionBodyCode(
             function_body = function_body,
             context       = context
         )
 
-        assert type(function_code) is str
+        assert type(function_code) is str, type(function_code)
 
         function_body_codes.append(function_code)
 
         function_decl = generateFunctionDeclCode(
-            function_body = function_body
+            function_body = function_body,
+            context       = function_context
+
         )
 
         if function_decl is not None:
             function_decl_codes.append(function_decl)
 
 
+    # These are for functions used from other modules. Due to cyclic
+    # dependencies, we cannot rely on those to be already created.
     for function_body in module.getCrossUsedFunctions():
         assert function_body.isCrossModuleUsed()
 
@@ -440,6 +444,10 @@ def prepareModuleCode(global_context, module, module_name):
             closure_variables   = function_body.getClosureVariables(),
             file_scope          = getExportScopeCode(
                 cross_module = function_body.isCrossModuleUsed()
+            ),
+            context             = Contexts.PythonFunctionDirectContext(
+                parent   = context,
+                function = function_body
             )
         )
 

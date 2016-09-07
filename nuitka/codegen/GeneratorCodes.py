@@ -43,7 +43,7 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_genfunc_yielder_body_template,
     template_genfunc_yielder_decl_template
 )
-from .VariableCodes import getLocalVariableInitCode, getVariableCode
+from .VariableCodes import getLocalVariableCodeType, getLocalVariableInitCode
 
 
 def getGeneratorObjectDeclCode(function_identifier):
@@ -59,6 +59,7 @@ def getGeneratorObjectCode(context, function_identifier, user_variables,
     for user_variable in user_variables + temp_variables:
         function_locals.append(
             getLocalVariableInitCode(
+                context  = context,
                 variable = user_variable,
             )
         )
@@ -151,30 +152,29 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
         closure_copy = []
 
         for count, variable in enumerate(closure_variables):
-            variable_code = getVariableCode(
-                context  = context,
-                variable = variable
-            )
+            variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
             # Generators might not use them, but they still need to be put there.
             # TODO: But they don't have to be cells.
-            if not variable.isSharedTechnically():
+            if variable_c_type == "PyObject *":
                 closure_copy.append(
                     "closure[%d] = PyCell_NEW0( %s );" % (
                         count,
-                        variable_code
+                        variable_code_name
                     )
                 )
-            else:
+            elif variable_c_type == "PyCellObject *":
                 closure_copy.append(
                     "closure[%d] = %s;" % (
                         count,
-                        variable_code
+                        variable_code_name
                     )
                 )
                 closure_copy.append(
                     "Py_INCREF( closure[%d] );" % count
                 )
+            else:
+                assert False, variable
 
         closure_making = template_function_closure_making % {
             "closure_copy"  : indented(closure_copy),

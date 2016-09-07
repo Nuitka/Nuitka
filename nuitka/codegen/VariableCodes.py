@@ -144,7 +144,7 @@ def getVariableCodeName(in_context, variable):
         return "var_" + variable.getCodeName()
 
 
-def _getLocalVariableCode(context, variable):
+def getLocalVariableCodeType(context, variable):
     # Now must be local or temporary variable, we return in each case-
     # pylint: disable=R0911
     user = context.getOwner()
@@ -156,32 +156,40 @@ def _getLocalVariableCode(context, variable):
             variable   = variable
         )
 
-        return result, variable.isSharedTechnically()
+        return (
+            result,
+            "PyCellObject *" if variable.isSharedTechnically() else "PyObject *"
+        )
     elif context.isForDirectCall():
         if user.isExpressionGeneratorObjectBody():
             closure_index = user.getClosureVariables().index(variable)
 
-            return "generator->m_closure[%d]" % closure_index, True
+            return "generator->m_closure[%d]" % closure_index, "PyCellObject *"
         elif user.isExpressionCoroutineObjectBody():
             closure_index = user.getClosureVariables().index(variable)
 
-            return "coroutine->m_closure[%d]" % closure_index, True
+            return "coroutine->m_closure[%d]" % closure_index, "PyCellObject *"
         else:
             result = getVariableCodeName(
                 in_context = True,
                 variable   = variable
             )
 
-            return result, variable.isSharedTechnically()
+            # TODO: The reference is only needed for Python3, could make it
+            # version dependent.
+            return (
+                result,
+                "PyCellObject *" if variable.isSharedTechnically() else "PyObject **",
+            )
     else:
         closure_index = user.getClosureVariables().index(variable)
 
         if user.isExpressionGeneratorObjectBody():
-            return "generator->m_closure[%d]" % closure_index, True
+            return "generator->m_closure[%d]" % closure_index, "PyCellObject *"
         elif user.isExpressionCoroutineObjectBody():
-            return "coroutine->m_closure[%d]" % closure_index, True
+            return "coroutine->m_closure[%d]" % closure_index, "PyCellObject *"
         else:
-            return "self->m_closure[%d]" % closure_index, True
+            return "self->m_closure[%d]" % closure_index, "PyCellObject *"
 
 
 def getVariableCode(context, variable):
@@ -192,50 +200,48 @@ def getVariableCode(context, variable):
             variable   = variable
         )
 
-    result, _is_cell = _getLocalVariableCode(context, variable)
-    return result
+    variable_code_name, _variable_c_type = getLocalVariableCodeType(context, variable)
+    return variable_code_name
 
 
 def getLocalVariableObjectAccessCode(context, variable):
-    assert variable.isLocalVariable()
+    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
-    code, is_cell = _getLocalVariableCode(context, variable)
-
-    if is_cell:
-        return code + "->ob_ref"
+    if variable_c_type == "PyCellObject *":
+        # TODO: Why not use PyCell_GET for readability.
+        return variable_code_name + "->ob_ref"
+    elif variable_c_type == "PyObject **":
+        return '*' + variable_code_name
+    elif variable_c_type == "PyObject *":
+        return variable_code_name
     else:
-        return code
+        assert False, variable_c_type
 
 
-def getLocalVariableInitCode(variable, init_from = None):
+def getLocalVariableInitCode(context, variable, init_from = None):
     assert not variable.isModuleVariable()
 
-    if variable.isSharedTechnically():
-        type_name = "PyCellObject *"
-    else:
-        type_name = "PyObject *"
+    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
-    code_name = getVariableCodeName(
-        in_context = False,
-        variable   = variable
-    )
-
-    if variable.isSharedTechnically():
+    if variable_c_type == "PyCellObject *":
         # TODO: Single out "init_from" only user, so it becomes sure that we
         # get a reference transferred here in these cases.
         if init_from is not None:
             init_value = "PyCell_NEW1( %s )" % init_from
         else:
             init_value = "PyCell_EMPTY()"
-    else:
+    elif variable_c_type == "PyObject *":
         if init_from is None:
             init_from = "NULL"
 
         init_value = "%s" % init_from
+    else:
+        assert False, variable
 
-    return "%s%s = %s;" % (
-        type_name,
-        code_name,
+    return "%s%s%s = %s;" % (
+        variable_c_type,
+        ' ' if variable_c_type[-1] not in "*&" else "",
+        variable_code_name,
         init_value
     )
 
@@ -314,12 +320,14 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
         if ref_count:
             context.removeCleanupTempName(tmp_name)
     elif variable.isTempVariable():
-        if variable.isSharedTechnically():
+        _variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+
+        if variable_c_type == "PyCellObject *":
             if ref_count:
                 template = template_write_shared_unclear_ref0
             else:
                 template = template_write_shared_unclear_ref1
-        else:
+        elif variable_c_type in ("PyObject *", "PyObject **"):
             if ref_count:
                 if needs_release is False:
                     template = template_write_local_empty_ref0
@@ -334,10 +342,12 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
                     template = template_write_local_clear_ref1
                 else:
                     template = template_write_local_unclear_ref1
+        else:
+            assert False, variable_c_type
 
         emit(
             template % {
-                "identifier" : getVariableCode(context, variable),
+                "identifier" : getLocalVariableObjectAccessCode(context, variable),
                 "tmp_name"   : tmp_name
             }
         )
@@ -349,7 +359,7 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
 
 
 def getVariableAccessCode(to_name, variable, needs_check, emit, context):
-    # Many different cases, as this must be, pylint: disable=R0912
+    # Many different cases, as this must be, pylint: disable=R0912,R0915
 
     assert isinstance(variable, Variables.Variable), variable
 
@@ -412,7 +422,9 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
 
         return
     elif variable.isLocalVariable():
-        if variable.isSharedTechnically():
+        _variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+
+        if variable_c_type == "PyCellObject *":
             if not needs_check:
                 template = template_read_shared_unclear
             else:
@@ -464,7 +476,9 @@ local variable '%s' referenced before assignment""",
 
         return
     elif variable.isTempVariable():
-        if variable.isSharedTechnically():
+        _variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+
+        if variable_c_type == "PyCellObject *":
             template = template_read_shared_unclear
 
             emit(
@@ -490,13 +504,13 @@ free variable '%s' referenced before assignment in enclosing scope""",
                 emit("CHECK_OBJECT( %s );" % to_name)
 
             return
-        else:
+        elif variable_c_type in ("PyObject *", "PyObject **"):
             template = template_read_local
 
             emit(
                 template % {
                     "tmp_name"   : to_name,
-                    "identifier" : getVariableCode(context, variable)
+                    "identifier" : getLocalVariableObjectAccessCode(context, variable)
                 }
             )
 
@@ -516,6 +530,8 @@ local variable '%s' referenced before assignment""",
                 emit("CHECK_OBJECT( %s );" % to_name)
 
             return
+        else:
+            assert False, variable_c_type
 
     assert False, variable
 
