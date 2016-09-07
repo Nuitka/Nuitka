@@ -154,8 +154,7 @@ static void Nuitka_Coroutine_entry_point( struct Nuitka_CoroutineObject *corouti
     swapFiber( &coroutine->m_yielder_context, &coroutine->m_caller_context );
 }
 
-
-static PyObject *Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
+static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutine, PyObject *value, bool closing )
 {
     if ( coroutine->m_status == status_Unused && value != NULL && value != Py_None )
     {
@@ -330,10 +329,30 @@ static PyObject *Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutine
     }
     else
     {
-        PyErr_SetObject( PyExc_StopIteration, (PyObject *)NULL );
+#if PYTHON_VERSION >= 352 || !defined(_NUITKA_FULL_COMPAT)
+        /* This check got added in Python 3.5.2 only. It's good to do it, but
+         * not fully compatible, therefore guard it.
+         */
+        if ( closing == false )
+        {
+            PyErr_Format(
+                PyExc_RuntimeError,
+                "cannot reuse already awaited coroutine"
+            );
+        }
+        else
+#endif
+        {
+            PyErr_SetObject( PyExc_StopIteration, (PyObject *)NULL );
+        }
 
         return NULL;
     }
+}
+
+static PyObject *Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
+{
+    return _Nuitka_Coroutine_send( coroutine, value, false );
 }
 
 PyObject *Nuitka_Coroutine_close( struct Nuitka_CoroutineObject *coroutine, PyObject *args )
@@ -344,7 +363,7 @@ PyObject *Nuitka_Coroutine_close( struct Nuitka_CoroutineObject *coroutine, PyOb
         coroutine->m_exception_value = NULL;
         coroutine->m_exception_tb = NULL;
 
-        PyObject *result = Nuitka_Coroutine_send( coroutine, Py_None );
+        PyObject *result = _Nuitka_Coroutine_send( coroutine, Py_None, true );
 
         if (unlikely( result ))
         {
@@ -422,6 +441,7 @@ static PyObject *Nuitka_Coroutine_throw( struct Nuitka_CoroutineObject *coroutin
             PyErr_Format( PyExc_TypeError, "instance exception may not have a separate value" );
             return NULL;
         }
+
         coroutine->m_exception_value = coroutine->m_exception_type;
         Py_INCREF( coroutine->m_exception_value );
         coroutine->m_exception_type = PyExceptionInstance_Class( coroutine->m_exception_type );
@@ -451,17 +471,28 @@ static PyObject *Nuitka_Coroutine_throw( struct Nuitka_CoroutineObject *coroutin
 
     if ( coroutine->m_status != status_Finished )
     {
-        PyObject *result = Nuitka_Coroutine_send( coroutine, Py_None );
+        PyObject *result = _Nuitka_Coroutine_send( coroutine, Py_None, false );
 
         return result;
     }
     else
     {
+        /* This seems wasteful to do it like this, but it's a corner case. */
         RESTORE_ERROR_OCCURRED( coroutine->m_exception_type, coroutine->m_exception_value, coroutine->m_exception_tb );
 
         coroutine->m_exception_type = NULL;
         coroutine->m_exception_value = NULL;
         coroutine->m_exception_tb = NULL;
+
+#if PYTHON_VERSION >= 352 || !defined(_NUITKA_FULL_COMPAT)
+        /* This check got added in Python 3.5.2 only. It's good to do it, but
+         * not fully compatible, therefore guard it.
+         */
+        PyErr_Format(
+            PyExc_RuntimeError,
+            "cannot reuse already awaited coroutine"
+        );
+#endif
 
         return NULL;
     }
