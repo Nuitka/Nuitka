@@ -43,6 +43,7 @@ struct Nuitka_CoroutineObject {
     PyObject *m_weakrefs;
 
     int m_running;
+    int m_awaiting;
 
     void *m_code;
 

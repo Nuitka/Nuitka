@@ -15,6 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+
 #include "nuitka/prelude.hpp"
 
 static PyObject *Nuitka_Coroutine_get_name( struct Nuitka_CoroutineObject *coroutine)
@@ -782,6 +783,7 @@ PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *q
 
     result->m_status = status_Unused;
     result->m_running = false;
+    result->m_awaiting = false;
 
     result->m_exception_type = NULL;
     result->m_exception_value = NULL;
@@ -1057,7 +1059,32 @@ PyObject *AWAIT_COROUTINE( struct Nuitka_CoroutineObject *coroutine, PyObject *a
         return NULL;
     }
 
+#if PYTHON_VERSION >= 352 || !defined(_NUITKA_FULL_COMPAT)
+    /* This check got added in Python 3.5.2 only. It's good to do it, but
+     * not fully compatible, therefore guard it.
+     */
+
+    if ( Nuitka_Coroutine_Check( awaitable ) )
+    {
+        struct Nuitka_CoroutineObject *awaited_coroutine = (struct Nuitka_CoroutineObject *)awaitable;
+
+        if( awaited_coroutine->m_awaiting == true )
+        {
+            Py_DECREF( awaitable_iter );
+
+            PyErr_Format(
+                PyExc_RuntimeError,
+                "coroutine is being awaited already"
+            );
+
+            return NULL;
+        }
+    }
+#endif
+
+    coroutine->m_awaiting = true;
     PyObject *retval = yieldFromCoroutine( coroutine, awaitable_iter );
+    coroutine->m_awaiting = false;
 
     Py_DECREF( awaitable_iter );
 

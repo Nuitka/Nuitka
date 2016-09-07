@@ -91,20 +91,5 @@ template_make_coroutine_with_context_template = """
 }
 """
 
-template_coroutine_await = """
-{
-    PyObject *awaitable = _PyCoro_GetAwaitableIter( %(value)s );
-
-    if (likely( awaitable != NULL ))
-    {
-        %(to_name) = COROUTINE_AWAIT( awaitable );
-    }
-    else
-    {
-        %(to_name) = NULL;
-    }
-}
-"""
-
 from . import TemplateDebugWrapper # isort:skip
 TemplateDebugWrapper.checkDebug(globals())
