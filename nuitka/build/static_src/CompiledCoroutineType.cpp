@@ -1163,6 +1163,21 @@ PyObject *MAKE_ASYNC_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObjec
         return NULL;
     }
 
+#if PYTHON_VERSION >= 352
+    /* Starting with Python 3.5.2 it is acceptable to return an async iterator
+     * directly, instead of an awaitable.
+     */
+    if ( Py_TYPE( iter )->tp_as_async != NULL &&
+         Py_TYPE( iter )->tp_as_async->am_anext != NULL)
+    {
+
+        PyObject *wrapper = _PyAIterWrapper_New( iter );
+        Py_DECREF( iter );
+
+        iter = wrapper;
+    }
+#endif
+
     PyObject *awaitable_iter = PyCoro_GetAwaitableIter( iter );
 
     if (unlikely( awaitable_iter == NULL ))
