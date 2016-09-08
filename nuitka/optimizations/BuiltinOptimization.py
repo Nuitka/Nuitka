@@ -281,6 +281,9 @@ builtin_slice_spec = BuiltinParameterSpecNoKeywords("slice", ("start", "stop", "
 
 builtin_hash_spec = BuiltinParameterSpecNoKeywords("hash", ("object",), 0)
 
+builtin_format_spec = BuiltinParameterSpecNoKeywords("format", ("value", "format_spec"), 1)
+
+
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def __init__(self, *args):
         BuiltinParameterSpecNoKeywords.__init__(self, *args)

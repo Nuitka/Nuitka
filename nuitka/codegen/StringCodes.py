@@ -174,7 +174,6 @@ def generateBuiltinFormatCode(to_name, expression, emit, context):
             context    = context
         )
 
-
     emit(
         "%s = BUILTIN_FORMAT( %s, %s );" % (
             to_name,

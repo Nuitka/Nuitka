@@ -44,6 +44,7 @@ from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
     ExpressionBuiltinBin,
+    ExpressionBuiltinFormat,
     ExpressionBuiltinHex,
     ExpressionBuiltinId,
     ExpressionBuiltinOct
@@ -1076,6 +1077,22 @@ def hash_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_hash_spec
     )
 
+def format_extractor(node):
+    def makeFormat0(source_ref):
+        # pylint: disable=W0613
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError("format() takes at least 1 argument (0 given)")
+        )
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node                = node,
+        builtin_class       = ExpressionBuiltinFormat,
+        builtin_spec        = BuiltinOptimization.builtin_format_spec,
+        empty_special_class = makeFormat0
+    )
+
 
 _dispatch_dict = {
     "compile"    : compile_extractor,
@@ -1113,7 +1130,8 @@ _dispatch_dict = {
     # TODO: Disabled for now, not handling all cases.
     # "bytearray"  : bytearray_extractor,
     "slice"      : slice_extractor,
-    "hash"       : hash_extractor
+    "hash"       : hash_extractor,
+    "format"     : format_extractor,
 }
 
 if python_version < 300:
