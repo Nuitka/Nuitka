@@ -3591,6 +3591,7 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
     }
     else
     {
+#if PYTHON_VERSION < 360
         PyErr_Format(
             PyExc_TypeError,
             "unorderable types: %s() %s %s()",
@@ -3598,7 +3599,15 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
             op_strings[ op ],
             b->ob_type->tp_name
         );
-
+#else
+        PyErr_Format(
+            PyExc_TypeError,
+            "'%s' not supported between instances of '%s' and '%s'",
+            op_strings[ op ],
+            a->ob_type->tp_name,
+            b->ob_type->tp_name
+        );
+#endif
         return NULL;
     }
 }
@@ -3694,6 +3703,7 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
     }
     else
     {
+#if PYTHON_VERSION < 360
         PyErr_Format(
             PyExc_TypeError,
             "unorderable types: %s() %s %s()",
@@ -3701,6 +3711,15 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
             op_strings[ op ],
             b->ob_type->tp_name
         );
+#else
+        PyErr_Format(
+            PyExc_TypeError,
+            "'%s' not supported between instances of '%s' and '%s'",
+            op_strings[ op ],
+            a->ob_type->tp_name,
+            b->ob_type->tp_name
+        );
+#endif
 
         return NULL;
     }
