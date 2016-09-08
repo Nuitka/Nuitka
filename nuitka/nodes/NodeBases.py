@@ -1767,25 +1767,6 @@ class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
         return "undescribed statement"
 
 
-class ExpressionBuiltinNoArgBase(NodeBase, ExpressionMixin):
-    def __init__(self, builtin_function, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-        self.builtin_function = builtin_function
-
-    def computeExpression(self, trace_collection):
-        # The lambda is there for make sure that no argument parsing will reach
-        # the built-in function at all, pylint: disable=W0108
-        return trace_collection.getCompileTimeComputationResult(
-            node        = self,
-            computation = lambda : self.builtin_function(),
-            description = "No argument form of '%s' built-in" % self.builtin_function.__name__
-        )
-
-
 class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
                                      ExpressionSpecBasedComputationMixin):
     named_children = (

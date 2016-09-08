@@ -38,8 +38,7 @@ from nuitka.nodes.AttributeNodes import (
 )
 from nuitka.nodes.BuiltinDecodingNodes import (
     ExpressionBuiltinChr,
-    ExpressionBuiltinOrd,
-    ExpressionBuiltinOrd0
+    ExpressionBuiltinOrd
 )
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinFormatNodes import (
@@ -326,11 +325,19 @@ def chr_extractor(node):
     )
 
 def ord_extractor(node):
+    def makeOrd0(source_ref):
+        # pylint: disable=W0613
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError("ord() takes exactly one argument (0 given)")
+        )
+
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinOrd,
         builtin_spec        = BuiltinOptimization.builtin_ord_spec,
-        empty_special_class = ExpressionBuiltinOrd0
+        empty_special_class = makeOrd0
     )
 
 def bin_extractor(node):

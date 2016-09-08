@@ -25,21 +25,7 @@ answer quite a few questions at compile time.
 
 from nuitka.optimizations import BuiltinOptimization
 
-from .NodeBases import (
-    ExpressionBuiltinNoArgBase,
-    ExpressionBuiltinSingleArgBase
-)
-
-
-class ExpressionBuiltinOrd0(ExpressionBuiltinNoArgBase):
-    kind = "EXPRESSION_BUILTIN_ORD0"
-
-    def __init__(self, source_ref):
-        ExpressionBuiltinNoArgBase.__init__(
-            self,
-            builtin_function = ord,
-            source_ref       = source_ref
-        )
+from .NodeBases import ExpressionBuiltinSingleArgBase
 
 
 class ExpressionBuiltinOrd(ExpressionBuiltinSingleArgBase):
