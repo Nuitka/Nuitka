@@ -233,6 +233,22 @@ def buildFunctionNode(provider, node, source_ref):
                 )
             )
 
+    if python_version >= 360 and \
+       node.name == "__init_subclass__" and \
+       provider.isExpressionClassBody():
+
+        for decorator in decorators:
+            if decorator.isExpressionVariableRef() and \
+               decorator.getVariableName() == "classmethod":
+                break
+        else:
+            decorators.append(
+                ExpressionBuiltinRef(
+                    builtin_name = "classmethod",
+                    source_ref   = source_ref
+                )
+            )
+
     decorated_function = function_creation
     for decorator in decorators:
         decorated_function = ExpressionCallNoKeywords(
