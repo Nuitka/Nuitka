@@ -872,6 +872,27 @@ PyObject *BUILTIN_LEN( PyObject *value )
     return PyInt_FromSsize_t( res );
 }
 
+NUITKA_DEFINE_BUILTIN( format );
+
+PyObject *BUILTIN_FORMAT( PyObject *value, PyObject *format_spec )
+{
+    CHECK_OBJECT( value );
+    CHECK_OBJECT( format_spec );
+
+    NUITKA_ASSIGN_BUILTIN( format );
+
+    PyObject *args[2] = {
+        value,
+        format_spec
+    };
+
+    return CALL_FUNCTION_WITH_ARGS2(
+        NUITKA_ACCESS_BUILTIN( format ),
+        args
+    );
+}
+
+
 NUITKA_DEFINE_BUILTIN( __import__ );
 
 PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )

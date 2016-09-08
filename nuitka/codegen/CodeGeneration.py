@@ -202,10 +202,13 @@ from .SliceCodes import (
     generateSliceLookupCode
 )
 from .StringCodes import (
+    generateBuiltinAsciiCode,
     generateBuiltinChrCode,
+    generateBuiltinFormatCode,
     generateBuiltinOrdCode,
     generateBuiltinStrCode,
-    generateBuiltinUnicodeCode
+    generateBuiltinUnicodeCode,
+    generateStringContenationCode
 )
 from .SubscriptCodes import (
     generateAssignmentSubscriptCode,
@@ -630,6 +633,9 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_ASYNC_WAIT"                     : generateAsyncWaitCode,
         "EXPRESSION_ASYNC_ITER"                     : generateAsyncIterCode,
         "EXPRESSION_ASYNC_NEXT"                     : generateAsyncNextCode,
+        "EXPRESSION_STRING_CONCATENATION"           : generateStringContenationCode,
+        "EXPRESSION_BUILTIN_FORMAT"                 : generateBuiltinFormatCode,
+        "EXPRESSION_BUILTIN_ASCII"                  : generateBuiltinAsciiCode,
     }
 )
 

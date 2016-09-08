@@ -584,9 +584,12 @@ extern PyObject *BUILTIN_BYTEARRAY( PyObject *value );
 extern PyObject *BUILTIN_HASH( PyObject *value );
 
 extern PyObject *const_str_plain___builtins__;
-//
+
+// For built-in eval() functionality, works on byte compiled code already.
 extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals );
 
+// For built-in format() functionality.
+extern PyObject *BUILTIN_FORMAT( PyObject *value, PyObject *format_spec );
 
 #include "nuitka/importing.hpp"
 

@@ -61,6 +61,11 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable
 )
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.BuiltinFormatNodes import (
+    ExpressionBuiltinAscii,
+    ExpressionBuiltinFormat
+)
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
@@ -91,6 +96,7 @@ from nuitka.nodes.OperatorNodes import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
+from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
@@ -104,6 +110,7 @@ from nuitka.utils import MemoryUsage, Utils
 from . import SyntaxErrors
 from .Helpers import (
     buildNode,
+    buildNodeList,
     buildStatementsNode,
     extractDocFromBody,
     getBuildContext,
@@ -664,6 +671,49 @@ def buildAwaitNode(provider, node, source_ref):
     )
 
 
+def buildFormattedValueNode(provider, node, source_ref):
+    value = buildNode(provider, node.value, source_ref)
+
+    conversion = node.conversion % 4 if node.conversion > 0 else 0
+
+    if conversion == 0:
+        pass
+    elif conversion == 3:
+        value = ExpressionBuiltinStr(
+            value      = value,
+            encoding   = None,
+            errors     = None,
+            source_ref = source_ref
+        )
+    elif conversion == 2:
+        value = ExpressionOperationUnary(
+            operator   = "Repr",
+            operand    = value,
+            source_ref = source_ref
+        )
+    elif conversion == 1:
+        value = ExpressionBuiltinAscii(
+            value      = value,
+            source_ref = source_ref
+        )
+    else:
+        assert False, conversion
+
+    return ExpressionBuiltinFormat(
+        value       = value,
+        format_spec = buildNode(provider, node.format_spec, source_ref, allow_none = True),
+        source_ref  = source_ref
+    )
+
+
+def buildJoinedStrNode(provider, node, source_ref):
+    return ExpressionStringConcatenation(
+        values     = buildNodeList(provider, node.values, source_ref),
+        source_ref = source_ref
+    )
+
+
+
 setBuildingDispatchers(
     path_args3 = {
         "Name"              : buildVariableReferenceNode,
@@ -714,6 +764,8 @@ setBuildingDispatchers(
         "AugAssign"         : buildInplaceAssignNode,
         "IfExp"             : buildConditionalExpressionNode,
         "Break"             : buildStatementLoopBreak,
+        "JoinedStr"         : buildJoinedStrNode,
+        "FormattedValue"    : buildFormattedValueNode,
     },
     path_args2 = {
         "NameConstant" : buildNamedConstantNode,

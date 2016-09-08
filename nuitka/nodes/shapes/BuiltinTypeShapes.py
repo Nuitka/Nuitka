@@ -372,6 +372,26 @@ else:
     ShapeTypeUnicode = ShapeTypeStr
     ShapeTypeUnicodeIterator = ShapeTypeStrIterator
 
+if python_version < 300:
+    class ShapeTypeStrOrUnicode(ShapeBase):
+        @staticmethod
+        def hasShapeSlotLen():
+            return True
+
+        @staticmethod
+        def hasShapeSlotInt():
+            return False
+
+        @staticmethod
+        def hasShapeSlotIter():
+            return True
+
+        @staticmethod
+        def hasShapeSlotNext():
+            return False
+else:
+    ShapeTypeStrOrUnicode = ShapeTypeStr
+
 
 if python_version >= 300:
     class ShapeTypeBytes(ShapeBase):

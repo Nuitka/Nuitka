@@ -42,6 +42,7 @@ from nuitka.nodes.BuiltinDecodingNodes import (
 )
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinFormatNodes import (
+    ExpressionBuiltinAscii,
     ExpressionBuiltinBin,
     ExpressionBuiltinHex,
     ExpressionBuiltinId,
@@ -381,6 +382,16 @@ def repr_extractor(node):
         builtin_class = makeReprOperator,
         builtin_spec  = BuiltinOptimization.builtin_repr_spec
     )
+
+
+if python_version >= 300:
+    def ascii_extractor(node):
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = ExpressionBuiltinAscii,
+            builtin_spec  = BuiltinOptimization.builtin_repr_spec
+        )
+
 
 def range_extractor(node):
     def selectRangeBuiltin(low, high, step, source_ref):
@@ -1120,6 +1131,7 @@ else:
     # The Python3 range is really an xrange, use that.
     _dispatch_dict["range"] = xrange_extractor
     _dispatch_dict["exec"] = exec_extractor
+    _dispatch_dict["ascii"] = ascii_extractor
 
 def check():
     from nuitka.Builtins import builtin_names

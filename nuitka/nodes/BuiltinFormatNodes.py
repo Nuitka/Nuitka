@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Format nodes bin/oct/hex.
+""" Format related nodes format/bin/oct/hex/ascii.
 
 These will most often be used for outputs, and the hope is, the type prediction or the
 result prediction will help to be smarter, but generally these should not be that much
@@ -23,8 +23,49 @@ about performance critical.
 
 """
 from nuitka.optimizations import BuiltinOptimization
+from nuitka.PythonVersions import python_version
 
-from .NodeBases import ExpressionBuiltinSingleArgBase
+from .NodeBases import (
+    ExpressionBuiltinSingleArgBase,
+    ExpressionChildrenHavingBase
+)
+from .shapes.BuiltinTypeShapes import ShapeTypeStrOrUnicode
+
+
+class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_BUILTIN_FORMAT"
+
+    named_children = (
+        "value",
+        "format_spec"
+    )
+
+    def __init__(self, value, format_spec, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "value"       : value,
+                "format_spec" : format_spec
+            },
+            source_ref = source_ref
+        )
+
+    def getTypeShape(self):
+        return ShapeTypeStrOrUnicode
+
+    def computeExpression(self, trace_collection):
+        # TODO: Can use the format built-in on compile time constants at least.
+        return self, None, None
+
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
+    getFormatSpec = ExpressionChildrenHavingBase.childGetter("format_spec")
+
+
+class ExpressionBuiltinAscii(ExpressionBuiltinSingleArgBase):
+    kind = "EXPRESSION_BUILTIN_ASCII"
+
+    if python_version >= 300:
+        builtin_spec = BuiltinOptimization.builtin_ascii_spec
 
 
 class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
