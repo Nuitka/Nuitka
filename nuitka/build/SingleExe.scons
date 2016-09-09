@@ -195,12 +195,14 @@ def getExecutablePath(filename, initial):
     path_elements = search_path.split(os.pathsep)
 
     for path_element in path_elements:
+        path_element = path_element.strip('"')
+
         full = os.path.join(path_element, filename)
 
         if os.path.exists(full):
             return full
-    else:
-        return None
+
+    return None
 
 
 def createEnvironment(compiler_tools):

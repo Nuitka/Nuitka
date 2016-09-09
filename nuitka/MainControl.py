@@ -35,7 +35,7 @@ from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import isUninstalledPython, python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.utils import InstanceCounters, MemoryUsage, Utils
+from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
 
 from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface
@@ -580,7 +580,7 @@ def writeBinaryData(filename, binary_data):
         output_file.write(binary_data)
 
 
-def callExec(args, clean_path, add_path):
+def callExecPython(args, clean_path, add_path):
     old_python_path = os.environ.get("PYTHONPATH", None)
 
     if clean_path and old_python_path is not None:
@@ -599,16 +599,21 @@ def callExec(args, clean_path, add_path):
     # Add the main arguments, previous separated.
     args += Options.getPositionalArgs()[1:] + Options.getMainArgs()
 
-    Utils.callExec(args)
+    Execution.callExec(args)
 
 
 def executeMain(binary_filename, clean_path):
     args = (binary_filename, binary_filename)
 
     if Options.shallRunInDebugger():
-        args = ("/usr/bin/gdb", "gdb", "-ex=run", "-ex=where", "--args", binary_filename)
+        gdb_path = Execution.getExecutablePath("gdb")
 
-    callExec(
+        if gdb_path is None:
+            sys.exit("Error, no 'gdb' binary found in path.")
+
+        args = (gdb_path, "gdb", "-ex=run", "-ex=where", "--args", binary_filename)
+
+    callExecPython(
         clean_path = clean_path,
         add_path   = False,
         args       = args
@@ -625,7 +630,7 @@ def executeModule(tree, clean_path):
         python_command,
     )
 
-    callExec(
+    callExecPython(
         clean_path = clean_path,
         add_path   = True,
         args       = args
