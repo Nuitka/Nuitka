@@ -25,7 +25,10 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import (
+    ExpressionAttributeLookup,
+    ExpressionBuiltinHasattr
+)
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
@@ -46,7 +49,10 @@ from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonIn,
     ExpressionComparisonIsNOT
 )
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConditionalNodes import (
+    ExpressionConditionalOR,
+    StatementConditional
+)
 from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantNoneRef,
     makeConstantRefNode
@@ -390,19 +396,37 @@ def makeStarListArgumentErrorRaise(called_variable_ref, star_list_variable_ref):
 def _makeStarListArgumentToTupleStatement(called_variable_ref,
                                           star_list_target_variable_ref,
                                           star_list_variable_ref):
-    return makeConditionalStatement(
-        condition  = ExpressionComparisonIsNOT(
-            left       = ExpressionBuiltinType1(
-                value      = star_list_variable_ref.makeClone(),
+    if python_version >= 350:
+        non_tuple_code = makeConditionalStatement(
+            condition  = ExpressionConditionalOR(
+                left       = ExpressionBuiltinHasattr(
+                    object_arg = star_list_variable_ref.makeClone(),
+                    name       = makeConstantRefNode("__iter__", internal_source_ref),
+                    source_ref = internal_source_ref
+                ),
+                right      = ExpressionBuiltinHasattr(
+                    object_arg = star_list_variable_ref.makeClone(),
+                    name       = makeConstantRefNode("__getitem__", internal_source_ref),
+                    source_ref = internal_source_ref
+                ),
                 source_ref = internal_source_ref
             ),
-            right      = ExpressionBuiltinRef(
-                builtin_name = "tuple",
+            yes_branch = StatementAssignmentVariable(
+                variable_ref = star_list_target_variable_ref.makeClone(),
+                source       = ExpressionBuiltinTuple(
+                    value      = star_list_variable_ref.makeClone(),
+                    source_ref = internal_source_ref
+                ),
                 source_ref   = internal_source_ref
             ),
+            no_branch  = makeStarListArgumentErrorRaise(
+                called_variable_ref    = called_variable_ref,
+                star_list_variable_ref = star_list_variable_ref
+            ),
             source_ref = internal_source_ref
-        ),
-        yes_branch = makeTryExceptSingleHandlerNode(
+        )
+    else:
+        non_tuple_code = makeTryExceptSingleHandlerNode(
             tried          =  StatementAssignmentVariable(
                 variable_ref = star_list_target_variable_ref.makeClone(),
                 source       = ExpressionBuiltinTuple(
@@ -417,7 +441,21 @@ def _makeStarListArgumentToTupleStatement(called_variable_ref,
                 star_list_variable_ref = star_list_variable_ref
             ),
             source_ref     = internal_source_ref
+        )
+
+    return makeConditionalStatement(
+        condition  = ExpressionComparisonIsNOT(
+            left       = ExpressionBuiltinType1(
+                value      = star_list_variable_ref.makeClone(),
+                source_ref = internal_source_ref
+            ),
+            right      = ExpressionBuiltinRef(
+                builtin_name = "tuple",
+                source_ref   = internal_source_ref
+            ),
+            source_ref = internal_source_ref
         ),
+        yes_branch = non_tuple_code,
         no_branch  = None,
         source_ref = internal_source_ref
     )
