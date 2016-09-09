@@ -29,7 +29,11 @@ from .NodeBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeStrOrUnicode
+from .shapes.BuiltinTypeShapes import (
+    ShapeTypeIntOrLong,
+    ShapeTypeStr,
+    ShapeTypeStrOrUnicode
+)
 
 
 class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
@@ -55,10 +59,31 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
 
     def computeExpression(self, trace_collection):
         # TODO: Can use the format built-in on compile time constants at least.
+
+        value = self.getValue()
+        format_spec = self.getFormatSpec()
+
+        # Go to default way if possible.
+        if format_spec is not None and \
+           format_spec.isExpressionConstantStrRef() and \
+           not format_spec.getCompileTimeConstant():
+            self.setFormatSpec(None)
+            format_spec = None
+
+        # Strings format themselves as what they are.
+        if format_spec is None:
+            if value.hasShapeStrExact() or value.hasShapeUnicodeExact():
+                return (
+                    value,
+                    "new_expression", """\
+Removed useless 'format' on %s value.""" % value.getTypeShape().getTypeName()
+                )
+
         return self, None, None
 
     getValue = ExpressionChildrenHavingBase.childGetter("value")
     getFormatSpec = ExpressionChildrenHavingBase.childGetter("format_spec")
+    setFormatSpec = ExpressionChildrenHavingBase.childSetter("format_spec")
 
 
 class ExpressionBuiltinAscii(ExpressionBuiltinSingleArgBase):
@@ -67,11 +92,17 @@ class ExpressionBuiltinAscii(ExpressionBuiltinSingleArgBase):
     if python_version >= 300:
         builtin_spec = BuiltinOptimization.builtin_ascii_spec
 
+    def getTypeShape(self):
+        return ShapeTypeStr
+
 
 class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_BIN"
 
     builtin_spec = BuiltinOptimization.builtin_bin_spec
+
+    def getTypeShape(self):
+        return ShapeTypeStr
 
 
 class ExpressionBuiltinOct(ExpressionBuiltinSingleArgBase):
@@ -79,11 +110,17 @@ class ExpressionBuiltinOct(ExpressionBuiltinSingleArgBase):
 
     builtin_spec = BuiltinOptimization.builtin_oct_spec
 
+    def getTypeShape(self):
+        return ShapeTypeStr
+
 
 class ExpressionBuiltinHex(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_HEX"
 
     builtin_spec = BuiltinOptimization.builtin_hex_spec
+
+    def getTypeShape(self):
+        return ShapeTypeStr
 
 
 class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
@@ -98,3 +135,6 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
 
     def getIntValue(self):
         return self
+
+    def getTypeShape(self):
+        return ShapeTypeIntOrLong

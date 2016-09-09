@@ -38,7 +38,11 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
     wrapExpressionWithSideEffects
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeDict
+from .shapes.BuiltinTypeShapes import (
+    ShapeTypeDict,
+    ShapeTypeStr,
+    ShapeTypeUnicode
+)
 from .shapes.StandardShapes import ShapeUnknown
 
 
@@ -1497,6 +1501,12 @@ class ExpressionMixin:
         """
 
         return self.getTypeShape() is ShapeTypeDict
+
+    def hasShapeStrExact(self):
+        return self.getTypeShape() is ShapeTypeStr
+
+    def hasShapeUnicodeExact(self):
+        return self.getTypeShape() is ShapeTypeUnicode
 
 
 class CompileTimeConstantExpressionMixin(ExpressionMixin):
