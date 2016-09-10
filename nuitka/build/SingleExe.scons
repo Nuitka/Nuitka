@@ -92,6 +92,9 @@ experimental_mode = getBoolOption("experimental", False)
 # Tracing mode. Output program progress.
 trace_mode = getBoolOption("trace_mode", False)
 
+# Do we use C11 for source files, or C++.
+c11_mode = getBoolOption("c11_mode", False)
+
 # LTO mode: Use link time optimizations of g++ compiler if available and known
 # good with the compiler in question. The 4.5 one didn't have good enough
 # support, the compiled result would not run correctly.
@@ -1242,7 +1245,7 @@ def discoverSourceFiles():
     def getStatic(sub_path):
         return os.path.join(static_src, sub_path.replace('/', os.path.sep))
 
-    if int(os.environ.get("TRY_C", "0")):
+    if c11_mode:
         result.append(getStatic("CompiledFunctionType.c"))
         result.append(getStatic("CompiledMethodType.c"))
         result.append(getStatic("CompiledGeneratorType.c"))
@@ -1288,7 +1291,7 @@ def discoverSourceFiles():
             result.append(os.path.join(source_dir, filename))
 
     if not module_mode:
-        if int(os.environ.get("TRY_C", "0")):
+        if c11_mode:
             result.append(getStatic("MainProgram.c"))
         else:
             result.append(getStatic("MainProgram.cpp"))

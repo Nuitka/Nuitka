@@ -264,22 +264,26 @@ def pickSourceFilenames(source_dir, modules):
 
         base_filename += hash_suffix
 
-        if int(os.environ.get("TRY_C", '0')):
-            module_filenames[module] = base_filename + ".c"
-        else:
-            module_filenames[module] = base_filename + ".cpp"
+        module_filenames[module] = base_filename + getCodeFilenameSuffix()
 
     return module_filenames
 
 
 standalone_entry_points = []
 
+def getCodeFilenameSuffix():
+    if Options.shallUseC11():
+        return ".c"
+    else:
+        return ".cpp"
+
+
 def makeSourceDirectory(main_module):
     """ Get the full list of modules imported, create code for all of them.
 
     """
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=R0912,R0914,R0915
+    # no sense, pylint: disable=R0912,R0914
 
     assert main_module.isCompiledPythonModule()
 
@@ -403,20 +407,15 @@ def makeSourceDirectory(main_module):
         else:
             assert False, module
 
-    if int(os.environ.get("TRY_C", '0')):
-        writeSourceCode(
-            filename    = Utils.joinpath(source_dir, "__constants.c"),
-            source_code = ConstantCodes.getConstantsDefinitionCode(
-                context = global_context
-            )
+    writeSourceCode(
+        filename    = Utils.joinpath(
+            source_dir,
+            "__constants" + getCodeFilenameSuffix()
+        ),
+        source_code = ConstantCodes.getConstantsDefinitionCode(
+            context = global_context
         )
-    else:
-        writeSourceCode(
-            filename    = Utils.joinpath(source_dir, "__constants.cpp"),
-            source_code = ConstantCodes.getConstantsDefinitionCode(
-                context = global_context
-            )
-        )
+    )
 
     helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode(
         ModuleRegistry.getDoneUserModules()
@@ -427,16 +426,10 @@ def makeSourceDirectory(main_module):
         source_code = helper_decl_code
     )
 
-    if int(os.environ.get("TRY_C", '0')):
-        writeSourceCode(
-            filename    = Utils.joinpath(source_dir, "__helpers.c"),
-            source_code = helper_impl_code
-        )
-    else:
-        writeSourceCode(
-            filename    = Utils.joinpath(source_dir, "__helpers.cpp"),
-            source_code = helper_impl_code
-        )
+    writeSourceCode(
+        filename    = Utils.joinpath(source_dir, "__helpers" + getCodeFilenameSuffix()),
+        source_code = helper_impl_code
+    )
 
 
 def runScons(main_module, quiet):
@@ -490,6 +483,9 @@ def runScons(main_module, quiet):
 
     if Options.isLto():
         options["lto_mode"] = "true"
+
+    if Options.shallUseC11():
+        options["c11_mode"] = "true"
 
     if Options.shallDisableConsoleWindow():
         options["win_disable_console"] = "true"
