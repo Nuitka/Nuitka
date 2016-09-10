@@ -648,7 +648,7 @@ def compileTree(main_module):
             writeSourceCode(
                 filename    = Utils.joinpath(
                     source_dir,
-                    "__frozen.cpp"
+                    "__frozen" + getCodeFilenameSuffix()
                 ),
                 source_code = frozen_code
             )

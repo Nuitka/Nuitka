@@ -29,7 +29,11 @@ template_frozen_modules = """\
 #if defined(_WIN32) && defined(_NUITKA_EXE)
 extern const unsigned char* constant_bin;
 #else
+#ifdef __cplusplus
 extern "C" const unsigned char constant_bin[];
+#else
+extern const unsigned char constant_bin[0];
+#endif
 #endif
 
 #define stream_data constant_bin
@@ -42,7 +46,7 @@ extern "C" const unsigned char constant_bin[];
 
 void copyFrozenModulesTo( void* destination )
 {
-    _frozen frozen_modules[] = {
+    struct _frozen frozen_modules[] = {
 %(frozen_modules)s
         { NULL, NULL, 0 }
     };
