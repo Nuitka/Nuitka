@@ -25,17 +25,9 @@ template_frozen_modules = """\
 // any.
 #include <Python.h>
 
-// Blob from which modules are unstreamed.
-#if defined(_WIN32) && defined(_NUITKA_EXE)
-extern const unsigned char* constant_bin;
-#else
-#ifdef __cplusplus
-extern "C" const unsigned char constant_bin[];
-#else
-extern const unsigned char constant_bin[0];
-#endif
-#endif
+#include "nuitka/constants_blob.hpp"
 
+// Blob from which modules are unstreamed.
 #define stream_data constant_bin
 
 // These modules should be loaded as bytecode. They may e.g. have to be loadable

@@ -188,27 +188,6 @@ def cleanSourceDirectory(source_dir):
     else:
         Utils.makePath(source_dir)
 
-    static_source_dir = Utils.joinpath(
-        source_dir,
-        "static"
-    )
-
-    if Utils.isDir(static_source_dir):
-        for path, _filename in Utils.listDir(static_source_dir):
-            if Utils.getExtension(path) in (".o", ".os", ".obj"):
-                Utils.deleteFile(path, True)
-
-    win32_source_dir = Utils.joinpath(
-        static_source_dir,
-        "win32_ucontext_src"
-    )
-
-    if Utils.getOS() == "Windows":
-        Utils.deleteFile(
-            Utils.joinpath(win32_source_dir, "fibers_win32.obj"),
-            False
-        )
-
 
 def pickSourceFilenames(source_dir, modules):
     collision_filenames = set()
@@ -272,10 +251,7 @@ def pickSourceFilenames(source_dir, modules):
 standalone_entry_points = []
 
 def getCodeFilenameSuffix():
-    if Options.shallUseC11():
-        return ".c"
-    else:
-        return ".cpp"
+    return ".c"
 
 
 def makeSourceDirectory(main_module):
@@ -483,9 +459,6 @@ def runScons(main_module, quiet):
 
     if Options.isLto():
         options["lto_mode"] = "true"
-
-    if Options.shallUseC11():
-        options["c11_mode"] = "true"
 
     if Options.shallDisableConsoleWindow():
         options["win_disable_console"] = "true"

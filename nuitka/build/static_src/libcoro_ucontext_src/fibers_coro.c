@@ -19,9 +19,14 @@
 
 #include "nuitka/prelude.hpp"
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 #include "coro.h"
+#ifdef __cplusplus
 }
+#endif
+
 
 // TODO: Make stack size rational.
 #define STACK_SIZE (1024*1024)

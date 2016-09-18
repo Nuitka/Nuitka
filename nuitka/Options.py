@@ -549,16 +549,6 @@ Use link time optimizations if available and usable (g++ 4.6 and higher).
 Defaults to off."""
 )
 
-cpp_compiler_group.add_option(
-    "--c11",
-    action  = "store_true",
-    dest    = "c11_mode",
-    default = False,
-    help    = """\
-Experimental pure C mode, using C11 standard. Defaults to off."""
-)
-
-
 parser.add_option_group(cpp_compiler_group)
 
 tracing_group = OptionGroup(
@@ -869,9 +859,6 @@ def isShowScons():
 
 def getJobLimit():
     return int(options.jobs)
-
-def shallUseC11():
-    return options.c11_mode
 
 def isLto():
     return options.lto

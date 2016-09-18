@@ -44,10 +44,6 @@ source_dir = ARGUMENTS["source_dir"]
 nuitka_src = ARGUMENTS["nuitka_src"]
 static_src = os.path.join(source_dir, "static")
 
-# We tell Scons that it is a variant to be built, so object files don't end up
-# inside that directory which need not be writable.
-VariantDir(static_src, os.path.join(nuitka_src, "static_src"), 0)  # @UndefinedVariable
-
 # The name of executable or extension module that we produce.
 result_basepath = ARGUMENTS["result_name"]
 
@@ -92,8 +88,8 @@ experimental_mode = getBoolOption("experimental", False)
 # Tracing mode. Output program progress.
 trace_mode = getBoolOption("trace_mode", False)
 
-# Do we use C11 for source files, or C++.
-c11_mode = getBoolOption("c11_mode", False)
+# Do we use C11 for source files, or C++. No detection yet.
+c11_mode = False
 
 # LTO mode: Use link time optimizations of g++ compiler if available and known
 # good with the compiler in question. The 4.5 one didn't have good enough
@@ -1188,6 +1184,9 @@ else:
     )
 
     with open(constants_generated_filename, 'w') as output:
+        if not c11_mode:
+            output.write('extern "C" ')
+
         output.write("const unsigned char constant_bin[] =\n{\n")
 
         for count, stream_byte in enumerate(
@@ -1242,59 +1241,108 @@ else:
 def discoverSourceFiles():
     result = []
 
-    def getStatic(sub_path):
-        return os.path.join(static_src, sub_path.replace('/', os.path.sep))
+    # If we use C11 capable compiler, all good. Otherwise use C++, which scons
+    # needs to derive from filenames, so make copies (or links) with a different
+    # name.
+    def cheap_copy(src,dst):
+        if win_target:
+            # Windows has symlinks these days, but they do not integrate well
+            # with Python2 at least.So make a copy in any case.
+            if os.path.exists(dst):
+                os.unlink(dst)
+            shutil.copy(src,dst)
+        else:
+            # Relative paths work badly for links. Creating them relative is
+            # not worth the effort.
+            src = os.path.abspath(src)
 
-    if c11_mode:
-        result.append(getStatic("CompiledFunctionType.c"))
-        result.append(getStatic("CompiledMethodType.c"))
-        result.append(getStatic("CompiledGeneratorType.c"))
-        if python_version >= "3.5":
-            result.append(getStatic("CompiledCoroutineType.c"))
-        result.append(getStatic("CompiledFrameType.c"))
-        result.append(getStatic("CompiledCodeHelpers.c"))
-        result.append(getStatic("InspectPatcher.c"))
-        result.append(getStatic("MetaPathBasedLoader.c"))
-    else:
-        result.append(getStatic("CompiledFunctionType.cpp"))
-        result.append(getStatic("CompiledMethodType.cpp"))
-        result.append(getStatic("CompiledGeneratorType.cpp"))
-        if python_version >= "3.5":
-            result.append(getStatic("CompiledCoroutineType.cpp"))
-        result.append(getStatic("CompiledFrameType.cpp"))
-        result.append(getStatic("CompiledCodeHelpers.cpp"))
-        result.append(getStatic("InspectPatcher.cpp"))
-        result.append(getStatic("MetaPathBasedLoader.cpp"))
+            try:
+                link_target = os.readlink(dst)
 
+                # If it's already a proper link, do nothing then.
+                if link_target == src:
+                    return
+
+                os.unlink(dst)
+            except OSError as e:
+                # Broken links work like that, remove them, so we can replace
+                # them.
+                try:
+                    os.unlink(dst)
+                except OSError:
+                    pass
+
+            os.symlink(src,dst)
+
+    def provideStatic(sub_path):
+        # TODO: That should be normpath maybe.
+        sub_path = sub_path.replace('/', os.path.sep)
+
+        source_file = os.path.join(nuitka_src, "static_src", sub_path)
+        target_file = os.path.join(source_dir, os.path.basename(sub_path))
+
+        if target_file.endswith(".c") and not c11_mode:
+            target_file += "pp"
+
+        cheap_copy(source_file, target_file)
+
+        return target_file
+
+    # Scan for Nuitka created source files, and add them too.
+    for filename in os.listdir(source_dir):
+        # Only C files are of interest here.
+        if not filename.endswith(".c"):
+            continue
+
+        filename = os.path.join(source_dir, filename)
+
+        target_file = filename
+
+        # We pretend to use C++ if no C11 compiler is present.
+        if c11_mode:
+            result.append(filename)
+        else:
+            target_file += "pp" # .cpp" suffix then
+
+            cheap_copy(filename, target_file)
+            result.append(target_file)
+
+    # Main program, unless of course it's a Python module/package we build.
+    if not module_mode:
+        result.append(provideStatic("MainProgram.c"))
+
+    # Compiled types and helper routines.
+    result.append(provideStatic("CompiledFunctionType.c"))
+    result.append(provideStatic("CompiledMethodType.c"))
+    result.append(provideStatic("CompiledGeneratorType.c"))
+    if python_version >= "3.5":
+        result.append(provideStatic("CompiledCoroutineType.c"))
+    result.append(provideStatic("CompiledFrameType.c"))
+    result.append(provideStatic("CompiledCodeHelpers.c"))
+    result.append(provideStatic("InspectPatcher.c"))
+    result.append(provideStatic("MetaPathBasedLoader.c"))
+
+    # Platform dependent fiber implementations for generators to use.
     if win_target:
-        result.append(getStatic("win32_ucontext_src/fibers_win32.cpp"))
+        result.append(provideStatic("win32_ucontext_src/fibers_win32.c"))
     elif "openbsd" in sys.platform:
-        result.append(getStatic("libcoro_ucontext_src/fibers_coro.cpp"))
-        result.append(getStatic("libcoro_ucontext_src/coro.c"))
+        result.append(provideStatic("libcoro_ucontext_src/fibers_coro.c"))
+        result.append(provideStatic("libcoro_ucontext_src/coro.c"))
 
         env.Append(
             CPPDEFINES = ["CORO_SJLJ"]
         )
     elif target_arch == "x86_64" and "linux" in sys.platform:
-        result.append(getStatic("x64_ucontext_src/fibers_x64.cpp"))
-        result.append(getStatic("x64_ucontext_src/swapfiber.S"))
+        result.append(provideStatic("x64_ucontext_src/fibers_x64.c"))
+        result.append(provideStatic("x64_ucontext_src/swapfiber.S"))
     elif target_arch == "armv5tel":
-        result.append(getStatic("arm_ucontext_src/fibers_arm.cpp"))
-        result.append(getStatic("arm_ucontext_src/ucontext.cpp"))
-        result.append(getStatic("arm_ucontext_src/getcontext.asm"))
+        result.append(provideStatic("arm_ucontext_src/fibers_arm.c"))
+        result.append(provideStatic("arm_ucontext_src/ucontext.c"))
+        result.append(provideStatic("arm_ucontext_src/getcontext.asm"))
     else:
-        # Variant based on getcontext/setcontext/swapcontext/makecontext
-        result.append(getStatic("gen_ucontext_src/fibers_gen.cpp"))
-
-    for filename in os.listdir(source_dir):
-        if filename.endswith((".cpp",".c")):
-            result.append(os.path.join(source_dir, filename))
-
-    if not module_mode:
-        if c11_mode:
-            result.append(getStatic("MainProgram.c"))
-        else:
-            result.append(getStatic("MainProgram.cpp"))
+        # Variant based on deprecated, but still present versions of
+        # getcontext/setcontext/swapcontext/makecontext
+        result.append(provideStatic("gen_ucontext_src/fibers_gen.c"))
 
     return result
 

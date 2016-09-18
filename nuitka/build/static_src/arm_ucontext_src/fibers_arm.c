@@ -47,8 +47,17 @@ Contains parts of an earlier library that has:
 
 #include "nuitka/prelude.hpp"
 
-extern "C" int getmcontext( mcontext_t *mcontext );
-extern "C" void setmcontext( const mcontext_t *mcontext );
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int getmcontext( mcontext_t *mcontext );
+void setmcontext( const mcontext_t *mcontext );
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #define setcontext(u) setmcontext( &(u)->uc_mcontext )
 #define getcontext(u) getmcontext( &(u)->uc_mcontext )

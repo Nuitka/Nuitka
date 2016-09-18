@@ -603,17 +603,8 @@ extern void createGlobalConstants( void );
 extern void checkGlobalConstants( void );
 #endif
 
-
-#if defined(_WIN32) && defined(_NUITKA_EXE)
-#include <Windows.h>
-extern const unsigned char* constant_bin;
-#else
-#ifdef __cplusplus
-extern "C" const unsigned char constant_bin[];
-#else
-const unsigned char constant_bin[0];
-#endif
-#endif
+// Unstreaming constants from a blob.
+#include "nuitka/constants_blob.hpp"
 
 extern void UNSTREAM_INIT( void );
 extern PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size );
