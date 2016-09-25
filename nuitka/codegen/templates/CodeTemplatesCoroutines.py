@@ -20,11 +20,11 @@
 """
 
 template_coroutine_object_decl_template = """\
-static void %(function_identifier)s( Nuitka_CoroutineObject *coroutine );
+static void %(function_identifier)s( struct Nuitka_CoroutineObject *coroutine );
 """
 
 template_coroutine_object_body_template = """
-static void %(function_identifier)s( Nuitka_CoroutineObject *coroutine )
+static void %(function_identifier)s( struct Nuitka_CoroutineObject *coroutine )
 {
     CHECK_OBJECT( (PyObject *)coroutine );
     assert( Nuitka_Coroutine_Check( (PyObject *)coroutine ) );

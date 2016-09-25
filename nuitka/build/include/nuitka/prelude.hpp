@@ -168,7 +168,11 @@ typedef int bool;
 #if PYTHON_VERSION < 300
 #define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__(( visibility( "default" )))
 #else
+#ifdef __cplusplus
 #define NUITKA_MODULE_INIT_FUNCTION extern "C" __attribute__(( visibility( "default" ))) PyObject *
+#else
+#define NUITKA_MODULE_INIT_FUNCTION __attribute__(( visibility( "default" ))) PyObject *
+#endif
 #endif
 
 #else

@@ -2648,15 +2648,20 @@ void prepareStandaloneEnvironment()
 #if _NUITKA_FROZEN > 0
     // The CPython library has some pre-existing frozen modules, we only append
     // to that.
-    const _frozen *search = PyImport_FrozenModules;
+    struct _frozen const *search = PyImport_FrozenModules;
     while( search->name )
     {
         search++;
     }
-    int pre_existing_count = int( search - PyImport_FrozenModules );
+    int pre_existing_count = (int)( search - PyImport_FrozenModules );
 
-    // Allocate new memory and merge the tables.
-    _frozen *merged = new _frozen[ _NUITKA_FROZEN + pre_existing_count + 1 ];
+    /* Allocate new memory and merge the tables. Keeping the old ones has
+     * the advantage that e.g. "import this" is going to work well.
+     */
+    struct _frozen *merged = (struct _frozen *)malloc(
+        sizeof(struct _frozen) * (_NUITKA_FROZEN + pre_existing_count + 1)
+    );
+
     memcpy(
         merged,
         PyImport_FrozenModules,
@@ -2667,21 +2672,22 @@ void prepareStandaloneEnvironment()
 #endif
 
 #ifdef _NUITKA_STANDALONE
-    // Setup environment variables to tell CPython that we would like it to use
-    // the provided binary directory as the place to look for DLLs.
+    /* Setup environment variables to tell CPython that we would like it to use
+     * the provided binary directory as the place to look for DLLs.
+     */
     char *binary_directory = getBinaryDirectoryHostEncoded();
 
 #if defined( _WIN32 ) && defined( _MSC_VER )
     SetDllDirectory( binary_directory );
 #endif
 
-    // get original value
+    /* get original environment variable values */
     original_home = getenv( "PYTHONHOME" );
     original_path = getenv( "PYTHONPATH" );
     size_t original_home_size = ( original_home ) ? strlen( original_home ) : 0;
     size_t original_path_size = ( original_path ) ? strlen( original_path ) : 0;
 
-    // get insert value
+    /* Get the value to insert into it. */
     size_t insert_size = strlen( binary_directory ) * 2 + 50;
     char *insert_path = (char *) malloc( insert_size );
 
