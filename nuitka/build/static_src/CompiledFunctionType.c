@@ -16,9 +16,9 @@
 //     limitations under the License.
 //
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
-#include "nuitka/compiled_method.hpp"
+#include "nuitka/compiled_method.h"
 
 // Needed for offsetof
 #include <stddef.h>

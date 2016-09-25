@@ -18,7 +18,7 @@
 #ifndef __NUITKA_CALLING_H__
 #define __NUITKA_CALLING_H__
 
-#include "__helpers.hpp"
+#include "__helpers.h"
 
 extern PyObject *const_tuple_empty;
 

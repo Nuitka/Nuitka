@@ -17,7 +17,7 @@
 //
 // Implementation of process context switch for generic targets.
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 #ifdef __cplusplus
 extern "C" {

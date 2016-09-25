@@ -15,7 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 #include "structmember.h"
 

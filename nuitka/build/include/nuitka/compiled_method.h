@@ -20,8 +20,8 @@
 #define __NUITKA_COMPILED_METHOD_H__
 
 // Compiled function and compile generator types may be referenced.
-#include "compiled_function.hpp"
-#include "compiled_generator.hpp"
+#include "compiled_function.h"
+#include "compiled_generator.h"
 
 // The backbone of the integration into CPython. Try to behave as well as normal
 // method objects, or even better.

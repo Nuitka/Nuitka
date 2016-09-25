@@ -45,7 +45,7 @@ Contains parts of an earlier library that has:
 
 // Implementation of process context switch for ARM
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 #ifdef __cplusplus
 extern "C" {

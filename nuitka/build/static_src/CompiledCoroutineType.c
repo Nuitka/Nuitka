@@ -16,7 +16,7 @@
 //     limitations under the License.
 //
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 static PyObject *Nuitka_Coroutine_get_name( struct Nuitka_CoroutineObject *coroutine)
 {

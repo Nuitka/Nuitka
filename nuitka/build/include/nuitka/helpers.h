@@ -38,7 +38,7 @@ typedef struct {
 } PyModuleObject;
 
 // Most fundamental, because we use it for debugging in everything else.
-#include "nuitka/helper/printing.hpp"
+#include "nuitka/helper/printing.h"
 
 static PyObject *INCREASE_REFCOUNT( PyObject *object );
 
@@ -46,11 +46,11 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object );
 #define CHECK_OBJECT( value ) ( assert( value != NULL ), assert( Py_REFCNT( value ) > 0 ) );
 
 
-#include "nuitka/exceptions.hpp"
+#include "nuitka/exceptions.h"
 
 // For use with "--trace-execution", code can make outputs. Otherwise they
 // are just like comments.
-#include "nuitka/tracing.hpp"
+#include "nuitka/tracing.h"
 
 // Helper functions for reference count handling in the fly.
 NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
@@ -83,9 +83,9 @@ extern void stopProfiling( void );
 #endif
 
 
-#include "nuitka/helper/boolean.hpp"
+#include "nuitka/helper/boolean.h"
 
-#include "nuitka/helper/dictionaries.hpp"
+#include "nuitka/helper/dictionaries.h"
 
 #if PYTHON_VERSION >= 300
 static char *_PyUnicode_AS_STRING( PyObject *unicode )
@@ -105,12 +105,12 @@ static char *_PyUnicode_AS_STRING( PyObject *unicode )
 }
 #endif
 
-#include "nuitka/helper/raising.hpp"
+#include "nuitka/helper/raising.h"
 
-#include "helper/operations.hpp"
+#include "helper/operations.h"
 
-#include "nuitka/helper/richcomparisons.hpp"
-#include "nuitka/helper/sequences.hpp"
+#include "nuitka/helper/richcomparisons.h"
+#include "nuitka/helper/sequences.h"
 
 static inline bool Nuitka_Function_Check( PyObject *object );
 static inline PyObject *Nuitka_Function_GetName( PyObject *object );
@@ -118,7 +118,7 @@ static inline PyObject *Nuitka_Function_GetName( PyObject *object );
 static inline bool Nuitka_Generator_Check( PyObject *object );
 static inline PyObject *Nuitka_Generator_GetName( PyObject *object );
 
-#include "nuitka/calling.hpp"
+#include "nuitka/calling.h"
 
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
@@ -492,15 +492,15 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 }
 
 
-#include "nuitka/helper/subscripts.hpp"
-#include "nuitka/helper/attributes.hpp"
-#include "nuitka/helper/iterators.hpp"
-#include "nuitka/helper/slices.hpp"
-#include "nuitka/helper/rangeobjects.hpp"
+#include "nuitka/helper/subscripts.h"
+#include "nuitka/helper/attributes.h"
+#include "nuitka/helper/iterators.h"
+#include "nuitka/helper/slices.h"
+#include "nuitka/helper/rangeobjects.h"
 
-#include "nuitka/builtins.hpp"
+#include "nuitka/builtins.h"
 
-#include "nuitka/frame_stack.hpp"
+#include "nuitka/frame_stack.h"
 
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {
@@ -595,7 +595,7 @@ extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
 // For built-in format() functionality.
 extern PyObject *BUILTIN_FORMAT( PyObject *value, PyObject *format_spec );
 
-#include "nuitka/importing.hpp"
+#include "nuitka/importing.h"
 
 // For the constant loading:
 
@@ -608,7 +608,7 @@ extern void checkGlobalConstants( void );
 #endif
 
 // Unstreaming constants from a blob.
-#include "nuitka/constants_blob.hpp"
+#include "nuitka/constants_blob.h"
 
 extern void UNSTREAM_INIT( void );
 extern PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size );
@@ -774,7 +774,7 @@ extern void setEarlyFrozenModulesFileAttribute( void );
  */
 extern PyObject *MAKE_RELATIVE_PATH( PyObject *relative );
 
-#include <nuitka/threading.hpp>
+#include <nuitka/threading.h>
 
 NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE( PyObject **elements, Py_ssize_t size )
 {
@@ -797,6 +797,6 @@ NUITKA_MAY_BE_UNUSED static void forceGC()
     PyObject_CallObject(PyObject_GetAttrString(PyImport_ImportModule("gc"), "collect"), NULL );
 }
 
-#include "nuitka/helper/cells.hpp"
+#include "nuitka/helper/cells.h"
 
 #endif

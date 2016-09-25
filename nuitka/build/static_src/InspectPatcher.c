@@ -19,7 +19,7 @@
  * by replacing CPython implementations with enhanced versions.
  */
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 
 #if PYTHON_VERSION >= 300

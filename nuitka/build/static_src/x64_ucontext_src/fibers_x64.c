@@ -17,7 +17,7 @@
 //
 // Implementation of process context switch for x64.
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 #define STACK_SIZE (1024*1024)
 

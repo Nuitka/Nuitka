@@ -42,9 +42,9 @@ template_global_copyright = """\
  */
 """
 template_module_body_template = """
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
-#include "__helpers.hpp"
+#include "__helpers.h"
 
 /* The _module_%(module_identifier)s is a Python object pointer of module type. */
 
@@ -280,7 +280,7 @@ template_helper_impl_decl = """\
 // This file contains helper functions that are automatically created from
 // templates.
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 extern PyObject *callPythonFunction( PyObject *func, PyObject **args, int count );
 

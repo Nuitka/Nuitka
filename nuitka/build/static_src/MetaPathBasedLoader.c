@@ -33,8 +33,8 @@
 #define SEP '\\'
 #endif
 
-#include "nuitka/prelude.hpp"
-#include "nuitka/unfreezing.hpp"
+#include "nuitka/prelude.h"
+#include "nuitka/unfreezing.h"
 
 // For Python3.3, the loader is a module attribute, so we need to make it
 // accessible from this variable.

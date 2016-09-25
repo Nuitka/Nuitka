@@ -181,9 +181,9 @@ def getResultFullpath(main_module):
 def cleanSourceDirectory(source_dir):
     if Utils.isDir(source_dir):
         for path, _filename in Utils.listDir(source_dir):
-            if Utils.getExtension(path) in (".cpp", ".hpp", ".c", ".o", ".os",
-                                            ".obj", ".bin", ".res", ".rc",
-                                            ".S", ".manifest"):
+            if Utils.getExtension(path) in (".c", ".h", ".o", ".os", ".obj",
+                                            ".bin", ".res", ".rc", ".S",
+                                            ".manifest"):
                 Utils.deleteFile(path, True)
     else:
         Utils.makePath(source_dir)
@@ -243,15 +243,12 @@ def pickSourceFilenames(source_dir, modules):
 
         base_filename += hash_suffix
 
-        module_filenames[module] = base_filename + getCodeFilenameSuffix()
+        module_filenames[module] = base_filename + ".c"
 
     return module_filenames
 
 
 standalone_entry_points = []
-
-def getCodeFilenameSuffix():
-    return ".c"
 
 
 def makeSourceDirectory(main_module):
@@ -386,7 +383,7 @@ def makeSourceDirectory(main_module):
     writeSourceCode(
         filename    = Utils.joinpath(
             source_dir,
-            "__constants" + getCodeFilenameSuffix()
+            "__constants.c"
         ),
         source_code = ConstantCodes.getConstantsDefinitionCode(
             context = global_context
@@ -398,12 +395,12 @@ def makeSourceDirectory(main_module):
     )
 
     writeSourceCode(
-        filename    = Utils.joinpath(source_dir, "__helpers.hpp"),
+        filename    = Utils.joinpath(source_dir, "__helpers.h"),
         source_code = helper_decl_code
     )
 
     writeSourceCode(
-        filename    = Utils.joinpath(source_dir, "__helpers" + getCodeFilenameSuffix()),
+        filename    = Utils.joinpath(source_dir, "__helpers.c"),
         source_code = helper_impl_code
     )
 
@@ -621,7 +618,7 @@ def compileTree(main_module):
             writeSourceCode(
                 filename    = Utils.joinpath(
                     source_dir,
-                    "__frozen" + getCodeFilenameSuffix()
+                    "__frozen.c"
                 ),
                 source_code = frozen_code
             )
@@ -633,7 +630,7 @@ def compileTree(main_module):
     else:
         source_dir = getSourceDirectoryPath(main_module)
 
-        if not Utils.isFile(Utils.joinpath(source_dir, "__helpers.hpp")):
+        if not Utils.isFile(Utils.joinpath(source_dir, "__helpers.h")):
             sys.exit("Error, no previous build directory exists.")
 
     if Options.isShowProgress() or Options.isShowMemory():

@@ -26,7 +26,7 @@
  */
 
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 extern PyObject *const_str_plain_compile;
 
@@ -2909,7 +2909,7 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
     CHECK_OBJECT( b );
 
     // TODO: Type a-ware rich comparison would be really nice, but this is what
-    // CPython does, and should be even in "richcomparisons.hpp" as the first
+    // CPython does, and should be even in "richcomparisons.h" as the first
     // thing, so it's even cheaper.
     if ( PyInt_CheckExact( a ) && PyInt_CheckExact( b ))
     {
@@ -3143,7 +3143,7 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
     CHECK_OBJECT( b );
 
     // TODO: Type a-ware rich comparison would be really nice, but this is what
-    // CPython does, and should be even in "richcomparisons.hpp" as the first
+    // CPython does, and should be even in "richcomparisons.h" as the first
     // thing, so it's even cheaper.
     if ( PyInt_CheckExact( a ) && PyInt_CheckExact( b ))
     {

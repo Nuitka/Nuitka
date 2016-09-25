@@ -25,7 +25,7 @@
  *
  */
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 #include "structseq.h"
 #include "osdefs.h"

@@ -25,7 +25,7 @@ template_frozen_modules = """\
 // any.
 #include <Python.h>
 
-#include "nuitka/constants_blob.hpp"
+#include "nuitka/constants_blob.h"
 
 // Blob from which modules are unstreamed.
 #define stream_data constant_bin

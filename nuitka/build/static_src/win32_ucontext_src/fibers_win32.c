@@ -17,7 +17,7 @@
 //
 // Implementation of process context switch for Win32
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 // Less than 1MB is ignored on Win32 apparently.
 #ifdef MS_WIN64

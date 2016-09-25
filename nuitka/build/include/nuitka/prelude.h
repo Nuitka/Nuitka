@@ -220,21 +220,21 @@ typedef long Py_hash_t;
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
-#include "nuitka/helpers.hpp"
+#include "nuitka/helpers.h"
 
-#include "nuitka/compiled_function.hpp"
+#include "nuitka/compiled_function.h"
 
 /* Sentinel PyObject to be used for all our call iterator endings. */
 extern PyObject *_sentinel_value;
 
-#include "nuitka/compiled_generator.hpp"
+#include "nuitka/compiled_generator.h"
 
-#include "nuitka/compiled_method.hpp"
+#include "nuitka/compiled_method.h"
 
-#include "nuitka/compiled_frame.hpp"
+#include "nuitka/compiled_frame.h"
 
 #if PYTHON_VERSION >= 350
-#include "nuitka/compiled_coroutine.hpp"
+#include "nuitka/compiled_coroutine.h"
 #endif
 
 #endif

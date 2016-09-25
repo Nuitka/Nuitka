@@ -17,7 +17,7 @@
 //
 // Implementation of process context switch for generic targets.
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 // TODO: Make stack size rational.
 #define STACK_SIZE (1024*1024)

@@ -27,7 +27,7 @@
 // Another cornerstone of the integration into CPython. Try to behave as well as
 // normal generator objects do or even better.
 
-#include "fibers.hpp"
+#include "fibers.h"
 
 // Status of the generator object.
 #ifdef __cplusplus

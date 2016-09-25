@@ -36,7 +36,7 @@ template_metapath_loader_bytecode_module_entry = """\
 template_metapath_loader_body = """\
 /* Code to register embedded modules for meta path based loading if any. */
 
-#include "nuitka/unfreezing.hpp"
+#include "nuitka/unfreezing.h"
 
 /* Table for lookup to find compiled or bytecode modules included in this
  * binary or module, or put along this binary as extension modules. We do

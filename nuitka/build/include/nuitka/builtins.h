@@ -18,12 +18,12 @@
 #ifndef __NUITKA_BUILTINS_H__
 #define __NUITKA_BUILTINS_H__
 
-#include "__helpers.hpp"
+#include "__helpers.h"
 
 extern PyModuleObject *builtin_module;
 extern PyDictObject *dict_builtin;
 
-#include "nuitka/calling.hpp"
+#include "nuitka/calling.h"
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
 {

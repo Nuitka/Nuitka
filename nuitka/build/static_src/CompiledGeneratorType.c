@@ -16,7 +16,7 @@
 //     limitations under the License.
 //
 
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 static PyObject *Nuitka_Generator_tp_repr( struct Nuitka_GeneratorObject *generator )
 {

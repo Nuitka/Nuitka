@@ -20,7 +20,7 @@
 """
 
 template_constants_reading = """
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 // Sentinel PyObject to be used for all our call iterator endings. It will
 // become a PyCObject pointing to NULL. It's address is unique, and that's

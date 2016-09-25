@@ -402,7 +402,7 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1( PyDictObject *dict, Nuitka
     }
 }
 
-// TODO: Have mapping.hpp
+// TODO: Have mapping.h
 NUITKA_MAY_BE_UNUSED static void DICT_SYNC_FROM_VARIABLE( PyObject *dict, PyObject *key, PyObject *value )
 {
     if ( value )
@@ -421,7 +421,7 @@ NUITKA_MAY_BE_UNUSED static void DICT_SYNC_FROM_VARIABLE( PyObject *dict, PyObje
     }
 }
 
-// TODO: Have mapping.hpp
+// TODO: Have mapping.h
 NUITKA_MAY_BE_UNUSED static bool MAPPING_SYNC_FROM_VARIABLE( PyObject *mapping, PyObject *key, PyObject *value )
 {
     if ( value )
