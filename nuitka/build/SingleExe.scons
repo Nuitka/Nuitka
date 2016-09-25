@@ -88,9 +88,6 @@ experimental_mode = getBoolOption("experimental", False)
 # Tracing mode. Output program progress.
 trace_mode = getBoolOption("trace_mode", False)
 
-# Do we use C11 for source files, or C++. No detection yet.
-c11_mode = False
-
 # LTO mode: Use link time optimizations of g++ compiler if available and known
 # good with the compiler in question. The 4.5 one didn't have good enough
 # support, the compiled result would not run correctly.
@@ -508,6 +505,18 @@ c) Install MinGW64 to 'C:\\MinGW64' or '\\MinGW', where then it is automatically
 gcc_mode = "g++" in env["CXX"] or "clang" in env["CXX"]
 msvc_mode = win_target and not gcc_mode
 mingw_mode = win_target and gcc_mode
+
+# Do we use C11 for source files, or C++. No detection yet.
+if msvc_mode:
+    c11_mode = False
+elif mingw_mode and env["CXXVERSION"] >= "5":
+    c11_mode = True
+elif clang_mode:
+    c11_mode = True
+elif gcc_mode and env["CXXVERSION"] >= "5":
+    c11_mode = True
+else:
+    c11_mode = False
 
 if msvc_mode:
     def getMsvcVersionString():
