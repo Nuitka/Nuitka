@@ -57,6 +57,8 @@ if python_version >= "3.6":
     search_mode.mayFailFor(
         # CPython3.6.0a4 bug ought to enhance
         "Constants.py",
+        # CPython3.6.0b1 bug ought to enhance
+        "ParameterErrors.py",
     )
 
 

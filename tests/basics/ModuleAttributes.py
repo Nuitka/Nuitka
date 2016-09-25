@@ -47,7 +47,8 @@ def checkFromFunction():
             d = dict(d)
             d["__file__"] = "<__file__ removed>"
 
-        return repr(d)
+        import pprint
+        return pprint.pformat(d)
 
     print("Globals", displayDict(frame.f_globals))
     print("Locals", displayDict(frame.f_locals))
