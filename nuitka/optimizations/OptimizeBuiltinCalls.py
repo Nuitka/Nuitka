@@ -924,11 +924,33 @@ def compile_extractor(node):
 
 
 def open_extractor(node):
+    def makeOpen0(source_ref):
+        # pylint: disable=W0613
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError(
+                "Required argument 'name' (pos 1) not found"
+                  if python_version < 300 else
+                "Required argument 'file' (pos 1) not found"
+            )
+        )
+
     return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinOpen,
-        builtin_spec  = BuiltinOptimization.builtin_open_spec
+        node                = node,
+        builtin_class       = ExpressionBuiltinOpen,
+        builtin_spec        = BuiltinOptimization.builtin_open_spec,
+        empty_special_class = makeOpen0
     )
+
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node                = node,
+        builtin_class       = ExpressionBuiltinFormat,
+        builtin_spec        = BuiltinOptimization.builtin_format_spec,
+        empty_special_class = makeFormat0
+    )
+
 
 def super_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator

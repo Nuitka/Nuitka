@@ -139,8 +139,9 @@ PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering
 {
     NUITKA_ASSIGN_BUILTIN( open );
 
-    if ( file_name == NULL )
+    if (unlikely( file_name == NULL ))
     {
+        /* Should have been optimized away already. */
         return CALL_FUNCTION_NO_ARGS(
             NUITKA_ACCESS_BUILTIN( open )
         );
