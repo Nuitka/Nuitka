@@ -89,28 +89,84 @@ static PyObject *GET_STRING_DICT_VALUE( PyDictObject *dict, Nuitka_StringObject 
 
 #else
 
+// Python 3.3 or higher.
+
 // Quick dictionary lookup for a string value.
 
-
-struct PyDictKeyEntry
+typedef struct
 {
     /* Cached hash code of me_key. */
     Py_hash_t me_hash;
     PyObject *me_key;
     PyObject *me_value; /* This field is only meaningful for combined tables */
-};
+} PyDictKeyEntry;
 
-typedef struct PyDictKeyEntry *(*dict_lookup_func)(PyDictObject *mp, PyObject *key, Py_hash_t hash, PyObject ***value_addr);
+#if PYTHON_VERSION < 360
+typedef PyDictKeyEntry *(*dict_lookup_func)(
+    PyDictObject *mp,
+    PyObject *key,
+    Py_hash_t hash,
+    PyObject ***value_addr
+);
+#else
+typedef Py_ssize_t (*dict_lookup_func)(
+    PyDictObject *mp,
+    PyObject *key,
+    Py_hash_t hash,
+    PyObject ***value_addr,
+    Py_ssize_t *hashpos
+);
+#endif
 
-// Stolen from CPython3.3 dictobject.c
+
+// Taken from CPython3.3 "Objects/dictobject.c", lives in "Objects/dict-common.h" later
+
 struct _dictkeysobject
 {
     Py_ssize_t dk_refcnt;
     Py_ssize_t dk_size;
     dict_lookup_func dk_lookup;
     Py_ssize_t dk_usable;
-    struct PyDictKeyEntry dk_entries[1];
+#if PYTHON_VERSION < 360
+    PyDictKeyEntry dk_entries[1];
+#else
+    Py_ssize_t dk_nentries;
+    union {
+        int8_t as_1[8];
+        int16_t as_2[4];
+        int32_t as_4[2];
+#if SIZEOF_VOID_P > 4
+        int64_t as_8[1];
+#endif
+    } dk_indices;
+
+#endif
 };
+
+// Taken from Objects/dictobject.c of CPython 3.6
+#if PYTHON_VERSION >= 360
+
+#define DK_SIZE(dk) ((dk)->dk_size)
+
+#if SIZEOF_VOID_P > 4
+#define DK_IXSIZE(dk)                          \
+    (DK_SIZE(dk) <= 0xff ?                     \
+        1 : DK_SIZE(dk) <= 0xffff ?            \
+            2 : DK_SIZE(dk) <= 0xffffffff ?    \
+                4 : sizeof(int64_t))
+#else
+#define DK_IXSIZE(dk)                          \
+    (DK_SIZE(dk) <= 0xff ?                     \
+        1 : DK_SIZE(dk) <= 0xffff ?            \
+            2 : sizeof(int32_t))
+#endif
+
+#define DK_ENTRIES(dk) \
+    ((PyDictKeyEntry *)(&(dk)->dk_indices.as_1[DK_SIZE(dk) * DK_IXSIZE(dk)]))
+
+#define DK_USABLE_FRACTION(n) (((n) << 1)/3)
+
+#endif
 
 typedef PyObject **Nuitka_DictEntryHandle;
 
@@ -131,11 +187,22 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_
 
     PyObject **value_addr;
 
-    struct PyDictKeyEntry *entry = dict->ma_keys->dk_lookup( dict, (PyObject *)key, hash, &value_addr );
+#if PYTHON_VERSION < 360
+    PyDictKeyEntry *entry = dict->ma_keys->dk_lookup( dict, (PyObject *)key, hash, &value_addr );
 
     // The "entry" cannot be NULL, it can only be empty for a string dict lookup, but at
     // least assert it.
     assert( entry != NULL );
+#else
+    // TODO: Find out what the returned Py_ssize_t "ix" might be good for.
+    dict->ma_keys->dk_lookup(
+        dict,
+        (PyObject *)key,
+        hash,
+        &value_addr,
+        NULL // hashpos, TODO: Find out what we could use it for.
+    );
+#endif
 
     return value_addr;
 }
@@ -153,6 +220,13 @@ NUITKA_MAY_BE_UNUSED static void SET_DICT_ENTRY_VALUE( Nuitka_DictEntryHandle ha
 NUITKA_MAY_BE_UNUSED static PyObject *GET_STRING_DICT_VALUE( PyDictObject *dict, Nuitka_StringObject *key )
 {
     Nuitka_DictEntryHandle handle = GET_STRING_DICT_ENTRY( dict, key );
+
+#if PYTHON_VERSION >= 360
+    if ( handle == NULL )
+    {
+        return NULL;
+    }
+#endif
 
     return GET_DICT_ENTRY_VALUE( handle );
 }
@@ -269,6 +343,14 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0( PyDictObject *dict, Nuitka
 {
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( dict, key );
 
+#if PYTHON_VERSION >= 360
+    if ( entry == NULL )
+    {
+        DICT_SET_ITEM( (PyObject *)dict, (PyObject *)key, value );
+        return;
+    }
+#endif
+
     PyObject *old = GET_DICT_ENTRY_VALUE( entry );
 
     // Values are more likely (more often) set than not set, in that case
@@ -291,6 +373,16 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0( PyDictObject *dict, Nuitka
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1( PyDictObject *dict, Nuitka_StringObject *key, PyObject *value )
 {
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY( dict, key );
+
+#if PYTHON_VERSION >= 360
+    if ( entry == NULL )
+    {
+        DICT_SET_ITEM( (PyObject *)dict, (PyObject *)key, value );
+
+        Py_DECREF( value );
+        return;
+    }
+#endif
 
     PyObject *old = GET_DICT_ENTRY_VALUE( entry );
 

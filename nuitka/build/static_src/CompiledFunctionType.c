@@ -1347,11 +1347,18 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY( struct Nuitka_FunctionObject const *
 
             Nuitka_GC_Track( split_copy );
 
+#if PYTHON_VERSION < 360
             Py_ssize_t size = mp->ma_keys->dk_size;
+#else
+            Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
+#endif
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
-                struct PyDictKeyEntry *entry = &split_copy->ma_keys->dk_entries[ i ];
-
+#if PYTHON_VERSION < 360
+                PyDictKeyEntry *entry = &split_copy->ma_keys->dk_entries[ i ];
+#else
+                PyDictKeyEntry *entry = &DK_ENTRIES( split_copy->ma_keys )[ i ];
+#endif
                 if ( ( entry->me_key != NULL ) && unlikely( !PyUnicode_Check( entry->me_key ) ))
                 {
                     PyErr_Format(
@@ -1375,21 +1382,20 @@ static bool MAKE_STAR_DICT_DICTIONARY_COPY( struct Nuitka_FunctionObject const *
 
             PyDictObject *mp = (PyDictObject *)kw;
 
+#if PYTHON_VERSION < 360
             Py_ssize_t size = mp->ma_keys->dk_size;
+#else
+            Py_ssize_t size = mp->ma_keys->dk_nentries;
+#endif
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
-                struct PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+#if PYTHON_VERSION < 360
+                PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[ i ];
+#else
+                PyDictKeyEntry *entry = &DK_ENTRIES( mp->ma_keys )[ i ];
+#endif
 
-                // TODO: One of these cases has been dealt with above.
-                PyObject *value;
-                if ( mp->ma_values )
-                {
-                    value = mp->ma_values[ i ];
-                }
-                else
-                {
-                    value = entry->me_value;
-                }
+                PyObject *value = entry->me_value;
 
                 if ( value != NULL )
                 {

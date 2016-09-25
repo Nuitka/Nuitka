@@ -3638,6 +3638,7 @@ PyObject *DEEP_COPY( PyObject *value )
 
         return result;
 #else
+        /* Python 3.3 or higher */
         if ( _PyDict_HasSplitTable( (PyDictObject *)value) )
         {
             PyDictObject *mp = (PyDictObject *)value;
@@ -3656,7 +3657,11 @@ PyObject *DEEP_COPY( PyObject *value )
 
             Nuitka_GC_Track( result );
 
+#if PYTHON_VERSION < 360
             Py_ssize_t size = mp->ma_keys->dk_size;
+#else
+            Py_ssize_t size = DK_USABLE_FRACTION(DK_SIZE(mp->ma_keys));
+#endif
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
                 if ( mp->ma_values[ i ] )
@@ -3677,25 +3682,22 @@ PyObject *DEEP_COPY( PyObject *value )
 
             PyDictObject *mp = (PyDictObject *)value;
 
+#if PYTHON_VERSION < 360
             Py_ssize_t size = mp->ma_keys->dk_size;
+#else
+            Py_ssize_t size = mp->ma_keys->dk_nentries;
+#endif
             for ( Py_ssize_t i = 0; i < size; i++ )
             {
-                struct PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+#if PYTHON_VERSION < 360
+                PyDictKeyEntry *entry = &mp->ma_keys->dk_entries[i];
+#else
+                PyDictKeyEntry *entry = &DK_ENTRIES( mp->ma_keys )[ i ];
+#endif
 
-                PyObject *value2;
-
-                if ( mp->ma_values )
+                if ( entry->me_value != NULL )
                 {
-                    value2 = mp->ma_values[ i ];
-                }
-                else
-                {
-                    value2 = entry->me_value;
-                }
-
-                if ( value2 != NULL )
-                {
-                    PyObject *deep_copy = DEEP_COPY( value2 );
+                    PyObject *deep_copy = DEEP_COPY( entry->me_value );
 
                     PyDict_SetItem(
                         result,
