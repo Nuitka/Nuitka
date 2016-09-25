@@ -175,7 +175,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
     else if ( PyCFunction_Check( called ) )
     {
         // Try to be fast about wrapping the arguments.
-        int flags = PyCFunction_GET_FLAGS( called );
+        int flags = PyCFunction_GET_FLAGS( called ) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if ( flags & METH_NOARGS )
         {
@@ -300,6 +300,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
             }
 #endif
 
+#if PYTHON_VERSION < 360
             if ( flags && METH_KEYWORDS )
             {
                 result = (*(PyCFunctionWithKeywords)method)( self, pos_args, NULL );
@@ -308,6 +309,20 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
             {
                 result = (*method)( self, pos_args );
             }
+#else
+            if ( flags == ( METH_VARARGS | METH_KEYWORDS ) )
+            {
+                result = (*(PyCFunctionWithKeywords)method)( self, pos_args, NULL );
+            }
+            else if ( flags == METH_FASTCALL )
+            {
+                result = (*(_PyCFunctionFast)method)( self, &PyTuple_GET_ITEM( pos_args, 0 ), %(args_count)d, NULL );;
+            }
+            else
+            {
+                result = (*method)( self, pos_args );
+            }
+#endif
 
 #ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
@@ -600,7 +615,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
     else if ( PyCFunction_Check( called ) )
     {
         // Try to be fast about wrapping the arguments.
-        int flags = PyCFunction_GET_FLAGS( called );
+        int flags = PyCFunction_GET_FLAGS( called ) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
 
         if ( flags & METH_NOARGS )
         {
@@ -725,6 +740,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
             }
 #endif
 
+#if PYTHON_VERSION < 300
             if ( flags && METH_KEYWORDS )
             {
                 result = (*(PyCFunctionWithKeywords)method)( self, pos_args, NULL );
@@ -733,6 +749,20 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
             {
                 result = (*method)( self, pos_args );
             }
+#else
+            if ( flags == ( METH_VARARGS | METH_KEYWORDS ) )
+            {
+                result = (*(PyCFunctionWithKeywords)method)( self, pos_args, NULL );
+            }
+            else if ( flags == METH_FASTCALL )
+            {
+                result = (*(_PyCFunctionFast)method)( self, args, %(args_count)d, NULL );;
+            }
+            else
+            {
+                result = (*method)( self, pos_args );
+            }
+#endif
 
 #ifdef _NUITKA_FULL_COMPAT
             Py_LeaveRecursiveCall();
