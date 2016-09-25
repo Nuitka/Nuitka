@@ -197,6 +197,7 @@ def executePASS1():
         os.environ["PYTHON"],
         nuitka_main_path,
         "--recurse-none",
+        "--plugin-enable=pylint-warnings",
         "--output-dir=.",
         "--python-flag=-S",
         "nuitka.py"
