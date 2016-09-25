@@ -1304,7 +1304,7 @@ def discoverSourceFiles():
         else:
             target_file += "pp" # .cpp" suffix then
 
-            cheap_copy(filename, target_file)
+            os.rename(filename, target_file)
             result.append(target_file)
 
     # Main program, unless of course it's a Python module/package we build.
