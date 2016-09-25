@@ -551,23 +551,23 @@ Choice of the Target Language
 
 * These candidates were considered
 
-  * C++03, C++11, Ada, C
+  * C++03, C++11, Ada, C11, C89
 
 .. table:: Requirement to Language matrix:
 
-   =====================  =====   ======  =========   =========
-   Requirement\\Language  C       C++03   C++11       Ada
-   =====================  =====   ======  =========   =========
-   Portable               Yes     Yes     No [1]_     Yes
-   ---------------------  -----   ------  ---------   ---------
-   Knowledge              Yes     Yes     No [2]_     Yes
-   ---------------------  -----   ------  ---------   ---------
-   Python C-API           Yes     Yes     Yes         No [3]_
-   ---------------------  -----   ------  ---------   ---------
-   Runtime checks         No      No      No          Yes [4]_
-   ---------------------  -----   ------  ---------   ---------
-   Code Generation        Tough   Hard    Easy        Harder
-   =====================  =====   ======  =========   =========
+   =====================  =====  ======== ======  =========   =========
+   Requirement\\Language  C89    C11      C++03   C++11       Ada
+   =====================  =====  ======== ======  =========   =========
+   Portable               Yes    Yes [5]_ Yes     No [1]_     Yes
+   ---------------------  -----  -------- ------  ---------   ---------
+   Knowledge              Yes    Yes      Yes     No [2]_     Yes
+   ---------------------  -----  -------- ------  ---------   ---------
+   Python C-API           Yes    Yes      Yes     Yes         No [3]_
+   ---------------------  -----  -------- ------  ---------   ---------
+   Runtime checks         No     No       No      No          Yes [4]_
+   ---------------------  -----  -------- ------  ---------   ---------
+   Code Generation        Tough  Medium   Hard    Easy        Harder
+   =====================  =====  ======== ======  =========   =========
 
 
 _`1`:: C++11 is not fully supported by all compilers.
@@ -582,7 +582,10 @@ _`4`:: Run time checks exist only for Ada in that quality. I miss automatic
 ``CONSTRAINT_ERROR`` exceptions, for data structures with validity indicators,
 where in other languages, I need to check myself.
 
-The *decision for C* is ultimately:
+_`5`:: One can use a C++03 compiler as a C11 compiler for the largest part,
+e.g. with MSVC.
+
+The *decision for C11* is ultimately:
 
 * for portability
 * for language knowledge
@@ -614,8 +617,9 @@ and must be avoided. In order to do this, a more C style code generation is
 needed, where even less things are done with C++, e.g. the cleanup of temporary
 variables inside a statement will be done manually instead.
 
-The current status is C-ish. That is, with very few classes remaining, the
-syntax used is C++ still, but we are approaching being pure C.
+The current status is Pure C11. All code compiles as C11, and also in terms of
+workaround to missing compiler support as C++03. Naturally we are not using any
+C++ features, just the allowances of C++ features that made it into C11.
 
 
 Use of Scons internally
@@ -783,7 +787,7 @@ Hooking for module ``import`` process
 -------------------------------------
 
 Currently, in generated code, for every ``import`` a normal ``__import__()``
-built-in call is executed. The ``nuitka/build/static_src/ModuleUnfreezer.cpp``
+built-in call is executed. The ``nuitka/build/static_src/ModuleUnfreezer.c``
 file provides the implementation of a ``sys.meta_path`` hook.
 
 This meta path based importer allows us to have the Nuitka provided module
