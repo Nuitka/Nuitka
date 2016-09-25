@@ -921,6 +921,24 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
         )
 
+    if python_version >= 360:
+        # Set "__annotations__" on module level to {}
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__annotations__",
+                    source_ref    = internal_source_ref
+                ),
+                source       = makeConstantRefNode(
+                    constant      = {},
+                    source_ref    = internal_source_ref,
+                    user_provided = True
+                ),
+                source_ref   = internal_source_ref
+            )
+        )
+
+
     # Now the module body if there is any at all.
     if result is not None:
         statements.extend(
