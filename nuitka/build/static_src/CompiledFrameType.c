@@ -370,7 +370,7 @@ static PyMethodDef Nuitka_Frame_methods[] =
 
 PyTypeObject Nuitka_Frame_Type =
 {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    PyVarObject_HEAD_INIT(NULL, 0)
     "compiled_frame",
     sizeof(struct Nuitka_FrameObject),
     sizeof(PyObject *),
@@ -403,6 +403,12 @@ PyTypeObject Nuitka_Frame_Type =
     0,                                          // tp_base
     0,                                          // tp_dict
 };
+
+void _initCompiledFrameType( void )
+{
+    PyType_Ready( &Nuitka_Frame_Type );
+}
+
 
 static void tb_dealloc( PyTracebackObject *tb )
 {

@@ -1162,6 +1162,10 @@ if win_target and not module_mode:
     # On Windows constants are accesses as a resource, except in shared
     # libraries, where that option is not available.
     constants_generated_filename = None
+
+    env.Append(
+        CPPDEFINES = ["_NUITKA_CONSTANTS_FROM_RESOURCE"]
+    )
 elif gcc_mode and getLinkerArch() is not None:
     env.Append(
         LINKFLAGS = [

@@ -48,6 +48,10 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object );
 
 #include "nuitka/exceptions.hpp"
 
+// For use with "--trace-execution", code can make outputs. Otherwise they
+// are just like comments.
+#include "nuitka/tracing.hpp"
+
 // Helper functions for reference count handling in the fly.
 NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
 {
@@ -754,9 +758,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *MODULE_NAME( PyObject *module )
 }
 
 #if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
-extern void prepareStandaloneEnvironment();
-extern void restoreStandaloneEnvironment();
-
 // Get the binary directory, translated to UTF8 or usable as a native path,
 // e.g. ANSI on Windows.
 extern char *getBinaryDirectoryUTF8Encoded();

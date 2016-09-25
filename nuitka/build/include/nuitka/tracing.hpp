@@ -15,25 +15,18 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-#ifndef __NUITKA_CONSTANTS_BLOB_H__
-#define __NUITKA_CONSTANTS_BLOB_H__
+#ifndef __NUITKA_TRACING_H__
+#define __NUITKA_TRACING_H__
 
-/* There are multiple ways, the constants binary is accessed, and its
- * definition depends on how that is done.
- *
- * It could be a Windows resource, then it must be a pointer. If it's defined
- * externally in a C file, or at link time with "ld", it must be an array. This
- * hides these facts.
+/* Stupid tracing, intended to help where debugging is not an option
+ * and to give kind of progress record of startup and the running of
+ * the program.
  */
 
-#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-extern const unsigned char* constant_bin;
+#ifdef _NUITKA_TRACE
+#define NUITKA_PRINT_TRACE(value) {puts(value);fflush(stdout);}
 #else
-#ifdef __cplusplus
-extern "C" const unsigned char constant_bin[];
-#else
-const unsigned char constant_bin[0];
-#endif
+#define NUITKA_PRINT_TRACE(value)
 #endif
 
 #endif

@@ -554,7 +554,7 @@ static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
 
 PyTypeObject Nuitka_Function_Type =
 {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    PyVarObject_HEAD_INIT(NULL, 0)
     "compiled_function",                            /* tp_name */
     sizeof(struct Nuitka_FunctionObject),           /* tp_basicsize */
     0,                                              /* tp_itemsize */
@@ -609,6 +609,12 @@ PyTypeObject Nuitka_Function_Type =
     ,0                                              /* tp_finalizer */
 #endif
 };
+
+void _initCompiledFunctionType( void )
+{
+    PyType_Ready( &Nuitka_Function_Type );
+}
+
 
 #if PYTHON_VERSION < 300
 static inline PyObject *make_compiled_function( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )

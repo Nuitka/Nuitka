@@ -328,7 +328,7 @@ def _addConstantInitCode(context, emit, check, constant_type, constant_value,
         return
 
     if Options.shallTraceExecution():
-        emit("""puts("Creating constant: %s");""" % constant_identifier)
+        emit("""NUITKA_PRINT_TRACE("Creating constant: %s");""" % constant_identifier)
 
     # Then it's a real named constant not yet created.
     __addConstantInitCode(context, emit, check, constant_type, constant_value,

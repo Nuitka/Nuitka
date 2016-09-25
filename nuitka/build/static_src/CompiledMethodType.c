@@ -580,7 +580,7 @@ static PyObject *Nuitka_Method_tp_new( PyTypeObject* type, PyObject* args, PyObj
 
 PyTypeObject Nuitka_Method_Type =
 {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    PyVarObject_HEAD_INIT(NULL, 0)
     "compiled_method",
     sizeof(struct Nuitka_MethodObject),
     0,
@@ -639,6 +639,12 @@ PyTypeObject Nuitka_Method_Type =
     ,0                                           /* tp_finalizer */
 #endif
 };
+
+void _initCompiledMethodType( void )
+{
+    PyType_Ready( &Nuitka_Method_Type );
+}
+
 
 PyObject *Nuitka_Method_New( struct Nuitka_FunctionObject *function, PyObject *object, PyObject *klass )
 {

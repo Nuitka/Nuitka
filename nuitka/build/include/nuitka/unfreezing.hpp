@@ -38,7 +38,8 @@ struct Nuitka_MetaPathBasedLoaderEntry
     PyObject * (*python_initfunc)( void );
 #endif
 
-    unsigned char const *bytecode_str;
+    /* For bytecode modules, start and size inside the constants blob. */
+    int bytecode_start;
     int bytecode_size;
 
     /* Flags: Indicators if this is compiled, bytecode or shared library. */

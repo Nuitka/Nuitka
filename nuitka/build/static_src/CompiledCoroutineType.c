@@ -648,8 +648,9 @@ static PyAsyncMethods coro_as_async =
     0                                   /* am_anext */
 };
 
-PyTypeObject Nuitka_Coroutine_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+PyTypeObject Nuitka_Coroutine_Type =
+{
+    PyVarObject_HEAD_INIT(NULL, 0)
     "compiled_coroutine",                            /* tp_name */
     sizeof(struct Nuitka_CoroutineObject),           /* tp_basicsize */
     0,                                               /* tp_itemsize */
@@ -700,6 +701,11 @@ PyTypeObject Nuitka_Coroutine_Type = {
     (destructor)Nuitka_Coroutine_tp_del,             /* tp_finalize */
 };
 
+void _initCompiledCoroutineType( void )
+{
+    PyType_Ready( &Nuitka_Coroutine_Type );
+}
+
 static void Nuitka_CoroutineWrapper_tp_dealloc( struct Nuitka_CoroutineWrapperObject *cw )
 {
     Nuitka_GC_UnTrack( (PyObject *)cw );
@@ -744,8 +750,9 @@ static PyMethodDef Nuitka_CoroutineWrapper_methods[] =
     { NULL }
 };
 
-PyTypeObject Nuitka_CoroutineWrapper_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+PyTypeObject Nuitka_CoroutineWrapper_Type =
+{
+    PyVarObject_HEAD_INIT(NULL, 0)
     "compiled_coroutine_wrapper",
     sizeof(struct Nuitka_CoroutineWrapperObject),      /* tp_basicsize */
     0,                                                 /* tp_itemsize */
@@ -785,6 +792,11 @@ PyTypeObject Nuitka_CoroutineWrapper_Type = {
     0,                                                 /* tp_new */
     PyObject_Del,                                      /* tp_free */
 };
+
+void _initCompiledCoroutineWrapperType( void )
+{
+    PyType_Ready( &Nuitka_CoroutineWrapper_Type );
+}
 
 PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )
 {

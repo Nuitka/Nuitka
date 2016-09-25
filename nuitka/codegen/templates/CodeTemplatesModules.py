@@ -63,6 +63,8 @@ static bool constants_created = false;
 
 static void createModuleConstants( void )
 {
+    assert( constant_bin );
+
 %(constant_init_codes)s
 
     constants_created = true;
@@ -112,6 +114,15 @@ static struct PyModuleDef mdef_%(module_identifier)s =
 extern PyObject *metapath_based_loader;
 #endif
 
+extern void _initCompiledGeneratorType();
+extern void _initCompiledFunctionType();
+extern void _initCompiledMethodType();
+extern void _initCompiledFrameType();
+#if PYTHON_VERSION >= 350
+extern void _initCompiledCoroutineType();
+extern void _initCompiledCoroutineWrapperType();
+#endif
+
 // The exported interface to CPython. On import of the module, this function
 // gets called. It has to have an exact function name, in cases it's a shared
 // library export. This is hidden behind the MOD_INIT_DECL.
@@ -141,14 +152,15 @@ MOD_INIT_DECL( %(module_identifier)s )
     _initBuiltinModule();
     createGlobalConstants();
 
-    // Initialize the compiled types of Nuitka.
-    PyType_Ready( &Nuitka_Generator_Type );
-    PyType_Ready( &Nuitka_Function_Type );
-    PyType_Ready( &Nuitka_Method_Type );
-    PyType_Ready( &Nuitka_Frame_Type );
+    /* Initialize the compiled types of Nuitka. */
+    _initCompiledGeneratorType();
+    _initCompiledFunctionType();
+    _initCompiledMethodType();
+    _initCompiledFrameType();
+
 #if PYTHON_VERSION >= 350
-    PyType_Ready( &Nuitka_Coroutine_Type );
-    PyType_Ready( &Nuitka_CoroutineWrapper_Type );
+    _initCompiledCoroutineType();
+    _initCompiledCoroutineWrapperType();
 #endif
 
 #if PYTHON_VERSION < 300
@@ -170,7 +182,16 @@ MOD_INIT_DECL( %(module_identifier)s )
 
 #endif
 
+    /* The constants only used by this module are created now. */
+#ifdef _NUITKA_TRACE
+    puts("%(module_name)s: Calling createModuleConstants().");
+#endif
     createModuleConstants();
+
+    /* The code objects used by this module are created now. */
+#ifdef _NUITKA_TRACE
+    puts("%(module_name)s: Calling createModuleCodeObjects().");
+#endif
     createModuleCodeObjects();
 
     // puts( "in init%(module_identifier)s" );

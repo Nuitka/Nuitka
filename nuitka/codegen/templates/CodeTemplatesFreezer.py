@@ -36,31 +36,34 @@ template_frozen_modules = """\
 // are not accelerated at all, merely bundled with the binary or module, so
 // that CPython library can start out finding them.
 
-void copyFrozenModulesTo( void* destination )
+struct frozen_desc {
+    char const *name;
+    ssize_t start;
+    int size;
+};
+
+void copyFrozenModulesTo( struct _frozen *destination )
 {
-#if defined(_WIN32) && defined(_NUITKA_EXE)
-    if ( constant_bin == NULL )
-    {
-        constant_bin = (const unsigned char*)LockResource(
-            LoadResource(
-                NULL,
-                FindResource(NULL, MAKEINTRESOURCE(3), RT_RCDATA)
-            )
-        );
-    }
-#endif
     assert( constant_bin );
 
-    struct _frozen frozen_modules[] = {
+    struct frozen_desc frozen_modules[] = {
 %(frozen_modules)s
-        { NULL, NULL, 0 }
+        { NULL, 0, 0 }
     };
 
-    memcpy(
-        destination,
-        frozen_modules,
-        ( _NUITKA_FROZEN + 1 ) * sizeof( struct _frozen )
-    );
+    struct frozen_desc *current = frozen_modules;
+
+    for(;;)
+    {
+        destination->name = (char *)current->name;
+        destination->code = (unsigned char *)&constant_bin[ current->start ];
+        destination->size = current->size;
+
+        if (destination->name == NULL) break;
+
+        current += 1;
+        destination += 1;
+    };
 }
 """
 

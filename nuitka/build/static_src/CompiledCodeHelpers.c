@@ -2023,7 +2023,7 @@ PyModuleObject *builtin_module = NULL;
 
 static PyTypeObject Nuitka_BuiltinModule_Type =
 {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    PyVarObject_HEAD_INIT(NULL, 0)
     "compiled_module",                           // tp_name
     sizeof(PyModuleObject),                      // tp_size
 };
@@ -2598,10 +2598,6 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
 
 #if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
 
-#if _NUITKA_FROZEN > 0
-extern void copyFrozenModulesTo(void* destination);
-#endif
-
 #ifdef _NUITKA_STANDALONE
 extern PyObject *const_str_plain___file__;
 
@@ -2635,133 +2631,6 @@ void setEarlyFrozenModulesFileAttribute( void )
 }
 #endif
 
-static char *original_home;
-static char *original_path;
-
-void prepareStandaloneEnvironment()
-{
-    // Tell the CPython library to use our pre-compiled modules as frozen
-    // modules. This for those modules/packages like "encoding" that will be
-    // loaded during "Py_Initialize" already, for the others they may be
-    // compiled.
-
-#if _NUITKA_FROZEN > 0
-    // The CPython library has some pre-existing frozen modules, we only append
-    // to that.
-    struct _frozen const *search = PyImport_FrozenModules;
-    while( search->name )
-    {
-        search++;
-    }
-    int pre_existing_count = (int)( search - PyImport_FrozenModules );
-
-    /* Allocate new memory and merge the tables. Keeping the old ones has
-     * the advantage that e.g. "import this" is going to work well.
-     */
-    struct _frozen *merged = (struct _frozen *)malloc(
-        sizeof(struct _frozen) * (_NUITKA_FROZEN + pre_existing_count + 1)
-    );
-
-    memcpy(
-        merged,
-        PyImport_FrozenModules,
-        pre_existing_count * sizeof( struct _frozen )
-    );
-    copyFrozenModulesTo(merged + pre_existing_count);
-    PyImport_FrozenModules = merged;
-#endif
-
-#ifdef _NUITKA_STANDALONE
-    /* Setup environment variables to tell CPython that we would like it to use
-     * the provided binary directory as the place to look for DLLs.
-     */
-    char *binary_directory = getBinaryDirectoryHostEncoded();
-
-#if defined( _WIN32 ) && defined( _MSC_VER )
-    SetDllDirectory( binary_directory );
-#endif
-
-    /* get original environment variable values */
-    original_home = getenv( "PYTHONHOME" );
-    original_path = getenv( "PYTHONPATH" );
-    size_t original_home_size = ( original_home ) ? strlen( original_home ) : 0;
-    size_t original_path_size = ( original_path ) ? strlen( original_path ) : 0;
-
-    /* Get the value to insert into it. */
-    size_t insert_size = strlen( binary_directory ) * 2 + 50;
-    char *insert_path = (char *) malloc( insert_size );
-
-#if defined( _WIN32 )
-    char const env_string[] = "%s;";
-#else
-    char const env_string[] = "%s:";
-#endif
-
-    memset( insert_path, 0, insert_size );
-    snprintf( insert_path, insert_size, env_string, binary_directory );
-
-    // set environment
-    size_t python_home_size = original_home_size + insert_size;
-    size_t python_path_size = original_path_size + insert_size;
-    char *python_home = (char *) malloc( python_home_size );
-    char *python_path = (char *) malloc( python_path_size );
-    memset( python_home, 0, python_home_size );
-    memset( python_path, 0, python_path_size );
-    snprintf( python_home, python_home_size, "%s%s",
-        insert_path, original_home ? original_home : "" );
-    snprintf( python_path, python_path_size, "%s%s",
-        insert_path, original_path ? original_path : "" );
-
-    if ( !( original_home && strstr( original_home, insert_path ) ) )
-    {
-#if defined( _WIN32 )
-        SetEnvironmentVariable( "PYTHONHOME", python_home );
-#else
-        setenv( "PYTHONHOME", python_home, 1 );
-#endif
-    }
-    if ( !( original_path && strstr( original_path, insert_path ) ) )
-    {
-#if defined( _WIN32 )
-        SetEnvironmentVariable( "PYTHONPATH", python_path );
-#else
-        setenv( "PYTHONPATH", python_path, 1 );
-#endif
-    }
-
-    // clean up
-    free( insert_path );
-#endif
-}
-
-void restoreStandaloneEnvironment()
-{
-#if defined( _WIN32 )
-    SetEnvironmentVariable( "PYTHONHOME", original_home );
-#else
-    if ( original_home == NULL )
-    {
-        unsetenv( "PYTHONHOME" );
-    }
-    else
-    {
-        setenv( "PYTHONHOME", original_home, 1 );
-    }
-#endif
-
-#if defined( _WIN32 )
-    SetEnvironmentVariable( "PYTHONHOME", original_path );
-#else
-    if ( original_path == NULL )
-    {
-        unsetenv( "PYTHONHOME" );
-    }
-    else
-    {
-        setenv( "PYTHONHOME", original_path, 1 );
-    }
-#endif
-}
 
 #endif
 

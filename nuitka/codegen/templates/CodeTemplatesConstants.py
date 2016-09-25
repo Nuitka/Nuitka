@@ -61,24 +61,8 @@ void checkGlobalConstants( void )
 }
 #endif
 
-#if defined(_WIN32) && defined(_NUITKA_EXE)
-#include <Windows.h>
-unsigned char const* constant_bin = NULL;
-#endif
-
 void createGlobalConstants( void )
 {
-#if defined(_WIN32) && defined(_NUITKA_EXE)
-    if ( constant_bin == NULL )
-    {
-        constant_bin = (const unsigned char*)LockResource(
-            LoadResource(
-                NULL,
-                FindResource(NULL, MAKEINTRESOURCE(3), RT_RCDATA)
-            )
-        );
-    }
-#endif
     assert( constant_bin );
 
     if ( _sentinel_value == NULL )

@@ -431,7 +431,11 @@ static PyObject *loadModule( PyObject *module_name, struct Nuitka_MetaPathBasedL
 #endif
     if ( ( entry->flags & NUITKA_BYTECODE_FLAG ) != 0 )
     {
-        PyObject *code_object = PyMarshal_ReadObjectFromString( (char *)entry->bytecode_str, entry->bytecode_size );
+        PyObject *code_object = PyMarshal_ReadObjectFromString(
+            (char *)&constant_bin[ entry->bytecode_start ],
+            entry->bytecode_size
+        );
+
         if ( code_object == NULL)
         {
             PyErr_Print();

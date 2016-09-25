@@ -609,10 +609,9 @@ static PyMemberDef Nuitka_Generator_members[] =
     { NULL }
 };
 
-
 PyTypeObject Nuitka_Generator_Type =
 {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    PyVarObject_HEAD_INIT(NULL, 0)
     "compiled_generator",                            /* tp_name */
     sizeof(struct Nuitka_GeneratorObject),           /* tp_basicsize */
     0,                                               /* tp_itemsize */
@@ -668,6 +667,11 @@ PyTypeObject Nuitka_Generator_Type =
     ,(destructor)Nuitka_Generator_tp_del             /* tp_finalizer */
 #endif
 };
+
+void _initCompiledGeneratorType( void )
+{
+    PyType_Ready( &Nuitka_Generator_Type );
+}
 
 #if PYTHON_VERSION < 350
 PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )

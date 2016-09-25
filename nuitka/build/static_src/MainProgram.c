@@ -48,6 +48,155 @@ static int orig_argc;
 static wchar_t **argv_unicode;
 #endif
 
+#ifdef _NUITKA_STANDALONE
+
+static char *original_home;
+static char *original_path;
+
+
+#if _NUITKA_FROZEN > 0
+extern void copyFrozenModulesTo( struct _frozen *destination );
+#endif
+
+static void prepareStandaloneEnvironment()
+{
+    // Tell the CPython library to use our pre-compiled modules as frozen
+    // modules. This for those modules/packages like "encoding" that will be
+    // loaded during "Py_Initialize" already, for the others they may be
+    // compiled.
+
+#if _NUITKA_FROZEN > 0
+    // The CPython library has some pre-existing frozen modules, we only append
+    // to that.
+    struct _frozen const *search = PyImport_FrozenModules;
+    while( search->name )
+    {
+        search++;
+    }
+    int pre_existing_count = (int)( search - PyImport_FrozenModules );
+
+    /* Allocate new memory and merge the tables. Keeping the old ones has
+     * the advantage that e.g. "import this" is going to work well.
+     */
+    struct _frozen *merged = (struct _frozen *)malloc(
+        sizeof(struct _frozen) * (_NUITKA_FROZEN + pre_existing_count + 1)
+    );
+
+    memcpy(
+        merged,
+        PyImport_FrozenModules,
+        pre_existing_count * sizeof( struct _frozen )
+    );
+    copyFrozenModulesTo(merged + pre_existing_count);
+    PyImport_FrozenModules = merged;
+#endif
+
+    /* Setup environment variables to tell CPython that we would like it to use
+     * the provided binary directory as the place to look for DLLs.
+     */
+    char *binary_directory = getBinaryDirectoryHostEncoded();
+
+#if defined( _WIN32 ) && defined( _MSC_VER )
+    SetDllDirectory( binary_directory );
+#endif
+
+    /* get original environment variable values */
+    original_home = getenv( "PYTHONHOME" );
+    original_path = getenv( "PYTHONPATH" );
+    size_t original_home_size = ( original_home ) ? strlen( original_home ) : 0;
+    size_t original_path_size = ( original_path ) ? strlen( original_path ) : 0;
+
+    /* Get the value to insert into it. */
+    size_t insert_size = strlen( binary_directory ) * 2 + 50;
+    char *insert_path = (char *) malloc( insert_size );
+
+#if defined( _WIN32 )
+    char const env_string[] = "%s;";
+#else
+    char const env_string[] = "%s:";
+#endif
+
+    memset( insert_path, 0, insert_size );
+    snprintf( insert_path, insert_size, env_string, binary_directory );
+
+    // set environment
+    size_t python_home_size = original_home_size + insert_size;
+    size_t python_path_size = original_path_size + insert_size;
+    char *python_home = (char *) malloc( python_home_size );
+    char *python_path = (char *) malloc( python_path_size );
+    memset( python_home, 0, python_home_size );
+    memset( python_path, 0, python_path_size );
+    snprintf( python_home, python_home_size, "%s%s",
+        insert_path, original_home ? original_home : "" );
+    snprintf( python_path, python_path_size, "%s%s",
+        insert_path, original_path ? original_path : "" );
+
+    if ( !( original_home && strstr( original_home, insert_path ) ) )
+    {
+#if defined( _WIN32 )
+        SetEnvironmentVariable( "PYTHONHOME", python_home );
+#else
+        setenv( "PYTHONHOME", python_home, 1 );
+#endif
+    }
+    if ( !( original_path && strstr( original_path, insert_path ) ) )
+    {
+#if defined( _WIN32 )
+        SetEnvironmentVariable( "PYTHONPATH", python_path );
+#else
+        setenv( "PYTHONPATH", python_path, 1 );
+#endif
+    }
+
+    // clean up
+    free( insert_path );
+}
+
+static void restoreStandaloneEnvironment()
+{
+#if defined( _WIN32 )
+    SetEnvironmentVariable( "PYTHONHOME", original_home );
+#else
+    if ( original_home == NULL )
+    {
+        unsetenv( "PYTHONHOME" );
+    }
+    else
+    {
+        setenv( "PYTHONHOME", original_home, 1 );
+    }
+#endif
+
+#if defined( _WIN32 )
+    SetEnvironmentVariable( "PYTHONHOME", original_path );
+#else
+    if ( original_path == NULL )
+    {
+        unsetenv( "PYTHONHOME" );
+    }
+    else
+    {
+        setenv( "PYTHONHOME", original_path, 1 );
+    }
+#endif
+}
+
+#endif
+
+extern void _initCompiledGeneratorType();
+extern void _initCompiledFunctionType();
+extern void _initCompiledMethodType();
+extern void _initCompiledFrameType();
+#if PYTHON_VERSION >= 350
+extern void _initCompiledCoroutineType();
+extern void _initCompiledCoroutineWrapperType();
+#endif
+
+#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
+unsigned char const* constant_bin = NULL;
+#endif
+
+
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
 int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmdLine, int nCmdShow )
 {
@@ -64,9 +213,7 @@ int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmd
 int main( int argc, char **argv )
 {
 #endif
-#ifdef _NUITKA_TRACE
-    puts("main(): Entered.");
-#endif
+    NUITKA_PRINT_TRACE("main(): Entered.");
 
     orig_argv = argv;
     orig_argc = argc;
@@ -85,16 +232,30 @@ int main( int argc, char **argv )
     fpsetmask( m & ~FP_X_OFL );
 #endif
 
-#ifdef _NUITKA_STANDALONE
-#ifdef _NUITKA_TRACE
-    puts("main(): Prepare standalone environment.");
+    /* On Windows we support loading the constants blob from an embedded
+     * resource. On Linux, where possible this is done automatically by
+     * the linker already.
+     */
+#if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
+    NUITKA_PRINT_TRACE("main(): Loading constants blob from Windows resource.");
+
+    constant_bin = (const unsigned char*)LockResource(
+        LoadResource(
+            NULL,
+            FindResource(NULL, MAKEINTRESOURCE(3), RT_RCDATA)
+        )
+    );
 #endif
+    assert( constant_bin );
+
+#ifdef _NUITKA_STANDALONE
+    NUITKA_PRINT_TRACE("main(): Prepare standalone environment.");
     prepareStandaloneEnvironment();
 #else
 
     /* For Python installations that need the PYTHONHOME set, we inject it back here. */
 #if defined(PYTHON_HOME_PATH)
-    puts("main(): Prepare run environment.");
+    NUITKA_PRINT_TRACE("main(): Prepare run environment PYTHONHOME.");
     {
         char buffer[MAXPATHLEN+10];
 
@@ -136,9 +297,7 @@ int main( int argc, char **argv )
 
     /* Initial command line handling only. */
 
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling convert/setCommandLineParameters.");
-#endif
+    NUITKA_PRINT_TRACE("main(): Calling convert/setCommandLineParameters.");
 
 #if PYTHON_VERSION >= 300
     argv_unicode = convertCommandLineParameters( argc, argv );
@@ -151,13 +310,8 @@ int main( int argc, char **argv )
 #endif
 
     /* Initialize the embedded CPython interpreter. */
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling Py_Initialize.");
-#endif
+    NUITKA_PRINT_TRACE("main(): Calling Py_Initialize to initialize interpreter.");
     Py_Initialize();
-#ifdef _NUITKA_TRACE
-    puts("main(): Returned from Py_Initialize.");
-#endif
 
     /* Lie about it, believe it or not, there are "site" files, that check
      * against later imports, see below.
@@ -165,9 +319,7 @@ int main( int argc, char **argv )
     Py_NoSiteFlag = _NUITKA_SYSFLAG_NO_SITE;
 
     /* Set the command line parameters for run time usage. */
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling setCommandLineParameters.");
-#endif
+    NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
 
 #if PYTHON_VERSION < 300
     setCommandLineParameters( argc, argv, false );
@@ -176,34 +328,26 @@ int main( int argc, char **argv )
 #endif
 
 #ifdef _NUITKA_STANDALONE
-#ifdef _NUITKA_TRACE
-    puts("main(): Restore standalone environment.");
-#endif
+    NUITKA_PRINT_TRACE("main(): Restore standalone environment.");
     restoreStandaloneEnvironment();
 #endif
 
     /* Initialize the built-in module tricks used. */
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling _initBuiltinModule().");
-#endif
+    NUITKA_PRINT_TRACE("main(): Calling _initBuiltinModule().");
     _initBuiltinModule();
-#ifdef _NUITKA_TRACE
-    puts("main(): Returned from _initBuiltinModule.");
-#endif
 
     /* Initialize the Python constant values used. This also sets
-     * "sys.executable" while at it.*/
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling createGlobalConstants().");
-#endif
+     * "sys.executable" while at it.
+     */
+    NUITKA_PRINT_TRACE("main(): Calling createGlobalConstants().");
     createGlobalConstants();
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling _initBuiltinOriginalValues().");
-#endif
+
+    NUITKA_PRINT_TRACE("main(): Calling _initBuiltinOriginalValues().");
     _initBuiltinOriginalValues();
 
     /* Revert the wrong "sys.flags" value, it's used by "site" on at least
-     * Debian for Python 3.3, more uses may exist. */
+     * Debian for Python 3.3, more uses may exist.
+     */
 #if _NUITKA_SYSFLAG_NO_SITE == 0
 #if PYTHON_VERSION >= 330
     PyStructSequence_SetItem( PySys_GetObject( "flags" ), 6, const_int_0 );
@@ -215,15 +359,15 @@ int main( int argc, char **argv )
 #endif
 
     /* Initialize the compiled types of Nuitka. */
-    PyType_Ready( &Nuitka_Generator_Type );
-    PyType_Ready( &Nuitka_Function_Type );
-    PyType_Ready( &Nuitka_Method_Type );
-    PyType_Ready( &Nuitka_Frame_Type );
-#if PYTHON_VERSION >= 350
-    PyType_Ready( &Nuitka_Coroutine_Type );
-    PyType_Ready( &Nuitka_CoroutineWrapper_Type );
-#endif
+    _initCompiledGeneratorType();
+    _initCompiledFunctionType();
+    _initCompiledMethodType();
+    _initCompiledFrameType();
 
+#if PYTHON_VERSION >= 350
+    _initCompiledCoroutineType();
+    _initCompiledCoroutineWrapperType();
+#endif
 
 #if PYTHON_VERSION < 300
     _initSlotCompare();
@@ -232,18 +376,13 @@ int main( int argc, char **argv )
     _initSlotIternext();
 #endif
 
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling enhancePythonTypes().");
-#endif
+    NUITKA_PRINT_TRACE("main(): Calling enhancePythonTypes().");
     enhancePythonTypes();
 
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling patchBuiltinModule().");
-#endif
+    NUITKA_PRINT_TRACE("main(): Calling patchBuiltinModule().");
     patchBuiltinModule();
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling patchTypeComparison().");
-#endif
+
+    NUITKA_PRINT_TRACE("main(): Calling patchTypeComparison().");
     patchTypeComparison();
 
     /* Allow to override the ticker value, to remove checks for threads in
@@ -256,9 +395,8 @@ int main( int argc, char **argv )
     }
 
 #ifdef _NUITKA_STANDALONE
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling setEarlyFrozenModulesFileAttribute().");
-#endif
+    NUITKA_PRINT_TRACE("main(): Calling setEarlyFrozenModulesFileAttribute().");
+
 #if PYTHON_VERSION >= 300
     PyObject *os_module = PyImport_ImportModule("os");
     CHECK_OBJECT( os_module );
@@ -266,9 +404,7 @@ int main( int argc, char **argv )
     setEarlyFrozenModulesFileAttribute();
 #endif
 
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling setupMetaPathBasedLoader().");
-#endif
+    NUITKA_PRINT_TRACE("main(): Calling setupMetaPathBasedLoader().");
     /* Enable meta path based loader. */
     setupMetaPathBasedLoader();
 
@@ -303,9 +439,7 @@ int main( int argc, char **argv )
 #endif
 
 #if PYTHON_VERSION >= 300
-#ifdef _NUITKA_TRACE
-    puts("main(): Calling patchInspectModule().");
-#endif
+    NUITKA_PRINT_TRACE("main(): Calling patchInspectModule().");
     patchInspectModule();
 #endif
 
@@ -318,9 +452,7 @@ int main( int argc, char **argv )
 #if _NUITKA_MODULE_COUNT > 1
     if (unlikely( is_multiprocess_forking ))
     {
-#ifdef _NUITKA_TRACE
-        puts("main(): Calling __parents_main__.");
-#endif
+        NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
         IMPORT_EMBEDDED_MODULE(PyUnicode_FromString("__parents_main__"), "__parents_main__");
     }
     else
@@ -328,9 +460,8 @@ int main( int argc, char **argv )
     {
         assert( !is_multiprocess_forking );
 
-#ifdef _NUITKA_TRACE
-        puts("main(): Calling __main__.");
-#endif
+        NUITKA_PRINT_TRACE("main(): Calling __main__.");
+
         /* Execute the "__main__" module. */
         PyDict_DelItemString(PySys_GetObject((char *)"modules"), "__main__");
         IMPORT_EMBEDDED_MODULE(const_str_plain___main__, "__main__");
