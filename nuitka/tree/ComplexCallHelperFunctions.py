@@ -2131,6 +2131,86 @@ def getFunctionCallHelperPosKeywordsStarDict():
 
     return result
 
+
+def getDoubleStarArgsConversion(result, called_variable, kw_variable,
+                                star_arg_list_variable, star_arg_dict_variable):
+
+    statements = []
+
+    if kw_variable is not None:
+        statements.append(
+            _makeStarDictArgumentMergeToKwStatement(
+                result                 = result,
+                called_variable_ref    = ExpressionVariableRef(
+                    variable_name = "called",
+                    variable      = called_variable,
+                    source_ref    = internal_source_ref
+                ),
+                kw_variable_ref        = ExpressionVariableRef(
+                    variable_name = "kw",
+                    variable      = kw_variable,
+                    source_ref    = internal_source_ref
+                ),
+                kw_target_variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "kw",
+                    variable      = kw_variable,
+                    source_ref    = internal_source_ref
+                ),
+                star_dict_variable_ref = ExpressionVariableRef(
+                    variable_name = "star_arg_dict",
+                    variable      = star_arg_dict_variable,
+                    source_ref    = internal_source_ref
+                )
+            )
+        )
+    else:
+        statements.append(
+            _makeStarDictArgumentToDictStatement(
+                result                        = result,
+                called_variable_ref           = ExpressionVariableRef(
+                    variable_name = "called",
+                    variable      = called_variable,
+                    source_ref    = internal_source_ref
+                ),
+                star_dict_variable_ref        = ExpressionVariableRef(
+                    variable_name = "star_arg_dict",
+                    variable      = star_arg_dict_variable,
+                    source_ref    = internal_source_ref
+                ),
+                star_dict_target_variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "star_arg_dict",
+                    variable      = star_arg_dict_variable,
+                    source_ref    = internal_source_ref
+                )
+            )
+        )
+
+    statements.append(
+        _makeStarListArgumentToTupleStatement(
+            called_variable_ref           = ExpressionVariableRef(
+                variable_name = "called",
+                variable      = called_variable,
+                source_ref    = internal_source_ref
+            ),
+            star_list_variable_ref        = ExpressionVariableRef(
+                variable_name = "star_arg_list",
+                variable      = star_arg_list_variable,
+                source_ref    = internal_source_ref
+            ),
+            star_list_target_variable_ref = ExpressionTargetVariableRef(
+                variable_name = "star_arg_list",
+                variable      = star_arg_list_variable,
+                source_ref    = internal_source_ref
+            )
+        )
+    )
+
+    if python_version >= 360:
+        statements = list(reversed(statements))
+
+    return statements
+
+
 @once_decorator
 def getFunctionCallHelperStarListStarDict():
     helper_name = "complex_call_helper_star_list_star_dict"
@@ -2167,42 +2247,15 @@ def getFunctionCallHelperStarListStarDict():
         variable_name = "star_arg_dict"
     )
 
-    statements = (
-        _makeStarDictArgumentToDictStatement(
-            result                        = result,
-            called_variable_ref           = ExpressionVariableRef(
-                variable_name = "called",
-                variable      = called_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_dict_variable_ref        = ExpressionVariableRef(
-                variable_name = "star_arg_dict",
-                variable      = star_arg_dict_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_dict_target_variable_ref = ExpressionTargetVariableRef(
-                variable_name = "star_arg_dict",
-                variable      = star_arg_dict_variable,
-                source_ref    = internal_source_ref
-            )
-        ),
-        _makeStarListArgumentToTupleStatement(
-            called_variable_ref           = ExpressionVariableRef(
-                variable_name = "called",
-                variable      = called_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_list_variable_ref        = ExpressionVariableRef(
-                variable_name = "star_arg_list",
-                variable      = star_arg_list_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_list_target_variable_ref = ExpressionTargetVariableRef(
-                variable_name = "star_arg_list",
-                variable      = star_arg_list_variable,
-                source_ref    = internal_source_ref
-            )
-        ),
+    statements = getDoubleStarArgsConversion(
+        result                 = result,
+        called_variable        = called_variable,
+        star_arg_list_variable = star_arg_list_variable,
+        kw_variable            = None,
+        star_arg_dict_variable = star_arg_dict_variable
+    )
+
+    statements.append(
         StatementReturn(
             expression = ExpressionCall(
                 called     = ExpressionVariableRef(
@@ -2294,42 +2347,15 @@ def getFunctionCallHelperPosStarListStarDict():
         variable_name = "star_arg_dict"
     )
 
-    statements = (
-        _makeStarDictArgumentToDictStatement(
-            result                        = result,
-            called_variable_ref           = ExpressionVariableRef(
-                variable_name = "called",
-                variable      = called_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_dict_variable_ref        = ExpressionVariableRef(
-                variable_name = "star_arg_dict",
-                variable      = star_arg_dict_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_dict_target_variable_ref = ExpressionTargetVariableRef(
-                variable_name = "star_arg_dict",
-                variable      = star_arg_dict_variable,
-                source_ref    = internal_source_ref
-            )
-        ),
-        _makeStarListArgumentToTupleStatement(
-            called_variable_ref           = ExpressionVariableRef(
-                variable_name = "called",
-                variable      = called_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_list_variable_ref        = ExpressionVariableRef(
-                variable_name = "star_arg_list",
-                variable      = star_arg_list_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_list_target_variable_ref = ExpressionTargetVariableRef(
-                variable_name = "star_arg_list",
-                variable      = star_arg_list_variable,
-                source_ref    = internal_source_ref
-            )
-        ),
+    statements = getDoubleStarArgsConversion(
+        result                 = result,
+        called_variable        = called_variable,
+        star_arg_list_variable = star_arg_list_variable,
+        kw_variable            = None,
+        star_arg_dict_variable = star_arg_dict_variable
+    )
+
+    statements.append(
         StatementReturn(
             expression = ExpressionCall(
                 called     = ExpressionVariableRef(
@@ -2434,47 +2460,15 @@ def getFunctionCallHelperKeywordsStarListStarDict():
         variable_name = "star_arg_dict"
     )
 
-    statements = (
-        _makeStarDictArgumentMergeToKwStatement(
-            result                 = result,
-            called_variable_ref    = ExpressionVariableRef(
-                variable_name = "called",
-                variable      = called_variable,
-                source_ref    = internal_source_ref
-            ),
-            kw_variable_ref        = ExpressionVariableRef(
-                variable_name = "kw",
-                variable      = kw_variable,
-                source_ref    = internal_source_ref
-            ),
-            kw_target_variable_ref = ExpressionTargetVariableRef(
-                variable_name = "kw",
-                variable      = kw_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_dict_variable_ref = ExpressionVariableRef(
-                variable_name = "star_arg_dict",
-                variable      = star_arg_dict_variable,
-                source_ref    = internal_source_ref
-            )
-        ),
-        _makeStarListArgumentToTupleStatement(
-            called_variable_ref           = ExpressionVariableRef(
-                variable_name = "called",
-                variable      = called_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_list_variable_ref        = ExpressionVariableRef(
-                variable_name = "star_arg_list",
-                variable      = star_arg_list_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_list_target_variable_ref = ExpressionTargetVariableRef(
-                variable_name = "star_arg_list",
-                variable      = star_arg_list_variable,
-                source_ref    = internal_source_ref
-            )
-        ),
+    statements = getDoubleStarArgsConversion(
+        result                 = result,
+        called_variable        = called_variable,
+        star_arg_list_variable = star_arg_list_variable,
+        kw_variable            = kw_variable,
+        star_arg_dict_variable = star_arg_dict_variable
+    )
+
+    statements.append(
         StatementReturn(
             expression = ExpressionCall(
                 called     = ExpressionVariableRef(
@@ -2574,47 +2568,15 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         variable_name = "star_arg_dict"
     )
 
-    statements = (
-        _makeStarDictArgumentMergeToKwStatement(
-            result                 = result,
-            called_variable_ref    = ExpressionVariableRef(
-                variable_name = "called",
-                variable      = called_variable,
-                source_ref    = internal_source_ref
-            ),
-            kw_variable_ref        = ExpressionVariableRef(
-                variable_name = "kw",
-                variable      = kw_variable,
-                source_ref    = internal_source_ref
-            ),
-            kw_target_variable_ref = ExpressionTargetVariableRef(
-                variable_name = "kw",
-                variable      = kw_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_dict_variable_ref = ExpressionVariableRef(
-                variable_name = "star_arg_dict",
-                variable      = star_arg_dict_variable,
-                source_ref    = internal_source_ref
-            )
-        ),
-        _makeStarListArgumentToTupleStatement(
-            called_variable_ref           = ExpressionVariableRef(
-                variable_name = "called",
-                variable      = called_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_list_variable_ref        = ExpressionVariableRef(
-                variable_name = "star_arg_list",
-                variable      = star_arg_list_variable,
-                source_ref    = internal_source_ref
-            ),
-            star_list_target_variable_ref = ExpressionTargetVariableRef(
-                variable_name = "star_arg_list",
-                variable      = star_arg_list_variable,
-                source_ref    = internal_source_ref
-            )
-        ),
+    statements = getDoubleStarArgsConversion(
+        result                 = result,
+        called_variable        = called_variable,
+        star_arg_list_variable = star_arg_list_variable,
+        kw_variable            = kw_variable,
+        star_arg_dict_variable = star_arg_dict_variable
+    )
+
+    statements.append(
         StatementReturn(
             expression = ExpressionCall(
                 called     = ExpressionVariableRef(
