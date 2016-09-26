@@ -944,14 +944,6 @@ def open_extractor(node):
     )
 
 
-    return BuiltinOptimization.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = ExpressionBuiltinFormat,
-        builtin_spec        = BuiltinOptimization.builtin_format_spec,
-        empty_special_class = makeFormat0
-    )
-
-
 def super_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):

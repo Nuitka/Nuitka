@@ -63,16 +63,8 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
         )
 
         self.module_name = module_name
-
-        if type(import_list) is str:
-            if import_list == "":
-                import_list = ()
-            else:
-                import_list = import_list.split(',')
-
         self.import_list = import_list
-
-        self.level = int(level)
+        self.level = level
 
         # Are we pointing to a known module or not. If so, we can expect it to
         # be in the module registry.
@@ -104,16 +96,17 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
     def fromXML(cls, provider, source_ref, **args):
         if "import_list" in args:
             import_list = args["import_list"].split(',')
-            del args["import_list"]
         else:
             import_list = None
 
-        return cls(
-            import_list = import_list,
-            source_ref  = source_ref,
-            **args
-        )
+        level = int(args["level"])
 
+        return cls(
+            module_name = args["module_name"],
+            import_list = import_list,
+            level       = level,
+            source_ref  = source_ref
+        )
 
     def getModuleName(self):
         return self.module_name
