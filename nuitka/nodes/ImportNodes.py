@@ -235,7 +235,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                             if sub_imported_module is not None:
                                 self.found_modules.append(sub_imported_module.getFullName())
 
-            return found
+        return found
 
     def computeExpression(self, trace_collection):
         # Attempt to recurse if not already done.
