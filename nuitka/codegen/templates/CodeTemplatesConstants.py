@@ -63,8 +63,6 @@ void checkGlobalConstants( void )
 
 void createGlobalConstants( void )
 {
-    assert( constant_bin );
-
     if ( _sentinel_value == NULL )
     {
 #if PYTHON_VERSION < 300

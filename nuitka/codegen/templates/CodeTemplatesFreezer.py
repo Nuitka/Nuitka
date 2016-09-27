@@ -44,8 +44,6 @@ struct frozen_desc {
 
 void copyFrozenModulesTo( struct _frozen *destination )
 {
-    assert( constant_bin );
-
     struct frozen_desc frozen_modules[] = {
 %(frozen_modules)s
         { NULL, 0, 0 }

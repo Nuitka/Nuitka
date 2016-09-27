@@ -245,8 +245,10 @@ int main( int argc, char **argv )
             FindResource(NULL, MAKEINTRESOURCE(3), RT_RCDATA)
         )
     );
-#endif
+
     assert( constant_bin );
+#endif
+
 
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Prepare standalone environment.");

@@ -63,8 +63,6 @@ static bool constants_created = false;
 
 static void createModuleConstants( void )
 {
-    assert( constant_bin );
-
 %(constant_init_codes)s
 
     constants_created = true;
