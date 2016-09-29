@@ -460,4 +460,8 @@ class ExpressionImportName(ExpressionChildrenHavingBase):
     def computeExpression(self, trace_collection):
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.
+
+        # Importing may raise an exception obviously.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None

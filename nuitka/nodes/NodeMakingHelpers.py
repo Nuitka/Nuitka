@@ -255,6 +255,7 @@ def makeStatementsSequenceReplacementNode(statements, node):
         source_ref = node.getSourceReference()
     )
 
+
 def convertNoneConstantToNone(node):
     if node is None:
         return None
