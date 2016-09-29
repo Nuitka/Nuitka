@@ -30,6 +30,9 @@ Bug Fixes
 - Python3.5: Fix, follow enhanced error checking for complex call handling of
   star arguments.
 
+- Compatibility: The ``from x import x, y`` re-formulation was doing two
+  ``__import__`` calls instead of re-using the module value.
+
 Optimization
 ------------
 
@@ -85,11 +88,16 @@ Optimization
 Organizational
 --------------
 
-- The movement to pure C got a push big push. All C++ only idoms of C++ were
-  removed, and programs are in theory working with C11 compilers.
+- The movement to pure C got the final big push. All C++ only idoms of C++ were
+  removed, and everything works with C11 compilers. A C++03 compiler can be used
+  as a fallback, in case of MSVC or too old gcc for instance.
+
+- Using pure C, MinGW64 6x is now working properly. The latest version had
+  problems with ``hypot`` related changes in the C++ standard library. Using
+  C11 solves that.
 
 - This release also prepares Python 3.6 support, it includes full language
-  support on the level of CPython 3.6.0a4.
+  support on the level of CPython 3.6.0b1.
 
 - The CPython 3.6 test suite was run with Python 3.5 to ensure bug level
   compatibility, and had a few findings of incompatibilities.
@@ -126,11 +134,10 @@ inference now. This will expand in coming releases to cover more cases, and
 there are many low hanging fruits for optimization. Specialized codes for
 variable versions of certain known shapes seems feasible now.
 
-Then there is also the work to move towards pure C. This will make backend
+Then there is also the move towards pure C. This will make the backend
 compilation lighter, but due to using C11, we will not suffer any loss of
-convinience compared to C-ish. The plan is to use continue to use C++ for
-compilation for compilers not capable of supporting C11. This is not yet
-available in this release to users, but surely will come.
+convinience compared to "C-ish". The plan is to use continue to use C++ for
+compilation for compilers not capable of supporting C11.
 
 The amount of static analysis done in Nuitka is now going to quickly expand,
 with more and more constructs predicted to raise errors or simplified. This
@@ -139,7 +146,13 @@ and only one missing will not let it optimize as well.
 
 Also, it seems about time to add dedicated code for specific types to be as
 fast as C code. This opens up vast possibilities for acceleration and will
-lead us to zero overhead C bindings eventually.
+lead us to zero overhead C bindings eventually. But initially the drive is
+towards enhanced ``import`` analysis, to become able to know the precide module
+expected to be imported, and derive type information from this.
+
+The coming work will attack to start whole program optimization, as well as
+enhanced local value shape analysis, as well specialized type code generation,
+which will make Nuitka improve speed.
 
 
 Nuitka Release 0.5.22
