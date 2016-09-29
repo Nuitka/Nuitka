@@ -194,10 +194,10 @@ Assignment raises exception in assigned value, removed assignment."""
                 )
 
                 return result, "new_statements", """\
-Reduced assignment of variable '%s' from itself to mere access of it.""" % variable.getName()
+Reduced assignment of %s from itself to mere access of it.""" % variable.getDescription()
             else:
                 return None, "new_statements", """\
-Removed assignment of variable '%s' from itself which is known to be defined.""" % variable.getName()
+Removed assignment of %s from itself which is known to be defined.""" % variable.getDescription()
 
 
 
@@ -510,8 +510,8 @@ class StatementReleaseVariable(NodeBase):
             return (
                 None,
                 "new_statements",
-                "Uninitialized variable '%s' is not released." % (
-                    self.variable.getName()
+                "Uninitialized %s is not released." % (
+                    self.variable.getDescription()
                 )
             )
 

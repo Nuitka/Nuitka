@@ -125,16 +125,21 @@ class NodeBase(NodeMetaClassBase):
             detail = "detail raises exception %s" % e
 
         if not detail:
-            return "<Node %s>" % self.getDescription()
+            return "<Node %s %s>" % (self.kind, self.getDescription())
         else:
-            return "<Node %s %s>" % (self.getDescription(), detail)
+            return "<Node %s %s %s>" % (self.kind, self.getDescription(), detail)
 
     def getDescription(self):
         """ Description of the node, intended for use in __repr__ and
             graphical display.
 
         """
-        return "%s at %s" % (self.kind, self.source_ref.getAsString())
+        details = self.getDetails()
+
+        if details:
+            return "<'%s' with %s>" % (self.kind, str(self.getDetails())[1:-1])
+        else:
+            return "'%s'" % self.kind
 
     def getDetails(self):
         """ Details of the node, intended for re-creation.
@@ -1488,7 +1493,7 @@ class ExpressionMixin:
 
     def computeExpressionDrop(self, statement, trace_collection):
         if not self.mayHaveSideEffects():
-            return None, "new_statements", "Removed statement without effect."
+            return None, "new_statements", lambda : "Removed %s without effect." % self.getDescription()
 
         return statement, None, None
 
