@@ -273,6 +273,9 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
     def mayRaiseException(self, exception_type):
         return self.finding != "built-in" or self.import_list != ()
 
+    def mayHaveSideEffects(self):
+        return self.finding != "built-in" or self.import_list != ()
+
 
 class ExpressionImportModuleHard(NodeBase, ExpressionMixin):
     """ Hard code import, e.g. of "sys" module as done in Python mechanics.
