@@ -88,13 +88,15 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
         locals_name      = locals_name,
         import_list_name = import_list_name,
         level_name       = level_name,
+        needs_check      = expression.mayRaiseException(BaseException),
         emit             = emit,
         context          = context
     )
 
 
 def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
-                         import_list_name, level_name, emit, context):
+                         import_list_name, level_name, needs_check, emit,
+                         context):
 
     emitLineNumberUpdateCode(emit, context)
 
@@ -122,9 +124,10 @@ def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
     )
 
     getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
+        check_name  = to_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -161,12 +164,12 @@ def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
     else:
         assert False, module_name
 
-    if needs_check:
-        getErrorExitCode(
-            check_name = to_name,
-            emit       = emit,
-            context    = context
-        )
+    getErrorExitCode(
+        check_name  = to_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
+    )
 
 
 def generateImportModuleCode(to_name, expression, emit, context):
@@ -211,6 +214,7 @@ def generateImportModuleCode(to_name, expression, emit, context):
             constant = expression.getLevel(),
             context  = context
         ),
+        needs_check      = expression.mayRaiseException(BaseException),
         emit             = emit,
         context          = context
     )

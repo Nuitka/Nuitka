@@ -799,6 +799,8 @@ class TraceCollectionModule(CollectionStartpointMixin,
         self.used_modules = OrderedSet()
 
     def onUsedModule(self, module_name):
+        assert type(module_name) is str, module_name
+
         self.used_modules.add(module_name)
 
         if isImportedModuleByName(module_name):

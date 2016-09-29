@@ -70,9 +70,14 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
         # be in the module registry.
         self.found = None
 
-        # If we are pointing to a known module, this are modules behind the
-        # "import_list".
+        # If we are pointing to a known module, this is the module behind it,
+        # and the ones behind the "import_list".
+        self.imported_module = None
         self.found_modules = None
+
+        # The scan of modules should give a reason for the finding or not
+        # finding of stuff to compile.
+        self.finding = None
 
     def getDetails(self):
         return {
@@ -190,7 +195,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         else:
             parent_package = self.getParentModule().getPackage()
 
-        module_package, module_filename, _finding = findModule(
+        module_package, module_filename, self.finding = findModule(
             importing      = self,
             module_name    = self.getModuleName(),
             parent_package = parent_package,
@@ -199,20 +204,21 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         )
 
         if module_filename is not None:
-            imported_module = self._consider(
+            self.imported_module = self._consider(
                 trace_collection = trace_collection,
                 module_filename  = module_filename,
                 module_package   = module_package
             )
 
-            if imported_module is not None:
-                found = imported_module.getFullName()
+            if self.imported_module is not None:
+                found = self.imported_module.getFullName()
 
                 self.found_modules = []
 
                 import_list = self.getImportList()
 
-                if import_list and imported_module.isCompiledPythonPackage():
+                if import_list and \
+                   self.imported_module.isCompiledPythonPackage():
                     for import_item in import_list:
                         if import_item == '*':
                             continue
@@ -220,7 +226,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         module_package, module_filename, _finding = findModule(
                             importing      = self,
                             module_name    = import_item,
-                            parent_package = imported_module.getFullName(),
+                            parent_package = found,
                             level          = -1,
                             warn           = False
                         )
@@ -233,7 +239,9 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                             )
 
                             if sub_imported_module is not None:
-                                self.found_modules.append(sub_imported_module.getFullName())
+                                self.found_modules.append(
+                                    sub_imported_module.getFullName()
+                                )
 
         return found
 
@@ -244,20 +252,26 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 trace_collection = trace_collection
             )
 
+        assert self.found is not None
+
         if self.found:
             trace_collection.onUsedModule(self.found)
 
             for found_module in self.found_modules:
                 trace_collection.onUsedModule(found_module)
 
-        # When a module is recursed to and included, we know it won't raise,
-        # right? But even if you import, that successful import may still raise
-        # and we don't know how to check yet.
-        trace_collection.onExceptionRaiseExit(
-            BaseException
-        )
+        if self.mayRaiseException(BaseException):
+            # When a module is recursed to and included, we know it won't raise,
+            # right? But even if you import, that successful import may still raise
+            # and we don't know how to check yet.
+            trace_collection.onExceptionRaiseExit(
+                BaseException
+            )
 
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return self.finding != "built-in" or self.import_list != ()
 
 
 class ExpressionImportModuleHard(NodeBase, ExpressionMixin):
@@ -367,7 +381,6 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
                 # Importing may raise an exception obviously.
                 trace_collection.onExceptionRaiseExit(BaseException)
-
 
                 return (
                     new_node,

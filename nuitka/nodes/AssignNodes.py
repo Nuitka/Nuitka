@@ -551,11 +551,15 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
             assert variable.getName() == variable_name
 
     def getDetailsForDisplay(self):
-        return {
+        result = {
             "variable_name" : self.variable_name,
             "version"       : self.variable_version,
-            "owner"         : self.variable.getOwner().getCodeName()
         }
+
+        if self.variable is not None:
+            result["owner"] = self.variable.getOwner().getCodeName()
+
+        return result
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
