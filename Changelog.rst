@@ -1,5 +1,5 @@
-Nuitka Release 0.5.23 (Draft)
-=============================
+Nuitka Release 0.5.23
+=====================
 
 This release is focusing on optimization, the most significant part for the
 users being enhanced scalability due to memory usage, but also break through
