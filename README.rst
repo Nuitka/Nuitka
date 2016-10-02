@@ -36,16 +36,19 @@ Usage
 Requirements
 ------------
 
-- C++ Compiler: You need a compiler with support for C++03 [#]_
+- C++ Compiler: You need a compiler with support for C11 or alternatively
+  for C++03 [#]_
 
   Currently this means, you need to use either of these compilers:
 
-  * GNU g++ compiler of at least version 4.4
+  * GNU gcc compiler of at least version 5.1, or g++ compiler of at least
+    version 4.4
 
   * The clang compiler on MacOS X or FreeBSD, based on LLVM version 3.2
     or higher.
 
-  * The MinGW64 [#]_ compiler on Windows.
+  * The MinGW64 [#]_ C11 compiler on Windows, ideally the one based on gcc
+    5.1 or higher. Or the C++ compiler of at least version 4.4.
 
   * Visual Studio 2015 or higher on Windows [#]_
 
@@ -54,7 +57,7 @@ Requirements
   .. admonition:: Python3, yes but Python2 *compile time* dependency
 
      For Python3 you *need* a Python2, but only during the compile time
-     only, and that is for Scons (which orchestrates the C++ compilation), and
+     only, and that is for Scons (which orchestrates the C compilation), and
      is not yet ported. So for Python 3.x, there is currently a requirement to
      also have a Python 2.x installed.
 
@@ -93,8 +96,10 @@ Requirements
   and known to be good. Feedback is welcome. Generally the architectures that
   Debian supports can be considered good and tested too.
 
-.. [#] Support for this C++03 language standard is practically a given on any
-       C++ compiler you encounter. Nuitka used to have higher requirements in
+.. [#] Support for this C11 is given with gcc 5 or higheror clang. The MSVC
+       compiler doesn't do it yet. But as a workaround, the C++03 language
+       standard is very overlapping with C11 and is used instead where the
+       C compiler is too old. Nuitka used to require a C++ compiler in
        the past, but it changed.
 
 .. [#] Download MinGW64 from here http://mingw-w64.org/ and choose 64 or 32
@@ -104,7 +109,8 @@ Requirements
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
-       (the Express editions will normally work just fine).
+       (the Express editions will normally work just fine). The latest version
+       is recommend. There is no need to use older versions.
 
 
 Command Line

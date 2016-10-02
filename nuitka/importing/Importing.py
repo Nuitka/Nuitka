@@ -88,6 +88,14 @@ def getPackageNameFromFullName(full_name):
     else:
         return None
 
+
+def getModuleFullNameFromPackageAndName(package, name):
+    if not package:
+        return name
+    else:
+        return package + '.' + name
+
+
 def getExtensionModuleSuffixes():
     for suffix, _mode, kind in imp.get_suffixes():
         if kind == imp.C_EXTENSION:
@@ -161,6 +169,7 @@ def warnAbout(importing, module_name, parent_package, level):
                     module_name,
                     level_desc
                 )
+
 
 def normalizePackageName(module_name):
     # The "os.path" is strangely hacked into the "os" module, dispatching per

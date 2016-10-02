@@ -25,7 +25,7 @@ def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
     module_value1
 
-    # Make sure we have a local variable x anyway
+    # Make sure we have a local variable s anyway
     s = (2.0,)
 
     local_value = module_value1

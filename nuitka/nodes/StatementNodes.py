@@ -148,11 +148,11 @@ class StatementsSequence(StatementChildrenHavingBase):
     def isStatementAborting(self):
         return self.getStatements()[-1].isStatementAborting()
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         # Don't want to be called like this.
         assert False, self
 
-    def computeStatementsSequence(self, constraint_collection):
+    def computeStatementsSequence(self, trace_collection):
         new_statements = []
 
         statements = self.getStatements()
@@ -162,10 +162,10 @@ class StatementsSequence(StatementChildrenHavingBase):
             # May be frames embedded.
             if statement.isStatementsFrame():
                 new_statement = statement.computeStatementsSequence(
-                    constraint_collection
+                    trace_collection
                 )
             else:
-                new_statement = constraint_collection.onStatement(
+                new_statement = trace_collection.onStatement(
                     statement = statement
                 )
 
@@ -182,7 +182,7 @@ class StatementsSequence(StatementChildrenHavingBase):
 
                 if statement is not statements[-1] and \
                    new_statement.isStatementAborting():
-                    constraint_collection.signalChange(
+                    trace_collection.signalChange(
                         "new_statements",
                         statements[count+1].getSourceReference(),
                         "Removed dead statements."
@@ -233,18 +233,18 @@ class StatementExpressionOnly(StatementChildrenHavingBase):
         "expression"
     )
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(
+    def computeStatement(self, trace_collection):
+        trace_collection.onExpression(
             expression = self.getExpression()
         )
         expression = self.getExpression()
 
         if expression.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         result, change_tags, change_desc = expression.computeExpressionDrop(
-            statement             = self,
-            constraint_collection = constraint_collection
+            statement        = self,
+            trace_collection = trace_collection
         )
 
         if result is not self:
@@ -267,8 +267,8 @@ class StatementGeneratorEntry(NodeBase):
         # whole point of this statement.
         return True
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExceptionRaiseExit(BaseException)
+    def computeStatement(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         # Nothing we can about it.
         return self, None, None
@@ -293,7 +293,7 @@ class StatementPreserveFrameException(NodeBase):
     def getPreserverId(self):
         return self.preserver_id
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         # For Python2 generators, it's not necessary to preserve, the frame
         # decides it. TODO: This check makes only sense once.
 
@@ -332,7 +332,7 @@ class StatementRestoreFrameException(NodeBase):
     def getPreserverId(self):
         return self.preserver_id
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
@@ -348,7 +348,7 @@ class StatementPublishException(NodeBase):
             source_ref = source_ref
         )
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         # TODO: Determine the need for it.
         return self, None, None
 

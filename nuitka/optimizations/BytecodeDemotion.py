@@ -69,5 +69,5 @@ def demoteCompiledModuleToBytecode(module):
         new = uncompiled_module
     )
 
-    assert module.constraint_collection is not None
-    uncompiled_module.setUsedModules(module.constraint_collection.getUsedModules())
+    assert module.trace_collection is not None
+    uncompiled_module.setUsedModules(module.trace_collection.getUsedModules())

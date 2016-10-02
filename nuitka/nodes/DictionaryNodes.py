@@ -67,14 +67,14 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
     getKey = ExpressionChildrenHavingBase.childGetter("key")
     getValue = ExpressionChildrenHavingBase.childGetter("value")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         key = self.getKey()
 
         hashable = key.isKnownToBeHashable()
 
         # If not known to be hashable, that can raise an exception.
         if not hashable:
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 TypeError
             )
 
@@ -113,7 +113,7 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
 
     getPairs = ExpressionChildrenHavingBase.childGetter("pairs")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         pairs = self.getPairs()
 
         for pair in pairs:
@@ -232,7 +232,7 @@ Created dictionary found to be constant."""
     # isMappingWithConstantStringKeys is true, or keys had no side effects, but
     # that feels wasted effort as we are going to have full propagation.
 
-    def computeExpressionDrop(self, statement, constraint_collection):
+    def computeExpressionDrop(self, statement, trace_collection):
         expressions = []
 
         for pair in self.getPairs():
@@ -245,7 +245,7 @@ Created dictionary found to be constant."""
         return result, "new_statements", """\
 Removed sequence creation for unused sequence."""
 
-    def computeExpressionIter1(self, iter_node, constraint_collection):
+    def computeExpressionIter1(self, iter_node, trace_collection):
         return iter_node, None, None
 
     def hasShapeDictionaryExact(self):
@@ -281,9 +281,9 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
     getKey = StatementChildrenHavingBase.childGetter("key")
     getValue = StatementChildrenHavingBase.childGetter("value")
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            constraint_collection = constraint_collection
+            trace_collection = trace_collection
         )
 
         if result is not self:
@@ -293,7 +293,7 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
 
         if not key.isKnownToBeHashable():
             # Any exception may be raised.
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -339,15 +339,15 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
     getDict = StatementChildrenHavingBase.childGetter("dict")
     getKey = StatementChildrenHavingBase.childGetter("key")
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            constraint_collection = constraint_collection
+            trace_collection = trace_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -389,8 +389,8 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
     getDict = ExpressionChildrenHavingBase.childGetter("dict")
     getKey = ExpressionChildrenHavingBase.childGetter("key")
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.onExceptionRaiseExit(BaseException)
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -424,15 +424,15 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
         "value"
     )
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            constraint_collection = constraint_collection
+            trace_collection = trace_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -464,8 +464,8 @@ class ExpressionDictOperationIn(ExpressionChildrenHavingBase):
     getDict = ExpressionChildrenHavingBase.childGetter("dict")
     getKey = ExpressionChildrenHavingBase.childGetter("key")
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.onExceptionRaiseExit(BaseException)
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -497,7 +497,7 @@ class ExpressionDictOperationNOTIn(ExpressionChildrenHavingBase):
     getDict = ExpressionChildrenHavingBase.childGetter("dict")
     getKey = ExpressionChildrenHavingBase.childGetter("key")
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.onExceptionRaiseExit(BaseException)
+    def computeExpression(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None

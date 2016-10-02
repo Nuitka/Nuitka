@@ -23,7 +23,6 @@ memory usage, etc. that fit nowhere else and don't deserve their own names.
 """
 
 import os
-import subprocess
 import sys
 
 from nuitka.PythonVersions import python_version
@@ -173,31 +172,6 @@ def getCoreCount():
         cpu_count = multiprocessing.cpu_count()
 
     return cpu_count
-
-
-def callExec(args):
-    """ Do exec in a portable way preserving exit code.
-
-        On Windows, unfortunately there is no real exec, so we have to spawn
-        a new process instead.
-    """
-
-    # On Windows os.execl does not work properly
-    if getOS() != "Windows":
-        # The star arguments is the API of execl
-        os.execl(*args)
-    else:
-        args = list(args)
-        del args[1]
-
-        try:
-            sys.exit(
-                subprocess.call(args)
-            )
-        except KeyboardInterrupt:
-            # There was a more relevant stack trace already, so abort this
-            # right here, pylint: disable=W0212
-            os._exit(2)
 
 
 def encodeNonAscii(var_name):

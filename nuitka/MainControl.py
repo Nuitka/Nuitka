@@ -35,7 +35,7 @@ from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import isUninstalledPython, python_version
 from nuitka.tree import SyntaxErrors
-from nuitka.utils import InstanceCounters, MemoryUsage, Utils
+from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
 
 from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface
@@ -181,33 +181,12 @@ def getResultFullpath(main_module):
 def cleanSourceDirectory(source_dir):
     if Utils.isDir(source_dir):
         for path, _filename in Utils.listDir(source_dir):
-            if Utils.getExtension(path) in (".cpp", ".hpp", ".c", ".o", ".os",
-                                            ".obj", ".bin", ".res", ".rc",
+            if Utils.getExtension(path) in (".c", ".h", ".o", ".os", ".obj",
+                                            ".bin", ".res", ".rc", ".S",
                                             ".manifest"):
                 Utils.deleteFile(path, True)
     else:
         Utils.makePath(source_dir)
-
-    static_source_dir = Utils.joinpath(
-        source_dir,
-        "static"
-    )
-
-    if Utils.isDir(static_source_dir):
-        for path, _filename in Utils.listDir(static_source_dir):
-            if Utils.getExtension(path) in (".o", ".os", ".obj"):
-                Utils.deleteFile(path, True)
-
-    win32_source_dir = Utils.joinpath(
-        static_source_dir,
-        "win32_ucontext_src"
-    )
-
-    if Utils.getOS() == "Windows":
-        Utils.deleteFile(
-            Utils.joinpath(win32_source_dir, "fibers_win32.obj"),
-            False
-        )
 
 
 def pickSourceFilenames(source_dir, modules):
@@ -264,12 +243,13 @@ def pickSourceFilenames(source_dir, modules):
 
         base_filename += hash_suffix
 
-        module_filenames[module] = base_filename + ".cpp"
+        module_filenames[module] = base_filename + ".c"
 
     return module_filenames
 
 
 standalone_entry_points = []
+
 
 def makeSourceDirectory(main_module):
     """ Get the full list of modules imported, create code for all of them.
@@ -401,7 +381,10 @@ def makeSourceDirectory(main_module):
             assert False, module
 
     writeSourceCode(
-        filename    = Utils.joinpath(source_dir, "__constants.cpp"),
+        filename    = Utils.joinpath(
+            source_dir,
+            "__constants.c"
+        ),
         source_code = ConstantCodes.getConstantsDefinitionCode(
             context = global_context
         )
@@ -412,12 +395,12 @@ def makeSourceDirectory(main_module):
     )
 
     writeSourceCode(
-        filename    = Utils.joinpath(source_dir, "__helpers.hpp"),
+        filename    = Utils.joinpath(source_dir, "__helpers.h"),
         source_code = helper_decl_code
     )
 
     writeSourceCode(
-        filename    = Utils.joinpath(source_dir, "__helpers.cpp"),
+        filename    = Utils.joinpath(source_dir, "__helpers.c"),
         source_code = helper_impl_code
     )
 
@@ -563,7 +546,7 @@ def writeBinaryData(filename, binary_data):
         output_file.write(binary_data)
 
 
-def callExec(args, clean_path, add_path):
+def callExecPython(args, clean_path, add_path):
     old_python_path = os.environ.get("PYTHONPATH", None)
 
     if clean_path and old_python_path is not None:
@@ -582,16 +565,21 @@ def callExec(args, clean_path, add_path):
     # Add the main arguments, previous separated.
     args += Options.getPositionalArgs()[1:] + Options.getMainArgs()
 
-    Utils.callExec(args)
+    Execution.callExec(args)
 
 
 def executeMain(binary_filename, clean_path):
     args = (binary_filename, binary_filename)
 
     if Options.shallRunInDebugger():
-        args = ("/usr/bin/gdb", "gdb", "-ex=run", "-ex=where", "--args", binary_filename)
+        gdb_path = Execution.getExecutablePath("gdb")
 
-    callExec(
+        if gdb_path is None:
+            sys.exit("Error, no 'gdb' binary found in path.")
+
+        args = (gdb_path, "gdb", "-ex=run", "-ex=where", "--args", binary_filename)
+
+    callExecPython(
         clean_path = clean_path,
         add_path   = False,
         args       = args
@@ -608,7 +596,7 @@ def executeModule(tree, clean_path):
         python_command,
     )
 
-    callExec(
+    callExecPython(
         clean_path = clean_path,
         add_path   = True,
         args       = args
@@ -630,7 +618,7 @@ def compileTree(main_module):
             writeSourceCode(
                 filename    = Utils.joinpath(
                     source_dir,
-                    "__frozen.cpp"
+                    "__frozen.c"
                 ),
                 source_code = frozen_code
             )
@@ -642,7 +630,7 @@ def compileTree(main_module):
     else:
         source_dir = getSourceDirectoryPath(main_module)
 
-        if not Utils.isFile(Utils.joinpath(source_dir, "__helpers.hpp")):
+        if not Utils.isFile(Utils.joinpath(source_dir, "__helpers.h")):
             sys.exit("Error, no previous build directory exists.")
 
     if Options.isShowProgress() or Options.isShowMemory():

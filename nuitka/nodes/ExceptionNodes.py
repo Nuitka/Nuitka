@@ -82,15 +82,15 @@ class StatementRaiseException(StatementChildrenHavingBase):
     def isImplicit():
         return False
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(
+    def computeStatement(self, trace_collection):
+        trace_collection.onExpression(
             expression = self.getExceptionType(),
             allow_none = True
         )
         exception_type = self.getExceptionType()
 
         # TODO: Limit by type.
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         if exception_type is not None and \
            exception_type.willRaiseException(BaseException):
@@ -104,7 +104,7 @@ class StatementRaiseException(StatementChildrenHavingBase):
             return result, "new_raise", """\
 Explicit raise already raises implicitly building exception type."""
 
-        constraint_collection.onExpression(
+        trace_collection.onExpression(
             expression = self.getExceptionValue(),
             allow_none = True
         )
@@ -121,7 +121,7 @@ Explicit raise already raises implicitly building exception type."""
             return result, "new_raise", """\
 Explicit raise already raises implicitly building exception value."""
 
-        constraint_collection.onExpression(
+        trace_collection.onExpression(
             expression = self.getExceptionTrace(),
             allow_none = True
         )
@@ -140,7 +140,7 @@ Explicit raise already raises implicitly building exception value."""
             return result, "new_raise", """\
 Explicit raise already raises implicitly building exception traceback."""
 
-        constraint_collection.onExpression(
+        trace_collection.onExpression(
             expression = self.getExceptionCause(),
             allow_none = True
         )
@@ -213,10 +213,10 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         "exception_value"
     )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self, None, None
 
-    def computeExpressionDrop(self, statement, constraint_collection):
+    def computeExpressionDrop(self, statement, trace_collection):
         result = StatementRaiseExceptionImplicit(
             exception_type  = self.getExceptionType(),
             exception_value = self.getExceptionValue(),
@@ -257,7 +257,7 @@ class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
 
     getArgs = ExpressionChildrenHavingBase.childGetter("args")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self, None, None
 
     def mayRaiseException(self, exception_type):
@@ -277,7 +277,7 @@ class ExpressionCaughtExceptionTypeRef(NodeBase, ExpressionMixin):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
@@ -295,7 +295,7 @@ class ExpressionCaughtExceptionValueRef(NodeBase, ExpressionMixin):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
@@ -313,7 +313,7 @@ class ExpressionCaughtExceptionTracebackRef(NodeBase, ExpressionMixin):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self, None, None
 
     def mayHaveSideEffects(self):

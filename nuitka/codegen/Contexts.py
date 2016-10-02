@@ -262,17 +262,10 @@ class CodeObjectsMixin:
 
 class PythonContextBase:
     def __init__(self):
-        self.temp_counts = {}
-
         self.source_ref = None
 
     def isCompiledPythonModule(self):
         return False
-
-    def allocateTempNumber(self, tmp_scope):
-        result = self.temp_counts.get(tmp_scope, 0) + 1
-        self.temp_counts[ tmp_scope ] = result
-        return result
 
 
 class PythonChildContextBase(PythonContextBase):
@@ -342,6 +335,7 @@ def _getConstantDefaultPopulation():
         "compile",
         "range",
         "open",
+        "format",
         "__import__",
     ]
 

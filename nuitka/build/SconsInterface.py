@@ -30,7 +30,7 @@ import sys
 
 from nuitka import Options, Tracing
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
-from nuitka.utils import Utils
+from nuitka.utils import Execution, Utils
 
 
 def getSconsDataPath():
@@ -47,19 +47,22 @@ def getSconsBinaryCall():
         Using potentially in-line copy if no system Scons is available
         or if we are on Windows.
     """
-    if Utils.getOS() != "Windows" and Utils.isFile("/usr/bin/scons"):
-        return ["/usr/bin/scons"]
-    else:
-        return [
-            getPython2ExePath(),
-            Utils.joinpath(getSconsInlinePath(), "bin", "scons.py")
-        ]
+    if Utils.getOS() != "Windows":
+        scons_path = Execution.getExecutablePath("scons")
+
+        if scons_path is not None:
+            return [scons_path]
+
+    return [
+        getPython2ExePath(),
+        Utils.joinpath(getSconsInlinePath(), "bin", "scons.py")
+    ]
 
 
 def _getPython2ExePathWindows():
     # Shortcuts for the default installation directories, to avoid going to
     # registry at all unless necessary. Any Python2 will do for Scons, so it
-    # can be avoided.
+    # might be avoided entirely.
 
     if os.path.isfile(r"c:\Python27\python.exe"):
         return r"c:\Python27\python.exe"
@@ -92,7 +95,7 @@ def _getPython2ExePathWindows():
 
 
 def getPython2ExePath():
-    """ Find a way to call Python2. Scons needs it."""
+    """ Find a way to call any Python2. Scons needs it."""
     if python_version < 300:
         return sys.executable
     elif Utils.getOS() == "Windows":
@@ -102,16 +105,23 @@ def getPython2ExePath():
             return python_exe
         else:
             sys.exit("""\
-Error, need to find Python2 executable under C:\\Python26 or \
-C:\\Python27 to execute scons which is not Python3 compatible.""")
-    elif Utils.isFile("/usr/bin/python2.7"):
-        return "/usr/bin/python2.7"
-    elif Utils.isFile("/usr/bin/python2.6"):
-        return "/usr/bin/python2.6"
-    elif Utils.isFile("/usr/bin/python2"):
-        return "/usr/bin/python2"
-    else:
-        return "python"
+Error, while Nuitka is fully Python3 compatible, it needs to find a
+Python2 executable under C:\\Python26 or C:\\Python27 to execute
+scons which is not yet Python3 compatible.""")
+
+    candidate = Execution.getExecutablePath("python2.7")
+    if candidate is None:
+        candidate = Execution.getExecutablePath("python2.6")
+
+        if candidate is None:
+            candidate = Execution.getExecutablePath("python2")
+
+    # Our weakest bet is that there is no "python3" named "python", but we
+    # take it, as on some systems it's true.
+    if candidate is None:
+        candidate = "python"
+
+    return candidate
 
 @contextlib.contextmanager
 def setupSconsEnvironment():

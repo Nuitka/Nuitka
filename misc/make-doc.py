@@ -44,6 +44,26 @@ if "logo" in sys.argv:
 
 
 for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
+    try:
+        import restructuredtext_lint
+
+        lint_results = restructuredtext_lint.lint(open(document).read(), document)
+
+        lint_error = False
+        for lint_result in lint_results:
+            # Not an issue.
+            if lint_result.message.startswith("Duplicate implicit target name:"):
+                continue
+
+            print(lint_result)
+            lint_error = True
+
+        if lint_error:
+            sys.exit("Error, no lint clean rest.")
+
+    except ImportError:
+        pass
+
     args = []
 
     if document != "Changelog.rst":

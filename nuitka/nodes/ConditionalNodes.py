@@ -23,7 +23,7 @@ expressed via nesting of conditional statements.
 """
 
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBool
-from nuitka.optimizations.TraceCollections import ConstraintCollectionBranch
+from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 
 from .Checkers import checkStatementsSequenceOrNone
 from .NodeBases import (
@@ -74,10 +74,10 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
         "condition"
     )
 
-    def computeExpressionRaw(self, constraint_collection):
+    def computeExpressionRaw(self, trace_collection):
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
-        constraint_collection.onExpression(
+        trace_collection.onExpression(
             expression = self.getCondition()
         )
         condition = self.getCondition()
@@ -85,7 +85,7 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
         condition_may_raise = condition.mayRaiseException(BaseException)
 
         if condition_may_raise:
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -97,7 +97,7 @@ Conditional expression already raises implicitly in condition, removing \
 branches."""
 
         if not condition_may_raise and condition.mayRaiseExceptionBool(BaseException):
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -111,8 +111,8 @@ branches."""
         # Continue to execute for yes branch unless we know it's not going to be
         # relevant.
         if truth_value is not False:
-            branch_yes_collection = ConstraintCollectionBranch(
-                parent = constraint_collection,
+            branch_yes_collection = TraceCollectionBranch(
+                parent = trace_collection,
                 name   = "conditional expression yes branch"
             )
 
@@ -133,8 +133,8 @@ branches."""
 
         # Continue to execute for yes branch.
         if truth_value is not True:
-            branch_no_collection = ConstraintCollectionBranch(
-                parent = constraint_collection,
+            branch_no_collection = TraceCollectionBranch(
+                parent = trace_collection,
                 name   = "conditional expression no branch"
             )
 
@@ -152,7 +152,7 @@ branches."""
             branch_no_collection = None
 
         # Merge into parent execution.
-        constraint_collection.mergeBranches(
+        trace_collection.mergeBranches(
             branch_yes_collection,
             branch_no_collection
         )
@@ -251,10 +251,10 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
         "right"
     )
 
-    def computeExpressionRaw(self, constraint_collection):
+    def computeExpressionRaw(self, trace_collection):
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
-        constraint_collection.onExpression(
+        trace_collection.onExpression(
             expression = self.getLeft()
         )
         left = self.getLeft()
@@ -262,7 +262,7 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
         left_may_raise = left.mayRaiseException(BaseException)
 
         if left_may_raise:
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
         # No need to look any further, if the condition raises, the branches do
@@ -273,7 +273,7 @@ Conditional %s statements already raises implicitly in condition, removing \
 branches.""" % self.conditional_kind
 
         if not left_may_raise and left.mayRaiseExceptionBool(BaseException):
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -290,8 +290,8 @@ branches.""" % self.conditional_kind
         if truth_value is not truth_value_use_left:
             # TODO: We now know that left evaluates and we should tell the
             # branch that.
-            branch_yes_collection = ConstraintCollectionBranch(
-                parent = constraint_collection,
+            branch_yes_collection = TraceCollectionBranch(
+                parent = trace_collection,
                 name   = "boolean %s right branch" % self.conditional_kind
             )
 
@@ -311,7 +311,7 @@ branches.""" % self.conditional_kind
 
         if branch_yes_collection:
             # Merge into parent execution.
-            constraint_collection.mergeBranches(
+            trace_collection.mergeBranches(
                 branch_yes_collection,
                 None
             )
@@ -494,10 +494,10 @@ class StatementConditional(StatementChildrenHavingBase):
 
         return False
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         # This is rather complex stuff, pylint: disable=R0912,R0915
 
-        constraint_collection.onExpression(
+        trace_collection.onExpression(
             expression = self.getCondition()
         )
         condition = self.getCondition()
@@ -505,7 +505,7 @@ class StatementConditional(StatementChildrenHavingBase):
         condition_may_raise = condition.mayRaiseException(BaseException)
 
         if condition_may_raise:
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -522,7 +522,7 @@ Conditional statements already raises implicitly in condition, removing \
 branches."""
 
         if not condition_may_raise and condition.mayRaiseExceptionBool(BaseException):
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -546,7 +546,7 @@ branches."""
 
         # Consider to not remove branches that we know won't be taken.
         if yes_branch is not None and truth_value is False:
-            constraint_collection.signalChange(
+            trace_collection.signalChange(
                 tags       = "new_statements",
                 source_ref = yes_branch.source_ref,
                 message    = "Removed conditional branch not taken due to false condition value."
@@ -556,7 +556,7 @@ branches."""
             yes_branch = None
 
         if no_branch is not None and truth_value is True:
-            constraint_collection.signalChange(
+            trace_collection.signalChange(
                 tags       = "new_statements",
                 source_ref = no_branch.source_ref,
                 message    = "Removed 'else' branch not taken due to true condition value."
@@ -568,8 +568,8 @@ branches."""
         # Continue to execute for yes branch unless we know it's not going to be
         # relevant.
         if yes_branch is not None:
-            branch_yes_collection = ConstraintCollectionBranch(
-                parent = constraint_collection,
+            branch_yes_collection = TraceCollectionBranch(
+                parent = trace_collection,
                 name   = "conditional yes branch",
             )
 
@@ -588,8 +588,8 @@ branches."""
 
         # Continue to execute for yes branch.
         if no_branch is not None:
-            branch_no_collection = ConstraintCollectionBranch(
-                parent = constraint_collection,
+            branch_no_collection = TraceCollectionBranch(
+                parent = trace_collection,
                 name   = "conditional no branch"
             )
 
@@ -607,7 +607,7 @@ branches."""
             branch_no_collection = None
 
         # Merge into parent execution.
-        constraint_collection.mergeBranches(
+        trace_collection.mergeBranches(
             branch_yes_collection,
             branch_no_collection
         )

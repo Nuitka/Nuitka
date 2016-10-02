@@ -64,15 +64,15 @@ class StatementPrintValue(StatementChildrenHavingBase):
         "value"
     )
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(
+    def computeStatement(self, trace_collection):
+        trace_collection.onExpression(
             expression = self.getDestination(),
             allow_none = True
         )
         dest = self.getDestination()
 
         if dest is not None and dest.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -85,13 +85,13 @@ class StatementPrintValue(StatementChildrenHavingBase):
             return result, "new_raise", """\
 Exception raise in 'print' statement destination converted to explicit raise."""
 
-        constraint_collection.onExpression(
+        trace_collection.onExpression(
             expression = self.getValue()
         )
         value = self.getValue()
 
         if value.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -113,7 +113,7 @@ Exception raise in 'print' statement destination converted to explicit raise."""
             return result, "new_raise", """\
 Exception raise in 'print' statement arguments converted to explicit raise."""
 
-        constraint_collection.onExceptionRaiseExit(
+        trace_collection.onExceptionRaiseExit(
             BaseException
         )
 
@@ -175,16 +175,16 @@ class StatementPrintNewline(StatementChildrenHavingBase):
         "dest"
     )
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         # TODO: Reactivate below optimizations for prints.
-        constraint_collection.onExpression(
+        trace_collection.onExpression(
             expression = self.getDestination(),
             allow_none = True
         )
         dest = self.getDestination()
 
         if dest is not None and dest.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(
+            trace_collection.onExceptionRaiseExit(
                 BaseException
             )
 
@@ -197,7 +197,7 @@ class StatementPrintNewline(StatementChildrenHavingBase):
             return result, "new_raise", """\
 Exception raise in 'print' statement destination converted to explicit raise."""
 
-        constraint_collection.onExceptionRaiseExit(
+        trace_collection.onExceptionRaiseExit(
             BaseException
         )
 

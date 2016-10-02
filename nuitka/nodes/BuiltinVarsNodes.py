@@ -43,7 +43,7 @@ class ExpressionBuiltinVars(ExpressionChildrenHavingBase):
 
     getSource = ExpressionChildrenHavingBase.childGetter("source")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Should be possible to predict this.
         return self, None, None
 

@@ -77,7 +77,7 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
     def getSimulator(self):
         return PythonOperators.all_comparison_functions[self.comparator]
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         left = self.getLeft()
         right = self.getRight()
 
@@ -85,7 +85,7 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
             left_value = left.getCompileTimeConstant()
             right_value = right.getCompileTimeConstant()
 
-            return constraint_collection.getCompileTimeComputationResult(
+            return trace_collection.getCompileTimeComputationResult(
                 node        = self,
                 computation = lambda : self.getSimulator()(
                     left_value,
@@ -95,17 +95,17 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
             )
 
         # The value of these nodes escaped and could change its contents.
-        constraint_collection.removeKnowledge(left)
-        constraint_collection.removeKnowledge(right)
+        trace_collection.removeKnowledge(left)
+        trace_collection.removeKnowledge(right)
 
         # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
+        trace_collection.onControlFlowEscape(self)
 
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
-    def computeExpressionOperationNot(self, not_node, constraint_collection):
+    def computeExpressionOperationNot(self, not_node, trace_collection):
         if self.comparator in PythonOperators.comparison_inversions:
             left, right = self.getOperands()
 
@@ -152,10 +152,10 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
     def mayRaiseExceptionBool(self, exception_type):
         return False
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         left, right = self.getOperands()
 
-        if constraint_collection.mustAlias(left, right):
+        if trace_collection.mustAlias(left, right):
             result = makeConstantReplacementNode(
                 constant = self.match_value,
                 node     = self
@@ -173,7 +173,7 @@ Determined values to alias and therefore result of %s comparison.""" % (
                 self.comparator
             )
 
-        if constraint_collection.mustNotAlias(left, right):
+        if trace_collection.mustNotAlias(left, right):
             result = makeConstantReplacementNode(
                 constant = not self.match_value,
                 node     = self
@@ -193,7 +193,7 @@ Determined values to not alias and therefore result of %s comparison.""" % (
 
         return ExpressionComparison.computeExpression(
             self,
-            constraint_collection = constraint_collection
+            trace_collection = trace_collection
         )
 
     def extractSideEffects(self):
@@ -201,7 +201,7 @@ Determined values to not alias and therefore result of %s comparison.""" % (
 
         return left.extractSideEffects() + right.extractSideEffects()
 
-    def computeExpressionDrop(self, statement, constraint_collection):
+    def computeExpressionDrop(self, statement, trace_collection):
         from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
         result = makeStatementOnlyNodesFromExpressions(
@@ -298,11 +298,11 @@ class ExpressionComparisonInNotInBase(ExpressionComparison):
     def mayRaiseExceptionBool(self, exception_type):
         return False
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self.getRight().computeExpressionComparisonIn(
-            in_node               = self,
-            value_node            = self.getLeft(),
-            constraint_collection = constraint_collection
+            in_node          = self,
+            value_node       = self.getLeft(),
+            trace_collection = trace_collection
         )
 
 

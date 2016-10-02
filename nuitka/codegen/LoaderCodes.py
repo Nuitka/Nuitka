@@ -74,10 +74,7 @@ def getMetapathLoaderBodyCode(other_modules):
             metapath_loader_inittab.append(
                 template_metapath_loader_bytecode_module_entry % {
                     "module_name" : other_module.getFullName(),
-                    "bytecode"    : stream_data.getStreamDataCode(
-                        value      = code_data,
-                        fixed_size = True
-                    ),
+                    "bytecode"    : stream_data.getStreamDataOffset(code_data),
                     "size"        : len(code_data),
                     "flags"       : " | ".join(flags)
                 }
@@ -108,10 +105,7 @@ def getMetapathLoaderBodyCode(other_modules):
         metapath_loader_inittab.append(
             template_metapath_loader_bytecode_module_entry % {
                 "module_name" : uncompiled_module.getFullName(),
-                "bytecode"    : stream_data.getStreamDataCode(
-                    value      = code_data,
-                    fixed_size = True
-                ),
+                "bytecode"    : stream_data.getStreamDataOffset(code_data),
                 "size"        : len(code_data),
                 "flags"       : " | ".join(flags)
             }

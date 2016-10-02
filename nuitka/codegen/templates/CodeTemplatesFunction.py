@@ -38,7 +38,7 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
     // Copy the parameter default values and closure values over.
 %(closure_making)s
 
-    PyObject *result = Nuitka_Function_New(
+    PyObject *result = Nuitka_Function_New_With_Closure(
         %(function_impl_identifier)s,
         %(function_name_obj)s,
 #if PYTHON_VERSION >= 330

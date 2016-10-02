@@ -219,17 +219,17 @@ setup(
 
     package_data = {
         # Include extra files
-        "" : ["*.txt", "*.rst", "*.cpp", "*.hpp", "*.ui"],
+        "" : ["*.txt", "*.rst", "*.c", "*.h", "*.ui"],
         "nuitka.build" : [
             "SingleExe.scons",
-            "static_src/*.cpp",
-            "static_src/*/*.cpp",
+            "static_src/*.c",
+            "static_src/*/*.c",
             "static_src/*/*.h",
             "static_src/*/*.asm",
             "static_src/*/*.S",
-            "include/*.hpp",
-            "include/*/*.hpp",
-            "include/*/*/*.hpp",
+            "include/*.h",
+            "include/*/*.h",
+            "include/*/*/*.h",
         ] + scons_files,
         "nuitka.gui" : [
             "dialogs/*.ui",

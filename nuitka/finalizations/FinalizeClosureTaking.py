@@ -58,7 +58,7 @@ class FinalizeClassClosure(FinalizationVisitorBase):
             if closure_variable.getName() not in ("__class__", "self"):
                 continue
 
-            variable_traces = function_body.constraint_collection.getVariableTraces(
+            variable_traces = function_body.trace_collection.getVariableTraces(
                 variable = closure_variable
             )
 

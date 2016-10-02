@@ -63,24 +63,21 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
         )
 
         self.module_name = module_name
-
-        if type(import_list) is str:
-            if import_list == "":
-                import_list = ()
-            else:
-                import_list = import_list.split(',')
-
         self.import_list = import_list
-
-        self.level = int(level)
+        self.level = level
 
         # Are we pointing to a known module or not. If so, we can expect it to
         # be in the module registry.
         self.found = None
 
-        # If we are pointing to a known module, this are modules behind the
-        # "import_list".
+        # If we are pointing to a known module, this is the module behind it,
+        # and the ones behind the "import_list".
+        self.imported_module = None
         self.found_modules = None
+
+        # The scan of modules should give a reason for the finding or not
+        # finding of stuff to compile.
+        self.finding = None
 
     def getDetails(self):
         return {
@@ -104,16 +101,17 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
     def fromXML(cls, provider, source_ref, **args):
         if "import_list" in args:
             import_list = args["import_list"].split(',')
-            del args["import_list"]
         else:
             import_list = None
 
-        return cls(
-            import_list = import_list,
-            source_ref  = source_ref,
-            **args
-        )
+        level = int(args["level"])
 
+        return cls(
+            module_name = args["module_name"],
+            import_list = import_list,
+            level       = level,
+            source_ref  = source_ref
+        )
 
     def getModuleName(self):
         return self.module_name
@@ -130,7 +128,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
         else:
             return self.level
 
-    def _consider(self, constraint_collection, module_filename, module_package):
+    def _consider(self, trace_collection, module_filename, module_package):
         assert module_package is None or \
               (type(module_package) is str and module_package != "")
 
@@ -158,7 +156,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
                 )
 
                 if added_flag:
-                    constraint_collection.signalChange(
+                    trace_collection.signalChange(
                         "new_code",
                         imported_module.getSourceReference(),
                         "Recursed to module."
@@ -187,7 +185,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         }
                     )
 
-    def _attemptRecursion(self, constraint_collection):
+    def _attemptRecursion(self, trace_collection):
         found = False
 
         parent_module = self.getParentModule()
@@ -197,7 +195,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         else:
             parent_package = self.getParentModule().getPackage()
 
-        module_package, module_filename, _finding = findModule(
+        module_package, module_filename, self.finding = findModule(
             importing      = self,
             module_name    = self.getModuleName(),
             parent_package = parent_package,
@@ -206,20 +204,21 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         )
 
         if module_filename is not None:
-            imported_module = self._consider(
-                constraint_collection = constraint_collection,
-                module_filename       = module_filename,
-                module_package        = module_package
+            self.imported_module = self._consider(
+                trace_collection = trace_collection,
+                module_filename  = module_filename,
+                module_package   = module_package
             )
 
-            if imported_module is not None:
-                found = imported_module.getFullName()
+            if self.imported_module is not None:
+                found = self.imported_module.getFullName()
 
                 self.found_modules = []
 
                 import_list = self.getImportList()
 
-                if import_list and imported_module.isCompiledPythonPackage():
+                if import_list and \
+                   self.imported_module.isCompiledPythonPackage():
                     for import_item in import_list:
                         if import_item == '*':
                             continue
@@ -227,44 +226,55 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         module_package, module_filename, _finding = findModule(
                             importing      = self,
                             module_name    = import_item,
-                            parent_package = imported_module.getFullName(),
+                            parent_package = found,
                             level          = -1,
                             warn           = False
                         )
 
                         if module_filename is not None:
                             sub_imported_module = self._consider(
-                                constraint_collection = constraint_collection,
-                                module_filename       = module_filename,
-                                module_package        = module_package
+                                trace_collection = trace_collection,
+                                module_filename  = module_filename,
+                                module_package   = module_package
                             )
 
                             if sub_imported_module is not None:
-                                self.found_modules.append(sub_imported_module.getFullName())
+                                self.found_modules.append(
+                                    sub_imported_module.getFullName()
+                                )
 
-            return found
+        return found
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # Attempt to recurse if not already done.
         if self.found is None:
             self.found = self._attemptRecursion(
-                constraint_collection = constraint_collection
+                trace_collection = trace_collection
             )
 
+        assert self.found is not None
+
         if self.found:
-            constraint_collection.onUsedModule(self.found)
+            trace_collection.onUsedModule(self.found)
 
             for found_module in self.found_modules:
-                constraint_collection.onUsedModule(found_module)
+                trace_collection.onUsedModule(found_module)
 
-        # When a module is recursed to and included, we know it won't raise,
-        # right? But even if you import, that successful import may still raise
-        # and we don't know how to check yet.
-        constraint_collection.onExceptionRaiseExit(
-            BaseException
-        )
+        if self.mayRaiseException(BaseException):
+            # When a module is recursed to and included, we know it won't raise,
+            # right? But even if you import, that successful import may still raise
+            # and we don't know how to check yet.
+            trace_collection.onExceptionRaiseExit(
+                BaseException
+            )
 
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return self.finding != "built-in" or self.import_list != ()
+
+    def mayHaveSideEffects(self):
+        return self.finding != "built-in" or self.import_list != ()
 
 
 class ExpressionImportModuleHard(NodeBase, ExpressionMixin):
@@ -293,7 +303,7 @@ class ExpressionImportModuleHard(NodeBase, ExpressionMixin):
     def getImportName(self):
         return self.import_name
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: May return a module reference of some sort in the future with
         # embedded modules.
         return self, None, None
@@ -351,7 +361,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
     getLocals = ExpressionChildrenHavingBase.childGetter("locals")
     getLevel = ExpressionChildrenHavingBase.childGetter("level")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         module_name = self.getImportName()
         fromlist = self.getFromList()
         level = self.getLevel()
@@ -373,8 +383,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 )
 
                 # Importing may raise an exception obviously.
-                constraint_collection.onExceptionRaiseExit(BaseException)
-
+                trace_collection.onExceptionRaiseExit(BaseException)
 
                 return (
                     new_node,
@@ -383,7 +392,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 )
             else:
                 # Non-strings is going to raise an error.
-                new_node, change_tags, message = constraint_collection.getCompileTimeComputationResult(
+                new_node, change_tags, message = trace_collection.getCompileTimeComputationResult(
                     node        = self,
                     computation = lambda : __import__(module_name.getConstant()),
                     description = "Replaced '__import__' call with non-string module name argument."
@@ -395,7 +404,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 return new_node, change_tags, message
 
         # Importing may raise an exception obviously.
-        constraint_collection.onExceptionRaiseExit(BaseException)
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.
@@ -418,12 +427,12 @@ class StatementImportStar(StatementChildrenHavingBase):
 
     getModule = StatementChildrenHavingBase.childGetter("module")
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(self.getModule())
+    def computeStatement(self, trace_collection):
+        trace_collection.onExpression(self.getModule())
 
         # Need to invalidate everything, and everything could be assigned to
         # something else now.
-        constraint_collection.removeAllKnowledge()
+        trace_collection.removeAllKnowledge()
 
         return self, None, None
 
@@ -464,7 +473,11 @@ class ExpressionImportName(ExpressionChildrenHavingBase):
 
     getModule = ExpressionChildrenHavingBase.childGetter("module")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.
+
+        # Importing may raise an exception obviously.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None

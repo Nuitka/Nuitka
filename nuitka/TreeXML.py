@@ -74,7 +74,7 @@ except ImportError:
 # TODO: Use the writer to create the XML we output. That should be more
 # scalable and/or faster.
 try:
-    import lxml.xmlfile
+    import lxml.xmlfile # pylint: disable=F0401,I0021
 
     xml_writer = lxml.xmlfile
 except ImportError:

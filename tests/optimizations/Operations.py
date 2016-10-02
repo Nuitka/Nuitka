@@ -21,9 +21,33 @@
 print(not bool)
 print(not {})
 print(not 7)
-# TODO: Needs some SSA now.
-# print(bool or len)
-# print(False or dict)
+print(bool or len)
+print(False or dict)
 print(type(Ellipsis))
 print("a" in "abba")
 print("a" not in "abba")
+
+# TODO: Add support for functions
+# def testInplaceOperations():
+#     x = 2
+#     x += 1
+#     x *= 2
+#     x **= 2
+#     x -= 8
+#     x //= 5
+#     x %= 3
+#     x &= 2
+#     x |= 5
+#     x ^= 1
+#     x /= 2
+#
+#     print(x)
+
+print(len("a"*10000))
+print(len(10000*"a"))
+print(len((1,) *20000))
+print(len(20000*(1,)))
+print(len([1]*30000))
+print(len(30000*[1]))
+print(len(unicode("a")*40000))
+print(len(40000*unicode("a")))

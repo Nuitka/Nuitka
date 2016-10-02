@@ -34,10 +34,8 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable
 )
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
-from nuitka.nodes.BuiltinIteratorNodes import (
-    ExpressionBuiltinIter1,
-    ExpressionBuiltinNext1
-)
+from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
+from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
@@ -56,7 +54,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.OperatorNodes import ExpressionOperationBinary
+from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
@@ -163,7 +161,7 @@ def getDictUnpackingHelper():
                 exception_type  = ExpressionBuiltinMakeException(
                     exception_name = "TypeError",
                     args           = (
-                        ExpressionOperationBinary(
+                        makeBinaryOperationNode(
                             operator   = "Mod",
                             left       =  makeConstantRefNode(
                                 constant      = """\

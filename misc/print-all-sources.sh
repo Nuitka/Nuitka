@@ -21,8 +21,8 @@ cd `dirname $0`/..
 
 find nuitka -name \*.py -a \! -path *inline_copy*
 find bin -name \*.py
-find nuitka/build/static_src -name \*.cpp
-find nuitka/build/include -name \*.hpp
+find nuitka/build/static_src -name \*.c
+find nuitka/build/include/nuitka -name \*.h
 find nuitka/build/ -name \*.scons
 find misc -name \*.sh
 find bin -name \*.sh

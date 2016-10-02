@@ -77,7 +77,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
 
         return True
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         pos_arg = self.getPositionalArgument()
         pairs = self.getNamedArgumentPairs()
 
@@ -114,8 +114,8 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             )
 
             # Just in case, the iteration may do that.
-            if pos_arg.mayRaiseExceptionIter(BaseException):
-                constraint_collection.onExceptionRaiseExit(BaseException)
+            if not pos_arg.hasShapeSlotIter():
+                trace_collection.onExceptionRaiseExit(BaseException)
 
             return (
                 new_node,
@@ -133,7 +133,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             else:
                 pos_args = None
 
-            return constraint_collection.getCompileTimeComputationResult(
+            return trace_collection.getCompileTimeComputationResult(
                 node        = self,
                 computation = lambda : builtin_dict_spec.simulateCall(
                     (pos_args, self.getNamedArgumentPairs())
@@ -141,7 +141,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
                 description = "Replace 'dict' call with constant arguments."
             )
         else:
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
             return self, None, None
 

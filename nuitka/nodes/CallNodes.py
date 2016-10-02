@@ -57,17 +57,17 @@ class ExpressionCall(ExpressionChildrenHavingBase):
     def isExpressionCall(self):
         return True
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         called = self.getCalled()
 
         return called.computeExpressionCall(
-            call_node             = self,
-            call_args             = self.getCallArgs(),
-            call_kw               = self.getCallKw(),
-            constraint_collection = constraint_collection
+            call_node        = self,
+            call_args        = self.getCallArgs(),
+            call_kw          = self.getCallKw(),
+            trace_collection = trace_collection
         )
 
-    def extractPreCallSideEffects(self):
+    def extractSideEffectsPreCall(self):
         args = self.getCallArgs()
         kw = self.getCallKw()
 
@@ -98,12 +98,12 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
     getCallArgs = ExpressionChildrenHavingBase.childGetter("args")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self.getCalled().computeExpressionCall(
-            call_node             = self,
-            call_args             = self.getCallArgs(),
-            call_kw               = None,
-            constraint_collection = constraint_collection
+            call_node        = self,
+            call_args        = self.getCallArgs(),
+            call_kw          = None,
+            trace_collection = trace_collection
         )
 
     @staticmethod
@@ -113,7 +113,7 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
     def isExpressionCall(self):
         return True
 
-    def extractPreCallSideEffects(self):
+    def extractSideEffectsPreCall(self):
         args = self.getCallArgs()
 
         return args.extractSideEffects()
@@ -143,14 +143,14 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
     getCallKw = ExpressionChildrenHavingBase.childGetter("kw")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         called = self.getCalled()
 
         return called.computeExpressionCall(
-            call_node             = self,
-            call_args             = None,
-            call_kw               = self.getCallKw(),
-            constraint_collection = constraint_collection
+            call_node        = self,
+            call_args        = None,
+            call_kw          = self.getCallKw(),
+            trace_collection = trace_collection
         )
 
     @staticmethod
@@ -160,7 +160,7 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
     def isExpressionCall(self):
         return True
 
-    def extractPreCallSideEffects(self):
+    def extractSideEffectsPreCall(self):
         kw = self.getCallKw()
 
         return kw.extractSideEffects()
@@ -186,14 +186,14 @@ class ExpressionCallEmpty(ExpressionChildrenHavingBase):
 
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         called = self.getCalled()
 
         return called.computeExpressionCall(
-            call_node             = self,
-            call_args             = None,
-            call_kw               = None,
-            constraint_collection = constraint_collection
+            call_node        = self,
+            call_args        = None,
+            call_kw          = None,
+            trace_collection = trace_collection
         )
 
 
@@ -209,7 +209,7 @@ class ExpressionCallEmpty(ExpressionChildrenHavingBase):
         return True
 
     @staticmethod
-    def extractPreCallSideEffects():
+    def extractSideEffectsPreCall():
         return ()
 
 

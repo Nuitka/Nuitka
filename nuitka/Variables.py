@@ -32,7 +32,6 @@ class Variable:
     # state and cache some decisions as attributes, pylint: disable=R0902
     @InstanceCounters.counted_init
     def __init__(self, owner, variable_name):
-
         assert type(variable_name) is str, variable_name
         assert type(owner) not in (tuple, list), owner
         assert owner.getFullName
@@ -52,6 +51,9 @@ class Variable:
         self.writers = None
 
     __del__ = InstanceCounters.counted_del()
+
+    def getDescription(self):
+        return "variable '%s'" % self.variable_name
 
     def getName(self):
         return self.variable_name
@@ -131,7 +133,10 @@ class Variable:
         self.traces.add(variable_trace)
 
     def removeTrace(self, variable_trace):
+        # Make it unusable, and break GC cycles while at it.
         variable_trace.variable = None
+        variable_trace.previous = None
+
         self.traces.remove(variable_trace)
 
     def updateUsageState(self):
@@ -217,6 +222,9 @@ class MaybeLocalVariable(Variable):
             self.maybe_variable
         )
 
+    def getDescription(self):
+        return "maybe-local variable '%s'" % self.variable_name
+
     def isMaybeLocalVariable(self):
         return True
 
@@ -231,6 +239,9 @@ class ParameterVariable(LocalVariable):
             owner         = owner,
             variable_name = parameter_name
         )
+
+    def getDescription(self):
+        return "parameter variable '%s'" % self.variable_name
 
     def isParameterVariable(self):
         return True
@@ -255,6 +266,9 @@ class ModuleVariable(Variable):
             self.getModule().getFullName()
         )
 
+    def getDescription(self):
+        return "global variable '%s'" % self.variable_name
+
     def isModuleVariable(self):
         return True
 
@@ -275,6 +289,9 @@ class TempVariable(Variable):
             self.getName(),
             self.getOwner()
         )
+
+    def getDescription(self):
+        return "temp variable '%s'" % self.variable_name
 
     def isTempVariable(self):
         return True

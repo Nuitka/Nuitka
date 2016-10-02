@@ -68,8 +68,8 @@ if "NUITKA_PYTHONPATH" in os.environ:
     sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
     del os.environ["NUITKA_PYTHONPATH"]
 
-from nuitka import Options       # isort:skip
-from nuitka.utils import Utils   # isort:skip pylint:disable=E0611
+from nuitka import Options                  # isort:skip
+from nuitka.utils import Utils, Execution   # isort:skip pylint:disable=E0611
 
 import logging # isort:skip
 logging.basicConfig(format = "Nuitka:%(levelname)s:%(message)s")
@@ -157,7 +157,7 @@ if needs_reexec:
 
     os.environ["PYTHONHASHSEED"] = '0'
 
-    Utils.callExec(args)
+    Execution.callExec(args)
 
 # Inform the user about potential issues.
 if current_version not in Options.getSupportedPythonVersions():

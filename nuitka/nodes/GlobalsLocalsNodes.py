@@ -43,7 +43,7 @@ class ExpressionBuiltinGlobals(NodeBase, ExpressionMixin):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self, None, None
 
     def mayHaveSideEffects(self):
@@ -65,9 +65,9 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # Just inform the collection that all escaped.
-        constraint_collection.onLocalsUsage()
+        trace_collection.onLocalsUsage()
 
         return self, None, None
 
@@ -118,12 +118,12 @@ class StatementSetLocals(StatementChildrenHavingBase):
 
     getNewLocals = StatementChildrenHavingBase.childGetter("new_locals")
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         # Make sure that we don't even assume "unset" of things not set yet for
         # anything.
-        constraint_collection.removeAllKnowledge()
+        trace_collection.removeAllKnowledge()
 
-        constraint_collection.onExpression(self.getNewLocals())
+        trace_collection.onExpression(self.getNewLocals())
         new_locals = self.getNewLocals()
 
         if new_locals.willRaiseException(BaseException):
@@ -144,7 +144,7 @@ Setting locals already raises implicitly building new locals."""
 class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_DIR1"
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
 

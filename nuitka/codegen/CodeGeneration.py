@@ -57,7 +57,9 @@ from .BuiltinCodes import (
     generateBuiltinRefCode,
     generateBuiltinType1Code,
     generateBuiltinType3Code,
-    generateBuiltinXrangeCode
+    generateBuiltinXrange1Code,
+    generateBuiltinXrange2Code,
+    generateBuiltinXrange3Code
 )
 from .CallCodes import generateCallCode, getCallsCode, getCallsDecls
 from .ClassCodes import (
@@ -200,10 +202,13 @@ from .SliceCodes import (
     generateSliceLookupCode
 )
 from .StringCodes import (
+    generateBuiltinAsciiCode,
     generateBuiltinChrCode,
+    generateBuiltinFormatCode,
     generateBuiltinOrdCode,
     generateBuiltinStrCode,
-    generateBuiltinUnicodeCode
+    generateBuiltinUnicodeCode,
+    generateStringContenationCode
 )
 from .SubscriptCodes import (
     generateAssignmentSubscriptCode,
@@ -321,7 +326,7 @@ def generateFunctionBodyCode(function_body, context):
             )
         )
 
-    return function_code
+    return function_code, function_context
 
 
 def _generateStatementSequenceCode(statement_sequence, emit, context):
@@ -413,23 +418,27 @@ def prepareModuleCode(global_context, module, module_name):
     function_body_codes = []
 
     for function_body in module.getUsedFunctions():
-        function_code = generateFunctionBodyCode(
+        function_code, function_context = generateFunctionBodyCode(
             function_body = function_body,
             context       = context
         )
 
-        assert type(function_code) is str
+        assert type(function_code) is str, type(function_code)
 
         function_body_codes.append(function_code)
 
         function_decl = generateFunctionDeclCode(
-            function_body = function_body
+            function_body = function_body,
+            context       = function_context
+
         )
 
         if function_decl is not None:
             function_decl_codes.append(function_decl)
 
 
+    # These are for functions used from other modules. Due to cyclic
+    # dependencies, we cannot rely on those to be already created.
     for function_body in module.getCrossUsedFunctions():
         assert function_body.isCrossModuleUsed()
 
@@ -438,6 +447,10 @@ def prepareModuleCode(global_context, module, module_name):
             closure_variables   = function_body.getClosureVariables(),
             file_scope          = getExportScopeCode(
                 cross_module = function_body.isCrossModuleUsed()
+            ),
+            context             = Contexts.PythonFunctionDirectContext(
+                parent   = context,
+                function = function_body
             )
         )
 
@@ -540,7 +553,9 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_RANGE1"                 : generateBuiltinRange1Code,
         "EXPRESSION_BUILTIN_RANGE2"                 : generateBuiltinRange2Code,
         "EXPRESSION_BUILTIN_RANGE3"                 : generateBuiltinRange3Code,
-        "EXPRESSION_BUILTIN_XRANGE"                 : generateBuiltinXrangeCode,
+        "EXPRESSION_BUILTIN_XRANGE1"                : generateBuiltinXrange1Code,
+        "EXPRESSION_BUILTIN_XRANGE2"                : generateBuiltinXrange2Code,
+        "EXPRESSION_BUILTIN_XRANGE3"                : generateBuiltinXrange3Code,
         "EXPRESSION_BUILTIN_MAKE_EXCEPTION"         : generateBuiltinMakeExceptionCode,
         "EXPRESSION_BUILTIN_REF"                    : generateBuiltinRefCode,
         "EXPRESSION_BUILTIN_EXCEPTION_REF"          : generateExceptionRefCode,
@@ -569,6 +584,7 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_CONSTANT_LIST_REF"              : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_REF"               : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SLICE_REF"             : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_XRANGE_REF"            : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_REF"              : generateConstantReferenceCode,
         "EXPRESSION_CONDITIONAL"                    : generateConditionalCode,
         "EXPRESSION_CONDITIONAL_OR"                 : generateConditionalAndOrCode,
@@ -597,6 +613,8 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_MAKE_LIST"                      : generateListCreationCode,
         "EXPRESSION_MAKE_DICT"                      : generateDictionaryCreationCode,
         "EXPRESSION_OPERATION_BINARY"               : generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_ADD"           : generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_MULT"          : generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_INPLACE"       : generateOperationBinaryCode,
         "EXPRESSION_OPERATION_UNARY"                : generateOperationUnaryCode,
         "EXPRESSION_OPERATION_NOT"                  : generateOperationUnaryCode,
@@ -615,6 +633,9 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_ASYNC_WAIT"                     : generateAsyncWaitCode,
         "EXPRESSION_ASYNC_ITER"                     : generateAsyncIterCode,
         "EXPRESSION_ASYNC_NEXT"                     : generateAsyncNextCode,
+        "EXPRESSION_STRING_CONCATENATION"           : generateStringContenationCode,
+        "EXPRESSION_BUILTIN_FORMAT"                 : generateBuiltinFormatCode,
+        "EXPRESSION_BUILTIN_ASCII"                  : generateBuiltinAsciiCode,
     }
 )
 

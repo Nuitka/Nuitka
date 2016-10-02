@@ -52,6 +52,7 @@ from .templates.CodeTemplatesFunction import (
 )
 from .TupleCodes import getTupleCreationCode
 from .VariableCodes import (
+    getLocalVariableCodeType,
     getLocalVariableInitCode,
     getVariableCode,
     getVariableCodeName
@@ -396,10 +397,20 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
         function_identifier = function_identifier
     )
 
-    suffix_args = getClosureVariableProvisionCode(
-        context           = context,
-        closure_variables = closure_variables
-    )
+    suffix_args = []
+
+    for closure_variable in closure_variables:
+        variable_code_name, variable_c_type = getLocalVariableCodeType(
+            context  = context,
+            variable = closure_variable
+        )
+
+        if variable_c_type == "PyObject *":
+            suffix_args.append('&' + variable_code_name)
+        elif variable_c_type in ("PyCellObject *", "PyObject **"):
+            suffix_args.append(variable_code_name)
+        else:
+            assert False, variable_c_type
 
     # TODO: We ought to not assume references for direct calls, or make a
     # profile if an argument needs a reference at all. Most functions don't
@@ -454,41 +465,24 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
     context.addCleanupTempName(to_name)
 
 
-def getFunctionDirectClosureArgs(closure_variables):
-    result = []
-
-    for closure_variable in closure_variables:
-        if closure_variable.isSharedTechnically():
-            result.append(
-                "PyCellObject *%s" % (
-                    getVariableCodeName(
-                        in_context = True,
-                        variable   = closure_variable
-                    )
-                )
-            )
-        else:
-            # TODO: The reference is only needed for Python3, could make it
-            # version dependent.
-            result.append(
-                "PyObject *&%s" % (
-                    getVariableCodeName(
-                        in_context = True,
-                        variable   = closure_variable
-                    )
-                )
-            )
-
-    return result
-
-
-def getFunctionDirectDecl(function_identifier, closure_variables, file_scope):
-
+def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, context):
     parameter_objects_decl = [
         "PyObject **python_pars"
     ]
 
-    parameter_objects_decl += getFunctionDirectClosureArgs(closure_variables)
+    for closure_variable in closure_variables:
+        variable_code_name, variable_c_type = getLocalVariableCodeType(
+            context  = context,
+            variable = closure_variable
+        )
+
+        parameter_objects_decl.append(
+            "%s%s%s" % (
+                variable_c_type,
+                ' ' if variable_c_type[-1] in "*&" else ' ',
+                variable_code_name,
+            )
+        )
 
     result = template_function_direct_declaration % {
         "file_scope"           : file_scope,
@@ -518,6 +512,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
         for count, variable in enumerate(parameters.getAllVariables()):
             function_locals.append(
                 getLocalVariableInitCode(
+                    context   = context,
                     variable  = variable,
                     init_from = "python_pars[ %d ]" % count
                 )
@@ -526,6 +521,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
     # User local variable initializations
     function_locals += [
         getLocalVariableInitCode(
+            context  = context,
             variable = variable,
         )
         for variable in
@@ -596,7 +592,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
         )
 
     if context.isForCreatedFunction():
-        parameter_objects_decl = ["Nuitka_FunctionObject const *self"]
+        parameter_objects_decl = ["struct Nuitka_FunctionObject const *self"]
     else:
         parameter_objects_decl = []
 
@@ -605,7 +601,19 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
     ]
 
     if context.isForDirectCall():
-        parameter_objects_decl += getFunctionDirectClosureArgs(closure_variables)
+        for closure_variable in closure_variables:
+            variable_code_name, variable_c_type = getLocalVariableCodeType(
+                context  = context,
+                variable = closure_variable
+            )
+
+            parameter_objects_decl.append(
+                "%s%s%s" % (
+                    variable_c_type,
+                    ' ' if variable_c_type[-1] in "*&" else ' ',
+                    variable_code_name,
+                )
+            )
 
         result += function_direct_body_template % {
             "file_scope"           : file_scope,
@@ -637,7 +645,7 @@ def getExportScopeCode(cross_module):
 
 
 
-def generateFunctionDeclCode(function_body):
+def generateFunctionDeclCode(function_body, context):
     if function_body.isExpressionGeneratorObjectBody():
         return getGeneratorObjectDeclCode(
             function_identifier = function_body.getCodeName(),
@@ -652,7 +660,8 @@ def generateFunctionDeclCode(function_body):
             closure_variables   = function_body.getClosureVariables(),
             file_scope          = getExportScopeCode(
                 cross_module = False
-            )
+            ),
+            context             = context
         )
     elif function_body.needsDirectCall():
         return getFunctionDirectDecl(
@@ -660,7 +669,8 @@ def generateFunctionDeclCode(function_body):
             closure_variables   = function_body.getClosureVariables(),
             file_scope          = getExportScopeCode(
                 cross_module = function_body.isCrossModuleUsed()
-            )
+            ),
+            context             = context
         )
     else:
         return None

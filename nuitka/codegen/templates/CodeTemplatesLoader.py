@@ -21,13 +21,13 @@
 
 
 template_metapath_loader_compiled_module_entry = """\
-{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NULL, 0, NUITKA_COMPILED_MODULE },"""
+{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), 0, 0, NUITKA_COMPILED_MODULE },"""
 
 template_metapath_loader_compiled_package_entry = """\
-{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), NULL, 0, NUITKA_PACKAGE_FLAG },"""
+{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), 0, 0, NUITKA_PACKAGE_FLAG },"""
 
 template_metapath_loader_shlib_module_entry = """\
-{ (char *)"%(module_name)s", NULL, NULL, 0, NUITKA_SHLIB_FLAG },"""
+{ (char *)"%(module_name)s", NULL, 0, 0, NUITKA_SHLIB_FLAG },"""
 
 template_metapath_loader_bytecode_module_entry = """\
 { (char *)"%(module_name)s", NULL, %(bytecode)s, %(size)d, %(flags)s },"""
@@ -36,7 +36,7 @@ template_metapath_loader_bytecode_module_entry = """\
 template_metapath_loader_body = """\
 /* Code to register embedded modules for meta path based loading if any. */
 
-#include "nuitka/unfreezing.hpp"
+#include "nuitka/unfreezing.h"
 
 /* Table for lookup to find compiled or bytecode modules included in this
  * binary or module, or put along this binary as extension modules. We do
@@ -46,7 +46,7 @@ template_metapath_loader_body = """\
 static struct Nuitka_MetaPathBasedLoaderEntry meta_path_loader_entries[] =
 {
 %(metapath_loader_inittab)s
-    { NULL, NULL, 0 }
+    { NULL, NULL, 0, 0, 0 }
 };
 
 void setupMetaPathBasedLoader( void )

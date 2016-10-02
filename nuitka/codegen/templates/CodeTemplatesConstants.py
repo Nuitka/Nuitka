@@ -20,7 +20,7 @@
 """
 
 template_constants_reading = """
-#include "nuitka/prelude.hpp"
+#include "nuitka/prelude.h"
 
 // Sentinel PyObject to be used for all our call iterator endings. It will
 // become a PyCObject pointing to NULL. It's address is unique, and that's
@@ -28,25 +28,6 @@ template_constants_reading = """
 PyObject *_sentinel_value = NULL;
 
 %(constant_declarations)s
-
-#if defined(_WIN32) && defined(_NUITKA_EXE)
-#include <Windows.h>
-const unsigned char* constant_bin;
-struct __initResourceConstants
-{
-    __initResourceConstants()
-    {
-        constant_bin = (const unsigned char*)LockResource(
-            LoadResource(
-                NULL,
-                FindResource(NULL, MAKEINTRESOURCE(3), RT_RCDATA)
-            )
-        );
-    }
-} __initResourceConstants_static_initializer;
-#else
-extern "C" const unsigned char constant_bin[];
-#endif
 
 static void _createGlobalConstants( void )
 {
@@ -79,7 +60,6 @@ void checkGlobalConstants( void )
 %(constant_checks)s
 }
 #endif
-
 
 void createGlobalConstants( void )
 {

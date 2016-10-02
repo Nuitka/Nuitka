@@ -70,8 +70,8 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
     getUpper = StatementChildrenHavingBase.childGetter("upper")
     getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(self.getAssignSource())
+    def computeStatement(self, trace_collection):
+        trace_collection.onExpression(self.getAssignSource())
         source = self.getAssignSource()
 
         # No assignment will occur, if the assignment source raises, so strip it
@@ -85,7 +85,7 @@ class StatementAssignmentSlice(StatementChildrenHavingBase):
             return result, "new_raise", """\
 Slice assignment raises exception in assigned value, removed assignment."""
 
-        constraint_collection.onExpression(self.getLookupSource())
+        trace_collection.onExpression(self.getLookupSource())
         lookup_source = self.getLookupSource()
 
         if lookup_source.willRaiseException(BaseException):
@@ -99,7 +99,7 @@ Slice assignment raises exception in assigned value, removed assignment."""
             return result, "new_raise", """\
 Slice assignment raises exception in sliced value, removed assignment."""
 
-        constraint_collection.onExpression(self.getLower(), allow_none = True)
+        trace_collection.onExpression(self.getLower(), allow_none = True)
         lower = self.getLower()
 
         if lower is not None and lower.willRaiseException(BaseException):
@@ -115,7 +115,7 @@ Slice assignment raises exception in sliced value, removed assignment."""
 Slice assignment raises exception in lower slice boundary value, removed \
 assignment."""
 
-        constraint_collection.onExpression(self.getUpper(), allow_none = True)
+        trace_collection.onExpression(self.getUpper(), allow_none = True)
         upper = self.getUpper()
 
         if upper is not None and upper.willRaiseException(BaseException):
@@ -133,11 +133,11 @@ Slice assignment raises exception in upper slice boundary value, removed \
 assignment."""
 
         return lookup_source.computeExpressionSetSlice(
-            set_node              = self,
-            lower                 = lower,
-            upper                 = upper,
-            value_node            = source,
-            constraint_collection = constraint_collection
+            set_node         = self,
+            lower            = lower,
+            upper            = upper,
+            value_node       = source,
+            trace_collection = trace_collection
         )
 
 
@@ -165,8 +165,8 @@ class StatementDelSlice(StatementChildrenHavingBase):
     getLower = StatementChildrenHavingBase.childGetter("lower")
     getUpper = StatementChildrenHavingBase.childGetter("upper")
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(self.getLookupSource())
+    def computeStatement(self, trace_collection):
+        trace_collection.onExpression(self.getLookupSource())
         lookup_source = self.getLookupSource()
 
         if lookup_source.willRaiseException(BaseException):
@@ -179,7 +179,7 @@ class StatementDelSlice(StatementChildrenHavingBase):
 Slice del raises exception in sliced value, removed del"""
 
 
-        constraint_collection.onExpression(self.getLower(), allow_none = True)
+        trace_collection.onExpression(self.getLower(), allow_none = True)
         lower = self.getLower()
 
         if lower is not None and lower.willRaiseException(BaseException):
@@ -193,7 +193,7 @@ Slice del raises exception in sliced value, removed del"""
             return result, "new_raise", """
 Slice del raises exception in lower slice boundary value, removed del"""
 
-        constraint_collection.onExpression(self.getUpper(), allow_none = True)
+        trace_collection.onExpression(self.getUpper(), allow_none = True)
         upper = self.getUpper()
 
         if upper is not None and upper.willRaiseException(BaseException):
@@ -209,10 +209,10 @@ Slice del raises exception in lower slice boundary value, removed del"""
 Slice del raises exception in upper slice boundary value, removed del"""
 
         return lookup_source.computeExpressionDelSlice(
-            set_node              = self,
-            lower                 = lower,
-            upper                 = upper,
-            constraint_collection = constraint_collection
+            set_node         = self,
+            lower            = lower,
+            upper            = upper,
+            trace_collection = trace_collection
         )
 
 
@@ -251,14 +251,14 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
     getUpper = ExpressionChildrenHavingBase.childGetter("upper")
     setUpper = ExpressionChildrenHavingBase.childSetter("upper")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         lookup_source = self.getLookupSource()
 
         return lookup_source.computeExpressionSlice(
-            lookup_node           = self,
-            lower                 = self.getLower(),
-            upper                 = self.getUpper(),
-            constraint_collection = constraint_collection
+            lookup_node      = self,
+            lower            = self.getLower(),
+            upper            = self.getUpper(),
+            trace_collection = trace_collection
         )
 
     def isKnownToBeIterable(self, count):
@@ -306,7 +306,7 @@ class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
             }
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         start = self.getStart()
         stop = self.getStop()
         step = self.getStep()
@@ -318,8 +318,8 @@ class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
         )
 
         return self.computeBuiltinSpec(
-            constraint_collection = constraint_collection,
-            given_values          = args
+            trace_collection = trace_collection,
+            given_values     = args
         )
 
     def mayRaiseException(self, exception_type):

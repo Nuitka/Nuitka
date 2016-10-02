@@ -64,7 +64,7 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
     def getCodeObject(self):
         return self.code_object
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Generator body may know something too.
         return self, None, None
 

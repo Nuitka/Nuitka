@@ -54,19 +54,19 @@ class StatementAssignmentSubscript(StatementChildrenHavingBase):
     getSubscript = StatementChildrenHavingBase.childGetter("subscript")
     getAssignSource = StatementChildrenHavingBase.childGetter("source")
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            constraint_collection = constraint_collection
+            trace_collection = trace_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
         return self.getSubscribed().computeExpressionSetSubscript(
-            set_node              = self,
-            subscript             = self.getSubscript(),
-            value_node            = self.getAssignSource(),
-            constraint_collection = constraint_collection
+            set_node         = self,
+            subscript        = self.getSubscript(),
+            value_node       = self.getAssignSource(),
+            trace_collection = trace_collection
         )
 
     def getStatementNiceName(self):
@@ -94,18 +94,18 @@ class StatementDelSubscript(StatementChildrenHavingBase):
     getSubscribed = StatementChildrenHavingBase.childGetter("expression")
     getSubscript = StatementChildrenHavingBase.childGetter("subscript")
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            constraint_collection = constraint_collection
+            trace_collection = trace_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
         return self.getSubscribed().computeExpressionDelSubscript(
-            del_node              = self,
-            subscript             = self.getSubscript(),
-            constraint_collection = constraint_collection
+            del_node         = self,
+            subscript        = self.getSubscript(),
+            trace_collection = trace_collection
         )
 
     def getStatementNiceName(self):
@@ -133,11 +133,11 @@ class ExpressionSubscriptLookup(ExpressionChildrenHavingBase):
     getLookupSource = ExpressionChildrenHavingBase.childGetter("subscribed")
     getSubscript = ExpressionChildrenHavingBase.childGetter("subscript")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         return self.getLookupSource().computeExpressionSubscript(
-            lookup_node           = self,
-            subscript             = self.getSubscript(),
-            constraint_collection = constraint_collection
+            lookup_node      = self,
+            subscript        = self.getSubscript(),
+            trace_collection = trace_collection
         )
 
     def isKnownToBeIterable(self, count):

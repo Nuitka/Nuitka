@@ -48,12 +48,12 @@ class StatementReturn(StatementChildrenHavingBase):
     def mayRaiseException(self, exception_type):
         return self.getExpression().mayRaiseException(exception_type)
 
-    def computeStatement(self, constraint_collection):
-        constraint_collection.onExpression(self.getExpression())
+    def computeStatement(self, trace_collection):
+        trace_collection.onExpression(self.getExpression())
         expression = self.getExpression()
 
         if expression.mayRaiseException(BaseException):
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         if expression.willRaiseException(BaseException):
             from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
@@ -66,7 +66,7 @@ class StatementReturn(StatementChildrenHavingBase):
             return result, "new_raise", """\
 Return statement raises in returned expression, removed return."""
 
-        constraint_collection.onFunctionReturn()
+        trace_collection.onFunctionReturn()
 
         return self, None, None
 
@@ -80,7 +80,7 @@ class ExpressionReturnedValueRef(NodeBase, ExpressionMixin):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 

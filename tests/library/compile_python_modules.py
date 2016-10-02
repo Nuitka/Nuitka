@@ -51,7 +51,8 @@ if tmp_dir == "/tmp" and os.path.exists("/var/tmp"):
 
 blacklist = (
     "__phello__.foo.py", # Triggers error for "." in module name
-    "idnadata"           # Avoid too complex code for main program.
+    "idnadata",          # Avoid too complex code for main program.
+    "joined_strings.py",
 )
 
 def decide(root, filename):

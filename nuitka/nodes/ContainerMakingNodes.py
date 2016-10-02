@@ -28,6 +28,11 @@ from .NodeMakingHelpers import (
     makeStatementOnlyNodesFromExpressions,
     wrapExpressionWithSideEffects
 )
+from .shapes.BuiltinTypeShapes import (
+    ShapeTypeList,
+    ShapeTypeSet,
+    ShapeTypeTuple
+)
 
 
 class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
@@ -65,7 +70,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
         # Abstract method, pylint: disable=R0201
         return None
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         elements = self.getElements()
 
         for count, element in enumerate(elements):
@@ -103,8 +108,14 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
     def isKnownToBeIterable(self, count):
         return count is None or count == len(self.getElements())
 
+    def isKnownToBeIterableAtMin(self, count):
+        return count <= len(self.getElements())
+
     def getIterationValue(self, count):
         return self.getElements()[count]
+
+    def getIterationValueRange(self, start, stop):
+        return self.getElements()[start:stop]
 
     @staticmethod
     def canPredictIterationValues():
@@ -126,7 +137,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
     def mayBeNone(self):
         return False
 
-    def computeExpressionDrop(self, statement, constraint_collection):
+    def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementOnlyNodesFromExpressions(
             expressions = self.getElements()
         )
@@ -146,6 +157,9 @@ class ExpressionMakeTuple(ExpressionMakeSequenceBase):
             source_ref    = source_ref
         )
 
+    def getTypeShape(self):
+        return ShapeTypeTuple
+
     def getSimulator(self):
         return tuple
 
@@ -164,13 +178,16 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
             source_ref    = source_ref
         )
 
+    def getTypeShape(self):
+        return ShapeTypeList
+
     def getSimulator(self):
         return list
 
     def getIterationLength(self):
         return len(self.getElements())
 
-    def computeExpressionIter1(self, iter_node, constraint_collection):
+    def computeExpressionIter1(self, iter_node, trace_collection):
         result = ExpressionMakeTuple(
             elements   = self.getElements(),
             source_ref = self.source_ref
@@ -192,6 +209,9 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
             elements      = elements,
             source_ref    = source_ref
         )
+
+    def getTypeShape(self):
+        return ShapeTypeSet
 
     def getSimulator(self):
         return set
@@ -226,7 +246,7 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
 
         return False
 
-    def computeExpressionIter1(self, iter_node, constraint_collection):
+    def computeExpressionIter1(self, iter_node, trace_collection):
         result = ExpressionMakeTuple(
             elements   = self.getElements(),
             source_ref = self.source_ref

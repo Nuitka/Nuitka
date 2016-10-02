@@ -15,12 +15,31 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+
+def displayDict(d):
+    if "__loader__" in d:
+        d = dict(d)
+        d["__loader__"] = "<__loader__ removed>"
+
+    if "__file__" in d:
+        d = dict(d)
+        d["__file__"] = "<__file__ removed>"
+
+    # Avoid recursion that we don't offer for classes.
+    if "__locals__" in d:
+        d = dict(d)
+        del d["__locals__"]
+
+    import pprint
+    return pprint.pformat(d)
+
+
 class SimpleClass:
     " The class documentation." # Leading space on purpose.
 
     # TODO: Doesn't work with Python3, because we don't yet make our own dict
     # visible.  print locals()
-    print "Class locals, while building", str(locals()).replace("'__locals__': {...}, ", "")
+    print "Class locals, while building", displayDict(locals())
 
     class_var = 1
 

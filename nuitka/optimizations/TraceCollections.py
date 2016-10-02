@@ -36,6 +36,7 @@ from nuitka.importing.ImportCache import (
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.PythonVersions import python_version
+from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .VariableTraces import (
     VariableTraceAssign,
@@ -47,26 +48,6 @@ from .VariableTraces import (
 )
 
 signalChange = None
-
-class VariableUsageTrackingMixin:
-
-    def initVariable(self, variable):
-        if variable.isParameterVariable():
-            result = self._initVariableInit(variable)
-        elif variable.isLocalVariable():
-            result = self._initVariableUninit(variable)
-        elif variable.isMaybeLocalVariable():
-            result = self._initVariableUnknown(variable)
-        elif variable.isModuleVariable():
-            result = self._initVariableUnknown(variable)
-        elif variable.isTempVariable():
-            result = self._initVariableUninit(variable)
-        else:
-            assert False, variable
-
-        assert result.getVariable() is variable
-
-        return result
 
 
 class CollectionTracingMixin:
@@ -170,7 +151,7 @@ class CollectionStartpointMixin:
             collection = self
 
         self.break_collections.append(
-            ConstraintCollectionBranch(
+            TraceCollectionBranch(
                 parent = collection,
                 name   = "loop break"
             )
@@ -184,7 +165,7 @@ class CollectionStartpointMixin:
             collection = self
 
         self.continue_collections.append(
-            ConstraintCollectionBranch(
+            TraceCollectionBranch(
                 parent = collection,
                 name   = "loop continue"
             )
@@ -196,7 +177,7 @@ class CollectionStartpointMixin:
 
         if self.return_collections is not None:
             self.return_collections.append(
-                ConstraintCollectionBranch(
+                TraceCollectionBranch(
                     parent = collection,
                     name   = "return"
                 )
@@ -210,7 +191,7 @@ class CollectionStartpointMixin:
 
         if self.exception_collections is not None:
             self.exception_collections.append(
-                ConstraintCollectionBranch(
+                TraceCollectionBranch(
                     parent = collection,
                     name   = "exception"
                 )
@@ -353,7 +334,29 @@ class CollectionStartpointMixin:
         if catch_exceptions:
             self.exception_collections = old_exception_collections
 
-class ConstraintCollectionBase(CollectionTracingMixin):
+    def initVariable(self, variable):
+        if variable.isParameterVariable():
+            result = self._initVariableInit(variable)
+        elif variable.isLocalVariable():
+            result = self._initVariableUninit(variable)
+        elif variable.isMaybeLocalVariable():
+            result = self._initVariableUnknown(variable)
+        elif variable.isModuleVariable():
+            result = self._initVariableUnknown(variable)
+        elif variable.isTempVariable():
+            result = self._initVariableUninit(variable)
+        else:
+            assert False, variable
+
+        assert result.getVariable() is variable
+
+        return result
+
+
+class TraceCollectionBase(CollectionTracingMixin):
+    __del__ = counted_del()
+
+    @counted_init
     def __init__(self, owner, name, parent):
         CollectionTracingMixin.__init__(self)
 
@@ -361,9 +364,8 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         self.parent = parent
         self.name = name
 
-        # Trust variable_traces, should go away later on, for now we use it to
-        # disable optimization.
-        self.removes_knowledge = False
+        # Value state extra information per node.
+        self.value_states = {}
 
     def __repr__(self):
         return "<%s for %s %d>" % (
@@ -416,12 +418,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
                 self.markActiveVariableAsUnknown(variable)
 
-
     def removeAllKnowledge(self):
-        # Temporary, we don't have to have this anyway, this will just disable
-        # all uses of variable traces for optimization.
-        self.removes_knowledge = True
-
         self.markActiveVariablesAsUnknown()
 
     def getVariableTrace(self, variable, version):
@@ -463,7 +460,6 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         return variable_trace
 
-
     def onVariableDel(self, variable_ref):
         # Add a new trace, allocating a new version for the variable, and
         # remember the delete of the current
@@ -503,7 +499,6 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
                 variable_trace.addNameUsage()
 
-
     def onVariableRelease(self, variable):
         current = self.getVariableCurrentTrace(variable)
 
@@ -526,7 +521,7 @@ class ConstraintCollectionBase(CollectionTracingMixin):
         # Now compute this expression, allowing it to replace itself with
         # something else as part of a local peep hole optimization.
         r = expression.computeExpressionRaw(
-            constraint_collection = self
+            trace_collection = self
         )
         assert type(r) is tuple, expression
 
@@ -709,10 +704,25 @@ class ConstraintCollectionBase(CollectionTracingMixin):
 
         return new_node, change_tags, message
 
+    def getIteratorNextCount(self, iter_node):
+        return self.value_states.get(iter_node, None)
 
-class ConstraintCollectionBranch(ConstraintCollectionBase):
+    def initIteratorValue(self, iter_node):
+        # TODO: More complex state information will be needed eventually.
+        self.value_states[iter_node] = 0
+
+    def onIteratorNext(self, iter_node):
+        if iter_node in self.value_states:
+            self.value_states[iter_node] += 1
+
+    def resetValueStates(self):
+        for key in self.value_states:
+            self.value_states[key] = None
+
+
+class TraceCollectionBranch(TraceCollectionBase):
     def __init__(self, name, parent):
-        ConstraintCollectionBase.__init__(
+        TraceCollectionBase.__init__(
             self,
             owner  = parent.owner,
             name   = name,
@@ -724,7 +734,7 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
     def computeBranch(self, branch):
         if branch.isStatementsSequence():
             result = branch.computeStatementsSequence(
-                constraint_collection = self
+                trace_collection = self
             )
 
             if result is not branch:
@@ -756,11 +766,8 @@ class ConstraintCollectionBranch(ConstraintCollectionBase):
         Tracing.printSeparator()
 
 
-
-
-class ConstraintCollectionFunction(CollectionStartpointMixin,
-                                   ConstraintCollectionBase,
-                                   VariableUsageTrackingMixin):
+class TraceCollectionFunction(CollectionStartpointMixin,
+                              TraceCollectionBase):
     def __init__(self, parent, function_body):
         assert function_body.isExpressionFunctionBody() or \
                function_body.isExpressionClassBody() or \
@@ -769,7 +776,7 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
 
         CollectionStartpointMixin.__init__(self)
 
-        ConstraintCollectionBase.__init__(
+        TraceCollectionBase.__init__(
             self,
             owner  = function_body,
             name   = "function_" + str(function_body),
@@ -777,13 +784,12 @@ class ConstraintCollectionFunction(CollectionStartpointMixin,
         )
 
 
-class ConstraintCollectionModule(CollectionStartpointMixin,
-                                 ConstraintCollectionBase,
-                                 VariableUsageTrackingMixin):
+class TraceCollectionModule(CollectionStartpointMixin,
+                            TraceCollectionBase):
     def __init__(self, module):
         CollectionStartpointMixin.__init__(self)
 
-        ConstraintCollectionBase.__init__(
+        TraceCollectionBase.__init__(
             self,
             owner  = module,
             name   = "module",
@@ -793,6 +799,8 @@ class ConstraintCollectionModule(CollectionStartpointMixin,
         self.used_modules = OrderedSet()
 
     def onUsedModule(self, module_name):
+        assert type(module_name) is str, module_name
+
         self.used_modules.add(module_name)
 
         if isImportedModuleByName(module_name):

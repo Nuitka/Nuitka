@@ -631,6 +631,18 @@ if comparison_mode:
             )
         )
 
+    # In case of segfault, also output the call stack by entering debugger
+    # without stdin forwarded.
+    if exit_nuitka == -11 and sys.platform != "nt":
+        nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
+
+        process = subprocess.Popen(
+            args   = nuitka_cmd,
+            stdin  = subprocess.PIPE
+        )
+
+        process.communicate()
+
     exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
 
     if exit_code:

@@ -184,6 +184,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # test_runpy.py
         "test.script_helper",
 
+        # test_secrets.py
+        "secrets",
+
         # test_selectors.py
         "selectors",
 
@@ -225,6 +228,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # test_unittest.py
         "unittest.test",
+
+        # test_wsgiref.py
+        "test.test_httpservers",
 
         # test_xml_etree.py
         "xml.parsers.expat.errors",
@@ -270,6 +276,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # reportlab does use this if present only and warns about itself.
         "pyfribidi2", "macfs",
+
+        # psutils
+        "_psutil_windows",
     )
 
 

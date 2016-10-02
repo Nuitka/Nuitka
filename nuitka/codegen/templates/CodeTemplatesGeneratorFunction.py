@@ -20,11 +20,11 @@
 """
 
 template_genfunc_yielder_decl_template = """\
-static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator );
+static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *generator );
 """
 
 template_genfunc_yielder_body_template = """
-static void %(function_identifier)s_context( Nuitka_GeneratorObject *generator )
+static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *generator )
 {
     CHECK_OBJECT( (PyObject *)generator );
     assert( Nuitka_Generator_Check( (PyObject *)generator ) );

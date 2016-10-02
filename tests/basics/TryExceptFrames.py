@@ -18,9 +18,21 @@
 
 import sys
 
+def displayDict(d):
+    if "__loader__" in d:
+        d = dict(d)
+        d["__loader__"] = "<__loader__ removed>"
+
+    if "__file__" in d:
+        d = dict(d)
+        d["__file__"] = "<__file__ removed>"
+
+    import pprint
+    return pprint.pformat(d)
+
 class X:
     def __del__(self):
-        print "X.__del__ occurred"
+        print("X.__del__ occurred")
 
 def raising(doit):
     _x = X()
@@ -35,12 +47,12 @@ def catcher():
     try:
         raising(True)
     except ZeroDivisionError:
-        print "Catching"
+        print("Catching")
 
-        print "Top traceback code is '%s'." % sys.exc_info()[2].tb_frame.f_code.co_name
-        print "Previous frame locals (module) are", sys.exc_info()[2].tb_next.tb_frame.f_locals
+        print("Top traceback code is '%s'." % sys.exc_info()[2].tb_frame.f_code.co_name)
+        print("Previous frame locals (module) are", displayDict(sys.exc_info()[2].tb_next.tb_frame.f_locals))
         pass
 
 catcher()
 
-print "Good bye."
+print("Good bye.")

@@ -30,9 +30,9 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
-    ExpressionSpecialUnpack,
     StatementSpecialUnpackCheck
 )
+from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
@@ -229,6 +229,22 @@ def buildFunctionNode(provider, node, source_ref):
             decorators.append(
                 ExpressionBuiltinRef(
                     builtin_name = "staticmethod",
+                    source_ref   = source_ref
+                )
+            )
+
+    if python_version >= 360 and \
+       node.name == "__init_subclass__" and \
+       provider.isExpressionClassBody():
+
+        for decorator in decorators:
+            if decorator.isExpressionVariableRef() and \
+               decorator.getVariableName() == "classmethod":
+                break
+        else:
+            decorators.append(
+                ExpressionBuiltinRef(
+                    builtin_name = "classmethod",
                     source_ref   = source_ref
                 )
             )

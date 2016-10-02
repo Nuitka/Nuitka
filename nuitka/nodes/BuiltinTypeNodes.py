@@ -28,6 +28,7 @@ from nuitka.PythonVersions import python_version
 from .NodeBases import (
     ChildrenHavingMixin,
     ExpressionBuiltinSingleArgBase,
+    ExpressionChildrenHavingBase,
     ExpressionSpecBasedComputationMixin,
     NodeBase
 )
@@ -41,19 +42,64 @@ class ExpressionBuiltinTypeBase(ExpressionBuiltinSingleArgBase):
     pass
 
 
-class ExpressionBuiltinTuple(ExpressionBuiltinTypeBase):
+class ExpressionBuiltinContainerBase(ExpressionChildrenHavingBase,
+                                     ExpressionSpecBasedComputationMixin):
+
+    builtin_spec = None
+
+    named_children = (
+        "value",
+    )
+
+    def __init__(self, value, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "value" : value,
+            },
+            source_ref = source_ref
+        )
+
+    getValue = ExpressionChildrenHavingBase.childGetter(
+        "value"
+    )
+
+    def computeExpression(self, trace_collection):
+        value = self.getValue()
+
+        if value is None:
+            return self.computeBuiltinSpec(
+                trace_collection = trace_collection,
+                given_values     = ()
+            )
+        elif value.isExpressionConstantXrangeRef():
+            if value.getIterationLength() <= 256:
+                return self.computeBuiltinSpec(
+                    trace_collection = trace_collection,
+                    given_values     = (value,)
+                )
+            else:
+                return self, None, None
+        else:
+            return self.computeBuiltinSpec(
+                trace_collection = trace_collection,
+                given_values     = (value,)
+            )
+
+
+class ExpressionBuiltinTuple(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_TUPLE"
 
     builtin_spec = BuiltinOptimization.builtin_tuple_spec
 
 
-class ExpressionBuiltinList(ExpressionBuiltinTypeBase):
+class ExpressionBuiltinList(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_LIST"
 
     builtin_spec = BuiltinOptimization.builtin_list_spec
 
 
-class ExpressionBuiltinSet(ExpressionBuiltinTypeBase):
+class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_SET"
 
     builtin_spec = BuiltinOptimization.builtin_set_spec
@@ -70,7 +116,7 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
 
     builtin_spec = BuiltinOptimization.builtin_bool_spec
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         value = self.getValue()
 
         if value is not None:
@@ -91,7 +137,7 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
                     "Predicted truth value of built-in bool argument"
                 )
 
-        return ExpressionBuiltinTypeBase.computeExpression(self, constraint_collection)
+        return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
 
 class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
@@ -129,7 +175,7 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
     getValue = ChildrenHavingMixin.childGetter("value")
     getBase = ChildrenHavingMixin.childGetter("base")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         value = self.getValue()
         base = self.getBase()
 
@@ -138,7 +184,7 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
         if value is None:
             if base is not None:
                 if not self.base_only_value:
-                    return constraint_collection.getCompileTimeComputationResult(
+                    return trace_collection.getCompileTimeComputationResult(
                         node        = self,
                         computation = lambda : self.builtin(base = 2),
                         description = """\
@@ -152,8 +198,8 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
             given_values = (value, base)
 
         return self.computeBuiltinSpec(
-            constraint_collection = constraint_collection,
-            given_values          = given_values
+            trace_collection = trace_collection,
+            given_values     = given_values
         )
 
 
@@ -191,7 +237,7 @@ class ExpressionBuiltinUnicodeBase(ChildrenHavingMixin, NodeBase,
     getEncoding = ChildrenHavingMixin.childGetter("encoding")
     getErrors = ChildrenHavingMixin.childGetter("errors")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         args = [
             self.getValue(),
             self.getEncoding(),
@@ -203,14 +249,14 @@ class ExpressionBuiltinUnicodeBase(ChildrenHavingMixin, NodeBase,
 
         for arg in args:
             # The value of that node escapes and could change its contents.
-            constraint_collection.removeKnowledge(arg)
+            trace_collection.removeKnowledge(arg)
 
         # Any code could be run, note that.
-        constraint_collection.onControlFlowEscape(self)
+        trace_collection.onControlFlowEscape(self)
 
         return self.computeBuiltinSpec(
-            constraint_collection = constraint_collection,
-            given_values          = tuple(args)
+            trace_collection = trace_collection,
+            given_values     = tuple(args)
         )
 
 
@@ -220,10 +266,10 @@ if python_version < 300:
 
         builtin_spec = BuiltinOptimization.builtin_str_spec
 
-        def computeExpression(self, constraint_collection):
+        def computeExpression(self, trace_collection):
             new_node, change_tags, change_desc = ExpressionBuiltinTypeBase.computeExpression(
                 self,
-                constraint_collection
+                trace_collection
             )
 
             if new_node is self:
@@ -276,7 +322,7 @@ class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Quite impossible as this has a variable result, but we could
         # look at the arguments at least.
         return self, None, None
@@ -307,7 +353,7 @@ class ExpressionBuiltinComplex(ChildrenHavingMixin, NodeBase,
             }
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         start = self.getReal()
         stop = self.getImag()
 
@@ -317,8 +363,8 @@ class ExpressionBuiltinComplex(ChildrenHavingMixin, NodeBase,
         )
 
         return self.computeBuiltinSpec(
-            constraint_collection = constraint_collection,
-            given_values          = args
+            trace_collection = trace_collection,
+            given_values     = args
         )
 
     getReal = ChildrenHavingMixin.childGetter("real")

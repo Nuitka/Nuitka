@@ -156,6 +156,26 @@ The standard CPython3.4 test suite. Execute this for all corner cases to be
 covered. With Python 2.x these are not run. Default is %default."""
 )
 
+parser.add_option(
+    "--skip-cpython35-tests",
+    action  = "store_false",
+    dest    = "cpython35",
+    default = True,
+    help    = """\
+The standard CPython3.5 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default."""
+)
+
+parser.add_option(
+    "--skip-cpython36-tests",
+    action  = "store_false",
+    dest    = "cpython36",
+    default = True,
+    help    = """\
+The standard CPython3.6 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default."""
+)
+
 
 parser.add_option(
     "--no-python2.6",
@@ -201,6 +221,24 @@ parser.add_option(
     default = False,
     help    = """\
 Do not use Python3.4 even if available on the system. Default is %default."""
+)
+
+parser.add_option(
+    "--no-python3.5",
+    action  = "store_true",
+    dest    = "no35",
+    default = False,
+    help    = """\
+Do not use Python3.5 even if available on the system. Default is %default."""
+)
+
+parser.add_option(
+    "--no-python3.6",
+    action  = "store_true",
+    dest    = "no36",
+    default = False,
+    help    = """\
+Do not use Python3.6 even if available on the system. Default is %default."""
 )
 
 parser.add_option(
@@ -251,6 +289,10 @@ def checkExecutableCommand(command):
         return False
     if command == "python3.4" and options.no34:
         return False
+    if command == "python3.5" and options.no35:
+        return False
+    if command == "python3.5" and options.no36:
+        return False
 
     # Shortcuts for python versions, also needed for Windows as it won't have
     # the version number in the Python binaries at all.
@@ -263,6 +305,10 @@ def checkExecutableCommand(command):
     if command == "python3.3" and sys.version_info[0:2] == (3,3):
         return True
     if command == "python3.4" and sys.version_info[0:2] == (3,4):
+        return True
+    if command == "python3.5" and sys.version_info[0:2] == (3,5):
+        return True
+    if command == "python3.6" and sys.version_info[0:2] == (3,6):
         return True
 
     path = os.environ[ "PATH" ]
@@ -448,14 +494,32 @@ def execute_tests(where, use_python, flags):
             else:
                 print("The CPython3.3 tests are not present, not run.")
 
-        # Running the Python 3.3 test suite only with CPython3.x.
+        # Running the Python 3.4 test suite only with CPython3.x.
         if not use_python.startswith("python2"):
             if os.path.exists("./tests/CPython34/run_all.py"):
-                if options.cpython33:
+                if options.cpython34:
                     setExtraFlags(where, "34tests", flags)
                     executeSubTest("./tests/CPython34/run_all.py search")
             else:
                 print("The CPython3.4 tests are not present, not run.")
+
+        # Running the Python 3.4 test suite only with CPython3.x.
+        if not use_python.startswith("python2"):
+            if os.path.exists("./tests/CPython35/run_all.py"):
+                if options.cpython35:
+                    setExtraFlags(where, "35tests", flags)
+                    executeSubTest("./tests/CPython35/run_all.py search")
+            else:
+                print("The CPython3.5 tests are not present, not run.")
+
+        # Running the Python 3.4 test suite only with CPython3.x.
+        if not use_python.startswith("python2"):
+            if os.path.exists("./tests/CPython36/run_all.py"):
+                if options.cpython36:
+                    setExtraFlags(where, "36tests", flags)
+                    executeSubTest("./tests/CPython36/run_all.py search")
+            else:
+                print("The CPython3.6 tests are not present, not run.")
 
     if "NUITKA_EXTRA_OPTIONS" in os.environ:
         del os.environ[ "NUITKA_EXTRA_OPTIONS" ]
@@ -464,7 +528,9 @@ assert checkExecutableCommand("python2.6") or \
        checkExecutableCommand("python2.7") or \
        checkExecutableCommand("python3.2") or \
        checkExecutableCommand("python3.3") or \
-       checkExecutableCommand("python3.4")
+       checkExecutableCommand("python3.4") or \
+       checkExecutableCommand("python3.5") or \
+       checkExecutableCommand("python3.6")
 
 # Just the quick syntax test, full tests are run later.
 if checkExecutableCommand("python3.2"):
@@ -506,14 +572,24 @@ else:
     print("Cannot execute tests with Python 3.2, disabled or not installed.")
 
 if checkExecutableCommand("python3.3"):
-    execute_tests("python3.2-nodebug", "python3.3", "")
+    execute_tests("python3.3-nodebug", "python3.3", "")
 else:
     print("Cannot execute tests with Python 3.3, disabled or not installed.")
 
 if checkExecutableCommand("python3.4"):
-    execute_tests("python3.2-nodebug", "python3.4", "")
+    execute_tests("python3.4-nodebug", "python3.4", "")
 else:
     print("Cannot execute tests with Python 3.4, disabled or not installed.")
+
+if checkExecutableCommand("python3.5"):
+    execute_tests("python3.5-nodebug", "python3.5", "")
+else:
+    print("Cannot execute tests with Python 3.5, disabled or not installed.")
+
+if checkExecutableCommand("python3.6"):
+    execute_tests("python3.6-nodebug", "python3.6", "")
+else:
+    print("Cannot execute tests with Python 3.6, disabled or not installed.")
 
 if options.coverage:
     def copyToGlobalCoverageData(source, target):

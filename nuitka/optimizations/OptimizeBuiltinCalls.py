@@ -38,12 +38,13 @@ from nuitka.nodes.AttributeNodes import (
 )
 from nuitka.nodes.BuiltinDecodingNodes import (
     ExpressionBuiltinChr,
-    ExpressionBuiltinOrd,
-    ExpressionBuiltinOrd0
+    ExpressionBuiltinOrd
 )
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinFormatNodes import (
+    ExpressionBuiltinAscii,
     ExpressionBuiltinBin,
+    ExpressionBuiltinFormat,
     ExpressionBuiltinHex,
     ExpressionBuiltinId,
     ExpressionBuiltinOct
@@ -51,17 +52,21 @@ from nuitka.nodes.BuiltinFormatNodes import (
 from nuitka.nodes.BuiltinHashNodes import ExpressionBuiltinHash
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
-    ExpressionBuiltinIter2,
-    ExpressionBuiltinLen,
+    ExpressionBuiltinIter2
+)
+from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
+from nuitka.nodes.BuiltinNextNodes import (
     ExpressionBuiltinNext1,
     ExpressionBuiltinNext2
 )
 from nuitka.nodes.BuiltinOpenNodes import ExpressionBuiltinOpen
 from nuitka.nodes.BuiltinRangeNodes import (
-    ExpressionBuiltinRange0,
     ExpressionBuiltinRange1,
     ExpressionBuiltinRange2,
-    ExpressionBuiltinRange3
+    ExpressionBuiltinRange3,
+    ExpressionBuiltinXrange1,
+    ExpressionBuiltinXrange2,
+    ExpressionBuiltinXrange3
 )
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
@@ -123,6 +128,7 @@ from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.Options import isDebug, shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Helpers import (
+    makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
 )
@@ -201,20 +207,28 @@ def import_extractor(node):
 
 def type_extractor(node):
     args = node.getCallArgs()
-    length = args.getIterationLength()
 
-    if length == 1:
+    if args is None:
+        iter_length = 0
+    else:
+        iter_length = args.getIterationLength()
+
+    if iter_length == 1:
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinType1,
             builtin_spec  = BuiltinOptimization.builtin_type1_spec
         )
-
-    else:
+    elif iter_length == 3:
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinType3,
             builtin_spec  = BuiltinOptimization.builtin_type3_spec
+        )
+    else:
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError("type() takes 1 or 3 arguments")
         )
 
 def iter_extractor(node):
@@ -313,11 +327,19 @@ def chr_extractor(node):
     )
 
 def ord_extractor(node):
+    def makeOrd0(source_ref):
+        # pylint: disable=W0613
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError("ord() takes exactly one argument (0 given)")
+        )
+
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinOrd,
         builtin_spec        = BuiltinOptimization.builtin_ord_spec,
-        empty_special_class = ExpressionBuiltinOrd0
+        empty_special_class = makeOrd0
     )
 
 def bin_extractor(node):
@@ -362,6 +384,16 @@ def repr_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_repr_spec
     )
 
+
+if python_version >= 300:
+    def ascii_extractor(node):
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = ExpressionBuiltinAscii,
+            builtin_spec  = BuiltinOptimization.builtin_repr_spec
+        )
+
+
 def range_extractor(node):
     def selectRangeBuiltin(low, high, step, source_ref):
         if high is None:
@@ -383,22 +415,61 @@ def range_extractor(node):
                 source_ref = source_ref
             )
 
+    def makeRange0(source_ref):
+        # pylint: disable=W0613
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError("range expected at least 1 arguments, got 0")
+        )
 
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,
         builtin_class       = selectRangeBuiltin,
         builtin_spec        = BuiltinOptimization.builtin_range_spec,
-        empty_special_class = ExpressionBuiltinRange0
+        empty_special_class = makeRange0
     )
 
-if python_version < 300:
-    from nuitka.nodes.BuiltinRangeNodes import ExpressionBuiltinXrange
 
-    def xrange_extractor(node):
-        return BuiltinOptimization.extractBuiltinArgs(
-            node          = node,
-            builtin_class = ExpressionBuiltinXrange,
-            builtin_spec  = BuiltinOptimization.builtin_xrange_spec
+
+def xrange_extractor(node):
+    def selectXrangeBuiltin(low, high, step, source_ref):
+        if high is None:
+            return ExpressionBuiltinXrange1(
+                low        = low,
+                source_ref = source_ref
+            )
+        elif step is None:
+            return ExpressionBuiltinXrange2(
+                low        = low,
+                high       = high,
+                source_ref = source_ref
+            )
+        else:
+            return ExpressionBuiltinXrange3(
+                low        = low,
+                high       = high,
+                step       = step,
+                source_ref = source_ref
+            )
+
+    def makeXrange0(source_ref):
+        # pylint: disable=W0613
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError(
+                "xrange requires 1-3 int arguments"
+                    if python_version < 300 else
+                "range expected 1 arguments, got 0"
+            )
+        )
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node                = node,
+        builtin_class       = selectXrangeBuiltin,
+        builtin_spec        = BuiltinOptimization.builtin_xrange_spec,
+        empty_special_class = makeXrange0
     )
 
 
@@ -681,6 +752,21 @@ def eval_extractor(node):
             )
         ]
 
+        acceptable_builtin_types = [
+            ExpressionBuiltinAnonymousRef(
+                builtin_name = "code",
+                source_ref   = source_ref,
+            )
+        ]
+
+        if python_version >= 270:
+            acceptable_builtin_types.append(
+                ExpressionBuiltinRef(
+                    builtin_name = "memoryview",
+                    source_ref   = source_ref,
+                )
+            )
+
         statements = (
             StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
@@ -697,9 +783,10 @@ def eval_extractor(node):
                             variable   = source_variable,
                             source_ref = source_ref
                         ),
-                        classes    = ExpressionBuiltinAnonymousRef(
-                            builtin_name = "code",
-                            source_ref   = source_ref,
+                        classes    = makeSequenceCreationOrConstant(
+                            sequence_kind = "tuple",
+                            elements      = acceptable_builtin_types,
+                            source_ref    = source_ref
                         ),
                         source_ref = source_ref
                     ),
@@ -837,11 +924,25 @@ def compile_extractor(node):
 
 
 def open_extractor(node):
+    def makeOpen0(source_ref):
+        # pylint: disable=W0613
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError(
+                "Required argument 'name' (pos 1) not found"
+                  if python_version < 300 else
+                "Required argument 'file' (pos 1) not found"
+            )
+        )
+
     return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinOpen,
-        builtin_spec  = BuiltinOptimization.builtin_open_spec
+        node                = node,
+        builtin_class       = ExpressionBuiltinOpen,
+        builtin_spec        = BuiltinOptimization.builtin_open_spec,
+        empty_special_class = makeOpen0
     )
+
 
 def super_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
@@ -990,6 +1091,22 @@ def hash_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_hash_spec
     )
 
+def format_extractor(node):
+    def makeFormat0(source_ref):
+        # pylint: disable=W0613
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError("format() takes at least 1 argument (0 given)")
+        )
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node                = node,
+        builtin_class       = ExpressionBuiltinFormat,
+        builtin_spec        = BuiltinOptimization.builtin_format_spec,
+        empty_special_class = makeFormat0
+    )
+
 
 _dispatch_dict = {
     "compile"    : compile_extractor,
@@ -1008,7 +1125,6 @@ _dispatch_dict = {
     "type"       : type_extractor,
     "iter"       : iter_extractor,
     "next"       : next_extractor,
-    "range"      : range_extractor,
     "tuple"      : tuple_extractor,
     "list"       : list_extractor,
     "dict"       : dict_extractor,
@@ -1028,18 +1144,26 @@ _dispatch_dict = {
     # TODO: Disabled for now, not handling all cases.
     # "bytearray"  : bytearray_extractor,
     "slice"      : slice_extractor,
-    "hash"       : hash_extractor
+    "hash"       : hash_extractor,
+    "format"     : format_extractor,
 }
 
 if python_version < 300:
+    # These are not in Python3
     _dispatch_dict["long"] = long_extractor
     _dispatch_dict["unicode"] = unicode_extractor
     _dispatch_dict["execfile"] = execfile_extractor
 
+    _dispatch_dict["xrange"] = xrange_extractor
+    _dispatch_dict["range"] = range_extractor
+
     # The handling of 'open' built-in for Python3 is not yet correct.
     _dispatch_dict["open"] = open_extractor
 else:
+    # The Python3 range is really an xrange, use that.
+    _dispatch_dict["range"] = xrange_extractor
     _dispatch_dict["exec"] = exec_extractor
+    _dispatch_dict["ascii"] = ascii_extractor
 
 def check():
     from nuitka.Builtins import builtin_names

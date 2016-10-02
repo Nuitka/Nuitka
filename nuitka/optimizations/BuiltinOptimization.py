@@ -58,6 +58,7 @@ class BuiltinParameterSpec(ParameterSpec):
         for value in values:
             if value is not None and not value.isCompileTimeConstant():
                 return False
+
         return True
 
     def simulateCall(self, given_values):
@@ -196,11 +197,12 @@ if python_version < 300:
         ("string", "encoding", "errors"),
         3
     )
-    builtin_xrange_spec = BuiltinParameterSpec(
-        "xrange",
-        ("start", "stop", "step"),
-        2
-    )
+
+builtin_xrange_spec = BuiltinParameterSpecNoKeywords(
+    "xrange" if python_version < 300 else "range",
+    ("start", "stop", "step"),
+    2
+)
 
 
 builtin_bool_spec = BuiltinParameterSpec("bool", ('x',), 1)
@@ -279,6 +281,9 @@ builtin_slice_spec = BuiltinParameterSpecNoKeywords("slice", ("start", "stop", "
 
 builtin_hash_spec = BuiltinParameterSpecNoKeywords("hash", ("object",), 0)
 
+builtin_format_spec = BuiltinParameterSpecNoKeywords("format", ("value", "format_spec"), 1)
+
+
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def __init__(self, *args):
         BuiltinParameterSpecNoKeywords.__init__(self, *args)
@@ -347,6 +352,8 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
 
 builtin_range_spec = BuiltinRangeSpec("range", ("start", "stop", "step"), 2)
 
+if python_version >= 300:
+    builtin_ascii_spec = BuiltinParameterSpecNoKeywords("ascii", ("object",), 0)
 
 def extractBuiltinArgs(node, builtin_spec, builtin_class,
                        empty_special_class = None):
@@ -402,7 +409,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
                 exception  = e.getRealException()
             ),
             old_node     = node,
-            side_effects = node.extractPreCallSideEffects()
+            side_effects = node.extractSideEffectsPreCall()
         )
 
     args_list = []

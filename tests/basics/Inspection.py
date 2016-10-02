@@ -20,6 +20,23 @@ from __future__ import print_function
 
 import inspect, types, sys, pprint
 
+def displayDict(d, remove_keys = ()):
+    if "__loader__" in d:
+        d = dict(d)
+        d["__loader__"] = "<__loader__ removed>"
+
+    if "__file__" in d:
+        d = dict(d)
+        d["__file__"] = "<__file__ removed>"
+
+    for remove_key in remove_keys:
+        if remove_key in d:
+            d = dict(d)
+            del d[remove_key]
+
+    return pprint.pformat(d)
+
+
 def compiledFunction(a, b):
     pass
 
@@ -83,7 +100,7 @@ def someFunction(a):
 someFunction(2)
 
 class C:
-    print("Class locals", str(sys._getframe().f_locals).replace(", '__locals__': {...}", "").replace("'__qualname__': 'C', ", ""))
+    print("Class locals", displayDict(sys._getframe().f_locals, remove_keys = ("__qualname__","__locals__")))
     print("Class flags", sys._getframe().f_code.co_flags)
 
 def f():
@@ -100,17 +117,6 @@ for line in g():
     print(*line)
 
 print("Generator function flags", g.__code__.co_flags)
-
-def displayDict(d):
-    if "__loader__" in d:
-        d = dict(d)
-        d["__loader__"] = "<__loader__ removed>"
-
-    if "__file__" in d:
-        d = dict(d)
-        d["__file__"] = "<__file__ removed>"
-
-    return pprint.pformat(d)
 
 print("Module frame locals", displayDict(sys._getframe().f_locals))
 print("Module flags", sys._getframe().f_code.co_flags)

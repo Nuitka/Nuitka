@@ -27,10 +27,7 @@ class StreamData:
         self.stream_data = bytes()
 
     def getStreamDataCode(self, value, fixed_size = False):
-        offset = self.stream_data.find(value)
-        if offset == -1:
-            offset = len(self.stream_data)
-            self.stream_data += value
+        offset = self.getStreamDataOffset(value)
 
         if fixed_size:
             return "&constant_bin[ %d ]" % offset
@@ -39,6 +36,14 @@ class StreamData:
                 offset,
                 len(value)
             )
+
+    def getStreamDataOffset(self, value):
+        offset = self.stream_data.find(value)
+        if offset == -1:
+            offset = len(self.stream_data)
+            self.stream_data += value
+
+        return offset
 
     def getBytes(self):
         return self.stream_data

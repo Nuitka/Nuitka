@@ -29,7 +29,7 @@ from nuitka.importing.Importing import (
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getOwnerFromCodeName
-from nuitka.optimizations.TraceCollections import ConstraintCollectionModule
+from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
 from nuitka.utils import Utils
@@ -218,7 +218,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         self.cross_used_functions = OrderedSet()
 
         # SSA trace based information about the module.
-        self.constraint_collection = None
+        self.trace_collection = None
 
     def getDetails(self):
         return {
@@ -261,9 +261,9 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
             )
 
         for function_body in self.active_functions:
-            constraint_collection = function_body.constraint_collection
+            trace_collection = function_body.trace_collection
 
-            for (_variable, _version), variable_trace in constraint_collection.getVariableTracesAll().items():
+            for (_variable, _version), variable_trace in trace_collection.getVariableTracesAll().items():
                 node = makeTraceNodeName(variable_trace)
 
                 previous = variable_trace.getPrevious()
@@ -407,15 +407,15 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         return "copy"
 
     def computeModule(self):
-        old_collection = self.constraint_collection
+        old_collection = self.trace_collection
 
-        self.constraint_collection = ConstraintCollectionModule(self)
+        self.trace_collection = TraceCollectionModule(self)
 
         module_body = self.getBody()
 
         if module_body is not None:
             result = module_body.computeStatementsSequence(
-                constraint_collection = self.constraint_collection
+                trace_collection = self.trace_collection
             )
 
             if result is not module_body:
@@ -424,19 +424,19 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         new_modules = self.attemptRecursion()
 
         for new_module in new_modules:
-            self.constraint_collection.signalChange(
+            self.trace_collection.signalChange(
                 source_ref = new_module.getSourceReference(),
                 tags       = "new_code",
                 message    = "Recursed to module package."
             )
 
-        self.constraint_collection.updateFromCollection(old_collection)
+        self.trace_collection.updateFromCollection(old_collection)
 
     def getTraceCollections(self):
-        yield self.constraint_collection
+        yield self.trace_collection
 
         for function in self.getUsedFunctions():
-            yield function.constraint_collection
+            yield function.trace_collection
 
 
 class CompiledPythonPackage(CompiledPythonModule):
@@ -713,7 +713,7 @@ class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
     def mayRaiseException(self, exception_type):
         return False
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # There is not a whole lot to do here, the path will change at run
         # time
         if Options.getFileReferenceMode() != "runtime":

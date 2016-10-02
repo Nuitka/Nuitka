@@ -68,7 +68,7 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
             "coroutine" : self.getCoroutineRef().getFunctionBody().getCodeName()
         }
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Coroutine body may know something too.
         return self, None, None
 
@@ -158,7 +158,7 @@ class ExpressionAsyncWait(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # TODO: Might be predictable based awaitable analysis or for constants.
         return self, None, None
 

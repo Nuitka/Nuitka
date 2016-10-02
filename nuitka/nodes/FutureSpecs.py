@@ -29,7 +29,7 @@ from nuitka.utils.InstanceCounters import counted_del, counted_init
 # These defaults have changed with Python versions.
 _future_division_default = python_version >= 300
 _future_absolute_import_default = python_version >= 300
-_future_generator_stop_default = python_version >= 360
+_future_generator_stop_default = python_version >= 370
 
 class FutureSpec:
     @counted_init

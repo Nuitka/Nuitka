@@ -19,7 +19,6 @@
 #
 
 module_value1 = 5
-module_value2 = 3
 
 class C:
     def __init__(self):

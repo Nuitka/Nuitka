@@ -28,7 +28,7 @@ import math
 import re
 from logging import warning
 
-from nuitka.__past__ import long, unicode  # pylint: disable=W0622
+from nuitka.__past__ import long, unicode, xrange  # pylint: disable=W0622
 
 
 class ExceptionCannotNamify(Exception):
@@ -152,10 +152,9 @@ def namifyConstant(constant):
                 warning("Couldn't namify '%r'" % value)
 
                 return "list_" + _digest(repr(constant))
-    elif type(constant) is range:
-        # Python3 type only.
-        return "range_%s" % (
-            str(constant)[6:-1].replace(' ', "").replace(',', '_')
+    elif type(constant) is xrange:
+        return "xrange_%s" % (
+            str(constant)[7 if str is bytes else 6:-1].replace(' ', "").replace(',', '_').replace('-', "neg")
         )
     elif type(constant) is slice:
         return "slice_%s_%s_%s" % (
@@ -166,7 +165,7 @@ def namifyConstant(constant):
     elif type(constant) is type:
         return "type_%s" % constant.__name__
 
-    raise ExceptionCannotNamify("%r" % constant)
+    raise ExceptionCannotNamify("%r" % constant, type(constant))
 
 _re_str_needs_no_digest = re.compile(r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S)
 
@@ -206,9 +205,11 @@ def _isAscii(string):
         return False
 
 def _digest(value):
-    if str is not unicode:
+    if str is bytes:
+        # Python2 is simple
         return hashlib.md5(value).hexdigest()
     else:
+        # Python3 needs to encode the string is it is one.
         if type(value) is bytes:
             return hashlib.md5(value).hexdigest()
         else:

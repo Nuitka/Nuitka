@@ -21,7 +21,10 @@
 
 from nuitka.PythonVersions import python_version
 
+from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
+from .Helpers import generateExpressionCode
 from .PythonAPICodes import generateCAPIObjectCode
+from .TupleCodes import getTupleCreationCode
 
 
 def generateBuiltinUnicodeCode(to_name, expression, emit, context):
@@ -98,6 +101,108 @@ def generateBuiltinOrdCode(to_name, expression, emit, context):
         capi       = "BUILTIN_ORD",
         arg_desc   = (
             ("ord_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateStringContenationCode(to_name, expression, emit, context):
+    values = expression.getValues()
+
+    # TODO: These are bad things.
+    tuple_temp_name = context.allocateTempName("string_concat_values")
+
+    getTupleCreationCode(
+        to_name  = tuple_temp_name,
+        elements = values,
+        emit     = emit,
+        context  = context
+    )
+
+    emit(
+        "%s = PyUnicode_Join( %s, %s );" % (
+            to_name,
+            context.getConstantCode(""),
+            tuple_temp_name
+        )
+    )
+
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
+
+    context.addCleanupTempName(to_name)
+
+    getReleaseCode(
+        release_name = tuple_temp_name,
+        emit         = emit,
+        context      = context
+    )
+
+
+def generateBuiltinFormatCode(to_name, expression, emit, context):
+    value_name = context.allocateTempName("format_value")
+
+    generateExpressionCode(
+        to_name    = value_name,
+        expression = expression.getValue(),
+        emit       = emit,
+        context    = context
+    )
+
+    format_spec_name = context.allocateTempName("format_spec")
+
+    format_spec = expression.getFormatSpec()
+
+    if format_spec is None:
+        emit(
+            "%s = %s;" % (
+                format_spec_name,
+                context.getConstantCode("")
+            )
+        )
+    else:
+        generateExpressionCode(
+            to_name    = format_spec_name,
+            expression = format_spec,
+            emit       = emit,
+            context    = context
+        )
+
+    emit(
+        "%s = BUILTIN_FORMAT( %s, %s );" % (
+            to_name,
+            value_name,
+            format_spec_name
+        )
+    )
+
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
+
+    context.addCleanupTempName(to_name)
+
+    getReleaseCodes(
+        release_names = (value_name, format_spec_name),
+        emit          = emit,
+        context       = context
+    )
+
+
+def generateBuiltinAsciiCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "PyObject_ASCII",
+        arg_desc   = (
+            ("ascii_arg", expression.getValue()),
         ),
         may_raise  = expression.mayRaiseException(BaseException),
         source_ref = expression.getCompatibleSourceReference(),

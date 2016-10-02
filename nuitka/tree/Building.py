@@ -61,6 +61,11 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable
 )
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.BuiltinFormatNodes import (
+    ExpressionBuiltinAscii,
+    ExpressionBuiltinFormat
+)
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
@@ -86,11 +91,12 @@ from nuitka.nodes.ModuleNodes import (
     PythonShlibModule
 )
 from nuitka.nodes.OperatorNodes import (
-    ExpressionOperationBinary,
-    ExpressionOperationUnary
+    ExpressionOperationUnary,
+    makeBinaryOperationNode
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
+from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
@@ -104,6 +110,7 @@ from nuitka.utils import MemoryUsage, Utils
 from . import SyntaxErrors
 from .Helpers import (
     buildNode,
+    buildNodeList,
     buildStatementsNode,
     extractDocFromBody,
     getBuildContext,
@@ -626,7 +633,7 @@ def buildBinaryOpNode(provider, node, source_ref):
     left       = buildNode(provider, node.left, source_ref)
     right      = buildNode(provider, node.right, source_ref)
 
-    result = ExpressionOperationBinary(
+    result = makeBinaryOperationNode(
         operator   = operator,
         left       = left,
         right      = right,
@@ -662,6 +669,49 @@ def buildAwaitNode(provider, node, source_ref):
         expression = buildNode(provider, node.value, source_ref),
         source_ref = source_ref
     )
+
+
+def buildFormattedValueNode(provider, node, source_ref):
+    value = buildNode(provider, node.value, source_ref)
+
+    conversion = node.conversion % 4 if node.conversion > 0 else 0
+
+    if conversion == 0:
+        pass
+    elif conversion == 3:
+        value = ExpressionBuiltinStr(
+            value      = value,
+            encoding   = None,
+            errors     = None,
+            source_ref = source_ref
+        )
+    elif conversion == 2:
+        value = ExpressionOperationUnary(
+            operator   = "Repr",
+            operand    = value,
+            source_ref = source_ref
+        )
+    elif conversion == 1:
+        value = ExpressionBuiltinAscii(
+            value      = value,
+            source_ref = source_ref
+        )
+    else:
+        assert False, conversion
+
+    return ExpressionBuiltinFormat(
+        value       = value,
+        format_spec = buildNode(provider, node.format_spec, source_ref, allow_none = True),
+        source_ref  = source_ref
+    )
+
+
+def buildJoinedStrNode(provider, node, source_ref):
+    return ExpressionStringConcatenation(
+        values     = buildNodeList(provider, node.values, source_ref),
+        source_ref = source_ref
+    )
+
 
 
 setBuildingDispatchers(
@@ -714,6 +764,8 @@ setBuildingDispatchers(
         "AugAssign"         : buildInplaceAssignNode,
         "IfExp"             : buildConditionalExpressionNode,
         "Break"             : buildStatementLoopBreak,
+        "JoinedStr"         : buildJoinedStrNode,
+        "FormattedValue"    : buildFormattedValueNode,
     },
     path_args2 = {
         "NameConstant" : buildNamedConstantNode,
@@ -868,6 +920,24 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 source_ref   = internal_source_ref
             )
         )
+
+    if python_version >= 360:
+        # Set "__annotations__" on module level to {}
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__annotations__",
+                    source_ref    = internal_source_ref
+                ),
+                source       = makeConstantRefNode(
+                    constant      = {},
+                    source_ref    = internal_source_ref,
+                    user_provided = True
+                ),
+                source_ref   = internal_source_ref
+            )
+        )
+
 
     # Now the module body if there is any at all.
     if result is not None:

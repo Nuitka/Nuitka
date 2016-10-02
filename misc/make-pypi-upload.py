@@ -1,4 +1,4 @@
-#!/usr/bin/env PYTHONUNBUFFERED=1 python
+#!/usr/bin/python -u
 #     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -30,11 +30,13 @@ nuitka_version = subprocess.check_output(
     "./bin/nuitka --version", shell = True
 ).strip()
 branch_name = subprocess.check_output(
-    "git name-rev --name-only HEAD".split()
+    "git name-rev --refs=master --name-only HEAD".split()
 ).strip()
 
 assert branch_name == "master", branch_name
 assert "pre" not in nuitka_version and "rc" not in nuitka_version
+
+print("Uploading Nuitka '%s'" % nuitka_version)
 
 # Need to remove the contents from the Rest, or else PyPI will not render
 # it. Stupid but true.
@@ -58,7 +60,7 @@ for _i in range(60):
     # in a Buildbot, we need not be optimal.
     time.sleep(5*60)
 
-    pypi = xmlrpclib.ServerProxy("http://pypi.python.org/pypi")
+    pypi = xmlrpclib.ServerProxy("https://pypi.python.org/pypi")
     pypi_versions = pypi.package_releases("Nuitka")
 
     assert len(pypi_versions) == 1, pypi_versions

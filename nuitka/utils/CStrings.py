@@ -23,8 +23,6 @@ values and little more.
 
 import re
 
-from nuitka.__past__ import unicode  # pylint: disable=W0622
-
 
 def _encodePythonStringToC(value):
     """ Encode a string, so that it gives a C++ string literal.
@@ -37,7 +35,7 @@ def _encodePythonStringToC(value):
     octal = False
 
     for c in value:
-        if str is not unicode:
+        if str is bytes:
             cv = ord(c)
         else:
             cv = c

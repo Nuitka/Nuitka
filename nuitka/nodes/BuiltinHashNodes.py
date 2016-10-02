@@ -46,12 +46,12 @@ class ExpressionBuiltinHash(ExpressionChildrenHavingBase):
         "value"
     )
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         value = self.getValue()
 
         # TODO: Have a computation slot for hashing.
         if not value.isKnownToBeHashable():
-            constraint_collection.onExceptionRaiseExit(BaseException)
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 

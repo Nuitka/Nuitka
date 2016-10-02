@@ -179,7 +179,7 @@ try:
 except TypeError as e:
     print(repr(e))
 
-print("Complex call with invalid star list and star arguments:")
+print("Complex call with both invalid star list and star arguments:")
 
 try:
     a = 1
@@ -212,6 +212,8 @@ try:
     functionWithDefaults(*a,**b)
 except TypeError as e:
     print(repr(e))
+
+print("Complex call with both invalid star list argument:")
 
 try:
     a = 1

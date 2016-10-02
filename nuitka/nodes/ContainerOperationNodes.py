@@ -52,15 +52,15 @@ class StatementListOperationAppend(StatementChildrenHavingBase):
     getList = StatementChildrenHavingBase.childGetter("list")
     getValue = StatementChildrenHavingBase.childGetter("value")
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            constraint_collection = constraint_collection
+            trace_collection = trace_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
-        constraint_collection.removeKnowledge(self.getList())
+        trace_collection.removeKnowledge(self.getList())
 
         return self, None, None
 
@@ -90,8 +90,8 @@ class ExpressionListOperationExtend(ExpressionChildrenHavingBase):
     getList = ExpressionChildrenHavingBase.childGetter("list")
     getValue = ExpressionChildrenHavingBase.childGetter("value")
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.removeKnowledge(self.getList())
+    def computeExpression(self, trace_collection):
+        trace_collection.removeKnowledge(self.getList())
 
         return self, None, None
 
@@ -117,10 +117,10 @@ class ExpressionListOperationPop(ExpressionChildrenHavingBase):
 
     getList = ExpressionChildrenHavingBase.childGetter("list")
 
-    def computeExpression(self, constraint_collection):
+    def computeExpression(self, trace_collection):
         # We might be able to tell that element, or know that it cannot exist
         # and raise an exception instead.
-        constraint_collection.removeKnowledge(self.getList())
+        trace_collection.removeKnowledge(self.getList())
 
         return self, None, None
 
@@ -154,15 +154,15 @@ class StatementSetOperationAdd(StatementChildrenHavingBase):
         "value"
     )
 
-    def computeStatement(self, constraint_collection):
+    def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            constraint_collection = constraint_collection
+            trace_collection = trace_collection
         )
 
         if result is not self:
             return result, change_tags, change_desc
 
-        constraint_collection.removeKnowledge(self.getSet())
+        trace_collection.removeKnowledge(self.getSet())
 
         return self, None, None
 
@@ -196,7 +196,7 @@ class ExpressionSetOperationUpdate(ExpressionChildrenHavingBase):
         "value"
     )
 
-    def computeExpression(self, constraint_collection):
-        constraint_collection.removeKnowledge(self.getSet())
+    def computeExpression(self, trace_collection):
+        trace_collection.removeKnowledge(self.getSet())
 
         return self, None, None

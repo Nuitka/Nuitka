@@ -18,7 +18,7 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.22
+Nuitka V0.5.23
 Copyright (C) 2016 Kay Hayen."""
 
 import logging
@@ -437,7 +437,7 @@ Defaults to off."""
 )
 
 debug_group.add_option(
-    "--recompile-c++-only",
+    "--recompile-c++-only", "--recompile-c-only",
     action  = "store_true",
     dest    = "recompile_cpp_only",
     default = False,

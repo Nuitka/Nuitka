@@ -23,7 +23,9 @@ code.
 
 import sys
 
-from PyQt5 import QtCore, QtGui, uic  # pylint: disable=F0401,I0021
+from PyQt5 import QtCore  # @UnresolvedImport pylint: disable=F0401,I0021
+from PyQt5 import QtGui  # @UnresolvedImport pylint: disable=F0401,I0021
+from PyQt5 import uic  # @UnresolvedImport pylint: disable=F0401,I0021
 
 from nuitka import SourceCodeReferences
 from nuitka.utils import Utils

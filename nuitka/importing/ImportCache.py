@@ -32,8 +32,13 @@ imported_modules = {}
 imported_by_name = {}
 
 def addImportedModule(imported_module):
+    module_filename = Utils.relpath(imported_module.getFilename())
+
+    if Utils.basename(module_filename) == "__init__.py":
+        module_filename = Utils.dirname(module_filename)
+
     key = (
-        Utils.relpath(imported_module.getFilename()),
+        module_filename,
         imported_module.getFullName()
     )
 

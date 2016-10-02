@@ -29,15 +29,15 @@ be a "in (str, unicode)" rather than making useless version checks.
 # pylint: disable=C0103,W0622
 
 # Work around for CPython 3.x renaming "long" to "int".
-try:
+if str is bytes:
     long = long  # @ReservedAssignment
-except NameError:
+else:
     long = int   # @ReservedAssignment
 
 # Work around for CPython 3.x renaming "unicode" to "str".
-try:
+if str is bytes:
     unicode = unicode  # @ReservedAssignment
-except NameError:
+else:
     unicode = str      # @ReservedAssignment
 
 def iterItems(d):
@@ -46,10 +46,16 @@ def iterItems(d):
     except AttributeError:
         return d.items()
 
-if unicode is str:
+if str is not bytes:
     raw_input = input      # @ReservedAssignment
 else:
     raw_input = raw_input  # @ReservedAssignment
+
+if str is bytes:
+    xrange = xrange # @ReservedAssignment
+else:
+    xrange = range  # @ReservedAssignment
+
 
 try:
     from urllib.request import urlretrieve
@@ -67,3 +73,4 @@ assert long
 assert unicode
 assert urlretrieve
 assert StringIO
+assert type(xrange) is type, xrange

@@ -36,9 +36,9 @@ from nuitka.nodes.AttributeNodes import (
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
-    ExpressionSpecialUnpack,
     StatementSpecialUnpackCheck
 )
+from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional

@@ -21,8 +21,8 @@ from __future__ import print_function
 
 # This test is playing with configuration settings and checking that works.
 
-from PyQt5.QtCore import QSettings
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QSettings  # @UnresolvedImport
+from PyQt5.QtCore import QCoreApplication  # @UnresolvedImport
 
 import sys
 
@@ -30,14 +30,6 @@ app = QCoreApplication([])
 app.setOrganizationName("BOGUS_NAME")
 app.setOrganizationDomain("bogosity.com")
 app.setApplicationName("BOGUS")
-settings = QSettings()
-byte_string = b'\xde\xad\xbe\xef'
-settings.clear()
-settings.setValue("bogus_byte_string",byte_string)
-settings.sync()
-return_string = settings.value("bogus_byte_string",b'\x00\x00\x00\x00')
-if sys.version_info >= (3,):
-    assert return_string == byte_string, (repr(return_string), "!=", byte_string)
 print("OK.")
 
 # This test is using signals and will only work if PySide properly accepts

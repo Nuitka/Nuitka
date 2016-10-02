@@ -51,6 +51,7 @@ tmp_dir = getTempDir()
 PACKAGE_LIST = (
     "nuitka",
     "nuitka/nodes",
+    "nuitka/nodes/shapes",
     "nuitka/tree",
     "nuitka/importing",
     "nuitka/build",
@@ -196,6 +197,7 @@ def executePASS1():
         os.environ["PYTHON"],
         nuitka_main_path,
         "--recurse-none",
+        "--plugin-enable=pylint-warnings",
         "--output-dir=.",
         "--python-flag=-S",
         "nuitka.py"
