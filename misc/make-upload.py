@@ -44,7 +44,10 @@ def checkAtHome():
 
 checkAtHome()
 
-nuitka_version = subprocess.check_output("./bin/nuitka --version", shell = True).strip()
+nuitka_version = subprocess.check_output(
+    "./bin/nuitka --version", shell = True
+).strip()
+
 branch_name = subprocess.check_output(
     "git symbolic-ref --short HEAD".split()
 ).strip()
