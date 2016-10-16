@@ -1,6 +1,27 @@
 Nuitka Release 0.5.24 (Draft)
 =============================
 
+Bug Fixes
+---------
+
+- Windows: The 3.5.2 coroutine new protocol implementation was using the wrapper
+  from CPython, but it's not part of the ABI on Windows. Have our own instead.
+  Fixed in 0.5.23.1 already.
+
+- Windows: Fixed second compilation with MSVC failing. The files renamed to be
+  C++ files already existed, crashing the compilation. Fixed in 0.5.23.1
+  already.
+
+- Mac OS: Fixed creating extension modules with ``.so`` suffix. This is now
+  properly determined by looking at the importer details, leading to correct
+  suffix on all platforms. Fixed in 0.5.23.1 already.
+
+- Debian: Don't depend on a C++ compiler primarily anymore, the C compiler from
+  GNU or clang will do too. Fixed in 0.5.23.1 already.
+
+Summary
+-------
+
 This release is not done yet.
 
 
