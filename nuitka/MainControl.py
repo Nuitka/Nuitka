@@ -179,7 +179,7 @@ def cleanSourceDirectory(source_dir):
     if Utils.isDir(source_dir):
         for path, _filename in Utils.listDir(source_dir):
             if Utils.getExtension(path) in (".c", ".h", ".o", ".os", ".obj",
-                                            ".bin", ".res", ".rc", ".S",
+                                            ".bin", ".res", ".rc", ".S", ".cpp",
                                             ".manifest"):
                 Utils.deleteFile(path, True)
     else:
