@@ -74,7 +74,7 @@ nuitka_version = subprocess.check_output(
 ).strip()
 
 branch_name = subprocess.check_output(
-    "git name-rev --name-only HEAD".split()
+    "git symbolic-ref --short HEAD".split()
 ).strip()
 
 assert options.no_branch_check or branch_name in (

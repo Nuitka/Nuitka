@@ -1498,12 +1498,21 @@ source_files = discoverSourceFiles()
 if module_mode:
     # For Python modules, the standard shared library extension is not what
     # gets used.
-    if win_target:
-        module_suffix = ".pyd"
-    else:
-        module_suffix = ".so"
+    def getSharedLibrarySuffix():
+        import imp
 
-    env["SHLIBSUFFIX"] = module_suffix
+        result = None
+
+        for suffix, _mode, module_type in imp.get_suffixes():
+            if module_type != imp.C_EXTENSION:
+                continue
+
+            if result is None or len(suffix) < len(result):
+                result = suffix
+
+        return result
+
+    env["SHLIBSUFFIX"] = getSharedLibrarySuffix()
 
     target = env.SharedLibrary(
         result_basepath,
