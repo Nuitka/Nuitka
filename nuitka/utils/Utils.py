@@ -22,6 +22,7 @@ memory usage, etc. that fit nowhere else and don't deserve their own names.
 
 """
 
+import imp
 import os
 import sys
 
@@ -45,6 +46,19 @@ def getArchitecture():
             return "x86"
     else:
         return os.uname()[4]  # @UndefinedVariable
+
+
+def getSharedLibrarySuffix():
+    result = None
+
+    for suffix, _mode, module_type in imp.get_suffixes():
+        if module_type != imp.C_EXTENSION:
+            continue
+
+        if result is None or len(suffix) < len(result):
+            result = suffix
+
+    return result
 
 
 def relpath(path):
@@ -155,6 +169,7 @@ def deleteFile(path, must_exist):
 def makePath(path):
     if not os.path.isdir(path):
         os.makedirs(path)
+
 
 def getCoreCount():
     cpu_count = 0

@@ -1111,7 +1111,7 @@ PyObject *AWAIT_COROUTINE( struct Nuitka_CoroutineObject *coroutine, PyObject *a
     {
         struct Nuitka_CoroutineObject *awaited_coroutine = (struct Nuitka_CoroutineObject *)awaitable;
 
-        if( awaited_coroutine->m_awaiting == true )
+        if ( awaited_coroutine->m_awaiting )
         {
             Py_DECREF( awaitable_iter );
 
@@ -1140,6 +1140,102 @@ PyObject *AWAIT_COROUTINE( struct Nuitka_CoroutineObject *coroutine, PyObject *a
 
     return retval;
 }
+
+#if PYTHON_VERSION >= 352
+
+/* Our "aiter" wrapper clone */
+struct Nuitka_AIterWrapper
+{
+    PyObject_HEAD
+    PyObject *aw_aiter;
+};
+
+
+static PyObject *Nuitka_AIterWrapper_iternext( struct Nuitka_AIterWrapper *aw )
+{
+    PyErr_SetObject( PyExc_StopIteration, aw->aw_aiter );
+    return NULL;
+}
+
+static int Nuitka_AIterWrapper_traverse( struct Nuitka_AIterWrapper *aw, visitproc visit, void *arg )
+{
+    Py_VISIT((PyObject *)aw->aw_aiter);
+    return 0;
+}
+
+static void Nuitka_AIterWrapper_dealloc( struct Nuitka_AIterWrapper *aw )
+{
+    Nuitka_GC_UnTrack( (PyObject *)aw );
+    Py_CLEAR( aw->aw_aiter );
+    PyObject_GC_Del( aw );
+}
+
+static PyAsyncMethods Nuitka_AIterWrapper_as_async =
+{
+    PyObject_SelfIter,                          /* am_await */
+    0,                                          /* am_aiter */
+    0                                           /* am_anext */
+};
+
+PyTypeObject Nuitka_AIterWrapper_Type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "compiled_aiter_wrapper",
+    sizeof(struct Nuitka_AIterWrapper),         /* tp_basicsize */
+    0,                                          /* tp_itemsize */
+    (destructor)Nuitka_AIterWrapper_dealloc,    /* destructor tp_dealloc */
+    0,                                          /* tp_print */
+    0,                                          /* tp_getattr */
+    0,                                          /* tp_setattr */
+    &Nuitka_AIterWrapper_as_async,              /* tp_as_async */
+    0,                                          /* tp_repr */
+    0,                                          /* tp_as_number */
+    0,                                          /* tp_as_sequence */
+    0,                                          /* tp_as_mapping */
+    0,                                          /* tp_hash */
+    0,                                          /* tp_call */
+    0,                                          /* tp_str */
+    PyObject_GenericGetAttr,                    /* tp_getattro */
+    0,                                          /* tp_setattro */
+    0,                                          /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,    /* tp_flags */
+    "A wrapper object for '__aiter__' backwards compatibility.",
+    (traverseproc)Nuitka_AIterWrapper_traverse, /* tp_traverse */
+    0,                                          /* tp_clear */
+    0,                                          /* tp_richcompare */
+    0,                                          /* tp_weaklistoffset */
+    PyObject_SelfIter,                          /* tp_iter */
+    (iternextfunc)Nuitka_AIterWrapper_iternext, /* tp_iternext */
+    0,                                          /* tp_methods */
+    0,                                          /* tp_members */
+    0,                                          /* tp_getset */
+    0,                                          /* tp_base */
+    0,                                          /* tp_dict */
+    0,                                          /* tp_descr_get */
+    0,                                          /* tp_descr_set */
+    0,                                          /* tp_dictoffset */
+    0,                                          /* tp_init */
+    0,                                          /* tp_alloc */
+    0,                                          /* tp_new */
+    PyObject_Del,                               /* tp_free */
+};
+
+
+PyObject *Nuitka_AIterWrapper_New( PyObject *aiter )
+{
+    struct Nuitka_AIterWrapper *aw = PyObject_GC_New(
+        struct Nuitka_AIterWrapper,
+        &Nuitka_AIterWrapper_Type
+    );
+    CHECK_OBJECT( aw );
+
+    Py_INCREF( aiter );
+    aw->aw_aiter = aiter;
+
+    Nuitka_GC_Track( aw );
+    return (PyObject *)aw;
+}
+
+#endif
 
 PyObject *MAKE_ASYNC_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
 {
@@ -1183,7 +1279,7 @@ PyObject *MAKE_ASYNC_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObjec
          Py_TYPE( iter )->tp_as_async->am_anext != NULL)
     {
 
-        PyObject *wrapper = _PyAIterWrapper_New( iter );
+        PyObject *wrapper = Nuitka_AIterWrapper_New( iter );
         Py_DECREF( iter );
 
         iter = wrapper;
