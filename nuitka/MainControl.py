@@ -168,10 +168,7 @@ def getResultFullpath(main_module):
     result = getResultBasepath(main_module)
 
     if Options.shallMakeModule():
-        if Utils.getOS() == "Windows":
-            result += ".pyd"
-        else:
-            result += ".so"
+        result += Utils.getSharedLibrarySuffix()
     else:
         result += ".exe"
 
