@@ -1111,7 +1111,7 @@ PyObject *AWAIT_COROUTINE( struct Nuitka_CoroutineObject *coroutine, PyObject *a
     {
         struct Nuitka_CoroutineObject *awaited_coroutine = (struct Nuitka_CoroutineObject *)awaitable;
 
-        if( awaited_coroutine->m_awaiting == true )
+        if ( awaited_coroutine->m_awaiting )
         {
             Py_DECREF( awaitable_iter );
 
