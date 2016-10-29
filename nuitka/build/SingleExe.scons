@@ -569,6 +569,22 @@ if not os.path.exists(sconsign_dir):
 
 env.SConsignFile(sconsign_dir)
 
+if gcc_mode:
+    # Support for gcc and clang, restricting visibility as much as possible.
+    if not win_target:
+        env.Append(
+            CCFLAGS = ["-fvisibility=hidden"]
+        )
+        env.Append(
+            CXXFLAGS = ["-fvisibility-inlines-hidden"]
+        )
+
+    # Make it clear that we want C11.
+    if c11_mode:
+        env.Append(
+            CCFLAGS = ["-std=c11"]
+        )
+
 # Support for clang.
 if "clang" in the_compiler:
     env.Append(
@@ -592,15 +608,6 @@ if "clang" in the_compiler:
     if debug_mode and not clang_mode:
         env.Append(
             CCFLAGS = ["-Wunused-but-set-variable"]
-        )
-
-if gcc_mode:
-    if not win_target:
-        env.Append(
-            CCFLAGS = ["-fvisibility=hidden"]
-        )
-        env.Append(
-            CXXFLAGS = ["-fvisibility-inlines-hidden"]
         )
 
 # Support details for real g++, not clang++.
