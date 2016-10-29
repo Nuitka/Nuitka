@@ -18,22 +18,25 @@
 #     limitations under the License.
 #
 
-module_value1 = 5000
-module_value2 = 3000
+module_value1 = 5
+module_value2 = 3
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
     module_value1
 
+    # Make sure we have a local variable x anyway
+    s = 2
+
     local_value = module_value1
 
-    s = module_value1
-    t = module_value2
+    s *= module_value1
 # construct_begin
-    t = s + t
+    s *= 1000
 # construct_end
+    s *= module_value2
 
-    return s, t, local_value
+    return s
 
 for x in xrange(50000):
     calledRepeatedly()
