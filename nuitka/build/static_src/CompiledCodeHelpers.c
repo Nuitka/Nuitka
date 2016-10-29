@@ -1690,7 +1690,10 @@ void enhancePythonTypes( void )
 }
 
 #ifdef __APPLE__
-extern "C" wchar_t* _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t size);
+#ifdef __cplusplus
+extern "C"
+#endif
+wchar_t* _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t size);
 #endif
 
 #ifdef __FreeBSD__
