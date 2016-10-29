@@ -46,13 +46,21 @@ Contains parts of an earlier library that has:
 #ifndef ARM_UCONTEXT_H
 #define ARM_UCONTEXT_H
 
-#include <ucontext.h>
 #include <signal.h>
+#include <ucontext.h>
 
-extern "C" int getmcontext(mcontext_t*);
-extern "C" void setmcontext(const mcontext_t*);
+#ifdef __cplusplus
+extern "C"
+#endif
+int getmcontext(mcontext_t*);
+#ifdef __cplusplus
+extern "C"
+#endif
+void setmcontext(const mcontext_t*);
+
 int swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
 void makecontext(ucontext_t *uc, void (*fn)(void), int argc, ...);
+
 #define setcontext(u) setmcontext(&(u)->uc_mcontext)
 #define getcontext(u) getmcontext(&(u)->uc_mcontext)
 
