@@ -1582,35 +1582,41 @@ def signalHandler(signal, frame):
 
 signal.signal(signal.SIGINT, signalHandler)
 
+build_definitions = {}
+
+if uninstalled_python:
+    if win_target:
+        build_definitions["DLL_EXTRA_PATH"] = os.path.dirname(getWindowsPythonDLLPath())
+    elif sys.platform.startswith("linux"):
+        env.Append(
+            LINKFLAGS = ["-Wl,-R," + python_lib_path]
+        )
+
+
+        build_definitions["PYTHON_HOME_PATH"] = python_prefix
+
 def makeCLiteral(value):
     value = value.replace("\\", r"\\")
     value = value.replace('"', r'\"')
 
     return '"' + value + '"'
 
-if uninstalled_python:
-    if win_target:
-        env.Append(
-            CPPDEFINES = [
-                'DLL_EXTRA_PATH=%s' % \
-                   makeCLiteral(
-                       os.path.dirname(getWindowsPythonDLLPath())
-                   )
-            ]
-        )
-    elif sys.platform.startswith("linux"):
-        env.Append(
-            LINKFLAGS = ["-Wl,-R," + python_lib_path]
+
+def createBuildDefinitionsFile():
+    build_definitions_filename = os.path.join(source_dir, "build_definitions.h")
+
+    build_definitions_file = open(build_definitions_filename, 'w')
+    for key, value in sorted(build_definitions.items()):
+        build_definitions_file.write(
+            "#define %s %s\n" % (
+                key,
+                makeCLiteral(value)
+            )
         )
 
-        env.Append(
-            CPPDEFINES = [
-                "PYTHON_HOME_PATH='%s'" % \
-                   makeCLiteral(
-                       python_prefix
-                   )
-            ]
-        )
+    build_definitions_file.close()
+
+createBuildDefinitionsFile()
 
 # env["CFLAGS"] = env["CCFLAGS"]
 
