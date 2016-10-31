@@ -30,14 +30,10 @@ from .ErrorCodes import (
 from .Indentation import indented
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .templates.CodeTemplatesFrames import template_generator_initial_throw
-from .templates.CodeTemplatesFunction import (
-    function_dict_setup,
-    template_function_closure_making
-)
+from .templates.CodeTemplatesFunction import function_dict_setup
 from .templates.CodeTemplatesGeneratorFunction import (
     template_generator_exception_exit,
-    template_generator_making_with_context,
-    template_generator_making_without_context,
+    template_generator_making,
     template_generator_noexception_exit,
     template_generator_return_exit,
     template_genfunc_yielder_body_template,
@@ -148,60 +144,49 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
         future_flags = generator_object_body.getSourceReference().getFutureSpec().asFlags()
     )
 
-    if closure_variables:
-        closure_copy = []
+    closure_copy = []
 
-        for count, variable in enumerate(closure_variables):
-            variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+    for count, variable in enumerate(closure_variables):
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
-            # Generators might not use them, but they still need to be put there.
-            # TODO: But they don't have to be cells.
-            if variable_c_type == "PyObject *":
-                closure_copy.append(
-                    "closure[%d] = PyCell_NEW0( %s );" % (
-                        count,
-                        variable_code_name
-                    )
+        # Generators might not use them, but they still need to be put there.
+        # TODO: But they don't have to be cells.
+        if variable_c_type == "PyObject *":
+            closure_copy.append(
+                "((struct Nuitka_GeneratorObject *)%s)->m_closure[%d] = PyCell_NEW0( %s );" % (
+                    to_name,
+                    count,
+                    variable_code_name
                 )
-            elif variable_c_type == "PyCellObject *":
-                closure_copy.append(
-                    "closure[%d] = %s;" % (
-                        count,
-                        variable_code_name
-                    )
+            )
+        elif variable_c_type == "PyCellObject *":
+            closure_copy.append(
+                "((struct Nuitka_GeneratorObject *)%s)->m_closure[%d] = %s;" % (
+                    to_name,
+                    count,
+                    variable_code_name
                 )
-                closure_copy.append(
-                    "Py_INCREF( closure[%d] );" % count
+            )
+            closure_copy.append(
+                "Py_INCREF( ((struct Nuitka_GeneratorObject *)%s)->m_closure[%d] );" % (
+                    to_name,
+                    count
                 )
-            else:
-                assert False, variable
+            )
+        else:
+            assert False, variable
 
-        closure_making = template_function_closure_making % {
-            "closure_copy"  : indented(closure_copy),
-            "closure_count" : len(closure_variables)
+    emit(
+        template_generator_making % {
+            "closure_copy"           : indented(closure_copy, 0, True),
+            "to_name"                : to_name,
+            "generator_identifier"   : generator_object_body.getCodeName(),
+            "generator_name_obj"     : generator_name_obj,
+            "generator_qualname_obj" : generator_qualname_obj,
+            "code_identifier"        : code_identifier,
+            "closure_count"          : len(closure_variables)
         }
-
-        emit(
-            template_generator_making_with_context % {
-                "closure_making"         : closure_making,
-                "to_name"                : to_name,
-                "generator_identifier"   : generator_object_body.getCodeName(),
-                "generator_name_obj"     : generator_name_obj,
-                "generator_qualname_obj" : generator_qualname_obj,
-                "code_identifier"        : code_identifier,
-                "closure_count"          : len(closure_variables)
-            }
-        )
-    else:
-        emit(
-            template_generator_making_without_context % {
-                "to_name"                : to_name,
-                "generator_identifier"   : generator_object_body.getCodeName(),
-                "generator_name_obj"     : generator_name_obj,
-                "generator_qualname_obj" : generator_qualname_obj,
-                "code_identifier"        : code_identifier
-            }
-        )
+    )
 
     context.addCleanupTempName(to_name)
 
