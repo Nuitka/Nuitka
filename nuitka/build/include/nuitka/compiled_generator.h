@@ -146,8 +146,9 @@ static inline PyObject *YIELD_IN_HANDLER( struct Nuitka_GeneratorObject *generat
 
     generator->m_yielded = value;
 
-    // When yielding from an exception handler in Python3, the exception
-    // preserved to the frame is restore, while the current one is put there.
+    /* When yielding from an exception handler in Python3, the exception
+     * preserved to the frame is restore, while the current one is put there.
+     */
     PyThreadState *thread_state = PyThreadState_GET();
 
     PyObject *saved_exception_type = thread_state->exc_type;

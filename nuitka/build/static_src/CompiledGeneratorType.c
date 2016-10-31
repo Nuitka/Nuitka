@@ -100,11 +100,17 @@ static PyObject *Nuitka_Generator_send( struct Nuitka_GeneratorObject *generator
 
 #if PYTHON_VERSION < 300
         PyObject *saved_exception_type = thread_state->exc_type;
-        Py_XINCREF( saved_exception_type );
-        PyObject *saved_exception_value = thread_state->exc_value;
-        Py_XINCREF( saved_exception_value );
-        PyTracebackObject *saved_exception_traceback = (PyTracebackObject *)thread_state->exc_traceback;
-        Py_XINCREF( saved_exception_traceback );
+        PyObject *saved_exception_value = NULL;
+        PyTracebackObject *saved_exception_traceback = NULL;
+
+        if ( saved_exception_type != Py_None && saved_exception_type != NULL )
+        {
+            Py_INCREF( saved_exception_type );
+            saved_exception_value = thread_state->exc_value;
+            Py_XINCREF( saved_exception_value );
+            saved_exception_traceback = (PyTracebackObject *)thread_state->exc_traceback;
+            Py_XINCREF( saved_exception_traceback );
+        }
 #endif
 
         if ( generator->m_running )
@@ -187,9 +193,12 @@ static PyObject *Nuitka_Generator_send( struct Nuitka_GeneratorObject *generator
             assert( ERROR_OCCURRED() );
 
 #if PYTHON_VERSION < 300
-            Py_XDECREF( saved_exception_type );
-            Py_XDECREF( saved_exception_value );
-            Py_XDECREF( saved_exception_traceback );
+            if ( saved_exception_type != NULL && saved_exception_type != Py_None )
+            {
+                Py_DECREF( saved_exception_type );
+                Py_XDECREF( saved_exception_value );
+                Py_XDECREF( saved_exception_traceback );
+            }
 #endif
 
 #if PYTHON_VERSION >= 350
@@ -236,7 +245,65 @@ static PyObject *Nuitka_Generator_send( struct Nuitka_GeneratorObject *generator
         else
         {
 #if PYTHON_VERSION < 300
-            SET_CURRENT_EXCEPTION( saved_exception_type, saved_exception_value, saved_exception_traceback );
+            PyObject *old_type  = thread_state->exc_type;
+            PyObject *old_value = thread_state->exc_value;
+            PyTracebackObject *old_tb = (PyTracebackObject *)thread_state->exc_traceback;
+
+            // Set sys attributes in the fastest possible way.
+            PyObject *sys_dict = thread_state->interp->sysdict;
+            CHECK_OBJECT( sys_dict );
+
+            if ( saved_exception_type != NULL && saved_exception_type != Py_None )
+            {
+                thread_state->exc_type = saved_exception_type;
+                thread_state->exc_value = saved_exception_value;
+                thread_state->exc_traceback = (PyObject *)saved_exception_traceback;
+
+                Py_XDECREF( old_type );
+                Py_XDECREF( old_value );
+                Py_XDECREF( old_tb );
+
+
+                if ( old_type != saved_exception_type )
+                {
+                    PyDict_SetItem( sys_dict, const_str_plain_exc_type, saved_exception_type );
+                }
+                if ( saved_exception_value != old_value )
+                {
+                    PyDict_SetItem( sys_dict, const_str_plain_exc_value, saved_exception_value ? saved_exception_value : Py_None );
+                }
+                if ( saved_exception_traceback != old_tb )
+                {
+                    PyDict_SetItem( sys_dict, const_str_plain_exc_traceback, saved_exception_traceback ? (PyObject *)saved_exception_traceback : Py_None );
+                }
+            }
+            else
+            {
+                thread_state->exc_type = Py_None;
+                thread_state->exc_value = Py_None;
+                thread_state->exc_traceback = (PyObject *)Py_None;
+
+                Py_INCREF( Py_None );
+                Py_INCREF( Py_None );
+                Py_INCREF( Py_None );
+
+                Py_XDECREF( old_type );
+                Py_XDECREF( old_value );
+                Py_XDECREF( old_tb );
+
+                if ( old_type != Py_None )
+                {
+                    PyDict_SetItem( sys_dict, const_str_plain_exc_type, Py_None );
+                }
+                if ( old_value != Py_None )
+                {
+                    PyDict_SetItem( sys_dict, const_str_plain_exc_value, Py_None );
+                }
+                if ( old_tb != (PyTracebackObject *)Py_None )
+                {
+                    PyDict_SetItem( sys_dict, const_str_plain_exc_traceback, Py_None );
+                }
+            }
 #endif
 
             return generator->m_yielded;
