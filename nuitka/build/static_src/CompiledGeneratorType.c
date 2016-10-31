@@ -18,6 +18,9 @@
 
 #include "nuitka/prelude.h"
 
+#define NUITKA_GENERATOR_FREE_LIST 1
+#define MAX_GENERATOR_FREE_LIST_COUNT 100
+
 static PyObject *Nuitka_Generator_tp_repr( struct Nuitka_GeneratorObject *generator )
 {
 #if PYTHON_VERSION < 300
@@ -49,16 +52,12 @@ static long Nuitka_Generator_tp_traverse( struct Nuitka_GeneratorObject *generat
 
 static void Nuitka_Generator_release_closure( struct Nuitka_GeneratorObject *generator )
 {
-    if ( generator->m_closure )
+    for( Py_ssize_t i = 0; i < generator->m_closure_given; i++ )
     {
-        for( Py_ssize_t i = 0; i < generator->m_closure_given; i++ )
-        {
-            Py_DECREF( generator->m_closure[ i ] );
-        }
-
-        free( generator->m_closure );
-        generator->m_closure = NULL;
+        Py_DECREF( generator->m_closure[ i ] );
     }
+
+    generator->m_closure_given = 0;
 }
 
 // For the generator object fiber entry point, we may need to follow what
@@ -489,6 +488,11 @@ static void Nuitka_Generator_tp_del( struct Nuitka_GeneratorObject *generator )
 }
 #endif
 
+#if NUITKA_GENERATOR_FREE_LIST
+static struct Nuitka_GeneratorObject *free_list = NULL;
+static int free_list_count = 0;
+#endif
+
 static void Nuitka_Generator_tp_dealloc( struct Nuitka_GeneratorObject *generator )
 {
     // Revive temporarily.
@@ -538,7 +542,35 @@ static void Nuitka_Generator_tp_dealloc( struct Nuitka_GeneratorObject *generato
     Py_DECREF( generator->m_qualname );
 #endif
 
+    /* We abuse m_frame for making a list of them. */
+#if NUITKA_GENERATOR_FREE_LIST
+    if ( free_list != NULL )
+    {
+        if ( free_list_count > MAX_GENERATOR_FREE_LIST_COUNT )
+        {
+            PyObject_GC_Del( generator );
+        }
+        else
+        {
+            generator->m_frame = (PyFrameObject *)free_list;
+            free_list = generator;
+
+            free_list_count += 1;
+        }
+    }
+    else
+    {
+        free_list = generator;
+        generator->m_frame = NULL;
+
+        assert( free_list_count == 0 );
+
+        free_list_count += 1;
+    }
+#else
     PyObject_GC_Del( generator );
+#endif
+
     RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 }
 
@@ -681,7 +713,7 @@ PyTypeObject Nuitka_Generator_Type =
     PyVarObject_HEAD_INIT(NULL, 0)
     "compiled_generator",                            /* tp_name */
     sizeof(struct Nuitka_GeneratorObject),           /* tp_basicsize */
-    0,                                               /* tp_itemsize */
+    sizeof(PyCellObject *),                          /* tp_itemsize */
     (destructor)Nuitka_Generator_tp_dealloc,         /* tp_dealloc */
     0,                                               /* tp_print */
     0,                                               /* tp_getattr */
@@ -741,13 +773,43 @@ void _initCompiledGeneratorType( void )
 }
 
 #if PYTHON_VERSION < 350
-PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCodeObject *code_object, Py_ssize_t closure_given )
 #else
-PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given )
 #endif
 {
-    struct Nuitka_GeneratorObject *result = PyObject_GC_New( struct Nuitka_GeneratorObject, &Nuitka_Generator_Type );
+    struct Nuitka_GeneratorObject *result;
+
+#if NUITKA_GENERATOR_FREE_LIST
+    if ( free_list != NULL )
+    {
+        result = free_list;
+        free_list = (struct Nuitka_GeneratorObject *)free_list->m_frame;
+        free_list_count -= 1;
+        assert( free_list_count >= 0 );
+
+        if ( Py_SIZE( result ) < closure_given )
+        {
+            result = PyObject_GC_Resize( struct Nuitka_GeneratorObject, result, closure_given );
+            assert( result != NULL );
+        }
+
+        _Py_NewReference( (PyObject *)result );
+    }
+    else
+#endif
+    {
+        result = PyObject_GC_NewVar(
+            struct Nuitka_GeneratorObject,
+            &Nuitka_Generator_Type,
+            closure_given + 1         // TODO: This plus 1 seems off.
+        );
+    }
+
     assert( result != NULL );
+    CHECK_OBJECT( result );
+
+    assert( Py_SIZE( result ) >= closure_given );
 
     result->m_code = (void *)code;
 
@@ -764,9 +826,7 @@ PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *q
     result->m_yieldfrom = NULL;
 #endif
 
-    // We take ownership of those and received the reference count from the
-    // caller.
-    result->m_closure = closure;
+    /* Note: The closure is set externally. */
     result->m_closure_given = closure_given;
 
     result->m_weakrefs = NULL;

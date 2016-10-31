@@ -78,7 +78,7 @@ template_generator_return_exit = """\
     return;
 """
 
-template_generator_making_without_context = """\
+template_generator_making = """\
 %(to_name)s = Nuitka_Generator_New(
     %(generator_identifier)s_context,
     %(generator_name_obj)s,
@@ -86,25 +86,9 @@ template_generator_making_without_context = """\
     %(generator_qualname_obj)s,
 #endif
     %(code_identifier)s,
-    NULL,
-    0
+    %(closure_count)d
 );
-"""
-
-template_generator_making_with_context = """\
-{
-%(closure_making)s
-    %(to_name)s = Nuitka_Generator_New(
-        %(generator_identifier)s_context,
-        %(generator_name_obj)s,
-#if PYTHON_VERSION >= 350
-        %(generator_qualname_obj)s,
-#endif
-        %(code_identifier)s,
-        closure,
-        %(closure_count)d
-    );
-}
+%(closure_copy)s
 """
 
 
