@@ -159,7 +159,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
                     variable_code_name
                 )
             )
-        elif variable_c_type == "PyCellObject *":
+        elif variable_c_type == "struct Nuitka_CellObject *":
             closure_copy.append(
                 "((struct Nuitka_GeneratorObject *)%s)->m_closure[%d] = %s;" % (
                     to_name,

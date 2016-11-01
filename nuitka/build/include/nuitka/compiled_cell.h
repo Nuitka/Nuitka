@@ -37,10 +37,9 @@ struct Nuitka_CellObject
 
 extern struct Nuitka_CellObject *Nuitka_Cell_New( void );
 
-// TODO: The internal API still uses PyCellObject, which is not a big deal,
-// but wrong.
+extern void Nuitka_Cells_New( struct Nuitka_CellObject **closure, int count );
 
-NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW0( PyObject *value )
+NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_NEW0( PyObject *value )
 {
     CHECK_OBJECT( value );
 
@@ -50,10 +49,10 @@ NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW0( PyObject *value )
     result->ob_ref = value;
     Py_INCREF( value );
 
-    return (PyCellObject *)result;
+    return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW1( PyObject *value )
+NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_NEW1( PyObject *value )
 {
     CHECK_OBJECT( value );
 
@@ -62,15 +61,15 @@ NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW1( PyObject *value )
 
     result->ob_ref = value;
 
-    return (PyCellObject *)result;
+    return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_EMPTY( void )
+NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_EMPTY( void )
 {
     struct Nuitka_CellObject *result = Nuitka_Cell_New();
     result->ob_ref = NULL;
 
-    return (PyCellObject *)result;
+    return result;
 }
 
 #endif

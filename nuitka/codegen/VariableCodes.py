@@ -158,17 +158,17 @@ def getLocalVariableCodeType(context, variable):
 
         return (
             result,
-            "PyCellObject *" if variable.isSharedTechnically() else "PyObject *"
+            "struct Nuitka_CellObject *" if variable.isSharedTechnically() else "PyObject *"
         )
     elif context.isForDirectCall():
         if user.isExpressionGeneratorObjectBody():
             closure_index = user.getClosureVariables().index(variable)
 
-            return "generator->m_closure[%d]" % closure_index, "PyCellObject *"
+            return "generator->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
         elif user.isExpressionCoroutineObjectBody():
             closure_index = user.getClosureVariables().index(variable)
 
-            return "coroutine->m_closure[%d]" % closure_index, "PyCellObject *"
+            return "coroutine->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
         else:
             result = getVariableCodeName(
                 in_context = True,
@@ -179,17 +179,17 @@ def getLocalVariableCodeType(context, variable):
             # version dependent.
             return (
                 result,
-                "PyCellObject *" if variable.isSharedTechnically() else "PyObject **",
+                "struct Nuitka_CellObject *" if variable.isSharedTechnically() else "PyObject **",
             )
     else:
         closure_index = user.getClosureVariables().index(variable)
 
         if user.isExpressionGeneratorObjectBody():
-            return "generator->m_closure[%d]" % closure_index, "PyCellObject *"
+            return "generator->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
         elif user.isExpressionCoroutineObjectBody():
-            return "coroutine->m_closure[%d]" % closure_index, "PyCellObject *"
+            return "coroutine->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
         else:
-            return "self->m_closure[%d]" % closure_index, "PyCellObject *"
+            return "self->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
 
 
 def getVariableCode(context, variable):
@@ -207,7 +207,7 @@ def getVariableCode(context, variable):
 def getLocalVariableObjectAccessCode(context, variable):
     variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
-    if variable_c_type == "PyCellObject *":
+    if variable_c_type == "struct Nuitka_CellObject *":
         # TODO: Why not use PyCell_GET for readability.
         return variable_code_name + "->ob_ref"
     elif variable_c_type == "PyObject **":
@@ -223,7 +223,7 @@ def getLocalVariableInitCode(context, variable, init_from = None):
 
     variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
-    if variable_c_type == "PyCellObject *":
+    if variable_c_type == "struct Nuitka_CellObject *":
         # TODO: Single out "init_from" only user, so it becomes sure that we
         # get a reference transferred here in these cases.
         if init_from is not None:
@@ -322,7 +322,7 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
     elif variable.isTempVariable():
         _variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
-        if variable_c_type == "PyCellObject *":
+        if variable_c_type == "struct Nuitka_CellObject *":
             if ref_count:
                 template = template_write_shared_unclear_ref0
             else:
@@ -424,7 +424,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
     elif variable.isLocalVariable():
         _variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
-        if variable_c_type == "PyCellObject *":
+        if variable_c_type == "struct Nuitka_CellObject *":
             if not needs_check:
                 template = template_read_shared_unclear
             else:
@@ -478,7 +478,7 @@ local variable '%s' referenced before assignment""",
     elif variable.isTempVariable():
         _variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
-        if variable_c_type == "PyCellObject *":
+        if variable_c_type == "struct Nuitka_CellObject *":
             template = template_read_shared_unclear
 
             emit(

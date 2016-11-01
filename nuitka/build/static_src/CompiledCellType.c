@@ -278,3 +278,15 @@ struct Nuitka_CellObject *Nuitka_Cell_New( void )
 
     return result;
 }
+
+void Nuitka_Cells_New( struct Nuitka_CellObject **closure, int count )
+{
+    assert( count > 0 );
+
+    while( count > 0 )
+    {
+        *closure = Nuitka_Cell_New();
+        closure += 1;
+        count -= 1;
+    }
+}

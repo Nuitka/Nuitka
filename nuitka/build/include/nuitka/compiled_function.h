@@ -62,7 +62,7 @@ struct Nuitka_FunctionObject {
     Py_ssize_t m_defaults_given;
 
     // Closure taken objects, for use in __closure__ and for accessing it.
-    PyCellObject **m_closure;
+    struct Nuitka_CellObject **m_closure;
     Py_ssize_t m_closure_given;
 
 #if PYTHON_VERSION >= 300
@@ -95,11 +95,11 @@ extern PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name,
 
 // Make a function with context.
 #if PYTHON_VERSION < 300
-extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given );
 #elif PYTHON_VERSION < 330
-extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given );
 #else
-extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given );
 #endif
 
 static inline bool Nuitka_Function_Check( PyObject *object )
