@@ -883,6 +883,12 @@ def simpleFunction105():
 
     del g
 
+def simpleFunction106():
+    # Call a PyCFunction with a single argument.
+    return sys.getsizeof(type)
+
+
+
 ####################################
 
 

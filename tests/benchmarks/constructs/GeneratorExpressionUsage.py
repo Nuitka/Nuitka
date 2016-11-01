@@ -27,6 +27,7 @@ def calledRepeatedly():
     # make sure it is started.
     x = next(gen)
 
+    # This should abort.
 # construct_begin
     all(gen)
 # construct_end
