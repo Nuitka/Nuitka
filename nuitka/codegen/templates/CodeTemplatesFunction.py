@@ -28,7 +28,7 @@ template_function_direct_declaration = """\
 """
 
 template_function_closure_making = """\
-    PyCellObject **closure = (PyCellObject **)malloc(%(closure_count)d * sizeof(PyCellObject *));
+    struct Nuitka_CellObject **closure = (struct Nuitka_CellObject **)malloc(%(closure_count)d * sizeof(struct Nuitka_CellObject *));
 %(closure_copy)s
 """
 

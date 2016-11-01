@@ -148,7 +148,7 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
                         variable_code_name
                     )
                 )
-            elif variable_c_type == "PyCellObject *":
+            elif variable_c_type == "struct Nuitka_CellObject *":
                 closure_copy.append(
                     "closure[%d] = %s;" % (
                         count,

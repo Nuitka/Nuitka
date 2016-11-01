@@ -79,7 +79,7 @@ struct Nuitka_GeneratorObject {
      * part is dynamically allocated, the array size differs per generator.
      */
     Py_ssize_t m_closure_given;
-    PyCellObject *m_closure[1];
+    struct Nuitka_CellObject *m_closure[1];
 };
 
 extern PyTypeObject Nuitka_Generator_Type;

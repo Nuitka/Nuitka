@@ -88,7 +88,7 @@ def _getFunctionCreationArgs(defaults_name, kw_defaults_name,
 
     for closure_variable in closure_variables:
         result.append(
-            "PyCellObject *%s" % (
+            "struct Nuitka_CellObject *%s" % (
                 getVariableCodeName(
                     variable   = closure_variable,
                     in_context = True
@@ -407,7 +407,7 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
 
         if variable_c_type == "PyObject *":
             suffix_args.append('&' + variable_code_name)
-        elif variable_c_type in ("PyCellObject *", "PyObject **"):
+        elif variable_c_type in ("struct Nuitka_CellObject *", "PyObject **"):
             suffix_args.append(variable_code_name)
         else:
             assert False, variable_c_type

@@ -798,7 +798,7 @@ void _initCompiledCoroutineWrapperType( void )
     PyType_Ready( &Nuitka_CoroutineWrapper_Type );
 }
 
-PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
 {
     struct Nuitka_CoroutineObject *result = PyObject_GC_New( struct Nuitka_CoroutineObject, &Nuitka_Coroutine_Type );
     assert( result != NULL );

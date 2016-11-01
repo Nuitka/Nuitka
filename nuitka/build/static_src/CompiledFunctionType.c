@@ -617,11 +617,11 @@ void _initCompiledFunctionType( void )
 
 
 #if PYTHON_VERSION < 300
-static inline PyObject *make_compiled_function( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
+static inline PyObject *make_compiled_function( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
 #elif PYTHON_VERSION < 330
-static inline PyObject *make_compiled_function( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given)
+static inline PyObject *make_compiled_function( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given)
 #else
-static inline PyObject *make_compiled_function( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
+static inline PyObject *make_compiled_function( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
 #endif
 {
     struct Nuitka_FunctionObject *result = PyObject_GC_New( struct Nuitka_FunctionObject, &Nuitka_Function_Type );
@@ -737,17 +737,17 @@ PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyObje
 
 // Make a function with closure.
 #if PYTHON_VERSION < 300
-PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
 {
     return make_compiled_function( c_code, name, code_object, defaults, module, doc, closure, closure_given );
 }
 #elif PYTHON_VERSION < 330
-PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
 {
     return make_compiled_function( c_code, name, code_object, defaults, kwdefaults, annotations, module, doc, closure, closure_given );
 }
 #else
-PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, PyCellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
 {
     return make_compiled_function( c_code, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, closure, closure_given );
 }
