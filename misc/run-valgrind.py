@@ -52,7 +52,7 @@ os.system(
     "%s --exe --python-flag=-S --output-dir=%s %s %s %s" % (
         nuitka_binary,
         tempdir,
-        "" if "number" in sys.argv else "--unstripped",
+        "" if ("number" in sys.argv or "numbers" in sys.argv) else "--unstripped",
         os.environ.get("NUITKA_EXTRA_OPTIONS", ""),
         input_file
     )
@@ -75,7 +75,7 @@ subprocess.check_call(
     stdout = open(os.devnull, 'w')
 )
 
-if "number" in sys.argv:
+if "number" in sys.argv or "numbers" in sys.argv:
     for line in open(log_file):
         if line.startswith("summary:"):
             sizes = commands.getoutput("size '%s'" % output_binary).split('\n')[-1].replace('\t', "").split()
