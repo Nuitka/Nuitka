@@ -713,7 +713,7 @@ PyTypeObject Nuitka_Generator_Type =
     PyVarObject_HEAD_INIT(NULL, 0)
     "compiled_generator",                            /* tp_name */
     sizeof(struct Nuitka_GeneratorObject),           /* tp_basicsize */
-    sizeof(PyCellObject *),                          /* tp_itemsize */
+    sizeof(struct Nuitka_CellObject *),              /* tp_itemsize */
     (destructor)Nuitka_Generator_tp_dealloc,         /* tp_dealloc */
     0,                                               /* tp_print */
     0,                                               /* tp_getattr */
