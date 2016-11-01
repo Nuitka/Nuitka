@@ -183,6 +183,7 @@ static void restoreStandaloneEnvironment()
 
 #endif
 
+extern void _initCompiledCellType();
 extern void _initCompiledGeneratorType();
 extern void _initCompiledFunctionType();
 extern void _initCompiledMethodType();
@@ -361,6 +362,7 @@ int main( int argc, char **argv )
 #endif
 
     /* Initialize the compiled types of Nuitka. */
+    _initCompiledCellType();
     _initCompiledGeneratorType();
     _initCompiledFunctionType();
     _initCompiledMethodType();

@@ -112,6 +112,7 @@ static struct PyModuleDef mdef_%(module_identifier)s =
 extern PyObject *metapath_based_loader;
 #endif
 
+extern void _initCompiledCellType();
 extern void _initCompiledGeneratorType();
 extern void _initCompiledFunctionType();
 extern void _initCompiledMethodType();
@@ -151,6 +152,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     createGlobalConstants();
 
     /* Initialize the compiled types of Nuitka. */
+    _initCompiledCellType();
     _initCompiledGeneratorType();
     _initCompiledFunctionType();
     _initCompiledMethodType();

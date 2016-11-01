@@ -1330,13 +1330,16 @@ def discoverSourceFiles():
     if not module_mode:
         result.append(provideStatic("MainProgram.c"))
 
-    # Compiled types and helper routines.
+    # Compiled types.
+    result.append(provideStatic("CompiledCellType.c"))
     result.append(provideStatic("CompiledFunctionType.c"))
     result.append(provideStatic("CompiledMethodType.c"))
     result.append(provideStatic("CompiledGeneratorType.c"))
     if python_version >= "3.5":
         result.append(provideStatic("CompiledCoroutineType.c"))
     result.append(provideStatic("CompiledFrameType.c"))
+
+    # Helper codes.
     result.append(provideStatic("CompiledCodeHelpers.c"))
     result.append(provideStatic("InspectPatcher.c"))
     result.append(provideStatic("MetaPathBasedLoader.c"))

@@ -223,6 +223,8 @@ typedef long Py_hash_t;
 
 #include "nuitka/helpers.h"
 
+#include "nuitka/compiled_cell.h"
+
 #include "nuitka/compiled_function.h"
 
 /* Sentinel PyObject to be used for all our call iterator endings. */

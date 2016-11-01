@@ -15,8 +15,25 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-#ifndef __NUITKA_CELLS_H__
-#define __NUITKA_CELLS_H__
+#ifndef __NUITKA_COMPILED_CELL_H__
+#define __NUITKA_COMPILED_CELL_H__
+
+/* This is a clone of the normal PyCell structure. We should keep it binary
+ * compatible, just in case somebody crazy insists on it.
+ */
+
+extern PyTypeObject Nuitka_Cell_Type;
+
+static inline bool Nuitka_Cell_Check( PyObject *object )
+{
+    return Py_TYPE( object ) == &Nuitka_Cell_Type;
+}
+
+struct Nuitka_CellObject
+{
+    PyObject_HEAD
+    PyObject *ob_ref;   /* Content of the cell or NULL when empty */
+};
 
 NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW0( PyObject *value )
 {
@@ -24,7 +41,7 @@ NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW0( PyObject *value )
 
     PyCellObject *result;
 
-    result = (PyCellObject *)PyObject_GC_New( PyCellObject, &PyCell_Type );
+    result = (PyCellObject *)PyObject_GC_New( struct Nuitka_CellObject, &Nuitka_Cell_Type );
     assert( result != NULL );
 
     result->ob_ref = value;
@@ -40,7 +57,7 @@ NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW1( PyObject *value )
 
     PyCellObject *result;
 
-    result = (PyCellObject *)PyObject_GC_New( PyCellObject, &PyCell_Type );
+    result = (PyCellObject *)PyObject_GC_New( struct Nuitka_CellObject, &Nuitka_Cell_Type );
     assert( result != NULL );
 
     result->ob_ref = value;
@@ -53,7 +70,7 @@ NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_EMPTY( void )
 {
     PyCellObject *result;
 
-    result = (PyCellObject *)PyObject_GC_New( PyCellObject, &PyCell_Type );
+    result = (PyCellObject *)PyObject_GC_New( struct Nuitka_CellObject, &Nuitka_Cell_Type );
     assert( result != NULL );
 
     result->ob_ref = NULL;
@@ -61,5 +78,6 @@ NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_EMPTY( void )
     Nuitka_GC_Track( result );
     return result;
 }
+
 
 #endif
