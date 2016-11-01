@@ -35,49 +35,42 @@ struct Nuitka_CellObject
     PyObject *ob_ref;   /* Content of the cell or NULL when empty */
 };
 
+extern struct Nuitka_CellObject *Nuitka_Cell_New( void );
+
+// TODO: The internal API still uses PyCellObject, which is not a big deal,
+// but wrong.
+
 NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW0( PyObject *value )
 {
     CHECK_OBJECT( value );
 
-    PyCellObject *result;
-
-    result = (PyCellObject *)PyObject_GC_New( struct Nuitka_CellObject, &Nuitka_Cell_Type );
+    struct Nuitka_CellObject *result = Nuitka_Cell_New();
     assert( result != NULL );
 
     result->ob_ref = value;
     Py_INCREF( value );
 
-    Nuitka_GC_Track( result );
-    return result;
+    return (PyCellObject *)result;
 }
 
 NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW1( PyObject *value )
 {
     CHECK_OBJECT( value );
 
-    PyCellObject *result;
-
-    result = (PyCellObject *)PyObject_GC_New( struct Nuitka_CellObject, &Nuitka_Cell_Type );
+    struct Nuitka_CellObject *result = Nuitka_Cell_New();
     assert( result != NULL );
 
     result->ob_ref = value;
 
-    Nuitka_GC_Track( result );
-    return result;
+    return (PyCellObject *)result;
 }
 
 NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_EMPTY( void )
 {
-    PyCellObject *result;
-
-    result = (PyCellObject *)PyObject_GC_New( struct Nuitka_CellObject, &Nuitka_Cell_Type );
-    assert( result != NULL );
-
+    struct Nuitka_CellObject *result = Nuitka_Cell_New();
     result->ob_ref = NULL;
 
-    Nuitka_GC_Track( result );
-    return result;
+    return (PyCellObject *)result;
 }
-
 
 #endif
