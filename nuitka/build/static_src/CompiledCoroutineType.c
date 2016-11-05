@@ -18,6 +18,9 @@
 
 #include "nuitka/prelude.h"
 
+#define NUITKA_COROUTINE_FREE_LIST 1
+#define MAX_COROUTINE_FREE_LIST_COUNT 100
+
 static PyObject *Nuitka_Coroutine_get_name( struct Nuitka_CoroutineObject *coroutine)
 {
     return INCREASE_REFCOUNT( coroutine->m_name );
@@ -116,16 +119,12 @@ static int Nuitka_Coroutine_set_frame( struct Nuitka_CoroutineObject *coroutine,
 
 static void Nuitka_Coroutine_release_closure( struct Nuitka_CoroutineObject *coroutine )
 {
-    if ( coroutine->m_closure )
+    for( Py_ssize_t i = 0; i < coroutine->m_closure_given; i++ )
     {
-        for( Py_ssize_t i = 0; i < coroutine->m_closure_given; i++ )
-        {
-            Py_DECREF( coroutine->m_closure[ i ] );
-        }
-
-        free( coroutine->m_closure );
-        coroutine->m_closure = NULL;
+        Py_DECREF( coroutine->m_closure[ i ] );
     }
+
+    coroutine->m_closure_given = 0;
 }
 
 
@@ -230,7 +229,7 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
 
         thread_state = PyThreadState_GET();
 
-        // Remove the generator from the frame stack.
+        // Remove the coroutine from the frame stack.
         if ( coroutine->m_frame )
         {
             assert( thread_state->frame == coroutine->m_frame );
@@ -525,6 +524,51 @@ static void Nuitka_Coroutine_tp_del( struct Nuitka_CoroutineObject *coroutine )
     RESTORE_ERROR_OCCURRED( error_type, error_value, error_traceback );
 }
 
+
+static PyObject *Nuitka_Coroutine_tp_repr( struct Nuitka_CoroutineObject *coroutine )
+{
+    return PyUnicode_FromFormat(
+        "<compiled_coroutine object %s at %p>",
+        Nuitka_String_AsString( coroutine->m_qualname ),
+        coroutine
+    );
+}
+
+static long Nuitka_Coroutine_tp_traverse( PyObject *coroutine, visitproc visit, void *arg )
+{
+    // TODO: Identify the impact of not visiting owned objects and/or if it
+    // could be NULL instead. The "methodobject" visits its self and module. I
+    // understand this is probably so that back references of this function to
+    // its upper do not make it stay in the memory. A specific test if that
+    // works might be needed.
+    return 0;
+}
+static PyObject *Nuitka_Coroutine_await( struct Nuitka_CoroutineObject *coroutine )
+{
+#if _DEBUG_COROUTINE
+    puts("Nuitka_Coroutine_await enter");
+#endif
+
+    struct Nuitka_CoroutineWrapperObject *result = PyObject_GC_New( struct Nuitka_CoroutineWrapperObject, &Nuitka_CoroutineWrapper_Type);
+
+    if (unlikely(result == NULL))
+    {
+        return NULL;
+    }
+
+    result->m_coroutine = coroutine;
+    Py_INCREF( result->m_coroutine );
+
+    Nuitka_GC_Track( result );
+
+    return (PyObject *)result;
+}
+
+#if NUITKA_COROUTINE_FREE_LIST
+static struct Nuitka_CoroutineObject *free_list = NULL;
+static int free_list_count = 0;
+#endif
+
 static void Nuitka_Coroutine_tp_dealloc( struct Nuitka_CoroutineObject *coroutine )
 {
     // Revive temporarily.
@@ -568,48 +612,36 @@ static void Nuitka_Coroutine_tp_dealloc( struct Nuitka_CoroutineObject *coroutin
     Py_DECREF( coroutine->m_name );
     Py_DECREF( coroutine->m_qualname );
 
+    /* We abuse m_frame for making a list of them. */
+#if NUITKA_COROUTINE_FREE_LIST
+    if ( free_list != NULL )
+    {
+        if ( free_list_count > MAX_COROUTINE_FREE_LIST_COUNT )
+        {
+            PyObject_GC_Del( coroutine );
+        }
+        else
+        {
+            coroutine->m_frame = (PyFrameObject *)free_list;
+            free_list = coroutine;
+
+            free_list_count += 1;
+        }
+    }
+    else
+    {
+        free_list = coroutine;
+        coroutine->m_frame = NULL;
+
+        assert( free_list_count == 0 );
+
+        free_list_count += 1;
+    }
+#else
     PyObject_GC_Del( coroutine );
-    RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
-}
-
-
-static PyObject *Nuitka_Coroutine_tp_repr( struct Nuitka_CoroutineObject *coroutine )
-{
-    return PyUnicode_FromFormat(
-        "<compiled_coroutine object %s at %p>",
-        Nuitka_String_AsString( coroutine->m_qualname ),
-        coroutine
-    );
-}
-
-static long Nuitka_Coroutine_tp_traverse( PyObject *coroutine, visitproc visit, void *arg )
-{
-    // TODO: Identify the impact of not visiting owned objects and/or if it
-    // could be NULL instead. The "methodobject" visits its self and module. I
-    // understand this is probably so that back references of this function to
-    // its upper do not make it stay in the memory. A specific test if that
-    // works might be needed.
-    return 0;
-}
-static PyObject *Nuitka_Coroutine_await( struct Nuitka_CoroutineObject *coroutine )
-{
-#if _DEBUG_COROUTINE
-    puts("Nuitka_Coroutine_await enter");
 #endif
 
-    struct Nuitka_CoroutineWrapperObject *result = PyObject_GC_New( struct Nuitka_CoroutineWrapperObject, &Nuitka_CoroutineWrapper_Type);
-
-    if (unlikely(result == NULL))
-    {
-        return NULL;
-    }
-
-    result->m_coroutine = coroutine;
-    Py_INCREF( result->m_coroutine );
-
-    Nuitka_GC_Track( result );
-
-    return (PyObject *)result;
+    RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 }
 
 #include <structmember.h>
@@ -653,7 +685,7 @@ PyTypeObject Nuitka_Coroutine_Type =
     PyVarObject_HEAD_INIT(NULL, 0)
     "compiled_coroutine",                            /* tp_name */
     sizeof(struct Nuitka_CoroutineObject),           /* tp_basicsize */
-    0,                                               /* tp_itemsize */
+    sizeof(struct Nuitka_CellObject *),              /* tp_itemsize */
     (destructor)Nuitka_Coroutine_tp_dealloc,         /* tp_dealloc */
     0,                                               /* tp_print */
     0,                                               /* tp_getattr */
@@ -798,10 +830,35 @@ void _initCompiledCoroutineWrapperType( void )
     PyType_Ready( &Nuitka_CoroutineWrapper_Type );
 }
 
-PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
+PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given )
 {
-    struct Nuitka_CoroutineObject *result = PyObject_GC_New( struct Nuitka_CoroutineObject, &Nuitka_Coroutine_Type );
-    assert( result != NULL );
+    struct Nuitka_CoroutineObject *result;
+
+#if NUITKA_COROUTINE_FREE_LIST
+    if ( free_list != NULL )
+    {
+        result = free_list;
+        free_list = (struct Nuitka_CoroutineObject *)free_list->m_frame;
+        free_list_count -= 1;
+        assert( free_list_count >= 0 );
+
+        if ( Py_SIZE( result ) < closure_given + 1 )
+        {
+            result = PyObject_GC_Resize( struct Nuitka_CoroutineObject, result, closure_given + 1 );
+            assert( result != NULL );
+        }
+
+        _Py_NewReference( (PyObject *)result );
+    }
+    else
+#endif
+    {
+        result = PyObject_GC_NewVar(
+            struct Nuitka_CoroutineObject,
+            &Nuitka_Coroutine_Type,
+            closure_given + 1         // TODO: This plus 1 seems off.
+        );
+    }
 
     result->m_code = (void *)code;
 
@@ -817,9 +874,7 @@ PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *q
     // TODO: Makes no sense with coroutines maybe?
     result->m_yieldfrom = NULL;
 
-    // We take ownership of those and received the reference count from the
-    // caller.
-    result->m_closure = closure;
+    // The m_closure is set from the outside.
     result->m_closure_given = closure_given;
 
     result->m_weakrefs = NULL;
@@ -921,19 +976,19 @@ static PyObject *PyCoro_GetAwaitableIter( PyObject *value )
     return NULL;
 }
 
-static void RAISE_GENERATOR_EXCEPTION( struct Nuitka_CoroutineObject *generator )
+static void RAISE_GENERATOR_EXCEPTION( struct Nuitka_CoroutineObject *coroutine )
 {
-    CHECK_OBJECT( generator->m_exception_type );
+    CHECK_OBJECT( coroutine->m_exception_type );
 
     RESTORE_ERROR_OCCURRED(
-        generator->m_exception_type,
-        generator->m_exception_value,
-        generator->m_exception_tb
+        coroutine->m_exception_type,
+        coroutine->m_exception_value,
+        coroutine->m_exception_tb
     );
 
-    generator->m_exception_type = NULL;
-    generator->m_exception_value = NULL;
-    generator->m_exception_tb = NULL;
+    coroutine->m_exception_type = NULL;
+    coroutine->m_exception_value = NULL;
+    coroutine->m_exception_tb = NULL;
 }
 
 extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();

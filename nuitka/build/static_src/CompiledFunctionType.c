@@ -23,6 +23,10 @@
 // Needed for offsetof
 #include <stddef.h>
 
+#define NUITKA_FUNCTION_FREE_LIST 1
+#define MAX_FUNCTION_FREE_LIST_COUNT 100
+
+
 // tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get( PyObject *function, PyObject *object, PyObject *klass )
 {
@@ -127,12 +131,9 @@ static long Nuitka_Function_tp_traverse( struct Nuitka_FunctionObject *function,
     // to be mostly harmless, as these are strings.
     Py_VISIT( function->m_dict );
 
-    if ( function->m_closure )
+    for( Py_ssize_t i = 0; i < function->m_closure_given; i++ )
     {
-        for( Py_ssize_t i = 0; i < function->m_closure_given; i++ )
-        {
-            Py_VISIT( function->m_closure[i] );
-        }
+        Py_VISIT( function->m_closure[i] );
     }
 
     return 0;
@@ -257,7 +258,7 @@ static int Nuitka_Function_set_code( struct Nuitka_FunctionObject *object, PyObj
 
 static PyObject *Nuitka_Function_get_closure( struct Nuitka_FunctionObject *object )
 {
-    if ( object->m_closure )
+    if ( object->m_closure_given > 0 )
     {
         PyObject *result = PyTuple_New( object->m_closure_given );
 
@@ -491,12 +492,10 @@ static PyObject *Nuitka_Function_reduce( struct Nuitka_FunctionObject *function 
 #endif
 }
 
-static PyMethodDef Nuitka_Function_methods[] =
-{
-    { "__reduce__", (PyCFunction)Nuitka_Function_reduce, METH_NOARGS, NULL },
-    { NULL }
-};
-
+#if NUITKA_FUNCTION_FREE_LIST
+static struct Nuitka_FunctionObject *free_list = NULL;
+static int free_list_count = 0;
+#endif
 
 static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
 {
@@ -531,17 +530,39 @@ static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
     Py_DECREF( function->m_annotations );
 #endif
 
-    if ( function->m_closure )
+    for( Py_ssize_t i = 0; i < function->m_closure_given; i++ )
     {
-        for( Py_ssize_t i = 0; i < function->m_closure_given; i++ )
-        {
-            Py_DECREF( function->m_closure[i] );
-        }
-
-        free( function->m_closure );
+        Py_DECREF( function->m_closure[i] );
     }
 
+    /* We abuse m_name for making a list of them. */
+#if NUITKA_FUNCTION_FREE_LIST
+    if ( free_list != NULL )
+    {
+        if ( free_list_count > MAX_FUNCTION_FREE_LIST_COUNT )
+        {
+            PyObject_GC_Del( function );
+        }
+        else
+        {
+            function->m_name = (PyObject *)free_list;
+            free_list = function;
+
+            free_list_count += 1;
+        }
+    }
+    else
+    {
+        free_list = function;
+        function->m_name = NULL;
+
+        assert( free_list_count == 0 );
+
+        free_list_count += 1;
+    }
+#else
     PyObject_GC_Del( function );
+#endif
 
 #ifndef __NUITKA_NO_ASSERT__
     PyThreadState *tstate = PyThreadState_GET();
@@ -552,12 +573,18 @@ static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
 #endif
 }
 
+static PyMethodDef Nuitka_Function_methods[] =
+{
+    { "__reduce__", (PyCFunction)Nuitka_Function_reduce, METH_NOARGS, NULL },
+    { NULL }
+};
+
 PyTypeObject Nuitka_Function_Type =
 {
     PyVarObject_HEAD_INIT(NULL, 0)
     "compiled_function",                            /* tp_name */
     sizeof(struct Nuitka_FunctionObject),           /* tp_basicsize */
-    0,                                              /* tp_itemsize */
+    sizeof(struct Nuitka_CellObject *),             /* tp_itemsize */
     (destructor)Nuitka_Function_tp_dealloc,         /* tp_dealloc */
     0,                                              /* tp_print */
     0,                                              /* tp_getattr */
@@ -592,7 +619,7 @@ PyTypeObject Nuitka_Function_Type =
     0,                                              /* tp_dict */
     Nuitka_Function_descr_get,                      /* tp_descr_get */
     0,                                              /* tp_descr_set */
-    offsetof( struct Nuitka_FunctionObject, m_dict ),      /* tp_dictoffset */
+    offsetof( struct Nuitka_FunctionObject, m_dict ), /* tp_dictoffset */
     0,                                              /* tp_init */
     0,                                              /* tp_alloc */
     0,                                              /* tp_new */
@@ -616,17 +643,47 @@ void _initCompiledFunctionType( void )
 }
 
 
+// Make a function with closure.
 #if PYTHON_VERSION < 300
-static inline PyObject *make_compiled_function( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
+struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, Py_ssize_t closure_given )
 #elif PYTHON_VERSION < 330
-static inline PyObject *make_compiled_function( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given)
+struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, Py_ssize_t closure_given )
 #else
-static inline PyObject *make_compiled_function( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
+struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, Py_ssize_t closure_given )
 #endif
 {
-    struct Nuitka_FunctionObject *result = PyObject_GC_New( struct Nuitka_FunctionObject, &Nuitka_Function_Type );
+    struct Nuitka_FunctionObject *result;
 
-    assert( result );
+#if NUITKA_FUNCTION_FREE_LIST
+    if ( free_list != NULL )
+    {
+        result = free_list;
+        free_list = (struct Nuitka_FunctionObject *)free_list->m_name;
+        free_list_count -= 1;
+        assert( free_list_count >= 0 );
+
+        if ( Py_SIZE( result ) < closure_given + 1 )
+        {
+            result = PyObject_GC_Resize( struct Nuitka_FunctionObject, result, closure_given + 1 );
+            assert( result != NULL );
+        }
+
+        _Py_NewReference( (PyObject *)result );
+    }
+    else
+#endif
+    {
+        result = PyObject_GC_NewVar(
+            struct Nuitka_FunctionObject,
+            &Nuitka_Function_Type,
+            closure_given + 1         // TODO: This plus 1 seems off.
+        );
+    }
+
+    CHECK_OBJECT( result );
+
+    /* Closure is set externally */
+    result->m_closure_given = closure_given;
 
     result->m_c_code = c_code;
 
@@ -710,48 +767,12 @@ static inline PyObject *make_compiled_function( function_impl_code c_code, PyObj
     static long Nuitka_Function_counter = 0;
     result->m_counter = Nuitka_Function_counter++;
 
-    result->m_closure = closure;
-    result->m_closure_given = closure_given;
-
     Nuitka_GC_Track( result );
-    return (PyObject *)result;
-}
 
-// Make a function without closure.
-#if PYTHON_VERSION < 300
-PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc )
-{
-    return make_compiled_function( c_code, name, code_object, defaults, module, doc, NULL, 0 );
-}
-#elif PYTHON_VERSION < 330
-PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc )
-{
-    return make_compiled_function( c_code, name, code_object, defaults, kwdefaults, annotations, module, doc, NULL, 0 );
-}
-#else
-PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc )
-{
-    return make_compiled_function( c_code, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, NULL, 0 );
-}
-#endif
+    assert( Py_REFCNT( result ) == 1 );
 
-// Make a function with closure.
-#if PYTHON_VERSION < 300
-PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
-{
-    return make_compiled_function( c_code, name, code_object, defaults, module, doc, closure, closure_given );
+    return result;
 }
-#elif PYTHON_VERSION < 330
-PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
-{
-    return make_compiled_function( c_code, name, code_object, defaults, kwdefaults, annotations, module, doc, closure, closure_given );
-}
-#else
-PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given )
-{
-    return make_compiled_function( c_code, name, qualname, code_object, defaults, kwdefaults, annotations, module, doc, closure, closure_given );
-}
-#endif
 
 static void formatErrorNoArgumentAllowed( struct Nuitka_FunctionObject const *function,
 #if PYTHON_VERSION >= 330

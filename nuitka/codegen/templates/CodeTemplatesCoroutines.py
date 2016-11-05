@@ -65,30 +65,15 @@ template_coroutine_return_exit = """\
 """
 
 
-template_make_coroutine_without_context_template = """
+template_make_coroutine_template = """
 %(to_name)s = Nuitka_Coroutine_New(
     %(coroutine_identifier)s,
     self->m_name,
     self->m_qualname,
     %(code_identifier)s,
-    NULL,
-    0
+    %(closure_count)d
 );
-"""
-
-template_make_coroutine_with_context_template = """
-{
-%(closure_making)s
-
-    %(to_name)s = Nuitka_Coroutine_New(
-        %(coroutine_identifier)s,
-        self->m_name,
-        self->m_qualname,
-        %(code_identifier)s,
-        closure,
-        %(closure_count)d
-    );
-}
+%(closure_copy)s
 """
 
 from . import TemplateDebugWrapper # isort:skip

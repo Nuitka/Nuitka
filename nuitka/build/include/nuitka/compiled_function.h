@@ -34,7 +34,7 @@ typedef PyObject *(*function_impl_code)( struct Nuitka_FunctionObject const *, P
 // The Nuitka_FunctionObject is the storage associated with a compiled function
 // instance of which there can be many for each code.
 struct Nuitka_FunctionObject {
-    PyObject_HEAD
+    PyObject_VAR_HEAD
 
     PyObject *m_name;
 
@@ -61,10 +61,6 @@ struct Nuitka_FunctionObject {
     PyObject *m_defaults;
     Py_ssize_t m_defaults_given;
 
-    // Closure taken objects, for use in __closure__ and for accessing it.
-    struct Nuitka_CellObject **m_closure;
-    Py_ssize_t m_closure_given;
-
 #if PYTHON_VERSION >= 300
     // List of keyword only defaults, for use in __kwdefaults__ and parameter
     // parsing.
@@ -78,28 +74,24 @@ struct Nuitka_FunctionObject {
     PyObject *m_qualname;
 #endif
 
+    // A kind of uuid for the function object, used in comparisons.
     long m_counter;
+
+    // Closure taken objects, for use in __closure__ and for accessing it.
+    Py_ssize_t m_closure_given;
+    struct Nuitka_CellObject *m_closure[1];
 };
 
 extern PyTypeObject Nuitka_Function_Type;
 
 
-// Make a function without context.
-#if PYTHON_VERSION < 300
-extern PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc );
-#elif PYTHON_VERSION < 330
-extern PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc );
-#else
-extern PyObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc );
-#endif
-
 // Make a function with context.
 #if PYTHON_VERSION < 300
-extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given );
+extern struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, Py_ssize_t closure_given );
 #elif PYTHON_VERSION < 330
-extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given );
+extern struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, Py_ssize_t closure_given );
 #else
-extern PyObject *Nuitka_Function_New_With_Closure( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, struct Nuitka_CellObject **closure, Py_ssize_t closure_given );
+extern struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, Py_ssize_t closure_given );
 #endif
 
 static inline bool Nuitka_Function_Check( PyObject *object )
