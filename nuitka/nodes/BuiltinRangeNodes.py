@@ -30,7 +30,7 @@ from nuitka.PythonVersions import python_version
 
 from .NodeBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
-from .shapes.BuiltinTypeShapes import ShapeTypeList
+from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeXrange
 
 
 class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
@@ -419,6 +419,9 @@ class ExpressionBuiltinXrangeBase(ExpressionChildrenHavingBase):
             values     = values,
             source_ref = source_ref
         )
+
+    def getTypeShape(self):
+        return ShapeTypeXrange
 
     def canPredictIterationValues(self):
         return self.getIterationLength() is not None
