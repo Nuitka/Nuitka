@@ -426,10 +426,10 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
         if self.variable_trace.isAssignTrace():
             value = self.variable_trace.getAssignNode().getAssignSource()
 
-            if value.hasShapeSlotNext():
-                current_index = trace_collection.getIteratorNextCount(value)
-                trace_collection.onIteratorNext(value)
+            current_index = trace_collection.getIteratorNextCount(value)
+            trace_collection.onIteratorNext(value)
 
+            if value.hasShapeSlotNext():
                 if current_index is not None and \
                    value.isKnownToBeIterableAtMin(current_index+1) and \
                    value.canPredictIterationValues():
