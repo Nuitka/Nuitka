@@ -887,6 +887,13 @@ def simpleFunction106():
     # Call a PyCFunction with a single argument.
     return sys.getsizeof(type)
 
+def simpleFunction107():
+    # Call a PyCFunction with a single argument.
+    return sum(i for i in range(x))
+
+def simpleFunction108():
+    # Call a PyCFunction with a single argument.
+    return sum((i for i in range(x)), 17)
 
 
 ####################################

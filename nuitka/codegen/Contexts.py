@@ -335,6 +335,7 @@ def _getConstantDefaultPopulation():
         "compile",
         "range",
         "open",
+        "sum",
         "format",
         "__import__",
     ]

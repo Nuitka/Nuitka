@@ -587,6 +587,10 @@ extern PyObject *BUILTIN_BYTEARRAY( PyObject *value );
 // For built-in hash() functionality.
 extern PyObject *BUILTIN_HASH( PyObject *value );
 
+extern PyObject *BUILTIN_SUM1( PyObject *sequence );
+extern PyObject *BUILTIN_SUM2( PyObject *sequence, PyObject *start );
+
+
 extern PyObject *const_str_plain___builtins__;
 
 // For built-in eval() functionality, works on byte compiled code already.
