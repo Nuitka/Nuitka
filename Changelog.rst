@@ -19,6 +19,37 @@ Bug Fixes
 - Debian: Don't depend on a C++ compiler primarily anymore, the C compiler from
   GNU or clang will do too. Fixed in 0.5.23.1 already.
 
+- Pure C: Adapted scons compiler detecting to properly consider C11 compilers
+  from the environment, and more gracefully report things.
+
+Optimization
+------------
+
+- Python2: Generators were saving and restoring exceptions, updating the variables
+  ``sys.exc_type`` for every context switch, making it really slow, as these are
+  3 dictionary updates, normally not needed. Now it's only doing it if it means
+  a change.
+
+- Sped up creating generators, coroutines and coroutines by attaching the closure
+  variable storage directly to the object, using one variable size allocation, instead
+  of two, once of which was a standard ``malloc``. This makes creating them easier
+  and avoids maintaining the closure pointer entirely.
+
+- Using dedicated compiled cell implementation similar to ``PyCellObject`` but fully
+  under our control. This allowed for smaller code generated, while still giving a
+  slight performance improvement.
+
+- Added free list implementation to cache generator, coroutines, and function objects,
+  avoiding the need to create and delete this kind of objects in a loop.
+
+- Provide type shape for ``xrange`` calls that are not constant too.
+
+Tests
+-----
+
+- Added workarounds for locks being held by Virus Scanners on Windows to our
+  test runner.
+
 Summary
 -------
 
