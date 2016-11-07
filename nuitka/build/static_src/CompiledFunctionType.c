@@ -532,6 +532,7 @@ static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
 
     for( Py_ssize_t i = 0; i < function->m_closure_given; i++ )
     {
+        assert( function->m_closure[i] );
         Py_DECREF( function->m_closure[i] );
     }
 
@@ -673,8 +674,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, Py
     else
 #endif
     {
-        result = PyObject_GC_NewVar(
-            struct Nuitka_FunctionObject,
+        result = (struct Nuitka_FunctionObject *)Nuitka_GC_NewVar(
             &Nuitka_Function_Type,
             closure_given + 1         // TODO: This plus 1 seems off.
         );

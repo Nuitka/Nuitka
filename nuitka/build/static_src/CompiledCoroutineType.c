@@ -853,8 +853,7 @@ PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *q
     else
 #endif
     {
-        result = PyObject_GC_NewVar(
-            struct Nuitka_CoroutineObject,
+        result = (struct Nuitka_CoroutineObject *)Nuitka_GC_NewVar(
             &Nuitka_Coroutine_Type,
             closure_given + 1         // TODO: This plus 1 seems off.
         );

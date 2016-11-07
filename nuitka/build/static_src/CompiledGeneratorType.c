@@ -799,8 +799,7 @@ PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *q
     else
 #endif
     {
-        result = PyObject_GC_NewVar(
-            struct Nuitka_GeneratorObject,
+        result = (struct Nuitka_GeneratorObject *)Nuitka_GC_NewVar(
             &Nuitka_Generator_Type,
             closure_given + 1         // TODO: This plus 1 seems off.
         );

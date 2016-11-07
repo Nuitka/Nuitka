@@ -502,6 +502,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 
 #include "nuitka/frame_stack.h"
 
+#include "nuitka/allocator.h"
+
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {
     CHECK_OBJECT( list );
