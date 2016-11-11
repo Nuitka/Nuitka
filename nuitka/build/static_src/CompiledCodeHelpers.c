@@ -2059,16 +2059,26 @@ PyObject *BUILTIN_SUM1( PyObject *sequence )
 
         CHECK_OBJECT( item );
 
+        // For Python2 int objects:
 #if PYTHON_VERSION < 300
         if ( PyInt_CheckExact( item ) )
-#else
-        // TODO: Python3 booleans could be here too.
-        if ( PyLong_CheckExact( item ) )
-#endif
         {
-#if PYTHON_VERSION < 300
             long b = PyInt_AS_LONG( item );
-#else
+            long x = int_result + b;
+
+            if ( (x ^ int_result) >= 0 || (x ^ b) >= 0 )
+            {
+                int_result = x;
+                Py_DECREF( item );
+
+                continue;
+            }
+        }
+#endif
+
+        // For Python2 long, Python3 int objects
+        if ( PyLong_CheckExact( item ) )
+        {
             int overflow;
             long b = PyLong_AsLongAndOverflow( item, &overflow );
 
@@ -2076,7 +2086,7 @@ PyObject *BUILTIN_SUM1( PyObject *sequence )
             {
                 break;
             }
-#endif
+
             long x = int_result + b;
 
             if ( (x ^ int_result) >= 0 || (x ^ b) >= 0 )
@@ -2088,7 +2098,27 @@ PyObject *BUILTIN_SUM1( PyObject *sequence )
             }
         }
 
-        /* Either overflowed or not an int, change to objects and process those */
+        if ( item == Py_False )
+        {
+            Py_DECREF( item );
+            continue;
+        }
+
+        if ( item == Py_True )
+        {
+            long b = 1;
+            long x = int_result + b;
+
+            if ( (x ^ int_result) >= 0 || (x ^ b) >= 0 )
+            {
+                int_result = x;
+                Py_DECREF( item );
+
+                continue;
+            }
+        }
+
+        /* Either overflowed or not one of the supported int alike types. */
         break;
     }
 
