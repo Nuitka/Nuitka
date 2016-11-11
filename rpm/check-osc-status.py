@@ -73,6 +73,9 @@ for count, title in enumerate(titles):
     status = row2[count+1]
 
     # print(row2[0], title, ":", status)
+    # Ignore PowerPC builds for now, they seem to not even boot.
+    if "ppc" in row2[0]:
+        continue
 
     if status in bad:
         problems.append(
