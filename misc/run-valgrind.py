@@ -29,6 +29,7 @@ nuitka_binary = os.environ.get(
     "NUITKA_BINARY",
     os.path.join(os.path.dirname(__file__), "../bin/nuitka")
 )
+nuitka_binary = os.path.normpath(nuitka_binary)
 
 basename = os.path.basename(input_file)
 
@@ -82,6 +83,7 @@ if "number" in sys.argv or "numbers" in sys.argv:
 
             print "SIZE=%d" % ( int(sizes[0]) + int(sizes[1]) )
             print "TICKS=%s" % line.split()[1]
+            print "BINARY=%s" % nuitka_binary
             break
     else:
         assert False
