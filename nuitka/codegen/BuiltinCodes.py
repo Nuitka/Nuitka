@@ -128,6 +128,35 @@ def generateBuiltinOpenCode(to_name, expression, emit, context):
     )
 
 
+def generateBuiltinSum1Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_SUM1",
+        arg_desc   = (
+            ("sum_sequence", expression.getSequence()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinSum2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_SUM2",
+        arg_desc   = (
+            ("sum_sequence", expression.getSequence()),
+            ("sum_start", expression.getStart()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
 def generateBuiltinRange1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name    = to_name,

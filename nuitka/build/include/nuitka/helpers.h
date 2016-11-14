@@ -502,6 +502,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
 
 #include "nuitka/frame_stack.h"
 
+#include "nuitka/allocator.h"
+
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
 {
     CHECK_OBJECT( list );
@@ -586,6 +588,10 @@ extern PyObject *BUILTIN_BYTEARRAY( PyObject *value );
 
 // For built-in hash() functionality.
 extern PyObject *BUILTIN_HASH( PyObject *value );
+
+extern PyObject *BUILTIN_SUM1( PyObject *sequence );
+extern PyObject *BUILTIN_SUM2( PyObject *sequence, PyObject *start );
+
 
 extern PyObject *const_str_plain___builtins__;
 
@@ -796,7 +802,5 @@ NUITKA_MAY_BE_UNUSED static void forceGC()
 {
     PyObject_CallObject(PyObject_GetAttrString(PyImport_ImportModule("gc"), "collect"), NULL );
 }
-
-#include "nuitka/helper/cells.h"
 
 #endif

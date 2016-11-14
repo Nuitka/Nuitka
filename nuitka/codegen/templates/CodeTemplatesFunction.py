@@ -27,18 +27,10 @@ template_function_direct_declaration = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s );
 """
 
-template_function_closure_making = """\
-    PyCellObject **closure = (PyCellObject **)malloc(%(closure_count)d * sizeof(PyCellObject *));
-%(closure_copy)s
-"""
-
-template_make_function_with_context_template = """
+template_make_function_template = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
-    // Copy the parameter default values and closure values over.
-%(closure_making)s
-
-    PyObject *result = Nuitka_Function_New_With_Closure(
+    struct Nuitka_FunctionObject *result = Nuitka_Function_New(
         %(function_impl_identifier)s,
         %(function_name_obj)s,
 #if PYTHON_VERSION >= 330
@@ -52,34 +44,10 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
 #endif
         %(module_identifier)s,
         %(function_doc)s,
-        closure,
         %(closure_count)d
     );
-
-    return result;
-}
-"""
-
-template_make_function_without_context_template = """
-static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
-{
-    PyObject *result = Nuitka_Function_New(
-        %(function_impl_identifier)s,
-        %(function_name_obj)s,
-#if PYTHON_VERSION >= 330
-        %(function_qualname_obj)s,
-#endif
-        %(code_identifier)s,
-        %(defaults)s,
-#if PYTHON_VERSION >= 300
-        %(kw_defaults)s,
-        %(annotations)s,
-#endif
-        %(module_identifier)s,
-        %(function_doc)s
-    );
-
-    return result;
+%(closure_copy)s
+    return (PyObject *)result;
 }
 """
 

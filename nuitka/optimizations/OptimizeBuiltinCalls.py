@@ -73,6 +73,10 @@ from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinOriginalRef,
     ExpressionBuiltinRef
 )
+from nuitka.nodes.BuiltinSumNodes import (
+    ExpressionBuiltinSum1,
+    ExpressionBuiltinSum2
+)
 from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinBool,
     ExpressionBuiltinBytearray,
@@ -272,7 +276,39 @@ def next_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = selectNextBuiltinClass,
-        builtin_spec  = BuiltinOptimization.builtin_iter_spec
+        builtin_spec  = BuiltinOptimization.builtin_next_spec
+    )
+
+
+def sum_extractor(node):
+    # Split up sumwith and without start value, one is much easier.
+    def selectSumBuiltinClass(sequence, start, source_ref):
+        if start is None:
+            return ExpressionBuiltinSum1(
+                sequence   = sequence,
+                source_ref = source_ref
+            )
+        else:
+            return ExpressionBuiltinSum2(
+                sequence   = sequence,
+                start      = start,
+                source_ref = source_ref
+            )
+
+    def makeSum0(source_ref):
+        # pylint: disable=W0613
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError("sum expected at least 1 arguments, got 0")
+        )
+
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node                = node,
+        builtin_class       = selectSumBuiltinClass,
+        builtin_spec        = BuiltinOptimization.builtin_sum_spec,
+        empty_special_class = makeSum0
     )
 
 
@@ -1125,6 +1161,7 @@ _dispatch_dict = {
     "type"       : type_extractor,
     "iter"       : iter_extractor,
     "next"       : next_extractor,
+    "sum"        : sum_extractor,
     "tuple"      : tuple_extractor,
     "list"       : list_extractor,
     "dict"       : dict_extractor,

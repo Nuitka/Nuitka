@@ -267,6 +267,15 @@ except Exception as e:
     print("Too many args, some keywords", repr(e))
 
 try:
+    print(sum())
+except Exception as e:
+    print("Disallowed without args", repr(e))
+
+x = range(17)
+print("Sum of range(17) is", sum(x))
+print("Sum of range(17) starting with 5 is", sum(x, 5))
+
+try:
     print(str('1', offer = 2))
 except Exception as e:
     print("Too many args, some keywords", repr(e))

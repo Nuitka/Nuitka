@@ -34,13 +34,9 @@ from .templates.CodeTemplatesCoroutines import (
     template_coroutine_object_body_template,
     template_coroutine_object_decl_template,
     template_coroutine_return_exit,
-    template_make_coroutine_with_context_template,
-    template_make_coroutine_without_context_template
+    template_make_coroutine_template
 )
-from .templates.CodeTemplatesFunction import (
-    function_dict_setup,
-    template_function_closure_making
-)
+from .templates.CodeTemplatesFunction import function_dict_setup
 from .VariableCodes import getLocalVariableCodeType, getLocalVariableInitCode
 
 
@@ -132,57 +128,48 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
         future_flags = coroutine_object_body.getSourceReference().getFutureSpec().asFlags()
     )
 
-    if closure_variables:
-        # TODO: Copy duplication with generator codes, ought to be shared.
-        closure_copy = []
+    # TODO: Copy duplication with generator codes, ought to be shared.
+    closure_copy = []
 
-        for count, variable in enumerate(closure_variables):
-            variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+    for count, variable in enumerate(closure_variables):
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
-            # Coroutines might not use them, but they still need to be put there.
-            # TODO: But they don't have to be cells.
-            if variable_c_type == "PyObject *":
-                closure_copy.append(
-                    "closure[%d] = PyCell_NEW0( %s );" % (
-                        count,
-                        variable_code_name
-                    )
+        # Coroutines might not use them, but they still need to be put there.
+        # TODO: But they don't have to be cells.
+        if variable_c_type == "PyObject *":
+            closure_copy.append(
+                "((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] = PyCell_NEW0( %s );" % (
+                    to_name,
+                    count,
+                    variable_code_name
                 )
-            elif variable_c_type == "PyCellObject *":
-                closure_copy.append(
-                    "closure[%d] = %s;" % (
-                        count,
-                        variable_code_name
-                    )
+            )
+        elif variable_c_type == "struct Nuitka_CellObject *":
+            closure_copy.append(
+                "((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] = %s;" % (
+                    to_name,
+                    count,
+                    variable_code_name
                 )
-                closure_copy.append(
-                    "Py_INCREF( closure[%d] );" % count
+            )
+            closure_copy.append(
+                "Py_INCREF( ((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] );" % (
+                    to_name,
+                    count
                 )
-            else:
-                assert False, variable
+            )
+        else:
+            assert False, variable
 
-        closure_making = template_function_closure_making % {
-            "closure_copy"  : indented(closure_copy),
-            "closure_count" : len(closure_variables)
+    emit(
+        template_make_coroutine_template % {
+            "closure_copy"         : indented(closure_copy, 0, True),
+            "coroutine_identifier" : coroutine_object_body.getCodeName(),
+            "to_name"              : to_name,
+            "code_identifier"      : code_identifier,
+            "closure_count"        : len(closure_variables)
         }
-
-        emit(
-            template_make_coroutine_with_context_template % {
-                "closure_making"       : closure_making,
-                "coroutine_identifier" : coroutine_object_body.getCodeName(),
-                "to_name"              : to_name,
-                "code_identifier"      : code_identifier,
-                "closure_count"        : len(closure_variables)
-            }
-        )
-    else:
-        emit(
-            template_make_coroutine_without_context_template % {
-                "coroutine_identifier" : coroutine_object_body.getCodeName(),
-                "to_name"              : to_name,
-                "code_identifier"      : code_identifier,
-            }
-        )
+    )
 
     context.addCleanupTempName(to_name)
 

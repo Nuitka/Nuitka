@@ -414,7 +414,7 @@ static void tb_dealloc( PyTracebackObject *tb )
 {
     // printf( "dealloc TB %ld %lx FR %ld %lx\n", Py_REFCNT( tb ), (long)tb, Py_REFCNT( tb->tb_frame ), (long)tb->tb_frame );
 
-    PyObject_GC_UnTrack(tb);
+    Nuitka_GC_UnTrack( tb );
     //    Py_TRASHCAN_SAFE_BEGIN(tb)
     Py_XDECREF( tb->tb_next );
     Py_XDECREF( tb->tb_frame );
@@ -437,7 +437,10 @@ static PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module, bool is_
     Py_ssize_t nfrees = PyTuple_GET_SIZE( code->co_freevars );
     Py_ssize_t extras = code->co_stacksize + code->co_nlocals + ncells + nfrees;
 
-    struct Nuitka_FrameObject *result = PyObject_GC_NewVar( struct Nuitka_FrameObject, &Nuitka_Frame_Type, extras );
+    struct Nuitka_FrameObject *result = (struct Nuitka_FrameObject *)Nuitka_GC_NewVar(
+        &Nuitka_Frame_Type,
+        extras
+    );
 
     if (unlikely( result == NULL ))
     {
@@ -589,7 +592,9 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
 
 static PyFrameObject *duplicateFrame( PyFrameObject *old_frame, PyObject *locals )
 {
-    PyFrameObject *new_frame = PyObject_GC_NewVar( PyFrameObject, &PyFrame_Type, 0 );
+    // TODO: Needs to copy extras too, or we should not have those entirely
+    // and do away with NewVar allocation, when we don't use it.
+    PyFrameObject *new_frame = (PyFrameObject *)Nuitka_GC_NewVar( &PyFrame_Type, 0 );
 
     // Allow only to detach only our tracing frames.
     assert( Py_TYPE( old_frame ) == &Nuitka_Frame_Type );

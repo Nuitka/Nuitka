@@ -18,22 +18,18 @@
 #     limitations under the License.
 #
 
-module_value1 = 5000
-module_value2 = 3000
-
 def calledRepeatedly():
-    # Force frame and eliminate forward propagation (currently).
-    module_value1
-
-    local_value = module_value1
-
-    s = module_value1
-    t = module_value2
+    # We measure making a generator iterator step or not.
 # construct_begin
-    t = s + t
+    gen = (x for x in range(3))
+# construct_alternative
+    gen = iter((1,2,3))
 # construct_end
 
-    return s, t, local_value
+    x = next(gen)
+    next(gen)
+
+    return x
 
 for x in xrange(50000):
     calledRepeatedly()

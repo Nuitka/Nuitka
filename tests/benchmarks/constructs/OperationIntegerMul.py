@@ -30,7 +30,7 @@ def calledRepeatedly():
     s = module_value1
     t = module_value2
 # construct_begin
-    t = s + t
+    t = s * t
 # construct_end
 
     return s, t, local_value

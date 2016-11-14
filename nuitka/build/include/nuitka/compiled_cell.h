@@ -15,50 +15,60 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-#ifndef __NUITKA_CELLS_H__
-#define __NUITKA_CELLS_H__
+#ifndef __NUITKA_COMPILED_CELL_H__
+#define __NUITKA_COMPILED_CELL_H__
 
-NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW0( PyObject *value )
+/* This is a clone of the normal PyCell structure. We should keep it binary
+ * compatible, just in case somebody crazy insists on it.
+ */
+
+extern PyTypeObject Nuitka_Cell_Type;
+
+static inline bool Nuitka_Cell_Check( PyObject *object )
+{
+    return Py_TYPE( object ) == &Nuitka_Cell_Type;
+}
+
+struct Nuitka_CellObject
+{
+    PyObject_HEAD
+    PyObject *ob_ref;   /* Content of the cell or NULL when empty */
+};
+
+extern struct Nuitka_CellObject *Nuitka_Cell_New( void );
+
+extern void Nuitka_Cells_New( struct Nuitka_CellObject **closure, int count );
+
+NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_NEW0( PyObject *value )
 {
     CHECK_OBJECT( value );
 
-    PyCellObject *result;
-
-    result = (PyCellObject *)PyObject_GC_New( PyCellObject, &PyCell_Type );
+    struct Nuitka_CellObject *result = Nuitka_Cell_New();
     assert( result != NULL );
 
     result->ob_ref = value;
     Py_INCREF( value );
 
-    Nuitka_GC_Track( result );
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_NEW1( PyObject *value )
+NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_NEW1( PyObject *value )
 {
     CHECK_OBJECT( value );
 
-    PyCellObject *result;
-
-    result = (PyCellObject *)PyObject_GC_New( PyCellObject, &PyCell_Type );
+    struct Nuitka_CellObject *result = Nuitka_Cell_New();
     assert( result != NULL );
 
     result->ob_ref = value;
 
-    Nuitka_GC_Track( result );
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyCellObject *PyCell_EMPTY( void )
+NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_EMPTY( void )
 {
-    PyCellObject *result;
-
-    result = (PyCellObject *)PyObject_GC_New( PyCellObject, &PyCell_Type );
-    assert( result != NULL );
-
+    struct Nuitka_CellObject *result = Nuitka_Cell_New();
     result->ob_ref = NULL;
 
-    Nuitka_GC_Track( result );
     return result;
 }
 

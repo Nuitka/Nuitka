@@ -18,16 +18,24 @@
 #     limitations under the License.
 #
 
+not_all = [1,1,1,1,1,1,1,1,0,1]
+
 def calledRepeatedly():
     # We measure making a generator iterator step or not.
-    gen = (x for x in range(3))
+    gen = (x for x in not_all)
 
+    # make sure it is started.
     x = next(gen)
+
+    # This should abort.
 # construct_begin
-    next(gen)
+    all(gen)
 # construct_end
 
-    return x
+    # make sure it is still running.
+    y = next(gen)
+
+    return x, y
 
 for x in xrange(50000):
     calledRepeatedly()

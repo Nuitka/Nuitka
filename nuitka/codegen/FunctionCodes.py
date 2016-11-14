@@ -42,13 +42,11 @@ from .templates.CodeTemplatesFunction import (
     function_dict_setup,
     function_direct_body_template,
     template_function_body,
-    template_function_closure_making,
     template_function_direct_declaration,
     template_function_exception_exit,
     template_function_make_declaration,
     template_function_return_exit,
-    template_make_function_with_context_template,
-    template_make_function_without_context_template
+    template_make_function_template
 )
 from .TupleCodes import getTupleCreationCode
 from .VariableCodes import (
@@ -88,7 +86,7 @@ def _getFunctionCreationArgs(defaults_name, kw_defaults_name,
 
     for closure_variable in closure_variables:
         result.append(
-            "PyCellObject *%s" % (
+            "struct Nuitka_CellObject *%s" % (
                 getVariableCodeName(
                     variable   = closure_variable,
                     in_context = True
@@ -142,93 +140,56 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
             context  = context
         )
 
-    if closure_variables:
-        closure_copy = []
+    closure_copy = []
 
-        for count, closure_variable in enumerate(closure_variables):
-            closure_copy.append(
-                "closure[%d] = %s;" % (
-                    count,
-                    getVariableCodeName(
-                        True,
-                        closure_variable
-                    )
+    for count, closure_variable in enumerate(closure_variables):
+        closure_copy.append(
+            "result->m_closure[%d] = %s;" % (
+
+                count,
+                getVariableCodeName(
+                    True,
+                    closure_variable
                 )
             )
-            closure_copy.append(
-                "Py_INCREF( closure[%d] );" %count
-            )
+        )
+        closure_copy.append(
+            "Py_INCREF( result->m_closure[%d] );" %count
+        )
 
-        closure_making = template_function_closure_making % {
-            "closure_copy"  : indented(closure_copy),
-            "closure_count" : len(closure_variables)
-        }
-
-        result = template_make_function_with_context_template % {
-            "function_name_obj"          : getConstantCode(
-                constant = function_name,
-                context  = context
-            ),
-            "function_qualname_obj"      : function_qualname_obj,
-            "function_identifier"        : function_identifier,
-            "function_impl_identifier" : getFunctionEntryPointIdentifier(
-                function_identifier = function_identifier,
-            ),
-            "function_creation_args"     : ", ".join(
-                function_creation_args
-            ),
-            "code_identifier"            : code_identifier,
-            "closure_making"             : closure_making,
-            "function_doc"               : getConstantCode(
-                constant = function_doc,
-                context  = context
-            ),
-            "defaults"                   : "defaults"
-                                             if defaults_name else
-                                           "NULL",
-            "kw_defaults"                : "kw_defaults"
-                                             if kw_defaults_name else
-                                           "NULL",
-            "annotations"                : "annotations"
-                                             if annotations_name else
-                                           context.getConstantCode({}),
-            "closure_count"              : len(closure_variables),
-            "module_identifier"          : getModuleAccessCode(
-                context = context
-            ),
-        }
-    else:
-        result = template_make_function_without_context_template % {
-            "function_name_obj"          : getConstantCode(
-                constant = function_name,
-                context  = context
-            ),
-            "function_qualname_obj"      : function_qualname_obj,
-            "function_identifier"        : function_identifier,
-            "function_impl_identifier" : getFunctionEntryPointIdentifier(
-                function_identifier = function_identifier,
-            ),
-            "function_creation_args"     : ", ".join(
-                function_creation_args
-            ),
-            "code_identifier"            : code_identifier,
-            "function_doc"               : getConstantCode(
-                constant = function_doc,
-                context  = context
-            ),
-            "defaults"                   : "defaults"
-                                             if defaults_name else
-                                           "NULL",
-            "kw_defaults"                : "kw_defaults"
-                                             if kw_defaults_name else
-                                           "NULL",
-            "annotations"                : "annotations"
-                                             if annotations_name else
-                                           context.getConstantCode({}),
-            "module_identifier"          : getModuleAccessCode(
-                context = context
-            ),
-        }
+    result = template_make_function_template % {
+        "function_name_obj"          : getConstantCode(
+            constant = function_name,
+            context  = context
+        ),
+        "function_qualname_obj"      : function_qualname_obj,
+        "function_identifier"        : function_identifier,
+        "function_impl_identifier"   : getFunctionEntryPointIdentifier(
+            function_identifier = function_identifier,
+        ),
+        "function_creation_args"     : ", ".join(
+            function_creation_args
+        ),
+        "code_identifier"            : code_identifier,
+        "closure_copy"               : indented(closure_copy, 0, True),
+        "function_doc"               : getConstantCode(
+            constant = function_doc,
+            context  = context
+        ),
+        "defaults"                   : "defaults"
+                                         if defaults_name else
+                                       "NULL",
+        "kw_defaults"                : "kw_defaults"
+                                         if kw_defaults_name else
+                                       "NULL",
+        "annotations"                : "annotations"
+                                         if annotations_name else
+                                       context.getConstantCode({}),
+        "closure_count"              : len(closure_variables),
+        "module_identifier"          : getModuleAccessCode(
+            context = context
+        ),
+    }
 
     return result
 
@@ -407,7 +368,7 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
 
         if variable_c_type == "PyObject *":
             suffix_args.append('&' + variable_code_name)
-        elif variable_c_type in ("PyCellObject *", "PyObject **"):
+        elif variable_c_type in ("struct Nuitka_CellObject *", "PyObject **"):
             suffix_args.append(variable_code_name)
         else:
             assert False, variable_c_type

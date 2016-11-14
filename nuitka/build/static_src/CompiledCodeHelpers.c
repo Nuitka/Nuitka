@@ -1690,7 +1690,10 @@ void enhancePythonTypes( void )
 }
 
 #ifdef __APPLE__
-extern "C" wchar_t* _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t size);
+#ifdef __cplusplus
+extern "C"
+#endif
+wchar_t* _Py_DecodeUTF8_surrogateescape(const char *s, Py_ssize_t size);
 #endif
 
 #ifdef __FreeBSD__
@@ -2018,6 +2021,190 @@ PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *valu
 
     return BOOL_FROM( res == 0 );
 }
+
+PyObject *BUILTIN_SUM1( PyObject *sequence )
+{
+    PyObject *iter = MAKE_ITERATOR( sequence );
+    if (unlikely( iter == NULL ))
+    {
+        return NULL;
+    }
+
+    PyObject *result;
+
+    long int_result = 0;
+
+    PyObject *item;
+
+    for(;;)
+    {
+        item = ITERATOR_NEXT( iter );
+
+        if ( item == NULL )
+        {
+            Py_DECREF( iter );
+
+            if (unlikely( !CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() ))
+            {
+                return NULL;
+            }
+
+#if PYTHON_VERSION < 300
+            return PyInt_FromLong( int_result );
+#else
+            return PyLong_FromLong( int_result );
+#endif
+
+        }
+
+        CHECK_OBJECT( item );
+
+        // For Python2 int objects:
+#if PYTHON_VERSION < 300
+        if ( PyInt_CheckExact( item ) )
+        {
+            long b = PyInt_AS_LONG( item );
+            long x = int_result + b;
+
+            if ( (x ^ int_result) >= 0 || (x ^ b) >= 0 )
+            {
+                int_result = x;
+                Py_DECREF( item );
+
+                continue;
+            }
+        }
+#endif
+
+        // For Python2 long, Python3 int objects
+        if ( PyLong_CheckExact( item ) )
+        {
+            int overflow;
+            long b = PyLong_AsLongAndOverflow( item, &overflow );
+
+            if ( overflow )
+            {
+                break;
+            }
+
+            long x = int_result + b;
+
+            if ( (x ^ int_result) >= 0 || (x ^ b) >= 0 )
+            {
+                int_result = x;
+                Py_DECREF( item );
+
+                continue;
+            }
+        }
+
+        if ( item == Py_False )
+        {
+            Py_DECREF( item );
+            continue;
+        }
+
+        if ( item == Py_True )
+        {
+            long b = 1;
+            long x = int_result + b;
+
+            if ( (x ^ int_result) >= 0 || (x ^ b) >= 0 )
+            {
+                int_result = x;
+                Py_DECREF( item );
+
+                continue;
+            }
+        }
+
+        /* Either overflowed or not one of the supported int alike types. */
+        break;
+    }
+
+    /* Switch over to objects, and redo last step. */
+#if PYTHON_VERSION < 300
+    result = PyInt_FromLong( int_result );
+#else
+    result = PyLong_FromLong( int_result );
+#endif
+    CHECK_OBJECT( result );
+
+    PyObject *temp = PyNumber_Add( result, item );
+    Py_DECREF( result );
+    Py_DECREF( item );
+    result = temp;
+
+    if (unlikely( result == NULL ))
+    {
+        return NULL;
+    }
+
+    for(;;)
+    {
+        CHECK_OBJECT( result );
+
+        item = ITERATOR_NEXT( iter );
+
+        if ( item == NULL )
+        {
+            Py_DECREF( iter );
+
+            if (unlikely( !CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() ))
+            {
+                Py_DECREF( result );
+                return NULL;
+            }
+
+            break;
+        }
+
+        CHECK_OBJECT( item );
+
+        PyObject *temp2 = PyNumber_Add( result, item );
+
+        Py_DECREF( item );
+        Py_DECREF( result );
+
+        if (unlikely( temp2 == NULL ))
+        {
+            return NULL;
+        }
+
+        result = temp2;
+    }
+
+    CHECK_OBJECT( result );
+
+    return result;
+}
+
+
+NUITKA_DEFINE_BUILTIN( sum );
+
+PyObject *BUILTIN_SUM2( PyObject *sequence, PyObject *start )
+{
+    NUITKA_ASSIGN_BUILTIN( sum );
+
+    CHECK_OBJECT( sequence );
+    CHECK_OBJECT( start );
+
+    PyObject *pos_args = PyTuple_New( 2 );
+    PyTuple_SET_ITEM( pos_args, 0, sequence );
+    Py_INCREF( sequence );
+    PyTuple_SET_ITEM( pos_args, 1, start );
+    Py_INCREF( start );
+
+
+    PyObject *result = CALL_FUNCTION_WITH_POSARGS(
+       NUITKA_ACCESS_BUILTIN( sum ),
+       pos_args
+    );
+
+    Py_DECREF( pos_args );
+    return result;
+}
+
 
 PyDictObject *dict_builtin = NULL;
 PyModuleObject *builtin_module = NULL;

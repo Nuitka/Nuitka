@@ -18,22 +18,20 @@
 #     limitations under the License.
 #
 
-module_value1 = 5000
-module_value2 = 3000
+empty = ()
 
 def calledRepeatedly():
-    # Force frame and eliminate forward propagation (currently).
-    module_value1
+    # We measure making a generator iterator step or not.
+    gen = (x for x in range(10))
 
-    local_value = module_value1
-
-    s = module_value1
-    t = module_value2
+    # This should abort.
 # construct_begin
-    t = s + t
+    y = sum(gen)
+# construct_alternative
+    y = sum(empty)
 # construct_end
 
-    return s, t, local_value
+    return y
 
 for x in xrange(50000):
     calledRepeatedly()

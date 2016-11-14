@@ -46,7 +46,7 @@ static const int status_Finished = 2;
 // The Nuitka_GeneratorObject is the storage associated with a compiled
 // generator object instance of which there can be many for each code.
 struct Nuitka_GeneratorObject {
-    PyObject_HEAD
+    PyObject_VAR_HEAD
 
     PyObject *m_name;
 
@@ -72,13 +72,14 @@ struct Nuitka_GeneratorObject {
     PyFrameObject *m_frame;
     PyCodeObject *m_code_object;
 
-    // Closure variables given, if any, we reference cells here.
-    PyCellObject **m_closure;
-    Py_ssize_t m_closure_given;
-
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
+    /* Closure variables given, if any, we reference cells here. The last
+     * part is dynamically allocated, the array size differs per generator.
+     */
+    Py_ssize_t m_closure_given;
+    struct Nuitka_CellObject *m_closure[1];
 };
 
 extern PyTypeObject Nuitka_Generator_Type;
@@ -86,9 +87,9 @@ extern PyTypeObject Nuitka_Generator_Type;
 typedef void (*generator_code)( struct Nuitka_GeneratorObject * );
 
 #if PYTHON_VERSION < 350
-extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCodeObject *code_object, Py_ssize_t closure_given );
 #else
-extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given );
 #endif
 
 static inline bool Nuitka_Generator_Check( PyObject *object )
@@ -146,8 +147,9 @@ static inline PyObject *YIELD_IN_HANDLER( struct Nuitka_GeneratorObject *generat
 
     generator->m_yielded = value;
 
-    // When yielding from an exception handler in Python3, the exception
-    // preserved to the frame is restore, while the current one is put there.
+    /* When yielding from an exception handler in Python3, the exception
+     * preserved to the frame is restore, while the current one is put there.
+     */
     PyThreadState *thread_state = PyThreadState_GET();
 
     PyObject *saved_exception_type = thread_state->exc_type;

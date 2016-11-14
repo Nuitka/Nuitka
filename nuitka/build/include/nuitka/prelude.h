@@ -18,6 +18,7 @@
 #ifndef __NUITKA_PRELUDE_H__
 #define __NUITKA_PRELUDE_H__
 
+#include "build_definitions.h"
 
 #ifdef __NUITKA_NO_ASSERT__
 #define NDEBUG
@@ -221,6 +222,8 @@ typedef long Py_hash_t;
 #endif
 
 #include "nuitka/helpers.h"
+
+#include "nuitka/compiled_cell.h"
 
 #include "nuitka/compiled_function.h"
 

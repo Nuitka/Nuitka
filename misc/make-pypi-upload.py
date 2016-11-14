@@ -53,20 +53,22 @@ print("Creating documentation.")
 assert 0 == os.system("misc/make-doc.py")
 print("Creating source distribution and uploading it.")
 assert 0 == os.system("python setup.py sdist upload")
+print("Uploaded.")
 
-for _i in range(60):
-    # Wait some time for PyPI to catch up with us. Without delay
-    # the old version will still appear. Since this is running
-    # in a Buildbot, we need not be optimal.
-    time.sleep(5*60)
+if False:
+    for _i in range(60):
+        # Wait some time for PyPI to catch up with us. Without delay
+        # the old version will still appear. Since this is running
+        # in a Buildbot, we need not be optimal.
+        time.sleep(5*60)
 
-    pypi = xmlrpclib.ServerProxy("https://pypi.python.org/pypi")
-    pypi_versions = pypi.package_releases("Nuitka")
+        pypi = xmlrpclib.ServerProxy("https://pypi.python.org/pypi")
+        pypi_versions = pypi.package_releases("Nuitka")
 
-    assert len(pypi_versions) == 1, pypi_versions
-    if nuitka_version == pypi_versions[0]:
-        break
+        assert len(pypi_versions) == 1, pypi_versions
+        if nuitka_version == pypi_versions[0]:
+            break
 
-    print("Version check failed:", nuitka_version, pypi_versions)
+        print("Version check failed:", nuitka_version, pypi_versions)
 
-print("Uploaded OK:", pypi_versions[0])
+    print("Uploaded OK:", pypi_versions[0])

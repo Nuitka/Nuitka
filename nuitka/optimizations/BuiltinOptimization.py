@@ -283,6 +283,8 @@ builtin_hash_spec = BuiltinParameterSpecNoKeywords("hash", ("object",), 0)
 
 builtin_format_spec = BuiltinParameterSpecNoKeywords("format", ("value", "format_spec"), 1)
 
+builtin_sum_spec = BuiltinParameterSpecNoKeywords("sum", ("sequence", "start"), 1)
+
 
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def __init__(self, *args):

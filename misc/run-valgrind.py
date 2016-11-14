@@ -29,6 +29,7 @@ nuitka_binary = os.environ.get(
     "NUITKA_BINARY",
     os.path.join(os.path.dirname(__file__), "../bin/nuitka")
 )
+nuitka_binary = os.path.normpath(nuitka_binary)
 
 basename = os.path.basename(input_file)
 
@@ -52,7 +53,7 @@ os.system(
     "%s --exe --python-flag=-S --output-dir=%s %s %s %s" % (
         nuitka_binary,
         tempdir,
-        "" if "number" in sys.argv else "--unstripped",
+        "" if ("number" in sys.argv or "numbers" in sys.argv) else "--unstripped",
         os.environ.get("NUITKA_EXTRA_OPTIONS", ""),
         input_file
     )
@@ -75,13 +76,14 @@ subprocess.check_call(
     stdout = open(os.devnull, 'w')
 )
 
-if "number" in sys.argv:
+if "number" in sys.argv or "numbers" in sys.argv:
     for line in open(log_file):
         if line.startswith("summary:"):
             sizes = commands.getoutput("size '%s'" % output_binary).split('\n')[-1].replace('\t', "").split()
 
             print "SIZE=%d" % ( int(sizes[0]) + int(sizes[1]) )
             print "TICKS=%s" % line.split()[1]
+            print "BINARY=%s" % nuitka_binary
             break
     else:
         assert False

@@ -664,8 +664,14 @@ if remove_output:
                 # It appears there is a tiny lock race that we randomly cause,
                 # likely because --run spawns a subprocess that might still
                 # be doing the cleanup work.
-                os.rename(nuitka_cmd2[0], nuitka_cmd2[0]+".away")
-                for i in range(10):
+                for _i in range(10):
+                    try:
+                        os.rename(nuitka_cmd2[0], nuitka_cmd2[0]+".away")
+                    except OSError:
+                        time.sleep(0.1)
+                        continue
+
+                for _i in range(10):
                     try:
                         os.unlink(nuitka_cmd2[0]+".away")
                     except OSError:

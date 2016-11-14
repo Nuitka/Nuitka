@@ -29,7 +29,7 @@
 // The Nuitka_GeneratorObject is the storage associated with a compiled
 // generator object instance of which there can be many for each code.
 struct Nuitka_CoroutineObject {
-    PyObject_HEAD
+    PyObject_VAR_HEAD
 
     PyObject *m_name;
 
@@ -56,20 +56,19 @@ struct Nuitka_CoroutineObject {
     PyFrameObject *m_frame;
     PyCodeObject *m_code_object;
 
-    // Closure variables given, if any, we reference cells here.
-    PyCellObject **m_closure;
-    Py_ssize_t m_closure_given;
-
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
+    // Closure variables given, if any, we reference cells here.
+    Py_ssize_t m_closure_given;
+    struct Nuitka_CellObject *m_closure[1];
 };
 
 extern PyTypeObject Nuitka_Coroutine_Type;
 
 typedef void (*coroutine_code)( struct Nuitka_CoroutineObject * );
 
-extern PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyCellObject **closure, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given );
 
 static inline bool Nuitka_Coroutine_Check( PyObject *object )
 {
