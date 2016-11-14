@@ -1,5 +1,10 @@
-Nuitka Release 0.5.24 (Draft)
-=============================
+Nuitka Release 0.5.24
+=====================
+
+This release is again focusing on optimization, this time very heavily on
+the generator performance, which was found to be much slower than CPython
+for some cases. Also there is the usual compatibility work and improvements
+for Pure C support.
 
 Bug Fixes
 ---------
@@ -42,7 +47,13 @@ Optimization
 - Added free list implementation to cache generator, coroutines, and function objects,
   avoiding the need to create and delete this kind of objects in a loop.
 
-- Provide type shape for ``xrange`` calls that are not constant too.
+- Added support for the built-in ``sum``, making slight optimizations to be much
+  faster when iterating over lists and tuples, as well as fast ``long`` sum for
+  Python2, and much faster ``bool`` sums too. This is using a prototype version
+  of a "qiter" concept.
+
+- Provide type shape for ``xrange`` calls that are not constant too, allowing for
+  better optimization related to those.
 
 Tests
 -----
@@ -50,10 +61,28 @@ Tests
 - Added workarounds for locks being held by Virus Scanners on Windows to our
   test runner.
 
+- Enhanced constructs that test generator expressions to more clearly show the
+  actual construct cost.
+
+- Added construct tests for the ``sum`` built-in on verious types of ``int``
+  containers, making sure we can do all of those really fast.
+
 Summary
 -------
 
-This release is not done yet.
+This release improves very heavily on generators in Nuitka. The memory allocator
+is used more cleverly, and free lists all around save a lot of interactions with
+it. More work lies ahead in this field, as these are not yet as fast as they
+should be. However, at least Nuitka should be faster than CPython for these kind
+of usages now.
+
+Also, proper pure C in the Scons is relatively important to cover more of the
+rarer use cases, where the C compiler is too old.
+
+The most important part is actually how ``sum`` optimization is staging a new
+kind of approach for code generation. This could become the standard code for
+iterators in loops eventually, making ``for`` loops even faster. This will be
+for future releases to expand.
 
 
 Nuitka Release 0.5.23
