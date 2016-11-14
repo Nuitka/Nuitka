@@ -280,7 +280,8 @@ def makeSourceDirectory(main_module):
                 # module. Some uncompiled modules may have been asked by the user
                 # or technically required. By default, frozen code if it exists
                 # is preferred, as it will be from standalone mode adding it.
-                if uncompiled_module.isUserProvided():
+                if uncompiled_module.isUserProvided() or \
+                   uncompiled_module.isTechnical():
                     ModuleRegistry.removeDoneModule(module)
                 else:
                     ModuleRegistry.removeUncompiledModule(uncompiled_module)
@@ -667,7 +668,6 @@ def main():
 
     # Main has to fullfil many options, leading to many branches and statements
     # to deal with them.  pylint: disable=R0912
-
     positional_args = Options.getPositionalArgs()
     assert len(positional_args) > 0
 
