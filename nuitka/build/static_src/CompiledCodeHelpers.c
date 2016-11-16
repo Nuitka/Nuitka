@@ -2077,6 +2077,7 @@ PyObject *BUILTIN_SUM1( PyObject *sequence )
 #endif
 
         // For Python2 long, Python3 int objects
+#if PYTHON_VERSION >= 270
         if ( PyLong_CheckExact( item ) )
         {
             int overflow;
@@ -2097,6 +2098,7 @@ PyObject *BUILTIN_SUM1( PyObject *sequence )
                 continue;
             }
         }
+#endif
 
         if ( item == Py_False )
         {
