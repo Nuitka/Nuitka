@@ -2022,10 +2022,145 @@ PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *valu
     return BOOL_FROM( res == 0 );
 }
 
+#define ITERATOR_GENERIC 0
+#define ITERATOR_COMPILED_GENERATOR 1
+#define ITERATOR_TUPLE 2
+#define ITERATOR_LIST 3
+
+struct Nuitka_QuickIterator
+{
+      int iterator_mode;
+
+      union
+      {
+          // ITERATOR_GENERIC
+          PyObject *iter;
+
+          // ITERATOR_COMPILED_GENERATOR
+          struct Nuitka_GeneratorObject *generator;
+
+          // ITERATOR_TUPLE
+          struct {
+              PyTupleObject *tuple;
+              Py_ssize_t tuple_index;
+          } tuple_data;
+
+          // ITERATOR_LIST
+          struct {
+              PyListObject *list;
+              Py_ssize_t list_index;
+          } list_data;
+      }  iterator_data;
+};
+
+static bool MAKE_QUICK_ITERATOR( PyObject *sequence, struct Nuitka_QuickIterator *qiter )
+{
+    if ( Nuitka_Generator_Check( sequence ) )
+    {
+        qiter->iterator_mode = ITERATOR_COMPILED_GENERATOR;
+        qiter->iterator_data.generator = (struct Nuitka_GeneratorObject *)sequence;
+    }
+    else if ( PyTuple_CheckExact( sequence ) )
+    {
+        qiter->iterator_mode = ITERATOR_TUPLE;
+        qiter->iterator_data.tuple_data.tuple = (PyTupleObject *)sequence;
+        qiter->iterator_data.tuple_data.tuple_index = 0;
+    }
+    else if ( PyList_CheckExact( sequence ) )
+    {
+        qiter->iterator_mode = ITERATOR_LIST;
+        qiter->iterator_data.list_data.list = (PyListObject *)sequence;
+        qiter->iterator_data.list_data.list_index = 0;
+    }
+    else
+    {
+        qiter->iterator_mode = ITERATOR_GENERIC;
+
+        qiter->iterator_data.iter = MAKE_ITERATOR( sequence );
+        if (unlikely( qiter->iterator_data.iter == NULL ))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static PyObject *QUICK_ITERATOR_NEXT( struct Nuitka_QuickIterator *qiter, bool *finished )
+{
+    PyObject *result;
+
+    switch ( qiter->iterator_mode )
+    {
+        case ITERATOR_GENERIC:
+            result = ITERATOR_NEXT( qiter->iterator_data.iter );
+
+            if ( result == NULL )
+            {
+                Py_DECREF( qiter->iterator_data.iter );
+
+                if (unlikely( !CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() ))
+                {
+                    *finished = false;
+                    return NULL;
+                }
+
+                *finished = true;
+                return NULL;
+            }
+
+            *finished = false;
+            return result;
+        case ITERATOR_COMPILED_GENERATOR:
+            result = Nuitka_Generator_qiter( qiter->iterator_data.generator, finished );
+
+            return result;
+        case ITERATOR_TUPLE:
+            if ( qiter->iterator_data.tuple_data.tuple_index < PyTuple_GET_SIZE( qiter->iterator_data.tuple_data.tuple ) )
+            {
+                result = PyTuple_GET_ITEM(
+                    qiter->iterator_data.tuple_data.tuple,
+                    qiter->iterator_data.tuple_data.tuple_index
+                );
+                qiter->iterator_data.tuple_data.tuple_index += 1;
+
+                *finished = false;
+
+                Py_INCREF( result );
+                return result;
+            }
+            else
+            {
+                *finished = true;
+                return NULL;
+            }
+        case ITERATOR_LIST:
+            if ( qiter->iterator_data.list_data.list_index < PyList_GET_SIZE( qiter->iterator_data.list_data.list ) )
+            {
+                result = PyList_GET_ITEM( qiter->iterator_data.list_data.list, qiter->iterator_data.list_data.list_index );
+                qiter->iterator_data.list_data.list_index += 1;
+
+                *finished = false;
+
+                Py_INCREF( result );
+                return result;
+            }
+            else
+            {
+                *finished = true;
+                return NULL;
+            }
+    }
+
+    assert(false);
+    return NULL;
+}
+
 PyObject *BUILTIN_SUM1( PyObject *sequence )
 {
-    PyObject *iter = MAKE_ITERATOR( sequence );
-    if (unlikely( iter == NULL ))
+    struct Nuitka_QuickIterator qiter;
+
+    if (unlikely( MAKE_QUICK_ITERATOR( sequence, &qiter ) == false ))
     {
         return NULL;
     }
@@ -2038,23 +2173,21 @@ PyObject *BUILTIN_SUM1( PyObject *sequence )
 
     for(;;)
     {
-        item = ITERATOR_NEXT( iter );
+        bool finished;
 
-        if ( item == NULL )
+        item = QUICK_ITERATOR_NEXT( &qiter, &finished );
+
+        if ( finished )
         {
-            Py_DECREF( iter );
-
-            if (unlikely( !CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() ))
-            {
-                return NULL;
-            }
-
 #if PYTHON_VERSION < 300
             return PyInt_FromLong( int_result );
 #else
             return PyLong_FromLong( int_result );
 #endif
-
+        }
+        else if ( item == NULL )
+        {
+            return NULL;
         }
 
         CHECK_OBJECT( item );
@@ -2146,19 +2279,17 @@ PyObject *BUILTIN_SUM1( PyObject *sequence )
     {
         CHECK_OBJECT( result );
 
-        item = ITERATOR_NEXT( iter );
+        bool finished;
+        item = QUICK_ITERATOR_NEXT( &qiter, &finished );
 
-        if ( item == NULL )
+        if ( finished )
         {
-            Py_DECREF( iter );
-
-            if (unlikely( !CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() ))
-            {
-                Py_DECREF( result );
-                return NULL;
-            }
-
             break;
+        }
+        else if ( item == NULL )
+        {
+            Py_DECREF( result );
+            return NULL;
         }
 
         CHECK_OBJECT( item );

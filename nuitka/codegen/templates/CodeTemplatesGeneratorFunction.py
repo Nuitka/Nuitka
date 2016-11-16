@@ -40,9 +40,6 @@ static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *gene
 """
 
 template_generator_exception_exit = """\
-    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
-    Py_INCREF( PyExc_StopIteration );
-
     generator->m_yielded = NULL;
     return;
 

@@ -85,14 +85,8 @@ static void Nuitka_Generator_entry_point( struct Nuitka_GeneratorObject *generat
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 }
 
-static PyObject *Nuitka_Generator_send( struct Nuitka_GeneratorObject *generator, PyObject *value )
+static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generator, PyObject *value )
 {
-    if ( generator->m_status == status_Unused && value != NULL && value != Py_None )
-    {
-        PyErr_Format( PyExc_TypeError, "can't send non-None value to a just-started generator" );
-        return NULL;
-    }
-
     if ( generator->m_status != status_Finished )
     {
         PyThreadState *thread_state = PyThreadState_GET();
@@ -180,16 +174,12 @@ static PyObject *Nuitka_Generator_send( struct Nuitka_GeneratorObject *generator
 
         if ( generator->m_yielded == NULL )
         {
-            assert( ERROR_OCCURRED() );
-
             generator->m_status = status_Finished;
 
             Py_XDECREF( generator->m_frame );
             generator->m_frame = NULL;
 
             Nuitka_Generator_release_closure( generator );
-
-            assert( ERROR_OCCURRED() );
 
 #if PYTHON_VERSION < 300
             if ( saved_exception_type != NULL && saved_exception_type != Py_None )
@@ -310,16 +300,60 @@ static PyObject *Nuitka_Generator_send( struct Nuitka_GeneratorObject *generator
     }
     else
     {
-        PyErr_SetObject( PyExc_StopIteration, (PyObject *)NULL );
-
         return NULL;
     }
 }
 
+static PyObject *Nuitka_Generator_send( struct Nuitka_GeneratorObject *generator, PyObject *value )
+{
+    if ( generator->m_status == status_Unused && value != NULL && value != Py_None )
+    {
+        PyErr_Format( PyExc_TypeError, "can't send non-None value to a just-started generator" );
+        return NULL;
+    }
+
+    PyObject *result = Nuitka_Generator_send2( generator, value );
+
+    if ( result == NULL )
+    {
+        if ( GET_ERROR_OCCURRED() == NULL )
+        {
+            RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
+            Py_INCREF( PyExc_StopIteration );
+        }
+    }
+
+    return result;
+}
+
 static PyObject *Nuitka_Generator_tp_iternext( struct Nuitka_GeneratorObject *generator )
 {
-    return Nuitka_Generator_send( generator, Py_None );
+    return Nuitka_Generator_send2( generator, Py_None );
 }
+
+/* Our own qiter interface, which is for quicker simple loop style iteration,
+   that does not send anything in. */
+PyObject *Nuitka_Generator_qiter( struct Nuitka_GeneratorObject *generator, bool *finished )
+{
+    PyObject *result = Nuitka_Generator_send2( generator, Py_None );
+
+    if ( result == NULL )
+    {
+        if (unlikely( !CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() ))
+        {
+            *finished = false;
+            return NULL;
+        }
+
+        *finished = true;
+        return NULL;
+    }
+
+    *finished = false;
+    return result;
+}
+
+
 
 #if PYTHON_VERSION < 340
 static
@@ -332,7 +366,7 @@ PyObject *Nuitka_Generator_close( struct Nuitka_GeneratorObject *generator, PyOb
         generator->m_exception_value = NULL;
         generator->m_exception_tb = NULL;
 
-        PyObject *result = Nuitka_Generator_send( generator, Py_None );
+        PyObject *result = Nuitka_Generator_send2( generator, Py_None );
 
         if (unlikely( result ))
         {
@@ -344,13 +378,21 @@ PyObject *Nuitka_Generator_close( struct Nuitka_GeneratorObject *generator, PyOb
         else
         {
             PyObject *error = GET_ERROR_OCCURRED();
-            assert( error != NULL );
 
+            // StopIteration as exception.
+            if ( error == NULL )
+            {
+                Py_INCREF( Py_None );
+                return Py_None;
+            }
+
+            // Maybe another acceptable exception for generator exit.
             if ( EXCEPTION_MATCH_GENERATOR( error ) )
             {
                 CLEAR_ERROR_OCCURRED();
 
-                return INCREASE_REFCOUNT( Py_None );
+                Py_INCREF( Py_None );
+                return Py_None;
             }
 
             return NULL;
@@ -443,7 +485,16 @@ static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generato
 
     if ( generator->m_status != status_Finished )
     {
-        PyObject *result = Nuitka_Generator_send( generator, Py_None );
+        PyObject *result = Nuitka_Generator_send2( generator, Py_None );
+
+        if ( result == NULL )
+        {
+            if ( GET_ERROR_OCCURRED() == NULL )
+            {
+                RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
+                Py_INCREF( PyExc_StopIteration );
+            }
+        }
 
         return result;
     }

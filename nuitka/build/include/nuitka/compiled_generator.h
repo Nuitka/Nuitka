@@ -92,6 +92,8 @@ extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCo
 extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given );
 #endif
 
+extern PyObject *Nuitka_Generator_qiter( struct Nuitka_GeneratorObject *generator, bool *finished );
+
 static inline bool Nuitka_Generator_Check( PyObject *object )
 {
     return Py_TYPE( object ) == &Nuitka_Generator_Type;
