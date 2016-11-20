@@ -118,8 +118,16 @@ if python_debug:
     if os.path.exists(os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")):
         os.environ["PYTHON"] += "-dbg"
 
+    if os.name == "nt":
+        if os.path.exists(os.environ["PYTHON"][:-4]+"_d.exe"):
+            os.environ["PYTHON"] = os.environ["PYTHON"][:-4]+"_d.exe"
+
 if os.environ["PYTHON"].endswith("-dbg"):
     python_debug = True
+
+if os.environ["PYTHON"].lower().endswith("_d.exe"):
+    python_debug = True
+
 
 # Make sure we flush after every print, the "-u" option does more than that
 # and this is easy enough.

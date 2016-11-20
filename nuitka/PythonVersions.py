@@ -171,7 +171,7 @@ def getTargetPythonDLLPath():
 
     if dll_path.endswith("_d.dll"):
         if not isPythonDebug():
-            dll_path = dll_path[:-5] + ".dll"
+            dll_path = dll_path[:-6] + ".dll"
 
         if not os.path.exists(dll_path):
             sys.exit("Error, cannot switch to non-debug Python, not installed.")

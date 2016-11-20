@@ -311,6 +311,14 @@ def hasDebugPython():
     if os.path.exists(debug_python):
         return True
 
+    # On Windows systems, these work.
+    debug_python = os.environ["PYTHON"]
+    if debug_python.lower().endswith(".exe"):
+        debug_python = debug_python[:-4]
+    debug_python = debug_python + "_d.exe"
+    if os.path.exists(debug_python):
+        return True
+
     # For other Python, if it's the one also executing the runner, which is
     # very probably the case, we check that. We don't check the provided
     # binary here, this could be done as well.
