@@ -770,7 +770,11 @@ CHECK_OBJECT( const_int_pos_1 );
 
 
         # Negative values are encoded with "neg" prefix.
-        range_args = [int(range_arg.replace("neg", '-')) for range_arg in range_args]
+        range_args = [
+            int(range_arg.replace("neg", '-'))
+            for range_arg in
+            range_args
+        ]
 
         if xrange is not range:
             emit(
