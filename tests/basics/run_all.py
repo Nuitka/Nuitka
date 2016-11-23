@@ -55,8 +55,6 @@ if python_version >= "3.6":
     # These tests don't work with 3.6 yet, and the list is considered the major
     # TODO for 3.6 support.
     search_mode.mayFailFor(
-        # CPython3.6.0a4 bug ought to enhance
-        "Constants.py",
         # CPython3.6.0b1 bug ought to enhance
         "ParameterErrors.py",
     )
