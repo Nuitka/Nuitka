@@ -205,7 +205,10 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
             ),
             source       = with_source,
             source_ref   = source_ref
-        ),
+        )
+    ]
+
+    attribute_assignments = [
         # Next, assign "__enter__" and "__exit__" attributes to temporary
         # variables.
         StatementAssignmentVariable(
@@ -230,7 +233,15 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
             ),
             source       = enter_value,
             source_ref   = source_ref
-        ),
+        )
+    ]
+
+    if python_version >= 360 and sync:
+        attribute_assignments.reverse()
+
+    statements += attribute_assignments
+
+    statements.append(
         StatementAssignmentVariable(
             variable_ref = ExpressionTargetTempVariableRef(
                 variable   = tmp_indicator_variable,
@@ -241,8 +252,8 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                 source_ref = source_ref
             ),
             source_ref   = source_ref
-        ),
-    ]
+        )
+    )
 
     statements += [
         makeTryFinallyStatement(
