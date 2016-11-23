@@ -29,6 +29,9 @@ extern PyObject *const_str_plain___class__;
 extern PyObject *const_str_plain___enter__;
 extern PyObject *const_str_plain___exit__;
 
+extern PyObject *const_int_0;
+extern PyObject *const_int_pos_1;
+
 // From CPython, to allow us quick access to the dictionary of an module, the
 // structure is normally private, but we need it for quick access to the module
 // dictionary.
@@ -148,8 +151,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
 
     return result;
 }
-
-extern PyObject *const_int_0;
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_COMPLEX( PyObject *real, PyObject *imag )
 {

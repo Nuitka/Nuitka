@@ -594,9 +594,11 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 }
 #endif
 
-NUITKA_DEFINE_BUILTIN( range );
 
 #if PYTHON_VERSION < 300
+
+NUITKA_DEFINE_BUILTIN( range );
+
 PyObject *BUILTIN_RANGE( PyObject *boundary )
 {
     PyObject *boundary_temp = TO_RANGE_ARG( boundary, "end" );
@@ -780,82 +782,358 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 #endif
 
 #if PYTHON_VERSION < 300
-NUITKA_DEFINE_BUILTIN( xrange );
+
+/* Same as CPython2: */
+static unsigned long getLengthOfRange( long lo, long hi, long step )
+{
+     assert( step != 0 );
+
+     if (step > 0 && lo < hi)
+     {
+         return 1UL + (hi - 1UL - lo) / step;
+     }
+     else if (step < 0 && lo > hi)
+     {
+         return 1UL + (lo - 1UL - hi) / (0UL - step);
+     }
+     else
+     {
+         return 0UL;
+     }
+}
+
+/* Create a "xrange" object from C long values. Used for constant ranges. */
+PyObject *MAKE_XRANGE( long start, long stop, long step )
+{
+    /* TODO: It would be sweet to calculate that on user side already. */
+    unsigned long n = getLengthOfRange( start, stop, step );
+
+    if ( n > (unsigned long)LONG_MAX || (long)n > PY_SSIZE_T_MAX )
+    {
+        PyErr_SetString(
+            PyExc_OverflowError,
+            "xrange() result has too many items"
+        );
+
+        return NULL;
+    }
+
+    struct _rangeobject2 *result = (struct _rangeobject2 *)PyObject_New(
+        struct _rangeobject2,
+        &PyRange_Type
+    );
+    assert( result != NULL );
+
+    result->start = start;
+    result->len   = (long)n;
+    result->step  = step;
+
+    return (PyObject *)result;
+}
+
+#else
+
+/* Same as CPython3: */
+static PyObject *getLengthOfRange( PyObject *start, PyObject *stop, PyObject *step )
+{
+    int res = PyObject_RichCompareBool( step, const_int_0, Py_GT );
+
+    if (unlikely( res == -1 ))
+    {
+        return NULL;
+    }
+
+    PyObject *lo, *hi;
+
+    // Make sure we use step as a positive number.
+    if ( res == 1 )
+    {
+        lo = start;
+        hi = stop;
+
+        Py_INCREF( step );
+    }
+    else
+    {
+        lo = stop;
+        hi = start;
+
+        step = PyNumber_Negative( step );
+
+        if (unlikely( step == NULL ))
+        {
+            return NULL;
+        }
+
+        res = PyObject_RichCompareBool( step, const_int_0, Py_EQ );
+
+        if (unlikely( res == -1 ))
+        {
+            return NULL;
+        }
+
+        if ( res == 1 )
+        {
+            PyErr_Format(
+                PyExc_ValueError,
+                "range() arg 3 must not be zero"
+            );
+
+            return NULL;
+        }
+    }
+
+    // Negative difference, we got zero length.
+    res = PyObject_RichCompareBool( lo, hi, Py_GE );
+
+    if ( res != 0 )
+    {
+        Py_XDECREF( step );
+
+        if ( res < 0 )
+        {
+            return NULL;
+
+        }
+
+        Py_INCREF( const_int_0 );
+        return const_int_0;
+    }
+
+    PyObject *tmp1 = PyNumber_Subtract( hi, lo );
+
+    if (unlikely( tmp1 == NULL ))
+    {
+        Py_DECREF( step );
+        return NULL;
+    }
+
+    PyObject *diff = PyNumber_Subtract( tmp1, const_int_pos_1 );
+    Py_DECREF( tmp1 );
+
+    if (unlikely( diff == NULL ))
+    {
+        Py_DECREF( step );
+        Py_DECREF( tmp1 );
+
+        return NULL;
+    }
+
+    tmp1 = PyNumber_FloorDivide( diff, step );
+    Py_DECREF( diff );
+    Py_DECREF( step );
+
+    if (unlikely( tmp1 == NULL ))
+    {
+        return NULL;
+    }
+
+    PyObject *result = PyNumber_Add( tmp1, const_int_pos_1 );
+    Py_DECREF( tmp1 );
+
+    return result;
+}
+
+static PyObject *MAKE_XRANGE( PyObject *start, PyObject *stop, PyObject *step )
+{
+    start = PyNumber_Index( start );
+    if (unlikely( start == NULL ))
+    {
+        return NULL;
+    }
+    stop = PyNumber_Index( stop );
+    if (unlikely( stop == NULL ))
+    {
+        return NULL;
+    }
+    step = PyNumber_Index( step );
+    if (unlikely( step == NULL ))
+    {
+        return NULL;
+    }
+
+    PyObject *length = getLengthOfRange( start, stop, step );
+    if (unlikely( length == NULL ))
+    {
+        return NULL;
+    }
+
+    struct _rangeobject3 *result = (struct _rangeobject3 *)PyObject_New(
+        struct _rangeobject3,
+        &PyRange_Type
+    );
+    assert( result != NULL );
+
+    result->start  = start;
+    result->stop   = stop;
+    result->step   = step;
+    result->length = length;
+
+    return (PyObject *)result;
+}
 #endif
 
 /* Built-in xrange (Python2) or xrange (Python3) with one argument. */
-PyObject *BUILTIN_XRANGE1( PyObject *low )
+PyObject *BUILTIN_XRANGE1( PyObject *high )
 {
-    PyObject *args[1] = {
-        low
-    };
-
 #if PYTHON_VERSION < 300
-    NUITKA_ASSIGN_BUILTIN( xrange );
+    if (unlikely( PyFloat_Check( high ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
 
-    return CALL_FUNCTION_WITH_ARGS1(
-        NUITKA_ACCESS_BUILTIN( xrange ),
-        args
-    );
+        return NULL;
+    }
+
+    long int_high = PyInt_AsLong( high );
+
+    if (unlikely( int_high == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    return MAKE_XRANGE( 0, int_high, 1 );
 #else
-    NUITKA_ASSIGN_BUILTIN( range );
+    PyObject *stop = PyNumber_Index( high );
 
-    return CALL_FUNCTION_WITH_ARGS1(
-        NUITKA_ACCESS_BUILTIN( range ),
-        args
+    if (unlikely( stop == NULL ))
+    {
+        return NULL;
+    }
+
+    struct _rangeobject3 *result = (struct _rangeobject3 *)PyObject_New(
+        struct _rangeobject3,
+        &PyRange_Type
     );
+    assert( result != NULL );
+
+    result->start = const_int_0;
+    Py_INCREF( const_int_0 );
+    result->stop = stop;
+    result->step = const_int_pos_1;
+    Py_INCREF( const_int_pos_1 );
+
+    result->length = stop;
+    Py_INCREF( stop );
+
+    return (PyObject *)result;
 #endif
 }
 
 /* Built-in xrange (Python2) or xrange (Python3) with two arguments. */
 PyObject *BUILTIN_XRANGE2( PyObject *low, PyObject *high )
 {
-    PyObject *args[2] = {
-        low,
-        high
-    };
-
 #if PYTHON_VERSION < 300
-    NUITKA_ASSIGN_BUILTIN( xrange );
+    if (unlikely( PyFloat_Check( low ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
 
-    return CALL_FUNCTION_WITH_ARGS2(
-        NUITKA_ACCESS_BUILTIN( xrange ),
-        args
-    );
+        return NULL;
+    }
+
+    long int_low = PyInt_AsLong( low );
+
+    if (unlikely( int_low == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    if (unlikely( PyFloat_Check( high ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
+
+        return NULL;
+    }
+
+    long int_high = PyInt_AsLong( high );
+
+    if (unlikely( int_high == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    return MAKE_XRANGE( int_low, int_high, 1 );
 #else
-    NUITKA_ASSIGN_BUILTIN( range );
-
-    return CALL_FUNCTION_WITH_ARGS2(
-        NUITKA_ACCESS_BUILTIN( range ),
-        args
-    );
+    return MAKE_XRANGE( low, high, const_int_pos_1 );
 #endif
 }
 
 /* Built-in xrange (Python2) or xrange (Python3) with three arguments. */
 PyObject *BUILTIN_XRANGE3( PyObject *low, PyObject *high, PyObject *step )
 {
-    PyObject *args[] = {
-        low,
-        high,
-        step
-    };
-
 #if PYTHON_VERSION < 300
-    NUITKA_ASSIGN_BUILTIN( xrange );
+    if (unlikely( PyFloat_Check( low ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
 
-    return CALL_FUNCTION_WITH_ARGS3(
-        NUITKA_ACCESS_BUILTIN( xrange ),
-        args
-    );
+        return NULL;
+    }
+
+    long int_low = PyInt_AsLong( low );
+
+    if (unlikely( int_low == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    if (unlikely( PyFloat_Check( high ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
+
+        return NULL;
+    }
+
+    long int_high = PyInt_AsLong( high );
+
+    if (unlikely( int_high == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    if (unlikely( PyFloat_Check( step ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
+
+        return NULL;
+    }
+
+    long int_step = PyInt_AsLong( step );
+
+    if (unlikely( int_step == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    if (unlikely( int_step == 0 ))
+    {
+        PyErr_Format(
+            PyExc_ValueError,
+            "range() arg 3 must not be zero"
+        );
+
+        return NULL;
+    }
+
+    return MAKE_XRANGE( int_low, int_high, int_step );
 #else
-    NUITKA_ASSIGN_BUILTIN( range );
-
-    return CALL_FUNCTION_WITH_ARGS3(
-        NUITKA_ACCESS_BUILTIN( range ),
-        args
-    );
-
+    return MAKE_XRANGE( low, high, step );
 #endif
 }
 
@@ -3005,6 +3283,8 @@ NUITKA_DEFINE_BUILTIN( int )
 NUITKA_DEFINE_BUILTIN( iter )
 #if PYTHON_VERSION < 300
 NUITKA_DEFINE_BUILTIN( long )
+#else
+NUITKA_DEFINE_BUILTIN( range );
 #endif
 
 void _initBuiltinOriginalValues()
