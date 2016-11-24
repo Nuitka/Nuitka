@@ -2205,9 +2205,6 @@ def getDoubleStarArgsConversion(result, called_variable, kw_variable,
         )
     )
 
-    if python_version >= 360:
-        statements = list(reversed(statements))
-
     return statements
 
 
@@ -2354,6 +2351,9 @@ def getFunctionCallHelperPosStarListStarDict():
         kw_variable            = None,
         star_arg_dict_variable = star_arg_dict_variable
     )
+
+    if python_version >= 360:
+        statements.reverse()
 
     statements.append(
         StatementReturn(
@@ -2575,6 +2575,9 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         kw_variable            = kw_variable,
         star_arg_dict_variable = star_arg_dict_variable
     )
+
+    if python_version >= 360:
+        statements.reverse()
 
     statements.append(
         StatementReturn(
