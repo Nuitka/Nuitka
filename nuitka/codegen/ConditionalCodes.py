@@ -37,17 +37,10 @@ def generateConditionCode(condition, emit, context):
     # The complexity is needed to avoid unnecessary complex generated C++
     # pylint: disable=R0914,R0915
 
-    if condition.isExpressionConstantRef():
-        # TODO: Must not happen, optimization catches this.
-        assert False
+    # Must not happen, optimization catches this.
+    assert not condition.isExpressionConstantRef()
 
-        value = condition.getConstant()
-
-        if value:
-            getGotoCode(context.getTrueBranchTarget(), emit)
-        else:
-            getGotoCode(context.getFalseBranchTarget(), emit)
-    elif condition.isExpressionComparison():
+    if condition.isExpressionComparison():
         left_name = context.allocateTempName("compare_left")
 
         generateExpressionCode(
