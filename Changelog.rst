@@ -3,6 +3,51 @@ Nuitka Release 0.5.25 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Python3.5: Coroutine methods using ``super`` were crashing the compiler.
+
+- Python3.3: Generator return values were properly transmitted in case of
+  ``tuple`` or ``StopIteration`` values.
+
+Optimization
+------------
+
+- Added dedicated ``xrange`` built-in implementation for Python2 and ``range``
+  for Python3. This makes these slightly faster while also solving ordering
+  problems when creating constants of these types.
+
+- Faster ``sum`` again, using quick iteration interface and specialized quick
+  iteration code for typical standard type containers, ``tuple`` and ``list``.
+
+- Compiled generators were making sure ``StopIteration`` was set after their
+  iteration, although most users were only going to clear it. Now only the
+  ``send`` method, which really needs that does it. This speed up the closing
+  of generators quite a bit.
+
+Organizational
+--------------
+
+- This release also prepares Python 3.6 support, it includes full language
+  support on the level of CPython 3.6.0b4.
+
+- Added repository for Ubuntu Yekkety (16.10) for download.
+
+Tests
+-----
+
+- Windows: Added support to detect and to switch debug Python where available
+  to also be able to execute reference counting tests.
+
+
+Summary
+-------
+
+The quick iteration is a precursor to generally faster iteration over unknown
+object iterables. Expanding this to general code generation, and not just the
+``sum`` built-in, might yield significant gains for normal code in the future.
+
 
 Nuitka Release 0.5.24
 =====================
