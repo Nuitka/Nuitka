@@ -22,18 +22,18 @@ empty = ()
 
 def calledRepeatedly():
     # We measure making a generator iterator step or not.
-    gen = (x for x in range(10))
+    gen = (x for x in range(1000))
 
     # This should abort.
 # construct_begin
     y = sum(gen)
 # construct_alternative
-    y = sum(empty)
+    y = gen
 # construct_end
 
-    return y
+    return y, gen
 
-for x in xrange(50000):
+for x in xrange(500):
     calledRepeatedly()
 
 print("OK.")
