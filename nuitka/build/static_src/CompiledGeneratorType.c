@@ -1222,7 +1222,7 @@ static PyObject *_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject
     }
 }
 
-PyObject *YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject *target )
+PyObject *GENERATOR_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject *target )
 {
     PyObject *value;
 
@@ -1444,7 +1444,7 @@ static PyObject *_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generato
     }
 }
 
-PyObject *YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *target )
+PyObject *GENERATOR_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *target )
 {
     PyObject *value;
 

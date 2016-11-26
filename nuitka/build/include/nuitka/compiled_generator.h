@@ -105,7 +105,7 @@ static inline PyObject *Nuitka_Generator_GetName( PyObject *object )
 }
 
 
-static inline PyObject *YIELD( struct Nuitka_GeneratorObject *generator, PyObject *value )
+static inline PyObject *GENERATOR_YIELD( struct Nuitka_GeneratorObject *generator, PyObject *value )
 {
     CHECK_OBJECT( value );
 
@@ -143,7 +143,7 @@ static inline PyObject *YIELD( struct Nuitka_GeneratorObject *generator, PyObjec
 }
 
 #if PYTHON_VERSION >= 300
-static inline PyObject *YIELD_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *value )
+static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *value )
 {
     CHECK_OBJECT( value );
 
@@ -224,8 +224,8 @@ static inline PyObject *YIELD_IN_HANDLER( struct Nuitka_GeneratorObject *generat
 #endif
 
 #if PYTHON_VERSION >= 330
-extern PyObject *YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject *target );
-extern PyObject *YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *target );
+extern PyObject *GENERATOR_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject *target );
+extern PyObject *GENERATOR_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *target );
 #endif
 
 #endif

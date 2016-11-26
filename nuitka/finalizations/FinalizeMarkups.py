@@ -165,7 +165,9 @@ of '--recurse-directory'.""" % (
             if node.isExpressionYield() or node.isExpressionYieldFrom():
                 search = node.getParent()
 
-                while not search.isExpressionGeneratorObjectBody():
+                while not search.isExpressionGeneratorObjectBody() and \
+                      not search.isExpressionCoroutineObjectBody():
+
                     last_search = search
                     search = search.getParent()
 

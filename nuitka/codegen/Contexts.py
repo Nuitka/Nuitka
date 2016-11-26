@@ -759,9 +759,12 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
     def isForCreatedFunction(self):
         return False
 
+    def getContextObjectName(self):
+        return "generator"
 
 class PythonCoroutineObjectContext(PythonGeneratorObjectContext):
-    pass
+    def getContextObjectName(self):
+        return "coroutine"
 
 
 class PythonFunctionCreatedContext(PythonFunctionContext):
@@ -950,3 +953,6 @@ class PythonStatementCContext(PythonChildContextBase):
 
     def markAsNeedsModuleFilenameObject(self):
         self.parent.markAsNeedsModuleFilenameObject()
+
+    def getContextObjectName(self):
+        return self.parent.getContextObjectName()
