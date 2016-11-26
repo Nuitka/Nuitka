@@ -1027,6 +1027,8 @@ if win_target:
 
     if target_arch == "x86_64" and gcc_mode:
         win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+    elif target_arch == "x86" and python_debug and gcc_mode:
+        win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
 
     env.Append(LIBPATH = [win_lib_path])
     env.Append(LIBS = [win_lib_name])
