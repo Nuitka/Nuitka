@@ -1109,6 +1109,12 @@ static PyObject *_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject
         {
             retval = PyGen_Send( (PyGenObject *)value, Py_None );
         }
+#if PYTHON_VERSION >= 350
+        else if ( PyCoro_CheckExact( value ) )
+        {
+            retval = PyGen_Send( (PyGenObject *)value, Py_None );
+        }
+#endif
         else if ( send_value == Py_None && Py_TYPE( value )->tp_iternext != NULL )
         {
             retval = Py_TYPE( value )->tp_iternext( value );
@@ -1295,6 +1301,12 @@ static PyObject *_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generato
         {
             retval = PyGen_Send( (PyGenObject *)value, Py_None );
         }
+#if PYTHON_VERSION >= 350
+        else if ( PyCoro_CheckExact( value ) )
+        {
+            retval = PyGen_Send( (PyGenObject *)value, Py_None );
+        }
+#endif
         else if ( send_value == Py_None && Py_TYPE( value )->tp_iternext != NULL )
         {
             retval = Py_TYPE( value )->tp_iternext( value );
