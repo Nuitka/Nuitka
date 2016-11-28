@@ -705,7 +705,10 @@ def createSearchMode():
         return SearchModeImmediate()
 
 def reportSkip(reason, dirname, filename):
-    my_print("Skipped, %s (%s)." % (os.path.join(dirname, filename), reason))
+    case = os.path.join(dirname, filename)
+    case = os.path.normpath(case)
+
+    my_print("Skipped, %s (%s)." % (case, reason))
 
 def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
     import gc
