@@ -85,7 +85,7 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 def _buildClassNode3(provider, node, source_ref):
     # Many variables, due to the huge re-formulation that is going on here,
-    # which just has the complexity, pylint: disable=R0914
+    # which just has the complexity, pylint: disable=R0914,R0915
 
     # This function is the Python3 special case with special re-formulation as
     # according to developer manual.
@@ -256,6 +256,27 @@ def _buildClassNode3(provider, node, source_ref):
 
         if python_version >= 340:
             qualname_assign = statements[-1]
+
+    if python_version >= 360:
+        annotations_variable = class_creation_function.getVariableForAssignment(
+            "__annotations__"
+        )
+
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__annotations__",
+                    variable      = annotations_variable,
+                    source_ref    = source_ref
+                ),
+                source       = makeConstantRefNode(
+                    constant      = {},
+                    source_ref    = source_ref,
+                    user_provided = True
+                ),
+                source_ref   = source_ref
+            )
+        )
 
     statements += [
         body,

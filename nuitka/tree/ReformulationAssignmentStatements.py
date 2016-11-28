@@ -65,7 +65,9 @@ from nuitka.PythonVersions import python_version
 from .Helpers import (
     buildNode,
     getKind,
+    makeConstantRefNode,
     makeSequenceCreationOrConstant,
+    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     makeStatementsSequenceOrStatement,
@@ -525,6 +527,71 @@ def buildAssignNode(provider, node, source_ref):
             ),
             source_ref = source_ref
         )
+
+# Python3.6 annotation assignment
+def buildAnnAssignNode(provider, node, source_ref):
+    # Evaluate the right hand side first, so it can get names provided
+    # before the left hand side exists.
+    statements = []
+
+    if node.value is not None:
+        source = buildNode(provider, node.value, source_ref)
+
+        statements.append(
+            buildAssignmentStatements(
+                provider   = provider,
+                node       = node.target,
+                source     = source,
+                source_ref = source_ref
+            )
+        )
+
+        # Only name referencing annotations are effective right now.
+        if statements[-1].isStatementAssignmentVariable():
+            variable_name = statements[-1].getTargetVariableRef().getVariableName()
+        else:
+            variable_name = None
+    else:
+        # Only name referencing annotations are effective right now.
+        kind, detail = decodeAssignTarget(
+            provider   = provider,
+            node       = node.target,
+            source_ref = source_ref
+        )
+
+        if kind == "Name":
+            variable_name = detail.getVariableName()
+        else:
+            variable_name = None
+
+    # Only annoations for modules and classes are really made.
+    if variable_name is not None:
+        if provider.isExpressionFunctionBody():
+            provider.getVariableForAssignment(variable_name)
+        else:
+            annotation = buildNode(provider, node.annotation, source_ref)
+
+            statements.append(
+                StatementAssignmentSubscript(
+                    expression = ExpressionVariableRef(
+                        variable_name = "__annotations__",
+                        variable      = provider.getVariableForAssignment("__annotations__"),
+                        source_ref    = source_ref
+                    ),
+                    subscript  = makeConstantRefNode(
+                        constant   = variable_name,
+                        source_ref = source_ref
+                    ),
+                    source     = annotation,
+                    source_ref = source_ref
+                )
+            )
+
+    return makeStatementsSequence(
+        statements = statements,
+        allow_none = True,
+        source_ref = source_ref
+    )
 
 
 def buildDeleteStatementFromDecoded(kind, detail, source_ref):

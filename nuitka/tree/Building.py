@@ -126,6 +126,7 @@ from .Helpers import (
 )
 from .ReformulationAssertStatements import buildAssertNode
 from .ReformulationAssignmentStatements import (
+    buildAnnAssignNode,
     buildAssignNode,
     buildDeleteNode,
     buildInplaceAssignNode
@@ -202,7 +203,7 @@ def buildConditionNode(provider, node, source_ref):
     )
 
 
-def _buildTryFinallyNode(provider, node, source_ref):
+def buildTryFinallyNode2(provider, node, source_ref):
     # Try/finally node statements of old style.
 
     return buildTryFinallyNode(
@@ -224,7 +225,7 @@ def buildTryNode(provider, node, source_ref):
 
     # Shortcut missing try/finally.
     if not node.handlers:
-        return _buildTryFinallyNode(provider, node, source_ref)
+        return buildTryFinallyNode2(provider, node, source_ref)
 
     if not node.finalbody:
         return buildTryExceptionNode(
@@ -718,6 +719,7 @@ setBuildingDispatchers(
     path_args3 = {
         "Name"              : buildVariableReferenceNode,
         "Assign"            : buildAssignNode,
+        "AnnAssign"         : buildAnnAssignNode,
         "Delete"            : buildDeleteNode,
         "Lambda"            : buildLambdaNode,
         "GeneratorExp"      : buildGeneratorExpressionNode,
@@ -736,7 +738,7 @@ setBuildingDispatchers(
         "Global"            : handleGlobalDeclarationNode,
         "Nonlocal"          : handleNonlocalDeclarationNode,
         "TryExcept"         : buildTryExceptionNode,
-        "TryFinally"        : _buildTryFinallyNode,
+        "TryFinally"        : buildTryFinallyNode2,
         "Try"               : buildTryNode,
         "Raise"             : buildRaiseNode,
         "Import"            : buildImportModulesNode,
