@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys, os
+import sys, os, types
 
 # Find common code relative in file system. Not using packages for test stuff.
 sys.path.insert(
@@ -133,6 +133,15 @@ def simpleFunction7():
     except TypeError:
         pass
 
+def simpleFunction8():
+    async def bar():
+        return ("some", "thing")
+
+    @types.coroutine
+    def foo():
+        yield from bar()
+
+    run_async(foo())
 
 # These need stderr to be wrapped.
 tests_stderr = ()
