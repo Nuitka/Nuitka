@@ -229,8 +229,11 @@ def detectFunctionBodyKind(nodes):
         _check(node)
 
     if indications:
+        if "Coroutine" in indications and "Generator" in indications:
+            indications.remove("Generator")
+
         # If we found something, make sure we agree on all clues.
-        assert len(indications) == 1
+        assert len(indications) == 1, indications
         function_kind = indications.pop()
     else:
         function_kind = "Function"

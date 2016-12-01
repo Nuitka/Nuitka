@@ -282,11 +282,16 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
+    _function_kind, flags, _written_variables, _non_local_declarations, _global_declarations = \
+      detectFunctionBodyKind(
+        nodes = function_statement_nodes
+    )
+
     creator_function_body, _, code_object = buildFunctionWithParsing(
         provider      = provider,
         function_kind = "Coroutine",
         name          = node.name,
-        flags         = set(),
+        flags         = (),
         function_doc  = function_doc,
         node          = node,
         source_ref    = source_ref
@@ -295,7 +300,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     function_body = ExpressionCoroutineObjectBody(
         provider   = creator_function_body,
         name       = node.name,
-        flags      = set(),
+        flags      = flags,
         source_ref = source_ref
     )
 

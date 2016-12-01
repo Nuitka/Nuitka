@@ -79,11 +79,11 @@ for filename in sorted(os.listdir('.')):
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or \
            python_version.startswith("3.2"):
-            reportSkip(".", filename, "irrelevant Python version.")
+            reportSkip("irrelevant Python version", ".", filename)
             continue
 
         if not hasModule("PySide.QtCore"):
-            reportSkip(".", filename, "PySide not installed for this Python version, but test needs it.")
+            reportSkip("PySide not installed for this Python version, but test needs it", ".", filename )
             continue
 
         # For the warnings.
@@ -94,11 +94,11 @@ for filename in sorted(os.listdir('.')):
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or \
            python_version.startswith("3.2"):
-            reportSkip(".", filename, "irrelevant Python version.")
+            reportSkip("irrelevant Python version", ".", filename)
             continue
 
         if not hasModule("PyQt4.QtGui"):
-            reportSkip(".", filename, "PyQt4 not installed for this Python version, but test needs it.")
+            reportSkip("PyQt4 not installed for this Python version, but test needs it", ".", filename)
             continue
 
         # For the plug-in information.
@@ -106,7 +106,7 @@ for filename in sorted(os.listdir('.')):
 
     if "Idna" in filename:
         if not hasModule("idna.core"):
-            reportSkip(".", filename, "idna not installed for this Python version, but test needs it.")
+            reportSkip("idna not installed for this Python version, but test needs it", ".", filename)
             continue
 
         # For the warnings of Python2.
@@ -118,11 +118,11 @@ for filename in sorted(os.listdir('.')):
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or \
            python_version.startswith("3.2"):
-            reportSkip(".", filename, "irrelevant Python version.")
+            reportSkip("irrelevant Python version", ".", filename)
             continue
 
         if not hasModule("PyQt5.QtGui"):
-            reportSkip(".", filename, "PyQt5 not installed for this Python version, but test needs it.")
+            reportSkip("PyQt5 not installed for this Python version, but test needs it", ".", filename)
             continue
 
         # For the plug-in information.
@@ -143,11 +143,11 @@ for filename in sorted(os.listdir('.')):
         # which should be considered irrelevant by now.
         if python_version.startswith("2.6") or \
            python_version.startswith("3.2"):
-            reportSkip(".", filename, "irrelevant Python version.")
+            reportSkip("irrelevant Python version", ".", filename)
             continue
 
         if not hasModule("pygtk"):
-            reportSkip(".", filename, "pygtk not installed for this Python version, but test needs it.")
+            reportSkip("pygtk not installed for this Python version, but test needs it", ".", filename)
             continue
 
         # For the warnings.
@@ -155,27 +155,27 @@ for filename in sorted(os.listdir('.')):
 
     if filename.startswith("Win"):
         if os.name != "nt":
-            reportSkip(".", filename, "Windows only test.")
+            reportSkip("Windows only test", ".", filename)
             continue
 
     if filename == "Win32ComUsing.py":
         if not hasModule("win32com"):
-            reportSkip(".", filename, "win32com not installed for this Python version, but test needs it.")
+            reportSkip("win32com not installed for this Python version, but test needs it", ".", filename)
             continue
 
     if filename == "LxmlUsing.py":
         if not hasModule("lxml.etree"):
-            reportSkip(".", filename, "lxml.etree not installed for this Python version, but test needs it.")
+            reportSkip("lxml.etree not installed for this Python version, but test needs it", ".", filename)
             continue
 
     if filename == "TkInterUsing.py":
         if python_version.startswith("2"):
             if not hasModule("Tkinter"):
-                reportSkip(".", filename, "Tkinter not installed for this Python version, but test needs it.")
+                reportSkip("Tkinter not installed for this Python version, but test needs it", ".", filename)
                 continue
         else:
             if not hasModule("tkinter"):
-                reportSkip(".", filename, "tkinter not installed for this Python version, but test needs it.")
+                reportSkip("tkinter not installed for this Python version, but test needs it", ".", filename)
                 continue
 
             # For the warnings.
@@ -184,7 +184,7 @@ for filename in sorted(os.listdir('.')):
 
     if filename == "FlaskUsing.py":
         if not hasModule("flask"):
-            reportSkip(".", filename, "flask not installed for this Python version, but test needs it.")
+            reportSkip( "flask not installed for this Python version, but test needs it", ".", filename)
             continue
 
         # For the warnings.
@@ -192,18 +192,18 @@ for filename in sorted(os.listdir('.')):
 
     if filename == "NumpyUsing.py":
         # TODO: Disabled for now.
-        reportSkip(".", filename, "numpy.test not fully working yet.")
+        reportSkip("numpy.test not fully working yet", ".", filename)
         continue
 
         if not hasModule("numpy"):
-            reportSkip(".", filename, "numpy not installed for this Python version, but test needs it.")
+            reportSkip("numpy not installed for this Python version, but test needs it", ".", filename)
             continue
 
         extra_flags.append("plugin_enable:data-files")
 
     if filename == "PmwUsing.py":
         if not hasModule("Pwm"):
-            reportSkip(".", filename, "Pwm not installed for this Python version, but test needs it.")
+            reportSkip("Pwm not installed for this Python version, but test needs it", ".", filename)
             continue
 
         extra_flags.append("plugin_enable:pmw-freeze")
@@ -243,6 +243,7 @@ for filename in sorted(os.listdir('.')):
     for loaded_filename in loaded_filenames:
         loaded_filename = os.path.normpath(loaded_filename)
         loaded_filename = os.path.normcase(loaded_filename)
+        loaded_basename = os.path.basename(loaded_filename)
 
         if loaded_filename.startswith(current_dir):
             continue
@@ -271,28 +272,29 @@ for filename in sorted(os.listdir('.')):
         if loaded_filename.startswith("/usr/share/X11/locale/"):
             continue
 
-        if loaded_filename.startswith("/lib/libz.") or \
-           loaded_filename.startswith("/lib64/libz."):
-            continue
-
-        if loaded_filename.startswith("/lib/libutil.") or \
-           loaded_filename.startswith("/lib64/libutil."):
-            continue
-
-        if loaded_filename.startswith("/lib/libgcc_s.") or \
-           loaded_filename.startswith("/lib64/libgcc_s."):
+        # Taking these from system is harmless and desirable
+        if loaded_basename.startswith((
+            "libz.so",
+            "libutil.so",
+            "libgcc_s.so",
+            "libm.so.",
+        )):
             continue
 
         # System C libraries are to be expected.
-        if os.path.basename(loaded_filename).startswith("libc.so.") or \
-           os.path.basename(loaded_filename).startswith("libpthread.so.") or \
-           os.path.basename(loaded_filename).startswith("libdl.so.") or \
-           os.path.basename(loaded_filename).startswith("libm.so."):
+        if loaded_basename.startswith((
+            "libc.so.",
+            "libpthread.so.",
+            "libdl.so.",
+            "libm.so.",
+        )):
             continue
 
         # Loaded by C library potentially for DNS lookups.
-        if os.path.basename(loaded_filename).startswith("libnss_") or \
-           os.path.basename(loaded_filename).startswith("libnsl"):
+        if loaded_basename.startswith((
+            "libnss_",
+            "libnsl",
+        )):
             continue
 
         # Loaded by dtruss on MacOS X.
@@ -300,7 +302,7 @@ for filename in sorted(os.listdir('.')):
             continue
 
         # Loaded by cowbuilder and pbuilder on Debian
-        if os.path.basename(loaded_filename) == ".ilist":
+        if loaded_basename == ".ilist":
             continue
         if "cowdancer" in loaded_filename:
             continue
@@ -314,14 +316,14 @@ for filename in sorted(os.listdir('.')):
            loaded_filename in ("/home", "/data", "/root"):
             continue
 
-        if os.path.basename(loaded_filename) == "gconv-modules.cache":
+        if loaded_basename == "gconv-modules.cache":
             continue
 
         # TODO: Unclear, loading gconv from filesystem of installed system
         # may be OK or not. I think it should be.
         if "/gconv/" in loaded_filename:
             continue
-        if os.path.basename(loaded_filename).startswith("libicu"):
+        if loaded_basename.startswith("libicu"):
             continue
 
         # Loading from caches is OK.
@@ -380,9 +382,8 @@ for filename in sorted(os.listdir('.')):
         if loaded_filename.endswith("site-packages"):
             continue
 
-        loaded_basename = os.path.basename(loaded_filename).upper()
         # Windows baseline DLLs
-        if loaded_basename in (
+        if loaded_basename.upper() in (
             "SHELL32.DLL","USER32.DLL","KERNEL32.DLL",
             "NTDLL.DLL", "NETUTILS.DLL", "LOGONCLI.DLL", "GDI32.DLL",
             "RPCRT4.DLL", "ADVAPI32.DLL", "SSPICLI.DLL", "SECUR32.DLL",
@@ -435,12 +436,12 @@ for filename in sorted(os.listdir('.')):
             continue
 
         # Win API can be assumed.
-        if loaded_basename.startswith("API-MS-WIN"):
+        if loaded_basename.upper().startswith("API-MS-WIN"):
             continue
 
         # MSVC run time DLLs, seem to sometimes come from system. TODO:
         # clarify if that means we did it wrong.
-        if loaded_basename in ("MSVCRT.DLL", "MSVCR90.DLL"):
+        if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
             continue
 
         my_print("Should not access '%s'." % loaded_filename)
