@@ -1,3 +1,11 @@
+nuitka (0.5.24.2+ds-1) unstable; urgency=medium
+
+  * New upstream hotfix release.
+  * Better detection of acceptable shared library loads from
+    system paths for standalone tests (Closes: 844902).
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Wed, 30 Nov 2016 09:32:03 +0100
+
 nuitka (0.5.24.1+ds-1) unstable; urgency=medium
 
   * New upstream hotfix release.
