@@ -300,11 +300,21 @@ codegen_group = OptionGroup(
 codegen_group.add_option(
     "--improved", "--enhanced",
     action  = "store_true",
-    dest    = "improved",
+    dest    = "disabled",
     default = False,
+    help    = SUPPRESS_HELP,
+)
+
+codegen_group.add_option(
+    "--full-compat",
+    action  = "store_false",
+    dest    = "improved",
+    default = True,
     help    = """\
-Allow minor deviations from CPython behavior, e.g. better tracebacks, which
-are not really incompatible, but different.""",
+Enforce absolute compatibility with CPython. Do not even allow minor
+deviations from CPython behavior, e.g. better tracebacks, which are
+not really incompatible, but different. This is intended for tests
+only and should not be necessary for normal use.""",
 )
 
 codegen_group.add_option(

@@ -61,6 +61,7 @@ timing             = hasArg("timing")
 coverage_mode      = hasArg("coverage")
 original_file      = hasArg("original_file")
 no_warnings        = not hasArg("warnings")
+full_compat        = not hasArg("improved")
 
 plugins_enabled = []
 
@@ -238,6 +239,9 @@ if remove_output:
 
 if original_file:
     extra_options.append("--file-reference-choice=original")
+
+if full_compat:
+    extra_options.append("--full-compat")
 
 if coverage_mode:
     # Coverage modules hates Nuitka to re-execute, and so we must avoid
