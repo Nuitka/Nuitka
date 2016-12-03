@@ -56,11 +56,20 @@ def getKind(node):
 
 
 def extractDocFromBody(node):
+    body = node.body
+    doc = None
+
     # Work around ast.get_docstring breakage.
-    if len(node.body) > 0 and getKind(node.body[0]) == "Expr" and getKind(node.body[0].value) == "Str":
-        return node.body[1:], node.body[0].value.s
-    else:
-        return node.body, None
+    if len(node.body) > 0 and \
+       getKind(node.body[0]) == "Expr" and \
+       getKind(node.body[0].value) == "Str":
+
+        if "no_asserts" not in Options.getPythonFlags():
+            doc = body[0].value.s
+
+        body = body[1:]
+
+    return body, doc
 
 
 def _makeSyntaxErrorCompatible(e):
