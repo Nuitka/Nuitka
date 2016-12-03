@@ -51,10 +51,7 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditionalOR,
     StatementConditional
 )
-from nuitka.nodes.ConstantRefNodes import (
-    ExpressionConstantNoneRef,
-    makeConstantRefNode
-)
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.ExceptionNodes import (
@@ -584,20 +581,6 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
     )
 
     mapping_case = makeStatementsSequenceFromStatements(
-        # Initializing the temp variable outside of try/except, because code
-        # generation does not yet detect that case properly. TODO: Can be
-        # removed once code generation is apt enough.
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_keys_variable,
-                source_ref = internal_source_ref
-            ),
-            source       = ExpressionConstantNoneRef(
-                source_ref    = internal_source_ref,
-                user_provided = True
-            ),
-            source_ref   = internal_source_ref
-        ),
         makeTryExceptSingleHandlerNode(
             tried          = StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
@@ -831,20 +814,6 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     )
 
     mapping_case = makeStatementsSequenceFromStatements(
-        # Initializing the temp variable outside of try/except, because code
-        # generation does not yet detect that case properly. TODO: Can be
-        # removed once code generation is apt enough.
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_keys_variable,
-                source_ref = internal_source_ref
-            ),
-            source       = ExpressionConstantNoneRef(
-                source_ref    = internal_source_ref,
-                user_provided = True
-            ),
-            source_ref   = internal_source_ref
-        ),
         makeTryExceptSingleHandlerNode(
             tried          = StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(

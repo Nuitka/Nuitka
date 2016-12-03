@@ -17,13 +17,13 @@
 #
 
 def tupleUnpacking():
-    return (*a,b,*c)
+    return (*a, b, *c)
 
 def listUnpacking():
-    return [*a,b,*c]
+    return [*a, b, *c]
 
 def setUnpacking():
-    return {*a,b,*c}
+    return {*a, b, *c}
 
 def dictUnpacking():
     return {"a" : 1, **d}
