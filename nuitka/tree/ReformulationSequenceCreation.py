@@ -381,8 +381,10 @@ def buildListUnpacking(provider, elements, source_ref):
 
     for element in elements:
 
-        # TODO: We could be a lot cleverer about the tuples for non-starred
-        # arguments, but lets get this to work first.
+        # We could be a lot cleverer about the tuples for non-starred
+        # arguments, but lets get this to work first. And then rely on
+        # future optimization to inline the list unpacking helper in a
+        # way that has the same effect.
         if getKind(element) == "Starred":
             helper_args.append(
                 buildNode(provider, element.value, source_ref),
@@ -435,8 +437,10 @@ def _buildSetUnpacking(provider, elements, source_ref):
 
     for element in elements:
 
-        # TODO: We could be a lot cleverer about the tuples for non-starred
-        # arguments, but lets get this to work first.
+        # We could be a lot cleverer about the tuples for non-starred
+        # arguments, but lets get this to work first. And then rely on
+        # future optimization to inline the list unpacking helper in a
+        # way that has the same effect.
         if getKind(element) == "Starred":
             helper_args.append(
                 buildNode(provider, element.value, source_ref),
