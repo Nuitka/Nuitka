@@ -140,9 +140,17 @@ parser.add_option(
     dest    = "warn_implicit_exceptions",
     default = False,
     help    = """\
-Given warnings for implicit exceptions detected at compile time.""",
+Enable warnings for implicit exceptions detected at compile time.""",
 )
 
+parser.add_option(
+    "--warn-unusual-code",
+    action  = "store_true",
+    dest    = "warn_unusual_code",
+    default = False,
+    help    = """\
+Enable warnings for unusual code detected at compile time.""",
+)
 
 recurse_group = OptionGroup(
     parser,
@@ -824,6 +832,9 @@ def getShallFollowExtraFilePatterns():
 
 def shallWarnImplicitRaises():
     return options.warn_implicit_exceptions
+
+def shallWarnUnusualCode():
+    return options.warn_unusual_code
 
 def isDebug():
     return options.debug or options.debugger

@@ -50,6 +50,7 @@ catching and passing in exceptions raised.
 """
 
 import sys
+from logging import warning
 
 from nuitka import Options, SourceCodeReferences, Tracing
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
@@ -98,6 +99,7 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
+from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.ReformulationForLoopStatements import (
@@ -374,9 +376,14 @@ def buildImportModulesNode(provider, node, source_ref):
 
 def handleGlobalDeclarationNode(provider, node, source_ref):
 
-    # On the module level, there is nothing to do. TODO: Probably a warning
-    # would be warranted.
+    # On the module level, there is nothing to do.
     if provider.isCompiledPythonModule():
+        if shallWarnUnusualCode():
+            warning(
+                "%s: Using 'global' statement on module level has no effect.",
+                source_ref.getAsString(),
+            )
+
         return None
 
     # Need to catch the error of declaring a parameter variable as global
