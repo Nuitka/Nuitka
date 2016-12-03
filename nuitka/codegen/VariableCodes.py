@@ -22,7 +22,6 @@
 from nuitka import Options, Variables
 from nuitka.PythonVersions import python_version
 
-from .ConstantCodes import getConstantCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getAssertionCode,
@@ -263,9 +262,8 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
             "UPDATE_STRING_DICT%s( moduledict_%s, (Nuitka_StringObject *)%s, %s );" % (
                 ref_count,
                 context.getModuleCodeName(),
-                getConstantCode(
+                context.getConstantCode(
                     constant = variable.getName(),
-                    context  = context
                 ),
                 tmp_name
             )
@@ -368,8 +366,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
             template_read_mvar_unclear % {
                 "module_identifier" : context.getModuleCodeName(),
                 "tmp_name"          : to_name,
-                "var_name"          : getConstantCode(
-                    context  = context,
+                "var_name"          : context.getConstantCode(
                     constant = variable.getName()
                 )
             }
@@ -413,8 +410,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
                 "locals_dict" : "locals_dict",
                 "fallback"    : indented(fallback_emit.codes),
                 "tmp_name"    : to_name,
-                "var_name"    : getConstantCode(
-                    context  = context,
+                "var_name"    : context.getConstantCode(
                     constant = variable.getName()
                 )
             }
@@ -549,8 +545,7 @@ def getVariableDelCode(variable, tolerant, needs_check, emit, context):
             template_del_global_unclear % {
                 "module_identifier" : context.getModuleCodeName(),
                 "res_name"          : res_name,
-                "var_name"          : getConstantCode(
-                    context  = context,
+                "var_name"          : context.getConstantCode(
                     constant = variable.getName()
                 )
             }

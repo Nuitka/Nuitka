@@ -24,7 +24,6 @@ from nuitka import Options
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import (
     allocateNestedConstants,
-    getConstantCode,
     getConstantInitCodes
 )
 from .ErrorCodes import (
@@ -93,8 +92,7 @@ def getModuleValues(context, module_name, module_identifier, codes,
 
     module_body_template_values = {
         "module_name"              : module_name,
-        "module_name_obj"          : getConstantCode(
-            context  = context,
+        "module_name_obj"          : context.getConstantCode(
             constant = module_name
         ),
         "is_main_module"           : 1 if is_main_module else 0,

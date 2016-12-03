@@ -22,7 +22,6 @@ This also includes writing back to locals for exec statements.
 
 from nuitka.PythonVersions import python_version
 
-from .ConstantCodes import getConstantCode
 from .ErrorCodes import getErrorExitBoolCode
 from .Helpers import generateExpressionCode
 from .ModuleCodes import getModuleAccessCode
@@ -109,9 +108,8 @@ def _getVariableDictUpdateCode(target_name, variable, initial, is_dict, emit, co
         emit(
              template % {
                 "dict_name"   : target_name,
-                "var_name"    : getConstantCode(
-                    constant = variable.getName(),
-                    context  = context
+                "var_name"    : context.getConstantCode(
+                    constant = variable.getName()
                 ),
                 "access_code" : access_code,
             }
@@ -127,9 +125,8 @@ def _getVariableDictUpdateCode(target_name, variable, initial, is_dict, emit, co
         emit(
             template % {
                 "mapping_name" : target_name,
-                "var_name"     : getConstantCode(
-                    constant = variable.getName(),
-                    context  = context
+                "var_name"     : context.getConstantCode(
+                    constant = variable.getName()
                 ),
                 "access_code"  : access_code,
                 "tmp_name"     : res_name
@@ -243,8 +240,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
     for variable in provider.getVariables():
         if not variable.isModuleVariable() and \
            not variable.isMaybeLocalVariable():
-            key_name = getConstantCode(
-                context  = context,
+            key_name = context.getConstantCode(
                 constant = variable.getName()
             )
 

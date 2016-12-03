@@ -22,7 +22,6 @@ Attribute lookup, setting.
 
 from nuitka import Options
 
-from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
@@ -79,8 +78,7 @@ def generateAssignmentAttributeCode(statement, emit, context):
         getAttributeAssignmentCode(
             target_name    = target_name,
             value_name     = value_name,
-            attribute_name = getConstantCode(
-                context  = context,
+            attribute_name = context.getConstantCode(
                 constant = attribute_name
             ),
             emit           = emit,
@@ -108,8 +106,7 @@ def generateDelAttributeCode(statement, emit, context):
 
     getAttributeDelCode(
         target_name    = target_name,
-        attribute_name = getConstantCode(
-            context  = context,
+        attribute_name = context.getConstantCode(
             constant = statement.getAttributeName()
         ),
         emit           = emit,
@@ -162,8 +159,7 @@ def getAttributeLookupCode(to_name, source_name, attribute_name, needs_check,
             "%s = LOOKUP_ATTRIBUTE( %s, %s );" % (
                 to_name,
                 source_name,
-                getConstantCode(
-                    context  = context,
+                context.getConstantCode(
                     constant = attribute_name
                 )
             )
@@ -327,8 +323,7 @@ def generateAttributeLookupSpecialCode(to_name, expression, emit, context):
     getAttributeLookupSpecialCode(
         to_name     = to_name,
         source_name = source_name,
-        attr_name   = getConstantCode(
-            context  = context,
+        attr_name   = context.getConstantCode(
             constant = attribute_name
         ),
         needs_check = expression.getLookupSource().mayRaiseExceptionAttributeLookupSpecial(

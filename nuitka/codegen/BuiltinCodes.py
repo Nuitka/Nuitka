@@ -22,7 +22,6 @@ bin, etc.
 """
 from nuitka import Builtins
 
-from .ConstantCodes import getConstantCode
 from .ErrorCodes import getAssertionCode, getErrorExitCode, getReleaseCodes
 from .Helpers import generateChildExpressionsCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
@@ -34,9 +33,8 @@ def generateBuiltinRefCode(to_name, expression, emit, context):
     emit(
         "%s = LOOKUP_BUILTIN( %s );" % (
             to_name,
-            getConstantCode(
+            context.getConstantCode(
                 constant = builtin_name,
-                context  = context
             )
         )
     )
@@ -86,9 +84,8 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
     emit(
         "%s = BUILTIN_TYPE3( %s, %s, %s, %s );" % (
             to_name,
-            getConstantCode(
+            context.getConstantCode(
                 constant = context.getModuleName(),
-                context  = context
             ),
             type_name,
             bases_name,

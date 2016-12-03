@@ -21,7 +21,6 @@
 
 from nuitka.PythonVersions import python_version
 
-from .ConstantCodes import getConstantCode
 from .CoroutineCodes import getCoroutineObjectDeclCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
@@ -135,9 +134,8 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
     if python_version < 330 or function_qualname == function_name:
         function_qualname_obj = "NULL"
     else:
-        function_qualname_obj = getConstantCode(
-            constant = function_qualname,
-            context  = context
+        function_qualname_obj = context.getConstantCode(
+            constant = function_qualname
         )
 
     closure_copy = []
@@ -158,9 +156,8 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
         )
 
     result = template_make_function_template % {
-        "function_name_obj"          : getConstantCode(
-            constant = function_name,
-            context  = context
+        "function_name_obj"          : context.getConstantCode(
+            constant = function_name
         ),
         "function_qualname_obj"      : function_qualname_obj,
         "function_identifier"        : function_identifier,
@@ -172,9 +169,8 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
         ),
         "code_identifier"            : code_identifier,
         "closure_copy"               : indented(closure_copy, 0, True),
-        "function_doc"               : getConstantCode(
-            constant = function_doc,
-            context  = context
+        "function_doc"               : context.getConstantCode(
+            constant = function_doc
         ),
         "defaults"                   : "defaults"
                                          if defaults_name else
@@ -522,8 +518,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
         if tmp_name.startswith("tmp_outline_return_value_"):
             function_locals.append("%s = NULL;" % tmp_name)
 
-    function_doc = getConstantCode(
-        context  = context,
+    function_doc = context.getConstantCode(
         constant = function_doc
     )
 

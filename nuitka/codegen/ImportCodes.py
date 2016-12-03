@@ -21,7 +21,6 @@ That is import as expression, and star import.
 """
 
 
-from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
@@ -200,19 +199,16 @@ def generateImportModuleCode(to_name, expression, emit, context):
 
     getBuiltinImportCode(
         to_name          = to_name,
-        module_name      = getConstantCode(
-            constant = expression.getModuleName(),
-            context  = context
+        module_name      = context.getConstantCode(
+            constant = expression.getModuleName()
         ),
         globals_name     = globals_name,
         locals_name      = locals_name,
-        import_list_name = getConstantCode(
-            constant = expression.getImportList(),
-            context  = context
+        import_list_name = context.getConstantCode(
+            constant = expression.getImportList()
         ),
-        level_name       = getConstantCode(
-            constant = expression.getLevel(),
-            context  = context
+        level_name       = context.getConstantCode(
+            constant = expression.getLevel()
         ),
         needs_check      = expression.mayRaiseException(BaseException),
         emit             = emit,
@@ -283,9 +279,8 @@ def generateImportNameCode(to_name, expression, emit, context):
         "%s = IMPORT_NAME( %s, %s );" % (
             to_name,
             from_arg_name,
-            getConstantCode(
-                constant = expression.getImportName(),
-                context  = context
+            context.getConstantCode(
+                constant = expression.getImportName()
             )
         )
     )

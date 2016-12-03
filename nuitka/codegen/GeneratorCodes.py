@@ -21,7 +21,6 @@
 
 from nuitka.PythonVersions import python_version
 
-from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
     getErrorVariableDeclarations,
     getExceptionKeeperVariableNames,
@@ -117,9 +116,8 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     closure_variables = generator_object_body.getClosureVariables()
 
     if python_version < 350 or context.isForDirectCall():
-        generator_name_obj = getConstantCode(
-            constant = generator_object_body.getFunctionName(),
-            context  = context
+        generator_name_obj = context.getConstantCode(
+            constant = generator_object_body.getFunctionName()
         )
     else:
         generator_name_obj = "self->m_name"
@@ -129,9 +127,8 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     elif not context.isForDirectCall():
         generator_qualname_obj = "self->m_qualname"
     else:
-        generator_qualname_obj = getConstantCode(
-            constant = generator_object_body.getFunctionQualname(),
-            context  = context
+        generator_qualname_obj = context.getConstantCode(
+            constant = generator_object_body.getFunctionQualname()
         )
 
     code_identifier = context.getCodeObjectHandle(

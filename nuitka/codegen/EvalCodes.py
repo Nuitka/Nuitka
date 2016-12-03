@@ -20,7 +20,6 @@
 from nuitka import Options
 from nuitka.PythonVersions import python_version
 
-from .ConstantCodes import getConstantCode
 from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
 from .GlobalsLocalsCodes import getStoreLocalsCode
 from .Helpers import generateExpressionCode
@@ -222,14 +221,12 @@ def generateExecCode(statement, emit, context):
 
     # Filename with origin in improved mode.
     if Options.isFullCompat():
-        filename_name = getConstantCode(
-            constant = "<string>",
-            context  = context
+        filename_name = context.getConstantCode(
+            constant = "<string>"
         )
     else:
-        filename_name = getConstantCode(
-            constant = "<string at %s>" % source_ref.getAsString(),
-            context  = context
+        filename_name = context.getConstantCode(
+            constant = "<string at %s>" % source_ref.getAsString()
         )
 
     old_source_ref = context.setCurrentSourceCodeReference(
@@ -244,9 +241,8 @@ def generateExecCode(statement, emit, context):
         to_name           = compiled_name,
         source_name       = source_name,
         filename_name     = filename_name,
-        mode_name         = getConstantCode(
-            constant = "exec",
-            context  = context
+        mode_name         = context.getConstantCode(
+            constant = "exec"
         ),
         flags_name        = "NULL",
         dont_inherit_name = "NULL",
@@ -327,13 +323,11 @@ def _generateEvalCode(to_name, node, emit, context):
         source_name   = source_name,
         globals_name  = globals_name,
         locals_name   = locals_name,
-        filename_name = getConstantCode(
-            constant = filename,
-            context  = context
+        filename_name = context.getConstantCode(
+            constant = filename
         ),
-        mode_name     = getConstantCode(
-            constant = "eval" if node.isExpressionBuiltinEval() else "exec",
-            context  = context
+        mode_name     = context.getConstantCode(
+            constant = "eval" if node.isExpressionBuiltinEval() else "exec"
         ),
         emit          = emit,
         context       = context
