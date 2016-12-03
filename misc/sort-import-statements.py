@@ -24,6 +24,7 @@
 
 import os
 import subprocess
+import sys
 
 home_dir = os.path.abspath(__file__)
 home_dir = os.path.dirname(home_dir)
@@ -51,6 +52,12 @@ for root, dirnames, filenames in os.walk(home_dir):
 target_files.append("bin/nuitka")
 target_files.append("nuitka/build/SingleExe.scons")
 target_files.append("setup.py")
+
+if os.name == "nt":
+    os.environ["PATH"] = os.pathsep.join(
+        os.environ["PATH"].split(os.pathsep) + \
+        [os.path.join(os.path.dirname(sys.executable), "Scripts")]
+    )
 
 subprocess.check_call(
     [
