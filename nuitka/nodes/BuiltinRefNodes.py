@@ -228,7 +228,7 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         new_node = BuiltinOptimization.extractBuiltinArgs(
             node          = call_node,
             builtin_class = createBuiltinMakeException,
-            builtin_spec  = BuiltinOptimization.makeBuiltinParameterSpec(
+            builtin_spec  = BuiltinOptimization.makeBuiltinExceptionParameterSpec(
                 exception_name = exception_name
             )
         )

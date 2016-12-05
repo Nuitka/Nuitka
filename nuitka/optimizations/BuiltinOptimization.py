@@ -167,7 +167,7 @@ class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
         return "exceptions." + self.getName()
 
 
-def makeBuiltinParameterSpec(exception_name):
+def makeBuiltinExceptionParameterSpec(exception_name):
     if exception_name == "ImportError" and python_version >= 330:
         # TODO: Create this beast, needs keyword only arguments to be supported,
         # currently user of this function must take care to not have them.
