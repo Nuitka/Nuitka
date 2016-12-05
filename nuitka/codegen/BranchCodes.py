@@ -20,11 +20,11 @@
 """
 
 from .ConditionalCodes import generateConditionCode
+from .Helpers import generateStatementSequenceCode
 from .LabelCodes import getGotoCode, getLabelCode
 
 
 def generateBranchCode(statement, emit, context):
-    from .CodeGeneration import generateStatementSequenceCode
 
     true_target = context.allocateLabel("branch_yes")
     false_target = context.allocateLabel("branch_no")

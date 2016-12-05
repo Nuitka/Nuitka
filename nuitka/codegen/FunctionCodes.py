@@ -32,7 +32,7 @@ from .ErrorCodes import (
     getReleaseCode
 )
 from .GeneratorCodes import getGeneratorObjectDeclCode
-from .Helpers import generateExpressionCode
+from .Helpers import generateExpressionCode, generateStatementSequenceCode
 from .Indentation import indented
 from .LabelCodes import getLabelCode
 from .ModuleCodes import getModuleAccessCode
@@ -681,7 +681,6 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     return_value_name = context.allocateTempName("outline_return_value")
     old_return_value_name = context.setReturnValueName(return_value_name)
 
-    from .CodeGeneration import generateStatementSequenceCode
     generateStatementSequenceCode(
         statement_sequence = expression.getBody(),
         emit               = emit,

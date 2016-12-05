@@ -27,6 +27,7 @@ See Developer Manual for how the CPython loops are mapped to these nodes.
 
 from .ErrorCodes import getErrorExitBoolCode
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
+from .Helpers import generateStatementSequenceCode
 from .LabelCodes import getGotoCode, getLabelCode
 
 
@@ -62,10 +63,6 @@ def generateLoopCode(statement, emit, context):
 
     old_loop_break = context.setLoopBreakTarget(loop_end_label)
     old_loop_continue = context.setLoopContinueTarget(loop_start_label)
-
-
-    # TODO: Should come from registry instead.
-    from .CodeGeneration import generateStatementSequenceCode
 
     generateStatementSequenceCode(
         statement_sequence = statement.getLoopBody(),

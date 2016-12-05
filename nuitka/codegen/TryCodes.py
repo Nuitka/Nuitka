@@ -26,7 +26,7 @@ from nuitka import Options
 
 from .ErrorCodes import getMustNotGetHereCode
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
-from .Helpers import generateExpressionCode
+from .Helpers import generateExpressionCode, generateStatementSequenceCode
 from .IteratorCodes import getBuiltinLoopBreakNextCode
 from .LabelCodes import getGotoCode, getLabelCode
 from .VariableCodes import getVariableAssignmentCode
@@ -40,10 +40,6 @@ def generateTryCode(statement, emit, context):
 
     if generateTryNextExceptStopIterationCode(statement, emit, context):
         return
-
-
-    # TODO: This should come from Helpers module.
-    from .CodeGeneration import generateStatementSequenceCode
 
     # Get the statement sequences involved. All except the tried block can be
     # None. For the tried block it would be a missed optimization. Also not all

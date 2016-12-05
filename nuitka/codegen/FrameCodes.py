@@ -26,6 +26,7 @@ from nuitka.PythonVersions import python_version
 from . import Contexts, Emission
 from .ExceptionCodes import getTracebackMakingIdentifier
 from .GlobalsLocalsCodes import getLoadLocalsCode
+from .Helpers import _generateStatementSequenceCode
 from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesFrames import (
@@ -88,7 +89,6 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     # the frame stuff around it.
     local_emit = Emission.SourceCodeCollector()
 
-    from .CodeGeneration import _generateStatementSequenceCode
     _generateStatementSequenceCode(
         statement_sequence = statement_sequence,
         emit               = local_emit,

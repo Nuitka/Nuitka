@@ -22,10 +22,7 @@
 from nuitka import Options
 
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
-from .ConstantCodes import (
-    allocateNestedConstants,
-    getConstantInitCodes
-)
+from .ConstantCodes import allocateNestedConstants, getConstantInitCodes
 from .ErrorCodes import (
     getErrorVariableDeclarations,
     getExceptionKeeperVariableNames,
