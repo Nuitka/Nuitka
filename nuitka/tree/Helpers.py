@@ -28,7 +28,7 @@ from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeList,
-    ExpressionMakeSet,
+    ExpressionMakeSetLiteral,
     ExpressionMakeTuple
 )
 from nuitka.nodes.DictionaryNodes import (
@@ -44,7 +44,11 @@ from nuitka.nodes.StatementNodes import (
     StatementGeneratorEntry,
     StatementsSequence
 )
-from nuitka.PythonVersions import doShowUnknownEncodingName, python_version
+from nuitka.PythonVersions import (
+    doShowUnknownEncodingName,
+    needsSetLiteralReverseInsertion,
+    python_version
+)
 
 
 def dump(node):
@@ -516,6 +520,9 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
             const_type = list
         elif sequence_kind == "SET":
             const_type = set
+
+            if needsSetLiteralReverseInsertion():
+                elements = tuple(reversed(elements))
         else:
             assert False, sequence_kind
 
@@ -540,7 +547,7 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
                 source_ref = source_ref
             )
         elif sequence_kind == "SET":
-            result = ExpressionMakeSet(
+            result = ExpressionMakeSetLiteral(
                 elements   = elements,
                 source_ref = source_ref
             )

@@ -21,6 +21,8 @@ Right now only the creation, and set add code is done here. But more should be
 added later on.
 """
 
+from nuitka.PythonVersions import needsSetLiteralReverseInsertion
+
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
 from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .PythonAPICodes import generateCAPIObjectCode
@@ -44,6 +46,67 @@ def generateSetCreationCode(to_name, expression, emit, context):
             emit       = emit,
             context    = context
         )
+
+        if element.isKnownToBeHashable():
+            emit(
+                "PySet_Add( %s, %s );" % (
+                    to_name,
+                    element_name
+                )
+            )
+        else:
+            res_name = context.getIntResName()
+
+            emit(
+                "%s = PySet_Add( %s, %s );" % (
+                    res_name,
+                    to_name,
+                    element_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition = "%s != 0" % res_name,
+                emit      = emit,
+                context   = context
+            )
+
+        if context.needsCleanup(element_name):
+            emit("Py_DECREF( %s );" % element_name)
+            context.removeCleanupTempName(element_name)
+
+
+def generateSetLiteralCreationCode(to_name, expression, emit, context):
+    if not needsSetLiteralReverseInsertion():
+        return generateSetCreationCode(to_name, expression, emit, context)
+
+    emit(
+        "%s = PySet_New( NULL );" % (
+            to_name,
+        )
+    )
+
+    context.addCleanupTempName(to_name)
+
+    elements = expression.getElements()
+
+    element_names = []
+
+    for count, element in enumerate(elements):
+        element_name = context.allocateTempName(
+            "set_element_%d" % (count+1)
+        )
+        element_names.append(element_name)
+
+        generateExpressionCode(
+            to_name    = element_name,
+            expression = element,
+            emit       = emit,
+            context    = context
+        )
+
+    for count, element in enumerate(elements):
+        element_name = element_names[len(elements)-count-1]
 
         if element.isKnownToBeHashable():
             emit(

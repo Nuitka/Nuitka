@@ -118,6 +118,15 @@ def getComplexCallSequenceErrorTemplate():
     return getComplexCallSequenceErrorTemplate.result
 
 
+def needsSetLiteralReverseInsertion():
+    try:
+        value = eval("{1,1.0}.pop()") # pylint: disable=W0123
+    except SyntaxError:
+        return False
+    else:
+        return type(value) is float
+
+
 def isUninstalledPython():
     return "Anaconda" in sys.version or \
            "WinPython" in sys.version or \

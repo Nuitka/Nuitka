@@ -19,6 +19,10 @@
 
 """
 
+import functools
+
+from nuitka.PythonVersions import needsSetLiteralReverseInsertion
+
 from .NodeBases import (
     ExpressionChildrenHavingBase,
     SideEffectsFromChildrenMixin
@@ -256,3 +260,17 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
 
         return iter_node, "new_expression", """\
 Iteration over set reduced to tuple."""
+
+
+class ExpressionMakeSetLiteral(ExpressionMakeSet):
+    kind = "EXPRESSION_MAKE_SET_LITERAL"
+
+    def getSimulator(self):
+        if needsSetLiteralReverseInsertion():
+            @functools.wraps(set)
+            def mySet(value):
+                return set(reversed(tuple(value)))
+
+            return mySet
+        else:
+            return set

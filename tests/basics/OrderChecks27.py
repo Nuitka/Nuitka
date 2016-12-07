@@ -17,6 +17,17 @@
 #
 from __future__ import print_function
 
+def setOrderCheck():
+    print("Checking order of set literals:")
+    def one():
+        print("one")
+        return "one"
+    def two():
+        print("two")
+        return "two"
+
+    return {one(), two()}
+
 def raiseOrderCheck():
     print("Checking order of raises:")
     def exception_type():
@@ -53,4 +64,5 @@ def raiseOrderCheck():
         print("caught", repr(e))
 
 
+setOrderCheck()
 raiseOrderCheck()

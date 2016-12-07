@@ -195,6 +195,7 @@ from .ReturnCodes import (
 from .SetCodes import (
     generateBuiltinSetCode,
     generateSetCreationCode,
+    generateSetLiteralCreationCode,
     generateSetOperationAddCode,
     generateSetOperationUpdateCode
 )
@@ -557,6 +558,7 @@ setExpressionDispatchDict(
         "EXPRESSION_MAKE_GENERATOR_OBJECT"          : generateMakeGeneratorObjectCode,
         "EXPRESSION_MAKE_COROUTINE_OBJECT"          : generateMakeCoroutineObjectCode,
         "EXPRESSION_MAKE_SET"                       : generateSetCreationCode,
+        "EXPRESSION_MAKE_SET_LITERAL"               : generateSetLiteralCreationCode,
         "EXPRESSION_MAKE_TUPLE"                     : generateTupleCreationCode,
         "EXPRESSION_MAKE_LIST"                      : generateListCreationCode,
         "EXPRESSION_MAKE_DICT"                      : generateDictionaryCreationCode,
