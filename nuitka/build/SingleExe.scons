@@ -1156,6 +1156,11 @@ if standalone_mode and gcc_mode and sys.platform != "darwin":
         LINKFLAGS = ["-Wl,-R,'$$ORIGIN'"]
     )
 
+    if "linux" in sys.platform:
+        env.Append(
+            LINKFLAGS = ["-Wl,--disable-new-dtags"]
+        )
+
 def getLinkerArch():
     if "linux" in sys.platform:
         if target_arch == "x86_64":

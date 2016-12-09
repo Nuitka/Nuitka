@@ -2858,6 +2858,9 @@ static char *getDllDirectory()
     );
     assert( res != 0 );
 
+    res = GetModuleFileNameW( hm, path2, MAXPATHLEN + 1 );
+    assert( res != 0 );
+
     int res2 = WideCharToMultiByte(CP_UTF8, 0, path2, -1, path, MAXPATHLEN + 1, NULL, NULL);
     assert( res2 != 0 );
 #else
@@ -2867,8 +2870,10 @@ static char *getDllDirectory()
         &hm
     );
     assert( res != 0 );
-#endif
 
+    res = GetModuleFileNameA( hm, path, MAXPATHLEN + 1 );
+    assert( res != 0 );
+#endif
     PathRemoveFileSpec( path );
 
     return path;
