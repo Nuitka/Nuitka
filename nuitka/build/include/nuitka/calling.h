@@ -97,4 +97,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS( PyObject *func
     );
 }
 
+// Method call variant with no arguments provided at all.
+extern PyObject *CALL_METHOD_NO_ARGS( PyObject *source, PyObject *attribute );
+
 #endif

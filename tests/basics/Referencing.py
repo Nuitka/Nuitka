@@ -895,6 +895,9 @@ def simpleFunction108():
     # Call a PyCFunction with a single argument.
     return sum((i for i in range(x)), 17)
 
+def simpleFunction109():
+    # Call a PyCFunction that looks like a method call.
+    sys.exc_info()
 
 ####################################
 

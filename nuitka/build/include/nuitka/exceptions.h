@@ -495,26 +495,4 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED( void )
     }
 }
 
-// Special helper that checks for StopIteration and if so clears it, only
-// indicating if it was set.
-NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED( void )
-{
-    PyObject *error = GET_ERROR_OCCURRED();
-
-    if ( error == NULL )
-    {
-        return true;
-    }
-    else if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_AttributeError ) )
-    {
-        CLEAR_ERROR_OCCURRED();
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-
 #endif

@@ -385,203 +385,118 @@ extern PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *called_instance,
 template_call_method_with_args_impl = """\
 PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_name, PyObject **args )
 {
-    PyObject *called;
-
 #if PYTHON_VERSION < 300
     if ( PyInstance_Check( source ) )
     {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
 
-        called = GET_STRING_DICT_VALUE( (PyDictObject *)source_instance->in_dict, (PyStringObject *)attr_name );
+        PyObject *called_object = GET_STRING_DICT_VALUE(
+            (PyDictObject *)source_instance->in_dict,
+            (PyStringObject *)attr_name
+        );
 
-        if ( called )
+        if ( called_object == NULL )
         {
-            // Unlikely a method now.
-            Py_INCREF( called );
+            called_object = FIND_ATTRIBUTE_IN_CLASS(
+                source_instance->in_class,
+                attr_name
+            );
         }
-        else
+
+        // Note: The "called_object" was found without taking a reference,
+        // so we need not release it in this branch.
+        if ( called_object != NULL )
         {
-            // Next see if a class has it
-            PyObject *attribute = FIND_ATTRIBUTE_IN_CLASS( source_instance->in_class, attr_name );
+            descrgetfunc descr_get = Py_TYPE( called_object )->tp_descr_get;
 
-            if ( attribute )
+            if ( descr_get == Nuitka_Function_Type.tp_descr_get )
             {
-                descrgetfunc descr_get = Py_TYPE( attribute )->tp_descr_get;
+                struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)called_object;
 
-                if ( descr_get == Nuitka_Function_Type.tp_descr_get )
-                {
-                    Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)attribute;
-
-                    if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-                    {
-                        return NULL;
-                    }
-#ifdef _MSC_VER
-                    PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_overall_count );
-#else
-                    PyObject *python_pars[ function->m_args_overall_count ];
-#endif
-                    memset( python_pars, 0, function->m_args_overall_count * sizeof(PyObject *) );
-
-                    PyObject *result;
-
-                    if ( parseArgumentsMethodPos( function, python_pars, source, args, %(args_count)d ) )
-                    {
-                        result = function->m_c_code( function, python_pars );
-                    }
-                    else
-                    {
-                        result = NULL;
-                    }
-
-                    Py_LeaveRecursiveCall();
-
-                    return result;
-                }
-                else
-                {
-                    called = descr_get( attribute, source, (PyObject *)source_instance->in_class );
-
-                    if (unlikely( called == NULL ))
-                    {
-                        return NULL;
-                    }
-                }
-
-            }
-            else
-            {
-                if (unlikely( !CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED() ))
+                if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
                 {
                     return NULL;
                 }
+#ifdef _MSC_VER
+                PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_overall_count );
+#else
+                PyObject *python_pars[ function->m_args_overall_count ];
+#endif
+                memset( python_pars, 0, function->m_args_overall_count * sizeof(PyObject *) );
+
+                PyObject *result;
+
+                if ( parseArgumentsMethodPos( function, python_pars, source, args, %(args_count)d ) )
+                {
+                    result = function->m_c_code( function, python_pars );
+                }
+                else
+                {
+                    result = NULL;
+                }
+
+                Py_LeaveRecursiveCall();
+
+                return result;
+            }
+            else
+            {
+                called_object = descr_get( called_object, source, (PyObject *)source_instance->in_class );
+
+                if (unlikely( called_object == NULL ))
+                {
+                    return NULL;
+                }
+
+                assert( false );
             }
         }
     }
     else
 #endif
     {
-        called = LOOKUP_ATTRIBUTE( source, attr_name );
-    }
+        PyObject *called = LOOKUP_ATTRIBUTE( source, attr_name );
+        if (unlikely( called == NULL )) return NULL;
+        CHECK_OBJECT( called );
 
-    if (unlikely( called == NULL )) return NULL;
-    CHECK_OBJECT( called );
-
-    // Check if arguments are valid objects in debug mode.
+        // Check if arguments are valid objects in debug mode.
 #ifndef __NUITKA_NO_ASSERT__
-    for( size_t i = 0; i < %(args_count)d; i++ )
-    {
-        CHECK_OBJECT( args[ i ] );
-    }
+        for( size_t i = 0; i < %(args_count)d; i++ )
+        {
+            CHECK_OBJECT( args[ i ] );
+        }
 #endif
 
-    if ( Nuitka_Function_Check( called ) )
-    {
-        if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-        {
-            return NULL;
-        }
-
-        struct Nuitka_FunctionObject *function = (Nuitka_FunctionObject *)called;
-        PyObject *result;
-
-        if ( function->m_args_simple && %(args_count)d == function->m_args_positional_count )
-        {
-            for( Py_ssize_t i = 0; i < %(args_count)d; i++ )
-            {
-                Py_INCREF( args[ i ] );
-            }
-
-            result = function->m_c_code( function, args );
-        }
-        else if ( function->m_args_simple && %(args_count)d + function->m_defaults_given == function->m_args_positional_count )
-        {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_positional_count );
-#else
-            PyObject *python_pars[ function->m_args_positional_count ];
-#endif
-            memcpy( python_pars, args, %(args_count)d * sizeof(PyObject *) );
-            memcpy( python_pars + %(args_count)d, &PyTuple_GET_ITEM( function->m_defaults, 0 ), function->m_defaults_given * sizeof(PyObject *) );
-
-            for( Py_ssize_t i = 0; i < function->m_args_positional_count; i++ )
-            {
-                Py_INCREF( python_pars[ i ] );
-            }
-
-            result = function->m_c_code( function, python_pars );
-        }
-        else
-        {
-#ifdef _MSC_VER
-            PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_overall_count );
-#else
-            PyObject *python_pars[ function->m_args_overall_count ];
-#endif
-            memset( python_pars, 0, function->m_args_overall_count * sizeof(PyObject *) );
-
-            if ( parseArgumentsPos( function, python_pars, args, %(args_count)d ))
-            {
-                result = function->m_c_code( function, python_pars );
-            }
-            else
-            {
-                result = NULL;
-            }
-        }
-
-        Py_LeaveRecursiveCall();
-
-        return result;
-    }
-    else if ( Nuitka_Method_Check( called ) )
-    {
-        struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
-
-        // Unbound method without arguments, let the error path be slow.
-        if ( method->m_object != NULL )
+        if ( Nuitka_Function_Check( called ) )
         {
             if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
             {
                 return NULL;
             }
 
-            struct Nuitka_FunctionObject *function = method->m_function;
-
+            struct Nuitka_FunctionObject *function = (struct Nuitka_FunctionObject *)called;
             PyObject *result;
 
-            if ( function->m_args_simple && %(args_count)d + 1 == function->m_args_positional_count )
+            if ( function->m_args_simple && %(args_count)d == function->m_args_positional_count )
             {
-#ifdef _MSC_VER
-                PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_positional_count );
-#else
-                PyObject *python_pars[ function->m_args_positional_count ];
-#endif
-                python_pars[ 0 ] = method->m_object;
-                Py_INCREF( method->m_object );
-
                 for( Py_ssize_t i = 0; i < %(args_count)d; i++ )
                 {
-                    python_pars[ i + 1 ] = args[ i ];
                     Py_INCREF( args[ i ] );
                 }
 
-                result = function->m_c_code( function, python_pars );
+                result = function->m_c_code( function, args );
             }
-            else if ( function->m_args_simple && %(args_count)d + 1 + function->m_defaults_given == function->m_args_positional_count )
+            else if ( function->m_args_simple && %(args_count)d + function->m_defaults_given == function->m_args_positional_count )
             {
 #ifdef _MSC_VER
                 PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_positional_count );
 #else
                 PyObject *python_pars[ function->m_args_positional_count ];
 #endif
-                python_pars[ 0 ] = method->m_object;
-                Py_INCREF( method->m_object );
+                memcpy( python_pars, args, %(args_count)d * sizeof(PyObject *) );
+                memcpy( python_pars + %(args_count)d, &PyTuple_GET_ITEM( function->m_defaults, 0 ), function->m_defaults_given * sizeof(PyObject *) );
 
-                memcpy( python_pars+1, args, %(args_count)d * sizeof(PyObject *) );
-                memcpy( python_pars+1 + %(args_count)d, &PyTuple_GET_ITEM( function->m_defaults, 0 ), function->m_defaults_given * sizeof(PyObject *) );
-
-                for( Py_ssize_t i = 1; i < function->m_args_overall_count; i++ )
+                for( Py_ssize_t i = 0; i < function->m_args_positional_count; i++ )
                 {
                     Py_INCREF( python_pars[ i ] );
                 }
@@ -597,7 +512,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
 #endif
                 memset( python_pars, 0, function->m_args_overall_count * sizeof(PyObject *) );
 
-                if ( parseArgumentsMethodPos( function, python_pars, method->m_object, args, %(args_count)d ) )
+                if ( parseArgumentsPos( function, python_pars, args, %(args_count)d ))
                 {
                     result = function->m_c_code( function, python_pars );
                 }
@@ -611,209 +526,287 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
 
             return result;
         }
-    }
-    else if ( PyCFunction_Check( called ) )
-    {
-        // Try to be fast about wrapping the arguments.
-        int flags = PyCFunction_GET_FLAGS( called ) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
-
-        if ( flags & METH_NOARGS )
+        else if ( Nuitka_Method_Check( called ) )
         {
+            struct Nuitka_MethodObject *method = (struct Nuitka_MethodObject *)called;
+
+            // Unbound method without arguments, let the error path be slow.
+            if ( method->m_object != NULL )
+            {
+                if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
+                {
+                    return NULL;
+                }
+
+                struct Nuitka_FunctionObject *function = method->m_function;
+
+                PyObject *result;
+
+                if ( function->m_args_simple && %(args_count)d + 1 == function->m_args_positional_count )
+                {
+#ifdef _MSC_VER
+                    PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_positional_count );
+#else
+                    PyObject *python_pars[ function->m_args_positional_count ];
+#endif
+                    python_pars[ 0 ] = method->m_object;
+                    Py_INCREF( method->m_object );
+
+                    for( Py_ssize_t i = 0; i < %(args_count)d; i++ )
+                    {
+                        python_pars[ i + 1 ] = args[ i ];
+                        Py_INCREF( args[ i ] );
+                    }
+
+                    result = function->m_c_code( function, python_pars );
+                }
+                else if ( function->m_args_simple && %(args_count)d + 1 + function->m_defaults_given == function->m_args_positional_count )
+                {
+#ifdef _MSC_VER
+                    PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_positional_count );
+#else
+                    PyObject *python_pars[ function->m_args_positional_count ];
+#endif
+                    python_pars[ 0 ] = method->m_object;
+                    Py_INCREF( method->m_object );
+
+                    memcpy( python_pars+1, args, %(args_count)d * sizeof(PyObject *) );
+                    memcpy( python_pars+1 + %(args_count)d, &PyTuple_GET_ITEM( function->m_defaults, 0 ), function->m_defaults_given * sizeof(PyObject *) );
+
+                    for( Py_ssize_t i = 1; i < function->m_args_overall_count; i++ )
+                    {
+                        Py_INCREF( python_pars[ i ] );
+                    }
+
+                    result = function->m_c_code( function, python_pars );
+                }
+                else
+                {
+#ifdef _MSC_VER
+                    PyObject **python_pars = (PyObject **)_alloca( sizeof( PyObject * ) * function->m_args_overall_count );
+#else
+                    PyObject *python_pars[ function->m_args_overall_count ];
+#endif
+                    memset( python_pars, 0, function->m_args_overall_count * sizeof(PyObject *) );
+
+                    if ( parseArgumentsMethodPos( function, python_pars, method->m_object, args, %(args_count)d ) )
+                    {
+                        result = function->m_c_code( function, python_pars );
+                    }
+                    else
+                    {
+                        result = NULL;
+                    }
+                }
+
+                Py_LeaveRecursiveCall();
+
+                return result;
+            }
+        }
+        else if ( PyCFunction_Check( called ) )
+        {
+            // Try to be fast about wrapping the arguments.
+            int flags = PyCFunction_GET_FLAGS( called ) & ~(METH_CLASS | METH_STATIC | METH_COEXIST);
+
+            if ( flags & METH_NOARGS )
+            {
 #if %(args_count)d == 0
-            PyCFunction method = PyCFunction_GET_FUNCTION( called );
-            PyObject *self = PyCFunction_GET_SELF( called );
+                PyCFunction method = PyCFunction_GET_FUNCTION( called );
+                PyObject *self = PyCFunction_GET_SELF( called );
 
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+                // Recursion guard is not strictly necessary, as we already have
+                // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
-            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-            {
-                return NULL;
-            }
-#endif
-
-            PyObject *result = (*method)( self, NULL );
-
-#ifdef _NUITKA_FULL_COMPAT
-            Py_LeaveRecursiveCall();
-#endif
-
-            if ( result != NULL )
-            {
-            // Some buggy C functions do set an error, but do not indicate it
-            // and Nuitka inner workings can get upset/confused from it.
-                DROP_ERROR_OCCURRED();
-
-                return result;
-            }
-            else
-            {
-                // Other buggy C functions do this, return NULL, but with
-                // no error set, not allowed.
-                if (unlikely( !ERROR_OCCURRED() ))
+                if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
                 {
-                    PyErr_Format(
-                        PyExc_SystemError,
-                        "NULL result without error in PyObject_Call"
-                    );
+                    return NULL;
                 }
-
-                return NULL;
-            }
-#else
-            PyErr_Format(
-                PyExc_TypeError,
-                "%%s() takes no arguments (%(args_count)d given)",
-                ((PyCFunctionObject *)called)->m_ml->ml_name
-            );
-            return NULL;
 #endif
-        }
-        else if ( flags & METH_O )
-        {
+
+                PyObject *result = (*method)( self, NULL );
+
+#ifdef _NUITKA_FULL_COMPAT
+                Py_LeaveRecursiveCall();
+#endif
+
+                if ( result != NULL )
+                {
+                // Some buggy C functions do set an error, but do not indicate it
+                // and Nuitka inner workings can get upset/confused from it.
+                    DROP_ERROR_OCCURRED();
+
+                    return result;
+                }
+                else
+                {
+                    // Other buggy C functions do this, return NULL, but with
+                    // no error set, not allowed.
+                    if (unlikely( !ERROR_OCCURRED() ))
+                    {
+                        PyErr_Format(
+                            PyExc_SystemError,
+                            "NULL result without error in PyObject_Call"
+                        );
+                    }
+
+                    return NULL;
+                }
+#else
+                PyErr_Format(
+                    PyExc_TypeError,
+                    "%%s() takes no arguments (%(args_count)d given)",
+                    ((PyCFunctionObject *)called)->m_ml->ml_name
+                );
+                return NULL;
+#endif
+            }
+            else if ( flags & METH_O )
+            {
 #if %(args_count)d == 1
-            PyCFunction method = PyCFunction_GET_FUNCTION( called );
-            PyObject *self = PyCFunction_GET_SELF( called );
+                PyCFunction method = PyCFunction_GET_FUNCTION( called );
+                PyObject *self = PyCFunction_GET_SELF( called );
 
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+                // Recursion guard is not strictly necessary, as we already have
+                // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
-            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-            {
+                if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
+                {
+                    return NULL;
+                }
+#endif
+
+                PyObject *result = (*method)( self, args[0] );
+
+#ifdef _NUITKA_FULL_COMPAT
+                Py_LeaveRecursiveCall();
+#endif
+
+                if ( result != NULL )
+                {
+                // Some buggy C functions do set an error, but do not indicate it
+                // and Nuitka inner workings can get upset/confused from it.
+                    DROP_ERROR_OCCURRED();
+
+                    return result;
+                }
+                else
+                {
+                    // Other buggy C functions do this, return NULL, but with
+                    // no error set, not allowed.
+                    if (unlikely( !ERROR_OCCURRED() ))
+                    {
+                        PyErr_Format(
+                            PyExc_SystemError,
+                            "NULL result without error in PyObject_Call"
+                        );
+                    }
+
+                    return NULL;
+                }
+#else
+                PyErr_Format(PyExc_TypeError,
+                    "%%s() takes exactly one argument (%(args_count)d given)",
+                     ((PyCFunctionObject *)called)->m_ml->ml_name
+                );
                 return NULL;
-            }
 #endif
-
-            PyObject *result = (*method)( self, args[0] );
-
-#ifdef _NUITKA_FULL_COMPAT
-            Py_LeaveRecursiveCall();
-#endif
-
-            if ( result != NULL )
-            {
-            // Some buggy C functions do set an error, but do not indicate it
-            // and Nuitka inner workings can get upset/confused from it.
-                DROP_ERROR_OCCURRED();
-
-                return result;
             }
             else
             {
-                // Other buggy C functions do this, return NULL, but with
-                // no error set, not allowed.
-                if (unlikely( !ERROR_OCCURRED() ))
-                {
-                    PyErr_Format(
-                        PyExc_SystemError,
-                        "NULL result without error in PyObject_Call"
-                    );
-                }
+                PyCFunction method = PyCFunction_GET_FUNCTION( called );
+                PyObject *self = PyCFunction_GET_SELF( called );
 
-                return NULL;
-            }
-#else
-            PyErr_Format(PyExc_TypeError,
-                "%%s() takes exactly one argument (%(args_count)d given)",
-                 ((PyCFunctionObject *)called)->m_ml->ml_name
-            );
-            return NULL;
-#endif
-        }
-        else
-        {
-            PyCFunction method = PyCFunction_GET_FUNCTION( called );
-            PyObject *self = PyCFunction_GET_SELF( called );
+                PyObject *pos_args = MAKE_TUPLE( args, %(args_count)d );
 
-            PyObject *pos_args = MAKE_TUPLE( args, %(args_count)d );
+                PyObject *result;
 
-            PyObject *result;
+                assert( flags && METH_VARARGS );
 
-            assert( flags && METH_VARARGS );
-
-            // Recursion guard is not strictly necessary, as we already have
-            // one on our way to here.
+                // Recursion guard is not strictly necessary, as we already have
+                // one on our way to here.
 #ifdef _NUITKA_FULL_COMPAT
-            if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
-            {
-                return NULL;
-            }
+                if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object" ) ))
+                {
+                    return NULL;
+                }
 #endif
 
 #if PYTHON_VERSION < 300
-            if ( flags && METH_KEYWORDS )
-            {
-                result = (*(PyCFunctionWithKeywords)method)( self, pos_args, NULL );
-            }
-            else
-            {
-                result = (*method)( self, pos_args );
-            }
+                if ( flags && METH_KEYWORDS )
+                {
+                    result = (*(PyCFunctionWithKeywords)method)( self, pos_args, NULL );
+                }
+                else
+                {
+                    result = (*method)( self, pos_args );
+                }
 #else
-            if ( flags == ( METH_VARARGS | METH_KEYWORDS ) )
-            {
-                result = (*(PyCFunctionWithKeywords)method)( self, pos_args, NULL );
-            }
-            else if ( flags == METH_FASTCALL )
-            {
-                result = (*(_PyCFunctionFast)method)( self, args, %(args_count)d, NULL );;
-            }
-            else
-            {
-                result = (*method)( self, pos_args );
-            }
+                if ( flags == ( METH_VARARGS | METH_KEYWORDS ) )
+                {
+                    result = (*(PyCFunctionWithKeywords)method)( self, pos_args, NULL );
+                }
+                else if ( flags == METH_FASTCALL )
+                {
+                    result = (*(_PyCFunctionFast)method)( self, args, %(args_count)d, NULL );;
+                }
+                else
+                {
+                    result = (*method)( self, pos_args );
+                }
 #endif
 
 #ifdef _NUITKA_FULL_COMPAT
-            Py_LeaveRecursiveCall();
+                Py_LeaveRecursiveCall();
 #endif
 
-            if ( result != NULL )
-            {
-            // Some buggy C functions do set an error, but do not indicate it
-            // and Nuitka inner workings can get upset/confused from it.
-                DROP_ERROR_OCCURRED();
-
-                Py_DECREF( pos_args );
-                return result;
-            }
-            else
-            {
-                // Other buggy C functions do this, return NULL, but with
-                // no error set, not allowed.
-                if (unlikely( !ERROR_OCCURRED() ))
+                if ( result != NULL )
                 {
-                    PyErr_Format(
-                        PyExc_SystemError,
-                        "NULL result without error in PyObject_Call"
-                    );
-                }
+                // Some buggy C functions do set an error, but do not indicate it
+                // and Nuitka inner workings can get upset/confused from it.
+                    DROP_ERROR_OCCURRED();
 
-                Py_DECREF( pos_args );
-                return NULL;
+                    Py_DECREF( pos_args );
+                    return result;
+                }
+                else
+                {
+                    // Other buggy C functions do this, return NULL, but with
+                    // no error set, not allowed.
+                    if (unlikely( !ERROR_OCCURRED() ))
+                    {
+                        PyErr_Format(
+                            PyExc_SystemError,
+                            "NULL result without error in PyObject_Call"
+                        );
+                    }
+
+                    Py_DECREF( pos_args );
+                    return NULL;
+                }
             }
         }
-    }
-    else if ( PyFunction_Check( called ) )
-    {
-        return callPythonFunction(
+        else if ( PyFunction_Check( called ) )
+        {
+            return callPythonFunction(
+                called,
+                args,
+                %(args_count)d
+            );
+        }
+
+        PyObject *pos_args = MAKE_TUPLE( args, %(args_count)d );
+
+        PyObject *result = CALL_FUNCTION(
             called,
-            args,
-            %(args_count)d
+            pos_args,
+            NULL
         );
+
+        Py_DECREF( pos_args );
+
+        return result;
     }
-
-    PyObject *pos_args = MAKE_TUPLE( args, %(args_count)d );
-
-    PyObject *result = CALL_FUNCTION(
-        called,
-        pos_args,
-        NULL
-    );
-
-    Py_DECREF( pos_args );
-
-    return result;
 }
 """
 

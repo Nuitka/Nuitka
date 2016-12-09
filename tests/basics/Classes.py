@@ -177,7 +177,10 @@ class ClassesWithNestedClass:
         def getDict(self):
             return { 'a':2 }
 
-print ClassesWithNestedClass, ClassesWithNestedClass().NestedClass, ClassesWithNestedClass().NestedClass().getDict()
+print "Classes:"
+print ClassesWithNestedClass,
+print ClassesWithNestedClass().NestedClass,
+print ClassesWithNestedClass().NestedClass().getDict()
 
 secondary = "global closure wins"
 
