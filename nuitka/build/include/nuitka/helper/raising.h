@@ -144,9 +144,9 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
     }
     else
     {
+        PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( *exception_type )->tp_name );
         Py_DECREF( *exception_type );
 
-        PyErr_Format( PyExc_TypeError, WRONG_EXCEPTION_TYPE_ERROR_MESSAGE, Py_TYPE( *exception_type )->tp_name );
         FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
         return;
     }

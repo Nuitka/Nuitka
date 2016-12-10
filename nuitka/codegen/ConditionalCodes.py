@@ -37,9 +37,6 @@ def generateConditionCode(condition, emit, context):
     # The complexity is needed to avoid unnecessary complex generated C++
     # pylint: disable=R0914,R0915
 
-    # Must not happen, optimization catches this.
-    assert not condition.isExpressionConstantRef()
-
     if condition.isExpressionComparison():
         left_name = context.allocateTempName("compare_left")
 
@@ -189,6 +186,12 @@ def generateConditionCode(condition, emit, context):
         )
 
         context.setCurrentSourceCodeReference(old_source_ref)
+    elif condition.isCompileTimeConstant():
+        getBranchingCode(
+            condition = "1" if condition.getCompileTimeConstant() else "0",
+            emit      = emit,
+            context   = context
+        )
     else:
         condition_name = context.allocateTempName("cond_value")
         truth_name = context.allocateTempName("cond_truth", "int")
