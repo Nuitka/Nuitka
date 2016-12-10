@@ -68,19 +68,12 @@ template_generator_return_exit = """\
     return;
 
     function_return_exit:
-#if PYTHON_VERSION >= 330
-    if ( tmp_return_value != Py_None )
-    {
-        PyObject *args[1] = { tmp_return_value };
-        PyObject *stop_value = CALL_FUNCTION_WITH_ARGS1( PyExc_StopIteration, args );
-        RESTORE_ERROR_OCCURRED( PyExc_StopIteration, stop_value, NULL );
-        Py_INCREF( PyExc_StopIteration );
-    }
-    else
-    {
-        Py_DECREF( tmp_return_value );
-    }
+#if PYTHON_VERSION < 330
+    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
+#else
+    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, tmp_return_value, NULL );
 #endif
+    Py_INCREF( PyExc_StopIteration );
     generator->m_yielded = NULL;
     return;
 """
