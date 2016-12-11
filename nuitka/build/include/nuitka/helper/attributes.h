@@ -100,13 +100,6 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
             return INCREASE_REFCOUNT( result );
         }
     }
-    else
-    {
-        if (unlikely( !CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED() ))
-        {
-            return NULL;
-        }
-    }
 
     // Finally allow a __getattr__ to handle it or else it's an error.
     if (unlikely( source_instance->in_class->cl_getattr == NULL ))
