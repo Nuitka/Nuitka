@@ -394,7 +394,7 @@ if clang_mode:
     env["CCVERSION"] = None
 elif "CC" in os.environ:
     # If the environment variable CXX is set, use that.
-    env["CC"] = os.environ["CXX"]
+    env["CC"] = os.environ["CC"]
     env["CCVERSION"] = None
 
 # To work around Windows not supporting command lines of greater than 10K by
