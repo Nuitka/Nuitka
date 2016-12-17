@@ -243,14 +243,30 @@ if nuitka:
     )
 
     if options.diff_filename:
-        cpp_1 = os.path.join(
-            test_case_1.replace(".py", ".build"),
-            "module.__main__.cpp",
-        )
-        cpp_2 = os.path.join(
-            test_case_2.replace(".py", ".build"),
-            "module.__main__.cpp",
-        )
+        suffixes = [".c", ".cpp"]
+
+        for suffix in suffixes:
+            cpp_1 = os.path.join(
+                test_case_1.replace(".py", ".build"),
+                "module.__main__" + suffix,
+            )
+
+            if os.path.exists(cpp_1):
+                break
+        else:
+            assert False
+
+        for suffix in suffixes:
+
+            cpp_2 = os.path.join(
+                test_case_2.replace(".py", ".build"),
+                "module.__main__" + suffix,
+            )
+            if os.path.exists(cpp_2):
+                break
+        else:
+            assert False
+
         import difflib
         open(options.diff_filename,'w').write(
             difflib.HtmlDiff().make_table(
