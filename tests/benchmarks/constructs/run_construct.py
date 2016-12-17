@@ -113,9 +113,6 @@ if options.target_dir:
         os.path.join(options.target_dir, os.path.basename(test_case))
     )
 
-if needs_2to3:
-    test_case, needs_delete = convertUsing2to3(test_case)
-
 def runValgrind(descr, test_case, args):
     my_print(descr, file = sys.stderr, end = "... ")
 
@@ -190,6 +187,10 @@ for line in open(test_case):
 
 case_1_file.close()
 case_2_file.close()
+
+if needs_2to3:
+    test_case_1, needs_delete = convertUsing2to3(test_case_1)
+    test_case_2, needs_delete = convertUsing2to3(test_case_2)
 
 os.environ["PYTHONHASHSEED"] = '0'
 

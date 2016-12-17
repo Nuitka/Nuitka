@@ -178,7 +178,12 @@ def convertUsing2to3(path, force = False):
     filename = os.path.basename(path)
 
     new_path = os.path.join(getTempDir(), filename)
-    shutil.copy(path, new_path)
+
+    # This may already be a temp file, e.g. because of construct creation.
+    try:
+        shutil.copy(path, new_path)
+    except shutil.SameFileError:  # @UndefinedVariable
+        pass
 
     # On Windows, we cannot rely on 2to3 to be in the path.
     if os.name == "nt":
