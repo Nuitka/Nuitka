@@ -172,8 +172,6 @@ def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
 
 
 def generateImportModuleCode(to_name, expression, emit, context):
-    provider = expression.getParentVariableProvider()
-
     globals_name = context.allocateTempName("import_globals")
 
     getLoadGlobalsCode(
@@ -181,19 +179,6 @@ def generateImportModuleCode(to_name, expression, emit, context):
         emit    = emit,
         context = context
     )
-
-    if provider.isCompiledPythonModule():
-        locals_name = globals_name
-    else:
-        locals_name = context.allocateTempName("import_locals")
-
-        getLoadLocalsCode(
-            to_name  = locals_name,
-            provider = expression.getParentVariableProvider(),
-            mode     = "updated",
-            emit     = emit,
-            context  = context
-        )
 
     old_source_ref = context.setCurrentSourceCodeReference(expression.getSourceReference())
 
@@ -203,7 +188,9 @@ def generateImportModuleCode(to_name, expression, emit, context):
             constant = expression.getModuleName()
         ),
         globals_name     = globals_name,
-        locals_name      = locals_name,
+        locals_name      = context.getConstantCode(
+            constant = None
+        ),
         import_list_name = context.getConstantCode(
             constant = expression.getImportList()
         ),
