@@ -79,10 +79,7 @@ from nuitka.nodes.ConstantRefNodes import (
 from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
-from nuitka.nodes.ImportNodes import (
-    ExpressionImportModule,
-    ExpressionImportName
-)
+from nuitka.nodes.ImportNodes import ExpressionImportModule
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
@@ -120,7 +117,6 @@ from .Helpers import (
     makeModuleFrame,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
-    makeStatementsSequenceOrStatement,
     mangleName,
     mergeStatements,
     parseSourceCodeToAst,
@@ -151,6 +147,7 @@ from .ReformulationFunctionStatements import (
 )
 from .ReformulationImportStatements import (
     buildImportFromNode,
+    buildImportModulesNode,
     checkFutureImportsOnlyAtStart
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
@@ -298,80 +295,6 @@ def buildRaiseNode(provider, node, source_ref):
         )
 
     return result
-
-def buildImportModulesNode(provider, node, source_ref):
-    # Import modules statement. As described in the developer manual, these
-    # statements can be treated as several ones.
-
-    import_names   = [
-        ( import_desc.name, import_desc.asname )
-        for import_desc in
-        node.names
-    ]
-
-    import_nodes = []
-
-    for import_desc in import_names:
-        module_name, local_name = import_desc
-
-        module_topname = module_name.split('.')[0]
-
-        # Note: The "level" of import is influenced by the future absolute
-        # imports.
-        level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
-
-        if local_name:
-            # If is gets a local name, the real name must be used as a
-            # temporary value only, being looked up recursively.
-
-            import_node = ExpressionImportModule(
-                module_name = module_name,
-                import_list = None,
-                level       = level,
-                source_ref  = source_ref
-            )
-
-            for import_name in module_name.split('.')[1:]:
-                import_node = ExpressionImportName(
-                    module      = import_node,
-                    import_name = import_name,
-                    source_ref  = source_ref
-                )
-        else:
-            import_node = ExpressionImportModule(
-                module_name = module_name,
-                import_list = None,
-                level       = level,
-                source_ref  = source_ref
-            )
-
-        # If a name was given, use the one provided, otherwise the import gives
-        # the top level package name given for assignment of the imported
-        # module.
-
-        import_nodes.append(
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = mangleName(
-                        local_name
-                          if local_name is not None else
-                        module_topname,
-                        provider
-                    ),
-                    source_ref    = source_ref
-                ),
-                source       = import_node,
-                source_ref   = source_ref
-            )
-        )
-
-    # Note: Each import is sequential. It will potentially succeed, and the
-    # failure of a later one is not changing that one bit . We can therefore
-    # have a sequence of imports that only import one thing therefore.
-    return makeStatementsSequenceOrStatement(
-        statements = import_nodes,
-        source_ref = source_ref
-    )
 
 
 def handleGlobalDeclarationNode(provider, node, source_ref):

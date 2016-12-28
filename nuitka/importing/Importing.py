@@ -286,7 +286,7 @@ def findModule(importing, module_name, parent_package, level, warn):
             importing      = importing,
             module_name    = module_name,
             parent_package = parent_package,
-            level          = level,
+            level          = level
         )
 
     return None, None, "not-found"
