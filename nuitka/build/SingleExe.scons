@@ -73,6 +73,10 @@ profile_mode = getBoolOption("profile_mode", False)
 # Python version to target.
 python_version = ARGUMENTS["python_version"]
 
+# The ABI flags to target.
+abiflags = ARGUMENTS.get("abiflags", "")
+python_version += abiflags
+
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getBoolOption("python_debug", False)
 

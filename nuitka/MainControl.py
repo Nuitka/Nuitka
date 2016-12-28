@@ -412,17 +412,15 @@ def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches, pylint: disable=R0912
 
-    python_version_str = "%d.%d" % (sys.version_info[0], sys.version_info[1])
-
     if hasattr(sys, "abiflags"):
+        abiflags = sys.abiflags
+
         if Options.isPythonDebug() or \
            hasattr(sys, "getobjects"):
-            if sys.abiflags.startswith('d'):
-                python_version_str += sys.abiflags
-            else:
-                python_version_str += 'd' + sys.abiflags
-        else:
-            python_version_str += sys.abiflags
+            if not abiflags.startswith('d'):
+                abiflags = 'd' + abiflags
+    else:
+        abiflags = None
 
     def asBoolStr(value):
         return "true" if value else "false"
@@ -521,6 +519,8 @@ def runScons(main_module, quiet):
     if python_version < 300 and sys.flags.unicode:
         options["python_sysflag_unicode"] = "true"
 
+    if abiflags:
+        options["abiflags"] = abiflags
 
     return SconsInterface.runScons(options, quiet), options
 
@@ -672,7 +672,7 @@ def main():
     """
 
     # Main has to fullfil many options, leading to many branches and statements
-    # to deal with them.  pylint: disable=R0912
+    # to deal with them.  pylint: disable=R0912,R0915
     positional_args = Options.getPositionalArgs()
     assert len(positional_args) > 0
 
