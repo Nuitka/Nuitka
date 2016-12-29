@@ -82,7 +82,8 @@ def updateTuple(tuple_node):
 
         if tuple_node.type == "tuple" and tuple_node.with_parenthesis:
             if len(tuple_node.value.node_list) > 0:
-                tuple_node.value.node_list[-1].second_formatting = ""
+                if tuple_node.value.node_list[-1].type not in ("yield_atom",):
+                    tuple_node.value.node_list[-1].second_formatting = ""
 
         for argument in tuple_node.value:
             if argument.type in ("string", "binary_string", "raw_string"):
@@ -157,6 +158,14 @@ for node in red.find_all("TupleNode"):
         raise
 
 for node in red.find_all("ListNode"):
+    try:
+        updateTuple(node)
+    except Exception:
+        print("Problem with", node)
+        node.help(deep = True, with_formatting = True)
+        raise
+
+for node in red.find_all("SetNode"):
     try:
         updateTuple(node)
     except Exception:

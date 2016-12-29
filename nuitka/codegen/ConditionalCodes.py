@@ -188,7 +188,7 @@ def generateConditionCode(condition, emit, context):
         context.setCurrentSourceCodeReference(old_source_ref)
     elif condition.isCompileTimeConstant():
         getBranchingCode(
-            condition = "1" if condition.getCompileTimeConstant() else "0",
+            condition = '1' if condition.getCompileTimeConstant() else '0',
             emit      = emit,
             context   = context
         )

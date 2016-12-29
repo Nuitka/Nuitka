@@ -23,5 +23,5 @@ print(x)
 
 print("Complex constant using sets with clashes at run time:")
 y = True
-x = ( { 1, }, { 1, True }, { 1, 1.0 }, { 1, y } )
+x = ({1, }, {1, True}, {1, 1.0}, {1, y})
 print(x)
