@@ -27,7 +27,7 @@ complete.
 from nuitka import PythonVersions, Variables
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.Options import isFullCompat
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import needsNonlocalColOffset, python_version
 from nuitka.tree import SyntaxErrors
 
 from .Operations import VisitorNoopMixin, visitTree
@@ -58,7 +58,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     def _handleNonLocal(node):
         # Take closure variables for non-local declarations.
 
-        for non_local_names, source_ref in node.getNonlocalDeclarations():
+        for non_local_names, source_ref, col_offset in node.getNonlocalDeclarations():
             for non_local_name in non_local_names:
                 variable = node.getClosureVariable(
                     variable_name = non_local_name
@@ -76,7 +76,14 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         display_file = not isFullCompat() or \
                                        python_version >= 340,
                         display_line = not isFullCompat() or \
-                                       python_version >= 340
+                                       python_version >= 340,
+                        col_offset   = (
+                            None
+                              if isFullCompat() and \
+                                 not needsNonlocalColOffset() else
+                            col_offset + 8
+                        )
+
                     )
 
                 node.registerProvidedVariable(variable)

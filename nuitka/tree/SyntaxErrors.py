@@ -115,7 +115,7 @@ def raiseSyntaxError(reason, source_ref, col_offset = None, display_file = True,
                 (
                     source_ref.getFilename(),
                     source_ref.getLineNumber(),
-                    None,
+                    col_offset,
                     source_line
                 )
             )

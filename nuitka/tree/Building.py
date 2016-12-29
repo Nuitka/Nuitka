@@ -98,7 +98,11 @@ from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import (
+    needsGlobalArgumentColOffset,
+    needsNonlocalColOffset,
+    python_version
+)
 from nuitka.tree.ReformulationForLoopStatements import (
     buildAsyncForLoopNode,
     buildForLoopNode
@@ -328,6 +332,12 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
                           if not Options.isFullCompat() or \
                              python_version >= 340 else
                         provider.getSourceReference()
+                    ),
+                    col_offset = (
+                        None
+                          if Options.isFullCompat() and \
+                             not needsGlobalArgumentColOffset() else
+                        node.col_offset + 4
                     )
                 )
 
@@ -402,10 +412,16 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
                 display_file = not Options.isFullCompat() or \
                                python_version >= 340,
                 display_line = not Options.isFullCompat() or \
-                               python_version >= 340
+                               python_version >= 340,
+                col_offset = (
+                    None
+                      if Options.isFullCompat() and \
+                         not needsNonlocalColOffset() else
+                    node.col_offset + 4
+                )
             )
 
-    provider.addNonlocalsDeclaration(node.names, source_ref)
+    provider.addNonlocalsDeclaration(node.names, source_ref, node.col_offset)
 
     return None
 

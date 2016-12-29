@@ -38,7 +38,13 @@ from nuitka.nodes.ImportNodes import (
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.PythonVersions import python_version
+from nuitka.Options import isFullCompat
+from nuitka.PythonVersions import (
+    needsFutureBracesImportColOffset,
+    needsFutureUnknownImportColOffset,
+    needsStarImportColOffset,
+    python_version
+)
 from nuitka.tree import SyntaxErrors
 
 from .Helpers import makeStatementsSequenceOrStatement, mangleName
@@ -83,6 +89,7 @@ from __future__ imports must occur at the beginning of the file""",
         object_name, _local_name = import_desc.name, import_desc.asname
 
         _enableFutureFeature(
+            node        = node,
             object_name = object_name,
             future_spec = source_ref.getFutureSpec(),
             source_ref  = source_ref
@@ -94,7 +101,7 @@ from __future__ imports must occur at the beginning of the file""",
     _future_import_nodes.append(node)
 
 
-def _enableFutureFeature(object_name, future_spec, source_ref):
+def _enableFutureFeature(node, object_name, future_spec, source_ref):
     if object_name == "unicode_literals":
         future_spec.enableUnicodeLiterals()
     elif object_name == "absolute_import":
@@ -110,7 +117,10 @@ def _enableFutureFeature(object_name, future_spec, source_ref):
     elif object_name == "braces":
         SyntaxErrors.raiseSyntaxError(
             "not a chance",
-            source_ref
+            source_ref,
+            col_offset = None
+              if isFullCompat() and not needsFutureBracesImportColOffset() else
+            node.col_offset
         )
     elif object_name in ("nested_scopes", "generators", "with_statement"):
         # These are enabled in all cases already.
@@ -118,7 +128,10 @@ def _enableFutureFeature(object_name, future_spec, source_ref):
     else:
         SyntaxErrors.raiseSyntaxError(
             "future feature %s is not defined" % object_name,
-            source_ref
+            source_ref,
+            col_offset = None
+              if isFullCompat() and not needsFutureUnknownImportColOffset() else
+            node.col_offset
         )
 
 
@@ -167,7 +180,13 @@ def buildImportFromNode(provider, node, source_ref):
         if not provider.isCompiledPythonModule() and python_version >= 300:
             SyntaxErrors.raiseSyntaxError(
                 "import * only allowed at module level",
-                provider.getSourceReference()
+                provider.getSourceReference(),
+                col_offset = (
+                    None
+                      if isFullCompat() and \
+                      not needsStarImportColOffset() else
+                    node.col_offset - 3
+                )
             )
 
         # Functions with star imports get a marker.

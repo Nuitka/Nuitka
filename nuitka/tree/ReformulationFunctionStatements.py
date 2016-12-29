@@ -62,7 +62,11 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.PythonVersions import python_version
+from nuitka.Options import isFullCompat
+from nuitka.PythonVersions import (
+    needsDuplicateArgumentColOffset,
+    python_version
+)
 from nuitka.tree import SyntaxErrors
 
 from .Helpers import (
@@ -590,7 +594,10 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
     if message is not None:
         SyntaxErrors.raiseSyntaxError(
             message,
-            source_ref
+            source_ref,
+            col_offset = None
+              if isFullCompat() and not needsDuplicateArgumentColOffset() else
+            node.col_offset
         )
 
     code_object = CodeObjectSpec(

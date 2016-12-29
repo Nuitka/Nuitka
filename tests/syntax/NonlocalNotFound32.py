@@ -20,8 +20,7 @@ def testNonlocal():
     x = 0
     y = 0
     def f():
-
-            nonlocal z
+        nonlocal z
     f()
 
 testNonlocal()

@@ -26,6 +26,7 @@ should attempt to make run time detections.
 import os
 import re
 import sys
+import traceback
 
 
 def getSupportedPythonVersions():
@@ -125,6 +126,36 @@ def needsSetLiteralReverseInsertion():
         return False
     else:
         return type(value) is float
+
+
+def needsDuplicateArgumentColOffset():
+    if python_version < 350:
+        return False
+
+    try:
+        exec("if True: def f(a,a): pass")
+    except SyntaxError:
+        return "^" in traceback.format_exc()
+
+
+def needsFutureBracesImportColOffset():
+    return needsDuplicateArgumentColOffset()
+
+
+def needsFutureUnknownImportColOffset():
+    return needsDuplicateArgumentColOffset()
+
+
+def needsGlobalArgumentColOffset():
+    return needsDuplicateArgumentColOffset()
+
+
+def needsStarImportColOffset():
+    return needsDuplicateArgumentColOffset()
+
+
+def needsNonlocalColOffset():
+    return needsDuplicateArgumentColOffset()
 
 
 def isUninstalledPython():
