@@ -38,6 +38,7 @@ from .templates.CodeTemplatesModules import (
     template_helper_impl_decl
 )
 
+
 def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_name,
                              emit, context):
     # We have many variants for this to deal with, pylint: disable=R0912
@@ -86,13 +87,13 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
                 )
             else:
                 getInstanceCallCodePosArgsQuick(
-                    to_name     = to_name,
-                    called_name = called_name,
+                    to_name               = to_name,
+                    called_name           = called_name,
                     called_attribute_name = called_attribute_name,
-                    arg_names   = call_arg_names,
-                    needs_check = expression.mayRaiseException(BaseException),
-                    emit        = emit,
-                    context     = context
+                    arg_names             = call_arg_names,
+                    needs_check           = expression.mayRaiseException(BaseException),
+                    emit                  = emit,
+                    context               = context
                 )
         elif call_args_value:
             if called_attribute_name is None:
@@ -166,13 +167,13 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
             )
         else:
             getInstanceCallCodePosArgsQuick(
-                to_name     = to_name,
-                called_name = called_name,
+                to_name               = to_name,
+                called_name           = called_name,
                 called_attribute_name = called_attribute_name,
-                arg_names   = call_arg_names,
-                needs_check = expression.mayRaiseException(BaseException),
-                emit        = emit,
-                context     = context
+                arg_names             = call_arg_names,
+                needs_check           = expression.mayRaiseException(BaseException),
+                emit                  = emit,
+                context               = context
             )
     else:
         args_name = generateChildExpressionCode(
@@ -196,13 +197,13 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
             )
         else:
             getInstanceCallCodePosArgs(
-                to_name     = to_name,
-                called_name = called_name,
+                to_name               = to_name,
+                called_name           = called_name,
                 called_attribute_name = called_attribute_name,
-                args_name   = args_name,
-                needs_check = expression.mayRaiseException(BaseException),
-                emit        = emit,
-                context     = context
+                args_name             = args_name,
+                needs_check           = expression.mayRaiseException(BaseException),
+                emit                  = emit,
+                context               = context
             )
 
 
@@ -240,9 +241,14 @@ def generateCallCode(to_name, expression, emit, context):
     call_kw = expression.getCallKw()
     call_args = expression.getCallArgs()
 
-    # TODO: Make this work for all cases.
-    if False and called.isExpressionAttributeLookup() and \
-       call_kw is None and call_args is None:
+    # TODO: Make this work for all cases. Currently, the method calls that do
+    # a combined lookup and call, do a re-ordering of things, and therefore it
+    # must be disabled until this is solved.
+    if False and \
+       called.isExpressionAttributeLookup() and \
+       not called.isExpressionAttributeLookupSpecial() and \
+       called.getAttributeName() not in ("__class__", "__dict__") and \
+       call_kw is None:
         called_name = context.allocateTempName("called_instance")
         generateExpressionCode(
             to_name    = called_name,
@@ -380,8 +386,43 @@ quick_instance_calls_used = set()
 
 def getInstanceCallCodePosArgsQuick(to_name, called_name, called_attribute_name,
                                     arg_names, needs_check, emit, context):
+    arg_size = len(arg_names)
+    quick_instance_calls_used.add(arg_size)
 
-    assert False
+    # For 0 arguments, NOARGS is supposed to be used.
+    assert arg_size > 0
+
+    emitLineNumberUpdateCode(emit, context)
+
+    emit(
+        """\
+{
+    PyObject *call_args[] = { %s };
+    %s = CALL_METHOD_WITH_ARGS%d( %s, %s, call_args );
+}
+""" % (
+            ", ".join(arg_names),
+            to_name,
+            arg_size,
+            called_name,
+            called_attribute_name
+        )
+    )
+
+    getReleaseCodes(
+        release_names = [called_name] + arg_names,
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitCode(
+        check_name  = to_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
+    )
+
+    context.addCleanupTempName(to_name)
 
 
 def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
@@ -503,7 +544,31 @@ def getCallCodeFromTuple(to_name, called_name, arg_tuple, arg_size,
 
 def getInstanceCallCodePosArgs(to_name, called_name, called_attribute_name,
                                args_name, needs_check, emit, context):
-    assert False
+    emitLineNumberUpdateCode(emit, context)
+
+    emit(
+        "%s = CALL_METHOD_WITH_POSARGS( %s, %s, %s );" % (
+            to_name,
+            called_name,
+            called_attribute_name,
+            args_name
+        )
+    )
+
+    getReleaseCodes(
+        release_names = (called_name, args_name),
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitCode(
+        check_name  = to_name,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
+    )
+
+    context.addCleanupTempName(to_name)
 
 
 def getCallCodePosArgs(to_name, called_name, args_name, needs_check, emit,
@@ -591,7 +656,7 @@ def getCallCodePosKeywordArgs(to_name, called_name, call_args_name,
 def getCallsDecls():
     result = []
 
-    for quick_call_used in sorted(quick_calls_used):
+    for quick_call_used in sorted(quick_calls_used.union(quick_instance_calls_used)):
         result.append(
             template_call_function_with_args_decl % {
                 "args_count" : quick_call_used
@@ -618,7 +683,7 @@ def getCallsCode():
         template_helper_impl_decl % {}
     )
 
-    for quick_call_used in sorted(quick_calls_used):
+    for quick_call_used in sorted(quick_calls_used.union(quick_instance_calls_used)):
         result.append(
             template_call_function_with_args_impl % {
                 "args_count" : quick_call_used

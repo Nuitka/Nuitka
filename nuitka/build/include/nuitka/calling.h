@@ -87,6 +87,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POSARGS( PyObject *func
     );
 }
 
+// Method call variants with positional arguments tuple.
+extern PyObject *CALL_METHOD_WITH_POSARGS( PyObject *source, PyObject *attr_name, PyObject *positional_args );
 
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS( PyObject *function_object, PyObject *named_args )
 {

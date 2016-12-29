@@ -3200,6 +3200,168 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
     );
 }
 
+PyObject *CALL_METHOD_WITH_POSARGS( PyObject *source, PyObject *attribute, PyObject *positional_args )
+{
+    CHECK_OBJECT( source );
+    CHECK_OBJECT( attribute );
+    CHECK_OBJECT( positional_args );
+
+#if PYTHON_VERSION < 300
+    if ( PyInstance_Check( source ) )
+    {
+        PyInstanceObject *source_instance = (PyInstanceObject *)source;
+
+        // The special cases have their own variant on the code generation level
+        // as we are called with constants only.
+        assert( attribute != const_str_plain___dict__ );
+        assert( attribute != const_str_plain___class__ );
+
+        // Try the instance dict first.
+        PyObject *called_object = GET_STRING_DICT_VALUE(
+            (PyDictObject *)source_instance->in_dict,
+            (PyStringObject *)attribute
+        );
+
+        // Note: The "called_object" was found without taking a reference,
+        // so we need not release it in this branch.
+        if ( called_object != NULL )
+        {
+            return CALL_FUNCTION_WITH_POSARGS(
+                called_object,
+                positional_args
+            );
+
+        }
+        // Then check the class dictionaries.
+        called_object = FIND_ATTRIBUTE_IN_CLASS(
+            source_instance->in_class,
+            attribute
+        );
+
+        // Note: The "called_object" was found without taking a reference,
+        // so we need not release it in this branch.
+        if ( called_object != NULL )
+        {
+            descrgetfunc descr_get = Py_TYPE( called_object )->tp_descr_get;
+
+            if ( descr_get == Nuitka_Function_Type.tp_descr_get )
+            {
+                return Nuitka_CallMethodFunctionPosArgs(
+                    (struct Nuitka_FunctionObject const *)called_object,
+                    source,
+                    &PyTuple_GET_ITEM(positional_args, 0),
+                    PyTuple_GET_SIZE(positional_args)
+                );
+            }
+            else if ( descr_get != NULL )
+            {
+                PyObject *method = descr_get(
+                    called_object,
+                    source,
+                    (PyObject *)source_instance->in_class
+                );
+
+                if (unlikely( method == NULL ))
+                {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_POSARGS(
+                    method,
+                    positional_args
+                );
+                Py_DECREF( method );
+                return result;
+            }
+            else
+            {
+                return CALL_FUNCTION_WITH_POSARGS(
+                    called_object,
+                    positional_args
+                );
+            }
+        }
+        else if (unlikely( source_instance->in_class->cl_getattr == NULL ))
+        {
+            PyErr_Format(
+                PyExc_AttributeError,
+                "%s instance has no attribute '%s'",
+                PyString_AS_STRING( source_instance->in_class->cl_name ),
+                PyString_AS_STRING( attribute )
+            );
+
+            return NULL;
+        }
+        else
+        {
+            // Finally allow the "__getattr__" override to provide it or else
+            // it's an error.
+
+            PyObject *args[] = {
+                source,
+                attribute
+            };
+
+            called_object = CALL_FUNCTION_WITH_ARGS2(
+                source_instance->in_class->cl_getattr,
+                args
+            );
+
+            if (unlikely( called_object == NULL ))
+            {
+                return NULL;
+            }
+
+            PyObject *result = CALL_FUNCTION_WITH_POSARGS(
+                called_object,
+                positional_args
+            );
+            Py_DECREF( called_object );
+            return result;
+        }
+    }
+    else
+#endif
+    {
+        PyObject *called_object;
+
+        PyTypeObject *type = Py_TYPE( source );
+
+        if ( type->tp_getattro != NULL )
+        {
+            called_object = (*type->tp_getattro)( source, attribute );
+        }
+        else if ( type->tp_getattr != NULL )
+        {
+            called_object = (*type->tp_getattr)( source, Nuitka_String_AsString_Unchecked( attribute ) );
+        }
+        else
+        {
+            PyErr_Format(
+                PyExc_AttributeError,
+                "'%s' object has no attribute '%s'",
+                type->tp_name,
+                Nuitka_String_AsString_Unchecked( attribute )
+            );
+
+            return NULL;
+        }
+
+        if (unlikely( called_object == NULL ))
+        {
+            return NULL;
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_POSARGS(
+            called_object,
+            positional_args
+        );
+        Py_DECREF( called_object );
+        return result;
+    }
+}
+
+
 PyObject *CALL_METHOD_NO_ARGS( PyObject *source, PyObject *attribute )
 {
     CHECK_OBJECT( source );
@@ -3221,30 +3383,35 @@ PyObject *CALL_METHOD_NO_ARGS( PyObject *source, PyObject *attribute )
             (PyStringObject *)attribute
         );
 
-        if ( called_object == NULL )
+        // Note: The "called_object" was found without taking a reference,
+        // so we need not release it in this branch.
+        if ( called_object != NULL )
         {
-            called_object = FIND_ATTRIBUTE_IN_CLASS(
-                source_instance->in_class,
-                attribute
-            );
+            return CALL_FUNCTION_NO_ARGS( called_object );
         }
+
+        // Then check the class dictionaries.
+        called_object = FIND_ATTRIBUTE_IN_CLASS(
+            source_instance->in_class,
+            attribute
+        );
 
         // Note: The "called_object" was found without taking a reference,
         // so we need not release it in this branch.
         if ( called_object != NULL )
         {
-            descrgetfunc func = Py_TYPE( called_object )->tp_descr_get;
+            descrgetfunc descr_get = Py_TYPE( called_object )->tp_descr_get;
 
-            if ( func == Nuitka_Function_Type.tp_descr_get )
+            if ( descr_get == Nuitka_Function_Type.tp_descr_get )
             {
                 return Nuitka_CallMethodFunctionNoArgs(
                     (struct Nuitka_FunctionObject const *)called_object,
                     source
                 );
             }
-            else if ( func )
+            else if ( descr_get != NULL )
             {
-                PyObject *method = func(
+                PyObject *method = descr_get(
                     called_object,
                     source,
                     (PyObject *)source_instance->in_class
