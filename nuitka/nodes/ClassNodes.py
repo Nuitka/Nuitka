@@ -61,6 +61,8 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
 
         assert self.isEarlyClosure()
 
+        self.has_annotations = False
+
     def getDetail(self):
         return "named %s" % self.getFunctionName()
 
@@ -120,6 +122,14 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
             return self.provider.getVariableForClosure(
                 variable_name
             )
+
+    def markAsNeedsAnnotationsDictionary(self):
+        """ For use during building only. Indicate "__annotations__" need. """
+        self.has_annotations = True
+
+    def needsAnnotationsDictionary(self):
+        """ For use during building only. Indicate "__annotations__" need. """
+        return self.has_annotations
 
     def markAsDirectlyCalled(self):
         pass

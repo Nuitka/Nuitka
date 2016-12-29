@@ -530,6 +530,9 @@ def buildAssignNode(provider, node, source_ref):
 
 # Python3.6 annotation assignment
 def buildAnnAssignNode(provider, node, source_ref):
+    if provider.isExpressionClassBody():
+        provider.markAsNeedsAnnotationsDictionary()
+
     # Evaluate the right hand side first, so it can get names provided
     # before the left hand side exists.
     statements = []

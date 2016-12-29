@@ -257,7 +257,8 @@ def _buildClassNode3(provider, node, source_ref):
         if python_version >= 340:
             qualname_assign = statements[-1]
 
-    if python_version >= 360:
+    if python_version >= 360 and \
+       class_creation_function.needsAnnotationsDictionary():
         annotations_variable = class_creation_function.getVariableForAssignment(
             "__annotations__"
         )
@@ -278,8 +279,9 @@ def _buildClassNode3(provider, node, source_ref):
             )
         )
 
+    statements.append(body)
+
     statements += [
-        body,
         StatementAssignmentVariable(
             variable_ref = class_target_variable_ref,
             source       = ExpressionCall(
