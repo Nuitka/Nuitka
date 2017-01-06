@@ -401,6 +401,11 @@ elif "CC" in os.environ:
     env["CC"] = os.environ["CC"]
     env["CCVERSION"] = None
 
+# Requested or user provided, detect if it's clang.
+if "clang" in env["CC"]:
+    clang_mode = True
+    env["CCVERSION"] = None
+
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
 def setupSpawn(env):
@@ -609,7 +614,7 @@ if "clang" in the_compiler:
         ]
     )
 
-    if debug_mode and not clang_mode:
+    if debug_mode:
         env.Append(
             CCFLAGS = ["-Wunused-but-set-variable"]
         )
@@ -1052,7 +1057,7 @@ else:
             LIBS = ["dl", "pthread", "util", 'm']
         )
 
-        if gcc_mode and "clang" not in env["CXX"]:
+        if gcc_mode and not clang_mode:
             env.Append(
                 LINKFLAGS = ["-export-dynamic"]
             )
@@ -1245,7 +1250,7 @@ if module_mode:
         env.Append(
             CCFLAGS = ["-shared"]
         )
-    elif "clang" in env["CXX"]:
+    elif clang_mode:
         pass
     elif msvc_mode:
         env.Append(
