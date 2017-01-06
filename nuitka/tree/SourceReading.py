@@ -21,12 +21,15 @@ This is tremendously more complex than one might think, due to encoding issues
 and version differences of Python versions.
 """
 
+import os
 import re
+import sys
 
 from nuitka import Options, PythonVersions, SourceCodeReferences
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.tree import SyntaxErrors
+from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 
 
 def _readSourceCodeFromFilename3(source_filename):
@@ -53,6 +56,7 @@ def _readSourceCodeFromFilename3(source_filename):
 
         raise
 
+
 def _detectEncoding2(source_file):
     # Detect the encoding.
     encoding = "ascii"
@@ -77,6 +81,7 @@ def _detectEncoding2(source_file):
     source_file.seek(0)
 
     return encoding
+
 
 def _readSourceCodeFromFilename2(source_filename):
     # Detect the encoding.
@@ -123,6 +128,7 @@ see http://python.org/dev/peps/pep-0263/ for details""" % (
 
     return source_code
 
+
 def readSourceCodeFromFilename(module_name, source_filename):
     if python_version < 300:
         source_code = _readSourceCodeFromFilename2(source_filename)
@@ -133,3 +139,54 @@ def readSourceCodeFromFilename(module_name, source_filename):
     source_code = Plugins.onModuleSourceCode(module_name, source_code)
 
     return source_code
+
+
+def checkPythonVersionFromCode(source_code):
+    # There is a lot of cases to consider, pylint: disable=R0912
+
+    shebang = getShebangFromSource(source_code)
+
+    if shebang is not None:
+        binary, _args = parseShebang(shebang)
+
+        try:
+            if os.path.samefile(sys.executable, binary):
+                return True
+        except OSError: # Might not exist
+            pass
+
+        basename = os.path.basename(binary)
+
+        # Not sure if we should do that.
+        if basename == "python":
+            result = python_version < 300
+        elif basename == "python3":
+            result = python_version > 300
+        elif basename == "python2":
+            result = python_version < 300
+        elif basename == "python2.7":
+            result = python_version < 300
+        elif basename == "python2.6":
+            result = python_version < 270
+        elif basename == "python3.2":
+            result = python_version < 330 and python_version >= 300
+        elif basename == "python3.3":
+            result = python_version < 340 and python_version >= 330
+        elif basename == "python3.4":
+            result = python_version < 350 and python_version >= 340
+        elif basename == "python3.5":
+            result = python_version < 360 and python_version >= 350
+        elif basename == "python3.6":
+            result = python_version < 370 and python_version >= 360
+        else:
+            result = None
+
+        if result is False and Options.getIntendedPythonVersion() is None:
+            sys.exit("""\
+The program you compiled wants to be run with: %s.
+
+Nuitka is currently running with Python version '%s', which seems to not
+match that. Nuitka cannot guess the Python version of your source code. You
+therefore might want to specify '--python-version=' to make it clear.
+""" % (shebang, python_version_str)
+            )

@@ -166,7 +166,10 @@ from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import buildTryFinallyNode
 from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
-from .SourceReading import readSourceCodeFromFilename
+from .SourceReading import (
+    checkPythonVersionFromCode,
+    readSourceCodeFromFilename
+)
 from .VariableClosure import completeVariableClosures
 
 
@@ -1107,11 +1110,16 @@ def buildModuleTree(filename, package, is_top, is_main):
     # If there is source code associated (not the case for namespace packages of
     # Python3.3 or higher, then read it.
     if source_filename is not None:
+        source_code = readSourceCodeFromFilename(module.getFullName(), source_filename)
+
+        if is_main:
+            checkPythonVersionFromCode(source_code)
+
         # Read source code.
         createModuleTree(
             module      = module,
             source_ref  = source_ref,
-            source_code = readSourceCodeFromFilename(module.getFullName(), source_filename),
+            source_code = source_code,
             is_main     = is_main
         )
 
