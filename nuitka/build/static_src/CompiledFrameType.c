@@ -408,24 +408,10 @@ void _initCompiledFrameType( void )
 }
 
 
-static void tb_dealloc( PyTracebackObject *tb )
-{
-    // printf( "dealloc TB %ld %lx FR %ld %lx\n", Py_REFCNT( tb ), (long)tb, Py_REFCNT( tb->tb_frame ), (long)tb->tb_frame );
-
-    Nuitka_GC_UnTrack( tb );
-    //    Py_TRASHCAN_SAFE_BEGIN(tb)
-    Py_XDECREF( tb->tb_next );
-    Py_XDECREF( tb->tb_frame );
-    PyObject_GC_Del( tb );
-    // Py_TRASHCAN_SAFE_END(tb)
-}
-
 extern PyObject *const_str_plain___module__;
 
 static PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module, bool is_module )
 {
-    PyTraceBack_Type.tp_dealloc = (destructor)tb_dealloc;
-
     assertCodeObject( code );
 
     PyObject *globals = ((PyModuleObject *)module)->md_dict;
