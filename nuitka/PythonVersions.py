@@ -132,6 +132,7 @@ def needsDuplicateArgumentColOffset():
     if python_version < 350:
         return False
 
+    # Need to use "exec" to detect the syntax error, pylint: disable=W0122
     try:
         exec("if True: def f(a,a): pass")
     except SyntaxError:

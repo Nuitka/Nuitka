@@ -649,8 +649,8 @@ if comparison_mode:
         nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
 
         process = subprocess.Popen(
-            args   = nuitka_cmd,
-            stdin  = subprocess.PIPE
+            args  = nuitka_cmd,
+            stdin = subprocess.PIPE
         )
 
         process.communicate()

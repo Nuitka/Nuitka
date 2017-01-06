@@ -3679,6 +3679,7 @@ void _initSlotCompare()
     // libraries it's not accessible. The name does not matter, nor does the
     // actual value used for "__cmp__".
 
+    // Use "int" as the base class.
     PyObject *pos_args = PyTuple_New(1);
     PyTuple_SET_ITEM(
         pos_args,
@@ -3686,9 +3687,11 @@ void _initSlotCompare()
         INCREASE_REFCOUNT( (PyObject *)&PyInt_Type )
     );
 
+    // Use "__cmp__" with true value, won't matter.
     PyObject *kw_args = PyDict_New();
     PyDict_SetItem( kw_args, const_str_plain___cmp__, Py_True );
 
+    // Create the type.
     PyObject *c = PyObject_CallFunctionObjArgs(
         (PyObject *)&PyType_Type,
         const_str_plain___cmp__,
