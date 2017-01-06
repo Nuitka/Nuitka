@@ -224,7 +224,6 @@ static void Nuitka_Frame_tp_dealloc( struct Nuitka_FrameObject *nuitka_frame )
     Py_DECREF( frame->f_builtins );
     Py_DECREF( frame->f_globals );
     Py_XDECREF( frame->f_locals );
-    Py_DECREF( frame->f_trace );
     Py_XDECREF( frame->f_exc_type );
     Py_XDECREF( frame->f_exc_value );
     Py_XDECREF( frame->f_exc_traceback );
@@ -247,7 +246,6 @@ static int Nuitka_Frame_tp_traverse( PyFrameObject *frame, visitproc visit, void
     Py_VISIT( frame->f_builtins );
     Py_VISIT( frame->f_globals );
     Py_VISIT( frame->f_locals );
-    Py_VISIT( frame->f_trace );
     Py_VISIT( frame->f_exc_type );
     Py_VISIT( frame->f_exc_value );
     Py_VISIT( frame->f_exc_traceback );
@@ -460,7 +458,7 @@ static PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module, bool is_
     }
 
     frame->f_locals = NULL;
-    frame->f_trace = INCREASE_REFCOUNT( Py_None );
+    frame->f_trace = Py_None;
 
     frame->f_exc_type = NULL;
     frame->f_exc_value = NULL;
