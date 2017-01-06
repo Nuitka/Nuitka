@@ -26,15 +26,20 @@ own these functions to a random module.
 from nuitka.nodes.ModuleNodes import PythonInternalModule
 from nuitka.SourceCodeReferences import fromFilename
 
-internal_module = None
-
 internal_source_ref = fromFilename("internal").atInternal()
 
-# Cache result.
 def once_decorator(func):
+    """ Cache result of a function call without arguments.
+
+    Used for all internal function accesses to become a singleton.
+
+    Note: This doesn't much specific anymore, but we are not having
+    this often enough to warrent re-use or generalization.
+
+    """
+
     func.cached_value = None
 
-    # TODO: This doesn't much specific anymore.
     def replacement():
         if func.cached_value is None:
             func.cached_value = func()
@@ -44,12 +49,10 @@ def once_decorator(func):
     return replacement
 
 
+@once_decorator
 def getInternalModule():
-    # Using global here, as this is really a about the internal module as a
-    # singleton, pylint: disable=W0603
-    global internal_module
+    """ Get the singleton internal module.
 
-    if internal_module is None:
-        internal_module = PythonInternalModule()
+    """
 
-    return internal_module
+    return PythonInternalModule()

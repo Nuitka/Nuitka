@@ -136,7 +136,7 @@ def needsDuplicateArgumentColOffset():
     try:
         exec("if True: def f(a,a): pass")
     except SyntaxError:
-        return "^" in traceback.format_exc()
+        return '^' in traceback.format_exc()
 
 
 def needsFutureBracesImportColOffset():

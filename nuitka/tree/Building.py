@@ -413,7 +413,7 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
                                python_version >= 340,
                 display_line = not Options.isFullCompat() or \
                                python_version >= 340,
-                col_offset = (
+                col_offset   = (
                     None
                       if Options.isFullCompat() and \
                          not needsNonlocalColOffset() else
