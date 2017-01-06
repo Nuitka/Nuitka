@@ -21,6 +21,7 @@
 
 import os
 
+
 def addFromDirectory(path, blacklist):
     for dirpath, dirnames, filenames in os.walk(path):
         dirnames.sort()

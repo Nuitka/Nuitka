@@ -22,6 +22,7 @@
 import os
 import sys
 
+
 def goHome():
     """ Go its own directory, to have it easy with path knowledge.
 

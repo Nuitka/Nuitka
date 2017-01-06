@@ -19,7 +19,10 @@
 
 from __future__ import print_function
 
-import sys, os, subprocess
+import os
+import subprocess
+import sys
+
 
 def checkVersion():
     pylint_version = subprocess.check_output(

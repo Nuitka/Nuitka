@@ -23,8 +23,9 @@
 
 from __future__ import print_function
 
-import sys
 import os
+import sys
+from optparse import OptionParser
 
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
@@ -43,7 +44,6 @@ sys.path.insert(
 from nuitka.tools.Basics import goHome, addPYTHONPATH # isort:skip
 from nuitka.tools.ScanSources import scanTargets # isort:skip
 from nuitka.tools.pylint.PyLint import executePyLint # isort:skip
-from optparse import OptionParser
 
 def main():
     goHome()
