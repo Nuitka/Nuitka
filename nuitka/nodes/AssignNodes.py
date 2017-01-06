@@ -451,7 +451,8 @@ class StatementReleaseVariable(NodeBase):
 
         Just release the value, which of course is not to be used afterwards.
 
-        Typical code: Function exit.
+        Typical code: Function exit, try/finally release of temporary
+        variables.
     """
     kind = "STATEMENT_RELEASE_VARIABLE"
 

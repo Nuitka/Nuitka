@@ -186,20 +186,6 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
             name       = "source_iter"
         )
 
-        statements = [
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = source_iter_var,
-                    source_ref = source_ref
-                ),
-                source       = ExpressionBuiltinIter1(
-                    value      = source,
-                    source_ref = source_ref
-                ),
-                source_ref   = source_ref
-            )
-        ]
-
         element_vars = [
             provider.allocateTempVariable(
                 temp_scope = temp_scope,
@@ -214,19 +200,22 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
         starred_list_var = None
         starred_index = None
 
+        statements = []
+
         for element_index, element in enumerate(detail):
             element_var = element_vars[element_index]
 
             if starred_list_var is not None:
                 if element[0] == "Starred":
                     raiseSyntaxError(
-                        reason     = "two starred expressions in assignment",
+                        reason     = """\
+two starred expressions in assignment""",
                         col_offset = 0,
                         source_ref = source_ref
                     )
 
                 statements.insert(
-                    starred_index+2,
+                    starred_index+1,
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
                             variable   = element_var,
@@ -294,6 +283,32 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                 )
             )
 
+
+        statements = [
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = source_iter_var,
+                    source_ref = source_ref
+                ),
+                source       = ExpressionBuiltinIter1(
+                    value      = source,
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref
+            ),
+            makeTryFinallyStatement(
+                provider   = provider,
+                tried      = statements,
+                final      = (
+                    StatementReleaseVariable(
+                        variable   = source_iter_var,
+                        source_ref = source_ref
+                    ),
+                ),
+                source_ref = source_ref
+            )
+        ]
+
         # When all is done, copy over to the actual assignment targets, starred
         # or not makes no difference here anymore.
         for element_index, element in enumerate(detail):
@@ -315,21 +330,26 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                 )
             )
 
+            # Need to release temporary variables right after successful
+            # usage.
+            statements.append(
+                StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = element_var,
+                        source_ref = source_ref
+                    ),
+                    tolerant     = True,
+                    source_ref   = source_ref,
+                )
+            )
+
         final_statements = []
 
-        final_statements.append(
-            StatementReleaseVariable(
-                variable   = source_iter_var,
-                source_ref = source_ref
-            )
-        )
-
-        # TODO: In that order, or reversed.
         for element_var in element_vars:
             final_statements.append(
                 StatementReleaseVariable(
                     variable   = element_var,
-                    source_ref = source_ref
+                    source_ref = source_ref,
                 )
             )
 

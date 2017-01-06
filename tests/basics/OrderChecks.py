@@ -339,6 +339,14 @@ def inOrderCheck():
     print("not in:", searched() not in container())
 
 def unpackOrderCheck():
+    class TraceRelease:
+        def __init__(self, value):
+            self.value = value
+
+        def __del__(self):
+            print("Deleting iteration value", self.value)
+            pass
+
     print("Unpacking values:")
     class Iterable:
         def __init__(self):
@@ -348,28 +356,33 @@ def unpackOrderCheck():
             return Iterable()
 
         def __del__(self):
-            print("Deleted with", self.consumed)
+            print("Deleted iterable with", self.consumed)
+
 
         def next(self):
-            print("Next with", self.consumed)
+            print("Next with state", self.consumed)
 
             if self.consumed:
                 self.consumed -=1
             else:
                 raise StopIteration
 
-            return self.consumed
+            return TraceRelease(self.consumed)
 
         __next__ = next
 
     iterable = Iterable()
 
+    class RejectAttributeOwnership:
+        def __setattr__(self, key, value):
+            print("Setting", key, value.value)
+
     try:
-        x, y = a, b = iterable
+        RejectAttributeOwnership().x, RejectAttributeOwnership().y = a, b = iterable
     except Exception as e:
         print("Caught", repr(e))
 
-    return a, b, x, y
+    return a, b
 
 
 def superOrderCheck():
