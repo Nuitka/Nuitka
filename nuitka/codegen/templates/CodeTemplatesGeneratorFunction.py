@@ -47,16 +47,13 @@ template_generator_exception_exit = """\
     assert( exception_type );
     RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
     generator->m_yielded = NULL;
-    return;
-"""
+    return;"""
 
 template_generator_noexception_exit = """\
-    // Return statement must be present.
-    NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
+    // Return statement need not be present.
 
     generator->m_yielded = NULL;
-    return;
-"""
+    return;"""
 
 template_generator_return_exit = """\
     // The above won't return, but we need to make it clear to the compiler
@@ -85,6 +82,7 @@ template_generator_return_exit = """\
 template_generator_making = """\
 %(to_name)s = Nuitka_Generator_New(
     %(generator_identifier)s_context,
+    %(generator_module)s,
     %(generator_name_obj)s,
 #if PYTHON_VERSION >= 350
     %(generator_qualname_obj)s,

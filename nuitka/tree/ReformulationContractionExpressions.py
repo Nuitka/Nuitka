@@ -59,7 +59,6 @@ from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
-    StatementGeneratorEntry,
     StatementsSequence
 )
 from nuitka.nodes.YieldNodes import ExpressionYield
@@ -385,14 +384,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
     statements.append(current_body)
     statements = mergeStatements(statements)
-
-    if emit_class is ExpressionYield:
-        statements.insert(
-            0,
-            StatementGeneratorEntry(
-                source_ref = source_ref
-            )
-        )
 
     release_statements = [
         StatementReleaseVariable(

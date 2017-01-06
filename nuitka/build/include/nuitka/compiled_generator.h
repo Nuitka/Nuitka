@@ -50,6 +50,8 @@ struct Nuitka_GeneratorObject {
 
     PyObject *m_name;
 
+    PyObject *m_module;
+
 #if PYTHON_VERSION >= 350
     PyObject *m_qualname;
     PyObject *m_yieldfrom;
@@ -87,9 +89,9 @@ extern PyTypeObject Nuitka_Generator_Type;
 typedef void (*generator_code)( struct Nuitka_GeneratorObject * );
 
 #if PYTHON_VERSION < 350
-extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCodeObject *code_object, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject *name, PyCodeObject *code_object, Py_ssize_t closure_given );
 #else
-extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given );
 #endif
 
 extern PyObject *Nuitka_Generator_qiter( struct Nuitka_GeneratorObject *generator, bool *finished );

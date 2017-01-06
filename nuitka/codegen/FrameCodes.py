@@ -95,8 +95,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         context            = context
     )
 
-    if statement_sequence.mayRaiseException(BaseException) or \
-       guard_mode == "generator":
+    if statement_sequence.mayRaiseException(BaseException):
         frame_exception_exit = context.getExceptionEscape()
     else:
         frame_exception_exit = None
@@ -107,7 +106,9 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         frame_return_exit = None
 
     if guard_mode == "generator":
-        assert provider.isExpressionGeneratorObjectBody() or provider.isExpressionCoroutineObjectBody()
+        # Only these two use this.
+        assert provider.isExpressionGeneratorObjectBody() or \
+               provider.isExpressionCoroutineObjectBody()
 
         # TODO: This case should care about "needs_preserve", as for
         # Python3 it is actually not a stub of empty code.
@@ -296,8 +297,6 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
                            frame_return_exit, provider, emit, context):
     context.markAsNeedsExceptionVariables()
 
-    assert frame_exception_exit is not None
-
     if context.getOwner().isExpressionGeneratorObjectBody():
         kind = "generator"
         template = template_frame_guard_generator
@@ -332,37 +331,33 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
             }
         )
 
-    frame_locals_name, locals_code = getFrameLocalsUpdateCode(
-        provider = provider,
-        context  = context
-    )
+    if frame_exception_exit is not None:
+        # TODO: Don't create locals for StopIteration or GeneratorExit, that is just
+        # wasteful.
+        frame_locals_name, locals_code = getFrameLocalsUpdateCode(
+            provider = provider,
+            context  = context
+        )
 
-    if kind == "generator":
-        template = template_frame_guard_generator_exception_handler
-    else:
-        template = template_frame_guard_generator_exception_handler
+        emit(
+            template_frame_guard_generator_exception_handler % {
+                "frame_identifier"      : "%s->m_frame" % kind,
+                "frame_locals_name"     : frame_locals_name,
+                "store_frame_locals"    : indented(
+                    locals_code,
+                    2,
+                    vert_block = True
+                ),
+                "tb_making"             : getTracebackMakingIdentifier(
+                                              context     = context,
+                                              lineno_name = "exception_lineno"
+                                          ),
+                "frame_exception_exit"  : frame_exception_exit,
+                "parent_exception_exit" : parent_exception_exit
+            }
+        )
 
-    # TODO: Don't create locals for StopIteration or GeneratorExit, that is just
-    # wasteful.
-    emit(
-        template % {
-            "frame_identifier"      : "%s->m_frame" % kind,
-            "frame_locals_name"     : frame_locals_name,
-            "store_frame_locals"    : indented(
-                locals_code,
-                2,
-                vert_block = True
-            ),
-            "tb_making"             : getTracebackMakingIdentifier(
-                                          context     = context,
-                                          lineno_name = "exception_lineno"
-                                      ),
-            "frame_exception_exit"  : frame_exception_exit,
-            "parent_exception_exit" : parent_exception_exit,
-            "no_exception_exit"     : no_exception_exit,
-        }
-    )
-
+    emit("%s:;\n" % no_exception_exit)
 
 def getFrameLocalsUpdateCode(provider, context):
     locals_codes = Emission.SourceCodeCollector()

@@ -483,7 +483,7 @@ static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generato
         return NULL;
     }
 
-    if ( generator->m_status != status_Finished )
+    if ( generator->m_status == status_Running )
     {
         PyObject *result = Nuitka_Generator_send2( generator, Py_None );
 
@@ -498,13 +498,51 @@ static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generato
 
         return result;
     }
-    else
+    else if ( generator->m_status == status_Finished )
     {
-        RESTORE_ERROR_OCCURRED( generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb );
+        RESTORE_ERROR_OCCURRED(
+            generator->m_exception_type,
+            generator->m_exception_value,
+            generator->m_exception_tb
+        );
 
         generator->m_exception_type = NULL;
         generator->m_exception_value = NULL;
         generator->m_exception_tb = NULL;
+
+        return NULL;
+    }
+    else
+    {
+        if ( generator->m_exception_tb == NULL )
+        {
+            // TODO: Our compiled objects really need a way to store common
+            // stuff in a "shared" part across all instances, and outside of
+            // run time, so we could reuse this.
+            PyFrameObject *frame = MAKE_FUNCTION_FRAME(
+                generator->m_code_object,
+                generator->m_module
+            );
+
+            generator->m_exception_tb = MAKE_TRACEBACK(
+                frame,
+                generator->m_code_object->co_firstlineno
+            );
+
+            Py_DECREF( frame );
+        }
+
+        RESTORE_ERROR_OCCURRED(
+            generator->m_exception_type,
+            generator->m_exception_value,
+            generator->m_exception_tb
+        );
+
+        generator->m_exception_type = NULL;
+        generator->m_exception_value = NULL;
+        generator->m_exception_tb = NULL;
+
+        generator->m_status = status_Finished;
 
         return NULL;
     }
@@ -824,9 +862,9 @@ void _initCompiledGeneratorType( void )
 }
 
 #if PYTHON_VERSION < 350
-PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyCodeObject *code_object, Py_ssize_t closure_given )
+PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject *name, PyCodeObject *code_object, Py_ssize_t closure_given )
 #else
-PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given )
+PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given )
 #endif
 {
     struct Nuitka_GeneratorObject *result;
@@ -862,6 +900,9 @@ PyObject *Nuitka_Generator_New( generator_code code, PyObject *name, PyObject *q
     assert( Py_SIZE( result ) >= closure_given );
 
     result->m_code = (void *)code;
+
+    CHECK_OBJECT( module );
+    result->m_module = module;
 
     CHECK_OBJECT( name );
     result->m_name = name;

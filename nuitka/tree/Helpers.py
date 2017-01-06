@@ -40,10 +40,7 @@ from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
-from nuitka.nodes.StatementNodes import (
-    StatementGeneratorEntry,
-    StatementsSequence
-)
+from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.PythonVersions import (
     doShowUnknownEncodingName,
     needsSetLiteralReverseInsertion,
@@ -402,13 +399,6 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
         return None
 
     if provider.isExpressionGeneratorObjectBody():
-        # TODO: Could do this earlier and on the outside.
-        statements.insert(
-            0,
-            StatementGeneratorEntry(
-                source_ref = source_ref
-            )
-        )
         result = StatementsFrame(
             statements  = statements,
             guard_mode  = "generator",

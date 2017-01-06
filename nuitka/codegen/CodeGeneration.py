@@ -129,7 +129,6 @@ from .FunctionCodes import (
     getFunctionDirectDecl
 )
 from .GeneratorCodes import (
-    generateGeneratorEntryCode,
     generateMakeGeneratorObjectCode,
     getGeneratorObjectCode
 )
@@ -622,7 +621,6 @@ setStatementDispatchDict(
         "STATEMENT_EXEC"                     : generateExecCode,
         "STATEMENT_LOCALS_DICT_SYNC"         : generateLocalsDictSyncCode,
         "STATEMENT_SET_LOCALS"               : generateSetLocalsCode,
-        "STATEMENT_GENERATOR_ENTRY"          : generateGeneratorEntryCode,
         "STATEMENT_PRESERVE_FRAME_EXCEPTION" : generateFramePreserveExceptionCode,
         "STATEMENT_RESTORE_FRAME_EXCEPTION"  : generateFrameRestoreExceptionCode,
         "STATEMENT_PUBLISH_EXCEPTION"        : generateExceptionPublishCode

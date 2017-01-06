@@ -156,7 +156,7 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED_UNTRACED( PyObject *exce
 // cache for it, in case of repeated usage.
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame, int lineno )
 {
-    // assertFrameObject( frame );
+    CHECK_OBJECT( frame );
 
     PyTracebackObject *result = PyObject_GC_New( PyTracebackObject, &PyTraceBack_Type );
 
