@@ -129,41 +129,161 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name )
 {
+    /* Note: There are 2 specializations of this function, that need to be
+     * updated in line with this: LOOKUP_ATTRIBUTE_[DICT|CLASS]_SLOT
+     */
+
     CHECK_OBJECT( source );
     CHECK_OBJECT( attr_name );
 
+    PyTypeObject *type = Py_TYPE( source );
+
+    if ( type->tp_getattro == PyObject_GenericGetAttr )
+    {
+        // Unfortunately this is required, although of cause rarely necessary.
+        if (unlikely( type->tp_dict == NULL ))
+        {
+            if (unlikely( PyType_Ready( type ) < 0 ))
+            {
+                return NULL;
+            }
+        }
+
+        PyObject *descr = _PyType_Lookup( type, attr_name );
+        descrgetfunc func = NULL;
+
+        if ( descr != NULL )
+        {
+            Py_INCREF( descr );
+
 #if PYTHON_VERSION < 300
-    if ( PyInstance_Check( source ) )
+            if ( PyType_HasFeature( Py_TYPE( descr ), Py_TPFLAGS_HAVE_CLASS ) )
+            {
+#endif
+                func = Py_TYPE( descr )->tp_descr_get;
+
+                if ( func != NULL && PyDescr_IsData( descr ) )
+                {
+                    PyObject *result = func( descr, source, (PyObject *)type );
+                    Py_DECREF( descr );
+
+                    return result;
+                }
+#if PYTHON_VERSION < 300
+            }
+#endif
+        }
+
+        Py_ssize_t dictoffset = type->tp_dictoffset;
+        PyObject *dict = NULL;
+
+        if ( dictoffset != 0 )
+        {
+            // Negative dictionary offsets have special meaning.
+            if ( dictoffset < 0 )
+            {
+                Py_ssize_t tsize;
+                size_t size;
+
+                tsize = ((PyVarObject *)source)->ob_size;
+                if (tsize < 0)
+                    tsize = -tsize;
+                size = _PyObject_VAR_SIZE( type, tsize );
+
+                dictoffset += (long)size;
+            }
+
+            PyObject **dictptr = (PyObject **) ((char *)source + dictoffset);
+            dict = *dictptr;
+        }
+
+        if ( dict != NULL )
+        {
+            CHECK_OBJECT( dict );
+
+            Py_INCREF( dict );
+
+            PyObject *result = PyDict_GetItem( dict, attr_name );
+
+            if ( result != NULL )
+            {
+                Py_INCREF( result );
+                Py_XDECREF( descr );
+                Py_DECREF( dict );
+
+                CHECK_OBJECT( result );
+                return result;
+            }
+
+            Py_DECREF( dict );
+        }
+
+        if ( func != NULL )
+        {
+            PyObject *result = func( descr, source, (PyObject *)type );
+            Py_DECREF( descr );
+
+            CHECK_OBJECT( result );
+            return result;
+        }
+
+        if ( descr != NULL )
+        {
+            CHECK_OBJECT( descr );
+            return descr;
+        }
+
+#if PYTHON_VERSION < 300
+        PyErr_Format(
+            PyExc_AttributeError,
+            "'%s' object has no attribute '%s'",
+            type->tp_name,
+            PyString_AS_STRING( attr_name )
+        );
+#else
+        PyErr_Format(
+            PyExc_AttributeError,
+            "'%s' object has no attribute '%U'",
+            type->tp_name,
+            attr_name
+        );
+#endif
+        return NULL;
+    }
+#if PYTHON_VERSION < 300
+    else if ( type->tp_getattro == PyInstance_Type.tp_getattro )
     {
         PyObject *result = LOOKUP_INSTANCE( source, attr_name );
         return result;
     }
-    else
 #endif
+    else if ( type->tp_getattro != NULL )
     {
-        PyTypeObject *type = Py_TYPE( source );
+        PyObject *result = (*type->tp_getattro)( source, attr_name );
 
-        if ( type->tp_getattro != NULL )
+        if (unlikely( result == NULL ))
         {
-            PyObject *result = (*type->tp_getattro)( source, attr_name );
-            return result;
-        }
-        else if ( type->tp_getattr != NULL )
-        {
-            PyObject *result = (*type->tp_getattr)( source, Nuitka_String_AsString_Unchecked( attr_name ) );
-            return result;
-        }
-        else
-        {
-            PyErr_Format(
-                PyExc_AttributeError,
-                "'%s' object has no attribute '%s'",
-                type->tp_name,
-                Nuitka_String_AsString_Unchecked( attr_name )
-            );
-
             return NULL;
         }
+
+        CHECK_OBJECT( result );
+        return result;
+    }
+    else if ( type->tp_getattr != NULL )
+    {
+        PyObject *result = (*type->tp_getattr)( source, Nuitka_String_AsString_Unchecked( attr_name ) );
+        return result;
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_AttributeError,
+            "'%s' object has no attribute '%s'",
+            type->tp_name,
+            Nuitka_String_AsString_Unchecked( attr_name )
+        );
+
+        return NULL;
     }
 }
 
@@ -171,47 +291,145 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT( PyObject *sour
 {
     CHECK_OBJECT( source );
 
+    PyTypeObject *type = Py_TYPE( source );
+
+    if ( type->tp_getattro == PyObject_GenericGetAttr )
+    {
+        if (unlikely( type->tp_dict == NULL ))
+        {
+            if (unlikely( PyType_Ready( type ) < 0 ))
+            {
+                return NULL;
+            }
+        }
+
+        PyObject *descr = _PyType_Lookup( type, const_str_plain___dict__ );
+        descrgetfunc func = NULL;
+
+        if ( descr != NULL )
+        {
+            Py_INCREF( descr );
+
 #if PYTHON_VERSION < 300
-    if (likely( PyInstance_Check( source ) ))
+            if ( PyType_HasFeature( Py_TYPE( descr ), Py_TPFLAGS_HAVE_CLASS ) )
+            {
+#endif
+                func = Py_TYPE( descr )->tp_descr_get;
+
+                if ( func != NULL && PyDescr_IsData( descr ) )
+                {
+                    PyObject *result = func( descr, source, (PyObject *)type );
+                    Py_DECREF( descr );
+
+                    return result;
+                }
+#if PYTHON_VERSION < 300
+            }
+#endif
+        }
+
+        Py_ssize_t dictoffset = type->tp_dictoffset;
+        PyObject *dict = NULL;
+
+        if ( dictoffset != 0 )
+        {
+            // Negative dictionary offsets have special meaning.
+            if ( dictoffset < 0 )
+            {
+                Py_ssize_t tsize;
+                size_t size;
+
+                tsize = ((PyVarObject *)source)->ob_size;
+                if (tsize < 0)
+                    tsize = -tsize;
+                size = _PyObject_VAR_SIZE( type, tsize );
+
+                dictoffset += (long)size;
+            }
+
+            PyObject **dictptr = (PyObject **) ((char *)source + dictoffset);
+            dict = *dictptr;
+        }
+
+        if ( dict != NULL )
+        {
+            CHECK_OBJECT( dict );
+
+            Py_INCREF( dict );
+
+            PyObject *result = PyDict_GetItem( dict, const_str_plain___dict__ );
+
+            if ( result != NULL )
+            {
+                Py_INCREF( result );
+                Py_XDECREF( descr );
+                Py_DECREF( dict );
+
+                CHECK_OBJECT( result );
+                return result;
+            }
+
+            Py_DECREF( dict );
+        }
+
+        if ( func != NULL )
+        {
+            PyObject *result = func( descr, source, (PyObject *)type );
+            Py_DECREF( descr );
+
+            CHECK_OBJECT( result );
+            return result;
+        }
+
+        if ( descr != NULL )
+        {
+            CHECK_OBJECT( descr );
+            return descr;
+        }
+
+        PyErr_Format(
+            PyExc_AttributeError,
+            "'%s' object has no attribute '__dict__'",
+            type->tp_name
+        );
+        return NULL;
+    }
+#if PYTHON_VERSION < 300
+    else if ( type->tp_getattro == PyInstance_Type.tp_getattro )
     {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
+        PyObject *result = source_instance->in_dict;
 
-        return INCREASE_REFCOUNT( source_instance->in_dict );
+        Py_INCREF( result );
+        return result;
     }
-    else
 #endif
+    else if ( type->tp_getattro != NULL )
     {
-        PyTypeObject *type = Py_TYPE( source );
+        PyObject *result = (*type->tp_getattro)( source, const_str_plain___dict__ );
 
-        if ( type->tp_getattro != NULL )
+        if (unlikely( result == NULL ))
         {
-            PyObject *result = (*type->tp_getattro)( source, const_str_plain___dict__ );
-
-            if (unlikely( result == NULL ))
-            {
-                return NULL;
-            }
-
-            CHECK_OBJECT( result );
-            return result;
-        }
-        else if ( type->tp_getattr != NULL )
-        {
-            PyObject *result = (*type->tp_getattr)( source, (char *)"__dict__" );
-
-            if (unlikely( result == NULL ))
-            {
-                return NULL;
-            }
-
-            CHECK_OBJECT( result );
-            return result;
-        }
-        else
-        {
-            PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '__dict__'", type->tp_name );
             return NULL;
         }
+
+        CHECK_OBJECT( result );
+        return result;
+    }
+    else if ( type->tp_getattr != NULL )
+    {
+        PyObject *result = (*type->tp_getattr)( source, (char *)"__dict__" );
+        return result;
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_AttributeError,
+            "'%s' object has no attribute '__dict__'",
+            type->tp_name
+        );
+
+        return NULL;
     }
 }
 
@@ -219,50 +437,147 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT( PyObject *sou
 {
     CHECK_OBJECT( source );
 
+    PyTypeObject *type = Py_TYPE( source );
+
+    if ( type->tp_getattro == PyObject_GenericGetAttr )
+    {
+        if (unlikely( type->tp_dict == NULL ))
+        {
+            if (unlikely( PyType_Ready( type ) < 0 ))
+            {
+                return NULL;
+            }
+        }
+
+        PyObject *descr = _PyType_Lookup( type, const_str_plain___class__ );
+        descrgetfunc func = NULL;
+
+        if ( descr != NULL )
+        {
+            Py_INCREF( descr );
+
 #if PYTHON_VERSION < 300
-    if (likely( PyInstance_Check( source ) ))
+            if ( PyType_HasFeature( Py_TYPE( descr ), Py_TPFLAGS_HAVE_CLASS ) )
+            {
+#endif
+                func = Py_TYPE( descr )->tp_descr_get;
+
+                if ( func != NULL && PyDescr_IsData( descr ) )
+                {
+                    PyObject *result = func( descr, source, (PyObject *)type );
+                    Py_DECREF( descr );
+
+                    return result;
+                }
+#if PYTHON_VERSION < 300
+            }
+#endif
+        }
+
+        Py_ssize_t dictoffset = type->tp_dictoffset;
+        PyObject *dict = NULL;
+
+        if ( dictoffset != 0 )
+        {
+            // Negative dictionary offsets have special meaning.
+            if ( dictoffset < 0 )
+            {
+                Py_ssize_t tsize;
+                size_t size;
+
+                tsize = ((PyVarObject *)source)->ob_size;
+                if (tsize < 0)
+                    tsize = -tsize;
+                size = _PyObject_VAR_SIZE( type, tsize );
+
+                dictoffset += (long)size;
+            }
+
+            PyObject **dictptr = (PyObject **) ((char *)source + dictoffset);
+            dict = *dictptr;
+        }
+
+        if ( dict != NULL )
+        {
+            CHECK_OBJECT( dict );
+
+            Py_INCREF( dict );
+
+            PyObject *result = PyDict_GetItem( dict, const_str_plain___class__ );
+
+            if ( result != NULL )
+            {
+                Py_INCREF( result );
+                Py_XDECREF( descr );
+                Py_DECREF( dict );
+
+                CHECK_OBJECT( result );
+                return result;
+            }
+
+            Py_DECREF( dict );
+        }
+
+        if ( func != NULL )
+        {
+            PyObject *result = func( descr, source, (PyObject *)type );
+            Py_DECREF( descr );
+
+            CHECK_OBJECT( result );
+            return result;
+        }
+
+        if ( descr != NULL )
+        {
+            CHECK_OBJECT( descr );
+            return descr;
+        }
+
+        PyErr_Format(
+            PyExc_AttributeError,
+            "'%s' object has no attribute '__class__'",
+            type->tp_name
+        );
+        return NULL;
+    }
+#if PYTHON_VERSION < 300
+    else if ( type->tp_getattro == PyInstance_Type.tp_getattro )
     {
         PyInstanceObject *source_instance = (PyInstanceObject *)source;
+        PyObject *result = (PyObject *)source_instance->in_class;
 
-        return INCREASE_REFCOUNT( (PyObject *)source_instance->in_class );
+        Py_INCREF( result );
+        return result;
     }
-    else
 #endif
+    else if ( type->tp_getattro != NULL )
     {
-        PyTypeObject *type = Py_TYPE( source );
+        PyObject *result = (*type->tp_getattro)( source, const_str_plain___class__ );
 
-        if ( type->tp_getattro != NULL )
+        if (unlikely( result == NULL ))
         {
-            PyObject *result = (*type->tp_getattro)( source, const_str_plain___class__ );
-
-            if (unlikely( result == NULL ))
-            {
-                return NULL;
-            }
-
-            CHECK_OBJECT( result );
-            return result;
-        }
-        else if ( type->tp_getattr != NULL )
-        {
-            PyObject *result = (*type->tp_getattr)( source, (char *)"__class__" );
-
-            if (unlikely( result == NULL ))
-            {
-                return NULL;
-            }
-
-            CHECK_OBJECT( result );
-            return result;
-        }
-        else
-        {
-            PyErr_Format( PyExc_AttributeError, "'%s' object has no attribute '__class__'", type->tp_name );
             return NULL;
         }
+
+        CHECK_OBJECT( result );
+        return result;
+    }
+    else if ( type->tp_getattr != NULL )
+    {
+        PyObject *result = (*type->tp_getattr)( source, (char *)"__class__" );
+        return result;
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_AttributeError,
+            "'%s' object has no attribute '__class__'",
+            type->tp_name
+        );
+
+        return NULL;
     }
 }
-
 
 NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_HASATTR( PyObject *source, PyObject *attr_name )
 {
