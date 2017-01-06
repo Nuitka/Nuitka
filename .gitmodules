@@ -19,3 +19,6 @@
 [submodule "tests/CPython33"]
 	path = tests/CPython33
 	url = http://git.nuitka.net/tests-Nuitka-CPython33.git
+[submodule "tests/CPython36"]
+	path = tests/CPython36
+	url = http://git.nuitka.net/tests-Nuitka-CPython36.git
