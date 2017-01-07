@@ -102,7 +102,7 @@ if os.path.exists(guess_path):
             info("Copying all Qt plug-ins to '%s'." % target_plugin_dir)
 
             return [
-                (filename, full_name)
+                (plugin_dir, filename, full_name)
                 for filename in
                 Utils.getFileList(target_plugin_dir)
             ]

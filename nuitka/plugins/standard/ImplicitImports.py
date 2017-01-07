@@ -173,7 +173,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             shutil.copy(uuid_dll_path, dist_dir)
 
             return (
-                (dist_dll_path, None),
+                (None, dist_dll_path, None),
             )
 
         return ()

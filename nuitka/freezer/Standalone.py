@@ -595,7 +595,7 @@ def _makeBinaryPathPathDLLSearchEnv(package_name):
     return env
 
 
-def _detectBinaryPathDLLsWindows(binary_filename, package_name):
+def _detectBinaryPathDLLsWindows(original_dir, binary_filename, package_name):
     result = set()
 
     depends_exe = getDependsExePath()
@@ -607,12 +607,14 @@ def _detectBinaryPathDLLsWindows(binary_filename, package_name):
 KnownDLLs
 SysPath
 AppDir
+{original_dir}
 32BitSysDir
 16BitSysDir
 OSDir
 AppPath
 SxS
-""")
+""".format(original_dir = "UserDir %s" % original_dir if original_dir is not None else "")
+    )
 
     subprocess.call(
         (
@@ -731,7 +733,7 @@ SxS
     return result
 
 
-def detectBinaryDLLs(binary_filename, package_name):
+def detectBinaryDLLs(original_dir, binary_filename, package_name):
     """ Detect the DLLs used by a binary.
 
         Using "ldd" (Linux), "depends.exe" (Windows), or "otool" (MacOS) the list
@@ -745,6 +747,7 @@ def detectBinaryDLLs(binary_filename, package_name):
         )
     elif Utils.getOS() == "Windows":
         return _detectBinaryPathDLLsWindows(
+            original_dir = original_dir,
             binary_filename = binary_filename,
             package_name    = package_name
         )
@@ -760,8 +763,9 @@ def detectBinaryDLLs(binary_filename, package_name):
 def detectUsedDLLs(standalone_entry_points):
     result = {}
 
-    for binary_filename, package_name in standalone_entry_points:
+    for original_dir, binary_filename, package_name in standalone_entry_points:
         used_dlls = detectBinaryDLLs(
+            original_dir    = original_dir,
             binary_filename = binary_filename,
             package_name    = package_name
         )

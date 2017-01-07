@@ -376,7 +376,7 @@ def makeSourceDirectory(main_module):
             )
 
             standalone_entry_points.append(
-                (target_filename, module.getPackage())
+                (Utils.dirname(module.getFilename()), target_filename, module.getPackage())
             )
         elif module.isUncompiledPythonModule():
             pass
@@ -756,7 +756,7 @@ of e.g. '--python-version=%s' option, if that's not the one expected.
 
             standalone_entry_points.insert(
                 0,
-                (binary_filename, None)
+                (None, binary_filename, None)
             )
 
             dist_dir = getStandaloneDirectoryPath(main_module)
@@ -775,7 +775,6 @@ of e.g. '--python-version=%s' option, if that's not the one expected.
                 dist_dir                = dist_dir,
                 standalone_entry_points = standalone_entry_points
             )
-
 
             for module in ModuleRegistry.getDoneModules():
                 data_files.extend(
