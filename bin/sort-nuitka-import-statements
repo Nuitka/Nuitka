@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-""" Launcher for pylint checker tool.
+""" Launcher for isort tool to format imports.
 
 """
 
@@ -36,5 +36,5 @@ sys.path.insert(
     )
 )
 
-from nuitka.tools.pylint.__main__ import main # isort:skip
+from nuitka.tools.isort.__main__ import main # isort:skip
 main()

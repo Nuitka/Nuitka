@@ -36,5 +36,5 @@ sys.path.insert(
     )
 )
 
-from nuitka.tools.compare_with_cpython.__main__ import main
+from nuitka.tools.compare_with_cpython.__main__ import main # isort:skip
 main()

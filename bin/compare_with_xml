@@ -24,7 +24,6 @@ import os
 import subprocess
 import sys
 
-
 nuitka1  = sys.argv[1]
 nuitka2  = sys.argv[2]
 filename = sys.argv[3]

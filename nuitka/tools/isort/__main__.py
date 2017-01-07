@@ -17,11 +17,14 @@
 #     limitations under the License.
 #
 
-""" Launcher for pylint checker tool.
+""" Sort import statements using isort for Nuitka source.
 
 """
 
+from __future__ import print_function
+
 import os
+import subprocess
 import sys
 
 # Unchanged, running from checkout, use the parent directory, the nuitka
@@ -32,9 +35,37 @@ sys.path.insert(
         os.path.join(
             os.path.dirname(__file__),
             "..",
+            "..",
+            ".."
         )
     )
 )
 
-from nuitka.tools.pylint.__main__ import main # isort:skip
-main()
+from nuitka.tools.Basics import goHome, addPYTHONPATH # isort:skip
+from nuitka.tools.ScanSources import scanTargets # isort:skip
+
+
+def main():
+    goHome()
+
+    # So PyLint finds nuitka package.
+    addPYTHONPATH(os.getcwd())
+
+    target_files = []
+    for filename in scanTargets(["nuitka", "bin"]):
+        target_files.append(filename)
+
+    target_files.append("nuitka/build/SingleExe.scons")
+
+    subprocess.check_call(
+        [
+            "isort",
+            "-ot",
+            "-m3",
+            "-ns",
+            "__init__.py"
+        ] + target_files
+    )
+
+if __name__ == "__main__":
+    main()
