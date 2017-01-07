@@ -19,6 +19,10 @@ rem
 
 setlocal
 
+if exist "%~dp0..\python.exe" (
 "%~dp0..\python" "%~dp0nuitka" %*
+) else (
+"%~dp0python" "%~dp0nuitka" %*
+)
 
 endlocal
