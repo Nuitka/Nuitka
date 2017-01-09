@@ -19,6 +19,6 @@ rem
 
 setlocal
 
-"%~dp0..\python" "%~dp0nuitka-run" %*
+"%~dp0nuitka.bat --run %*
 
 endlocal
