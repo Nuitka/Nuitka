@@ -30,6 +30,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.tree import SyntaxErrors
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
+from nuitka.utils.Utils import getOS
 
 
 def _readSourceCodeFromFilename3(source_filename):
@@ -149,11 +150,12 @@ def checkPythonVersionFromCode(source_code):
     if shebang is not None:
         binary, _args = parseShebang(shebang)
 
-        try:
-            if os.path.samefile(sys.executable, binary):
-                return True
-        except OSError: # Might not exist
-            pass
+        if getOS() != "Windows":
+            try:
+                if os.path.samefile(sys.executable, binary):
+                    return True
+            except OSError: # Might not exist
+                pass
 
         basename = os.path.basename(binary)
 
