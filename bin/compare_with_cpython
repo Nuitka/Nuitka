@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-""" Launcher for pylint checker tool.
+""" Launcher for output comparison tool.
 
 """
 
@@ -34,6 +34,10 @@ sys.path.insert(
             "..",
         )
     )
+)
+sys.path.insert(
+    1,
+    "/usr/share/nuitka"
 )
 
 from nuitka.tools.compare_with_cpython.__main__ import main # isort:skip
