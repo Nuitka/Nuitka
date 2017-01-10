@@ -822,10 +822,16 @@ def removeSharedLibraryRPATH(filename):
         shell  = False
     )
 
-    stdout, _stderr = process.communicate()
+    stdout, stderr = process.communicate()
     retcode = process.poll()
 
-    assert retcode == 0, filename
+    if retcode != 0:
+        sys.exit(
+            "Error reading shared library path for %s, tool said %r" % (
+                filename,
+                stderr
+            )
+        )
 
     for line in stdout.split(b"\n"):
         if b"RPATH" in line:
@@ -944,7 +950,7 @@ different from
         # the relative DLL location in the ".dist" folder.
         for standalone_entry_point in standalone_entry_points:
             fixupBinaryDLLPaths(
-                binary_filename = standalone_entry_point[0],
+                binary_filename = standalone_entry_point[1],
                 is_exe          = standalone_entry_point is standalone_entry_points[0],
                 dll_map         = dll_map
             )
@@ -969,5 +975,5 @@ different from
 
         for standalone_entry_point in standalone_entry_points[1:]:
             removeSharedLibraryRPATH(
-                standalone_entry_point[0]
+                standalone_entry_point[1]
             )
