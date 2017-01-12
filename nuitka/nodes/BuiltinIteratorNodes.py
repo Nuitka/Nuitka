@@ -52,7 +52,13 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         )
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        return self, "new_builtin", "Eliminated useless iterator creation."
+        # Iteration over an iterator is that iterator.
+
+        return (
+            self,
+            "new_builtin",
+            "Eliminated useless iterator creation."
+        )
 
     def getTypeShape(self):
         return self.getValue().getTypeShape().getShapeIter()
