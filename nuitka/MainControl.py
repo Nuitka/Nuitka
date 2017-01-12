@@ -435,7 +435,6 @@ def runScons(main_module, quiet):
         "python_debug"    : asBoolStr(Options.isPythonDebug()),
         "unstripped_mode" : asBoolStr(Options.isUnstripped()),
         "module_mode"     : asBoolStr(Options.shallMakeModule()),
-        "optimize_mode"   : asBoolStr(Options.isOptimize()),
         "full_compat"     : asBoolStr(Options.isFullCompat()),
         "experimental"    : asBoolStr(Options.isExperimental()),
         "trace_mode"      : asBoolStr(Options.shallTraceExecution()),

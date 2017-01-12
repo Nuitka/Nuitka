@@ -354,15 +354,6 @@ compatibility reasons, the "__file__" value will always have ".py" suffix
 independent of what it really is."""
 )
 
-codegen_group.add_option(
-    "--no-optimization",
-    action  = "store_true",
-    dest    = "no_optimize",
-    default = False,
-    help    = SUPPRESS_HELP
-# """Disable all unnecessary optimizations on Python level. Defaults to off."""
-)
-
 parser.add_option_group(codegen_group)
 
 outputdir_group = OptionGroup(

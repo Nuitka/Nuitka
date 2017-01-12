@@ -80,9 +80,6 @@ python_version += abiflags
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getBoolOption("python_debug", False)
 
-# Optimization mode: Optimize as much as currently possible.
-optimize_mode = getBoolOption("optimize_mode", True)
-
 # Full compatibility, even where it's stupid, i.e. do not provide information,
 # even if available, in order to assert maximum compatibility. Intended to
 # control level of compatibility to absurd.
@@ -664,7 +661,9 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
 
     if lto_mode and gcc_version >= "4.6":
         env.Append(CCFLAGS = ["-flto"])
-        env.Append(LINKFLAGS = ["-flto=%d" % job_count])
+        env.Append(
+            LINKFLAGS = ["-flto=%d" % job_count]
+        )
 
         # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=noreturn" ] )
         # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=pure" ] )
@@ -674,14 +673,13 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
         if debug_mode:
             env.Append(LINKFLAGS = ["-O2"])
 
-        if optimize_mode:
-            env.Append(
-                LINKFLAGS = [
-                    "-O3",
-                    "-fpartial-inlining",
-                    "-freorder-functions",
-                ]
-            )
+        env.Append(
+            LINKFLAGS = [
+                "-O3",
+                "-fpartial-inlining",
+                "-freorder-functions",
+            ]
+        )
 
     # Give a warning if LTO mode was specified, but won't be used.
     if lto_mode and gcc_version < "4.6":
@@ -1130,17 +1128,11 @@ else:
 # When debugging, optimize less than when optimizing, when not remove
 # assertions.
 if debug_mode:
-    if not optimize_mode:
-        if gcc_mode or msvc_mode:
-            env.Append(
-                CCFLAGS = ["-O2"]
-            )
+    if gcc_mode or msvc_mode:
+        env.Append(
+            CCFLAGS = ["-O2"]
+        )
 else:
-    env.Append(
-        CPPDEFINES = ["__NUITKA_NO_ASSERT__"]
-    )
-
-if optimize_mode:
     if gcc_mode:
         env.Append(
             CCFLAGS = ["-O3"]
@@ -1154,6 +1146,10 @@ if optimize_mode:
         env.Append(
             CCFLAGS = ["/Ox"]
         )
+
+    env.Append(
+        CPPDEFINES = ["__NUITKA_NO_ASSERT__"]
+    )
 
 # MinGW for 64 bits needs this due to CPython bugs.
 if win_target and target_arch == "x86_64" and gcc_mode:
