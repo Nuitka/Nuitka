@@ -69,6 +69,8 @@ if "NUITKA_PYTHONPATH" in os.environ:
     del os.environ["NUITKA_PYTHONPATH"]
 
 from nuitka import Options                  # isort:skip
+Options.parseArgs()
+
 from nuitka.utils import Utils, Execution   # isort:skip pylint:disable=E0611
 
 import logging # isort:skip

@@ -675,57 +675,97 @@ use. Defaults to off."""
 
 parser.add_option_group(plugin_group)
 
-# First, isolate the first non-option arguments.
-if is_nuitka_run:
-    count = 0
 
-    for count, arg in enumerate(sys.argv):
-        if count == 0:
-            continue
+options = None
+positional_args = None
+extra_args = []
 
-        if arg[0] != '-':
-            break
+def parseArgs():
+    global options, positional_args, extra_args
 
-        # Treat "--" as a terminator.
-        if arg == "--":
-            count += 1
-            break
+    # First, isolate the first non-option arguments.
+    if is_nuitka_run:
+        count = 0
 
-    if count > 0:
-        extra_args = sys.argv[count+1:]
-        sys.argv = sys.argv[0:count+1]
-else:
-    extra_args = []
+        for count, arg in enumerate(sys.argv):
+            if count == 0:
+                continue
 
-options, positional_args = parser.parse_args()
+            if arg[0] != '-':
+                break
 
-if not positional_args:
-    parser.print_help()
+            # Treat "--" as a terminator.
+            if arg == "--":
+                count += 1
+                break
 
-    sys.exit("""
-Error, need positional argument with python module or main program.""")
+        if count > 0:
+            extra_args = sys.argv[count+1:]
+            sys.argv = sys.argv[0:count+1]
 
-if not options.immediate_execution and len(positional_args) > 1:
-    parser.print_help()
+    options, positional_args = parser.parse_args()
 
-    sys.exit("""
-Error, need only one positional argument unless "--run" is specified to
-pass them to the compiled program execution.""")
+    if not positional_args:
+        parser.print_help()
 
-if options.verbose:
-    logging.getLogger().setLevel(logging.DEBUG)
-else:
-    logging.getLogger().setLevel(logging.INFO)
+        sys.exit("""
+    Error, need positional argument with python module or main program.""")
 
-# Standalone mode implies an executable, not importing "site" module, which is
-# only for this machine, recursing to all modules, and even including the
-# standard library.
-if options.is_standalone:
-    options.executable = True
-    options.recurse_all = True
+    if not options.immediate_execution and len(positional_args) > 1:
+        parser.print_help()
 
-    if Utils.getOS() == "NetBSD":
-        logging.warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
+        sys.exit("""
+    Error, need only one positional argument unless "--run" is specified to
+    pass them to the compiled program execution.""")
+
+    if options.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
+
+    # Standalone mode implies an executable, not importing "site" module, which is
+    # only for this machine, recursing to all modules, and even including the
+    # standard library.
+    if options.is_standalone:
+        options.executable = True
+        options.recurse_all = True
+
+        if Utils.getOS() == "NetBSD":
+            logging.warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
+
+    for any_case_module in getShallFollowModules():
+        if any_case_module.startswith('.'):
+            bad = True
+        else:
+            for char in "/\\:":
+                if  char in any_case_module:
+                    bad = True
+                    break
+            else:
+                bad = False
+
+        if bad:
+            sys.exit("""
+Error, '--recurse-to' takes only module names, not directory path '%s'.""" % \
+                any_case_module
+            )
+
+    for no_case_module in getShallFollowInNoCase():
+        if no_case_module.startswith('.'):
+            bad = True
+        else:
+            for char in "/\\:":
+                if  char in no_case_module:
+                    bad = True
+                    break
+            else:
+                bad = False
+
+        if bad:
+            sys.exit("""
+Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" % \
+                no_case_module
+            )
 
 def shallTraceExecution():
     return options.trace_execution
@@ -779,41 +819,8 @@ def getShallFollowModules():
 def isAllowedToReexecute():
     return options.allow_reexecute
 
-for any_case_module in getShallFollowModules():
-    if any_case_module.startswith('.'):
-        bad = True
-    else:
-        for char in "/\\:":
-            if  char in any_case_module:
-                bad = True
-                break
-        else:
-            bad = False
-
-    if bad:
-        sys.exit("""
-Error, '--recurse-to' takes only module names, not directory path '%s'.""" % \
-any_case_module)
-
 def getShallFollowInNoCase():
     return sum([ x.split(',') for x in options.recurse_not_modules ], [])
-
-for no_case_module in getShallFollowInNoCase():
-    if no_case_module.startswith('.'):
-        bad = True
-    else:
-        for char in "/\\:":
-            if  char in no_case_module:
-                bad = True
-                break
-        else:
-            bad = False
-
-    if bad:
-        sys.exit("""
-Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" % \
-no_case_module)
-
 
 def getShallFollowExtra():
     return sum([ x.split(',') for x in options.recurse_extra ], [])
@@ -832,9 +839,6 @@ def isDebug():
 
 def isPythonDebug():
     return options.python_debug or sys.flags.debug
-
-def isOptimize():
-    return not options.no_optimize
 
 def isUnstripped():
     return options.unstripped or options.profile
@@ -894,7 +898,7 @@ def isShowProgress():
     return options.show_progress
 
 def isShowMemory():
-    return options.show_memory
+    return options is not None and options.show_memory
 
 def isShowInclusion():
     return options.show_inclusion
@@ -911,7 +915,7 @@ def isExperimental():
     return hasattr(options, "experimental") and options.experimental
 
 def shallExplainImports():
-    return options.explain_imports
+    return options is not None and options.explain_imports
 
 def isStandaloneMode():
     return options.is_standalone
@@ -942,13 +946,19 @@ def shallFreezeAllStdlib():
     return options.freeze_stdlib
 
 def getPluginsEnabled():
+    if not options:
+        return ()
+
     return options.plugins_enabled
 
 def getPluginsDisabled():
+    if not options:
+        return ()
+
     return options.plugins_disabled
 
 def shallDetectMissingPlugins():
-    return options.detect_missing_plugins
+    return options is not None and options.detect_missing_plugins
 
 def getPluginOptions(plugin_name):
     # TODO: This should come from command line, pylint: disable=W0613
