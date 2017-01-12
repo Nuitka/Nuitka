@@ -57,7 +57,12 @@ Organizational
 --------------
 
 - This release also prepares Python 3.6 support, it includes full language
-  support on the level of CPython 3.6.0b4.
+  support on the level of CPython 3.6.0 with the sole exception of coroutines
+  that are also generators.
+
+- Removed long deprecated option "--no-optimization". Code generation too
+  frequently depends on not seeing unoptimized code. This has been hidden
+  and broken long enough to finally remove it.
 
 - Added repository for Ubuntu Yekkety (16.10) for download.
 
