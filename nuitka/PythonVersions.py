@@ -129,14 +129,10 @@ def needsSetLiteralReverseInsertion():
 
 
 def needsDuplicateArgumentColOffset():
-    if python_version < 350:
+    if python_version < 353:
         return False
-
-    # Need to use "exec" to detect the syntax error, pylint: disable=W0122
-    try:
-        exec("if True: def f(a,a): pass")
-    except SyntaxError:
-        return '^' in traceback.format_exc()
+    else:
+        return True
 
 
 def needsFutureBracesImportColOffset():
