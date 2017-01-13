@@ -45,3 +45,6 @@ def printError(message):
         message,
         file = sys.stderr
     )
+
+def flushStdout():
+    sys.stdout.flush()
