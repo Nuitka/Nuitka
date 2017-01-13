@@ -444,6 +444,10 @@ for filename in sorted(os.listdir('.')):
         if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
             continue
 
+        # These stopped being loaded by system on Windows 10.
+        if loaded_basename.upper() in ("MSVCP_WIN.DLL", "WIN32U.DLL"):
+            continue
+
         my_print("Should not access '%s'." % loaded_filename)
         illegal_access = True
 
