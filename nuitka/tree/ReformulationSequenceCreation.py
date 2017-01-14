@@ -82,10 +82,8 @@ def buildSequenceCreationNode(provider, node, source_ref):
             if getKind(element) == "Starred":
                 if python_version < 350:
                     SyntaxErrors.raiseSyntaxError(
-                        reason     = """\
-can use starred expression only as assignment target""",
-                        source_ref = source_ref,
-                        col_offset = element.col_offset
+                        """can use starred expression only as assignment target""",
+                        source_ref.atColumnNumber(element.col_offset),
                     )
                 else:
                     return _buildSequenceUnpacking(

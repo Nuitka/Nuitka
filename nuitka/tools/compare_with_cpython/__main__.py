@@ -81,13 +81,14 @@ def displayOutput(stdout, stderr):
         my_print(stderr)
 
 
-def compareOutput(kind, out_cpython, out_nuitka, ignore_warnings, ignore_infos):
+def compareOutput(kind, out_cpython, out_nuitka, ignore_warnings, ignore_infos,
+                  syntax_errors):
     fromdate = ""
     todate = ""
 
     diff = difflib.unified_diff(
-        makeDiffable(out_cpython, ignore_warnings, ignore_infos),
-        makeDiffable(out_nuitka, ignore_warnings, ignore_infos),
+        makeDiffable(out_cpython, ignore_warnings, ignore_infos, syntax_errors),
+        makeDiffable(out_nuitka, ignore_warnings, ignore_infos, syntax_errors),
         "{program} ({detail})".format(
             program = os.environ["PYTHON"],
             detail  = kind
@@ -112,9 +113,7 @@ def compareOutput(kind, out_cpython, out_nuitka, ignore_warnings, ignore_infos):
         return 0
 
 
-def makeDiffable(output, ignore_warnings, ignore_infos):
-
-
+def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
     result = []
 
     # Fix import "readline" because output sometimes starts with "\x1b[?1034h"
@@ -122,7 +121,15 @@ def makeDiffable(output, ignore_warnings, ignore_infos):
     if m:
         output = output[len(m.group()):]
 
-    for line in output.split(b"\n"):
+    lines = output.split(b"\n")
+    if syntax_errors:
+
+        for line in lines:
+            if line.startswith(b"SyntaxError:"):
+                lines = [line]
+                break
+
+    for line in lines:
         if type(line) is not str:
             line = line.decode("utf-8" if os.name != "nt" else "cp850")
 
@@ -246,6 +253,8 @@ def main():
     original_file      = hasArg("original_file")
     no_warnings        = not hasArg("warnings")
     full_compat        = not hasArg("improved")
+
+    syntax_errors      = hasArg("syntax_errors")
 
     plugins_enabled = []
 
@@ -641,12 +650,12 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
             assert not stderr_nuitka
 
     if comparison_mode:
-        exit_code_stdout = compareOutput("stdout", stdout_cpython, stdout_nuitka, ignore_warnings, ignore_infos)
+        exit_code_stdout = compareOutput("stdout", stdout_cpython, stdout_nuitka, ignore_warnings, ignore_infos, syntax_errors)
 
         if ignore_stderr:
             exit_code_stderr = 0
         else:
-            exit_code_stderr = compareOutput("stderr", stderr_cpython, stderr_nuitka, ignore_warnings, ignore_infos)
+            exit_code_stderr = compareOutput("stderr", stderr_cpython, stderr_nuitka, ignore_warnings, ignore_infos, syntax_errors)
 
         exit_code_return = exit_cpython != exit_nuitka
 

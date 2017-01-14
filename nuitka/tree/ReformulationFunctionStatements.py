@@ -589,15 +589,12 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
         ps_default_count = len(node.args.defaults)
     )
 
-    message = parameters.checkValid()
+    message = parameters.checkParametersValid()
 
     if message is not None:
         SyntaxErrors.raiseSyntaxError(
             message,
-            source_ref,
-            col_offset = None
-              if isFullCompat() and not needsDuplicateArgumentColOffset() else
-            node.col_offset
+            source_ref.atColumnNumber(node.col_offset),
         )
 
     code_object = CodeObjectSpec(

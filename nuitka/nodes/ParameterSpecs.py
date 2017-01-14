@@ -105,7 +105,7 @@ class ParameterSpec:
             "ps_default_count" : self.default_count
         }
 
-    def checkValid(self):
+    def checkParametersValid(self):
         arg_names = self.getParameterNames()
 
         # Check for duplicate arguments, could happen.

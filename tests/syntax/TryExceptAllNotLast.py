@@ -20,6 +20,6 @@ def f():
   try:
     raise A
   except:
-    print "caught"
+    print("caught")
   except A:
-    print "hit"
+    print("hit")

@@ -54,7 +54,7 @@ for filename in sorted(os.listdir('.')):
     )
 
     if active:
-        extra_flags = ["expect_failure", "remove_output"]
+        extra_flags = ["expect_failure", "remove_output", "syntax_errors"]
 
         compareWithCPython(
             dirname     = None,

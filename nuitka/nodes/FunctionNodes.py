@@ -250,9 +250,9 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             variable_name = variable_name
         )
 
-    def addNonlocalsDeclaration(self, names, source_ref, col_offset):
+    def addNonlocalsDeclaration(self, names, source_ref):
         self.non_local_declarations.append(
-            (names, source_ref, col_offset)
+            (names, source_ref)
         )
 
     def getNonlocalDeclarations(self):

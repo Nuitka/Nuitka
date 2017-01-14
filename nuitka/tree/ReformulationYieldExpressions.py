@@ -36,8 +36,7 @@ def _checkInsideGenerator(provider, node, source_ref):
     if provider.isCompiledPythonModule():
         SyntaxErrors.raiseSyntaxError(
             "'yield' outside function",
-            source_ref,
-            None if python_version < 300 else node.col_offset
+            source_ref.atColumnNumber(node.col_offset)
         )
 
     # This is forbidden in 3.5, but allows in 3.6
@@ -46,8 +45,7 @@ def _checkInsideGenerator(provider, node, source_ref):
             "'%s' inside async function" % (
                 "yield" if node.__class__ is ast.Yield else "yield from",
             ),
-            source_ref,
-            node.col_offset+3
+            source_ref.atColumnNumber(node.col_offset)
         )
 
     assert provider.isExpressionGeneratorObjectBody() or \

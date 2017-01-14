@@ -22,7 +22,6 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Options
 from nuitka.nodes.AssignNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTempVariableRef,
@@ -336,6 +335,7 @@ def buildTryExceptionNode(provider, node, source_ref):
                         source_ref = source_ref
                     ),
                     final      = buildDeleteStatementFromDecoded(
+                        node       = node, # Won't be used.
                         kind       = kind,
                         detail     = detail,
                         source_ref = source_ref
@@ -361,11 +361,9 @@ def buildTryExceptionNode(provider, node, source_ref):
         if exception_types is None:
             if handler is not node.handlers[-1]:
                 SyntaxErrors.raiseSyntaxError(
-                    reason     = "default 'except:' must be last",
-                    source_ref = source_ref.atLineNumber(
-                        handler.lineno-1
-                          if Options.isFullCompat() else
-                        handler.lineno
+                    "default 'except:' must be last",
+                    source_ref.atLineNumber(handler.lineno).atColumnNumber(
+                        handler.col_offset
                     )
                 )
 

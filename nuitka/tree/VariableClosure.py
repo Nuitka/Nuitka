@@ -24,10 +24,12 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
-from nuitka import PythonVersions, Variables
+from nuitka import Variables
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
-from nuitka.Options import isFullCompat
-from nuitka.PythonVersions import needsNonlocalColOffset, python_version
+from nuitka.PythonVersions import (
+    getErrorMessageExecWithNestedFunction,
+    python_version
+)
 from nuitka.tree import SyntaxErrors
 
 from .Operations import VisitorNoopMixin, visitTree
@@ -58,7 +60,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     def _handleNonLocal(node):
         # Take closure variables for non-local declarations.
 
-        for non_local_names, source_ref, col_offset in node.getNonlocalDeclarations():
+        for non_local_names, source_ref in node.getNonlocalDeclarations():
             for non_local_name in non_local_names:
                 variable = node.getClosureVariable(
                     variable_name = non_local_name
@@ -69,21 +71,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         "no binding for nonlocal '%s' found" % (
                             non_local_name
                         ),
-                        source_ref   = None
-                                         if isFullCompat() and \
-                                         python_version < 340 else
-                                       source_ref,
-                        display_file = not isFullCompat() or \
-                                       python_version >= 340,
-                        display_line = not isFullCompat() or \
-                                       python_version >= 340,
-                        col_offset   = (
-                            None
-                              if isFullCompat() and \
-                                 not needsNonlocalColOffset() else
-                            col_offset + 8
-                        )
-
+                        source_ref
                     )
 
                 node.registerProvidedVariable(variable)
@@ -233,37 +221,21 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             current = node
 
             while True:
-                if current.isParentVariableProvider():
-                    if node.isStatementLoopContinue():
-                        message = "'continue' not properly in loop"
-
-                        col_offset   = 16 if python_version >= 300 else None
-                        display_line = True
-                        source_line  = None
-                    else:
-                        message = "'break' outside loop"
-
-                        if isFullCompat():
-                            col_offset   = 2 if python_version >= 300 else None
-                            display_line = True
-                            source_line  = "" if python_version >= 300 else None
-                        else:
-                            col_offset   = 13
-                            display_line = True
-                            source_line  = None
-
-                    SyntaxErrors.raiseSyntaxError(
-                        message,
-                        source_ref   = node.getSourceReference(),
-                        col_offset   = col_offset,
-                        display_line = display_line,
-                        source_line  = source_line
-                    )
-
                 current = current.getParent()
 
                 if current.isStatementLoop():
                     break
+
+                if current.isParentVariableProvider():
+                    if node.isStatementLoopContinue():
+                        message = "'continue' not properly in loop"
+                    else:
+                        message = "'break' outside loop"
+
+                    SyntaxErrors.raiseSyntaxError(
+                        message,
+                        node.getSourceReference(),
+                    )
 
 
 class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
@@ -306,14 +278,9 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
             if parent_provider.isExpressionFunctionBody() and \
                parent_provider.isUnqualifiedExec():
                 SyntaxErrors.raiseSyntaxError(
-                    reason       = PythonVersions.\
-                                     getErrorMessageExecWithNestedFunction() % \
-                                     parent_provider.getName(),
-                    source_ref   = parent_provider.getExecSourceRef(),
-                    col_offset   = None,
-                    display_file = True,
-                    display_line = True,
-                    source_line  = None
+                    getErrorMessageExecWithNestedFunction() % parent_provider.getName(),
+                    node.getSourceReference(),
+                    display_line = False # Wrong line anyway
                 )
 
 
@@ -345,15 +312,11 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
             if not variable.isModuleVariable() and \
                variable.isSharedAmongScopes():
                 SyntaxErrors.raiseSyntaxError(
-                    reason       = """\
+                    """\
 can not delete variable '%s' referenced in nested scope""" % (
                        variable.getName()
                     ),
-                    source_ref   = (
-                        None if isFullCompat() else node.getSourceReference()
-                    ),
-                    display_file = not isFullCompat(),
-                    display_line = not isFullCompat()
+                    node.getSourceReference()
                 )
         elif node.isStatementsFrame():
             node.updateLocalNames()

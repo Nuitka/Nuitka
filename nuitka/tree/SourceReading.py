@@ -114,16 +114,16 @@ def _readSourceCodeFromFilename2(source_filename):
                 ).group(1)
 
                 SyntaxErrors.raiseSyntaxError(
-                    reason       = """\
+                    """\
 Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; \
 see http://python.org/dev/peps/pep-0263/ for details""" % (
                         wrong_byte,
                         source_filename,
                         count+1,
                     ),
-                    source_ref   = SourceCodeReferences.fromFilename(
-                        source_filename
-                    ).atLineNumber(count+1),
+                    SourceCodeReferences.fromFilename(source_filename).atLineNumber(
+                        count+1
+                    ),
                     display_line = False
                 )
 

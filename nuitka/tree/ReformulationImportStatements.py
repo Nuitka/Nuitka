@@ -38,13 +38,7 @@ from nuitka.nodes.ImportNodes import (
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.Options import isFullCompat
-from nuitka.PythonVersions import (
-    needsFutureBracesImportColOffset,
-    needsFutureUnknownImportColOffset,
-    needsStarImportColOffset,
-    python_version
-)
+from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
 
 from .Helpers import makeStatementsSequenceOrStatement, mangleName
@@ -62,26 +56,21 @@ def checkFutureImportsOnlyAtStart(body):
         else:
             if _future_import_nodes:
                 SyntaxErrors.raiseSyntaxError(
-                    reason     = """\
+                    """\
 from __future__ imports must occur at the beginning of the file""",
-                    col_offset = 1
-                      if python_version >= 300 or \
-                      not Options.isFullCompat() else
-                    None,
-                    source_ref = _future_import_nodes[0].source_ref
+                    _future_import_nodes[0].source_ref.atColumnNumber(
+                        _future_import_nodes[0].col_offset
+                    )
+
                 )
 
 def _handleFutureImport(provider, node, source_ref):
     # Don't allow future imports in functions or classes.
     if not provider.isCompiledPythonModule():
         SyntaxErrors.raiseSyntaxError(
-            reason     = """\
+            """\
 from __future__ imports must occur at the beginning of the file""",
-            col_offset = 8
-              if python_version >= 300 or \
-              not Options.isFullCompat()
-            else None,
-            source_ref = source_ref
+            source_ref.atColumnNumber(node.col_offset)
         )
 
 
@@ -117,10 +106,7 @@ def _enableFutureFeature(node, object_name, future_spec, source_ref):
     elif object_name == "braces":
         SyntaxErrors.raiseSyntaxError(
             "not a chance",
-            source_ref,
-            col_offset = None
-              if isFullCompat() and not needsFutureBracesImportColOffset() else
-            node.col_offset
+            source_ref.atColumnNumber(node.col_offset)
         )
     elif object_name in ("nested_scopes", "generators", "with_statement"):
         # These are enabled in all cases already.
@@ -128,10 +114,7 @@ def _enableFutureFeature(node, object_name, future_spec, source_ref):
     else:
         SyntaxErrors.raiseSyntaxError(
             "future feature %s is not defined" % object_name,
-            source_ref,
-            col_offset = None
-              if isFullCompat() and not needsFutureUnknownImportColOffset() else
-            node.col_offset
+            source_ref.atColumnNumber(node.col_offset)
         )
 
 
@@ -180,13 +163,7 @@ def buildImportFromNode(provider, node, source_ref):
         if not provider.isCompiledPythonModule() and python_version >= 300:
             SyntaxErrors.raiseSyntaxError(
                 "import * only allowed at module level",
-                provider.getSourceReference(),
-                col_offset = (
-                    None
-                      if isFullCompat() and \
-                      not needsStarImportColOffset() else
-                    node.col_offset - 3
-                )
+                source_ref.atColumnNumber(node.col_offset)
             )
 
         # Functions with star imports get a marker.

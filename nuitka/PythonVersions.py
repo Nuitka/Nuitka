@@ -135,26 +135,6 @@ def needsDuplicateArgumentColOffset():
         return True
 
 
-def needsFutureBracesImportColOffset():
-    return needsDuplicateArgumentColOffset()
-
-
-def needsFutureUnknownImportColOffset():
-    return needsDuplicateArgumentColOffset()
-
-
-def needsGlobalArgumentColOffset():
-    return needsDuplicateArgumentColOffset()
-
-
-def needsStarImportColOffset():
-    return needsDuplicateArgumentColOffset()
-
-
-def needsNonlocalColOffset():
-    return needsDuplicateArgumentColOffset()
-
-
 def isUninstalledPython():
     return "Anaconda" in sys.version or \
            "WinPython" in sys.version or \

@@ -98,11 +98,7 @@ from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PythonVersions import (
-    needsGlobalArgumentColOffset,
-    needsNonlocalColOffset,
-    python_version
-)
+from nuitka.PythonVersions import python_version
 from nuitka.tree.ReformulationForLoopStatements import (
     buildAsyncForLoopNode,
     buildForLoopNode
@@ -324,24 +320,13 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
         for variable_name in node.names:
             if variable_name in parameters.getParameterNames():
                 SyntaxErrors.raiseSyntaxError(
-                    reason     = "name '%s' is %s and global" % (
+                    "name '%s' is %s and global" % (
                         variable_name,
                         "local"
                           if python_version < 300 else
                         "parameter"
                     ),
-                    source_ref = (
-                        source_ref
-                          if not Options.isFullCompat() or \
-                             python_version >= 340 else
-                        provider.getSourceReference()
-                    ),
-                    col_offset = (
-                        None
-                          if Options.isFullCompat() and \
-                             not needsGlobalArgumentColOffset() else
-                        node.col_offset + 4
-                    )
+                    source_ref.atColumnNumber(node.col_offset)
                 )
 
     # The module the "global" statement refers to.
@@ -377,8 +362,8 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
            provider.isExpressionClassBody() and \
            closure_variable.getName() == "__class__":
             SyntaxErrors.raiseSyntaxError(
-                reason     = "cannot make __class__ global",
-                source_ref = source_ref
+                "cannot make __class__ global",
+                source_ref
             )
 
         provider.registerProvidedVariable(
@@ -405,26 +390,13 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
     for variable_name in node.names:
         if variable_name in parameter_names:
             SyntaxErrors.raiseSyntaxError(
-                reason       = "name '%s' is parameter and nonlocal" % (
+                "name '%s' is parameter and nonlocal" % (
                     variable_name
                 ),
-                source_ref   = None
-                                 if Options.isFullCompat() and \
-                                 python_version < 340 else
-                               source_ref,
-                display_file = not Options.isFullCompat() or \
-                               python_version >= 340,
-                display_line = not Options.isFullCompat() or \
-                               python_version >= 340,
-                col_offset   = (
-                    None
-                      if Options.isFullCompat() and \
-                         not needsNonlocalColOffset() else
-                    node.col_offset + 4
-                )
+                source_ref.atColumnNumber(node.col_offset)
             )
 
-    provider.addNonlocalsDeclaration(node.names, source_ref, node.col_offset)
+    provider.addNonlocalsDeclaration(node.names, source_ref.atColumnNumber(node.col_offset))
 
     return None
 
@@ -467,22 +439,12 @@ def buildEllipsisNode(source_ref):
 def buildStatementLoopContinue(node, source_ref):
     # Python forbids this, although technically it's probably not much of
     # an issue.
+    source_ref = source_ref.atColumnNumber(node.col_offset)
+
     if getBuildContext() == "finally":
-        if not Options.isFullCompat() or python_version >= 300:
-            col_offset = node.col_offset - 9
-        else:
-            col_offset = None
-
-        if python_version >= 300 and Options.isFullCompat():
-            source_line = ""
-        else:
-            source_line = None
-
         SyntaxErrors.raiseSyntaxError(
             "'continue' not supported inside 'finally' clause",
-            source_ref,
-            col_offset  = col_offset,
-            source_line = source_line
+            source_ref
         )
 
     return StatementLoopContinue(
@@ -495,7 +457,7 @@ def buildStatementLoopBreak(provider, node, source_ref):
     # pylint: disable=W0613
 
     return StatementLoopBreak(
-        source_ref = source_ref
+        source_ref = source_ref.atColumnNumber(node.col_offset)
     )
 
 
@@ -511,12 +473,7 @@ def buildReturnNode(provider, node, source_ref):
     if provider.isExpressionClassBody() or provider.isCompiledPythonModule():
         SyntaxErrors.raiseSyntaxError(
             "'return' outside function",
-            source_ref,
-            None if python_version < 300 else (
-                node.col_offset
-                  if provider.isCompiledPythonModule() else
-                node.col_offset+4
-            )
+            source_ref.atColumnNumber(node.col_offset)
         )
 
     expression = buildNode(provider, node.value, source_ref, allow_none = True)
@@ -525,7 +482,7 @@ def buildReturnNode(provider, node, source_ref):
         if expression is not None and python_version < 330:
             SyntaxErrors.raiseSyntaxError(
                 "'return' with argument inside generator",
-                source_ref = source_ref,
+                source_ref.atColumnNumber(node.col_offset)
             )
 
     if expression is None:

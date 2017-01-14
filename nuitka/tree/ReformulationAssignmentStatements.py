@@ -208,10 +208,8 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
             if starred_list_var is not None:
                 if element[0] == "Starred":
                     raiseSyntaxError(
-                        reason     = """\
-two starred expressions in assignment""",
-                        col_offset = 0,
-                        source_ref = source_ref
+                        "two starred expressions in assignment",
+                        source_ref.atColumnNumber(0)
                     )
 
                 statements.insert(
@@ -361,9 +359,8 @@ two starred expressions in assignment""",
         )
     elif kind == "Starred":
         raiseSyntaxError(
-            reason     = "starred assignment target must be in a list or tuple",
-            source_ref = source_ref,
-            col_offset = 0
+            "starred assignment target must be in a list or tuple",
+            source_ref.atColumnNumber(0)
         )
     else:
         assert False, (kind, source_ref, detail)
@@ -617,7 +614,7 @@ def buildAnnAssignNode(provider, node, source_ref):
     )
 
 
-def buildDeleteStatementFromDecoded(kind, detail, source_ref):
+def buildDeleteStatementFromDecoded(node, kind, detail, source_ref):
     if kind in ("Name", "Name_Exception"):
         # Note: Name_Exception is a "del" for exception handlers that doesn't
         # insist on the variable being defined, user code may do it too, and
@@ -627,7 +624,7 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
         return StatementDelVariable(
             variable_ref = variable_ref,
             tolerant     = kind == "Name_Exception",
-            source_ref   = source_ref
+            source_ref   = source_ref.atColumnNumber(node.col_offset+1)
         )
     elif kind == "Attribute":
         lookup_source, attribute_name = detail
@@ -674,6 +671,7 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
         for sub_node in detail:
             result.append(
                 buildDeleteStatementFromDecoded(
+                    node       = node,
                     kind       = sub_node[0],
                     detail     = sub_node[1],
                     source_ref = source_ref
@@ -707,6 +705,7 @@ def buildDeleteNode(provider, node, source_ref):
 
         statements.append(
             buildDeleteStatementFromDecoded(
+                node       = target,
                 kind       = kind,
                 detail     = detail,
                 source_ref = source_ref
