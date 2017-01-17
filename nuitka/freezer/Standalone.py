@@ -747,7 +747,7 @@ def detectBinaryDLLs(original_dir, binary_filename, package_name):
         )
     elif Utils.getOS() == "Windows":
         return _detectBinaryPathDLLsWindows(
-            original_dir = original_dir,
+            original_dir    = original_dir,
             binary_filename = binary_filename,
             package_name    = package_name
         )

@@ -745,7 +745,8 @@ def parseArgs():
                 bad = False
 
         if bad:
-            sys.exit("""
+            sys.exit(
+                """\
 Error, '--recurse-to' takes only module names, not directory path '%s'.""" % \
                 any_case_module
             )
@@ -762,7 +763,8 @@ Error, '--recurse-to' takes only module names, not directory path '%s'.""" % \
                 bad = False
 
         if bad:
-            sys.exit("""
+            sys.exit(
+                """\
 Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" % \
                 no_case_module
             )
