@@ -101,6 +101,8 @@ with open("nuitka/Options.py", 'w') as options_file:
 print old_version, "->", new_version
 debian_version = new_version.replace("rc", "~rc") + "+ds-1"
 
+os.environ["DEBEMAIL"] = "Kay Hayen <kay.hayen@gmail.com>"
+
 if "rc" in new_version:
     if "rc1" in new_version:
         os.system('debchange -R "New upstream pre-release."')
