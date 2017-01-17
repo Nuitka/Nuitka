@@ -22,7 +22,6 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Options
 from nuitka.nodes.AssignNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,

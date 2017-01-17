@@ -26,7 +26,6 @@ should attempt to make run time detections.
 import os
 import re
 import sys
-import traceback
 
 
 def getSupportedPythonVersions():

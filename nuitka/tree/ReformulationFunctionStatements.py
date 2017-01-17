@@ -62,11 +62,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.Options import isFullCompat
-from nuitka.PythonVersions import (
-    needsDuplicateArgumentColOffset,
-    python_version
-)
+from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
 
 from .Helpers import (

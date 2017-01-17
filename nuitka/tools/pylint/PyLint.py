@@ -135,10 +135,12 @@ def executePyLint(filename, show_todos, verbose):
         shell  = False
     )
 
-    stdout, _stderr = process.communicate()
+    stdout, stderr = process.communicate()
     exit_code = process.returncode
 
-    assert not _stderr
+    assert not stderr, stderr
+    assert exit_code == 0, stderr
+
     if stdout:
         stdout = stdout.replace("\r\n", '\n')
 

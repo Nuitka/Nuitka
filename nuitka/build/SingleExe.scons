@@ -109,7 +109,7 @@ uninstalled_python = getBoolOption("uninstalled_python", False)
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
 
-# Clang compiler mode, default on MacOS X and FreeBSD, optional on Linux.
+# Clang compiler mode, forced on MacOS X and FreeBSD, optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
 if sys.platform == "darwin" or "freebsd" in sys.platform:
     clang_mode = True
@@ -516,9 +516,9 @@ b) To make it find Visual Studio execute from Start Menu the 'Visual Studio
    Command Prompt' or "vcvarsall.bat". That will add Visual Studio to the
    PATH. And it will be detected.
 
-c) Install MinGW64 to 'C:\\MinGW64' or '\\MinGW', where then it is automatically
+c) Install MinGW64 to "C:\\MinGW64" or "\\MinGW", where then it is automatically
    detected or add it to PATH before executing Nuitka. But be sure to pick the
-   proper variant (32/64 bits, your Python arch is '%s').
+   proper variant (32/64 bits, your Python arch is %r).
 """ % (sys.exec_prefix, target_arch))
     else:
         sys.exit("Error, cannot locate suitable C compiler.")
