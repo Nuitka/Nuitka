@@ -7,10 +7,11 @@ include doc/*.1
 
 include bin/compare_with_cpython
 include bin/compare_with_xml
+include bin/check-nuitka-with-pylint
+include bin/autoformat-nuitka-source
 
 include misc/*.sh
 include misc/*.bat
-include misc/check-with-pylint
 include tests/run-tests
 
 # Logo with source
