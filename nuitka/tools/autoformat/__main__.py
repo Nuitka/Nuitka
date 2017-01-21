@@ -46,8 +46,6 @@ from nuitka.tools.ScanSources import scanTargets # isort:skip
 from nuitka.tools.autoformat.Autoformat import autoformat # isort:skip
 
 def main():
-    goHome()
-
     parser = OptionParser()
 
     parser.add_option(
@@ -65,6 +63,12 @@ def main():
         positional_args = ["bin", "nuitka"]
 
     print("Working on:", positional_args)
+
+    positional_args = [
+        os.path.abspath(positional_arg)
+        for positional_arg in positional_args
+    ]
+    goHome()
 
     found = False
     for filename in scanTargets(positional_args):
