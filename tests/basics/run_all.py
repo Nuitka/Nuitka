@@ -104,6 +104,12 @@ for filename in sorted(os.listdir('.')):
     if filename == "YieldFrom33.py":
         extra_flags.append("ignore_stderr")
 
+    # For Python2 there is a "builtins" package that gives warnings. TODO: We
+    # ought to NOT import that package and detect statically that __builtins__
+    # import won't raise ImportError.
+    if filename == "BuiltinOverload.py":
+        extra_flags.append("ignore_warnings")
+
     active = search_mode.consider(
         dirname  = None,
         filename = filename
