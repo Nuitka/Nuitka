@@ -81,10 +81,11 @@ os.rename(os.path.join("dist",filename),os.path.join("dist",new_filename))
 
 assert 0 == subprocess.call(
     (
-        "C:\\MinGW\\msys\\1.0\\bin\\scp.exe",
+        "scp",
         "dist/"+new_filename,
         "git@nuitka.net:/var/www/releases/"
-    )
+    ),
+    shell = True # scan scp in PATH.
 )
 
 print("OK, uploaded to dist/" + new_filename)
