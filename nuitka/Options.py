@@ -681,6 +681,7 @@ positional_args = None
 extra_args = []
 
 def parseArgs():
+    # many cases, pylint: disable=R0912,W0603
     global options, positional_args, extra_args
 
     # First, isolate the first non-option arguments.

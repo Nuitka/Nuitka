@@ -22,6 +22,8 @@ try:
 except ImportError:
     from builtins import len as _len
 
+# This kind of built-in overload will have to work.
+
 def len(x):  # @ReservedAssignment
     print("Private built-in called with argument", repr(x))
 

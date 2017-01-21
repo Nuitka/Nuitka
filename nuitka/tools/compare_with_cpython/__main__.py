@@ -17,6 +17,10 @@
 #     limitations under the License.
 #
 
+""" Tool to compare output of CPython and Nuitka.
+
+"""
+
 from __future__ import print_function
 
 import difflib
@@ -114,6 +118,8 @@ def compareOutput(kind, out_cpython, out_nuitka, ignore_warnings, ignore_infos,
 
 
 def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
+    # Of course many cases to deal with, pylint: disable=R0912
+
     result = []
 
     # Fix import "readline" because output sometimes starts with "\x1b[?1034h"
@@ -218,6 +224,9 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
 
 
 def main():
+    # Of course many cases to deal with, pylint: disable=R0912,R0914,R0915
+
+
     filename = sys.argv[1]
     args     = sys.argv[2:]
 
@@ -650,12 +659,26 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
             assert not stderr_nuitka
 
     if comparison_mode:
-        exit_code_stdout = compareOutput("stdout", stdout_cpython, stdout_nuitka, ignore_warnings, ignore_infos, syntax_errors)
+        exit_code_stdout = compareOutput(
+            "stdout",
+            stdout_cpython,
+            stdout_nuitka,
+            ignore_warnings,
+            ignore_infos,
+            syntax_errors
+        )
 
         if ignore_stderr:
             exit_code_stderr = 0
         else:
-            exit_code_stderr = compareOutput("stderr", stderr_cpython, stderr_nuitka, ignore_warnings, ignore_infos, syntax_errors)
+            exit_code_stderr = compareOutput(
+                "stderr",
+                stderr_cpython,
+                stderr_nuitka,
+                ignore_warnings,
+                ignore_infos,
+                syntax_errors
+            )
 
         exit_code_return = exit_cpython != exit_nuitka
 

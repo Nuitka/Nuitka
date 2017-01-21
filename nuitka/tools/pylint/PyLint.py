@@ -15,7 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" PyLint handling for Nuitka.
 
+Our usage of PyLint also works around a few issues that PyLint
+has.
+
+"""
 
 from __future__ import print_function
 
@@ -120,7 +125,7 @@ def executePyLint(filename, show_todos, verbose):
     if not show_todos:
         pylint_options.append("--notes=")
 
-
+    # This is kind of a singleton module, pylint: disable=W0603
     global our_exit_code
 
     extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()
@@ -136,10 +141,9 @@ def executePyLint(filename, show_todos, verbose):
     )
 
     stdout, stderr = process.communicate()
-    exit_code = process.returncode
+    _exit_code = process.returncode
 
     assert not stderr, stderr
-    assert exit_code == 0, stderr
 
     if stdout:
         stdout = stdout.replace("\r\n", '\n')

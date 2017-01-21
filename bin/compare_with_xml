@@ -17,6 +17,10 @@
 #     limitations under the License.
 #
 
+""" Tool to compare XML outputs of two Nuitka versions.
+
+"""
+
 from __future__ import print_function
 
 import difflib
