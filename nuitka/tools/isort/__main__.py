@@ -41,7 +41,7 @@ sys.path.insert(
     )
 )
 
-from nuitka.tools.Basics import goHome, addPYTHONPATH # isort:skip
+from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH # isort:skip
 from nuitka.tools.ScanSources import scanTargets # isort:skip
 
 
@@ -57,6 +57,7 @@ def main():
 
     target_files.append("nuitka/build/SingleExe.scons")
 
+    setupPATH()
     subprocess.check_call(
         [
             "isort",
