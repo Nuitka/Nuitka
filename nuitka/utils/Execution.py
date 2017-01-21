@@ -76,3 +76,31 @@ def getExecutablePath(filename):
             return full
 
     return None
+
+
+def check_output(*popenargs, **kwargs):
+    """ Call a process and check result code.
+
+        This is for Python 2.6 compatibility, which doesn't have that in its
+        standard library.
+    """
+
+    if "stdout" in kwargs:
+        raise ValueError("stdout argument not allowed, it will be overridden.")
+
+    process = subprocess.Popen(
+        stdout = subprocess.PIPE,
+        *popenargs,
+        **kwargs
+    )
+    output, _unused_err = process.communicate()
+    retcode = process.poll()
+
+    if retcode:
+        cmd = kwargs.get("args")
+        if cmd is None:
+            cmd = popenargs[0]
+
+        raise subprocess.CalledProcessError(retcode, cmd, output = output)
+
+    return output

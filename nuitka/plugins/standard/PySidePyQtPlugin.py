@@ -22,15 +22,13 @@ own dependencies.
 """
 
 import shutil
-import subprocess
 import sys
 from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.utils import Utils
-
+from nuitka.utils import Utils, Execution
 
 class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
     """ This is for plugins of PySide/PyQt4/PyQt5.
@@ -56,7 +54,8 @@ if os.path.exists(guess_path):
 """ % {
            "qt_version" : qt_version
         }
-        output = subprocess.check_output([sys.executable, "-c", command])
+
+        output = Execution.check_output([sys.executable, "-c", command])
 
         # May not be good for everybody, but we cannot have bytes in paths, or
         # else working with them breaks down.

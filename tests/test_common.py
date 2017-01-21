@@ -28,7 +28,7 @@ def my_print(*args, **kwargs):
 
     sys.stdout.flush()
 
-
+# TODO: Use nuitka.utils.Execution instead.
 def check_output(*popenargs, **kwargs):
     if "stdout" in kwargs:
         raise ValueError("stdout argument not allowed, it will be overridden.")
