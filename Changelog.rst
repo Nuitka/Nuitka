@@ -115,8 +115,8 @@ Organizational
 --------------
 
 - This release also prepares Python 3.6 support, it includes full language
-  support on the level of CPython 3.6.0 with the sole exception of coroutines
-  that are also generators.
+  support on the level of CPython 3.6.0 with the sole exception of the new
+  generator coroutines.
 
 - The improved mode is now the default, and full compatibility is now the
   option, used by test suites. For syntax errors, improved mode is always
@@ -136,6 +136,8 @@ Organizational
   documentation might become available, but for now this makes it workable.
 
 - Added repository for Ubuntu Yekkety (16.10) for download.
+
+- Added repository for Fedora 25 for download.
 
 Cleanups
 --------
@@ -195,11 +197,17 @@ once we do code generation based on type inference.
 
 The faster method calls complete work that was already prepared in this domain
 and also will be expanded to more types than compiled functions. More work will
-be need to round this up.
+be needed to round this up.
 
 Adding support for 3.6.0 in the early stages of its release, made sure we
 pretty much have support for it ready right after release. This is always a
 huge amount of work, and it's good to catch up.
+
+This release is again a significant improvement in performance, and is
+very important to clean up open ends. Now the focus of coming releases
+will now be on both structural optimization, e.g. taking advantage of
+the iterator tracing, and specialized code generation, e.g. for those
+iterations really necessary to use quick iteration code.
 
 
 Nuitka Release 0.5.24
