@@ -64,7 +64,7 @@ if branch_name.startswith("release") or branch_name == "master":
     pass
 elif branch_name == "develop":
     for remote in "origin", "bitbucket", "github", "gitlab":
-        assert 0 == os.system("git push --tags -f %s develop" % remote)
+        assert 0 == os.system("git push --recurse-submodules=no --tags -f %s develop" % remote)
         assert 0 == os.system("git push %s master" % remote)
 else:
     sys.stdout.write("Skipping for branch '%s'" % branch_name)
