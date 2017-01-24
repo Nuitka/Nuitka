@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -116,6 +116,22 @@ def getComplexCallSequenceErrorTemplate():
             sys.exit("Error, cannot detect expected error message.")
 
     return getComplexCallSequenceErrorTemplate.result
+
+
+def needsSetLiteralReverseInsertion():
+    try:
+        value = eval("{1,1.0}.pop()") # pylint: disable=W0123
+    except SyntaxError:
+        return False
+    else:
+        return type(value) is float
+
+
+def needsDuplicateArgumentColOffset():
+    if python_version < 353:
+        return False
+    else:
+        return True
 
 
 def isUninstalledPython():

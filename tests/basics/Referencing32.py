@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -114,6 +114,23 @@ def simpleFunction6():
             raise KeyError
     except KeyError as e:
         pass
+
+range_low = 0
+range_high = 256
+range_step = 13
+
+
+def simpleFunction7():
+    # Make sure xranges work nicely
+    return range(range_low,range_high,range_step)
+
+def simpleFunction8():
+    # Make sure xranges work nicely
+    return range(range_low,range_high)
+
+def simpleFunction9():
+    # Make sure xranges work nicely
+    return range(range_high)
 
 
 # These need stderr to be wrapped.

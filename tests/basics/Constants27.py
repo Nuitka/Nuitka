@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,7 +15,13 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
+print("Clash in constants reveals order:")
+x = {True, 1}
+print(x)
 
-x = ( { 1, } )
-print x
+print("Complex constant using sets with clashes at run time:")
+y = True
+x = ({1, }, {1, True}, {1, 1.0}, {1, y})
+print(x)

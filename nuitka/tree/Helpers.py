@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@ from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeList,
-    ExpressionMakeSet,
+    ExpressionMakeSetLiteral,
     ExpressionMakeTuple
 )
 from nuitka.nodes.DictionaryNodes import (
@@ -40,11 +40,12 @@ from nuitka.nodes.FrameNodes import StatementsFrame
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
-from nuitka.nodes.StatementNodes import (
-    StatementGeneratorEntry,
-    StatementsSequence
+from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.PythonVersions import (
+    doShowUnknownEncodingName,
+    needsSetLiteralReverseInsertion,
+    python_version
 )
-from nuitka.PythonVersions import doShowUnknownEncodingName, python_version
 
 
 def dump(node):
@@ -56,11 +57,20 @@ def getKind(node):
 
 
 def extractDocFromBody(node):
+    body = node.body
+    doc = None
+
     # Work around ast.get_docstring breakage.
-    if len(node.body) > 0 and getKind(node.body[0]) == "Expr" and getKind(node.body[0].value) == "Str":
-        return node.body[1:], node.body[0].value.s
-    else:
-        return node.body, None
+    if len(node.body) > 0 and \
+       getKind(node.body[0]) == "Expr" and \
+       getKind(node.body[0].value) == "Str":
+
+        if "no_asserts" not in Options.getPythonFlags():
+            doc = body[0].value.s
+
+        body = body[1:]
+
+    return body, doc
 
 
 def _makeSyntaxErrorCompatible(e):
@@ -389,13 +399,6 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
         return None
 
     if provider.isExpressionGeneratorObjectBody():
-        # TODO: Could do this earlier and on the outside.
-        statements.insert(
-            0,
-            StatementGeneratorEntry(
-                source_ref = source_ref
-            )
-        )
         result = StatementsFrame(
             statements  = statements,
             guard_mode  = "generator",
@@ -507,6 +510,9 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
             const_type = list
         elif sequence_kind == "SET":
             const_type = set
+
+            if needsSetLiteralReverseInsertion():
+                elements = tuple(reversed(elements))
         else:
             assert False, sequence_kind
 
@@ -531,7 +537,7 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
                 source_ref = source_ref
             )
         elif sequence_kind == "SET":
-            result = ExpressionMakeSet(
+            result = ExpressionMakeSetLiteral(
                 elements   = elements,
                 source_ref = source_ref
             )

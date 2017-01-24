@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -16,6 +16,17 @@
 #     limitations under the License.
 #
 from __future__ import print_function
+
+def setOrderCheck():
+    print("Checking order of set literals:")
+    def one():
+        print("one")
+        return "one"
+    def two():
+        print("two")
+        return "two"
+
+    return {one(), two()}
 
 def raiseOrderCheck():
     print("Checking order of raises:")
@@ -53,4 +64,5 @@ def raiseOrderCheck():
         print("caught", repr(e))
 
 
+setOrderCheck()
 raiseOrderCheck()

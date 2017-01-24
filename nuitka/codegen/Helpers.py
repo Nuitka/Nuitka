@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,12 @@ typical support functions to building parts.
 
 """
 
+from nuitka.Options import shallTraceExecution
+from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
+
+from . import Contexts
+from .LabelCodes import getStatementTrace
 
 expression_dispatch_dict = {}
 
@@ -188,3 +193,63 @@ def generateStatementCode(statement, emit, context):
             )
         )
         raise
+
+
+def _generateStatementSequenceCode(statement_sequence, emit, context):
+    if statement_sequence is None:
+        return
+
+    for statement in statement_sequence.getStatements():
+        if shallTraceExecution():
+            source_ref = statement.getSourceReference()
+
+            statement_repr = repr(statement)
+            source_repr = source_ref.getAsString()
+
+            if python_version >= 300:
+                statement_repr = statement_repr.encode("utf8")
+                source_repr = source_repr.encode("utf8")
+
+            emit(
+                getStatementTrace(
+                    source_repr,
+                    statement_repr
+                )
+            )
+
+        # Might contain frame statement sequences as children.
+        if statement.isStatementsFrame():
+            from .FrameCodes import generateStatementsFrameCode
+
+            generateStatementsFrameCode(
+                statement_sequence = statement,
+                emit               = emit,
+                context            = context
+            )
+        else:
+            generateStatementCode(
+                statement = statement,
+                emit      = emit,
+                context   = context
+            )
+
+
+def generateStatementSequenceCode(statement_sequence, emit, context,
+                                  allow_none = False):
+
+    if allow_none and statement_sequence is None:
+        return None
+
+    assert statement_sequence.kind == "STATEMENTS_SEQUENCE", statement_sequence
+
+    statement_context = Contexts.PythonStatementCContext(context)
+
+    _generateStatementSequenceCode(
+        statement_sequence = statement_sequence,
+        emit               = emit,
+        context            = statement_context
+    )
+
+    # Complain if any temporary was not dealt with yet.
+    assert not statement_context.getCleanupTempnames(), \
+      statement_context.getCleanupTempnames()

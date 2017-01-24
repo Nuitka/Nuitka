@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -228,7 +228,7 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         new_node = BuiltinOptimization.extractBuiltinArgs(
             node          = call_node,
             builtin_class = createBuiltinMakeException,
-            builtin_spec  = BuiltinOptimization.makeBuiltinParameterSpec(
+            builtin_spec  = BuiltinOptimization.makeBuiltinExceptionParameterSpec(
                 exception_name = exception_name
             )
         )

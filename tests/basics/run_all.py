@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -50,17 +50,6 @@ if python_version >= "3.4":
         # Prepared dictionaries of "enum.Enums" are not used early enough
         "Classes34.py",
     )
-
-if python_version >= "3.6":
-    # These tests don't work with 3.6 yet, and the list is considered the major
-    # TODO for 3.6 support.
-    search_mode.mayFailFor(
-        # CPython3.6.0a4 bug ought to enhance
-        "Constants.py",
-        # CPython3.6.0b1 bug ought to enhance
-        "ParameterErrors.py",
-    )
-
 
 # Create large constants test on the fly, if it's not there, not going to
 # add it to release archives for no good reason.
@@ -114,6 +103,12 @@ for filename in sorted(os.listdir('.')):
     # not fully compatible and potentially an error.
     if filename == "YieldFrom33.py":
         extra_flags.append("ignore_stderr")
+
+    # For Python2 there is a "builtins" package that gives warnings. TODO: We
+    # ought to NOT import that package and detect statically that __builtins__
+    # import won't raise ImportError.
+    if filename == "BuiltinOverload.py":
+        extra_flags.append("ignore_warnings")
 
     active = search_mode.consider(
         dirname  = None,

@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,7 +26,7 @@ from nuitka import Options
 
 from .ErrorCodes import getMustNotGetHereCode
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
-from .Helpers import generateExpressionCode
+from .Helpers import generateExpressionCode, generateStatementSequenceCode
 from .IteratorCodes import getBuiltinLoopBreakNextCode
 from .LabelCodes import getGotoCode, getLabelCode
 from .VariableCodes import getVariableAssignmentCode
@@ -40,10 +40,6 @@ def generateTryCode(statement, emit, context):
 
     if generateTryNextExceptStopIterationCode(statement, emit, context):
         return
-
-
-    # TODO: This should come from Helpers module.
-    from .CodeGeneration import generateStatementSequenceCode
 
     # Get the statement sequences involved. All except the tried block can be
     # None. For the tried block it would be a missed optimization. Also not all

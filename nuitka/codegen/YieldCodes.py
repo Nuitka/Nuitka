@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -35,9 +35,13 @@ def generateYieldCode(to_name, expression, emit, context):
     preserve_exception = expression.isExceptionPreserving()
 
     emit(
-        "%s = %s( generator, %s );" % (
+        "%s = %s_%s( %s, %s );" % (
             to_name,
-            "YIELD" if not preserve_exception else "YIELD_IN_HANDLER",
+            context.getContextObjectName().upper(),
+            "YIELD"
+              if not preserve_exception else
+            "YIELD_IN_HANDLER",
+            context.getContextObjectName(),
             value_name
               if context.needsCleanup(value_name) else
             "INCREASE_REFCOUNT( %s )" % value_name
@@ -68,9 +72,13 @@ def generateYieldFromCode(to_name, expression, emit, context):
     preserve_exception = expression.isExceptionPreserving()
 
     emit(
-        "%s = %s( generator, %s );" % (
+        "%s = %s_%s( %s, %s );" % (
             to_name,
-            "YIELD_FROM" if not preserve_exception else "YIELD_FROM_IN_HANDLER",
+            context.getContextObjectName().upper(),
+            "YIELD_FROM"
+              if not preserve_exception else
+            "YIELD_FROM_IN_HANDLER",
+            context.getContextObjectName(),
             value_name
               if context.needsCleanup(value_name) else
             "INCREASE_REFCOUNT( %s )" % value_name

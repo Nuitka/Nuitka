@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -65,7 +65,9 @@ from nuitka.PythonVersions import python_version
 from .Helpers import (
     buildNode,
     getKind,
+    makeConstantRefNode,
     makeSequenceCreationOrConstant,
+    makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     makeStatementsSequenceOrStatement,
@@ -184,20 +186,6 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
             name       = "source_iter"
         )
 
-        statements = [
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = source_iter_var,
-                    source_ref = source_ref
-                ),
-                source       = ExpressionBuiltinIter1(
-                    value      = source,
-                    source_ref = source_ref
-                ),
-                source_ref   = source_ref
-            )
-        ]
-
         element_vars = [
             provider.allocateTempVariable(
                 temp_scope = temp_scope,
@@ -212,19 +200,20 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
         starred_list_var = None
         starred_index = None
 
+        statements = []
+
         for element_index, element in enumerate(detail):
             element_var = element_vars[element_index]
 
             if starred_list_var is not None:
                 if element[0] == "Starred":
                     raiseSyntaxError(
-                        reason     = "two starred expressions in assignment",
-                        col_offset = 0,
-                        source_ref = source_ref
+                        "two starred expressions in assignment",
+                        source_ref.atColumnNumber(0)
                     )
 
                 statements.insert(
-                    starred_index+2,
+                    starred_index+1,
                     StatementAssignmentVariable(
                         variable_ref = ExpressionTargetTempVariableRef(
                             variable   = element_var,
@@ -292,6 +281,32 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                 )
             )
 
+
+        statements = [
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = source_iter_var,
+                    source_ref = source_ref
+                ),
+                source       = ExpressionBuiltinIter1(
+                    value      = source,
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref
+            ),
+            makeTryFinallyStatement(
+                provider   = provider,
+                tried      = statements,
+                final      = (
+                    StatementReleaseVariable(
+                        variable   = source_iter_var,
+                        source_ref = source_ref
+                    ),
+                ),
+                source_ref = source_ref
+            )
+        ]
+
         # When all is done, copy over to the actual assignment targets, starred
         # or not makes no difference here anymore.
         for element_index, element in enumerate(detail):
@@ -313,21 +328,26 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                 )
             )
 
+            # Need to release temporary variables right after successful
+            # usage.
+            statements.append(
+                StatementDelVariable(
+                    variable_ref = ExpressionTargetTempVariableRef(
+                        variable   = element_var,
+                        source_ref = source_ref
+                    ),
+                    tolerant     = True,
+                    source_ref   = source_ref,
+                )
+            )
+
         final_statements = []
 
-        final_statements.append(
-            StatementReleaseVariable(
-                variable   = source_iter_var,
-                source_ref = source_ref
-            )
-        )
-
-        # TODO: In that order, or reversed.
         for element_var in element_vars:
             final_statements.append(
                 StatementReleaseVariable(
                     variable   = element_var,
-                    source_ref = source_ref
+                    source_ref = source_ref,
                 )
             )
 
@@ -339,9 +359,8 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
         )
     elif kind == "Starred":
         raiseSyntaxError(
-            reason     = "starred assignment target must be in a list or tuple",
-            source_ref = source_ref,
-            col_offset = 0
+            "starred assignment target must be in a list or tuple",
+            source_ref.atColumnNumber(0)
         )
     else:
         assert False, (kind, source_ref, detail)
@@ -526,8 +545,76 @@ def buildAssignNode(provider, node, source_ref):
             source_ref = source_ref
         )
 
+# Python3.6 annotation assignment
+def buildAnnAssignNode(provider, node, source_ref):
+    if provider.isExpressionClassBody():
+        provider.markAsNeedsAnnotationsDictionary()
 
-def buildDeleteStatementFromDecoded(kind, detail, source_ref):
+    # Evaluate the right hand side first, so it can get names provided
+    # before the left hand side exists.
+    statements = []
+
+    if node.value is not None:
+        source = buildNode(provider, node.value, source_ref)
+
+        statements.append(
+            buildAssignmentStatements(
+                provider   = provider,
+                node       = node.target,
+                source     = source,
+                source_ref = source_ref
+            )
+        )
+
+        # Only name referencing annotations are effective right now.
+        if statements[-1].isStatementAssignmentVariable():
+            variable_name = statements[-1].getTargetVariableRef().getVariableName()
+        else:
+            variable_name = None
+    else:
+        # Only name referencing annotations are effective right now.
+        kind, detail = decodeAssignTarget(
+            provider   = provider,
+            node       = node.target,
+            source_ref = source_ref
+        )
+
+        if kind == "Name":
+            variable_name = detail.getVariableName()
+        else:
+            variable_name = None
+
+    # Only annoations for modules and classes are really made.
+    if variable_name is not None:
+        if provider.isExpressionFunctionBody():
+            provider.getVariableForAssignment(variable_name)
+        else:
+            annotation = buildNode(provider, node.annotation, source_ref)
+
+            statements.append(
+                StatementAssignmentSubscript(
+                    expression = ExpressionVariableRef(
+                        variable_name = "__annotations__",
+                        variable      = provider.getVariableForAssignment("__annotations__"),
+                        source_ref    = source_ref
+                    ),
+                    subscript  = makeConstantRefNode(
+                        constant   = variable_name,
+                        source_ref = source_ref
+                    ),
+                    source     = annotation,
+                    source_ref = source_ref
+                )
+            )
+
+    return makeStatementsSequence(
+        statements = statements,
+        allow_none = True,
+        source_ref = source_ref
+    )
+
+
+def buildDeleteStatementFromDecoded(node, kind, detail, source_ref):
     if kind in ("Name", "Name_Exception"):
         # Note: Name_Exception is a "del" for exception handlers that doesn't
         # insist on the variable being defined, user code may do it too, and
@@ -537,7 +624,7 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
         return StatementDelVariable(
             variable_ref = variable_ref,
             tolerant     = kind == "Name_Exception",
-            source_ref   = source_ref
+            source_ref   = source_ref.atColumnNumber(node.col_offset+1)
         )
     elif kind == "Attribute":
         lookup_source, attribute_name = detail
@@ -584,6 +671,7 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
         for sub_node in detail:
             result.append(
                 buildDeleteStatementFromDecoded(
+                    node       = node,
                     kind       = sub_node[0],
                     detail     = sub_node[1],
                     source_ref = source_ref
@@ -617,6 +705,7 @@ def buildDeleteNode(provider, node, source_ref):
 
         statements.append(
             buildDeleteStatementFromDecoded(
+                node       = target,
                 kind       = kind,
                 detail     = detail,
                 source_ref = source_ref

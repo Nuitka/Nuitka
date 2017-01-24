@@ -1,4 +1,4 @@
-//     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -26,8 +26,8 @@
 
 #if PYTHON_VERSION >= 350
 
-// The Nuitka_GeneratorObject is the storage associated with a compiled
-// generator object instance of which there can be many for each code.
+// The Nuitka_CoroutineObject is the storage associated with a compiled
+// coroutine object instance of which there can be many for each code.
 struct Nuitka_CoroutineObject {
     PyObject_VAR_HEAD
 
@@ -39,7 +39,7 @@ struct Nuitka_CoroutineObject {
     Fiber m_yielder_context;
     Fiber m_caller_context;
 
-    // Weak references are supported for generator objects in CPython.
+    // Weak references are supported for coroutine objects in CPython.
     PyObject *m_weakrefs;
 
     int m_running;
@@ -86,6 +86,114 @@ extern PyObject *AWAIT_COROUTINE( struct Nuitka_CoroutineObject *coroutine, PyOb
 
 extern PyObject *MAKE_ASYNC_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
 extern PyObject *ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
+
+static inline PyObject *COROUTINE_YIELD( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
+{
+    CHECK_OBJECT( value );
+
+    coroutine->m_yielded = value;
+
+    coroutine->m_frame->f_executing -= 1;
+
+    // Return to the calling context.
+    swapFiber( &coroutine->m_yielder_context, &coroutine->m_caller_context );
+
+    coroutine->m_frame->f_executing += 1;
+
+    // Check for thrown exception.
+    if (unlikely( coroutine->m_exception_type ))
+    {
+        RESTORE_ERROR_OCCURRED(
+            coroutine->m_exception_type,
+            coroutine->m_exception_value,
+            coroutine->m_exception_tb
+        );
+
+        coroutine->m_exception_type = NULL;
+        coroutine->m_exception_value = NULL;
+        coroutine->m_exception_tb = NULL;
+
+        return NULL;
+    }
+
+    CHECK_OBJECT( coroutine->m_yielded );
+    return coroutine->m_yielded;
+}
+
+static inline PyObject *COROUTINE_YIELD_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
+{
+    CHECK_OBJECT( value );
+
+    coroutine->m_yielded = value;
+
+    /* When yielding from an exception handler in Python3, the exception
+     * preserved to the frame is restore, while the current one is put there.
+     */
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    PyObject *saved_exception_type = thread_state->exc_type;
+    PyObject *saved_exception_value = thread_state->exc_value;
+    PyObject *saved_exception_traceback = thread_state->exc_traceback;
+
+    thread_state->exc_type = thread_state->frame->f_exc_type;
+    thread_state->exc_value = thread_state->frame->f_exc_value;
+    thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("YIELD exit:\n");
+    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
+#endif
+
+    thread_state->frame->f_exc_type = saved_exception_type;
+    thread_state->frame->f_exc_value = saved_exception_value;
+    thread_state->frame->f_exc_traceback = saved_exception_traceback;
+
+    coroutine->m_frame->f_executing -= 1;
+
+    // Return to the calling context.
+    swapFiber( &coroutine->m_yielder_context, &coroutine->m_caller_context );
+
+    coroutine->m_frame->f_executing += 1;
+
+    // When returning from yield, the exception of the frame is preserved, and
+    // the one that enters should be there.
+    thread_state = PyThreadState_GET();
+
+    saved_exception_type = thread_state->exc_type;
+    saved_exception_value = thread_state->exc_value;
+    saved_exception_traceback = thread_state->exc_traceback;
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("YIELD return:\n");
+    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
+#endif
+
+    thread_state->exc_type = thread_state->frame->f_exc_type;
+    thread_state->exc_value = thread_state->frame->f_exc_value;
+    thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
+
+    thread_state->frame->f_exc_type = saved_exception_type;
+    thread_state->frame->f_exc_value = saved_exception_value;
+    thread_state->frame->f_exc_traceback = saved_exception_traceback;
+
+    // Check for thrown exception.
+    if (unlikely( coroutine->m_exception_type ))
+    {
+        RESTORE_ERROR_OCCURRED(
+            coroutine->m_exception_type,
+            coroutine->m_exception_value,
+            coroutine->m_exception_tb
+        );
+
+        coroutine->m_exception_type = NULL;
+        coroutine->m_exception_value = NULL;
+        coroutine->m_exception_tb = NULL;
+
+        return NULL;
+    }
+
+    return coroutine->m_yielded;
+}
 
 #endif
 

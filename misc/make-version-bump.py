@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -100,6 +100,8 @@ with open("nuitka/Options.py", 'w') as options_file:
 
 print old_version, "->", new_version
 debian_version = new_version.replace("rc", "~rc") + "+ds-1"
+
+os.environ["DEBEMAIL"] = "Kay Hayen <kay.hayen@gmail.com>"
 
 if "rc" in new_version:
     if "rc1" in new_version:

@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -26,11 +26,10 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
-from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.PythonVersions import python_version
 
-from . import Contexts, Emission, Helpers
+from . import Contexts, Emission
 from .AttributeCodes import (
     generateAssignmentAttributeCode,
     generateAttributeLookupCode,
@@ -118,8 +117,7 @@ from .ExpressionCodes import (
 )
 from .FrameCodes import (
     generateFramePreserveExceptionCode,
-    generateFrameRestoreExceptionCode,
-    generateStatementsFrameCode
+    generateFrameRestoreExceptionCode
 )
 from .FunctionCodes import (
     generateFunctionCallCode,
@@ -131,7 +129,6 @@ from .FunctionCodes import (
     getFunctionDirectDecl
 )
 from .GeneratorCodes import (
-    generateGeneratorEntryCode,
     generateMakeGeneratorObjectCode,
     getGeneratorObjectCode
 )
@@ -142,7 +139,11 @@ from .GlobalsLocalsCodes import (
     generateBuiltinVarsCode,
     generateSetLocalsCode
 )
-from .Helpers import generateStatementCode
+from .Helpers import (
+    generateStatementSequenceCode,
+    setExpressionDispatchDict,
+    setStatementDispatchDict
+)
 from .IdCodes import generateBuiltinHashCode, generateBuiltinIdCode
 from .ImportCodes import (
     generateBuiltinImportCode,
@@ -161,7 +162,6 @@ from .IteratorCodes import (
     generateSpecialUnpackCode,
     generateUnpackCheckCode
 )
-from .LabelCodes import getStatementTrace
 from .ListCodes import (
     generateBuiltinListCode,
     generateListCreationCode,
@@ -194,6 +194,7 @@ from .ReturnCodes import (
 from .SetCodes import (
     generateBuiltinSetCode,
     generateSetCreationCode,
+    generateSetLiteralCreationCode,
     generateSetOperationAddCode,
     generateSetOperationUpdateCode
 )
@@ -331,63 +332,6 @@ def generateFunctionBodyCode(function_body, context):
     return function_code, function_context
 
 
-def _generateStatementSequenceCode(statement_sequence, emit, context):
-    if statement_sequence is None:
-        return
-
-    for statement in statement_sequence.getStatements():
-        if Options.shallTraceExecution():
-            source_ref = statement.getSourceReference()
-
-            statement_repr = repr(statement)
-            source_repr = source_ref.getAsString()
-
-            if python_version >= 300:
-                statement_repr = statement_repr.encode("utf8")
-                source_repr = source_repr.encode("utf8")
-
-            emit(
-                getStatementTrace(
-                    source_repr,
-                    statement_repr
-                )
-            )
-
-        # Might contain frame statement sequences as children.
-        if statement.isStatementsFrame():
-            generateStatementsFrameCode(
-                statement_sequence = statement,
-                emit               = emit,
-                context            = context
-            )
-        else:
-            generateStatementCode(
-                statement = statement,
-                emit      = emit,
-                context   = context
-            )
-
-
-def generateStatementSequenceCode(statement_sequence, emit, context,
-                                  allow_none = False):
-
-    if allow_none and statement_sequence is None:
-        return None
-
-    assert statement_sequence.kind == "STATEMENTS_SEQUENCE", statement_sequence
-
-    statement_context = Contexts.PythonStatementCContext(context)
-
-    _generateStatementSequenceCode(
-        statement_sequence = statement_sequence,
-        emit               = emit,
-        context            = statement_context
-    )
-
-    # Complain if any temporary was not dealt with yet.
-    assert not statement_context.getCleanupTempnames(), \
-      statement_context.getCleanupTempnames()
-
 
 def prepareModuleCode(global_context, module, module_name):
     # As this not only creates all modules, but also functions, it deals
@@ -506,7 +450,7 @@ def makeGlobalContext():
     return Contexts.PythonGlobalContext()
 
 
-Helpers.setExpressionDispatchDict(
+setExpressionDispatchDict(
     {
         "EXPRESSION_ATTRIBUTE_LOOKUP"               : generateAttributeLookupCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL"       : generateAttributeLookupSpecialCode,
@@ -613,6 +557,7 @@ Helpers.setExpressionDispatchDict(
         "EXPRESSION_MAKE_GENERATOR_OBJECT"          : generateMakeGeneratorObjectCode,
         "EXPRESSION_MAKE_COROUTINE_OBJECT"          : generateMakeCoroutineObjectCode,
         "EXPRESSION_MAKE_SET"                       : generateSetCreationCode,
+        "EXPRESSION_MAKE_SET_LITERAL"               : generateSetLiteralCreationCode,
         "EXPRESSION_MAKE_TUPLE"                     : generateTupleCreationCode,
         "EXPRESSION_MAKE_LIST"                      : generateListCreationCode,
         "EXPRESSION_MAKE_DICT"                      : generateDictionaryCreationCode,
@@ -643,7 +588,7 @@ Helpers.setExpressionDispatchDict(
     }
 )
 
-Helpers.setStatementDispatchDict(
+setStatementDispatchDict(
     {
         "STATEMENT_ASSIGNMENT_VARIABLE"      : generateAssignmentVariableCode,
         "STATEMENT_ASSIGNMENT_ATTRIBUTE"     : generateAssignmentAttributeCode,
@@ -676,7 +621,6 @@ Helpers.setStatementDispatchDict(
         "STATEMENT_EXEC"                     : generateExecCode,
         "STATEMENT_LOCALS_DICT_SYNC"         : generateLocalsDictSyncCode,
         "STATEMENT_SET_LOCALS"               : generateSetLocalsCode,
-        "STATEMENT_GENERATOR_ENTRY"          : generateGeneratorEntryCode,
         "STATEMENT_PRESERVE_FRAME_EXCEPTION" : generateFramePreserveExceptionCode,
         "STATEMENT_RESTORE_FRAME_EXCEPTION"  : generateFrameRestoreExceptionCode,
         "STATEMENT_PUBLISH_EXCEPTION"        : generateExceptionPublishCode

@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -201,7 +201,6 @@ class StatementsSequence(StatementChildrenHavingBase):
             return self
 
 
-
 class StatementExpressionOnly(StatementChildrenHavingBase):
     kind = "STATEMENT_EXPRESSION_ONLY"
 
@@ -250,27 +249,6 @@ class StatementExpressionOnly(StatementChildrenHavingBase):
         if result is not self:
             return result, change_tags, change_desc
 
-        return self, None, None
-
-
-class StatementGeneratorEntry(NodeBase):
-    kind = "STATEMENT_GENERATOR_ENTRY"
-
-    def __init__(self, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-    def mayRaiseException(self, exception_type):
-        # Anything might be thrown into a generator, representing that is the
-        # whole point of this statement.
-        return True
-
-    def computeStatement(self, trace_collection):
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Nothing we can about it.
         return self, None, None
 
 

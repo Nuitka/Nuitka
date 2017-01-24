@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -24,10 +24,12 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
-from nuitka import PythonVersions, Variables
+from nuitka import Variables
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
-from nuitka.Options import isFullCompat
-from nuitka.PythonVersions import python_version
+from nuitka.PythonVersions import (
+    getErrorMessageExecWithNestedFunction,
+    python_version
+)
 from nuitka.tree import SyntaxErrors
 
 from .Operations import VisitorNoopMixin, visitTree
@@ -69,14 +71,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         "no binding for nonlocal '%s' found" % (
                             non_local_name
                         ),
-                        source_ref   = None
-                                         if isFullCompat() and \
-                                         python_version < 340 else
-                                       source_ref,
-                        display_file = not isFullCompat() or \
-                                       python_version >= 340,
-                        display_line = not isFullCompat() or \
-                                       python_version >= 340
+                        source_ref
                     )
 
                 node.registerProvidedVariable(variable)
@@ -167,16 +162,13 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 )
         elif node.isExpressionGeneratorObjectBody():
             self._handleNonLocal(node)
-            # Python3.4 allows for class declarations to be made global, even
-            # after they were declared, so we need to fix this up.
 
-            # TODO: Then this may not even have to be here at all.
+            # Only Python3.4 or later allows for generators to have qualname.
             if python_version >= 340:
                 self._handleQualnameSetup(node)
         elif node.isExpressionCoroutineObjectBody():
             self._handleNonLocal(node)
 
-            # TODO: Then this may not even have to be here at all.
             self._handleQualnameSetup(node)
         elif node.isExpressionClassBody():
             self._handleNonLocal(node)
@@ -229,37 +221,21 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             current = node
 
             while True:
-                if current.isParentVariableProvider():
-                    if node.isStatementLoopContinue():
-                        message = "'continue' not properly in loop"
-
-                        col_offset   = 16 if python_version >= 300 else None
-                        display_line = True
-                        source_line  = None
-                    else:
-                        message = "'break' outside loop"
-
-                        if isFullCompat():
-                            col_offset   = 2 if python_version >= 300 else None
-                            display_line = True
-                            source_line  = "" if python_version >= 300 else None
-                        else:
-                            col_offset   = 13
-                            display_line = True
-                            source_line  = None
-
-                    SyntaxErrors.raiseSyntaxError(
-                        message,
-                        source_ref   = node.getSourceReference(),
-                        col_offset   = col_offset,
-                        display_line = display_line,
-                        source_line  = source_line
-                    )
-
                 current = current.getParent()
 
                 if current.isStatementLoop():
                     break
+
+                if current.isParentVariableProvider():
+                    if node.isStatementLoopContinue():
+                        message = "'continue' not properly in loop"
+                    else:
+                        message = "'break' outside loop"
+
+                    SyntaxErrors.raiseSyntaxError(
+                        message,
+                        node.getSourceReference(),
+                    )
 
 
 class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
@@ -302,14 +278,9 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
             if parent_provider.isExpressionFunctionBody() and \
                parent_provider.isUnqualifiedExec():
                 SyntaxErrors.raiseSyntaxError(
-                    reason       = PythonVersions.\
-                                     getErrorMessageExecWithNestedFunction() % \
-                                     parent_provider.getName(),
-                    source_ref   = parent_provider.getExecSourceRef(),
-                    col_offset   = None,
-                    display_file = True,
-                    display_line = True,
-                    source_line  = None
+                    getErrorMessageExecWithNestedFunction() % parent_provider.getName(),
+                    node.getSourceReference(),
+                    display_line = False # Wrong line anyway
                 )
 
 
@@ -341,15 +312,11 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
             if not variable.isModuleVariable() and \
                variable.isSharedAmongScopes():
                 SyntaxErrors.raiseSyntaxError(
-                    reason       = """\
+                    """\
 can not delete variable '%s' referenced in nested scope""" % (
                        variable.getName()
                     ),
-                    source_ref   = (
-                        None if isFullCompat() else node.getSourceReference()
-                    ),
-                    display_file = not isFullCompat(),
-                    display_line = not isFullCompat()
+                    node.getSourceReference()
                 )
         elif node.isStatementsFrame():
             node.updateLocalNames()

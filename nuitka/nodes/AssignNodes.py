@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -451,7 +451,8 @@ class StatementReleaseVariable(NodeBase):
 
         Just release the value, which of course is not to be used afterwards.
 
-        Typical code: Function exit.
+        Typical code: Function exit, try/finally release of temporary
+        variables.
     """
     kind = "STATEMENT_RELEASE_VARIABLE"
 

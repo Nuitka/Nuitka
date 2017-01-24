@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -61,6 +61,8 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
 
         assert self.isEarlyClosure()
 
+        self.has_annotations = False
+
     def getDetail(self):
         return "named %s" % self.getFunctionName()
 
@@ -120,6 +122,14 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
             return self.provider.getVariableForClosure(
                 variable_name
             )
+
+    def markAsNeedsAnnotationsDictionary(self):
+        """ For use during building only. Indicate "__annotations__" need. """
+        self.has_annotations = True
+
+    def needsAnnotationsDictionary(self):
+        """ For use during building only. Indicate "__annotations__" need. """
+        return self.has_annotations
 
     def markAsDirectlyCalled(self):
         pass

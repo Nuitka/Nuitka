@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -33,7 +33,12 @@ from logging import info, warning
 from nuitka.importing import Importing, Recursion
 from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
-from nuitka.PythonVersions import isUninstalledPython, python_version
+from nuitka.PythonVersions import (
+    getSupportedPythonVersions,
+    isUninstalledPython,
+    python_version,
+    python_version_str
+)
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
 
@@ -371,7 +376,7 @@ def makeSourceDirectory(main_module):
             )
 
             standalone_entry_points.append(
-                (target_filename, module.getPackage())
+                (Utils.dirname(module.getFilename()), target_filename, module.getPackage())
             )
         elif module.isUncompiledPythonModule():
             pass
@@ -407,17 +412,15 @@ def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
     # have checks for them, leading to many branches, pylint: disable=R0912
 
-    python_version_str = "%d.%d" % (sys.version_info[0], sys.version_info[1])
-
     if hasattr(sys, "abiflags"):
+        abiflags = sys.abiflags
+
         if Options.isPythonDebug() or \
            hasattr(sys, "getobjects"):
-            if sys.abiflags.startswith('d'):
-                python_version_str += sys.abiflags
-            else:
-                python_version_str += 'd' + sys.abiflags
-        else:
-            python_version_str += sys.abiflags
+            if not abiflags.startswith('d'):
+                abiflags = 'd' + abiflags
+    else:
+        abiflags = None
 
     def asBoolStr(value):
         return "true" if value else "false"
@@ -432,7 +435,6 @@ def runScons(main_module, quiet):
         "python_debug"    : asBoolStr(Options.isPythonDebug()),
         "unstripped_mode" : asBoolStr(Options.isUnstripped()),
         "module_mode"     : asBoolStr(Options.shallMakeModule()),
-        "optimize_mode"   : asBoolStr(Options.isOptimize()),
         "full_compat"     : asBoolStr(Options.isFullCompat()),
         "experimental"    : asBoolStr(Options.isExperimental()),
         "trace_mode"      : asBoolStr(Options.shallTraceExecution()),
@@ -516,6 +518,8 @@ def runScons(main_module, quiet):
     if python_version < 300 and sys.flags.unicode:
         options["python_sysflag_unicode"] = "true"
 
+    if abiflags:
+        options["abiflags"] = abiflags
 
     return SconsInterface.runScons(options, quiet), options
 
@@ -667,7 +671,7 @@ def main():
     """
 
     # Main has to fullfil many options, leading to many branches and statements
-    # to deal with them.  pylint: disable=R0912
+    # to deal with them.  pylint: disable=R0912,R0915
     positional_args = Options.getPositionalArgs()
     assert len(positional_args) > 0
 
@@ -702,10 +706,26 @@ def main():
             filename = filename
         )
     except (SyntaxError, IndentationError) as e:
-        # Syntax or indentation errors, output them to the user and abort.
-        sys.exit(
-            SyntaxErrors.formatOutput(e)
-        )
+        # Syntax or indentation errors, output them to the user and abort. If
+        # we are not in full compat, and user has not specified the Python
+        # versions he wants, tell him about the potential version problem.
+        error_message = SyntaxErrors.formatOutput(e)
+
+        if not Options.isFullCompat() and \
+           Options.getIntendedPythonVersion() is None:
+            if python_version < 300:
+                suggested_python_version_str = getSupportedPythonVersions()[-1]
+            else:
+                suggested_python_version_str = "2.7"
+
+            error_message += """
+
+Nuitka is very syntax compatible with standard Python. It is currently running
+with Python version '%s', you might want to specify more clearly with the use
+of e.g. '--python-version=%s' option, if that's not the one expected.
+""" % (python_version_str, suggested_python_version_str)
+
+        sys.exit(error_message)
 
     if Options.shallDumpBuiltTreeXML():
         for module in ModuleRegistry.getDoneModules():
@@ -735,7 +755,7 @@ def main():
 
             standalone_entry_points.insert(
                 0,
-                (binary_filename, None)
+                (None, binary_filename, None)
             )
 
             dist_dir = getStandaloneDirectoryPath(main_module)
@@ -754,7 +774,6 @@ def main():
                 dist_dir                = dist_dir,
                 standalone_entry_points = standalone_entry_points
             )
-
 
             for module in ModuleRegistry.getDoneModules():
                 data_files.extend(

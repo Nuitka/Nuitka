@@ -1,4 +1,4 @@
-//     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -224,7 +224,6 @@ static void Nuitka_Frame_tp_dealloc( struct Nuitka_FrameObject *nuitka_frame )
     Py_DECREF( frame->f_builtins );
     Py_DECREF( frame->f_globals );
     Py_XDECREF( frame->f_locals );
-    Py_DECREF( frame->f_trace );
     Py_XDECREF( frame->f_exc_type );
     Py_XDECREF( frame->f_exc_value );
     Py_XDECREF( frame->f_exc_traceback );
@@ -247,7 +246,6 @@ static int Nuitka_Frame_tp_traverse( PyFrameObject *frame, visitproc visit, void
     Py_VISIT( frame->f_builtins );
     Py_VISIT( frame->f_globals );
     Py_VISIT( frame->f_locals );
-    Py_VISIT( frame->f_trace );
     Py_VISIT( frame->f_exc_type );
     Py_VISIT( frame->f_exc_value );
     Py_VISIT( frame->f_exc_traceback );
@@ -410,24 +408,10 @@ void _initCompiledFrameType( void )
 }
 
 
-static void tb_dealloc( PyTracebackObject *tb )
-{
-    // printf( "dealloc TB %ld %lx FR %ld %lx\n", Py_REFCNT( tb ), (long)tb, Py_REFCNT( tb->tb_frame ), (long)tb->tb_frame );
-
-    Nuitka_GC_UnTrack( tb );
-    //    Py_TRASHCAN_SAFE_BEGIN(tb)
-    Py_XDECREF( tb->tb_next );
-    Py_XDECREF( tb->tb_frame );
-    PyObject_GC_Del( tb );
-    // Py_TRASHCAN_SAFE_END(tb)
-}
-
 extern PyObject *const_str_plain___module__;
 
 static PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module, bool is_module )
 {
-    PyTraceBack_Type.tp_dealloc = (destructor)tb_dealloc;
-
     assertCodeObject( code );
 
     PyObject *globals = ((PyModuleObject *)module)->md_dict;
@@ -460,7 +444,7 @@ static PyFrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *module, bool is_
     }
 
     frame->f_locals = NULL;
-    frame->f_trace = INCREASE_REFCOUNT( Py_None );
+    frame->f_trace = Py_None;
 
     frame->f_exc_type = NULL;
     frame->f_exc_value = NULL;

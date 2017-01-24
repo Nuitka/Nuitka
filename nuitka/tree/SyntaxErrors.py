@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -83,8 +83,10 @@ def formatOutput(e):
          )
 
 
-def raiseSyntaxError(reason, source_ref, col_offset = None, display_file = True,
-                     display_line = True, source_line = None):
+def raiseSyntaxError(reason, source_ref, display_file = True,
+                     display_line = True):
+    col_offset = source_ref.getColumnNumber()
+
     def readSource():
         import linecache
         return linecache.getline(
@@ -93,8 +95,7 @@ def raiseSyntaxError(reason, source_ref, col_offset = None, display_file = True,
         )
 
     if display_file and display_line:
-        if source_line is None:
-            source_line = readSource()
+        source_line = readSource()
 
         raise SyntaxError(
             reason,
@@ -107,15 +108,17 @@ def raiseSyntaxError(reason, source_ref, col_offset = None, display_file = True,
         )
     else:
         if source_ref is not None:
-            if source_line is None and display_line:
+            if display_line:
                 source_line = readSource()
+            else:
+                source_line = None
 
             raise SyntaxError(
                 reason,
                 (
                     source_ref.getFilename(),
                     source_ref.getLineNumber(),
-                    None,
+                    col_offset,
                     source_line
                 )
             )

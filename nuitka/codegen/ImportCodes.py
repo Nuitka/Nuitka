@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,7 +21,6 @@ That is import as expression, and star import.
 """
 
 
-from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
@@ -173,8 +172,6 @@ def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
 
 
 def generateImportModuleCode(to_name, expression, emit, context):
-    provider = expression.getParentVariableProvider()
-
     globals_name = context.allocateTempName("import_globals")
 
     getLoadGlobalsCode(
@@ -183,36 +180,22 @@ def generateImportModuleCode(to_name, expression, emit, context):
         context = context
     )
 
-    if provider.isCompiledPythonModule():
-        locals_name = globals_name
-    else:
-        locals_name = context.allocateTempName("import_locals")
-
-        getLoadLocalsCode(
-            to_name  = locals_name,
-            provider = expression.getParentVariableProvider(),
-            mode     = "updated",
-            emit     = emit,
-            context  = context
-        )
-
     old_source_ref = context.setCurrentSourceCodeReference(expression.getSourceReference())
 
     getBuiltinImportCode(
         to_name          = to_name,
-        module_name      = getConstantCode(
-            constant = expression.getModuleName(),
-            context  = context
+        module_name      = context.getConstantCode(
+            constant = expression.getModuleName()
         ),
         globals_name     = globals_name,
-        locals_name      = locals_name,
-        import_list_name = getConstantCode(
-            constant = expression.getImportList(),
-            context  = context
+        locals_name      = context.getConstantCode(
+            constant = None
         ),
-        level_name       = getConstantCode(
-            constant = expression.getLevel(),
-            context  = context
+        import_list_name = context.getConstantCode(
+            constant = expression.getImportList()
+        ),
+        level_name       = context.getConstantCode(
+            constant = expression.getLevel()
         ),
         needs_check      = expression.mayRaiseException(BaseException),
         emit             = emit,
@@ -283,9 +266,8 @@ def generateImportNameCode(to_name, expression, emit, context):
         "%s = IMPORT_NAME( %s, %s );" % (
             to_name,
             from_arg_name,
-            getConstantCode(
-                constant = expression.getImportName(),
-                context  = context
+            context.getConstantCode(
+                constant = expression.getImportName()
             )
         )
     )

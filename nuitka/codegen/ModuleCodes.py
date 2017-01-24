@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,11 +22,7 @@
 from nuitka import Options
 
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
-from .ConstantCodes import (
-    allocateNestedConstants,
-    getConstantCode,
-    getConstantInitCodes
-)
+from .ConstantCodes import allocateNestedConstants, getConstantInitCodes
 from .ErrorCodes import (
     getErrorVariableDeclarations,
     getExceptionKeeperVariableNames,
@@ -93,8 +89,7 @@ def getModuleValues(context, module_name, module_identifier, codes,
 
     module_body_template_values = {
         "module_name"              : module_name,
-        "module_name_obj"          : getConstantCode(
-            context  = context,
+        "module_name_obj"          : context.getConstantCode(
             constant = module_name
         ),
         "is_main_module"           : 1 if is_main_module else 0,

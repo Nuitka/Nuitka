@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -16,6 +15,31 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" PyLint handling for Nuitka.
+
+Our usage of PyLint also works around a few issues that PyLint
+has.
+
+"""
+
+from __future__ import print_function
+
+import os
+import subprocess
+import sys
+
+
+def checkVersion():
+    pylint_version = subprocess.check_output(
+        ["pylint", "--version"],
+        stderr = open(os.devnull, 'w')
+    )
+
+    pylint_version = pylint_version.split(b"\n")[0].split()[-1]
+
+    if pylint_version < b"1.4.4":
+        sys.exit("Error, needs PyLint 1.4.4 or higher.")
+
 
 # Disabled globally:
 #
@@ -67,16 +91,7 @@
 # R0204: Redefinition of var type from x to y
 # I do this all the time, e.g. to convert str to unicode, or list to string.
 
-
-from __future__ import print_function
-
-import sys, os, subprocess
-
-# Go its own directory, to have it easy with path knowledge.
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-os.chdir("..")
-
-pylint_options = """\
+default_pylint_options = """\
 --rcfile=/dev/null
 --disable=I0011,I0012,W0232,C0326,C0330,C1001,E1103,W0632,W1504,C0123,C0413,C0411,R0204
 --msg-template="{path}:{line} {msg_id} {obj} {msg}"
@@ -100,46 +115,17 @@ pylint_options = """\
 --max-bool-expr=10
 --enable=useless-suppression""".split('\n')
 
-
-from optparse import OptionParser
-
-parser = OptionParser()
-
-parser.add_option(
-    "--show-todos", "--todos",
-    action  = "store_true",
-    dest    = "todos",
-    default = False,
-    help    = """\
-    Default is %default."""
-)
-
-parser.add_option(
-    "--verbose",
-    action  = "store_true",
-    dest    = "verbose",
-    default = False,
-    help    = """\
-    Default is %default."""
-)
-
-options, positional_args = parser.parse_args()
-
-if not options.todos:
-    pylint_options.append("--notes=")
-
-blacklist = (
-    "oset.py",
-    "odict.py",
-    "SyntaxHighlighting.py",
-)
-
 our_exit_code = 0
 
-def executePyLint(filename):
-    if options.verbose:
+def executePyLint(filename, show_todos, verbose):
+    if verbose:
         print("Checking", filename, "...")
 
+    pylint_options = list(default_pylint_options)
+    if not show_todos:
+        pylint_options.append("--notes=")
+
+    # This is kind of a singleton module, pylint: disable=W0603
     global our_exit_code
 
     extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()
@@ -154,10 +140,11 @@ def executePyLint(filename):
         shell  = False
     )
 
-    stdout, _stderr = process.communicate()
-    exit_code = process.returncode
+    stdout, stderr = process.communicate()
+    _exit_code = process.returncode
 
-    assert not _stderr
+    assert not stderr, stderr
+
     if stdout:
         stdout = stdout.replace("\r\n", '\n')
 
@@ -197,67 +184,3 @@ def executePyLint(filename):
             our_exit_code = 1
 
     sys.stdout.flush()
-
-if "PYTHONPATH" not in os.environ:
-    os.environ["PYTHONPATH"] = '.'
-
-# For Windows, add this to the PATH, so pip installed PyLint will be found
-# near the Python executing this script.
-os.environ["PATH"] = os.environ["PATH"] + os.pathsep + \
-                     os.path.join(os.path.dirname(sys.executable),"scripts")
-
-def addFromDirectory(path):
-    for dirpath, dirnames, filenames in os.walk(path):
-        dirnames.sort()
-
-        if "inline_copy" in dirnames:
-            dirnames.remove("inline_copy")
-
-        filenames.sort()
-
-        for filename in filenames:
-            if not filename.endswith(".py"):
-                continue
-
-            # Skip temporary files from flymake mode of Emacs.
-            if filename.endswith("_flymake.py"):
-                continue
-
-            # Skip temporary files from unsaved files of Emacs.
-            if filename.startswith(".#"):
-                continue
-
-            if filename in blacklist:
-                continue
-
-            check_filenames.append(
-                os.path.join(dirpath, filename)
-            )
-
-
-if not positional_args:
-    positional_args = ["bin/nuitka", "nuitka"]
-
-
-check_filenames = []
-
-for positional_arg in positional_args:
-    if os.path.isdir(positional_arg):
-        addFromDirectory(positional_arg)
-    else:
-        check_filenames.append(positional_arg)
-
-pylint_version = subprocess.check_output(
-    ["pylint", "--version"],
-    stderr = open(os.devnull, 'w')
-)
-
-pylint_version = pylint_version.split(b"\n")[0].split()[-1]
-
-if pylint_version < b"1.4.4":
-    sys.exit("Error, needs PyLint 1.4.4 or higher.")
-
-for check_filename in check_filenames:
-    executePyLint(check_filename)
-
-sys.exit(our_exit_code)

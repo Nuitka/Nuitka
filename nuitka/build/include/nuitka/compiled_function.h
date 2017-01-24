@@ -1,4 +1,4 @@
-//     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -109,7 +109,13 @@ extern bool parseArgumentsMethodPos( struct Nuitka_FunctionObject const *functio
 
 extern PyObject *Nuitka_CallFunctionPosArgsKwArgs( struct Nuitka_FunctionObject const *function, PyObject **args, Py_ssize_t args_size, PyObject *kw );
 
+// These are fast calls of known compiled methods, without an actual object
+// of that kind. The object is that first argument, "self" or whatever, to
+// which the function would be bound.
 extern PyObject *Nuitka_CallMethodFunctionNoArgs( struct Nuitka_FunctionObject const *function, PyObject *object );
+extern PyObject *Nuitka_CallMethodFunctionPosArgs( struct Nuitka_FunctionObject const *function, PyObject *object, PyObject **args, Py_ssize_t args_size );
+
+// This is also used by bound compiled methods
 extern PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs( struct Nuitka_FunctionObject const *function, PyObject *object, PyObject **args, Py_ssize_t args_size, PyObject *kw );
 
 #endif

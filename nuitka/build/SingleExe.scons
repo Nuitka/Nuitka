@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -73,11 +73,12 @@ profile_mode = getBoolOption("profile_mode", False)
 # Python version to target.
 python_version = ARGUMENTS["python_version"]
 
+# The ABI flags to target.
+abiflags = ARGUMENTS.get("abiflags", "")
+python_version += abiflags
+
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getBoolOption("python_debug", False)
-
-# Optimization mode: Optimize as much as currently possible.
-optimize_mode = getBoolOption("optimize_mode", True)
 
 # Full compatibility, even where it's stupid, i.e. do not provide information,
 # even if available, in order to assert maximum compatibility. Intended to
@@ -108,7 +109,7 @@ uninstalled_python = getBoolOption("uninstalled_python", False)
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
 
-# Clang compiler mode, default on MacOS X and FreeBSD, optional on Linux.
+# Clang compiler mode, forced on MacOS X and FreeBSD, optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
 if sys.platform == "darwin" or "freebsd" in sys.platform:
     clang_mode = True
@@ -394,7 +395,12 @@ if clang_mode:
     env["CCVERSION"] = None
 elif "CC" in os.environ:
     # If the environment variable CXX is set, use that.
-    env["CC"] = os.environ["CXX"]
+    env["CC"] = os.environ["CC"]
+    env["CCVERSION"] = None
+
+# Requested or user provided, detect if it's clang.
+if "clang" in env["CC"]:
+    clang_mode = True
     env["CCVERSION"] = None
 
 # To work around Windows not supporting command lines of greater than 10K by
@@ -510,9 +516,9 @@ b) To make it find Visual Studio execute from Start Menu the 'Visual Studio
    Command Prompt' or "vcvarsall.bat". That will add Visual Studio to the
    PATH. And it will be detected.
 
-c) Install MinGW64 to 'C:\\MinGW64' or '\\MinGW', where then it is automatically
+c) Install MinGW64 to "C:\\MinGW64" or "\\MinGW", where then it is automatically
    detected or add it to PATH before executing Nuitka. But be sure to pick the
-   proper variant (32/64 bits, your Python arch is '%s').
+   proper variant (32/64 bits, your Python arch is %r).
 """ % (sys.exec_prefix, target_arch))
     else:
         sys.exit("Error, cannot locate suitable C compiler.")
@@ -605,7 +611,7 @@ if "clang" in the_compiler:
         ]
     )
 
-    if debug_mode and not clang_mode:
+    if debug_mode:
         env.Append(
             CCFLAGS = ["-Wunused-but-set-variable"]
         )
@@ -655,7 +661,9 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
 
     if lto_mode and gcc_version >= "4.6":
         env.Append(CCFLAGS = ["-flto"])
-        env.Append(LINKFLAGS = ["-flto=%d" % job_count])
+        env.Append(
+            LINKFLAGS = ["-flto=%d" % job_count]
+        )
 
         # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=noreturn" ] )
         # env.Append( LINKFLAGS = [ "-Wsuggest-attribute=pure" ] )
@@ -665,14 +673,13 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
         if debug_mode:
             env.Append(LINKFLAGS = ["-O2"])
 
-        if optimize_mode:
-            env.Append(
-                LINKFLAGS = [
-                    "-O3",
-                    "-fpartial-inlining",
-                    "-freorder-functions",
-                ]
-            )
+        env.Append(
+            LINKFLAGS = [
+                "-O3",
+                "-fpartial-inlining",
+                "-freorder-functions",
+            ]
+        )
 
     # Give a warning if LTO mode was specified, but won't be used.
     if lto_mode and gcc_version < "4.6":
@@ -1048,7 +1055,7 @@ else:
             LIBS = ["dl", "pthread", "util", 'm']
         )
 
-        if gcc_mode and "clang" not in env["CXX"]:
+        if gcc_mode and not clang_mode:
             env.Append(
                 LINKFLAGS = ["-export-dynamic"]
             )
@@ -1121,17 +1128,11 @@ else:
 # When debugging, optimize less than when optimizing, when not remove
 # assertions.
 if debug_mode:
-    if not optimize_mode:
-        if gcc_mode or msvc_mode:
-            env.Append(
-                CCFLAGS = ["-O2"]
-            )
+    if gcc_mode or msvc_mode:
+        env.Append(
+            CCFLAGS = ["-O2"]
+        )
 else:
-    env.Append(
-        CPPDEFINES = ["__NUITKA_NO_ASSERT__"]
-    )
-
-if optimize_mode:
     if gcc_mode:
         env.Append(
             CCFLAGS = ["-O3"]
@@ -1145,6 +1146,10 @@ if optimize_mode:
         env.Append(
             CCFLAGS = ["/Ox"]
         )
+
+    env.Append(
+        CPPDEFINES = ["__NUITKA_NO_ASSERT__"]
+    )
 
 # MinGW for 64 bits needs this due to CPython bugs.
 if win_target and target_arch == "x86_64" and gcc_mode:
@@ -1241,7 +1246,7 @@ if module_mode:
         env.Append(
             CCFLAGS = ["-shared"]
         )
-    elif "clang" in env["CXX"]:
+    elif clang_mode:
         pass
     elif msvc_mode:
         env.Append(

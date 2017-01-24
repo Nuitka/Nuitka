@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -19,8 +19,8 @@
 #
 from __future__ import print_function
 
-class C:
-    def compiled_method(self, a = 1, b = 2,c = 3,d = 4,e = 5,f = 6):
+class C(object):
+    def compiled_method(self, a,b,c,d,e,f):
         return a, b, c, d, e, f
 
 def calledRepeatedly():
@@ -29,9 +29,10 @@ def calledRepeatedly():
     # This is supposed to make a call to a non-compiled function, which is
     # being optimized separately.
 # construct_begin
-    inst.compiled_method()
-    inst.compiled_method()
-    inst.compiled_method()
+    inst.compiled_method("some", "random", "values", "to", "check", "call")
+    inst.compiled_method("some", "other", "values", "to", "check", "call")
+    inst.compiled_method("some", "new", "values", "to", "check", "call")
+
 # construct_alternative
     pass
 # construct_end

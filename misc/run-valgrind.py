@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,7 +17,6 @@
 #     limitations under the License.
 #
 
-import commands
 import os
 import shutil
 import subprocess
@@ -50,7 +49,8 @@ os.environ[ "PYTHONHASHSEED" ] = '0'
 os.environ["PYTHONPATH"] = os.pathsep.join(sys.path)
 
 os.system(
-    "%s --exe --python-flag=-S --output-dir=%s %s %s %s" % (
+    "%s %s --exe --python-flag=-S --output-dir=%s %s %s %s" % (
+        sys.executable,
         nuitka_binary,
         tempdir,
         "" if ("number" in sys.argv or "numbers" in sys.argv) else "--unstripped",
@@ -67,7 +67,7 @@ log_file = log_base + ".log"
 
 sys.stdout.flush()
 
-valgrind_options = "-q --tool=callgrind --callgrind-out-file=%s --zero-before=init__main__() --zero-before=init__main__" % log_file
+valgrind_options = "-q --tool=callgrind --callgrind-out-file=%s --zero-before=init__main__() --zero-before=init__main__ --zero-before=PyInit___main__ --zero-before=PyInit___main__()" % log_file
 
 subprocess.check_call(
     ["valgrind"] +
@@ -79,11 +79,12 @@ subprocess.check_call(
 if "number" in sys.argv or "numbers" in sys.argv:
     for line in open(log_file):
         if line.startswith("summary:"):
-            sizes = commands.getoutput("size '%s'" % output_binary).split('\n')[-1].replace('\t', "").split()
+            sizes = subprocess.check_output("size '%s'" % output_binary, shell = True).strip()
+            sizes = sizes.split('\n')[-1].replace('\t', "").split()
 
-            print "SIZE=%d" % ( int(sizes[0]) + int(sizes[1]) )
-            print "TICKS=%s" % line.split()[1]
-            print "BINARY=%s" % nuitka_binary
+            print("SIZE=%d" % ( int(sizes[0]) + int(sizes[1]) ))
+            print("TICKS=%s" % line.split()[1])
+            print("BINARY=%s" % nuitka_binary)
             break
     else:
         assert False
@@ -105,7 +106,7 @@ if "number" in sys.argv or "numbers" in sys.argv:
             mem = int(line.split('=')[1])
             max_mem = max(mem, max_mem)
 
-    print "MEM=%s" % max_mem
+    print("MEM=%s" % max_mem)
 
     shutil.rmtree(tempdir)
 else:

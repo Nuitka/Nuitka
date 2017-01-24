@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -169,35 +169,6 @@ Py_DECREF( %(frame_identifier)s );
 goto %(parent_exception_exit)s;
 %(no_exception_exit)s:;"""
 
-template_generator_initial_throw = """\
-// Throwing into not started generators is possible. As they don't stand any
-// chance to deal with them, we might as well create traceback on the
-// outside,
-if ( generator->m_exception_type )
-{
-    generator->m_yielded = NULL;
-
-    exception_type = generator->m_exception_type;
-    generator->m_exception_type = NULL;
-
-    exception_value = generator->m_exception_value;
-    generator->m_exception_value = NULL;
-
-    exception_tb = generator->m_exception_tb;;
-    generator->m_exception_tb = NULL;
-
-    if (exception_tb == NULL)
-    {
-        %(set_error_line_number)s
-        goto %(frame_exception_exit)s;
-    }
-    else
-    {
-        goto function_exception_exit;
-    }
-}
-"""
-
 # Frame in a generator
 template_frame_guard_generator = """\
 MAKE_OR_REUSE_FRAME( %(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s );
@@ -351,7 +322,6 @@ Py_CLEAR( %(frame_identifier)s->f_exc_traceback );
 Py_DECREF( %(frame_identifier)s );
 // Return the error.
 goto %(parent_exception_exit)s;
-%(no_exception_exit)s:;
 """
 
 from . import TemplateDebugWrapper # isort:skip

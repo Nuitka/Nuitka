@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -15,6 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+print("Basic assignment forms from various iterables:")
 a, b = 1, 2                          # simple sequence assignment
 print(a, b)
 a, b = ['green', 'blue']             # list assignment
@@ -24,31 +25,36 @@ print(a, b)
 a, b = range(1,5,2)                  # any iterable will do
 print(a, b)
 
+print("Using braces on unpacking side:")
 (a,b), c = "XY", "Z"                 # a = 'X', b = 'Y', c = 'Z'
 print(a, b, c)
 
+print("Too many values:")
 try:
     (a,b), c = "XYZ"                     # ERROR -- too many values to unpack
 except Exception as e:
     print(repr(e))
 print(a, b, c)
 
+print("Too few values:")
 try:
     (a,b), c = "XY"                      # ERROR -- need more than 1 value to unpack
 except Exception as e:
     print(repr(e))
 print(a, b, c)
 
+print("More complex right hand side, consisting of multiple values:")
 (a,b), c, = [1,2],'this'             # a = '1', b = '2', c = 'this'
 print(a, b, c)
+
+print("More complex right hand side, too many values:")
 try:
     (a,b), (c,) = [1,2],'this'           # ERROR -- too many values to unpack
 except Exception as e:
     print(repr(e))
 print(a, b, c)
 
-# extended sequence unpacking
-
+print("Extended sequence * unpacking:")
 a, *b = 1,2,3,4,5                    # a = 1, b = [2,3,4,5]
 print(a, b)
 *a, b = 1,2,3,4,5                    # a = [1,2,3,4], b = 5
@@ -83,40 +89,47 @@ print(a, b, c, d)
 print(a, b, c, d)
 
 *a, = (1,2)                          # a = [1,2]
+
+
+print("Extended sequence * unpacking with non-iterable:")
 try:
     *a, = 1                              # ERROR -- 'int' object is not iterable
 except Exception as e:
     print(repr(e))
 print(a)
+
+print("Extended sequence * unpacking with list:")
 *a, = [1]                            # a = [1]
 print(a)
+
+print("Extended sequence * unpacking with tuple:")
 *a, = (1,)                           # a = [1]
 print(a)
-try:
-    *a, = (1)                            # ERROR -- 'int' object is not iterable
-except Exception as e:
-    print(repr(e))
-print(a)
 
+print("Extended sequence * unpacking with fixed right side:")
 *a, b = [1]                          # a = [], b = 1
 print(a, b)
 *a, b = (1,)                         # a = [], b = 1
 print(a, b)
 
+print("Unpacking too many values:")
 try:
     (a,b),c = 1,2,3                      # ERROR -- too many values to unpack
 except Exception as e:
     print(repr(e))
 print(a, b, c)
+print("Unpacking with star argument changes error:")
 try:
     (a,b), *c = 1,2,3                    # ERROR - 'int' object is not iterable
 except Exception as e:
     print(repr(e))
 print(a, b, c)
+
+print("Unpacking with star argument after tuple unpack:")
 (a,b), *c = 'XY', 2, 3               # a = 'X', b = 'Y', c = [2,3]
 print(a, b, c)
 
-# extended sequence unpacking -- NESTED
+print("Extended sequence unpacking, nested:")
 
 try:
     (a,b),c = 1,2,3                      # ERROR -- too many values to unpack
@@ -151,19 +164,24 @@ try:
     *(a,*b), (*c,) = 1,2,3,3,4,5,6,7     # ERROR -- 'int' object is not iterable
 except Exception as e:
     print(repr(e))
-print(a, b, c)
+print("unchanged", a, b, c)
 
+print("Unpacking with nested stars:")
 *(a,*b), c = 1,2,3,3,4,5,6,7         # a = 1, b = [2, 3, 3, 4, 5, 6], c = 7
 print(a, b, c)
+
+print("Unpacking with even more nested stars:")
 *(a,*b), (*c,) = 1,2,3,4,5,'XY'      # a = 1, b = [2, 3, 4, 5], c = ['X', 'Y']
 print(a, b, c)
 
 *(a,*b), c, d = 1,2,3,3,4,5,6,7      # a = 1, b = [2, 3, 3, 4, 5], c = 6, d = 7
+print("starting", a, b, c, d)
 try:
     *(a,*b), (c, d) = 1,2,3,3,4,5,6,7    # ERROR -- 'int' object is not iterable
 except Exception as e:
     print(repr(e))
-print(a, b, c, d)
+print("unchanged", a, b, c, d)
+
 try:
     *(a,*b), (*c, d) = 1,2,3,3,4,5,6,7   # ERROR -- 'int' object is not iterable
 except Exception as e:
@@ -175,7 +193,7 @@ try:
     *(a,b), c = 'XY', 3                  # ERROR -- need more than 1 value to unpack
 except Exception as e:
     print(repr(e))
-print(a, b)
+print("unchanged", a, b, c)
 
 *(*a,b), c = 'XY', 3                 # a = [], b = 'XY', c = 3
 print(a, b, c)

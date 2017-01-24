@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -113,9 +113,6 @@ if options.target_dir:
         os.path.join(options.target_dir, os.path.basename(test_case))
     )
 
-if needs_2to3:
-    test_case, needs_delete = convertUsing2to3(test_case)
-
 def runValgrind(descr, test_case, args):
     my_print(descr, file = sys.stderr, end = "... ")
 
@@ -191,6 +188,10 @@ for line in open(test_case):
 case_1_file.close()
 case_2_file.close()
 
+if needs_2to3:
+    test_case_1, needs_delete = convertUsing2to3(test_case_1)
+    test_case_2, needs_delete = convertUsing2to3(test_case_2)
+
 os.environ["PYTHONHASHSEED"] = '0'
 
 if nuitka:
@@ -243,14 +244,30 @@ if nuitka:
     )
 
     if options.diff_filename:
-        cpp_1 = os.path.join(
-            test_case_1.replace(".py", ".build"),
-            "module.__main__.cpp",
-        )
-        cpp_2 = os.path.join(
-            test_case_2.replace(".py", ".build"),
-            "module.__main__.cpp",
-        )
+        suffixes = [".c", ".cpp"]
+
+        for suffix in suffixes:
+            cpp_1 = os.path.join(
+                test_case_1.replace(".py", ".build"),
+                "module.__main__" + suffix,
+            )
+
+            if os.path.exists(cpp_1):
+                break
+        else:
+            assert False
+
+        for suffix in suffixes:
+
+            cpp_2 = os.path.join(
+                test_case_2.replace(".py", ".build"),
+                "module.__main__" + suffix,
+            )
+            if os.path.exists(cpp_2):
+                break
+        else:
+            assert False
+
         import difflib
         open(options.diff_filename,'w').write(
             difflib.HtmlDiff().make_table(

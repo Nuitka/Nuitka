@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,6 +18,10 @@
 """ Nodes that build containers.
 
 """
+
+import functools
+
+from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
 from .NodeBases import (
     ExpressionChildrenHavingBase,
@@ -256,3 +260,17 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
 
         return iter_node, "new_expression", """\
 Iteration over set reduced to tuple."""
+
+
+class ExpressionMakeSetLiteral(ExpressionMakeSet):
+    kind = "EXPRESSION_MAKE_SET_LITERAL"
+
+    def getSimulator(self):
+        if needsSetLiteralReverseInsertion():
+            @functools.wraps(set)
+            def mySet(value):
+                return set(reversed(tuple(value)))
+
+            return mySet
+        else:
+            return set

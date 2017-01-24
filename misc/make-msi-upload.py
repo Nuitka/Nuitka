@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -81,10 +81,11 @@ os.rename(os.path.join("dist",filename),os.path.join("dist",new_filename))
 
 assert 0 == subprocess.call(
     (
-        "C:\\MinGW\\msys\\1.0\\bin\\scp.exe",
+        "scp",
         "dist/"+new_filename,
         "git@nuitka.net:/var/www/releases/"
-    )
+    ),
+    shell = True # scan scp in PATH.
 )
 
 print("OK, uploaded to dist/" + new_filename)

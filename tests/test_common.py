@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@ def my_print(*args, **kwargs):
 
     sys.stdout.flush()
 
-
+# TODO: Use nuitka.utils.Execution instead.
 def check_output(*popenargs, **kwargs):
     if "stdout" in kwargs:
         raise ValueError("stdout argument not allowed, it will be overridden.")
@@ -178,7 +178,12 @@ def convertUsing2to3(path, force = False):
     filename = os.path.basename(path)
 
     new_path = os.path.join(getTempDir(), filename)
-    shutil.copy(path, new_path)
+
+    # This may already be a temp file, e.g. because of construct creation.
+    try:
+        shutil.copy(path, new_path)
+    except shutil.SameFileError:  # @UndefinedVariable
+        pass
 
     # On Windows, we cannot rely on 2to3 to be in the path.
     if os.name == "nt":

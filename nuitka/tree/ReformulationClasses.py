@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -85,7 +85,7 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 def _buildClassNode3(provider, node, source_ref):
     # Many variables, due to the huge re-formulation that is going on here,
-    # which just has the complexity, pylint: disable=R0914
+    # which just has the complexity, pylint: disable=R0914,R0915
 
     # This function is the Python3 special case with special re-formulation as
     # according to developer manual.
@@ -257,8 +257,31 @@ def _buildClassNode3(provider, node, source_ref):
         if python_version >= 340:
             qualname_assign = statements[-1]
 
+    if python_version >= 360 and \
+       class_creation_function.needsAnnotationsDictionary():
+        annotations_variable = class_creation_function.getVariableForAssignment(
+            "__annotations__"
+        )
+
+        statements.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = "__annotations__",
+                    variable      = annotations_variable,
+                    source_ref    = source_ref
+                ),
+                source       = makeConstantRefNode(
+                    constant      = {},
+                    source_ref    = source_ref,
+                    user_provided = True
+                ),
+                source_ref   = source_ref
+            )
+        )
+
+    statements.append(body)
+
     statements += [
-        body,
         StatementAssignmentVariable(
             variable_ref = class_target_variable_ref,
             source       = ExpressionCall(

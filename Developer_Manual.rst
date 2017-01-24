@@ -29,8 +29,8 @@ Milestones
    absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not target any
-   older CPython release. For CPython 3.2 to 3.5 it also has been reached. We do
-   not target the older and practically unused CPython 3.1 and 3.0 releases.
+   older CPython release. For CPython 3.2 up to 3.5 it also has been reached. We
+   do not target the older and practically unused CPython 3.1 and 3.0 releases.
 
    This milestone was reached. Dropping support for Python 2.6 and 3.2 is an
    option, should this prove to be any benefit. Currently it is not, as it
@@ -113,14 +113,15 @@ Regarding Types, the state is:
 
 - Types are always ``PyObject *``, implicitly.
 
-- The only more specific use of type is "compile time constant", which can be
-  used to predict some operations, conditions, etc.
+- There are a few more specific use of types beyond "compile time constant",
+  that are encoded in type and value shapes, which can be used to predict some
+  operations, conditions, etc.
 
-- Every operation is expected to have ``PyObject *`` as result, if it is not a
-  constant, then we know nothing about it. For some interfaces, e.g. iteration,
-  there are initial attempts at abstracting it.
+- Every code generation, every operation is expected to have ``PyObject *`` as
+  result, if it is not a constant, then we know nothing about it. For some
+  interfaces, e.g. iteration, there are initial attempts at abstracting it.
 
-The limitation to only ``PyObject *`` will go away.
+The limitation to only do ``PyObject *`` will go away.
 
 Coding Rules
 ============
@@ -132,8 +133,8 @@ optimization for itself.
 Tool to format
 --------------
 
-There is a tool ``misc/autoformat.py`` which is to apply automatic formatting
-to code as much as possible.
+There is a tool ``bin/autoformat-nuitka-source`` which is to apply automatic
+formatting to code as much as possible.
 
 
 Line Length
@@ -179,10 +180,10 @@ more readable:
         context             = context
    )
 
-The ``=`` are all aligned to the longest parameter names without extra spaces
-for it.
+The ``=`` are all aligned to the longest parameter names with an extra space
+around it.
 
-When the names don't add much value, sequential calls should be done, but
+When the names don't add much value, sequential calls can be done, but
 ideally with one value per line:
 
 .. code-block:: python
@@ -214,17 +215,17 @@ Normal modules are named in camel case with leading upper case, because their of
 role as singleton classes. The difference between a module and a class is small
 enough and in the source code they are also used similarly.
 
-For the packages, no real code is allowed in them and they must be lower case,
-like e.g. ``nuitka`` or ``codegen``. This is to distinguish them from the
-modules.
+For the packages, no real code is allowed in their ``__init__.py`` and they must
+be lower case, like e.g. ``nuitka`` or ``codegen``. This is to distinguish them
+from the modules.
 
 Packages shall only be used to group things. In ``nuitka.codegen`` the code
 generation packages are located, while the main interface is
 ``nuitka.codegen.CodeGeneration`` and may then use most of the entries as local
 imports. There is no code in packages themselves.
 
-Names of modules should be plurals if they contain classes. Example is ``Nodes``
-contains ``Node`` class.
+Names of modules should be plurals if they contain classes. Example is that a
+``Nodes`` module that contain a ``Node`` class.
 
 
 Prefer list contractions over built-ins
@@ -332,7 +333,7 @@ So, we currently use "PyLint" with options defined in a script.
 
 .. code-block:: sh
 
-   ./misc/check-with-pylint
+   ./bin/check-nuitka-with-pylint
 
 Ideally the above command gives no warnings. This is currently the case.
 
@@ -404,6 +405,10 @@ For fine grained control, it has the following options::
                         The standard CPython3.5 test suite. Execute this for
                         all corner cases to be covered. With Python 2.x these
                         are not run. Default is True.
+  --skip-cpython36-tests
+                        The standard CPython3.6 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.x these
+                        are not run. Default is True.
   --no-python2.6        Do not use Python 2.6 even if available on the system.
                         Default is False.
   --no-python2.7        Do not use Python 2.7 even if available on the system.
@@ -415,6 +420,8 @@ For fine grained control, it has the following options::
   --no-python3.4        Do not use Python 3.4 even if available on the system.
                         Default is False.
   --no-python3.5        Do not use Python 3.5 even if available on the system.
+                        Default is False.
+  --no-python3.6        Do not use Python 3.6 even if available on the system.
                         Default is False.
   --coverage            Make a coverage analysis, that does not really check.
                         Default is False.
@@ -456,7 +463,7 @@ syntax error.
 
 It sometimes so happens that Nuitka must do this itself, because the
 ``ast.parse`` doesn't see the problem and raises no ``SyntaxError`` of its
-own.
+own. These cases are then covered by tests to make sure they work as expected.
 
 Using the ``global`` statement on a function argument is an example of
 this. These tests make sure that the errors of Nuitka and CPython are totally
@@ -630,7 +637,8 @@ internally. Nuitka itself, being pure Python, will run without any build process
 just fine.
 
 Nuitka simply prepares ``<program>.build`` folders with lots of files and tasks
-scons to execute the final build.
+scons to execute the final build, after which Nuitka again will take control
+and do more work as necessary.
 
 .. note::
 
@@ -657,41 +665,38 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
 * ``source_dir``
 
-  Where is the generated C++ source code. Scons will just compile everything it
-  finds there. No list of files is passed.
+  Where is the generated C source code. Scons will just compile everything it
+  finds there. No list of files is passed, but instead this directory is being
+  scanned.
 
 * ``nuitka_src``
 
-  Where do the include files and static C++ parts of Nuitka live. These provide
+  Where do the include files and static C parts of Nuitka live. These provide
   e.g. the implementation of compiled function, generators, and other helper
   codes, this will point to where ``nuitka.build`` package lives normally.
+
+* ``module_mode``
+
+  Build a module instead of a program.
 
 * ``result_base``
 
   This is not a full name, merely the basename for the result to be produced,
   but with path included, and the suffix comes from module or executable mode.
 
-* ``module_mode``
-
-  Build a module instead of a program.
-
 * ``debug_mode``
 
   Enable debug mode, which is a mode, where Nuitka tries to help identify errors
   in itself, and will generate less optimal code. This also asks for warnings,
-  and makes the build fail if there are any.
+  and makes the build fail if there are any. Scons will pass different compiler
+  options in this case.
 
 * ``python_debug``
 
   Compile and link against Python debug mode, which does assertions and extra
   checks, to identify errors, mostly related to reference counting. May make the
   build fail, if no debug build library of CPython is available. On Windows it
-  typically is not installed.
-
-* ``optimize_mode``
-
-  Optimization mode, enable as much as currently possible. This refers to
-  building the binary.
+  is possible to install it for CPython3.5 or higher.
 
 * ``full_compat_mode``
 
@@ -705,7 +710,7 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
 * ``lto_mode``
 
-  Make use of link time optimization of g++ compiler if available and known good
+  Make use of link time optimization of gcc compiler if available and known good
   with the compiler in question. So far, this was not found to make major
   differences.
 
@@ -723,7 +728,7 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
 * ``mingw_mode``
 
-  MinGW compiler mode, optional and interesting to Windows only.
+  MinGW compiler mode, optional and useful on Windows only.
 
 * ``standalone_mode``
 
@@ -741,7 +746,16 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
 * ``target_arch``
 
-  Target architecture to build.
+  Target architecture to build. Only meaningful on Windows.
+
+* ``python_version``
+
+  The major version of Python built against.
+
+* ``abiflags``
+
+  The flags needed for the Python ABI chosen. Might be necessary to find the
+  folders for Python installations on some systems.
 
 * ``icon_path``
 
@@ -751,11 +765,14 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 Locating Modules and Packages
 -----------------------------
 
-The search for of modules used is driven by ``nuitka.Importing`` module.
+The search for of modules used is driven by ``nuitka.importing.Importing``
+module.
 
-* From the module documentation
+* Quoting the ``nuitka.importing.Importing`` documentation:
 
-  The actual import of a module may already execute code that changes
+  Locating modules and package source on disk.
+
+  The actual import of a module would already execute code that changes
   things. Imagine a module that does ``os.system()``, it would be done during
   compilation. People often connect to databases, and these kind of things,
   at import time.
@@ -770,6 +787,8 @@ The search for of modules used is driven by ``nuitka.Importing`` module.
   This approach is much safer of course and there is no loss. To determine if
   it's from the standard library, one can abuse the attribute ``__file__`` of
   the ``os`` module like it's done in ``isStandardLibraryPath`` of this module.
+
+  End quoting the ``nuitka.importing.Importing`` documentation.
 
 * Role
 

@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -36,20 +36,20 @@ def _checkInsideGenerator(provider, node, source_ref):
     if provider.isCompiledPythonModule():
         SyntaxErrors.raiseSyntaxError(
             "'yield' outside function",
-            source_ref,
-            None if python_version < 300 else node.col_offset
+            source_ref.atColumnNumber(node.col_offset)
         )
 
-    if provider.isExpressionCoroutineObjectBody():
+    # This is forbidden in 3.5, but allows in 3.6
+    if provider.isExpressionCoroutineObjectBody() and python_version < 360:
         SyntaxErrors.raiseSyntaxError(
             "'%s' inside async function" % (
                 "yield" if node.__class__ is ast.Yield else "yield from",
             ),
-            source_ref,
-            node.col_offset+3
+            source_ref.atColumnNumber(node.col_offset)
         )
 
-    assert provider.isExpressionGeneratorObjectBody(), provider
+    assert provider.isExpressionGeneratorObjectBody() or \
+           provider.isExpressionCoroutineObjectBody(), provider
 
 
 def buildYieldNode(provider, node, source_ref):

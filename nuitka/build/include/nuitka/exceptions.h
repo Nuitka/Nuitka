@@ -1,4 +1,4 @@
-//     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -156,7 +156,7 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED_UNTRACED( PyObject *exce
 // cache for it, in case of repeated usage.
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame, int lineno )
 {
-    // assertFrameObject( frame );
+    CHECK_OBJECT( frame );
 
     PyTracebackObject *result = PyObject_GC_New( PyTracebackObject, &PyTraceBack_Type );
 
@@ -494,27 +494,5 @@ NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED( void )
         return false;
     }
 }
-
-// Special helper that checks for StopIteration and if so clears it, only
-// indicating if it was set.
-NUITKA_MAY_BE_UNUSED static bool CHECK_AND_CLEAR_ATTRIBUTE_ERROR_OCCURRED( void )
-{
-    PyObject *error = GET_ERROR_OCCURRED();
-
-    if ( error == NULL )
-    {
-        return true;
-    }
-    else if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_AttributeError ) )
-    {
-        CLEAR_ERROR_OCCURRED();
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
 
 #endif

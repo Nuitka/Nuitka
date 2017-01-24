@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -18,8 +18,8 @@
 """ Options module """
 
 version_string = """\
-Nuitka V0.5.24.4
-Copyright (C) 2016 Kay Hayen."""
+Nuitka V0.5.25
+Copyright (C) 2017 Kay Hayen."""
 
 import logging
 import sys
@@ -128,9 +128,9 @@ parser.add_option(
     help    = """\
 Python flags to use. Default uses what you are using to run Nuitka, this
 enforces a specific mode. These are options that also exist to standard
-Python executable. Currently supported: "-S" (alias nosite),
-"static_hashes" (not use Randomization), "no_warnings" (do not give
-Python runtime warnings). Default empty."""
+Python executable. Currently supported: "-S" (alias "nosite"),
+"static_hashes" (not use hash randomization), "no_warnings" (do not give
+Python runtime warnings), "-O" (alias "noasserts"). Default empty."""
 )
 
 
@@ -140,9 +140,17 @@ parser.add_option(
     dest    = "warn_implicit_exceptions",
     default = False,
     help    = """\
-Given warnings for implicit exceptions detected at compile time.""",
+Enable warnings for implicit exceptions detected at compile time.""",
 )
 
+parser.add_option(
+    "--warn-unusual-code",
+    action  = "store_true",
+    dest    = "warn_unusual_code",
+    default = False,
+    help    = """\
+Enable warnings for unusual code detected at compile time.""",
+)
 
 recurse_group = OptionGroup(
     parser,
@@ -300,11 +308,21 @@ codegen_group = OptionGroup(
 codegen_group.add_option(
     "--improved", "--enhanced",
     action  = "store_true",
-    dest    = "improved",
+    dest    = "disabled",
     default = False,
+    help    = SUPPRESS_HELP,
+)
+
+codegen_group.add_option(
+    "--full-compat",
+    action  = "store_false",
+    dest    = "improved",
+    default = True,
     help    = """\
-Allow minor deviations from CPython behavior, e.g. better tracebacks, which
-are not really incompatible, but different.""",
+Enforce absolute compatibility with CPython. Do not even allow minor
+deviations from CPython behavior, e.g. better tracebacks, which are
+not really incompatible, but different. This is intended for tests
+only and should not be necessary for normal use.""",
 )
 
 codegen_group.add_option(
@@ -334,15 +352,6 @@ better for you to use the "original" value, where the source files location
 will be used. With "frozen" a notation "<frozen module_name>" is used. For
 compatibility reasons, the "__file__" value will always have ".py" suffix
 independent of what it really is."""
-)
-
-codegen_group.add_option(
-    "--no-optimization",
-    action  = "store_true",
-    dest    = "no_optimize",
-    default = False,
-    help    = SUPPRESS_HELP
-# """Disable all unnecessary optimizations on Python level. Defaults to off."""
 )
 
 parser.add_option_group(codegen_group)
@@ -666,57 +675,100 @@ use. Defaults to off."""
 
 parser.add_option_group(plugin_group)
 
-# First, isolate the first non-option arguments.
-if is_nuitka_run:
-    count = 0
 
-    for count, arg in enumerate(sys.argv):
-        if count == 0:
-            continue
+options = None
+positional_args = None
+extra_args = []
 
-        if arg[0] != '-':
-            break
+def parseArgs():
+    # many cases, pylint: disable=R0912,W0603
+    global options, positional_args, extra_args
 
-        # Treat "--" as a terminator.
-        if arg == "--":
-            count += 1
-            break
+    # First, isolate the first non-option arguments.
+    if is_nuitka_run:
+        count = 0
 
-    if count > 0:
-        extra_args = sys.argv[count+1:]
-        sys.argv = sys.argv[0:count+1]
-else:
-    extra_args = []
+        for count, arg in enumerate(sys.argv):
+            if count == 0:
+                continue
 
-options, positional_args = parser.parse_args()
+            if arg[0] != '-':
+                break
 
-if not positional_args:
-    parser.print_help()
+            # Treat "--" as a terminator.
+            if arg == "--":
+                count += 1
+                break
 
-    sys.exit("""
-Error, need positional argument with python module or main program.""")
+        if count > 0:
+            extra_args = sys.argv[count+1:]
+            sys.argv = sys.argv[0:count+1]
 
-if not options.immediate_execution and len(positional_args) > 1:
-    parser.print_help()
+    options, positional_args = parser.parse_args()
 
-    sys.exit("""
-Error, need only one positional argument unless "--run" is specified to
-pass them to the compiled program execution.""")
+    if not positional_args:
+        parser.print_help()
 
-if options.verbose:
-    logging.getLogger().setLevel(logging.DEBUG)
-else:
-    logging.getLogger().setLevel(logging.INFO)
+        sys.exit("""
+    Error, need positional argument with python module or main program.""")
 
-# Standalone mode implies an executable, not importing "site" module, which is
-# only for this machine, recursing to all modules, and even including the
-# standard library.
-if options.is_standalone:
-    options.executable = True
-    options.recurse_all = True
+    if not options.immediate_execution and len(positional_args) > 1:
+        parser.print_help()
 
-    if Utils.getOS() == "NetBSD":
-        logging.warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
+        sys.exit("""
+    Error, need only one positional argument unless "--run" is specified to
+    pass them to the compiled program execution.""")
+
+    if options.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
+
+    # Standalone mode implies an executable, not importing "site" module, which is
+    # only for this machine, recursing to all modules, and even including the
+    # standard library.
+    if options.is_standalone:
+        options.executable = True
+        options.recurse_all = True
+
+        if Utils.getOS() == "NetBSD":
+            logging.warning("Standalone mode on NetBSD is not functional, due to $ORIGIN linkage not being supported.")
+
+    for any_case_module in getShallFollowModules():
+        if any_case_module.startswith('.'):
+            bad = True
+        else:
+            for char in "/\\:":
+                if  char in any_case_module:
+                    bad = True
+                    break
+            else:
+                bad = False
+
+        if bad:
+            sys.exit(
+                """\
+Error, '--recurse-to' takes only module names, not directory path '%s'.""" % \
+                any_case_module
+            )
+
+    for no_case_module in getShallFollowInNoCase():
+        if no_case_module.startswith('.'):
+            bad = True
+        else:
+            for char in "/\\:":
+                if  char in no_case_module:
+                    bad = True
+                    break
+            else:
+                bad = False
+
+        if bad:
+            sys.exit(
+                """\
+Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" % \
+                no_case_module
+            )
 
 def shallTraceExecution():
     return options.trace_execution
@@ -770,41 +822,8 @@ def getShallFollowModules():
 def isAllowedToReexecute():
     return options.allow_reexecute
 
-for any_case_module in getShallFollowModules():
-    if any_case_module.startswith('.'):
-        bad = True
-    else:
-        for char in "/\\:":
-            if  char in any_case_module:
-                bad = True
-                break
-        else:
-            bad = False
-
-    if bad:
-        sys.exit("""
-Error, '--recurse-to' takes only module names, not directory path '%s'.""" % \
-any_case_module)
-
 def getShallFollowInNoCase():
     return sum([ x.split(',') for x in options.recurse_not_modules ], [])
-
-for no_case_module in getShallFollowInNoCase():
-    if no_case_module.startswith('.'):
-        bad = True
-    else:
-        for char in "/\\:":
-            if  char in no_case_module:
-                bad = True
-                break
-        else:
-            bad = False
-
-    if bad:
-        sys.exit("""
-Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" % \
-no_case_module)
-
 
 def getShallFollowExtra():
     return sum([ x.split(',') for x in options.recurse_extra ], [])
@@ -815,14 +834,14 @@ def getShallFollowExtraFilePatterns():
 def shallWarnImplicitRaises():
     return options.warn_implicit_exceptions
 
+def shallWarnUnusualCode():
+    return options.warn_unusual_code
+
 def isDebug():
     return options.debug or options.debugger
 
 def isPythonDebug():
     return options.python_debug or sys.flags.debug
-
-def isOptimize():
-    return not options.no_optimize
 
 def isUnstripped():
     return options.unstripped or options.profile
@@ -882,7 +901,7 @@ def isShowProgress():
     return options.show_progress
 
 def isShowMemory():
-    return options.show_memory
+    return options is not None and options.show_memory
 
 def isShowInclusion():
     return options.show_inclusion
@@ -899,7 +918,7 @@ def isExperimental():
     return hasattr(options, "experimental") and options.experimental
 
 def shallExplainImports():
-    return options.explain_imports
+    return options is not None and options.explain_imports
 
 def isStandaloneMode():
     return options.is_standalone
@@ -908,17 +927,19 @@ def getIconPath():
     return options.icon_path
 
 def getPythonFlags():
-    result = []
+    result = set()
 
     for part in options.python_flags:
         if part in ("-S", "nosite", "no_site"):
-            result.append("no_site")
+            result.add("no_site")
         elif part in ("static_hashes", "norandomization", "no_randomization"):
-            result.append("no_randomization")
+            result.add("no_randomization")
         elif part in ("-v", "trace_imports", "trace_import"):
-            result.append("trace_imports")
+            result.add("trace_imports")
         elif part in ("no_warnings", "nowarnings"):
-            result.append("no_warnings")
+            result.add("no_warnings")
+        elif part in ("-O", "no_asserts", "noasserts"):
+            result.add("no_asserts")
         else:
             logging.warning("Unsupported flag '%s'.", part)
 
@@ -928,13 +949,19 @@ def shallFreezeAllStdlib():
     return options.freeze_stdlib
 
 def getPluginsEnabled():
+    if not options:
+        return ()
+
     return options.plugins_enabled
 
 def getPluginsDisabled():
+    if not options:
+        return ()
+
     return options.plugins_disabled
 
 def shallDetectMissingPlugins():
-    return options.detect_missing_plugins
+    return options is not None and options.detect_missing_plugins
 
 def getPluginOptions(plugin_name):
     # TODO: This should come from command line, pylint: disable=W0613

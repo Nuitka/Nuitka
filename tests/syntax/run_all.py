@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -54,7 +54,7 @@ for filename in sorted(os.listdir('.')):
     )
 
     if active:
-        extra_flags = ["expect_failure", "remove_output"]
+        extra_flags = ["expect_failure", "remove_output", "syntax_errors"]
 
         compareWithCPython(
             dirname     = None,

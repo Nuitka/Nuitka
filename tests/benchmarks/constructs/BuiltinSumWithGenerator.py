@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -22,18 +22,18 @@ empty = ()
 
 def calledRepeatedly():
     # We measure making a generator iterator step or not.
-    gen = (x for x in range(10))
+    gen = (x for x in range(1000))
 
     # This should abort.
 # construct_begin
     y = sum(gen)
 # construct_alternative
-    y = sum(empty)
+    y = gen
 # construct_end
 
-    return y
+    return y, gen
 
-for x in xrange(50000):
+for x in xrange(500):
     calledRepeatedly()
 
 print("OK.")

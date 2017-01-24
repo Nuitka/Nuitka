@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -585,12 +585,12 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
         ps_default_count = len(node.args.defaults)
     )
 
-    message = parameters.checkValid()
+    message = parameters.checkParametersValid()
 
     if message is not None:
         SyntaxErrors.raiseSyntaxError(
             message,
-            source_ref
+            source_ref.atColumnNumber(node.col_offset),
         )
 
     code_object = CodeObjectSpec(

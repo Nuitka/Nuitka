@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -165,7 +165,9 @@ of '--recurse-directory'.""" % (
             if node.isExpressionYield() or node.isExpressionYieldFrom():
                 search = node.getParent()
 
-                while not search.isExpressionGeneratorObjectBody():
+                while not search.isExpressionGeneratorObjectBody() and \
+                      not search.isExpressionCoroutineObjectBody():
+
                     last_search = search
                     search = search.getParent()
 

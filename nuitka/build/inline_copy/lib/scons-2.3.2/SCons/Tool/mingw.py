@@ -57,20 +57,24 @@ def find(env):
         return path
 
     # If that doesn't work try default location for mingw
-    save_path=env['ENV']['PATH']
+    save_path = env['ENV']['PATH']
 
     # This should allow installing both into the same place and picking arch
     # just automatically.
     if env["TARGET_ARCH"] == "x86_64":
-        env.AppendENVPath('PATH',r'c:\MinGW64\bin')
-        env.AppendENVPath('PATH',r'\MinGW64\bin')
+        env.AppendENVPath('PATH',r'c:\MinGW64\mingw64\bin')
+        env.AppendENVPath('PATH',r'\MinGW64\mingw64\bin')
     else:
         env.AppendENVPath('PATH',r'c:\MinGW64\mingw32\bin')
         env.AppendENVPath('PATH',r'\MinGW64\mingw32\bin')
 
+    # Older versions of MinGW just has this.
+    env.AppendENVPath('PATH',r'c:\MinGW64\bin')
+    env.AppendENVPath('PATH',r'\MinGW64\bin')
+
     path =env.WhereIs(key_program)
     if not path:
-        env['ENV']['PATH']=save_path
+        env['ENV']['PATH'] = save_path
     return path
 
 def shlib_generator(target, source, env, for_signature):

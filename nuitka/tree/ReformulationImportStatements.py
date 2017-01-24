@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,7 +22,6 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Options
 from nuitka.nodes.AssignNodes import (
     ExpressionTargetTempVariableRef,
     ExpressionTargetVariableRef,
@@ -41,7 +40,7 @@ from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 from nuitka.tree import SyntaxErrors
 
-from .Helpers import mangleName
+from .Helpers import makeStatementsSequenceOrStatement, mangleName
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 # For checking afterwards, if __future__ imports really were at the beginning
@@ -56,26 +55,21 @@ def checkFutureImportsOnlyAtStart(body):
         else:
             if _future_import_nodes:
                 SyntaxErrors.raiseSyntaxError(
-                    reason     = """\
+                    """\
 from __future__ imports must occur at the beginning of the file""",
-                    col_offset = 1
-                      if python_version >= 300 or \
-                      not Options.isFullCompat() else
-                    None,
-                    source_ref = _future_import_nodes[0].source_ref
+                    _future_import_nodes[0].source_ref.atColumnNumber(
+                        _future_import_nodes[0].col_offset
+                    )
+
                 )
 
 def _handleFutureImport(provider, node, source_ref):
     # Don't allow future imports in functions or classes.
     if not provider.isCompiledPythonModule():
         SyntaxErrors.raiseSyntaxError(
-            reason     = """\
+            """\
 from __future__ imports must occur at the beginning of the file""",
-            col_offset = 8
-              if python_version >= 300 or \
-              not Options.isFullCompat()
-            else None,
-            source_ref = source_ref
+            source_ref.atColumnNumber(node.col_offset)
         )
 
 
@@ -83,6 +77,7 @@ from __future__ imports must occur at the beginning of the file""",
         object_name, _local_name = import_desc.name, import_desc.asname
 
         _enableFutureFeature(
+            node        = node,
             object_name = object_name,
             future_spec = source_ref.getFutureSpec(),
             source_ref  = source_ref
@@ -94,7 +89,7 @@ from __future__ imports must occur at the beginning of the file""",
     _future_import_nodes.append(node)
 
 
-def _enableFutureFeature(object_name, future_spec, source_ref):
+def _enableFutureFeature(node, object_name, future_spec, source_ref):
     if object_name == "unicode_literals":
         future_spec.enableUnicodeLiterals()
     elif object_name == "absolute_import":
@@ -110,7 +105,7 @@ def _enableFutureFeature(object_name, future_spec, source_ref):
     elif object_name == "braces":
         SyntaxErrors.raiseSyntaxError(
             "not a chance",
-            source_ref
+            source_ref.atColumnNumber(node.col_offset)
         )
     elif object_name in ("nested_scopes", "generators", "with_statement"):
         # These are enabled in all cases already.
@@ -118,7 +113,7 @@ def _enableFutureFeature(object_name, future_spec, source_ref):
     else:
         SyntaxErrors.raiseSyntaxError(
             "future feature %s is not defined" % object_name,
-            source_ref
+            source_ref.atColumnNumber(node.col_offset)
         )
 
 
@@ -167,7 +162,7 @@ def buildImportFromNode(provider, node, source_ref):
         if not provider.isCompiledPythonModule() and python_version >= 300:
             SyntaxErrors.raiseSyntaxError(
                 "import * only allowed at module level",
-                provider.getSourceReference()
+                source_ref.atColumnNumber(node.col_offset)
             )
 
         # Functions with star imports get a marker.
@@ -283,3 +278,78 @@ def buildImportFromNode(provider, node, source_ref):
             statements = mergeStatements(statements),
             source_ref = source_ref
         )
+
+
+def buildImportModulesNode(provider, node, source_ref):
+    # Import modules statement. As described in the developer manual, these
+    # statements can be treated as several ones.
+
+    import_names   = [
+        ( import_desc.name, import_desc.asname )
+        for import_desc in
+        node.names
+    ]
+
+    import_nodes = []
+
+    for import_desc in import_names:
+        module_name, local_name = import_desc
+
+        module_topname = module_name.split('.')[0]
+
+        # Note: The "level" of import is influenced by the future absolute
+        # imports.
+        level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
+
+        if local_name:
+            # If is gets a local name, the real name must be used as a
+            # temporary value only, being looked up recursively.
+
+            import_node = ExpressionImportModule(
+                module_name = module_name,
+                import_list = None,
+                level       = level,
+                source_ref  = source_ref
+            )
+
+            for import_name in module_name.split('.')[1:]:
+                import_node = ExpressionImportName(
+                    module      = import_node,
+                    import_name = import_name,
+                    source_ref  = source_ref
+                )
+        else:
+            import_node = ExpressionImportModule(
+                module_name = module_name,
+                import_list = None,
+                level       = level,
+                source_ref  = source_ref
+            )
+
+        # If a name was given, use the one provided, otherwise the import gives
+        # the top level package name given for assignment of the imported
+        # module.
+
+        import_nodes.append(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetVariableRef(
+                    variable_name = mangleName(
+                        local_name
+                          if local_name is not None else
+                        module_topname,
+                        provider
+                    ),
+                    source_ref    = source_ref
+                ),
+                source       = import_node,
+                source_ref   = source_ref
+            )
+        )
+
+    # Note: Each import is sequential. It will potentially succeed, and the
+    # failure of a later one is not changing that one bit . We can therefore
+    # have a sequence of imports that only import one thing therefore.
+    return makeStatementsSequenceOrStatement(
+        statements = import_nodes,
+        source_ref = source_ref
+    )

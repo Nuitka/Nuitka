@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -65,13 +65,15 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
 
             if module_kind == "py" and source_filename is not None:
                 try:
+                    source_code = readSourceCodeFromFilename(
+                        module_name     = module.getFullName(),
+                        source_filename = source_filename
+                    )
+
                     Building.createModuleTree(
                         module      = module,
                         source_ref  = source_ref,
-                        source_code = readSourceCodeFromFilename(
-                            module_name     = module.getFullName(),
-                            source_filename = source_filename
-                        ),
+                        source_code = source_code,
                         is_main     = False
                     )
                 except (SyntaxError, IndentationError) as e:
@@ -98,14 +100,13 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
                             module_filename,
                         )
 
-
                         if Options.isStandaloneMode():
                             module = makeUncompiledPythonModule(
                                 module_name   = module.getFullName(),
                                 filename      = module_filename,
                                 bytecode      = marshal.dumps(
                                     compile(
-                                        readSourceCodeFromFilename(module.getFullName(), module_filename),
+                                        source_code,
                                         module_filename,
                                         "exec"
                                     )

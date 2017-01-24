@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -39,10 +39,10 @@ process = subprocess.Popen(
     stderr = subprocess.PIPE
 )
 
-stdout_osc, _stderr_osc = process.communicate()
+stdout_osc, stderr_osc = process.communicate()
 exit_osc = process.returncode
 
-assert exit_osc == 0, _stderr_osc
+assert exit_osc == 0, stderr_osc
 
 # print(stdout_osc)
 
@@ -54,7 +54,10 @@ osc_reader = iter(osc_reader)
 bad = ("failed", "unresolvable", "broken", "blocked", "disabled")
 
 titles = osc_reader.next()[1:]
+
+# Nuitka (follow git master branch)
 row1 = osc_reader.next()
+# Nuitka-Unstable (follow git develop branch)
 row2 = osc_reader.next()
 
 problems = []
@@ -63,6 +66,9 @@ for count, title in enumerate(titles):
     status = row1[count+1]
 
     # print(row1[0], title, ":", status)
+    # Ignore PowerPC builds for now, they seem to not even boot.
+    if "ppc" in title:
+        continue
 
     if status in bad:
         problems.append(
@@ -74,7 +80,7 @@ for count, title in enumerate(titles):
 
     # print(row2[0], title, ":", status)
     # Ignore PowerPC builds for now, they seem to not even boot.
-    if "ppc" in row2[0]:
+    if "ppc" in title:
         continue
 
     if status in bad:

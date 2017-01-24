@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -759,9 +759,12 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
     def isForCreatedFunction(self):
         return False
 
+    def getContextObjectName(self):
+        return "generator"
 
 class PythonCoroutineObjectContext(PythonGeneratorObjectContext):
-    pass
+    def getContextObjectName(self):
+        return "coroutine"
 
 
 class PythonFunctionCreatedContext(PythonFunctionContext):
@@ -950,3 +953,6 @@ class PythonStatementCContext(PythonChildContextBase):
 
     def markAsNeedsModuleFilenameObject(self):
         self.parent.markAsNeedsModuleFilenameObject()
+
+    def getContextObjectName(self):
+        return self.parent.getContextObjectName()

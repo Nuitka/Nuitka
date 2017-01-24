@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -105,7 +105,7 @@ class ParameterSpec:
             "ps_default_count" : self.default_count
         }
 
-    def checkValid(self):
+    def checkParametersValid(self):
         arg_names = self.getParameterNames()
 
         # Check for duplicate arguments, could happen.

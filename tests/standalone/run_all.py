@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -442,6 +442,10 @@ for filename in sorted(os.listdir('.')):
         # MSVC run time DLLs, seem to sometimes come from system. TODO:
         # clarify if that means we did it wrong.
         if loaded_basename.upper() in ("MSVCRT.DLL", "MSVCR90.DLL"):
+            continue
+
+        # These stopped being loaded by system on Windows 10.
+        if loaded_basename.upper() in ("MSVCP_WIN.DLL", "WIN32U.DLL"):
             continue
 
         my_print("Should not access '%s'." % loaded_filename)

@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,7 +28,7 @@ from nuitka.utils.InstanceCounters import counted_del, counted_init
 class SourceCodeReference(object):
     # TODO: Measure the access speed impact of slots. The memory savings is
     # not worth it (only a few percent).
-    __slots__ = ["filename", "line", "future_spec", "internal"]
+    __slots__ = ["filename", "line", "column", "future_spec", "internal"]
 
     @classmethod
     def fromFilenameAndLine(cls, filename, line, future_spec):
@@ -44,8 +44,9 @@ class SourceCodeReference(object):
 
     @counted_init
     def __init__(self):
-        self.line = None
         self.filename = None
+        self.line = None
+        self.column = None
         self.future_spec = None
         self.internal = False
 
@@ -111,8 +112,21 @@ class SourceCodeReference(object):
         else:
             return self
 
+    def atColumnNumber(self, column):
+        assert type(column) is int, column
+
+        if self.column != column:
+            result = self._clone(self.line)
+            result.column = column
+            return result
+        else:
+            return self
+
     def getLineNumber(self):
         return self.line
+
+    def getColumnNumber(self):
+        return self.column
 
     def getFilename(self):
         return self.filename

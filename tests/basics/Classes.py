@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -177,7 +177,10 @@ class ClassesWithNestedClass:
         def getDict(self):
             return { 'a':2 }
 
-print ClassesWithNestedClass, ClassesWithNestedClass().NestedClass, ClassesWithNestedClass().NestedClass().getDict()
+print "Classes:"
+print ClassesWithNestedClass,
+print ClassesWithNestedClass().NestedClass,
+print ClassesWithNestedClass().NestedClass().getDict()
 
 secondary = "global closure wins"
 

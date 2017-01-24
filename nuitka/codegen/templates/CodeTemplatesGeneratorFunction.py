@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -40,9 +40,6 @@ static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *gene
 """
 
 template_generator_exception_exit = """\
-    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
-    Py_INCREF( PyExc_StopIteration );
-
     generator->m_yielded = NULL;
     return;
 
@@ -50,16 +47,13 @@ template_generator_exception_exit = """\
     assert( exception_type );
     RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
     generator->m_yielded = NULL;
-    return;
-"""
+    return;"""
 
 template_generator_noexception_exit = """\
-    // Return statement must be present.
-    NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
+    // Return statement need not be present.
 
     generator->m_yielded = NULL;
-    return;
-"""
+    return;"""
 
 template_generator_return_exit = """\
     // The above won't return, but we need to make it clear to the compiler
@@ -68,12 +62,19 @@ template_generator_return_exit = """\
     return;
 
     function_return_exit:
-#if PYTHON_VERSION < 330
-    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, NULL, NULL );
-#else
-    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, tmp_return_value, NULL );
+#if PYTHON_VERSION >= 330
+    if ( tmp_return_value != Py_None )
+    {
+        PyObject *args[1] = { tmp_return_value };
+        PyObject *stop_value = CALL_FUNCTION_WITH_ARGS1( PyExc_StopIteration, args );
+        RESTORE_ERROR_OCCURRED( PyExc_StopIteration, stop_value, NULL );
+        Py_INCREF( PyExc_StopIteration );
+    }
+    else
+    {
+        Py_DECREF( tmp_return_value );
+    }
 #endif
-    Py_INCREF( PyExc_StopIteration );
     generator->m_yielded = NULL;
     return;
 """
@@ -81,6 +82,7 @@ template_generator_return_exit = """\
 template_generator_making = """\
 %(to_name)s = Nuitka_Generator_New(
     %(generator_identifier)s_context,
+    %(generator_module)s,
     %(generator_name_obj)s,
 #if PYTHON_VERSION >= 350
     %(generator_qualname_obj)s,

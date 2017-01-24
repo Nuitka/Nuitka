@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,11 +20,11 @@
 """
 
 from .ConditionalCodes import generateConditionCode
+from .Helpers import generateStatementSequenceCode
 from .LabelCodes import getGotoCode, getLabelCode
 
 
 def generateBranchCode(statement, emit, context):
-    from .CodeGeneration import generateStatementSequenceCode
 
     true_target = context.allocateLabel("branch_yes")
     false_target = context.allocateLabel("branch_no")

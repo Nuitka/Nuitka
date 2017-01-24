@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,13 +17,16 @@
 #     limitations under the License.
 #
 
+""" Tool to compare XML outputs of two Nuitka versions.
+
+"""
+
 from __future__ import print_function
 
 import difflib
 import os
 import subprocess
 import sys
-
 
 nuitka1  = sys.argv[1]
 nuitka2  = sys.argv[2]

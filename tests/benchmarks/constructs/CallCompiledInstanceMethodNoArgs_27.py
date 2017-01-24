@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -20,28 +20,19 @@
 from __future__ import print_function
 
 class C:
-    def compiled_method(self, a,b,c,d,e,f):
-        return a, b, c, d, e, f
-
-def getUnknownValue():
-    return 8
+    def compiled_method(self):
+        return self
 
 def calledRepeatedly():
-    a = getUnknownValue()
-    b = getUnknownValue()
-    c = getUnknownValue()
-    d = getUnknownValue()
-    e = getUnknownValue()
-    f = getUnknownValue()
-
     inst = C()
 
     # This is supposed to make a call to a non-compiled function, which is
     # being optimized separately.
 # construct_begin
-    inst.compiled_method(a, b, c, d, e, f)
-    inst.compiled_method(a, c, b, d, e, f)
-    inst.compiled_method(a, b, c, d, f, e)
+    inst.compiled_method()
+    inst.compiled_method()
+    inst.compiled_method()
+
 # construct_alternative
     pass
 # construct_end

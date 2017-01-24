@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -595,7 +595,7 @@ def _makeBinaryPathPathDLLSearchEnv(package_name):
     return env
 
 
-def _detectBinaryPathDLLsWindows(binary_filename, package_name):
+def _detectBinaryPathDLLsWindows(original_dir, binary_filename, package_name):
     result = set()
 
     depends_exe = getDependsExePath()
@@ -607,12 +607,14 @@ def _detectBinaryPathDLLsWindows(binary_filename, package_name):
 KnownDLLs
 SysPath
 AppDir
+{original_dir}
 32BitSysDir
 16BitSysDir
 OSDir
 AppPath
 SxS
-""")
+""".format(original_dir = "UserDir %s" % original_dir if original_dir is not None else "")
+    )
 
     subprocess.call(
         (
@@ -731,7 +733,7 @@ SxS
     return result
 
 
-def detectBinaryDLLs(binary_filename, package_name):
+def detectBinaryDLLs(original_dir, binary_filename, package_name):
     """ Detect the DLLs used by a binary.
 
         Using "ldd" (Linux), "depends.exe" (Windows), or "otool" (MacOS) the list
@@ -745,6 +747,7 @@ def detectBinaryDLLs(binary_filename, package_name):
         )
     elif Utils.getOS() == "Windows":
         return _detectBinaryPathDLLsWindows(
+            original_dir    = original_dir,
             binary_filename = binary_filename,
             package_name    = package_name
         )
@@ -760,8 +763,9 @@ def detectBinaryDLLs(binary_filename, package_name):
 def detectUsedDLLs(standalone_entry_points):
     result = {}
 
-    for binary_filename, package_name in standalone_entry_points:
+    for original_dir, binary_filename, package_name in standalone_entry_points:
         used_dlls = detectBinaryDLLs(
+            original_dir    = original_dir,
             binary_filename = binary_filename,
             package_name    = package_name
         )
@@ -818,10 +822,16 @@ def removeSharedLibraryRPATH(filename):
         shell  = False
     )
 
-    stdout, _stderr = process.communicate()
+    stdout, stderr = process.communicate()
     retcode = process.poll()
 
-    assert retcode == 0, filename
+    if retcode != 0:
+        sys.exit(
+            "Error reading shared library path for %s, tool said %r" % (
+                filename,
+                stderr
+            )
+        )
 
     for line in stdout.split(b"\n"):
         if b"RPATH" in line:
@@ -940,7 +950,7 @@ different from
         # the relative DLL location in the ".dist" folder.
         for standalone_entry_point in standalone_entry_points:
             fixupBinaryDLLPaths(
-                binary_filename = standalone_entry_point[0],
+                binary_filename = standalone_entry_point[1],
                 is_exe          = standalone_entry_point is standalone_entry_points[0],
                 dll_map         = dll_map
             )
@@ -965,5 +975,5 @@ different from
 
         for standalone_entry_point in standalone_entry_points[1:]:
             removeSharedLibraryRPATH(
-                standalone_entry_point[0]
+                standalone_entry_point[1]
             )

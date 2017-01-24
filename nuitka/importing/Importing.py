@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -17,19 +17,22 @@
 #
 """ Locating modules and package source on disk.
 
-The actual import of a module would already execute code that changes things.
-Consider a module that does "os.system()", it would be executed. People often
-connect to databases, and these kind of things, at import time. Not a good
-style, but it's being done.
+The actual import of a module would already execute code that changes
+things. Imagine a module that does ``os.system()``, it would be done during
+compilation. People often connect to databases, and these kind of things,
+at import time.
 
-Therefore CPython exhibits the interfaces in an "imp" module or more modern
-"importlib" in standard library, which one can use those to know ahead of time,
-to tell what filename an import would load from.
+Therefore CPython exhibits the interfaces in an ``imp`` module in standard
+library, which one can use those to know ahead of time, what file import would
+load. For us unfortunately there is nothing in CPython that is easily
+accessible and gives us this functionality for packages and search paths
+exactly like CPython does, so we implement here a multi step search process
+that is compatible.
 
-For us unfortunately there is nothing in CPython that gives the fully
-compatible functionality we need for packages and search paths exactly like
-CPython really does, so we implement here a multiple step search process that is
-compatible.
+This approach is much safer of course and there is no loss. To determine if
+it's from the standard library, one can abuse the attribute ``__file__`` of
+the ``os`` module like it's done in ``isStandardLibraryPath`` of this module.
+
 """
 
 from __future__ import print_function
@@ -286,7 +289,7 @@ def findModule(importing, module_name, parent_package, level, warn):
             importing      = importing,
             module_name    = module_name,
             parent_package = parent_package,
-            level          = level,
+            level          = level
         )
 
     return None, None, "not-found"

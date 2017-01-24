@@ -1,4 +1,4 @@
-//     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -28,6 +28,9 @@ extern PyObject *const_str_plain___dict__;
 extern PyObject *const_str_plain___class__;
 extern PyObject *const_str_plain___enter__;
 extern PyObject *const_str_plain___exit__;
+
+extern PyObject *const_int_0;
+extern PyObject *const_int_pos_1;
 
 // From CPython, to allow us quick access to the dictionary of an module, the
 // structure is normally private, but we need it for quick access to the module
@@ -148,8 +151,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
 
     return result;
 }
-
-extern PyObject *const_int_0;
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_COMPLEX( PyObject *real, PyObject *imag )
 {

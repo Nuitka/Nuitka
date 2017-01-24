@@ -1,4 +1,4 @@
-//     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -594,9 +594,11 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 }
 #endif
 
-NUITKA_DEFINE_BUILTIN( range );
 
 #if PYTHON_VERSION < 300
+
+NUITKA_DEFINE_BUILTIN( range );
+
 PyObject *BUILTIN_RANGE( PyObject *boundary )
 {
     PyObject *boundary_temp = TO_RANGE_ARG( boundary, "end" );
@@ -780,82 +782,358 @@ PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step )
 #endif
 
 #if PYTHON_VERSION < 300
-NUITKA_DEFINE_BUILTIN( xrange );
+
+/* Same as CPython2: */
+static unsigned long getLengthOfRange( long lo, long hi, long step )
+{
+     assert( step != 0 );
+
+     if (step > 0 && lo < hi)
+     {
+         return 1UL + (hi - 1UL - lo) / step;
+     }
+     else if (step < 0 && lo > hi)
+     {
+         return 1UL + (lo - 1UL - hi) / (0UL - step);
+     }
+     else
+     {
+         return 0UL;
+     }
+}
+
+/* Create a "xrange" object from C long values. Used for constant ranges. */
+PyObject *MAKE_XRANGE( long start, long stop, long step )
+{
+    /* TODO: It would be sweet to calculate that on user side already. */
+    unsigned long n = getLengthOfRange( start, stop, step );
+
+    if ( n > (unsigned long)LONG_MAX || (long)n > PY_SSIZE_T_MAX )
+    {
+        PyErr_SetString(
+            PyExc_OverflowError,
+            "xrange() result has too many items"
+        );
+
+        return NULL;
+    }
+
+    struct _rangeobject2 *result = (struct _rangeobject2 *)PyObject_New(
+        struct _rangeobject2,
+        &PyRange_Type
+    );
+    assert( result != NULL );
+
+    result->start = start;
+    result->len   = (long)n;
+    result->step  = step;
+
+    return (PyObject *)result;
+}
+
+#else
+
+/* Same as CPython3: */
+static PyObject *getLengthOfRange( PyObject *start, PyObject *stop, PyObject *step )
+{
+    int res = PyObject_RichCompareBool( step, const_int_0, Py_GT );
+
+    if (unlikely( res == -1 ))
+    {
+        return NULL;
+    }
+
+    PyObject *lo, *hi;
+
+    // Make sure we use step as a positive number.
+    if ( res == 1 )
+    {
+        lo = start;
+        hi = stop;
+
+        Py_INCREF( step );
+    }
+    else
+    {
+        lo = stop;
+        hi = start;
+
+        step = PyNumber_Negative( step );
+
+        if (unlikely( step == NULL ))
+        {
+            return NULL;
+        }
+
+        res = PyObject_RichCompareBool( step, const_int_0, Py_EQ );
+
+        if (unlikely( res == -1 ))
+        {
+            return NULL;
+        }
+
+        if ( res == 1 )
+        {
+            PyErr_Format(
+                PyExc_ValueError,
+                "range() arg 3 must not be zero"
+            );
+
+            return NULL;
+        }
+    }
+
+    // Negative difference, we got zero length.
+    res = PyObject_RichCompareBool( lo, hi, Py_GE );
+
+    if ( res != 0 )
+    {
+        Py_XDECREF( step );
+
+        if ( res < 0 )
+        {
+            return NULL;
+
+        }
+
+        Py_INCREF( const_int_0 );
+        return const_int_0;
+    }
+
+    PyObject *tmp1 = PyNumber_Subtract( hi, lo );
+
+    if (unlikely( tmp1 == NULL ))
+    {
+        Py_DECREF( step );
+        return NULL;
+    }
+
+    PyObject *diff = PyNumber_Subtract( tmp1, const_int_pos_1 );
+    Py_DECREF( tmp1 );
+
+    if (unlikely( diff == NULL ))
+    {
+        Py_DECREF( step );
+        Py_DECREF( tmp1 );
+
+        return NULL;
+    }
+
+    tmp1 = PyNumber_FloorDivide( diff, step );
+    Py_DECREF( diff );
+    Py_DECREF( step );
+
+    if (unlikely( tmp1 == NULL ))
+    {
+        return NULL;
+    }
+
+    PyObject *result = PyNumber_Add( tmp1, const_int_pos_1 );
+    Py_DECREF( tmp1 );
+
+    return result;
+}
+
+static PyObject *MAKE_XRANGE( PyObject *start, PyObject *stop, PyObject *step )
+{
+    start = PyNumber_Index( start );
+    if (unlikely( start == NULL ))
+    {
+        return NULL;
+    }
+    stop = PyNumber_Index( stop );
+    if (unlikely( stop == NULL ))
+    {
+        return NULL;
+    }
+    step = PyNumber_Index( step );
+    if (unlikely( step == NULL ))
+    {
+        return NULL;
+    }
+
+    PyObject *length = getLengthOfRange( start, stop, step );
+    if (unlikely( length == NULL ))
+    {
+        return NULL;
+    }
+
+    struct _rangeobject3 *result = (struct _rangeobject3 *)PyObject_New(
+        struct _rangeobject3,
+        &PyRange_Type
+    );
+    assert( result != NULL );
+
+    result->start  = start;
+    result->stop   = stop;
+    result->step   = step;
+    result->length = length;
+
+    return (PyObject *)result;
+}
 #endif
 
 /* Built-in xrange (Python2) or xrange (Python3) with one argument. */
-PyObject *BUILTIN_XRANGE1( PyObject *low )
+PyObject *BUILTIN_XRANGE1( PyObject *high )
 {
-    PyObject *args[1] = {
-        low
-    };
-
 #if PYTHON_VERSION < 300
-    NUITKA_ASSIGN_BUILTIN( xrange );
+    if (unlikely( PyFloat_Check( high ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
 
-    return CALL_FUNCTION_WITH_ARGS1(
-        NUITKA_ACCESS_BUILTIN( xrange ),
-        args
-    );
+        return NULL;
+    }
+
+    long int_high = PyInt_AsLong( high );
+
+    if (unlikely( int_high == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    return MAKE_XRANGE( 0, int_high, 1 );
 #else
-    NUITKA_ASSIGN_BUILTIN( range );
+    PyObject *stop = PyNumber_Index( high );
 
-    return CALL_FUNCTION_WITH_ARGS1(
-        NUITKA_ACCESS_BUILTIN( range ),
-        args
+    if (unlikely( stop == NULL ))
+    {
+        return NULL;
+    }
+
+    struct _rangeobject3 *result = (struct _rangeobject3 *)PyObject_New(
+        struct _rangeobject3,
+        &PyRange_Type
     );
+    assert( result != NULL );
+
+    result->start = const_int_0;
+    Py_INCREF( const_int_0 );
+    result->stop = stop;
+    result->step = const_int_pos_1;
+    Py_INCREF( const_int_pos_1 );
+
+    result->length = stop;
+    Py_INCREF( stop );
+
+    return (PyObject *)result;
 #endif
 }
 
 /* Built-in xrange (Python2) or xrange (Python3) with two arguments. */
 PyObject *BUILTIN_XRANGE2( PyObject *low, PyObject *high )
 {
-    PyObject *args[2] = {
-        low,
-        high
-    };
-
 #if PYTHON_VERSION < 300
-    NUITKA_ASSIGN_BUILTIN( xrange );
+    if (unlikely( PyFloat_Check( low ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
 
-    return CALL_FUNCTION_WITH_ARGS2(
-        NUITKA_ACCESS_BUILTIN( xrange ),
-        args
-    );
+        return NULL;
+    }
+
+    long int_low = PyInt_AsLong( low );
+
+    if (unlikely( int_low == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    if (unlikely( PyFloat_Check( high ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
+
+        return NULL;
+    }
+
+    long int_high = PyInt_AsLong( high );
+
+    if (unlikely( int_high == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    return MAKE_XRANGE( int_low, int_high, 1 );
 #else
-    NUITKA_ASSIGN_BUILTIN( range );
-
-    return CALL_FUNCTION_WITH_ARGS2(
-        NUITKA_ACCESS_BUILTIN( range ),
-        args
-    );
+    return MAKE_XRANGE( low, high, const_int_pos_1 );
 #endif
 }
 
 /* Built-in xrange (Python2) or xrange (Python3) with three arguments. */
 PyObject *BUILTIN_XRANGE3( PyObject *low, PyObject *high, PyObject *step )
 {
-    PyObject *args[] = {
-        low,
-        high,
-        step
-    };
-
 #if PYTHON_VERSION < 300
-    NUITKA_ASSIGN_BUILTIN( xrange );
+    if (unlikely( PyFloat_Check( low ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
 
-    return CALL_FUNCTION_WITH_ARGS3(
-        NUITKA_ACCESS_BUILTIN( xrange ),
-        args
-    );
+        return NULL;
+    }
+
+    long int_low = PyInt_AsLong( low );
+
+    if (unlikely( int_low == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    if (unlikely( PyFloat_Check( high ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
+
+        return NULL;
+    }
+
+    long int_high = PyInt_AsLong( high );
+
+    if (unlikely( int_high == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    if (unlikely( PyFloat_Check( step ) ))
+    {
+        PyErr_SetString(
+            PyExc_TypeError,
+            "integer argument expected, got float"
+        );
+
+        return NULL;
+    }
+
+    long int_step = PyInt_AsLong( step );
+
+    if (unlikely( int_step == -1 && ERROR_OCCURRED() ))
+    {
+        return NULL;
+    }
+
+    if (unlikely( int_step == 0 ))
+    {
+        PyErr_Format(
+            PyExc_ValueError,
+            "range() arg 3 must not be zero"
+        );
+
+        return NULL;
+    }
+
+    return MAKE_XRANGE( int_low, int_high, int_step );
 #else
-    NUITKA_ASSIGN_BUILTIN( range );
-
-    return CALL_FUNCTION_WITH_ARGS3(
-        NUITKA_ACCESS_BUILTIN( range ),
-        args
-    );
-
+    return MAKE_XRANGE( low, high, step );
 #endif
 }
 
@@ -2022,10 +2300,145 @@ PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *valu
     return BOOL_FROM( res == 0 );
 }
 
+#define ITERATOR_GENERIC 0
+#define ITERATOR_COMPILED_GENERATOR 1
+#define ITERATOR_TUPLE 2
+#define ITERATOR_LIST 3
+
+struct Nuitka_QuickIterator
+{
+      int iterator_mode;
+
+      union
+      {
+          // ITERATOR_GENERIC
+          PyObject *iter;
+
+          // ITERATOR_COMPILED_GENERATOR
+          struct Nuitka_GeneratorObject *generator;
+
+          // ITERATOR_TUPLE
+          struct {
+              PyTupleObject *tuple;
+              Py_ssize_t tuple_index;
+          } tuple_data;
+
+          // ITERATOR_LIST
+          struct {
+              PyListObject *list;
+              Py_ssize_t list_index;
+          } list_data;
+      }  iterator_data;
+};
+
+static bool MAKE_QUICK_ITERATOR( PyObject *sequence, struct Nuitka_QuickIterator *qiter )
+{
+    if ( Nuitka_Generator_Check( sequence ) )
+    {
+        qiter->iterator_mode = ITERATOR_COMPILED_GENERATOR;
+        qiter->iterator_data.generator = (struct Nuitka_GeneratorObject *)sequence;
+    }
+    else if ( PyTuple_CheckExact( sequence ) )
+    {
+        qiter->iterator_mode = ITERATOR_TUPLE;
+        qiter->iterator_data.tuple_data.tuple = (PyTupleObject *)sequence;
+        qiter->iterator_data.tuple_data.tuple_index = 0;
+    }
+    else if ( PyList_CheckExact( sequence ) )
+    {
+        qiter->iterator_mode = ITERATOR_LIST;
+        qiter->iterator_data.list_data.list = (PyListObject *)sequence;
+        qiter->iterator_data.list_data.list_index = 0;
+    }
+    else
+    {
+        qiter->iterator_mode = ITERATOR_GENERIC;
+
+        qiter->iterator_data.iter = MAKE_ITERATOR( sequence );
+        if (unlikely( qiter->iterator_data.iter == NULL ))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static PyObject *QUICK_ITERATOR_NEXT( struct Nuitka_QuickIterator *qiter, bool *finished )
+{
+    PyObject *result;
+
+    switch ( qiter->iterator_mode )
+    {
+        case ITERATOR_GENERIC:
+            result = ITERATOR_NEXT( qiter->iterator_data.iter );
+
+            if ( result == NULL )
+            {
+                Py_DECREF( qiter->iterator_data.iter );
+
+                if (unlikely( !CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() ))
+                {
+                    *finished = false;
+                    return NULL;
+                }
+
+                *finished = true;
+                return NULL;
+            }
+
+            *finished = false;
+            return result;
+        case ITERATOR_COMPILED_GENERATOR:
+            result = Nuitka_Generator_qiter( qiter->iterator_data.generator, finished );
+
+            return result;
+        case ITERATOR_TUPLE:
+            if ( qiter->iterator_data.tuple_data.tuple_index < PyTuple_GET_SIZE( qiter->iterator_data.tuple_data.tuple ) )
+            {
+                result = PyTuple_GET_ITEM(
+                    qiter->iterator_data.tuple_data.tuple,
+                    qiter->iterator_data.tuple_data.tuple_index
+                );
+                qiter->iterator_data.tuple_data.tuple_index += 1;
+
+                *finished = false;
+
+                Py_INCREF( result );
+                return result;
+            }
+            else
+            {
+                *finished = true;
+                return NULL;
+            }
+        case ITERATOR_LIST:
+            if ( qiter->iterator_data.list_data.list_index < PyList_GET_SIZE( qiter->iterator_data.list_data.list ) )
+            {
+                result = PyList_GET_ITEM( qiter->iterator_data.list_data.list, qiter->iterator_data.list_data.list_index );
+                qiter->iterator_data.list_data.list_index += 1;
+
+                *finished = false;
+
+                Py_INCREF( result );
+                return result;
+            }
+            else
+            {
+                *finished = true;
+                return NULL;
+            }
+    }
+
+    assert(false);
+    return NULL;
+}
+
 PyObject *BUILTIN_SUM1( PyObject *sequence )
 {
-    PyObject *iter = MAKE_ITERATOR( sequence );
-    if (unlikely( iter == NULL ))
+    struct Nuitka_QuickIterator qiter;
+
+    if (unlikely( MAKE_QUICK_ITERATOR( sequence, &qiter ) == false ))
     {
         return NULL;
     }
@@ -2038,23 +2451,21 @@ PyObject *BUILTIN_SUM1( PyObject *sequence )
 
     for(;;)
     {
-        item = ITERATOR_NEXT( iter );
+        bool finished;
 
-        if ( item == NULL )
+        item = QUICK_ITERATOR_NEXT( &qiter, &finished );
+
+        if ( finished )
         {
-            Py_DECREF( iter );
-
-            if (unlikely( !CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() ))
-            {
-                return NULL;
-            }
-
 #if PYTHON_VERSION < 300
             return PyInt_FromLong( int_result );
 #else
             return PyLong_FromLong( int_result );
 #endif
-
+        }
+        else if ( item == NULL )
+        {
+            return NULL;
         }
 
         CHECK_OBJECT( item );
@@ -2146,19 +2557,17 @@ PyObject *BUILTIN_SUM1( PyObject *sequence )
     {
         CHECK_OBJECT( result );
 
-        item = ITERATOR_NEXT( iter );
+        bool finished;
+        item = QUICK_ITERATOR_NEXT( &qiter, &finished );
 
-        if ( item == NULL )
+        if ( finished )
         {
-            Py_DECREF( iter );
-
-            if (unlikely( !CHECK_AND_CLEAR_STOP_ITERATION_OCCURRED() ))
-            {
-                Py_DECREF( result );
-                return NULL;
-            }
-
             break;
+        }
+        else if ( item == NULL )
+        {
+            Py_DECREF( result );
+            return NULL;
         }
 
         CHECK_OBJECT( item );
@@ -2791,6 +3200,454 @@ PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called )
     );
 }
 
+PyObject *CALL_METHOD_WITH_POSARGS( PyObject *source, PyObject *attribute, PyObject *positional_args )
+{
+    CHECK_OBJECT( source );
+    CHECK_OBJECT( attribute );
+    CHECK_OBJECT( positional_args );
+
+#if PYTHON_VERSION < 300
+    if ( PyInstance_Check( source ) )
+    {
+        PyInstanceObject *source_instance = (PyInstanceObject *)source;
+
+        // The special cases have their own variant on the code generation level
+        // as we are called with constants only.
+        assert( attribute != const_str_plain___dict__ );
+        assert( attribute != const_str_plain___class__ );
+
+        // Try the instance dict first.
+        PyObject *called_object = GET_STRING_DICT_VALUE(
+            (PyDictObject *)source_instance->in_dict,
+            (PyStringObject *)attribute
+        );
+
+        // Note: The "called_object" was found without taking a reference,
+        // so we need not release it in this branch.
+        if ( called_object != NULL )
+        {
+            return CALL_FUNCTION_WITH_POSARGS(
+                called_object,
+                positional_args
+            );
+
+        }
+        // Then check the class dictionaries.
+        called_object = FIND_ATTRIBUTE_IN_CLASS(
+            source_instance->in_class,
+            attribute
+        );
+
+        // Note: The "called_object" was found without taking a reference,
+        // so we need not release it in this branch.
+        if ( called_object != NULL )
+        {
+            descrgetfunc descr_get = Py_TYPE( called_object )->tp_descr_get;
+
+            if ( descr_get == Nuitka_Function_Type.tp_descr_get )
+            {
+                return Nuitka_CallMethodFunctionPosArgs(
+                    (struct Nuitka_FunctionObject const *)called_object,
+                    source,
+                    &PyTuple_GET_ITEM(positional_args, 0),
+                    PyTuple_GET_SIZE(positional_args)
+                );
+            }
+            else if ( descr_get != NULL )
+            {
+                PyObject *method = descr_get(
+                    called_object,
+                    source,
+                    (PyObject *)source_instance->in_class
+                );
+
+                if (unlikely( method == NULL ))
+                {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_WITH_POSARGS(
+                    method,
+                    positional_args
+                );
+                Py_DECREF( method );
+                return result;
+            }
+            else
+            {
+                return CALL_FUNCTION_WITH_POSARGS(
+                    called_object,
+                    positional_args
+                );
+            }
+        }
+        else if (unlikely( source_instance->in_class->cl_getattr == NULL ))
+        {
+            PyErr_Format(
+                PyExc_AttributeError,
+                "%s instance has no attribute '%s'",
+                PyString_AS_STRING( source_instance->in_class->cl_name ),
+                PyString_AS_STRING( attribute )
+            );
+
+            return NULL;
+        }
+        else
+        {
+            // Finally allow the "__getattr__" override to provide it or else
+            // it's an error.
+
+            PyObject *args[] = {
+                source,
+                attribute
+            };
+
+            called_object = CALL_FUNCTION_WITH_ARGS2(
+                source_instance->in_class->cl_getattr,
+                args
+            );
+
+            if (unlikely( called_object == NULL ))
+            {
+                return NULL;
+            }
+
+            PyObject *result = CALL_FUNCTION_WITH_POSARGS(
+                called_object,
+                positional_args
+            );
+            Py_DECREF( called_object );
+            return result;
+        }
+    }
+    else
+#endif
+    {
+        PyObject *called_object;
+
+        PyTypeObject *type = Py_TYPE( source );
+
+        if ( type->tp_getattro != NULL )
+        {
+            called_object = (*type->tp_getattro)( source, attribute );
+        }
+        else if ( type->tp_getattr != NULL )
+        {
+            called_object = (*type->tp_getattr)( source, Nuitka_String_AsString_Unchecked( attribute ) );
+        }
+        else
+        {
+            PyErr_Format(
+                PyExc_AttributeError,
+                "'%s' object has no attribute '%s'",
+                type->tp_name,
+                Nuitka_String_AsString_Unchecked( attribute )
+            );
+
+            return NULL;
+        }
+
+        if (unlikely( called_object == NULL ))
+        {
+            return NULL;
+        }
+
+        PyObject *result = CALL_FUNCTION_WITH_POSARGS(
+            called_object,
+            positional_args
+        );
+        Py_DECREF( called_object );
+        return result;
+    }
+}
+
+
+PyObject *CALL_METHOD_NO_ARGS( PyObject *source, PyObject *attr_name )
+{
+    CHECK_OBJECT( source );
+    CHECK_OBJECT( attr_name );
+
+    PyTypeObject *type = Py_TYPE( source );
+
+    if ( type->tp_getattro == PyObject_GenericGetAttr )
+    {
+        // Unfortunately this is required, although of cause rarely necessary.
+        if (unlikely( type->tp_dict == NULL ))
+        {
+            if (unlikely( PyType_Ready( type ) < 0 ))
+            {
+                return NULL;
+            }
+        }
+
+        PyObject *descr = _PyType_Lookup( type, attr_name );
+        descrgetfunc func = NULL;
+
+        if ( descr != NULL )
+        {
+            Py_INCREF( descr );
+
+#if PYTHON_VERSION < 300
+            if ( PyType_HasFeature( Py_TYPE( descr ), Py_TPFLAGS_HAVE_CLASS ) )
+            {
+#endif
+                func = Py_TYPE( descr )->tp_descr_get;
+
+                if ( func != NULL && PyDescr_IsData( descr ) )
+                {
+                    PyObject *called_object = func( descr, source, (PyObject *)type );
+                    Py_DECREF( descr );
+
+                    PyObject *result = CALL_FUNCTION_NO_ARGS( called_object );
+                    Py_DECREF( called_object );
+                    return result;
+                }
+#if PYTHON_VERSION < 300
+            }
+#endif
+        }
+
+        Py_ssize_t dictoffset = type->tp_dictoffset;
+        PyObject *dict = NULL;
+
+        if ( dictoffset != 0 )
+        {
+            // Negative dictionary offsets have special meaning.
+            if ( dictoffset < 0 )
+            {
+                Py_ssize_t tsize;
+                size_t size;
+
+                tsize = ((PyVarObject *)source)->ob_size;
+                if (tsize < 0)
+                    tsize = -tsize;
+                size = _PyObject_VAR_SIZE( type, tsize );
+
+                dictoffset += (long)size;
+            }
+
+            PyObject **dictptr = (PyObject **) ((char *)source + dictoffset);
+            dict = *dictptr;
+        }
+
+        if ( dict != NULL )
+        {
+            CHECK_OBJECT( dict );
+
+            Py_INCREF( dict );
+
+            PyObject *called_object = PyDict_GetItem( dict, attr_name );
+
+            if ( called_object != NULL )
+            {
+                Py_INCREF( called_object );
+                Py_XDECREF( descr );
+                Py_DECREF( dict );
+
+                PyObject *result = CALL_FUNCTION_NO_ARGS( called_object );
+                Py_DECREF( called_object );
+                return result;
+            }
+
+            Py_DECREF( dict );
+        }
+
+        if ( func != NULL )
+        {
+            if ( func == Nuitka_Function_Type.tp_descr_get )
+            {
+                PyObject *result = Nuitka_CallMethodFunctionNoArgs(
+                    (struct Nuitka_FunctionObject const *)descr,
+                    source
+                );
+
+                Py_DECREF( descr );
+
+                return result;
+            }
+            else
+            {
+                PyObject *called_object = func( descr, source, (PyObject *)type );
+                CHECK_OBJECT( called_object );
+
+                Py_DECREF( descr );
+
+                PyObject *result = CALL_FUNCTION_NO_ARGS( called_object );
+                Py_DECREF( called_object );
+
+                return result;
+            }
+        }
+
+        if ( descr != NULL )
+        {
+            CHECK_OBJECT( descr );
+            return CALL_FUNCTION_NO_ARGS( descr );
+        }
+
+#if PYTHON_VERSION < 300
+        PyErr_Format(
+            PyExc_AttributeError,
+            "'%s' object has no attribute '%s'",
+            type->tp_name,
+            PyString_AS_STRING( attr_name )
+        );
+#else
+        PyErr_Format(
+            PyExc_AttributeError,
+            "'%s' object has no attribute '%U'",
+            type->tp_name,
+            attr_name
+        );
+#endif
+        return NULL;
+    }
+#if PYTHON_VERSION < 300
+    else if ( type == &PyInstance_Type )
+    {
+        PyInstanceObject *source_instance = (PyInstanceObject *)source;
+
+        // The special cases have their own variant on the code generation level
+        // as we are called with constants only.
+        assert( attr_name != const_str_plain___dict__ );
+        assert( attr_name != const_str_plain___class__ );
+
+        // Try the instance dict first.
+        PyObject *called_object = GET_STRING_DICT_VALUE(
+            (PyDictObject *)source_instance->in_dict,
+            (PyStringObject *)attr_name
+        );
+
+        // Note: The "called_object" was found without taking a reference,
+        // so we need not release it in this branch.
+        if ( called_object != NULL )
+        {
+            return CALL_FUNCTION_NO_ARGS( called_object );
+        }
+
+        // Then check the class dictionaries.
+        called_object = FIND_ATTRIBUTE_IN_CLASS(
+            source_instance->in_class,
+            attr_name
+        );
+
+        // Note: The "called_object" was found without taking a reference,
+        // so we need not release it in this branch.
+        if ( called_object != NULL )
+        {
+            descrgetfunc descr_get = Py_TYPE( called_object )->tp_descr_get;
+
+            if ( descr_get == Nuitka_Function_Type.tp_descr_get )
+            {
+                return Nuitka_CallMethodFunctionNoArgs(
+                    (struct Nuitka_FunctionObject const *)called_object,
+                    source
+                );
+            }
+            else if ( descr_get != NULL )
+            {
+                PyObject *method = descr_get(
+                    called_object,
+                    source,
+                    (PyObject *)source_instance->in_class
+                );
+
+                if (unlikely( method == NULL ))
+                {
+                    return NULL;
+                }
+
+                PyObject *result = CALL_FUNCTION_NO_ARGS( method );
+                Py_DECREF( method );
+                return result;
+            }
+            else
+            {
+                return CALL_FUNCTION_NO_ARGS( called_object );
+            }
+        }
+        else if (unlikely( source_instance->in_class->cl_getattr == NULL ))
+        {
+            PyErr_Format(
+                PyExc_AttributeError,
+                "%s instance has no attribute '%s'",
+                PyString_AS_STRING( source_instance->in_class->cl_name ),
+                PyString_AS_STRING( attr_name )
+            );
+
+            return NULL;
+        }
+        else
+        {
+            // Finally allow the "__getattr__" override to provide it or else
+            // it's an error.
+
+            PyObject *args[] = {
+                source,
+                attr_name
+            };
+
+            called_object = CALL_FUNCTION_WITH_ARGS2(
+                source_instance->in_class->cl_getattr,
+                args
+            );
+
+            if (unlikely( called_object == NULL ))
+            {
+                return NULL;
+            }
+
+            PyObject *result = CALL_FUNCTION_NO_ARGS( called_object );
+            Py_DECREF( called_object );
+            return result;
+        }
+    }
+#endif
+    else if ( type->tp_getattro != NULL )
+    {
+        PyObject *called_object = (*type->tp_getattro)(
+            source,
+            attr_name
+        );
+
+        if (unlikely( called_object == NULL ))
+        {
+            return NULL;
+        }
+
+        PyObject *result = CALL_FUNCTION_NO_ARGS( called_object );
+        Py_DECREF( called_object );
+        return result;
+    }
+    else if ( type->tp_getattr != NULL )
+    {
+        PyObject *called_object = (*type->tp_getattr)(
+            source,
+            Nuitka_String_AsString_Unchecked( attr_name )
+        );
+
+        if (unlikely( called_object == NULL ))
+        {
+            return NULL;
+        }
+
+        PyObject *result = CALL_FUNCTION_NO_ARGS( called_object );
+        Py_DECREF( called_object );
+        return result;
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_AttributeError,
+            "'%s' object has no attribute '%s'",
+            type->tp_name,
+            Nuitka_String_AsString_Unchecked( attr_name )
+        );
+
+        return NULL;
+    }
+}
+
 #if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
 
 #ifdef _NUITKA_STANDALONE
@@ -2879,6 +3736,8 @@ NUITKA_DEFINE_BUILTIN( int )
 NUITKA_DEFINE_BUILTIN( iter )
 #if PYTHON_VERSION < 300
 NUITKA_DEFINE_BUILTIN( long )
+#else
+NUITKA_DEFINE_BUILTIN( range );
 #endif
 
 void _initBuiltinOriginalValues()
@@ -2963,6 +3822,7 @@ void _initSlotCompare()
     // libraries it's not accessible. The name does not matter, nor does the
     // actual value used for "__cmp__".
 
+    // Use "int" as the base class.
     PyObject *pos_args = PyTuple_New(1);
     PyTuple_SET_ITEM(
         pos_args,
@@ -2970,9 +3830,11 @@ void _initSlotCompare()
         INCREASE_REFCOUNT( (PyObject *)&PyInt_Type )
     );
 
+    // Use "__cmp__" with true value, won't matter.
     PyObject *kw_args = PyDict_New();
     PyDict_SetItem( kw_args, const_str_plain___cmp__, Py_True );
 
+    // Create the type.
     PyObject *c = PyObject_CallFunctionObjArgs(
         (PyObject *)&PyType_Type,
         const_str_plain___cmp__,

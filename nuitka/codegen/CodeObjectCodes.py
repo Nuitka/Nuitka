@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -23,8 +23,6 @@ Right now only the creation is done here. But more should be added later on.
 from nuitka import Options
 from nuitka.PythonVersions import python_version
 from nuitka.utils.Utils import isAbsolutePath
-
-from .ConstantCodes import getConstantCode
 
 
 def getCodeObjectsDeclCode(context):
@@ -106,14 +104,12 @@ def getCodeObjectsInitCode(context):
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %s );" % (
                 code_identifier,
                 filename_code,
-                getConstantCode(
-                    constant = code_object_key[1],
-                    context  = context
+                context.getConstantCode(
+                    constant = code_object_key[1]
                 ),
                 code_object_key[2],
-                getConstantCode(
-                    constant = code_object_key[3],
-                    context  = context
+                context.getConstantCode(
+                    constant = code_object_key[3]
                 ),
                 code_object_key[4],
                 " | ".join(co_flags) or '0',
@@ -122,14 +118,12 @@ def getCodeObjectsInitCode(context):
             code = "%s = MAKE_CODEOBJ( %s, %s, %d, %s, %d, %d, %s );" % (
                 code_identifier,
                 filename_code,
-                getConstantCode(
-                    constant = code_object_key[1],
-                    context  = context
+                context.getConstantCode(
+                    constant = code_object_key[1]
                 ),
                 code_object_key[2],
-                getConstantCode(
-                    constant = code_object_key[3],
-                    context  = context
+                context.getConstantCode(
+                    constant = code_object_key[3]
                 ),
                 code_object_key[4],
                 code_object_key[5],

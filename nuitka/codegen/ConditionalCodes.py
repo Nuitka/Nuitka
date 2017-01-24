@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -188,7 +188,7 @@ def generateConditionCode(condition, emit, context):
         context.setCurrentSourceCodeReference(old_source_ref)
     elif condition.isCompileTimeConstant():
         getBranchingCode(
-            condition = "1" if condition.getCompileTimeConstant() else "0",
+            condition = '1' if condition.getCompileTimeConstant() else '0',
             emit      = emit,
             context   = context
         )

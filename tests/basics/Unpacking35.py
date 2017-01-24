@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -17,13 +17,13 @@
 #
 
 def tupleUnpacking():
-    return (*a,b,*c)
+    return (*a, b, *c)
 
 def listUnpacking():
-    return [*a,b,*c]
+    return [*a, b, *c]
 
 def setUnpacking():
-    return {*a,b,*c}
+    return {*a, b, *c}
 
 def dictUnpacking():
     return {"a" : 1, **d}

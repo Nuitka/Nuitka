@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -66,10 +66,15 @@ class ExpressionVariableRef(NodeBase, ExpressionMixin):
             }
 
     def getDetailsForDisplay(self):
-        return {
-            "variable_name" : self.variable_name,
-            "owner"         : self.variable.getOwner().getCodeName()
-        }
+        if self.variable is None:
+            return {
+                "variable_name" : self.variable_name
+            }
+        else:
+            return {
+                "variable_name" : self.variable_name,
+                "owner"         : self.variable.getOwner().getCodeName()
+            }
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):

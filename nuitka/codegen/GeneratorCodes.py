@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,15 +21,13 @@
 
 from nuitka.PythonVersions import python_version
 
-from .ConstantCodes import getConstantCode
 from .ErrorCodes import (
     getErrorVariableDeclarations,
     getExceptionKeeperVariableNames,
     getExceptionPreserverVariableNames
 )
 from .Indentation import indented
-from .LineNumberCodes import getErrorLineNumberUpdateCode
-from .templates.CodeTemplatesFrames import template_generator_initial_throw
+from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesFunction import function_dict_setup
 from .templates.CodeTemplatesGeneratorFunction import (
     template_generator_exception_exit,
@@ -46,6 +44,7 @@ def getGeneratorObjectDeclCode(function_identifier):
     return template_genfunc_yielder_decl_template % {
         "function_identifier" : function_identifier,
     }
+
 
 def getGeneratorObjectCode(context, function_identifier, user_variables,
                            temp_variables, function_codes, needs_exception_exit,
@@ -117,9 +116,8 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     closure_variables = generator_object_body.getClosureVariables()
 
     if python_version < 350 or context.isForDirectCall():
-        generator_name_obj = getConstantCode(
-            constant = generator_object_body.getFunctionName(),
-            context  = context
+        generator_name_obj = context.getConstantCode(
+            constant = generator_object_body.getFunctionName()
         )
     else:
         generator_name_obj = "self->m_name"
@@ -129,9 +127,8 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     elif not context.isForDirectCall():
         generator_qualname_obj = "self->m_qualname"
     else:
-        generator_qualname_obj = getConstantCode(
-            constant = generator_object_body.getFunctionQualname(),
-            context  = context
+        generator_qualname_obj = context.getConstantCode(
+            constant = generator_object_body.getFunctionQualname()
         )
 
     code_identifier = context.getCodeObjectHandle(
@@ -181,6 +178,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
             "closure_copy"           : indented(closure_copy, 0, True),
             "to_name"                : to_name,
             "generator_identifier"   : generator_object_body.getCodeName(),
+            "generator_module"       : getModuleAccessCode(context),
             "generator_name_obj"     : generator_name_obj,
             "generator_qualname_obj" : generator_qualname_obj,
             "code_identifier"        : code_identifier,
@@ -189,14 +187,3 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     )
 
     context.addCleanupTempName(to_name)
-
-
-def generateGeneratorEntryCode(statement, emit, context):
-    context.setCurrentSourceCodeReference(statement.getSourceReference())
-
-    emit(
-        template_generator_initial_throw % {
-            "frame_exception_exit"  : context.getExceptionEscape(),
-            "set_error_line_number" : getErrorLineNumberUpdateCode(context)
-        }
-    )

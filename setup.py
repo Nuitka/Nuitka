@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -118,10 +118,6 @@ class NuitkaInstallScripts(install_scripts):
 
             libdir = uplevel * (".." + os.sep) + self.install_lib[len(common):]
 
-        patch_bats = os.path.exists(
-            os.path.join(self.install_dir, "Python.exe")
-        )
-
         for outfile in self.outfiles:
             fp = open(outfile, "rb")
             data = fp.read()
@@ -134,9 +130,6 @@ class NuitkaInstallScripts(install_scripts):
             old_data = data
 
             data = data.replace(b"@LIBDIR@", libdir.encode("unicode_escape"))
-
-            if patch_bats and outfile.endswith(".bat"):
-                data = data.replace(b"..\\",b"")
 
             if data != old_data:
                 fp = open(outfile, "wb")

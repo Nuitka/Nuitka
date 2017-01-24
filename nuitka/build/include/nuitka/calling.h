@@ -1,4 +1,4 @@
-//     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -87,6 +87,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POSARGS( PyObject *func
     );
 }
 
+// Method call variants with positional arguments tuple.
+extern PyObject *CALL_METHOD_WITH_POSARGS( PyObject *source, PyObject *attr_name, PyObject *positional_args );
 
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS( PyObject *function_object, PyObject *named_args )
 {
@@ -96,5 +98,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS( PyObject *func
         named_args
     );
 }
+
+// Method call variant with no arguments provided at all.
+extern PyObject *CALL_METHOD_NO_ARGS( PyObject *source, PyObject *attribute );
 
 #endif

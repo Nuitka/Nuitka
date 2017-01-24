@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -27,6 +27,7 @@ from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.Options import getPythonFlags
 from nuitka.PythonVersions import python_version
 
 from .Helpers import buildNode
@@ -48,6 +49,9 @@ def buildAssertNode(provider, node, source_ref):
     #
 
     exception_value = buildNode(provider, node.msg, source_ref, True)
+
+    if "no_asserts" in getPythonFlags():
+        return None
 
     if exception_value is not None and python_version > 272:
         exception_value = ExpressionMakeTuple(

@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -111,13 +111,6 @@ def generateConstantEllipsisReferenceCode(to_name, expression, emit, context):
 # sense to have per module ones, for better locality of indexes within it,
 # but we don't do this yet.
 stream_data = StreamData()
-
-# TODO: This is deprecated, and should be removed.
-def getConstantCode(context, constant):
-    return context.getConstantCode(constant)
-
-def getConstantCodeName(context, constant):
-    return context.getConstantCode(constant)
 
 # TODO: The determination of this should already happen in Building or in a
 # helper not during code generation.
@@ -540,7 +533,7 @@ CHECK_OBJECT( const_int_pos_1 );
         )
 
         for key, value in iterItems(constant_value):
-            key_name = getConstantCodeName(context, key)
+            key_name = context.getConstantCode(key)
             _addConstantInitCode(
                 emit                = emit,
                 check               = check,
@@ -551,7 +544,7 @@ CHECK_OBJECT( const_int_pos_1 );
                 context             = context
             )
 
-            value_name = getConstantCodeName(context, value)
+            value_name = context.getConstantCode(value)
             _addConstantInitCode(
                 emit                = emit,
                 check               = check,
@@ -595,8 +588,7 @@ CHECK_OBJECT( const_int_pos_1 );
         )
 
         for count, element_value in enumerate(constant_value):
-            element_name = getConstantCodeName(
-                context  = context,
+            element_name = context.getConstantCode(
                 constant = element_value
             )
 
@@ -605,8 +597,7 @@ CHECK_OBJECT( const_int_pos_1 );
                 check               = check,
                 constant_type       = type(element_value),
                 constant_value      = element_value,
-                constant_identifier = getConstantCodeName(
-                    context  = context,
+                constant_identifier = context.getConstantCode(
                     constant = element_value
                 ),
                 module_level        = module_level,
@@ -640,8 +631,7 @@ CHECK_OBJECT( const_int_pos_1 );
         )
 
         for count, element_value in enumerate(constant_value):
-            element_name = getConstantCodeName(
-                context  = context,
+            element_name = context.getConstantCode(
                 constant = element_value
             )
 
@@ -679,10 +669,7 @@ CHECK_OBJECT( const_int_pos_1 );
         )
 
         for element_value in constant_value:
-            element_name = getConstantCodeName(
-                context  = context,
-                constant = element_value
-            )
+            element_name = context.getConstantCode(element_value)
 
             _addConstantInitCode(
                 emit                = emit,
@@ -711,7 +698,7 @@ CHECK_OBJECT( const_int_pos_1 );
         return
 
     if constant_type is slice:
-        slice1_name = getConstantCodeName(context, constant_value.start)
+        slice1_name = context.getConstantCode(constant_value.start)
         _addConstantInitCode(
             emit                = emit,
             check               = check,
@@ -721,7 +708,7 @@ CHECK_OBJECT( const_int_pos_1 );
             module_level        = module_level,
             context             = context
         )
-        slice2_name = getConstantCodeName(context, constant_value.stop)
+        slice2_name = context.getConstantCode(constant_value.stop)
         _addConstantInitCode(
             emit                = emit,
             check               = check,
@@ -731,7 +718,7 @@ CHECK_OBJECT( const_int_pos_1 );
             module_level        = module_level,
             context             = context
         )
-        slice3_name = getConstantCodeName(context, constant_value.step)
+        slice3_name = context.getConstantCode(constant_value.step)
         _addConstantInitCode(
             emit                = emit,
             check               = check,
@@ -770,7 +757,11 @@ CHECK_OBJECT( const_int_pos_1 );
 
 
         # Negative values are encoded with "neg" prefix.
-        range_args = [int(range_arg.replace("neg", '-')) for range_arg in range_args]
+        range_args = [
+            int(range_arg.replace("neg", '-'))
+            for range_arg in
+            range_args
+        ]
 
         if xrange is not range:
             emit(
@@ -782,7 +773,7 @@ CHECK_OBJECT( const_int_pos_1 );
                 )
             )
         else:
-            range1_name = getConstantCodeName(context, range_args[0])
+            range1_name = context.getConstantCode(range_args[0])
             _addConstantInitCode(
                 emit                = emit,
                 check               = check,
@@ -792,7 +783,7 @@ CHECK_OBJECT( const_int_pos_1 );
                 module_level        = module_level,
                 context             = context
             )
-            range2_name = getConstantCodeName(context, range_args[1])
+            range2_name = context.getConstantCode(range_args[1])
             _addConstantInitCode(
                 emit                = emit,
                 check               = check,
@@ -802,7 +793,7 @@ CHECK_OBJECT( const_int_pos_1 );
                 module_level        = module_level,
                 context             = context
             )
-            range3_name = getConstantCodeName(context, range_args[2])
+            range3_name = context.getConstantCode(range_args[2])
             _addConstantInitCode(
                 emit                = emit,
                 check               = check,
@@ -915,25 +906,16 @@ def getConstantAccess(to_name, constant, emit, context):
                 needs_deep = False
 
             if needs_deep:
-                code = "DEEP_COPY( %s )" % getConstantCode(
-                    constant = constant,
-                    context  = context
-                )
+                code = "DEEP_COPY( %s )" % context.getConstantCode(constant)
             else:
-                code = "PyDict_Copy( %s )" % getConstantCode(
-                    constant = constant,
-                    context  = context
-                )
+                code = "PyDict_Copy( %s )" % context.getConstantCode(constant)
         else:
             code = "PyDict_New()"
 
         ref_count = 1
     elif type(constant) is set:
         if constant:
-            code = "PySet_New( %s )" % getConstantCode(
-                constant = constant,
-                context  = context
-            )
+            code = "PySet_New( %s )" % context.getConstantCode(constant)
         else:
             code = "PySet_New( NULL )"
 
@@ -948,15 +930,9 @@ def getConstantAccess(to_name, constant, emit, context):
                 needs_deep = False
 
             if needs_deep:
-                code = "DEEP_COPY( %s )" % getConstantCode(
-                    constant = constant,
-                    context  = context
-                )
+                code = "DEEP_COPY( %s )" % context.getConstantCode(constant)
             else:
-                code = "LIST_COPY( %s )" % getConstantCode(
-                    constant = constant,
-                    context  = context
-                )
+                code = "LIST_COPY( %s )" % context.getConstantCode(constant)
         else:
             code = "PyList_New( 0 )"
 
@@ -970,17 +946,11 @@ def getConstantAccess(to_name, constant, emit, context):
             needs_deep = False
 
         if needs_deep:
-            code = "DEEP_COPY( %s )" % getConstantCode(
-                 constant = constant,
-                 context  = context
-            )
+            code = "DEEP_COPY( %s )" % context.getConstantCode(constant)
 
             ref_count = 1
         else:
-            code = getConstantCode(
-                context  = context,
-                constant = constant
-            )
+            code = context.getConstantCode(constant)
 
             ref_count = 0
     else:

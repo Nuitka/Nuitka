@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -82,10 +82,8 @@ def buildSequenceCreationNode(provider, node, source_ref):
             if getKind(element) == "Starred":
                 if python_version < 350:
                     SyntaxErrors.raiseSyntaxError(
-                        reason     = """\
-can use starred expression only as assignment target""",
-                        source_ref = source_ref,
-                        col_offset = element.col_offset
+                        "can use starred expression only as assignment target",
+                        source_ref.atColumnNumber(element.col_offset),
                     )
                 else:
                     return _buildSequenceUnpacking(
@@ -381,8 +379,10 @@ def buildListUnpacking(provider, elements, source_ref):
 
     for element in elements:
 
-        # TODO: We could be a lot cleverer about the tuples for non-starred
-        # arguments, but lets get this to work first.
+        # We could be a lot cleverer about the tuples for non-starred
+        # arguments, but lets get this to work first. And then rely on
+        # future optimization to inline the list unpacking helper in a
+        # way that has the same effect.
         if getKind(element) == "Starred":
             helper_args.append(
                 buildNode(provider, element.value, source_ref),
@@ -435,8 +435,10 @@ def _buildSetUnpacking(provider, elements, source_ref):
 
     for element in elements:
 
-        # TODO: We could be a lot cleverer about the tuples for non-starred
-        # arguments, but lets get this to work first.
+        # We could be a lot cleverer about the tuples for non-starred
+        # arguments, but lets get this to work first. And then rely on
+        # future optimization to inline the list unpacking helper in a
+        # way that has the same effect.
         if getKind(element) == "Starred":
             helper_args.append(
                 buildNode(provider, element.value, source_ref),

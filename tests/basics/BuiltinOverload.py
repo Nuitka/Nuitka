@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -21,6 +21,8 @@ try:
     from __builtin__ import len as _len
 except ImportError:
     from builtins import len as _len
+
+# This kind of built-in overload will have to work.
 
 def len(x):  # @ReservedAssignment
     print("Private built-in called with argument", repr(x))

@@ -1,5 +1,5 @@
 @echo off
-rem     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+rem     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 rem
 rem     Part of "Nuitka", an optimizing Python compiler that is compatible and
 rem     integrates with CPython, but also works on its own.
@@ -19,6 +19,10 @@ rem
 
 setlocal
 
+if exist "%~dp0..\python.exe" (
 "%~dp0..\python" "%~dp0nuitka" %*
+) else (
+"%~dp0python" "%~dp0nuitka" %*
+)
 
 endlocal

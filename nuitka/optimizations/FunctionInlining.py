@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,17 +30,15 @@ from nuitka.tree.Helpers import makeStatementsSequence
 
 def convertFunctionCallToOutline(provider, function_ref, values):
     # This has got to have pretty man details, pylint: disable=R0914
-
     function_body = function_ref.getFunctionBody()
 
-    # TODO: Use the call location
-    source_ref = function_body.getSourceReference()
+    call_source_ref = function_ref.getSourceReference()
+    function_source_ref = function_body.getSourceReference()
 
     outline_body = ExpressionOutlineBody(
         provider   = provider,
         name       = "inline",
-        source_ref = source_ref
-
+        source_ref = function_source_ref
     )
 
     clone = function_body.getBody().makeClone()
@@ -78,17 +76,17 @@ def convertFunctionCallToOutline(provider, function_ref, values):
             StatementAssignmentVariable(
                 variable_ref = makeVariableTargetRefNode(
                     variable   = translation[argument_name],
-                    source_ref = source_ref
+                    source_ref = function_source_ref
                 ),
                 source       = value,
-                source_ref   = source_ref,
+                source_ref   = call_source_ref,
             )
         )
 
     body = makeStatementsSequence(
         statements = (statements, clone),
         allow_none = False,
-        source_ref = source_ref
+        source_ref = function_source_ref
     )
     outline_body.setBody(body)
 

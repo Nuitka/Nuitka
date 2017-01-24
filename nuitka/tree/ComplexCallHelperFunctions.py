@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -51,10 +51,7 @@ from nuitka.nodes.ConditionalNodes import (
     ExpressionConditionalOR,
     StatementConditional
 )
-from nuitka.nodes.ConstantRefNodes import (
-    ExpressionConstantNoneRef,
-    makeConstantRefNode
-)
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.ExceptionNodes import (
@@ -584,20 +581,6 @@ def _makeStarDictArgumentToDictStatement(result, called_variable_ref,
     )
 
     mapping_case = makeStatementsSequenceFromStatements(
-        # Initializing the temp variable outside of try/except, because code
-        # generation does not yet detect that case properly. TODO: Can be
-        # removed once code generation is apt enough.
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_keys_variable,
-                source_ref = internal_source_ref
-            ),
-            source       = ExpressionConstantNoneRef(
-                source_ref    = internal_source_ref,
-                user_provided = True
-            ),
-            source_ref   = internal_source_ref
-        ),
         makeTryExceptSingleHandlerNode(
             tried          = StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
@@ -831,20 +814,6 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
     )
 
     mapping_case = makeStatementsSequenceFromStatements(
-        # Initializing the temp variable outside of try/except, because code
-        # generation does not yet detect that case properly. TODO: Can be
-        # removed once code generation is apt enough.
-        StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_keys_variable,
-                source_ref = internal_source_ref
-            ),
-            source       = ExpressionConstantNoneRef(
-                source_ref    = internal_source_ref,
-                user_provided = True
-            ),
-            source_ref   = internal_source_ref
-        ),
         makeTryExceptSingleHandlerNode(
             tried          = StatementAssignmentVariable(
                 variable_ref = ExpressionTargetTempVariableRef(
@@ -2205,9 +2174,6 @@ def getDoubleStarArgsConversion(result, called_variable, kw_variable,
         )
     )
 
-    if python_version >= 360:
-        statements = list(reversed(statements))
-
     return statements
 
 
@@ -2354,6 +2320,9 @@ def getFunctionCallHelperPosStarListStarDict():
         kw_variable            = None,
         star_arg_dict_variable = star_arg_dict_variable
     )
+
+    if python_version >= 360:
+        statements.reverse()
 
     statements.append(
         StatementReturn(
@@ -2575,6 +2544,9 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
         kw_variable            = kw_variable,
         star_arg_dict_variable = star_arg_dict_variable
     )
+
+    if python_version >= 360:
+        statements.reverse()
 
     statements.append(
         StatementReturn(

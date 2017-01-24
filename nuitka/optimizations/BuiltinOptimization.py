@@ -1,4 +1,4 @@
-#     Copyright 2016, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -147,13 +147,13 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
 
 
 class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
-    def __init__(self, exception_name, default_count):
+    def __init__(self, exception_name):
         # TODO: Parameter default_count makes no sense for exceptions probably.
         BuiltinParameterSpec.__init__(
             self,
             name          = exception_name,
             arg_names     = (),
-            default_count = default_count,
+            default_count = 0,
             list_star_arg = "args"
         )
 
@@ -167,15 +167,14 @@ class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
         return "exceptions." + self.getName()
 
 
-def makeBuiltinParameterSpec(exception_name):
+def makeBuiltinExceptionParameterSpec(exception_name):
     if exception_name == "ImportError" and python_version >= 330:
         # TODO: Create this beast, needs keyword only arguments to be supported,
         # currently user of this function must take care to not have them.
         pass
 
     return BuiltinParameterSpecExceptions(
-        exception_name = exception_name,
-        default_count  = 0
+        exception_name = exception_name
     )
 
 builtin_int_spec = BuiltinParameterSpec("int", ('x', "base"), 2)
