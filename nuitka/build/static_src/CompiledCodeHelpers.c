@@ -1174,7 +1174,145 @@ PyObject *BUILTIN_FORMAT( PyObject *value, PyObject *format_spec )
 
 NUITKA_DEFINE_BUILTIN( __import__ );
 
-PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
+extern PyObject *const_str_plain_name;
+extern PyObject *const_str_plain_globals;
+extern PyObject *const_str_plain_locals;
+extern PyObject *const_str_plain_fromlist;
+extern PyObject *const_str_plain_level;
+
+PyObject *IMPORT_MODULE_KW( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
+{
+    if (module_name)
+    if (globals) CHECK_OBJECT( globals );
+    if (locals) CHECK_OBJECT( locals );
+    if (import_items) CHECK_OBJECT( import_items );
+    if (level) CHECK_OBJECT( level );
+
+    PyObject *kw_args = PyDict_New();
+    if ( module_name )
+    {
+        CHECK_OBJECT( module_name );
+        PyDict_SetItem( kw_args, const_str_plain_name, module_name );
+    }
+    if ( globals )
+    {
+        CHECK_OBJECT( globals );
+        PyDict_SetItem( kw_args, const_str_plain_globals, globals );
+    }
+    if ( locals )
+    {
+        CHECK_OBJECT( locals );
+        PyDict_SetItem( kw_args, const_str_plain_locals, locals );
+    }
+    if ( import_items )
+    {
+        CHECK_OBJECT( import_items );
+        PyDict_SetItem( kw_args, const_str_plain_fromlist, import_items );
+    }
+    if ( level )
+    {
+        CHECK_OBJECT( level );
+        PyDict_SetItem( kw_args, const_str_plain_level, level );
+    }
+    NUITKA_ASSIGN_BUILTIN( __import__ );
+
+    PyObject *import_result = CALL_FUNCTION_WITH_KEYARGS(
+        NUITKA_ACCESS_BUILTIN( __import__ ),
+        kw_args
+    );
+
+    Py_DECREF( kw_args );
+
+    return import_result;
+}
+
+PyObject *IMPORT_MODULE1( PyObject *module_name )
+{
+    CHECK_OBJECT( module_name );
+
+    PyObject *pos_args[] = {
+        module_name
+    };
+
+    NUITKA_ASSIGN_BUILTIN( __import__ );
+
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS1(
+        NUITKA_ACCESS_BUILTIN( __import__ ),
+        pos_args
+    );
+
+    return import_result;
+}
+
+PyObject *IMPORT_MODULE2( PyObject *module_name, PyObject *globals )
+{
+    CHECK_OBJECT( module_name );
+    CHECK_OBJECT( globals );
+
+    PyObject *pos_args[] = {
+        module_name,
+        globals
+    };
+
+    NUITKA_ASSIGN_BUILTIN( __import__ );
+
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS2(
+        NUITKA_ACCESS_BUILTIN( __import__ ),
+        pos_args
+    );
+
+    return import_result;
+}
+
+
+PyObject *IMPORT_MODULE3( PyObject *module_name, PyObject *globals, PyObject *locals )
+{
+    CHECK_OBJECT( module_name );
+    CHECK_OBJECT( globals );
+    CHECK_OBJECT( locals );
+
+    PyObject *pos_args[] = {
+        module_name,
+        globals,
+        locals
+    };
+
+    NUITKA_ASSIGN_BUILTIN( __import__ );
+
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS3(
+        NUITKA_ACCESS_BUILTIN( __import__ ),
+        pos_args
+    );
+
+    return import_result;
+}
+
+
+PyObject *IMPORT_MODULE4( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items )
+{
+    CHECK_OBJECT( module_name );
+    CHECK_OBJECT( globals );
+    CHECK_OBJECT( locals );
+    CHECK_OBJECT( import_items );
+
+    PyObject *pos_args[] = {
+        module_name,
+        globals,
+        locals,
+        import_items
+    };
+
+    NUITKA_ASSIGN_BUILTIN( __import__ );
+
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS4(
+        NUITKA_ACCESS_BUILTIN( __import__ ),
+        pos_args
+    );
+
+    return import_result;
+}
+
+PyObject *IMPORT_MODULE5( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
     CHECK_OBJECT( module_name );
     CHECK_OBJECT( globals );
@@ -1182,21 +1320,20 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
     CHECK_OBJECT( import_items );
     CHECK_OBJECT( level );
 
-    PyObject *pos_args = PyTuple_New(5);
-    PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( module_name ) );
-    PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( globals ) );
-    PyTuple_SET_ITEM( pos_args, 2, INCREASE_REFCOUNT( locals ) );
-    PyTuple_SET_ITEM( pos_args, 3, INCREASE_REFCOUNT( import_items ) );
-    PyTuple_SET_ITEM( pos_args, 4, INCREASE_REFCOUNT( level ) );
+    PyObject *pos_args[] = {
+        module_name,
+        globals,
+        locals,
+        import_items,
+        level
+    };
 
     NUITKA_ASSIGN_BUILTIN( __import__ );
 
-    PyObject *import_result = CALL_FUNCTION_WITH_POSARGS(
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS5(
         NUITKA_ACCESS_BUILTIN( __import__ ),
         pos_args
     );
-
-    Py_DECREF( pos_args );
 
     return import_result;
 }

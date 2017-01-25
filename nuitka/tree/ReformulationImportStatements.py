@@ -28,8 +28,10 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.ImportNodes import (
-    ExpressionImportModule,
+    ExpressionBuiltinImport,
     ExpressionImportModuleHard,
     ExpressionImportName,
     StatementImportStar
@@ -125,6 +127,15 @@ def buildImportFromNode(provider, node, source_ref):
     module_name = node.module if node.module is not None else ""
     level = node.level
 
+    # Use default level under some circumstances.
+    if level == -1:
+        level = None
+    elif level == 0 and not source_ref.getFutureSpec().isAbsoluteImport():
+        level = None
+
+    if level is not None:
+        level = makeConstantRefNode(level, source_ref, True)
+
     # Importing from "__future__" module may enable flags to the parser,
     # that we need to know about, handle that.
     if module_name == "__future__":
@@ -169,10 +180,19 @@ def buildImportFromNode(provider, node, source_ref):
         if provider.isExpressionFunctionBody():
             provider.markAsStarImportContaining()
 
+        if provider.isCompiledPythonModule():
+            import_globals = ExpressionBuiltinGlobals(source_ref)
+            import_locals = ExpressionBuiltinGlobals(source_ref)
+        else:
+            import_globals = ExpressionBuiltinGlobals(source_ref)
+            import_locals = makeConstantRefNode({}, source_ref, True)
+
         return StatementImportStar(
-            module_import = ExpressionImportModule(
-                module_name = module_name,
-                import_list = ('*',),
+            module_import = ExpressionBuiltinImport(
+                name        = makeConstantRefNode(module_name, source_ref, True),
+                globals_arg = import_globals,
+                locals_arg  = import_locals,
+                fromlist    = makeConstantRefNode(('*',), source_ref, True),
                 level       = level,
                 source_ref  = source_ref
             ),
@@ -196,9 +216,11 @@ def buildImportFromNode(provider, node, source_ref):
                     source_ref  = source_ref
                 )
 
-        imported_from_module = ExpressionImportModule(
-            module_name = module_name,
-            import_list = tuple(import_names),
+        imported_from_module = ExpressionBuiltinImport(
+            name        = makeConstantRefNode(module_name, source_ref, True),
+            globals_arg = ExpressionBuiltinGlobals(source_ref),
+            locals_arg  = makeConstantRefNode(None, source_ref, True),
+            fromlist    = makeConstantRefNode(tuple(import_names), source_ref, True),
             level       = level,
             source_ref  = source_ref
         )
@@ -299,32 +321,26 @@ def buildImportModulesNode(provider, node, source_ref):
 
         # Note: The "level" of import is influenced by the future absolute
         # imports.
-        level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
+        level = makeConstantRefNode(0, source_ref, True) if source_ref.getFutureSpec().isAbsoluteImport() else None
+
+        import_node = ExpressionBuiltinImport(
+            name        = makeConstantRefNode(module_name, source_ref, True),
+            globals_arg = ExpressionBuiltinGlobals(source_ref),
+            locals_arg  = makeConstantRefNode(None, source_ref, True),
+            fromlist    = makeConstantRefNode(None, source_ref, True),
+            level       = level,
+            source_ref  = source_ref
+        )
 
         if local_name:
             # If is gets a local name, the real name must be used as a
             # temporary value only, being looked up recursively.
-
-            import_node = ExpressionImportModule(
-                module_name = module_name,
-                import_list = None,
-                level       = level,
-                source_ref  = source_ref
-            )
-
             for import_name in module_name.split('.')[1:]:
                 import_node = ExpressionImportName(
                     module      = import_node,
                     import_name = import_name,
                     source_ref  = source_ref
                 )
-        else:
-            import_node = ExpressionImportModule(
-                module_name = module_name,
-                import_list = None,
-                level       = level,
-                source_ref  = source_ref
-            )
 
         # If a name was given, use the one provided, otherwise the import gives
         # the top level package name given for assignment of the imported

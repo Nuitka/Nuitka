@@ -37,6 +37,7 @@ from nuitka.nodes.DictionaryNodes import (
 )
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.FrameNodes import StatementsFrame
+from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
@@ -640,6 +641,17 @@ def makeReraiseExceptionStatement(source_ref):
             ),
         ),
         source_ref = source_ref
+    )
+
+
+def makeAbsoluteImportNode(module_name, source_ref):
+    return ExpressionBuiltinImport(
+        name        = makeConstantRefNode(module_name, source_ref, True),
+        globals_arg = None,
+        locals_arg  = None,
+        fromlist    = None,
+        level       = makeConstantRefNode(0, source_ref, True),
+        source_ref  = source_ref
     )
 
 

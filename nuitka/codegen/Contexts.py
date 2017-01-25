@@ -338,6 +338,13 @@ def _getConstantDefaultPopulation():
         "sum",
         "format",
         "__import__",
+
+        # Arguments of __import__ built-in used in helper code.
+        "name",
+        "globals",
+        "locals",
+        "fromlist",
+        "level"
     ]
 
     if python_version >= 300:

@@ -118,6 +118,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
            not Options.getShallFollowExtraFilePatterns() and \
            not Options.shallFollowNoImports() and \
            not isWhiteListedImport(node) and \
+           not node.recurse_attempted and \
            not Plugins.suppressBuiltinImportWarning(node.getParentModule(), node.getSourceReference()):
             warning("""Unresolved '__import__' call at '%s' may require use \
 of '--recurse-directory'.""" % (

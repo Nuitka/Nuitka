@@ -147,7 +147,6 @@ from .Helpers import (
 from .IdCodes import generateBuiltinHashCode, generateBuiltinIdCode
 from .ImportCodes import (
     generateBuiltinImportCode,
-    generateImportModuleCode,
     generateImportModuleHardCode,
     generateImportNameCode,
     generateImportStarCode
@@ -548,7 +547,6 @@ setExpressionDispatchDict(
         "EXPRESSION_DICT_OPERATION_NOT_IN"          : generateDictOperationInCode,
         "EXPRESSION_FUNCTION_CREATION"              : generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL"                  : generateFunctionCallCode,
-        "EXPRESSION_IMPORT_MODULE"                  : generateImportModuleCode,
         "EXPRESSION_IMPORT_MODULE_HARD"             : generateImportModuleHardCode,
         "EXPRESSION_IMPORT_NAME"                    : generateImportNameCode,
         "EXPRESSION_LIST_OPERATION_EXTEND"          : generateListOperationExtendCode,

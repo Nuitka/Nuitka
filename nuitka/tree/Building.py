@@ -79,7 +79,6 @@ from nuitka.nodes.ConstantRefNodes import (
 from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
-from nuitka.nodes.ImportNodes import ExpressionImportModule
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
@@ -114,6 +113,7 @@ from .Helpers import (
     extractDocFromBody,
     getBuildContext,
     getKind,
+    makeAbsoluteImportNode,
     makeModuleFrame,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -718,10 +718,8 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             for path_imported_name in getPthImportedPackages():
                 statements.append(
                     StatementExpressionOnly(
-                        expression = ExpressionImportModule(
+                        expression = makeAbsoluteImportNode(
                             module_name = path_imported_name,
-                            import_list = (),
-                            level       = 0,
                             source_ref  = source_ref,
                         ),
                         source_ref = source_ref
@@ -730,10 +728,8 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
             statements.append(
                 StatementExpressionOnly(
-                    expression = ExpressionImportModule(
+                    expression = makeAbsoluteImportNode(
                         module_name = "site",
-                        import_list = (),
-                        level       = 0,
                         source_ref  = source_ref,
                     ),
                     source_ref = source_ref

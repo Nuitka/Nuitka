@@ -383,7 +383,7 @@ def getInstanceCallCodeNoArgs(to_name, called_name, called_attribute_name,
 
 
 # Outside helper code relies on some quick call to be present.
-quick_calls_used = set([1, 2, 3])
+quick_calls_used = set([1, 2, 3, 4, 5])
 quick_instance_calls_used = set()
 
 

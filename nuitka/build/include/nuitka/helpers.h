@@ -468,31 +468,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *import_name )
-{
-    CHECK_OBJECT( module );
-    CHECK_OBJECT( import_name );
-
-    PyObject *result = PyObject_GetAttr( module, import_name );
-
-    if (unlikely( result == NULL ))
-    {
-        if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
-        {
-#if PYTHON_VERSION < 340
-            PyErr_Format( PyExc_ImportError, "cannot import name %s", Nuitka_String_AsString( import_name ));
-#else
-            PyErr_Format( PyExc_ImportError, "cannot import name '%s'", Nuitka_String_AsString( import_name ));
-#endif
-        }
-
-        return NULL;
-    }
-
-    return result;
-}
-
-
 #include "nuitka/helper/subscripts.h"
 #include "nuitka/helper/attributes.h"
 #include "nuitka/helper/iterators.h"

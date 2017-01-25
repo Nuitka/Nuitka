@@ -179,7 +179,7 @@ void patchInspectModule( void )
     // fail with it being unable to load it.
     if ( Py_NoSiteFlag == 0 )
     {
-        PyObject *site_module = IMPORT_MODULE( const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0 );
+        PyObject *site_module = IMPORT_MODULE5( const_str_plain_site, Py_None, Py_None, const_tuple_empty, const_int_0 );
 
         if ( site_module == NULL )
         {
@@ -189,7 +189,7 @@ void patchInspectModule( void )
     }
 #endif
 
-    module_inspect = IMPORT_MODULE( const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0 );
+    module_inspect = IMPORT_MODULE5( const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0 );
 
     if ( module_inspect == NULL )
     {
@@ -223,7 +223,7 @@ void patchInspectModule( void )
         PyObject_SetAttrString( module_inspect, "getcoroutinestate", inspect_getcoroutinestate_replacement );
     }
 
-    module_types = IMPORT_MODULE( const_str_plain_types, Py_None, Py_None, const_tuple_empty, const_int_0 );
+    module_types = IMPORT_MODULE5( const_str_plain_types, Py_None, Py_None, const_tuple_empty, const_int_0 );
 
     if ( module_types == NULL )
     {
