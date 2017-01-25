@@ -30,7 +30,7 @@ if os.path.isdir("dist"):
     shutil.rmtree("dist")
 
 branch_name = subprocess.check_output(
-    "git name-rev --name-only HEAD".split()
+    "git symbolic-ref --short HEAD".split()
 ).strip()
 
 print("Building for branch '%s'." % branch_name)
