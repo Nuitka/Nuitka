@@ -1245,9 +1245,7 @@ def computeBuiltinCall(call_node, called):
         if inspect_node.isExpressionBuiltinImport():
             tags    = "new_import"
             message = """\
-Replaced dynamic __import__ %s with static module import.""" % (
-                inspect_node.kind,
-            )
+Replaced dynamic "__import__" call with static built-in call."""
         elif inspect_node.isExpressionBuiltin() or \
              inspect_node.isStatementExec():
             tags = "new_builtin"
@@ -1258,21 +1256,21 @@ Replaced dynamic __import__ %s with static module import.""" % (
         elif inspect_node.isExpressionRaiseException():
             tags = "new_raise"
             message = """\
-Replaced call to built-in '%s' with exception raising call.""" % (
-                inspect_node.kind,
+Replaced call to built-in '%s' with exception raise.""" % (
+                builtin_name,
             )
         elif inspect_node.isExpressionOperationUnary():
             tags = "new_expression"
             message = """\
 Replaced call to built-in '%s' with unary operation '%s'.""" % (
-                inspect_node.kind,
+                builtin_name,
                 inspect_node.getOperator()
             )
         elif inspect_node.isExpressionCall():
             tags = "new_expression"
             message = """\
 Replaced call to built-in '%s' with call.""" % (
-                inspect_node.kind,
+                builtin_name,
             )
         elif inspect_node.isExpressionOutlineBody():
             tags = "new_expression"
