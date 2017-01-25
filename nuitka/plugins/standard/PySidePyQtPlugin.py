@@ -28,7 +28,8 @@ from logging import info
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.utils import Utils, Execution
+from nuitka.utils import Execution, Utils
+
 
 class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
     """ This is for plugins of PySide/PyQt4/PyQt5.
