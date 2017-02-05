@@ -21,6 +21,14 @@ from __future__ import print_function
 
 import os, sys, subprocess, tempfile, atexit, shutil, re, ast
 
+# Hack for now, until we moved to namespace for test too.
+try:
+    import nuitka  # @UnusedImport
+except ImportError:
+    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from nuitka.utils.FileOperations import removeDirectory
+
 # Make sure we flush after every print, the "-u" option does more than that
 # and this is easy enough.
 def my_print(*args, **kwargs):
@@ -150,10 +158,10 @@ def getTempDir():
         )
 
         def removeTempDir():
-            try:
-                shutil.rmtree(tmp_dir)
-            except OSError:
-                pass
+            removeDirectory(
+                path = tmp_dir,
+                ignore_errors = True
+            )
 
         atexit.register(removeTempDir)
 

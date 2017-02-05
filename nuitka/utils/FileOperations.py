@@ -24,6 +24,7 @@ stuff. It will also frequently add sorting.
 
 import os
 import shutil
+import time
 
 from nuitka.utils.Utils import getOS
 
@@ -111,4 +112,37 @@ def hasFilenameExtension(path, extensions):
     return extension in extensions
 
 def removeDirectory(path, ignore_errors):
-    shutil.rmtree(path, ignore_errors)
+    """ Remove a directory recursively.
+
+        On Windows, it happens that operations fail, and succeed when reried,
+        so added a retry and small delay, then another retry. Should make it
+        much more stable during tests.
+
+        All kinds of programs that scan files might cause this, but they do
+        it hopefully only briefly.
+    """
+
+    def onError(func, path, exc_info):
+        # Try again immediately, ignore what happened, pylint: disable=W0613
+        try:
+            func(path)
+        except OSError:
+            time.sleep(0.1)
+
+        func(path)
+
+    if os.path.exists(path):
+        try:
+            shutil.rmtree(
+                path,
+                ignore_errors = False,
+                onerror       = onError
+            )
+        except OSError:
+            if ignore_errors:
+                shutil.rmtree(
+                    path,
+                    ignore_errors = ignore_errors
+                )
+            else:
+                raise
