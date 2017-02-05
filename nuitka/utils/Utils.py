@@ -139,22 +139,6 @@ def areSamePaths(path1, path2):
 def readLink(path):
     return os.readlink(path)  # @UndefinedVariable
 
-
-def listDir(path):
-    """ Give a sorted path, base filename pairs of a directory."""
-
-    return sorted(
-        [
-            (
-                joinpath(path, filename),
-                filename
-            )
-            for filename in
-            os.listdir(path)
-        ]
-    )
-
-
 def getFileList(path):
     for root, _dirnames, filenames in os.walk(path):
         for filename in filenames:
@@ -222,16 +206,3 @@ def isExecutableCommand(command):
                 return True
 
     return False
-
-
-def getSubDirectories(path):
-    result = []
-
-    for root, dirnames, _filenames in os.walk(path):
-        for dirname in dirnames: # pylint: disable=W0621
-            result.append(
-                joinpath(root, dirname)
-            )
-
-    result.sort()
-    return result

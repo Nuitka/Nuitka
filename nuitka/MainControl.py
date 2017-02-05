@@ -41,6 +41,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
+from nuitka.utils.FileOperations import listDir
 
 from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface
@@ -182,7 +183,7 @@ def getResultFullpath(main_module):
 
 def cleanSourceDirectory(source_dir):
     if Utils.isDir(source_dir):
-        for path, _filename in Utils.listDir(source_dir):
+        for path, _filename in listDir(source_dir):
             if Utils.getExtension(path) in (".c", ".h", ".o", ".os", ".obj",
                                             ".bin", ".res", ".rc", ".S", ".cpp",
                                             ".manifest"):

@@ -44,7 +44,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
-from nuitka.utils.Utils import basename, getSubDirectories, listDir
+from nuitka.utils.FileOperations import getSubDirectories, listDir
 
 from .DependsExe import getDependsExePath
 
@@ -412,7 +412,7 @@ def detectEarlyImports():
     encoding_names = [
         filename[:-3]
         for _path, filename in
-        Utils.listDir(Utils.dirname(sys.modules["encodings"].__file__))
+        listDir(Utils.dirname(sys.modules["encodings"].__file__))
         if filename.endswith(".py")
         if "__init__" not in filename
     ]
@@ -620,7 +620,7 @@ SxS
                     "UserDir %s" % dirname
                     for dirname in
                     [original_dir] + getSubDirectories(original_dir)
-                    if not basename(dirname) == "__pycache__"
+                    if not Utils.basename(dirname) == "__pycache__"
                     if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
                 )
                 if original_dir is not None

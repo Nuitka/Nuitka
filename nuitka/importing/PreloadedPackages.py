@@ -26,6 +26,7 @@ import sys
 from logging import warning
 
 from nuitka.utils import Utils
+from nuitka.utils.FileOperations import listDir
 
 
 def getLoadedPackages():
@@ -99,7 +100,7 @@ def detectPthImportedPackages():
         if not Utils.isDir(prefix):
             continue
 
-        for path, filename in Utils.listDir(prefix):
+        for path, filename in listDir(prefix):
             if filename.endswith(".pth"):
                 try:
                     for line in open(path, "rU"):

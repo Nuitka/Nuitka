@@ -46,7 +46,7 @@ from nuitka import Options
 from nuitka.containers import oset
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
-from nuitka.utils import Utils
+from nuitka.utils.FileOperations import listDir
 
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
 from .Whitelisting import isWhiteListedNotExistingModule
@@ -370,10 +370,8 @@ def _findModuleInPath2(module_name, search_path):
             return candidates[0][2]
         else:
             for candidate in candidates:
-                dir_listing = os.listdir(candidate[0])
-
-                for filename in dir_listing:
-                    if Utils.joinpath(candidate[0], filename) == candidate[2]:
+                for fullname, _filename in listDir(candidate[0]):
+                    if fullname == candidate[2]:
                         return candidate[2]
 
             # Only exact case matches matter, all candidates were ignored,

@@ -30,6 +30,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
+from nuitka.utils.FileOperations import listDir
 
 
 def logRecursion(*args):
@@ -321,7 +322,7 @@ def _checkPluginPath(plugin_filename, module_package):
                         package_dir
                     )
 
-                    for sub_path, sub_filename in Utils.listDir(package_dir):
+                    for sub_path, sub_filename in listDir(package_dir):
                         if sub_filename in ("__init__.py", "__pycache__"):
                             continue
 
@@ -355,7 +356,7 @@ def checkPluginPath(plugin_filename, module_package):
            Importing.isPackageDir(plugin_info[0]):
             _checkPluginPath(plugin_filename, module_package)
         elif Utils.isDir(plugin_info[0]):
-            for sub_path, sub_filename in Utils.listDir(plugin_info[0]):
+            for sub_path, sub_filename in listDir(plugin_info[0]):
                 assert sub_filename != "__init__.py"
 
                 if Importing.isPackageDir(sub_path) or \
