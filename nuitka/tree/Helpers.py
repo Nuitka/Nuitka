@@ -186,7 +186,7 @@ def detectFunctionBodyKind(nodes):
                     _check(field[0].iter)
                 else:
                     assert False, (name, field, ast.dump(node))
-        elif python_version >= 270 and node_class is ast.SetComp:
+        elif python_version >= 270 and node_class is ast.SetComp:  # @UndefinedVariable
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body", "comparators", "elt"):
                     pass
@@ -194,7 +194,7 @@ def detectFunctionBodyKind(nodes):
                     _check(field[0].iter)
                 else:
                     assert False, (name, field, ast.dump(node))
-        elif python_version >= 270 and node_class is ast.DictComp:
+        elif python_version >= 270 and node_class is ast.DictComp:  # @UndefinedVariable
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body", "comparators", "key", "value"):
                     pass

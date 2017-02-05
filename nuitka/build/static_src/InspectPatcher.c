@@ -15,7 +15,8 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-/* This is responsible for updating parts of CPython to better work with Nuitka
+/**
+ * This is responsible for updating parts of CPython to better work with Nuitka
  * by replacing CPython implementations with enhanced versions.
  */
 

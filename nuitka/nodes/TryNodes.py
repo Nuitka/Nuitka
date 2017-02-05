@@ -266,7 +266,7 @@ class StatementTry(StatementChildrenHavingBase):
            break_handler is None and \
            continue_handler is None and \
            return_handler is None:
-            return tried, "new_statements", "Removed all try handlers."
+            return tried, "new_statements", "Removed useless try, all handlers removed."
 
         tried_statements = tried.getStatements()
 
