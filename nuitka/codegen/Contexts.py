@@ -230,7 +230,7 @@ class CodeObjectsMixin:
             code_object.getVarNames(),
             code_object.getArgumentCount(),
             code_object.getKwOnlyParameterCount(),
-            code_object.getKind(),
+            code_object.getCodeObjectKind(),
             is_optimized,
             new_locals,
             code_object.hasStarListArg(),

@@ -226,7 +226,6 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
 def main():
     # Of course many cases to deal with, pylint: disable=R0912,R0914,R0915
 
-
     filename = sys.argv[1]
     args     = sys.argv[2:]
 

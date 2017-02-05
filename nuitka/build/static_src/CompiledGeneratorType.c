@@ -70,7 +70,8 @@ static void Nuitka_Generator_entry_point( int address_1, int address_2 )
 {
     // Restore the pointer from integers should it be necessary, depending on
     // the platform. This requires pointers to be no larger that to "int" value.
-    int addresses[2] = {
+    int addresses[2] =
+    {
         address_1,
         address_2
     };

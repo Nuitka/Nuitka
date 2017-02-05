@@ -56,16 +56,16 @@ class CodeObjectSpec:
 
     def getDetails(self):
         return {
-            "co_name"     : self.co_name,
-            "co_kind"     : self.co_kind,
-            "co_varnames"     : ','.join(self.co_varnames),
-            "co_argcount" : self.co_argcount,
+            "co_name"           : self.co_name,
+            "co_kind"           : self.co_kind,
+            "co_varnames"       : ','.join(self.co_varnames),
+            "co_argcount"       : self.co_argcount,
             "co_kwonlyargcount" : self.co_kwonlyargcount,
-            "co_has_starlist"  : self.co_has_starlist,
-            "co_has_stardict"  : self.co_has_stardict,
+            "co_has_starlist"   : self.co_has_starlist,
+            "co_has_stardict"   : self.co_has_stardict,
         }
 
-    def getKind(self):
+    def getCodeObjectKind(self):
         return self.co_kind
 
     def updateLocalNames(self, local_names):

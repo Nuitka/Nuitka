@@ -90,7 +90,7 @@ def _insertFinalReturnStatement(function_statements_body, return_class,
 
     if function_statements_body is None:
         function_statements_body = makeStatementsSequenceFromStatement(
-            statement = return_statement,
+            statement = return_statement
         )
     elif not function_statements_body.isStatementAborting():
         function_statements_body.setStatements(

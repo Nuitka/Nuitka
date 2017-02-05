@@ -21,7 +21,7 @@
 #define NUITKA_COROUTINE_FREE_LIST 1
 #define MAX_COROUTINE_FREE_LIST_COUNT 100
 
-static PyObject *Nuitka_Coroutine_get_name( struct Nuitka_CoroutineObject *coroutine)
+static PyObject *Nuitka_Coroutine_get_name( struct Nuitka_CoroutineObject *coroutine )
 {
     return INCREASE_REFCOUNT( coroutine->m_name );
 }
@@ -138,7 +138,8 @@ static void Nuitka_Coroutine_entry_point( int address_1, int address_2 )
 {
     // Restore the pointer from integers should it be necessary, depending on
     // the platform. This requires pointers to be no larger that to "int" value.
-    int addresses[2] = {
+    int addresses[2] =
+    {
         address_1,
         address_2
     };
@@ -164,15 +165,6 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
     if ( coroutine->m_status != status_Finished )
     {
         PyThreadState *thread_state = PyThreadState_GET();
-
-#if PYTHON_VERSION < 300
-        PyObject *saved_exception_type = thread_state->exc_type;
-        Py_XINCREF( saved_exception_type );
-        PyObject *saved_exception_value = thread_state->exc_value;
-        Py_XINCREF( saved_exception_value );
-        PyTracebackObject *saved_exception_traceback = (PyTracebackObject *)thread_state->exc_traceback;
-        Py_XINCREF( saved_exception_traceback );
-#endif
 
         if ( coroutine->m_running )
         {
@@ -678,7 +670,7 @@ static PyMemberDef Nuitka_Coroutine_members[] =
 };
 
 
-static PyAsyncMethods coro_as_async =
+static PyAsyncMethods Nuitka_Coroutine_as_async =
 {
     (unaryfunc)Nuitka_Coroutine_await,  /* am_await */
     0,                                  /* am_aiter */
@@ -695,7 +687,7 @@ PyTypeObject Nuitka_Coroutine_Type =
     0,                                                    /* tp_print */
     0,                                                    /* tp_getattr */
     0,                                                    /* tp_setattr */
-    &coro_as_async,                                       /* tp_as_async */
+    &Nuitka_Coroutine_as_async,                           /* tp_as_async */
     (reprfunc)Nuitka_Coroutine_tp_repr,                   /* tp_repr */
     0,                                                    /* tp_as_number */
     0,                                                    /* tp_as_sequence */

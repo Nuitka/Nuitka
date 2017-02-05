@@ -166,7 +166,7 @@ def getTempDir():
 
         def removeTempDir():
             removeDirectory(
-                path = tmp_dir,
+                path          = tmp_dir,
                 ignore_errors = True
             )
 
@@ -715,7 +715,7 @@ def createSearchMode():
                 dirname,
                 filename,
                 filename.replace(".py", ""),
-                filename.split(".")[0],
+                filename.split('.')[0],
                 path,
                 path.replace(".py", ""),
 
@@ -898,7 +898,7 @@ def convertToPython(doctests, line_filter = None):
 
             if sys.version_info < (3,):
                 modified = (count-1) * ' ' + "print " + evaluated
-                return (count-1) * ' ' + ("print 'Line %d'" % line_number) + "\n" + modified
+                return (count-1) * ' ' + ("print 'Line %d'" % line_number) + '\n' + modified
             else:
                 modified = (count-1) * ' ' + "print(" + evaluated + "\n)\n"
                 return (count-1) * ' ' + ("print('Line %d'" % line_number) + ")\n" + modified
@@ -976,7 +976,7 @@ def compileLibraryPath(search_mode, path, stage_dir, decide, action):
         dirnames_to_remove = [
             dirname
             for dirname in dirnames
-            if "-" in dirname
+            if '-' in dirname
         ]
 
         for dirname in dirnames_to_remove:

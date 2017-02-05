@@ -96,8 +96,7 @@ class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin,
         "body" : checkStatementsSequenceOrNone
     }
 
-    if python_version >= 340:
-        qualname_setup = None
+    qualname_setup = None
 
     def __init__(self, provider, name, flags, source_ref):
         while provider.isExpressionOutlineBody():

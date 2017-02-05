@@ -153,8 +153,8 @@ class ExpressionBuiltinIntLongBase(ExpressionSpecBasedComputationBase):
     def __init__(self, value, base, source_ref):
         if value is None and self.base_only_value:
             value = makeConstantRefNode(
-                constant = '0',
-                source_ref = source_ref,
+                constant      = '0',
+                source_ref    = source_ref,
                 user_provided = True
             )
 
