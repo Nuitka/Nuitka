@@ -21,6 +21,8 @@ This provides the capability of comparing performance results of Nuitka and
 CPython relatively to one another.
 """
 
+# Note: This is currently severely broken.
+
 from __future__ import print_function
 
 import runpy
@@ -85,5 +87,5 @@ def main():
         show(stats)
 
 
-
-main()
+if __name__ == "__main__":
+    main()
