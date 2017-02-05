@@ -1,6 +1,84 @@
 Nuitka Release 0.5.26 (Draft)
 =============================
 
+Bug Fixes
+---------
+
+- Compatibility: Fix, for star imports didn't check the values from the
+  ``__all__`` iterable, if they were string values which could cause
+  problems at run time.
+
+  .. code-block:: python
+
+    # Module level
+    __all__ = (1,)
+
+    # ...
+    # other module:
+    from module import *
+
+- Fix, for start imports, also didn't check for values from ``__all__``
+  if they actually exist in the original values.
+
+- Corner cases of importing should work a lot more precise, as the level of
+  compatibility for calls to ``__import__`` went from absurd to insane.
+
+- Windows: Fixed detection of uninstalled Python versions (not for all users
+  and DLL is not in system directory). This of course only affected the
+  accelerated mode, not standalone mode.
+
+- Windows: Scan directories for ``.pyd`` files for used DLLs as well. This
+  should make the PyQt5 wheel work.
+
+Optimization
+------------
+
+- For imports, we now detect for built-in modules, that their import cannot
+  fail, and if name lookups can fail. This leads to less code generated for
+  error handling of these. The following code now e.g. fully detects that
+  no ``ImportError`` or ``AttributeError`` will occur.
+
+  .. code-block:: python
+
+    try:
+        from __builtin__ import len
+    except ImportError:
+        from builtins import len
+
+
+Cleanups
+--------
+
+- Now always uses the ``__import__`` built-in node for all kinds of imports
+  and directly optimizes and recursion into other modules based on that kind
+  of node, instead of a static variant. This removes duplication and some
+  incompatability regarding defaults usage when doing the actual imports at
+  run time.
+
+- Split the expression node bases and mixin classes to a dedicated module,
+  moving methods that only belong to expressions outside of the node base,
+  making for a cleaner class hierachy.
+
+- Cleaned up the class structure of nodes, added base classes for typical
+  compositions, e.g. expression with and without children, computation based
+  on built-in, etc. while also checking proper ordering of base classes in
+  the metaclass.
+
+- Moved directory and file operations to dedicated module, making also sure
+  it is more generally used. This makes it easier to make more error resilient
+  deletions of directories on e.g. Windows, where locks tend to live for short
+  times beyond program ends, requiring second attempts.
+
+
+Organizational
+--------------
+
+- Added initial support for testing with Travis to complement the internal
+  Buildbot infrastructure.
+
+Summary
+-------
+
 This release is not done yet.
 
 
@@ -17,7 +95,7 @@ Bug Fixes
 - Python3.5: Coroutine methods using ``super`` were crashing the compiler.
   `Issue#340 <http://bugs.nuitka.net/issue340>`__. Fixed in 0.5.24.2 already.
 
-- Python3.3: Generator return values were properly transmitted in case of
+- Python3.3: Generator return values were not properly transmitted in case of
   ``tuple`` or ``StopIteration`` values.
 
 - Python3.5: Better interoperability between compiled coroutines and uncompiled
@@ -184,8 +262,8 @@ Tests
 - Added the CPython 3.3 test suite, after cleaning up the worst bits of it,
   and added the brandnew 3.6 test suite with a minimal set of changes.
 
-- Use the original 3.4.3 test suite instead of the one that comes from Debian
-  as it has patched quiet a few issues that never made it upstream, and might
+- Use the original 3.4 test suite instead of the one that comes from Debian
+  as it has patched quite a few issues that never made it upstream, and might
   cause crashes.
 
 - More construct tests, making a difference between old style classes, which
