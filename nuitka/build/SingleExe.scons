@@ -1275,13 +1275,13 @@ def discoverSourceFiles():
     # If we use C11 capable compiler, all good. Otherwise use C++, which Scons
     # needs to derive from filenames, so make copies (or links) with a different
     # name.
-    def cheap_copy(src,dst):
+    def cheap_copy(src, dst):
         if win_target:
             # Windows has symlinks these days, but they do not integrate well
             # with Python2 at least.So make a copy in any case.
             if os.path.exists(dst):
                 os.unlink(dst)
-            shutil.copy(src,dst)
+            shutil.copy(src, dst)
         else:
             # Relative paths work badly for links. Creating them relative is
             # not worth the effort.
@@ -1303,7 +1303,11 @@ def discoverSourceFiles():
                 except OSError:
                     pass
 
-            os.symlink(src,dst)
+            try:
+                os.symlink(src, dst)
+            except OSError:
+                shutil.copy(src, dst)
+
 
     def provideStatic(sub_path):
         # TODO: That should be normpath maybe.
