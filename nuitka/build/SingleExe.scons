@@ -182,6 +182,9 @@ if "CXX" in os.environ:
 def getExecutablePath(filename, initial):
     """ Find an execute in either normal PATH, or Scons detected PATH. """
 
+    if os.path.exists(filename):
+        return True
+
     # Variable substitution from environment is needed, because this can contain
     # "$CC" which should be looked up too.
     while filename.startswith('$'):
@@ -388,14 +391,14 @@ if show_scons_mode:
     print "Initial CXX:", env.get("CXX", None)
     print "Initial CXXVERSION:", env.get("CXXVERSION", None)
 
-if clang_mode:
+if "CC" in os.environ:
+    # If the environment variable CXX is set, use that.
+    env["CC"] = os.environ["CC"]
+    env["CCVERSION"] = None
+elif clang_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
     env["CC"] = "clang"
-    env["CCVERSION"] = None
-elif "CC" in os.environ:
-    # If the environment variable CXX is set, use that.
-    env["CC"] = os.environ["CC"]
     env["CCVERSION"] = None
 
 # Requested or user provided, detect if it's clang.
@@ -519,6 +522,10 @@ b) To make it find Visual Studio execute from Start Menu the 'Visual Studio
 c) Install MinGW64 to "C:\\MinGW64" or "\\MinGW", where then it is automatically
    detected or add it to PATH before executing Nuitka. But be sure to pick the
    proper variant (32/64 bits, your Python arch is %r).
+
+d) Set the environment variable 'CC' to the *full* path of either "gcc.exe". Also
+   be sure to head proper architecture or else errors will occur.
+
 """ % (sys.exec_prefix, target_arch))
     else:
         sys.exit("Error, cannot locate suitable C compiler.")
