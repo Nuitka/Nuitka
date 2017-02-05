@@ -1382,7 +1382,19 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
         PyObject *item = ITERATOR_NEXT( iter );
         if ( item == NULL ) break;
 
-        assert( Nuitka_String_Check( item ) );
+#if PYTHON_VERSION < 300
+        if (unlikely( PyString_Check( item ) == false && PyUnicode_Check( item ) == false ))
+#else
+        if (unlikely( PyUnicode_Check( item ) == false ))
+#endif
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "attribute name must be string, not '%s'",
+                Py_TYPE( item )->tp_name
+            );
+            break;
+        }
 
         // TODO: Not yet clear, what happens with __all__ and "_" of its
         // contents.
