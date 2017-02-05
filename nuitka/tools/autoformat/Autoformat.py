@@ -28,16 +28,25 @@ import re
 import shutil
 import sys
 
+from baron.parser import ParsingError  # @UnresolvedImport
 from redbaron import RedBaron  # @UnresolvedImport
 
 
-def autoformat(filename):
+def autoformat(filename, abort = False):
     # All the complexity in one place, pylint: disable=R0912,R0915
     print("Consider", filename, end = ": ")
 
     old_code = open(filename, 'r').read()
 
-    red = RedBaron(old_code.rstrip()+'\n')
+    try:
+        red = RedBaron(old_code)
+        # red = RedBaron(old_code.rstrip()+'\n')
+    except ParsingError:
+        if abort:
+            raise
+
+        print("PARSING ERROR.")
+        return 2
 
     def updateCall(call_node):
         max_len = 0
@@ -208,7 +217,6 @@ def autoformat(filename):
     new_code = red.dumps()
 
     if new_code != old_code:
-
         new_name = filename + ".new"
 
         with open(new_name, 'w') as source_code:
@@ -226,5 +234,9 @@ def autoformat(filename):
         os.chmod(filename, old_stat.st_mode)
 
         print("updated.")
+        changed = 1
     else:
         print("OK.")
+        changed = 0
+
+    return changed
