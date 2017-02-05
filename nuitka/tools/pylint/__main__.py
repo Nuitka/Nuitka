@@ -41,7 +41,7 @@ sys.path.insert(
     )
 )
 
-from nuitka.tools.Basics import goHome, addPYTHONPATH # isort:skip
+from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH # isort:skip
 from nuitka.tools.ScanSources import scanTargets # isort:skip
 from nuitka.tools.pylint.PyLint import executePyLint # isort:skip
 
@@ -50,6 +50,7 @@ def main():
 
     # So PyLint finds nuitka package.
     addPYTHONPATH(os.getcwd())
+    setupPATH()
 
     parser = OptionParser()
 
