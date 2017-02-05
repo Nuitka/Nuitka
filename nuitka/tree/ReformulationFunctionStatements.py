@@ -28,6 +28,10 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
+from nuitka.nodes.AsyncgenNodes import (
+    ExpressionAsyncgenObjectBody,
+    ExpressionMakeAsyncgenObject
+)
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
     StatementSpecialUnpackCheck
@@ -282,14 +286,15 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
-    _function_kind, flags, _written_variables, _non_local_declarations, _global_declarations = \
+    function_kind, flags, _written_variables, _non_local_declarations, _global_declarations = \
       detectFunctionBodyKind(
-        nodes = function_statement_nodes
+        nodes       = function_statement_nodes,
+        start_value = "Coroutine"
     )
 
     creator_function_body, _, code_object = buildFunctionWithParsing(
         provider      = provider,
-        function_kind = "Coroutine",
+        function_kind = function_kind,
         name          = node.name,
         flags         = (),
         function_doc  = function_doc,
@@ -297,12 +302,21 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         source_ref    = source_ref
     )
 
-    function_body = ExpressionCoroutineObjectBody(
-        provider   = creator_function_body,
-        name       = node.name,
-        flags      = flags,
-        source_ref = source_ref
-    )
+    if function_kind == "Coroutine":
+        function_body = ExpressionCoroutineObjectBody(
+            provider   = creator_function_body,
+            name       = node.name,
+            flags      = flags,
+            source_ref = source_ref
+        )
+    else:
+        function_body = ExpressionAsyncgenObjectBody(
+            provider   = creator_function_body,
+            name       = node.name,
+            flags      = flags,
+            source_ref = source_ref
+        )
+
 
     decorators = buildNodeList(
         provider   = provider,
@@ -347,17 +361,30 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         source_ref    = source_ref
     )
 
+    if function_kind == "Coroutine":
+        creation_node = ExpressionMakeCoroutineObject(
+            coroutine_ref = ExpressionFunctionRef(
+                function_body = function_body,
+                source_ref    = source_ref
+            ),
+            code_object   = code_object,
+            source_ref    = source_ref
+        )
+    else:
+        creation_node = ExpressionMakeAsyncgenObject(
+            asyncgen_ref = ExpressionFunctionRef(
+                function_body = function_body,
+                source_ref    = source_ref
+            ),
+            code_object  = code_object,
+            source_ref   = source_ref
+        )
+
+
     creator_function_body.setBody(
         makeStatementsSequenceFromStatement(
             statement = StatementReturn(
-                expression = ExpressionMakeCoroutineObject(
-                    coroutine_ref = ExpressionFunctionRef(
-                        function_body = function_body,
-                        source_ref    = source_ref
-                    ),
-                    code_object   = code_object,
-                    source_ref    = source_ref
-                ),
+                expression = creation_node,
                 source_ref = source_ref
             )
         )
@@ -794,8 +821,8 @@ def addFunctionVariableReleases(function):
     assert function.isExpressionFunctionBody() or \
            function.isExpressionClassBody() or \
            function.isExpressionGeneratorObjectBody() or \
-           function.isExpressionCoroutineObjectBody()
-
+           function.isExpressionCoroutineObjectBody() or \
+           function.isExpressionAsyncgenObjectBody()
 
     releases = []
 

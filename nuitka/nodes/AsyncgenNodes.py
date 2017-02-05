@@ -15,9 +15,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Nodes for coroutine objects and their creations.
+""" Nodes for async generator objects and their creations.
 
-Coroutines are turned into normal functions that create generator objects,
+Async generator are turned into normal functions that create generator objects,
 whose implementation lives here. The creation itself also lives here.
 
 """
@@ -32,22 +32,22 @@ from .IndicatorMixins import (
 from .NodeBases import ChildrenHavingMixin
 
 
-class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_MAKE_COROUTINE_OBJECT"
+class ExpressionMakeAsyncgenObject(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_MAKE_ASYNCGEN_OBJECT"
 
     named_children = (
-        "coroutine_ref",
+        "asyncgen_ref",
     )
 
-    getCoroutineRef = ExpressionChildrenHavingBase.childGetter("coroutine_ref")
+    getAsyncgenRef = ExpressionChildrenHavingBase.childGetter("asyncgen_ref")
 
-    def __init__(self, coroutine_ref, code_object, source_ref):
-        assert coroutine_ref.getFunctionBody().isExpressionCoroutineObjectBody()
+    def __init__(self, asyncgen_ref, code_object, source_ref):
+        assert asyncgen_ref.getFunctionBody().isExpressionAsyncgenObjectBody()
 
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "coroutine_ref" : coroutine_ref,
+                "asyncgen_ref" : asyncgen_ref,
             },
             source_ref = source_ref
         )
@@ -64,11 +64,11 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
 
     def getDetailsForDisplay(self):
         return {
-            "coroutine" : self.getCoroutineRef().getFunctionBody().getCodeName()
+            "asyncgen" : self.getAsyncgenRef().getFunctionBody().getCodeName()
         }
 
     def computeExpression(self, trace_collection):
-        # TODO: Coroutine body may know something too.
+        # TODO: Asyncgen body may know something too.
         return self, None, None
 
     def mayRaiseException(self, exception_type):
@@ -78,12 +78,12 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
         return False
 
 
-class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin,
-                                    MarkUnoptimizedFunctionIndicatorMixin,
-                                    ExpressionFunctionBodyBase):
+class ExpressionAsyncgenObjectBody(MarkLocalsDictIndicatorMixin,
+                                   MarkUnoptimizedFunctionIndicatorMixin,
+                                   ExpressionFunctionBodyBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
-    kind = "EXPRESSION_COROUTINE_OBJECT_BODY"
+    kind = "EXPRESSION_ASYNCGEN_OBJECT_BODY"
 
     named_children = (
         "body",
@@ -104,7 +104,7 @@ class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin,
             self,
             provider    = provider,
             name        = name,
-            code_prefix = "coroutine",
+            code_prefix = "asyncgen",
             is_class    = False,
             flags       = flags,
             source_ref  = source_ref
@@ -140,24 +140,3 @@ class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin,
 
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
-
-
-class ExpressionAsyncWait(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_ASYNC_WAIT"
-
-    named_children = ("expression",)
-
-    def __init__(self, expression, source_ref):
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "expression" : expression
-            },
-            source_ref = source_ref
-        )
-
-    def computeExpression(self, trace_collection):
-        # TODO: Might be predictable based awaitable analysis or for constants.
-        return self, None, None
-
-    getValue = ExpressionFunctionBodyBase.childGetter("expression")

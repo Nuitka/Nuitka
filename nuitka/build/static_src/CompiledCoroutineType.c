@@ -643,6 +643,8 @@ static void Nuitka_Coroutine_tp_dealloc( struct Nuitka_CoroutineObject *coroutin
 
 #include <structmember.h>
 
+// TODO: Set "__doc__" automatically for method clones of compiled types from
+// the documentation of built-in original type.
 static PyMethodDef Nuitka_Coroutine_methods[] =
 {
     { "send",  (PyCFunction)Nuitka_Coroutine_send,  METH_O, NULL },
@@ -651,6 +653,9 @@ static PyMethodDef Nuitka_Coroutine_methods[] =
     { NULL }
 };
 
+
+// TODO: Set "__doc__" automatically for method clones of compiled types from
+// the documentation of built-in original type.
 static PyGetSetDef Nuitka_Coroutine_getsetlist[] =
 {
     { (char *)"__name__",     (getter)Nuitka_Coroutine_get_name,     (setter)Nuitka_Coroutine_set_name,     NULL },
@@ -729,11 +734,6 @@ PyTypeObject Nuitka_Coroutine_Type =
     0,                                                    /* tp_version_tag */
     (destructor)Nuitka_Coroutine_tp_del,                  /* tp_finalize */
 };
-
-void _initCompiledCoroutineType( void )
-{
-    PyType_Ready( &Nuitka_Coroutine_Type );
-}
 
 static void Nuitka_CoroutineWrapper_tp_dealloc( struct Nuitka_CoroutineWrapperObject *cw )
 {
@@ -822,11 +822,6 @@ PyTypeObject Nuitka_CoroutineWrapper_Type =
     PyObject_Del,                                      /* tp_free */
 };
 
-void _initCompiledCoroutineWrapperType( void )
-{
-    PyType_Ready( &Nuitka_CoroutineWrapper_Type );
-}
-
 PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given )
 {
     struct Nuitka_CoroutineObject *result;
@@ -898,11 +893,11 @@ PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *q
 extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
 extern PyObject *const_str_plain_send;
 
-static int gen_is_coroutine(PyObject *o)
+static int gen_is_coroutine( PyObject *object )
 {
-    if ( PyGen_CheckExact(o) )
+    if ( PyGen_CheckExact( object ) )
     {
-        PyCodeObject *code = (PyCodeObject *)((PyGenObject*)o)->gi_code;
+        PyCodeObject *code = (PyCodeObject *)((PyGenObject *)object)->gi_code;
 
         if ( code->co_flags & CO_ITERABLE_COROUTINE )
         {
@@ -913,7 +908,10 @@ static int gen_is_coroutine(PyObject *o)
     return 0;
 }
 
-static PyObject *PyCoro_GetAwaitableIter( PyObject *value )
+#if PYTHON_VERSION < 360
+static
+#endif
+PyObject *PyCoro_GetAwaitableIter( PyObject *value )
 {
     unaryfunc getter = NULL;
 
@@ -991,7 +989,7 @@ extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
 
 extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
 
-static PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *generator, PyObject *value )
+PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *generator, PyObject *value )
 {
     CHECK_OBJECT( value );
 
@@ -1429,4 +1427,10 @@ PRINT_NEW_LINE();
 #endif
 
     return retval;
+}
+
+void _initCompiledCoroutineTypes( void )
+{
+    PyType_Ready( &Nuitka_Coroutine_Type );
+    PyType_Ready( &Nuitka_CoroutineWrapper_Type );
 }

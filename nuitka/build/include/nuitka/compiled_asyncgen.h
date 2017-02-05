@@ -16,19 +16,19 @@
 //     limitations under the License.
 //
 
-#ifndef __NUITKA_COMPILED_COROUTINE_H__
-#define __NUITKA_COMPILED_COROUTINE_H__
+#ifndef __NUITKA_COMPILED_ASYNCGEN_H__
+#define __NUITKA_COMPILED_ASYNCGEN_H__
 
-// Compiled coroutine type.
+// Compiled async generator type.
 
 // Another cornerstone of the integration into CPython. Try to behave as well as
-// normal coroutine objects do or even better.
+// normal asyncgen objects do or even better.
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 360
 
-// The Nuitka_CoroutineObject is the storage associated with a compiled
-// coroutine object instance of which there can be many for each code.
-struct Nuitka_CoroutineObject {
+// The Nuitka_AsyncgenObject is the storage associated with a compiled
+// async generator object instance of which there can be many for each code.
+struct Nuitka_AsyncgenObject {
     PyObject_VAR_HEAD
 
     PyObject *m_name;
@@ -39,7 +39,7 @@ struct Nuitka_CoroutineObject {
     Fiber m_yielder_context;
     Fiber m_caller_context;
 
-    // Weak references are supported for coroutine objects in CPython.
+    // Weak references are supported for async generator objects in CPython.
     PyObject *m_weakrefs;
 
     int m_running;
@@ -48,7 +48,6 @@ struct Nuitka_CoroutineObject {
     void *m_code;
 
     PyObject *m_yielded;
-    PyObject *m_returned;
 
     PyObject *m_exception_type, *m_exception_value;
     PyTracebackObject *m_exception_tb;
@@ -59,72 +58,80 @@ struct Nuitka_CoroutineObject {
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
+    // The finalizer associated
+    PyObject *m_finalizer;
+
+    // The hooks were initialized
+    bool m_hooks_init_done;
+
+    // It is closed.
+    bool m_closed;
+
     // Closure variables given, if any, we reference cells here.
     Py_ssize_t m_closure_given;
     struct Nuitka_CellObject *m_closure[1];
 };
 
-extern PyTypeObject Nuitka_Coroutine_Type;
+extern PyTypeObject Nuitka_Asyncgen_Type;
 
-typedef void (*coroutine_code)( struct Nuitka_CoroutineObject * );
+typedef void (*asyncgen_code)( struct Nuitka_AsyncgenObject * );
 
-extern PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Asyncgen_New( asyncgen_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given );
 
-static inline bool Nuitka_Coroutine_Check( PyObject *object )
+static inline bool Nuitka_Asyncgen_Check( PyObject *object )
 {
-    return Py_TYPE( object ) == &Nuitka_Coroutine_Type;
+    return Py_TYPE( object ) == &Nuitka_Asyncgen_Type;
 }
 
-struct Nuitka_CoroutineWrapperObject {
+struct Nuitka_AsyncgenWrapperObject {
     PyObject_HEAD
-    struct Nuitka_CoroutineObject *m_coroutine;
+    struct Nuitka_AsyncgenObject *m_asyncgen;
 };
 
-extern PyTypeObject Nuitka_CoroutineWrapper_Type;
+extern PyTypeObject Nuitka_AsyncgenWrapper_Type;
 
-extern PyObject *AWAIT_COROUTINE( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable );
+extern PyObject *AWAIT_ASYNCGEN( struct Nuitka_AsyncgenObject *asyngen, PyObject *awaitable );
 
-extern PyObject *MAKE_ASYNC_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
-extern PyObject *ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
-
-static inline PyObject *COROUTINE_YIELD( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
+static inline PyObject *ASYNCGEN_YIELD( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
 {
     CHECK_OBJECT( value );
 
-    coroutine->m_yielded = value;
+    asyncgen->m_yielded = _PyAsyncGenValueWrapperNew( value );
+    Py_DECREF( value );
 
-    coroutine->m_frame->f_executing -= 1;
+    asyncgen->m_frame->f_executing -= 1;
 
     // Return to the calling context.
-    swapFiber( &coroutine->m_yielder_context, &coroutine->m_caller_context );
+    swapFiber( &asyncgen->m_yielder_context, &asyncgen->m_caller_context );
 
-    coroutine->m_frame->f_executing += 1;
+    asyncgen->m_frame->f_executing += 1;
 
     // Check for thrown exception.
-    if (unlikely( coroutine->m_exception_type ))
+    if (unlikely( asyncgen->m_exception_type ))
     {
         RESTORE_ERROR_OCCURRED(
-            coroutine->m_exception_type,
-            coroutine->m_exception_value,
-            coroutine->m_exception_tb
+            asyncgen->m_exception_type,
+            asyncgen->m_exception_value,
+            asyncgen->m_exception_tb
         );
 
-        coroutine->m_exception_type = NULL;
-        coroutine->m_exception_value = NULL;
-        coroutine->m_exception_tb = NULL;
+        asyncgen->m_exception_type = NULL;
+        asyncgen->m_exception_value = NULL;
+        asyncgen->m_exception_tb = NULL;
 
         return NULL;
     }
 
-    CHECK_OBJECT( coroutine->m_yielded );
-    return coroutine->m_yielded;
+    CHECK_OBJECT( asyncgen->m_yielded );
+    return asyncgen->m_yielded;
 }
 
-static inline PyObject *COROUTINE_YIELD_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
+static inline PyObject *ASYNCGEN_YIELD_IN_HANDLER( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
 {
     CHECK_OBJECT( value );
 
-    coroutine->m_yielded = value;
+    asyncgen->m_yielded = _PyAsyncGenValueWrapperNew( value );
+    Py_DECREF( value );
 
     /* When yielding from an exception handler in Python3, the exception
      * preserved to the frame is restore, while the current one is put there.
@@ -148,12 +155,17 @@ static inline PyObject *COROUTINE_YIELD_IN_HANDLER( struct Nuitka_CoroutineObjec
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 
-    coroutine->m_frame->f_executing -= 1;
+    asyncgen->m_frame->f_executing -= 1;
+
+#if _DEBUG_ASYNCGEN
+    PRINT_STRING("ASYNCGEN_YIELD_FROM_HANDLER:");
+    PRINT_NEW_LINE();
+#endif
 
     // Return to the calling context.
-    swapFiber( &coroutine->m_yielder_context, &coroutine->m_caller_context );
+    swapFiber( &asyncgen->m_yielder_context, &asyncgen->m_caller_context );
 
-    coroutine->m_frame->f_executing += 1;
+    asyncgen->m_frame->f_executing += 1;
 
     // When returning from yield, the exception of the frame is preserved, and
     // the one that enters should be there.
@@ -177,27 +189,25 @@ static inline PyObject *COROUTINE_YIELD_IN_HANDLER( struct Nuitka_CoroutineObjec
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 
     // Check for thrown exception.
-    if (unlikely( coroutine->m_exception_type ))
+    if (unlikely( asyncgen->m_exception_type ))
     {
         RESTORE_ERROR_OCCURRED(
-            coroutine->m_exception_type,
-            coroutine->m_exception_value,
-            coroutine->m_exception_tb
+            asyncgen->m_exception_type,
+            asyncgen->m_exception_value,
+            asyncgen->m_exception_tb
         );
 
-        coroutine->m_exception_type = NULL;
-        coroutine->m_exception_value = NULL;
-        coroutine->m_exception_tb = NULL;
+        asyncgen->m_exception_type = NULL;
+        asyncgen->m_exception_value = NULL;
+        asyncgen->m_exception_tb = NULL;
 
         return NULL;
     }
 
-    return coroutine->m_yielded;
-}
+    assert( asyncgen->m_yielded != NULL );
 
-#if PYTHON_VERSION >= 360
-extern PyObject *PyCoro_GetAwaitableIter( PyObject *value );
-#endif
+    return asyncgen->m_yielded;
+}
 
 #endif
 

@@ -31,7 +31,6 @@ from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesFrames import (
     template_frame_guard_cache_decl,
-    template_frame_guard_coroutine,
     template_frame_guard_frame_decl,
     template_frame_guard_full_block,
     template_frame_guard_full_exception_handler,
@@ -63,6 +62,8 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             context.setFrameHandle("generator->m_frame")
         elif provider.isExpressionCoroutineObjectBody():
             context.setFrameHandle("coroutine->m_frame")
+        elif provider.isExpressionAsyncgenObjectBody():
+            context.setFrameHandle("asyncgen->m_frame")
         elif provider.isCompiledPythonModule():
             context.setFrameHandle("frame_module")
         else:
@@ -108,7 +109,8 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     if guard_mode == "generator":
         # Only these two use this.
         assert provider.isExpressionGeneratorObjectBody() or \
-               provider.isExpressionCoroutineObjectBody()
+               provider.isExpressionCoroutineObjectBody() or \
+               provider.isExpressionAsyncgenObjectBody()
 
         # TODO: This case should care about "needs_preserve", as for
         # Python3 it is actually not a stub of empty code.
@@ -297,24 +299,21 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
                            frame_return_exit, provider, emit, context):
     context.markAsNeedsExceptionVariables()
 
-    if context.getOwner().isExpressionGeneratorObjectBody():
-        kind = "generator"
-        template = template_frame_guard_generator
-    else:
-        kind = "coroutine"
-        template = template_frame_guard_coroutine
+    context_identifier = context.getContextObjectName()
+    frame_identifier = "frame_" + context_identifier
 
     context.addFrameDeclaration(
         template_frame_guard_cache_decl % {
-            "frame_identifier" : "frame_" + kind,
+            "frame_identifier" : frame_identifier,
         }
     )
 
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
     emit(
-        template % {
-            "frame_cache_identifier" : "cache_frame_" + kind,
+        template_frame_guard_generator % {
+            "context_identifier"     : context_identifier,
+            "frame_cache_identifier" : "cache_" + frame_identifier,
             "code_identifier"        : code_identifier,
             "codes"                  : indented(codes, 0),
             "module_identifier"      : getModuleAccessCode(context = context),
@@ -325,9 +324,9 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
     if frame_return_exit is not None:
         emit(
             template_frame_guard_generator_return_handler % {
-                "frame_identifier"  : "%s->m_frame" % kind,
-                "return_exit"       : parent_return_exit,
-                "frame_return_exit" : frame_return_exit,
+                "frame_identifier"   : "%s->m_frame" % context_identifier,
+                "return_exit"        : parent_return_exit,
+                "frame_return_exit"  : frame_return_exit,
             }
         )
 
@@ -341,7 +340,7 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
 
         emit(
             template_frame_guard_generator_exception_handler % {
-                "frame_identifier"      : "%s->m_frame" % kind,
+                "frame_identifier"      : "%s->m_frame" % context_identifier,
                 "frame_locals_name"     : frame_locals_name,
                 "store_frame_locals"    : indented(
                     locals_code,

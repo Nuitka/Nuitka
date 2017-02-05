@@ -40,7 +40,7 @@ def _checkInsideGenerator(provider, node, source_ref):
         )
 
     # This is forbidden in 3.5, but allows in 3.6
-    if provider.isExpressionCoroutineObjectBody() and python_version < 360:
+    if provider.isExpressionAsyncgenObjectBody() and python_version < 360:
         SyntaxErrors.raiseSyntaxError(
             "'%s' inside async function" % (
                 "yield" if node.__class__ is ast.Yield else "yield from",
@@ -49,7 +49,7 @@ def _checkInsideGenerator(provider, node, source_ref):
         )
 
     assert provider.isExpressionGeneratorObjectBody() or \
-           provider.isExpressionCoroutineObjectBody(), provider
+           provider.isExpressionAsyncgenObjectBody(), provider
 
 
 def buildYieldNode(provider, node, source_ref):

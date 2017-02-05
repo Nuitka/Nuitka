@@ -79,10 +79,16 @@ def getCodeObjectsInitCode(context):
         # Make sure the filename is always identical.
         assert code_object_key[0] == module_filename
 
-        if code_object_key[6] == "Generator":
+        if code_object_key[6] in ("Module", "Class", "Function"):
+            pass
+        elif code_object_key[6] == "Generator":
             co_flags.append("CO_GENERATOR")
         elif code_object_key[6] == "Coroutine":
             co_flags.append("CO_COROUTINE")
+        elif code_object_key[6] == "Asyncgen":
+            co_flags.append("CO_ASYNC_GENERATOR")
+        else:
+            assert False, code_object_key[6]
 
         if code_object_key[7]:
             co_flags.append("CO_OPTIMIZED")

@@ -280,6 +280,8 @@ def getMustNotGetHereCode(reason, context, emit):
         emit("return;")
     elif provider.isExpressionCoroutineObjectBody():
         emit("return;")
+    elif provider.isExpressionAsyncgenObjectBody():
+        emit("return;")
     elif provider.isCompiledPythonModule():
         emit("return MOD_RETURN_VALUE( NULL );")
     else:

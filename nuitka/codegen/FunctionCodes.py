@@ -19,6 +19,7 @@
 
 """
 
+from nuitka.codegen.AsyncgenCodes import getAsyncgenObjectDeclCode
 from nuitka.PythonVersions import python_version
 
 from .CoroutineCodes import getCoroutineObjectDeclCode
@@ -608,6 +609,10 @@ def generateFunctionDeclCode(function_body, context):
         )
     elif function_body.isExpressionCoroutineObjectBody():
         return getCoroutineObjectDeclCode(
+            function_identifier = function_body.getCodeName(),
+        )
+    elif function_body.isExpressionAsyncgenObjectBody():
+        return getAsyncgenObjectDeclCode(
             function_identifier = function_body.getCodeName(),
         )
     elif function_body.isExpressionClassBody():

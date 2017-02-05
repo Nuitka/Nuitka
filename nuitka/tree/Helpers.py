@@ -88,11 +88,14 @@ def parseSourceCodeToAst(source_code, filename, line_offset):
     return body
 
 
-def detectFunctionBodyKind(nodes):
+def detectFunctionBodyKind(nodes, start_value = None):
     # This is a complex mess, following the scope means a lot of checks need
     # to be done. pylint: disable=R0912,R0915
 
     indications = set()
+    if start_value is not None:
+        indications.add(start_value)
+
     written_variables = set()
     non_local_declarations = set()
     global_declarations = set()
@@ -214,11 +217,11 @@ def detectFunctionBodyKind(nodes):
 
     if indications:
         if "Coroutine" in indications and "Generator" in indications:
-            indications.remove("Generator")
-
-        # If we found something, make sure we agree on all clues.
-        assert len(indications) == 1, indications
-        function_kind = indications.pop()
+            function_kind = "Asyncgen"
+        else:
+            # If we found something, make sure we agree on all clues.
+            assert len(indications) == 1, indications
+            function_kind = indications.pop()
     else:
         function_kind = "Function"
 
@@ -372,7 +375,15 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
     if not statements:
         return None
 
-    if provider.isExpressionGeneratorObjectBody():
+    if provider.isExpressionFunctionBody() or \
+       provider.isExpressionClassBody():
+        result = StatementsFrame(
+            statements  = statements,
+            guard_mode  = "full",
+            code_object = code_object,
+            source_ref  = source_ref
+        )
+    elif provider.isExpressionGeneratorObjectBody():
         result = StatementsFrame(
             statements  = statements,
             guard_mode  = "generator",
@@ -380,24 +391,21 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
             source_ref  = source_ref
         )
     elif provider.isExpressionCoroutineObjectBody():
-        # TODO: That might be wrong
-
         result = StatementsFrame(
             statements  = statements,
             guard_mode  = "generator",
             code_object = code_object,
             source_ref  = source_ref
         )
-    elif provider.isExpressionFunctionBody() or \
-         provider.isExpressionClassBody():
+    elif provider.isExpressionAsyncgenObjectBody():
         result = StatementsFrame(
             statements  = statements,
-            guard_mode  = "full",
+            guard_mode  = "generator",
             code_object = code_object,
             source_ref  = source_ref
         )
     else:
-        assert False
+        assert False, provider
 
     return result
 

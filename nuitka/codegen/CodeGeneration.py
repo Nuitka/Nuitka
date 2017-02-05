@@ -27,6 +27,10 @@ language syntax.
 """
 
 from nuitka.__past__ import iterItems
+from nuitka.codegen.AsyncgenCodes import (
+    generateMakeAsyncgenObjectCode,
+    getAsyncgenObjectCode
+)
 from nuitka.PythonVersions import python_version
 
 from . import Contexts, Emission
@@ -243,13 +247,18 @@ def generateFunctionBodyCode(function_body, context):
             parent   = context,
             function = function_body
         )
+    elif function_body.isExpressionClassBody():
+        function_context = Contexts.PythonFunctionDirectContext(
+            parent   = context,
+            function = function_body
+        )
     elif function_body.isExpressionCoroutineObjectBody():
         function_context = Contexts.PythonCoroutineObjectContext(
             parent   = context,
             function = function_body
         )
-    elif function_body.isExpressionClassBody():
-        function_context = Contexts.PythonFunctionDirectContext(
+    elif function_body.isExpressionAsyncgenObjectBody():
+        function_context = Contexts.PythonAsyncgenObjectContext(
             parent   = context,
             function = function_body
         )
@@ -287,6 +296,16 @@ def generateFunctionBodyCode(function_body, context):
         )
     elif function_body.isExpressionCoroutineObjectBody():
         function_code = getCoroutineObjectCode(
+            context                = function_context,
+            function_identifier    = function_identifier,
+            user_variables         = function_body.getUserLocalVariables(),
+            temp_variables         = function_body.getTempVariables(),
+            function_codes         = function_codes.codes,
+            needs_exception_exit   = needs_exception_exit,
+            needs_generator_return = function_body.needsGeneratorReturnExit()
+        )
+    elif function_body.isExpressionAsyncgenObjectBody():
+        function_code = getAsyncgenObjectCode(
             context                = function_context,
             function_identifier    = function_identifier,
             user_variables         = function_body.getUserLocalVariables(),
@@ -554,6 +573,7 @@ setExpressionDispatchDict(
         "EXPRESSION_MODULE_FILE_ATTRIBUTE_REF"      : generateModuleFileAttributeCode,
         "EXPRESSION_MAKE_GENERATOR_OBJECT"          : generateMakeGeneratorObjectCode,
         "EXPRESSION_MAKE_COROUTINE_OBJECT"          : generateMakeCoroutineObjectCode,
+        "EXPRESSION_MAKE_ASYNCGEN_OBJECT"           : generateMakeAsyncgenObjectCode,
         "EXPRESSION_MAKE_SET"                       : generateSetCreationCode,
         "EXPRESSION_MAKE_SET_LITERAL"               : generateSetLiteralCreationCode,
         "EXPRESSION_MAKE_TUPLE"                     : generateTupleCreationCode,

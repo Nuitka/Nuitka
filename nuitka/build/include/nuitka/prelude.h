@@ -240,4 +240,8 @@ extern PyObject *_sentinel_value;
 #include "nuitka/compiled_coroutine.h"
 #endif
 
+#if PYTHON_VERSION >= 360
+#include "nuitka/compiled_asyncgen.h"
+#endif
+
 #endif

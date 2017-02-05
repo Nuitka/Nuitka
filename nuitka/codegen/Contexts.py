@@ -756,6 +756,7 @@ class PythonFunctionDirectContext(PythonFunctionContext):
     def isForCreatedFunction(self):
         return False
 
+
 class PythonGeneratorObjectContext(PythonFunctionContext):
     def isForDirectCall(self):
         return False
@@ -769,9 +770,15 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
     def getContextObjectName(self):
         return "generator"
 
+
 class PythonCoroutineObjectContext(PythonGeneratorObjectContext):
     def getContextObjectName(self):
         return "coroutine"
+
+
+class PythonAsyncgenObjectContext(PythonGeneratorObjectContext):
+    def getContextObjectName(self):
+        return "asyncgen"
 
 
 class PythonFunctionCreatedContext(PythonFunctionContext):

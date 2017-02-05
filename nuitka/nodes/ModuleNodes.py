@@ -373,7 +373,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         assert function_body.isExpressionFunctionBody() or \
                function_body.isExpressionClassBody() or \
                function_body.isExpressionGeneratorObjectBody() or \
-               function_body.isExpressionCoroutineObjectBody()
+               function_body.isExpressionCoroutineObjectBody() or \
+               function_body.isExpressionAsyncgenObjectBody()
 
         if function_body not in self.active_functions:
             self.active_functions.add(function_body)

@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Code to generate and interact with compiled coroutine objects.
+""" Code to generate and interact with compiled asyncgen objects.
 
 """
 
@@ -28,25 +28,25 @@ from .ErrorCodes import (
 )
 from .Helpers import generateChildExpressionsCode
 from .Indentation import indented
-from .templates.CodeTemplatesCoroutines import (
-    template_coroutine_exception_exit,
-    template_coroutine_noexception_exit,
-    template_coroutine_object_body_template,
-    template_coroutine_object_decl_template,
-    template_coroutine_return_exit,
-    template_make_coroutine_template
+from .templates.CodeTemplatesAsyncgens import (
+    template_asyncgen_exception_exit,
+    template_asyncgen_noexception_exit,
+    template_asyncgen_object_body_template,
+    template_asyncgen_object_decl_template,
+    template_asyncgen_return_exit,
+    template_make_asyncgen_template
 )
 from .templates.CodeTemplatesFunction import function_dict_setup
 from .VariableCodes import getLocalVariableCodeType, getLocalVariableInitCode
 
 
-def getCoroutineObjectDeclCode(function_identifier):
-    return template_coroutine_object_decl_template % {
+def getAsyncgenObjectDeclCode(function_identifier):
+    return template_asyncgen_object_decl_template % {
         "function_identifier" : function_identifier,
     }
 
 
-def getCoroutineObjectCode(context, function_identifier, user_variables,
+def getAsyncgenObjectCode(context, function_identifier, user_variables,
                            temp_variables, function_codes, needs_exception_exit,
                            needs_generator_return):
     function_locals = []
@@ -94,38 +94,38 @@ def getCoroutineObjectCode(context, function_identifier, user_variables,
             function_locals.append("%s = NULL;" % tmp_name)
 
     if needs_exception_exit:
-        generator_exit = template_coroutine_exception_exit % {
+        generator_exit = template_asyncgen_exception_exit % {
             "function_identifier" : function_identifier,
         }
     else:
-        generator_exit = template_coroutine_noexception_exit % {
+        generator_exit = template_asyncgen_noexception_exit % {
             "function_identifier" : function_identifier,
         }
 
     if needs_generator_return:
-        generator_exit += template_coroutine_return_exit % {}
+        generator_exit += template_asyncgen_return_exit % {}
 
-    return template_coroutine_object_body_template % {
+    return template_asyncgen_object_body_template % {
         "function_identifier" : function_identifier,
         "function_body"       : indented(function_codes),
         "function_var_inits"  : indented(function_locals),
-        "coroutine_exit"      : generator_exit
+        "asyncgen_exit"      : generator_exit
     }
 
 
-def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
-    coroutine_object_body = expression.getCoroutineRef().getFunctionBody()
+def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
+    asyncgen_object_body = expression.getAsyncgenRef().getFunctionBody()
 
-    closure_variables = coroutine_object_body.getClosureVariables()
+    closure_variables = asyncgen_object_body.getClosureVariables()
 
     code_identifier = context.getCodeObjectHandle(
         code_object  = expression.getCodeObject(),
-        filename     = coroutine_object_body.getParentModule().getRunTimeFilename(),
-        line_number  = coroutine_object_body.getSourceReference().getLineNumber(),
+        filename     = asyncgen_object_body.getParentModule().getRunTimeFilename(),
+        line_number  = asyncgen_object_body.getSourceReference().getLineNumber(),
         is_optimized = True,
-        new_locals   = not coroutine_object_body.needsLocalsDict(),
+        new_locals   = not asyncgen_object_body.needsLocalsDict(),
         has_closure  = len(closure_variables) > 0,
-        future_flags = coroutine_object_body.getSourceReference().getFutureSpec().asFlags()
+        future_flags = asyncgen_object_body.getSourceReference().getFutureSpec().asFlags()
     )
 
     # TODO: Copy duplication with generator codes, ought to be shared.
@@ -134,11 +134,11 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
     for count, variable in enumerate(closure_variables):
         variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
-        # Coroutines might not use them, but they still need to be put there.
+        # Asyncgens might not use them, but they still need to be put there.
         # TODO: But they don't have to be cells.
         if variable_c_type == "PyObject *":
             closure_copy.append(
-                "((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] = PyCell_NEW0( %s );" % (
+                "((struct Nuitka_AsyncgenObject *)%s)->m_closure[%d] = PyCell_NEW0( %s );" % (
                     to_name,
                     count,
                     variable_code_name
@@ -146,14 +146,14 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
             )
         elif variable_c_type == "struct Nuitka_CellObject *":
             closure_copy.append(
-                "((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] = %s;" % (
+                "((struct Nuitka_AsyncgenObject *)%s)->m_closure[%d] = %s;" % (
                     to_name,
                     count,
                     variable_code_name
                 )
             )
             closure_copy.append(
-                "Py_INCREF( ((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] );" % (
+                "Py_INCREF( ((struct Nuitka_AsyncgenObject *)%s)->m_closure[%d] );" % (
                     to_name,
                     count
                 )
@@ -162,9 +162,9 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
             assert False, variable
 
     emit(
-        template_make_coroutine_template % {
+        template_make_asyncgen_template % {
             "closure_copy"         : indented(closure_copy, 0, True),
-            "coroutine_identifier" : coroutine_object_body.getCodeName(),
+            "asyncgen_identifier" : asyncgen_object_body.getCodeName(),
             "to_name"              : to_name,
             "code_identifier"      : code_identifier,
             "closure_count"        : len(closure_variables)
@@ -181,13 +181,10 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
         context    = context
     )
 
-    context_identifier = context.getContextObjectName()
-
     emit(
-        "%s = %s( %s, %s );" % (
+        "%s = %s( asyncgen, %s );" % (
             to_name,
-            "AWAIT_%s" % context_identifier.upper(),
-            context_identifier,
+            "AWAIT_ASYNCGEN",
             value_name
               if context.needsCleanup(value_name) else
             "INCREASE_REFCOUNT( %s )" % value_name
@@ -220,7 +217,7 @@ def generateAsyncIterCode(to_name, expression, emit, context):
     )
 
     emit(
-        "%s = MAKE_ASYNC_ITERATOR( coroutine, %s );" % (
+        "%s = MAKE_ASYNC_ITERATOR( asyncgen, %s );" % (
             to_name,
             value_name
         )
@@ -249,7 +246,7 @@ def generateAsyncNextCode(to_name, expression, emit, context):
     )
 
     emit(
-        "%s = ASYNC_ITERATOR_NEXT( coroutine, %s );" % (
+        "%s = ASYNC_ITERATOR_NEXT( asyncgen, %s );" % (
             to_name,
             value_name,
         )

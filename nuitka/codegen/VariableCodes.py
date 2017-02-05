@@ -168,6 +168,10 @@ def getLocalVariableCodeType(context, variable):
             closure_index = user.getClosureVariables().index(variable)
 
             return "coroutine->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
+        elif user.isExpressionAsyncgenObjectBody():
+            closure_index = user.getClosureVariables().index(variable)
+
+            return "asyncgen->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
         else:
             result = getVariableCodeName(
                 in_context = True,
@@ -187,6 +191,8 @@ def getLocalVariableCodeType(context, variable):
             return "generator->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
         elif user.isExpressionCoroutineObjectBody():
             return "coroutine->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
+        elif user.isExpressionAsyncgenObjectBody():
+            return "asyncgen->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
         else:
             return "self->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
 

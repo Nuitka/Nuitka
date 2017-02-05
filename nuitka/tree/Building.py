@@ -381,7 +381,8 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
     parameter_provider = provider
 
     while parameter_provider.isExpressionGeneratorObjectBody() or \
-          parameter_provider.isExpressionCoroutineObjectBody():
+          parameter_provider.isExpressionCoroutineObjectBody() or \
+          parameter_provider.isExpressionAsyncgenObjectBody():
         parameter_provider = parameter_provider.getParentVariableProvider()
 
     if parameter_provider.isExpressionClassBody():

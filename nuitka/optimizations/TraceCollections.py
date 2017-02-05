@@ -772,7 +772,8 @@ class TraceCollectionFunction(CollectionStartpointMixin,
         assert function_body.isExpressionFunctionBody() or \
                function_body.isExpressionClassBody() or \
                function_body.isExpressionGeneratorObjectBody() or \
-               function_body.isExpressionCoroutineObjectBody(), function_body
+               function_body.isExpressionCoroutineObjectBody() or \
+               function_body.isExpressionAsyncgenObjectBody(), function_body
 
         CollectionStartpointMixin.__init__(self)
 

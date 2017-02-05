@@ -107,7 +107,8 @@ class FinalizeMarkups(FinalizationVisitorBase):
             search = search.getParentReturnConsumer()
 
             if search.isExpressionGeneratorObjectBody() or \
-               search.isExpressionCoroutineObjectBody():
+               search.isExpressionCoroutineObjectBody() or \
+               search.isExpressionAsyncgenObjectBody():
                 if in_tried_block:
                     search.markAsNeedsGeneratorReturnHandling(2)
                 else:
@@ -167,7 +168,9 @@ of '--recurse-directory'.""" % (
                 search = node.getParent()
 
                 while not search.isExpressionGeneratorObjectBody() and \
-                      not search.isExpressionCoroutineObjectBody():
+                      not search.isExpressionCoroutineObjectBody() and \
+                      not search.isExpressionAsyncgenObjectBody():
+
 
                     last_search = search
                     search = search.getParent()
