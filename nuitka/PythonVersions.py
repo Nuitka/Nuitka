@@ -135,6 +135,25 @@ def needsDuplicateArgumentColOffset():
 
 
 def isUninstalledPython():
+    if os.name == "nt":
+        import ctypes.wintypes
+
+        GetSystemDirectory  = ctypes.windll.kernel32.GetSystemDirectoryW   # @UndefinedVariable
+        GetSystemDirectory.argtypes = (
+            ctypes.wintypes.LPWSTR,
+            ctypes.wintypes.DWORD
+        )
+        GetSystemDirectory.restype = ctypes.wintypes.DWORD
+
+        MAX_PATH = 4096
+        buf = ctypes.create_unicode_buffer(MAX_PATH)
+
+        res = GetSystemDirectory(buf, MAX_PATH)
+        assert res != 0
+
+        system_path = os.path.normcase(buf.value)
+        return not getRunningPythonDLLPath().startswith(system_path)
+
     return "Anaconda" in sys.version or \
            "WinPython" in sys.version or \
            (os.name == "nt" and python_version >= 350)
