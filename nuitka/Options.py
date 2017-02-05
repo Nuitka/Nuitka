@@ -112,6 +112,20 @@ Defaults to what you run Nuitka with (currently %s)""" % (
     )
 )
 
+if os.name == "nt":
+    parser.add_option(
+        "--python-arch",
+        action  = "store",
+        dest    = "python_arch",
+        choices = ("x86", "x86_64"),
+        default = None,
+        help    = """\
+Architecture of Python to use. One of "x86" or "x86_64".
+Defaults to what you run Nuitka with (currently "%s").""" % (
+           Utils.getArchitecture()
+        )
+    )
+
 parser.add_option(
     "--python-debug", "--python-dbg",
     action  = "store_true",
@@ -913,6 +927,9 @@ def isRemoveBuildDir():
 
 def getIntendedPythonVersion():
     return options.python_version
+
+def getIntendedPythonArch():
+    return options.python_arch
 
 def isExperimental():
     """ Are experimental features to be enabled."""

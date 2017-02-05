@@ -95,11 +95,23 @@ if intended_version is None:
 # If it's a different version, we find it by guessing it, otherwise we use the
 # one previously used.
 if current_version != intended_version:
+    from nuitka.utils.Execution import getExecutablePath, getPythonExePathWindows
+
     if Utils.getOS() == "Windows":
-        python_binary = r"C:\Python%s\python.exe" % \
-          intended_version.replace('.', "")
+        python_binary = getPythonExePathWindows(
+            intended_version,
+            Options.getIntendedPythonArch()
+        )
     else:
-        python_binary = "/usr/bin/python" + intended_version
+        python_binary = getExecutablePath("python" + intended_version)
+
+    if python_binary is None:
+        sys.exit(
+            "Error, cannot find Python %s binary in PATH (%s)." % (
+                intended_version,
+                os.environ.get("PATH", "")
+            )
+        )
 
     needs_reexec = True
 else:

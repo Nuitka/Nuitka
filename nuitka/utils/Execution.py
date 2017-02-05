@@ -26,7 +26,7 @@ import os
 import subprocess
 import sys
 
-from .Utils import getOS
+from .Utils import getArchitecture, getOS
 
 
 def callExec(args):
@@ -62,7 +62,7 @@ def getExecutablePath(filename):
         filename += ".exe"
 
     # Search in PATH environment.
-    search_path = os.environ["PATH"]
+    search_path = os.environ.get("PATH", "")
 
     # Now check in each path element, much like the shell will.
     path_elements = search_path.split(os.pathsep)
@@ -76,6 +76,56 @@ def getExecutablePath(filename):
             return full
 
     return None
+
+
+def getPythonExePathWindows(search, arch):
+    """ Find Python on Windows.
+
+    First try a few guesses, the look into registry for user or system wide
+    installations of Python2. Both Python 2.6 and 2.7 will do.
+    """
+
+    # Shortcuts for the default installation directories, to avoid going to
+    # registry at all unless necessary. Any Python2 will do for Scons, so it
+    # might be avoided entirely.
+
+    # Windows only code, pylint: disable=E0602,F0401,I0021
+    try:
+        import _winreg as winreg
+    except ImportError:
+        import winreg  # lint:ok
+
+    if arch is None:
+        if getArchitecture() == "x86":
+            arches = (winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY)
+        else:
+            arches = (winreg.KEY_WOW64_64KEY, winreg.KEY_WOW64_32KEY)
+    elif arch == "x86":
+        arches = (winreg.KEY_WOW64_32KEY,)
+    elif arch == "x86_64":
+        arches = (winreg.KEY_WOW64_64KEY,)
+    else:
+        assert False, arch
+
+    for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+        for arch_key in arches:
+            try:
+                key = winreg.OpenKey(
+                    hkey_branch,
+                    r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
+                    0,
+                    winreg.KEY_READ | arch_key
+                )
+
+                candidate = os.path.join(
+                    winreg.QueryValue(key, ""),
+                    "python.exe"
+                )
+            except WindowsError:  # @UndefinedVariable
+                continue
+
+            if os.path.exists(candidate):
+                return candidate
 
 
 def check_output(*popenargs, **kwargs):
