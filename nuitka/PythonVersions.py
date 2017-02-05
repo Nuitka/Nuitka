@@ -67,22 +67,6 @@ def isAtLeastSubVersion(version):
     return python_version >= version
 
 
-def doShowUnknownEncodingName():
-    # Python 3.3.3 or higher does it, 3.4 always did.
-    if python_version >= 333:
-        return True
-
-    # Python2.7 after 2.7.6 does it.
-    if isAtLeastSubVersion(276):
-        return True
-
-    # Debian back ports do it.
-    if  "2.7.5+" in sys.version or "3.3.2+" in sys.version:
-        return True
-
-    return False
-
-
 def getErrorMessageExecWithNestedFunction():
     """ Error message of the concrete Python in case an exec occurs in a
         function that takes a closure variable.

@@ -43,7 +43,6 @@ from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.PythonVersions import (
-    doShowUnknownEncodingName,
     needsSetLiteralReverseInsertion,
     python_version
 )
@@ -74,39 +73,13 @@ def extractDocFromBody(node):
     return body, doc
 
 
-def _makeSyntaxErrorCompatible(e):
-    # Encoding problems for Python happen here, for Python3, this was
-    # already done when we read the source code.
-    if Options.isFullCompat() and \
-       (e.args[0].startswith("unknown encoding:") or \
-        e.args[0].startswith("encoding problem:")):
-        if doShowUnknownEncodingName():
-            complaint = e.args[0].split(':',2)[1]
-        else:
-            complaint = " with BOM"
-
-        e.args = (
-            "encoding problem:%s" % complaint,
-            (e.args[1][0], 1, None, None)
-        )
-
-        if hasattr(e, "msg"):
-            e.msg = e.args[0]
-
-
 def parseSourceCodeToAst(source_code, filename, line_offset):
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
     if not source_code.endswith('\n'):
         source_code = source_code + '\n'
 
-    try:
-        body = ast.parse(source_code, filename)
-    except SyntaxError as e:
-        _makeSyntaxErrorCompatible(e)
-
-        raise e
-
+    body = ast.parse(source_code, filename)
     assert getKind(body) == "Module"
 
     if line_offset > 0:
