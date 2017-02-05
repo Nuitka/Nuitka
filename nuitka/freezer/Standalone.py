@@ -44,6 +44,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
+from nuitka.utils.Utils import basename, getSubDirectories, listDir
 
 from .DependsExe import getDependsExePath
 
@@ -607,13 +608,25 @@ def _detectBinaryPathDLLsWindows(original_dir, binary_filename, package_name):
 KnownDLLs
 SysPath
 AppDir
-{original_dir}
+{original_dirs}
 32BitSysDir
 16BitSysDir
 OSDir
 AppPath
 SxS
-""".format(original_dir = "UserDir %s" % original_dir if original_dir is not None else "")
+""".format(
+            original_dirs = (
+                '\n'.join(
+                    "UserDir %s" % dirname
+                    for dirname in
+                    [original_dir] + getSubDirectories(original_dir)
+                    if not basename(dirname) == "__pycache__"
+                    if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
+                )
+                if original_dir is not None
+                else ""
+            )
+        )
     )
 
     subprocess.call(
