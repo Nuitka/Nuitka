@@ -408,7 +408,9 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
         return False
 
     def getTypeShape(self):
-        if self.variable_trace.isAssignTrace():
+        if self.variable_trace is None:
+            return ShapeUnknown
+        elif self.variable_trace.isAssignTrace():
             return self.variable_trace.getAssignNode().getAssignSource().getTypeShape()
         else:
             return ShapeUnknown
@@ -461,7 +463,6 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
 
         return next_node, None, None
 
-
     def onContentEscapes(self, trace_collection):
         trace_collection.onVariableContentEscapes(self.variable)
 
@@ -472,6 +473,15 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
     def mayRaiseException(self, exception_type):
         # Can't happen
         return False
+
+    def mayRaiseExceptionImportName(self, exception_type, import_name):
+        if self.variable_trace is not None and \
+           self.variable_trace.isAssignTrace():
+            return self.variable_trace.getAssignNode().\
+                     getAssignSource().mayRaiseExceptionImportName(exception_type, import_name)
+
+        else:
+            return ExpressionMixin.mayRaiseExceptionImportName(self, exception_type, import_name)
 
     def isKnownToBeIterableAtMin(self, count):
         # TODO: See through the variable current trace.

@@ -516,6 +516,10 @@ class ShapeTypeXrangeIterator(ShapeIterator):
 
 class ShapeTypeType(ShapeBase):
     @staticmethod
+    def getTypeName():
+        return "type"
+
+    @staticmethod
     def hasShapeSlotLen():
         return False
 
@@ -530,3 +534,33 @@ class ShapeTypeType(ShapeBase):
     @staticmethod
     def hasShapeSlotNext():
         return False
+
+
+class ShapeTypeModule(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "module"
+
+    @staticmethod
+    def hasShapeModule():
+        return True
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+
+class ShapeTypeBuiltinModule(ShapeTypeModule):
+    pass

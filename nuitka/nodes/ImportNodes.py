@@ -22,9 +22,7 @@ cover the uses of "__import__" built-in and other import techniques, that
 allow dynamic values.
 
 If other optimizations make it possible to predict these, the compiler can go
-deeper that what it normally could. The import expression node can recurse. An
-"__import__" built-in may be converted to it, once the module name becomes a
-compile time constant.
+deeper that what it normally could. The import expression node can recurse.
 """
 
 from logging import warning
@@ -37,6 +35,10 @@ from nuitka.importing.Importing import (
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    ShapeTypeBuiltinModule,
+    ShapeTypeModule
+)
 from nuitka.utils import Utils
 
 from .ExpressionBases import ExpressionChildrenHavingBase, ExpressionMixin
@@ -114,6 +116,10 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         self.imported_module = None
         self.import_list_modules = []
         self.finding = None
+
+        self.type_shape = ShapeTypeModule
+
+        self.builtin_module = None
 
     getImportName = ExpressionChildrenHavingBase.childGetter("name")
     getFromList = ExpressionChildrenHavingBase.childGetter("fromlist")
@@ -287,6 +293,10 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 )
 
                 self.recurse_attempted = True
+
+                if self.finding == "built-in":
+                    self.type_shape = ShapeTypeBuiltinModule
+                    self.builtin_module = __import__(imported_module_name)
             else:
                 # TODO: This doesn't preserve side effects.
 
@@ -302,12 +312,28 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
                 return new_node, change_tags, message
 
-        # Importing may raise an exception obviously.
-        trace_collection.onExceptionRaiseExit(BaseException)
+        # Importing may raise an exception obviously, unless we know it will
+        # not.
+        if self.finding != "built-in":
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.
         return self, None, None
+
+    # TODO: Add computeExpressionImportName
+
+    def mayRaiseException(self, exception_type):
+        return self.finding != "built-in"
+
+    def mayRaiseExceptionImportName(self, exception_type, import_name):
+        if self.finding == "built-in":
+            return not hasattr(self.builtin_module, import_name)
+        else:
+            return True
+
+    def getTypeShape(self):
+        return self.type_shape
 
 
 class StatementImportStar(StatementChildrenHavingBase):
@@ -333,7 +359,16 @@ class StatementImportStar(StatementChildrenHavingBase):
         # something else now.
         trace_collection.removeAllKnowledge()
 
+        # We could always encounter that __all__ is a strange beast and causes
+        # the exception.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # Not done. TODO: Later we can try and check for "__all__" if it
+        # really can be that way.
+        return True
 
 
 class ExpressionImportName(ExpressionChildrenHavingBase):
@@ -373,10 +408,14 @@ class ExpressionImportName(ExpressionChildrenHavingBase):
     getModule = ExpressionChildrenHavingBase.childGetter("module")
 
     def computeExpression(self, trace_collection):
-        # TODO: May return a module or module variable reference of some sort in
-        # the future with embedded modules.
+        return self.getModule().computeExpressionImportName(
+            import_node      = self,
+            import_name      = self.import_name,
+            trace_collection = trace_collection
+        )
 
-        # Importing may raise an exception obviously.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return self, None, None
+    def mayRaiseException(self, exception_type):
+        return self.getModule().mayRaiseExceptionImportName(
+            exception_type = exception_type,
+            import_name    = self.import_name
+        )

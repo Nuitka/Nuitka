@@ -17,7 +17,7 @@
 #
 """ Standard shapes that commonly appear. """
 
-class ShapeBase:
+class ShapeBase(object):
     @staticmethod
     def getShapeIter():
         return ShapeUnknown
@@ -25,6 +25,10 @@ class ShapeBase:
     @staticmethod
     def getTypeName():
         return None
+
+    @staticmethod
+    def hasShapeModule():
+        return False
 
 
 class ShapeUnknown(ShapeBase):

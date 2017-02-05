@@ -20,9 +20,6 @@
 That is import as expression, and star import.
 """
 
-
-from nuitka.optimizations.BuiltinOptimization import builtin_import_spec
-
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
@@ -56,8 +53,8 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
     )
 
 
-def getCountedArgumentsHelperCallCode(builtin_spec, helper_prefix, to_name, args,
-                                      min_args, needs_check, emit, context):
+def getCountedArgumentsHelperCallCode(helper_prefix, to_name, args, min_args,
+                                      needs_check, emit, context):
     orig_args = args
     args = list(args)
     while args[-1] is None:
@@ -111,7 +108,6 @@ def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
     emitLineNumberUpdateCode(emit, context)
 
     getCountedArgumentsHelperCallCode(
-        builtin_spec  = builtin_import_spec,
         helper_prefix = "IMPORT_MODULE",
         to_name       = to_name,
         args          = (
@@ -241,9 +237,10 @@ def generateImportNameCode(to_name, expression, emit, context):
     )
 
     getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
+        check_name  = to_name,
+        needs_check = expression.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
     )
 
     context.addCleanupTempName(to_name)
