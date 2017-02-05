@@ -41,17 +41,17 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
 )
 from nuitka.utils import Utils
 
-from .ExpressionBases import ExpressionChildrenHavingBase, ExpressionMixin
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
+from .NodeBases import StatementChildrenHavingBase
 
 
-class ExpressionImportModuleHard(NodeBase, ExpressionMixin):
+class ExpressionImportModuleHard(ExpressionBase):
     """ Hard code import, e.g. of "sys" module as done in Python mechanics.
 
     """
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
     def __init__(self, module_name, import_name, source_ref):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )

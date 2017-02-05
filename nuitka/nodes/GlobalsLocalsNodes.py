@@ -26,15 +26,15 @@ The "dir()" call without arguments is reformulated to locals or globals calls.
 
 from nuitka.PythonVersions import python_version
 
-from .ExpressionBases import ExpressionBuiltinSingleArgBase, ExpressionMixin
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
+from .NodeBases import StatementChildrenHavingBase
 
 
-class ExpressionBuiltinGlobals(NodeBase, ExpressionMixin):
+class ExpressionBuiltinGlobals(ExpressionBase):
     kind = "EXPRESSION_BUILTIN_GLOBALS"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -52,11 +52,11 @@ class ExpressionBuiltinGlobals(NodeBase, ExpressionMixin):
         return None
 
 
-class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
+class ExpressionBuiltinLocals(ExpressionBase):
     kind = "EXPRESSION_BUILTIN_LOCALS"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )

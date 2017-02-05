@@ -38,8 +38,7 @@ from nuitka.Constants import (
 )
 from nuitka.Options import isDebug
 
-from .ExpressionBases import CompileTimeConstantExpressionMixin
-from .NodeBases import NodeBase
+from .ExpressionBases import CompileTimeConstantExpressionBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpression,
     wrapExpressionWithSideEffects
@@ -64,12 +63,14 @@ from .shapes.BuiltinTypeShapes import (
 )
 
 
-class ExpressionConstantRefBase(CompileTimeConstantExpressionMixin, NodeBase):
+class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
     user_provided = False
 
     def __init__(self, constant, source_ref, user_provided = False):
-        NodeBase.__init__(self, source_ref = source_ref)
-        CompileTimeConstantExpressionMixin.__init__(self)
+        CompileTimeConstantExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         assert isConstant(constant), repr(constant)
 

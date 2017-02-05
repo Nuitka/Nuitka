@@ -37,23 +37,28 @@ from nuitka.utils.CStrings import encodePythonIdentifierToC
 
 from .Checkers import checkStatementsSequenceOrNone
 from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionMixin
+from .ExpressionBases import ExpressionBase
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
     ChildrenHavingMixin,
-    ClosureGiverNodeBase,
+    ClosureGiverNodeMixin,
     NodeBase,
     extractKindAndArgsFromXML,
     fromXML
 )
 
 
-class PythonModuleMixin:
-    def __init__(self, name, package_name):
+class PythonModuleBase(NodeBase):
+    def __init__(self, name, package_name, source_ref):
         assert type(name) is str, type(name)
         assert '.' not in name, name
         assert package_name is None or \
                (type(package_name) is str and package_name != "")
+
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         self.name = name
         self.package_name = package_name
@@ -171,8 +176,8 @@ class PythonModuleMixin:
             return result
 
 
-class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
-                           ClosureGiverNodeBase):
+class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
+                           PythonModuleBase):
     """ Compiled Python Module
 
     """
@@ -189,17 +194,17 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     }
 
     def __init__(self, name, package_name, mode, source_ref):
-        ClosureGiverNodeBase.__init__(
-            self,
-            name        = name,
-            code_prefix = "module",
-            source_ref  = source_ref
-        )
-
-        PythonModuleMixin.__init__(
+        PythonModuleBase.__init__(
             self,
             name         = name,
-            package_name = package_name
+            package_name = package_name,
+            source_ref   = source_ref
+        )
+
+        ClosureGiverNodeMixin.__init__(
+            self,
+            name        = name,
+            code_prefix = "module"
         )
 
         ChildrenHavingMixin.__init__(
@@ -236,10 +241,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
-        # Modules are not having any provider.
-        assert provider is None
-
-
+        # Modules are not having any provider, must not be used,
         assert False
 
 
@@ -296,9 +298,11 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         return True
 
     def getParent(self):
-        assert False
+        # We have never have a parent
+        return None
 
     def getParentVariableProvider(self):
+        # We have never have a provider
         return None
 
     def hasVariableName(self, variable_name):
@@ -487,7 +491,7 @@ def makeUncompiledPythonModule(module_name, filename, bytecode, is_package,
         )
 
 
-class UncompiledPythonModule(PythonModuleMixin, NodeBase):
+class UncompiledPythonModule(PythonModuleBase):
     """ Compiled Python Module
 
     """
@@ -496,15 +500,11 @@ class UncompiledPythonModule(PythonModuleMixin, NodeBase):
 
     def __init__(self, name, package_name, bytecode, filename, user_provided,
                  technical, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-        PythonModuleMixin.__init__(
+        PythonModuleBase.__init__(
             self,
             name         = name,
-            package_name = package_name
+            package_name = package_name,
+            source_ref   = source_ref
         )
 
         self.bytecode = bytecode
@@ -660,21 +660,17 @@ class PythonInternalModule(CompiledPythonModule):
         return "__internal"
 
 
-class PythonShlibModule(PythonModuleMixin, NodeBase):
+class PythonShlibModule(PythonModuleBase):
     kind = "PYTHON_SHLIB_MODULE"
 
     avoid_duplicates = set()
 
     def __init__(self, name, package_name, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-        PythonModuleMixin.__init__(
+        PythonModuleBase.__init__(
             self,
             name         = name,
-            package_name = package_name
+            package_name = package_name,
+            source_ref   = source_ref
         )
 
         # That would be a mistake we just made.
@@ -701,11 +697,11 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
         pass
 
 
-class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
+class ExpressionModuleFileAttributeRef(ExpressionBase):
     kind = "EXPRESSION_MODULE_FILE_ATTRIBUTE_REF"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )

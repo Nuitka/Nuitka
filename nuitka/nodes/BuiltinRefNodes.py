@@ -36,14 +36,15 @@ from nuitka.PythonVersions import python_version
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExceptionNodes import ExpressionBuiltinMakeException
-from .ExpressionBases import CompileTimeConstantExpressionMixin
-from .NodeBases import NodeBase
+from .ExpressionBases import CompileTimeConstantExpressionBase
 
 
-class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
+class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
     def __init__(self, builtin_name, source_ref):
-        NodeBase.__init__(self, source_ref = source_ref)
-        CompileTimeConstantExpressionMixin.__init__(self)
+        CompileTimeConstantExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         self.builtin_name = builtin_name
 

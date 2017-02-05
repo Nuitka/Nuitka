@@ -19,8 +19,8 @@
 
 """
 
-from .ExpressionBases import ExpressionChildrenHavingBase, ExpressionMixin
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
+from .NodeBases import StatementChildrenHavingBase
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 
@@ -264,11 +264,11 @@ class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):
         return False
 
 
-class ExpressionCaughtExceptionTypeRef(NodeBase, ExpressionMixin):
+class ExpressionCaughtExceptionTypeRef(ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TYPE_REF"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -282,11 +282,11 @@ class ExpressionCaughtExceptionTypeRef(NodeBase, ExpressionMixin):
         return False
 
 
-class ExpressionCaughtExceptionValueRef(NodeBase, ExpressionMixin):
+class ExpressionCaughtExceptionValueRef(ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_VALUE_REF"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -300,11 +300,11 @@ class ExpressionCaughtExceptionValueRef(NodeBase, ExpressionMixin):
         return False
 
 
-class ExpressionCaughtExceptionTracebackRef(NodeBase, ExpressionMixin):
+class ExpressionCaughtExceptionTracebackRef(ExpressionBase):
     kind = "EXPRESSION_CAUGHT_EXCEPTION_TRACEBACK_REF"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )

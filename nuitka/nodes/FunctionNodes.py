@@ -38,19 +38,18 @@ from nuitka.tree.Extractions import updateVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import (
-    CompileTimeConstantExpressionMixin,
-    ExpressionChildrenHavingBase,
-    ExpressionMixin
+    CompileTimeConstantExpressionBase,
+    ExpressionBase,
+    ExpressionChildrenHavingBase
 )
 from .IndicatorMixins import (
-    MarkLocalsDictIndicator,
-    MarkUnoptimizedFunctionIndicator
+    MarkLocalsDictIndicatorMixin,
+    MarkUnoptimizedFunctionIndicatorMixin
 )
 from .NodeBases import (
     ChildrenHavingMixin,
-    ClosureGiverNodeBase,
+    ClosureGiverNodeMixin,
     ClosureTakerMixin,
-    NodeBase,
     SideEffectsFromChildrenMixin
 )
 from .NodeMakingHelpers import (
@@ -61,29 +60,29 @@ from .NodeMakingHelpers import (
 from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
 
-class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
-                                 ClosureGiverNodeBase, ExpressionMixin):
+class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
+                                 ExpressionChildrenHavingBase):
 
     def __init__(self, provider, name, code_prefix, is_class, flags, source_ref,
                  body = None):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "body" : body # Might be None initially in some cases.
+            },
+            source_ref = source_ref
+        )
+
         ClosureTakerMixin.__init__(
             self,
             provider      = provider,
             early_closure = is_class
         )
 
-        ClosureGiverNodeBase.__init__(
+        ClosureGiverNodeMixin.__init__(
             self,
             name        = name,
-            code_prefix = code_prefix,
-            source_ref  = source_ref
-        )
-
-        ChildrenHavingMixin.__init__(
-            self,
-            values = {
-                "body" : body # Might be None initially in some cases.
-            }
+            code_prefix = code_prefix
         )
 
         # Special things, "has_super" indicates presence of "super" in variable
@@ -299,9 +298,9 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             return self.getBody().mayRaiseException(exception_type)
 
 
-class ExpressionFunctionBody(ExpressionFunctionBodyBase,
-                             MarkLocalsDictIndicator,
-                             MarkUnoptimizedFunctionIndicator):
+class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
+                             MarkUnoptimizedFunctionIndicatorMixin,
+                             ExpressionFunctionBodyBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, leading to many methods, pylint: disable=R0901
 
@@ -338,9 +337,9 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
             source_ref  = source_ref
         )
 
-        MarkLocalsDictIndicator.__init__(self)
+        MarkLocalsDictIndicatorMixin.__init__(self)
 
-        MarkUnoptimizedFunctionIndicator.__init__(self)
+        MarkUnoptimizedFunctionIndicatorMixin.__init__(self)
 
         self.doc = doc
 
@@ -752,14 +751,14 @@ error""" % self.getName()
 
 
 
-class ExpressionFunctionRef(NodeBase, ExpressionMixin):
+class ExpressionFunctionRef(ExpressionBase):
     kind = "EXPRESSION_FUNCTION_REF"
 
     def __init__(self, source_ref, function_body = None, code_name = None):
         assert function_body is not None or code_name is not None
         assert code_name != "None"
 
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -910,12 +909,13 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 
 
 # Needed for Python3.3 and higher
-class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionMixin,
-                                    NodeBase):
+class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
     kind = "EXPRESSION_FUNCTION_QUALNAME_REF"
     def __init__(self, function_body, source_ref):
-        NodeBase.__init__(self, source_ref = source_ref)
-        CompileTimeConstantExpressionMixin.__init__(self)
+        CompileTimeConstantExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         self.function_body = function_body
 

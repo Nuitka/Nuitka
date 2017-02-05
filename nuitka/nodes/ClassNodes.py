@@ -26,11 +26,15 @@ from nuitka.PythonVersions import python_version
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
-from .IndicatorMixins import MarkLocalsDictIndicator
+from .IndicatorMixins import MarkLocalsDictIndicatorMixin
 from .NodeBases import ChildrenHavingMixin
 
 
-class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
+class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
+                          ExpressionFunctionBodyBase):
+    # We really want these many ancestors, as per design, we add properties via
+    # base class mix-ins a lot, pylint: disable=R0901
+
     kind = "EXPRESSION_CLASS_BODY"
 
     named_children = (
@@ -56,7 +60,7 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
             source_ref  = source_ref
         )
 
-        MarkLocalsDictIndicator.__init__(self)
+        MarkLocalsDictIndicatorMixin.__init__(self)
 
         self.doc = doc
 
@@ -97,8 +101,8 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
             **args
         )
 
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
+    getBody = ExpressionFunctionBodyBase.childGetter("body")
+    setBody = ExpressionFunctionBodyBase.childSetter("body")
 
     def getDoc(self):
         return self.doc

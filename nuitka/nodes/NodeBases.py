@@ -40,7 +40,19 @@ class NodeCheckMetaClass(type):
 
     def __new__(cls, name, bases, dictionary):
         # This is in conflict with either PyDev or Pylint, pylint: disable=C0204
-        assert len(bases) == len(set(bases))
+        assert len(bases) == len(set(bases)), bases
+
+        last_mixin = None
+        for base in bases:
+            base_name = base.__name__
+            is_mixin = base_name.endswith("Mixin")
+
+            if is_mixin and last_mixin is False:
+                assert False, (name, bases)
+
+            last_mixin = is_mixin
+
+
 
         return type.__new__(cls, name, bases, dictionary)
 
@@ -246,7 +258,7 @@ class NodeBase(NodeMetaClassBase):
 
     def isParentVariableProvider(self):
         # Check if it's a closure giver, in which cases it can provide variables,
-        return isinstance(self, ClosureGiverNodeBase)
+        return isinstance(self, ClosureGiverNodeMixin)
 
     def getParentVariableProvider(self):
         parent = self.getParent()
@@ -496,14 +508,9 @@ class NodeBase(NodeMetaClassBase):
         return False
 
 
-class CodeNodeBase(NodeBase):
-    def __init__(self, name, code_prefix, source_ref):
+class CodeNodeMixin:
+    def __init__(self, name, code_prefix):
         assert name is not None
-
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
 
         self.name = name
         self.code_prefix = code_prefix
@@ -517,26 +524,6 @@ class CodeNodeBase(NodeBase):
     def getName(self):
         return self.name
 
-    def getFullName(self):
-        result = self.getName()
-
-        current = self
-
-        while True:
-            current = current.getParent()
-
-            if current is None:
-                break
-
-            name = current.getName()
-
-            if name is not None:
-                result = "%s__%s" % (name, result)
-
-        assert '<' not in result, result
-
-        return result
-
     def getCodeName(self):
         if self.code_name is None:
             provider = self.getParentVariableProvider()
@@ -544,7 +531,7 @@ class CodeNodeBase(NodeBase):
 
             uid = "_%d" % provider.getChildUID(self)
 
-            assert isinstance(self, CodeNodeBase)
+            assert isinstance(self, CodeNodeMixin)
 
             if self.name:
                 name = uid + '_' + self.name.strip("<>")
@@ -773,14 +760,13 @@ class ChildrenHavingMixin:
         return result
 
 
-class ClosureGiverNodeBase(CodeNodeBase):
+class ClosureGiverNodeMixin(CodeNodeMixin):
     """ Blass class for nodes that provide variables for closure takers. """
-    def __init__(self, name, code_prefix, source_ref):
-        CodeNodeBase.__init__(
+    def __init__(self, name, code_prefix):
+        CodeNodeMixin.__init__(
             self,
             name        = name,
-            code_prefix = code_prefix,
-            source_ref  = source_ref
+            code_prefix = code_prefix
         )
 
         self.providing = OrderedDict()

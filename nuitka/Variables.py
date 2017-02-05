@@ -34,7 +34,6 @@ class Variable:
     def __init__(self, owner, variable_name):
         assert type(variable_name) is str, variable_name
         assert type(owner) not in (tuple, list), owner
-        assert owner.getFullName
 
         self.variable_name = variable_name
         self.owner = owner

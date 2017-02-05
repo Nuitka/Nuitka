@@ -33,16 +33,15 @@ from .DictionaryNodes import (
     StatementDictOperationRemove,
     StatementDictOperationSet
 )
-from .ExpressionBases import ExpressionMixin
-from .NodeBases import NodeBase
+from .ExpressionBases import ExpressionBase
 from .shapes.StandardShapes import ShapeUnknown
 
 
-class ExpressionVariableRef(NodeBase, ExpressionMixin):
+class ExpressionVariableRef(ExpressionBase):
     kind = "EXPRESSION_VARIABLE_REF"
 
     def __init__(self, variable_name, source_ref, variable = None):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -359,13 +358,13 @@ Check '%s' on dictionary lowered to dictionary '%s'.""" % (
         return variable_trace is None or not self.variable_trace.mustHaveValue()
 
 
-class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
+class ExpressionTempVariableRef(ExpressionBase):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
     def __init__(self, variable, source_ref):
         assert variable.isTempVariable()
 
-        NodeBase.__init__(self, source_ref = source_ref)
+        ExpressionBase.__init__(self, source_ref = source_ref)
 
         self.variable = variable
         self.variable_trace = None
@@ -481,7 +480,7 @@ class ExpressionTempVariableRef(NodeBase, ExpressionMixin):
                      getAssignSource().mayRaiseExceptionImportName(exception_type, import_name)
 
         else:
-            return ExpressionMixin.mayRaiseExceptionImportName(self, exception_type, import_name)
+            return ExpressionBase.mayRaiseExceptionImportName(self, exception_type, import_name)
 
     def isKnownToBeIterableAtMin(self, count):
         # TODO: See through the variable current trace.

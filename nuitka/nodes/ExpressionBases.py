@@ -40,7 +40,7 @@ from .shapes.BuiltinTypeShapes import (
 from .shapes.StandardShapes import ShapeUnknown
 
 
-class ExpressionMixin:
+class ExpressionBase(NodeBase):
     def getTypeShape(self):
         # Virtual method, pylint: disable=R0201
         return ShapeUnknown
@@ -614,13 +614,10 @@ class ExpressionMixin:
 
 
 
-class CompileTimeConstantExpressionMixin(ExpressionMixin):
+class CompileTimeConstantExpressionBase(ExpressionBase):
     # TODO: Do this for all computations, do this in the base class of all
     # nodes.
     computed_attribute = None
-
-    def __init__(self):
-        pass
 
     def isCompileTimeConstant(self):
         """ Has a value that we can use at compile time.
@@ -636,37 +633,37 @@ class CompileTimeConstantExpressionMixin(ExpressionMixin):
         return False
 
     def mayHaveSideEffects(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method overload
         return False
 
     def mayHaveSideEffectsBool(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method overload
         return False
 
     def mayRaiseException(self, exception_type):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method overload
         return False
 
     def mayRaiseExceptionBool(self, exception_type):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method overload
         return False
 
     def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
-        # Virtual method, pylint: disable=W0613
+        # Virtual method overload
 
         # We remember it from our computation.
 
         return not self.computed_attribute
 
     def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
-        # Virtual method, pylint: disable=W0613
+        # Virtual method overload
 
         # We remember it from our computation.
 
         return not self.computed_attribute
 
-    def mayRaiseExceptionAttributeCheck(self, exception_type):
-        # Virtual method, pylint: disable=R0201,W0613
+    def mayRaiseExceptionAttributeCheck(self, exception_type, attribute_name):
+        # Virtual method overload
 
         # Checking attributes of compile time constants never raises.
         return False
@@ -795,7 +792,20 @@ Predicted '%s' on compiled time constant values.""" % in_node.comparator
         return in_node, None, None
 
 
-class ExpressionSpecBasedComputationMixin(ExpressionMixin):
+class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
+    def __init__(self, values, source_ref):
+        ExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        ChildrenHavingMixin.__init__(
+            self,
+            values = values
+        )
+
+
+class ExpressionSpecBasedComputationBase(ExpressionChildrenHavingBase):
     builtin_spec = None
 
     def computeBuiltinSpec(self, trace_collection, given_values):
@@ -821,27 +831,13 @@ class ExpressionSpecBasedComputationMixin(ExpressionMixin):
         )
 
 
-class ExpressionChildrenHavingBase(ChildrenHavingMixin, NodeBase,
-                                   ExpressionMixin):
-    def __init__(self, values, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-        ChildrenHavingMixin.__init__(
-            self,
-            values = values
-        )
-
-class ExpressionBuiltinSingleArgBase(ExpressionChildrenHavingBase,
-                                     ExpressionSpecBasedComputationMixin):
+class ExpressionBuiltinSingleArgBase(ExpressionSpecBasedComputationBase):
     named_children = (
         "value",
     )
 
     def __init__(self, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ExpressionSpecBasedComputationBase.__init__(
             self,
             values     = {
                 "value" : value,

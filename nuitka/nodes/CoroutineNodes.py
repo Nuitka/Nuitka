@@ -28,8 +28,8 @@ from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
 from .IndicatorMixins import (
-    MarkLocalsDictIndicator,
-    MarkUnoptimizedFunctionIndicator
+    MarkLocalsDictIndicatorMixin,
+    MarkUnoptimizedFunctionIndicatorMixin
 )
 from .NodeBases import ChildrenHavingMixin
 
@@ -80,9 +80,9 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
         return False
 
 
-class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
-                                    MarkLocalsDictIndicator,
-                                    MarkUnoptimizedFunctionIndicator):
+class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin,
+                                    MarkUnoptimizedFunctionIndicatorMixin,
+                                    ExpressionFunctionBodyBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
     kind = "EXPRESSION_COROUTINE_OBJECT_BODY"
@@ -113,9 +113,9 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
             source_ref  = source_ref
         )
 
-        MarkLocalsDictIndicator.__init__(self)
+        MarkLocalsDictIndicatorMixin.__init__(self)
 
-        MarkUnoptimizedFunctionIndicator.__init__(self)
+        MarkUnoptimizedFunctionIndicatorMixin.__init__(self)
 
         self.needs_generator_return_exit = False
 
@@ -163,4 +163,4 @@ class ExpressionAsyncWait(ExpressionChildrenHavingBase):
         # TODO: Might be predictable based awaitable analysis or for constants.
         return self, None, None
 
-    getValue = ChildrenHavingMixin.childGetter("expression")
+    getValue = ExpressionFunctionBodyBase.childGetter("expression")
