@@ -1396,8 +1396,7 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
             break;
         }
 
-        // TODO: Not yet clear, what happens with __all__ and "_" of its
-        // contents.
+        // When we are not using the "__all__", we should skip private variables.
         if ( all_case == false )
         {
             if ( Nuitka_String_AsString_Unchecked( item )[0] == '_' )
@@ -1406,8 +1405,14 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
             }
         }
 
-        // TODO: What if it isn't there, because of e.g. wrong __all__ value.
         PyObject *value = LOOKUP_ATTRIBUTE( module, item );
+
+        // Might not exist, because of e.g. wrong "__all__" value.
+        if (unlikely( value == NULL ))
+        {
+            Py_DECREF( item );
+            break;
+        }
 
         // TODO: Check if the reference is handled correctly
         if ( is_module )
