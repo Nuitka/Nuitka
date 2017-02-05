@@ -19,7 +19,9 @@
 #     limitations under the License.
 #
 
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # The test runner needs "lxml" itself.
 try:
@@ -34,18 +36,21 @@ sys.path.insert(
     os.path.normpath(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
+            "..",
             ".."
         )
     )
 )
-from test_common import (
-    my_print,
-    setup,
+
+from nuitka.tools.testing.Common import (  # isort:skip
+    check_output,
     convertUsing2to3,
     createSearchMode,
     hasModule,
-    check_output
+    my_print,
+    setup
 )
+
 
 python_version = setup()
 

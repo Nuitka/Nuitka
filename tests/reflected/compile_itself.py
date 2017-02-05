@@ -17,7 +17,12 @@
 #     limitations under the License.
 #
 
-import os, sys, shutil, time, difflib, subprocess
+import difflib
+import os
+import shutil
+import subprocess
+import sys
+import time
 
 # Find common code relative in file system. Not using packages for test stuff.
 sys.path.insert(
@@ -25,29 +30,23 @@ sys.path.insert(
     os.path.normpath(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
+            "..",
             ".."
         )
     )
 )
 
-from test_common import (
-    my_print,
-    setup,
-    getTempDir
-)
+from nuitka.tools.testing.Common import getTempDir, my_print, setup # isort:skip
+from nuitka.utils.FileOperations import removeDirectory, listDir # isort:skip
 
 python_version = setup()
-
-# TODO: This ought to no longer be necessary, removing it could highlight bugs.
-# No random hashing, it makes comparing outputs futile.
-if "PYTHONHASHSEED" not in os.environ:
-    os.environ["PYTHONHASHSEED"] = '0'
 
 nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
 tmp_dir = getTempDir()
 
-# TODO: Could detect this more automatic.
+# Cannot detect this more automatic, either need whitelist or
+# blacklist not needed stuff.
 PACKAGE_LIST = (
     "nuitka",
     "nuitka/nodes",
@@ -78,8 +77,7 @@ def readSource(filename):
 def diffRecursive(dir1, dir2):
     done = set()
 
-    for filename in os.listdir(dir1):
-        path1 = os.path.join(dir1, filename)
+    for path1, filename in listDir(dir1):
         path2 = os.path.join(dir2, filename)
 
         done.add(path1)
@@ -123,8 +121,7 @@ def diffRecursive(dir1, dir2):
         else:
             assert False, path1
 
-    for filename in os.listdir(dir2):
-        path1 = os.path.join(dir1, filename)
+    for path1, filename in listDir(dir2):
         path2 = os.path.join(dir2, filename)
 
         if path1 in done:
@@ -145,28 +142,26 @@ def executePASS1():
         source_dir = os.path.join(base_dir, package)
         target_dir = package
 
-        if os.path.exists(target_dir):
-            shutil.rmtree(target_dir)
+        removeDirectory(
+            path = target_dir,
+            ignore_errors = False
+        )
 
         os.mkdir(target_dir)
 
-        for filename in os.listdir(target_dir):
+        for path, filename in listDir(target_dir):
             if filename.endswith(".so"):
-                path = os.path.join(target_dir, filename)
-
                 os.unlink(path)
 
-        for filename in sorted(os.listdir(source_dir)):
+        for path, filename in listDir(source_dir):
             if not filename.endswith(".py"):
                 continue
 
             if filename.startswith(".#"):
                 continue
 
-            path = os.path.join(source_dir, filename)
-
             if filename != "__init__.py":
-                my_print("Compiling", path)
+                my_print("Compiling '%s'." % path)
 
                 command = [
                     os.environ["PYTHON"],
@@ -189,7 +184,7 @@ def executePASS1():
                 shutil.copyfile(path, os.path.join(target_dir, filename))
 
 
-    my_print("Compiling", nuitka_main_path)
+    my_print("Compiling '%s'." % nuitka_main_path)
 
     shutil.copyfile(nuitka_main_path, "nuitka.py")
 
@@ -239,6 +234,9 @@ def executePASS1():
 
 
 def compileAndCompareWith(nuitka):
+    if "PYTHONHASHSEED" not in os.environ:
+        os.environ["PYTHONHASHSEED"] = '0'
+
     base_dir = os.path.join("..", "..")
 
     for package in PACKAGE_LIST:
@@ -246,7 +244,7 @@ def compileAndCompareWith(nuitka):
 
         source_dir = os.path.join(base_dir, package)
 
-        for filename in sorted(os.listdir(source_dir)):
+        for path, filename in listDir(source_dir):
             if not filename.endswith(".py"):
                 continue
 
@@ -256,14 +254,16 @@ def compileAndCompareWith(nuitka):
             path = os.path.join(source_dir, filename)
 
             if filename != "__init__.py":
-                my_print("Compiling", path)
+                my_print("Compiling '%s'." % path)
 
                 target = filename.replace(".py", ".build")
 
                 target_dir = os.path.join(tmp_dir, target)
 
-                if os.path.exists(target_dir):
-                    shutil.rmtree(target_dir)
+                removeDirectory(
+                    path = target_dir,
+                    ignore_errors = False
+                )
 
                 command = [
                     nuitka,
@@ -330,7 +330,7 @@ def executePASS3():
 
     path = os.path.join("..", "..", "bin", "nuitka")
 
-    my_print("Compiling", path)
+    my_print("Compiling '%s'." % path)
 
     command = [
         os.environ["PYTHON"],
