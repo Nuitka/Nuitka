@@ -28,6 +28,7 @@ it being used.
 
 """
 
+import os
 # This is heavily WIP.
 import sys
 from logging import info, warning
@@ -35,7 +36,7 @@ from logging import info, warning
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
-from nuitka.utils import Utils
+from nuitka.utils.FileOperations import relpath
 
 pre_modules = {}
 post_modules = {}
@@ -90,7 +91,7 @@ class NuitkaPluginBase:
                         module.getFullName()
                     )
                 )
-            elif Utils.isDir(module_filename):
+            elif os.path.isdir(module_filename):
                 module_kind = "py"
             elif module_filename.endswith(".py"):
                 module_kind = "py"
@@ -258,7 +259,7 @@ class NuitkaPluginBase:
         imported_module, added_flag = Recursion.recurseTo(
             module_package  = module_package,
             module_filename = module_filename,
-            module_relpath  = Utils.relpath(module_filename),
+            module_relpath  = relpath(module_filename),
             module_kind     = module_kind,
             reason          = reason
         )

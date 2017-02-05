@@ -34,11 +34,14 @@ from nuitka.utils import Execution, Utils
 
 
 def getSconsDataPath():
-    return Utils.dirname(__file__)
+    return os.path.dirname(__file__)
 
 
 def getSconsInlinePath():
-    return Utils.joinpath(getSconsDataPath(), "inline_copy")
+    return os.path.join(
+        getSconsDataPath(),
+        "inline_copy"
+    )
 
 
 def getSconsBinaryCall():
@@ -55,7 +58,11 @@ def getSconsBinaryCall():
 
     return [
         getPython2ExePath(),
-        Utils.joinpath(getSconsInlinePath(), "bin", "scons.py")
+        os.path.join(
+            getSconsInlinePath(),
+            "bin",
+            "scons.py"
+        )
     ]
 
 
@@ -86,7 +93,7 @@ def _getPython2ExePathWindows():
                         winreg.KEY_READ | arch_key
                     )
 
-                    return Utils.joinpath(
+                    return os.path.join(
                         winreg.QueryValue(key, ""),
                         "python.exe"
                     )
@@ -131,7 +138,7 @@ def setupSconsEnvironment():
 
     if Utils.getOS() == "Windows":
         # On Windows this Scons variable must be set by us.
-        os.environ["SCONS_LIB_DIR"] = Utils.joinpath(
+        os.environ["SCONS_LIB_DIR"] = os.path.join(
             getSconsInlinePath(),
             "lib",
             "scons-2.3.2"
@@ -181,7 +188,10 @@ def buildSconsCommand(quiet, options):
     scons_command += [
         # The scons file
         "-f",
-        Utils.joinpath(getSconsDataPath(), "SingleExe.scons"),
+        os.path.join(
+            getSconsDataPath(),
+            "SingleExe.scons"
+        ),
 
         # Parallel compilation.
         "--jobs",

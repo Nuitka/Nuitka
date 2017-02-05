@@ -25,9 +25,11 @@
     the existing set of modules.
 """
 
+import os
+
 from nuitka.containers.oset import OrderedSet
 from nuitka.PythonVersions import python_version
-from nuitka.utils import Utils
+from nuitka.utils.FileOperations import areSamePaths
 
 # One or more root modules, i.e. entry points that must be there.
 root_modules = OrderedSet()
@@ -121,8 +123,8 @@ def _normalizeModuleFilename(filename):
         if filename.endswith(".pyc"):
             filename = filename[:-3] + ".py"
 
-    if Utils.basename(filename) == "__init__.py":
-        filename = Utils.dirname(filename)
+    if os.path.basename(filename) == "__init__.py":
+        filename = os.path.dirname(filename)
 
     return filename
 
@@ -130,7 +132,7 @@ def _normalizeModuleFilename(filename):
 def getUncompiledModule(module_name, module_filename):
     for uncompiled_module in uncompiled_modules:
         if module_name == uncompiled_module.getFullName():
-            if Utils.areSamePaths(
+            if areSamePaths(
                 _normalizeModuleFilename(module_filename),
                 _normalizeModuleFilename(uncompiled_module.filename)
             ):

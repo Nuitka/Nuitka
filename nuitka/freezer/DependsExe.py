@@ -28,6 +28,7 @@ from logging import info
 from nuitka import Tracing
 from nuitka.__past__ import raw_input, urlretrieve  # pylint: disable=W0622
 from nuitka.utils import Utils
+from nuitka.utils.FileOperations import deleteFile, makePath
 
 
 def getDependsExePath():
@@ -44,16 +45,16 @@ def getDependsExePath():
     if "APPDATA" not in os.environ:
         sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
 
-    nuitka_app_dir = Utils.joinpath(os.environ["APPDATA"], "nuitka")
-    if not Utils.isDir(nuitka_app_dir):
-        Utils.makePath(nuitka_app_dir)
+    nuitka_app_dir = os.path.join(os.environ["APPDATA"], "nuitka")
+    if not os.path.isdir(nuitka_app_dir):
+        makePath(nuitka_app_dir)
 
-    nuitka_depends_zip = Utils.joinpath(
+    nuitka_depends_zip = os.path.join(
         nuitka_app_dir,
-        Utils.basename(depends_url)
+        os.path.basename(depends_url)
     )
 
-    if not Utils.isFile(nuitka_depends_zip):
+    if not os.path.isfile(nuitka_depends_zip):
         Tracing.printLine("""\
 Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules. Is it OK to download
@@ -71,12 +72,12 @@ and put it in APPDATA (no installer needed, cached, one time question).""")
             nuitka_depends_zip
         )
 
-    nuitka_depends_dir = Utils.joinpath(
+    nuitka_depends_dir = os.path.join(
         nuitka_app_dir,
         Utils.getArchitecture()
     )
 
-    if not Utils.isDir(nuitka_depends_dir):
+    if not os.path.isdir(nuitka_depends_dir):
         os.makedirs(nuitka_depends_dir)
 
     depends_exe = os.path.join(
@@ -84,7 +85,7 @@ and put it in APPDATA (no installer needed, cached, one time question).""")
         "depends.exe"
     )
 
-    if not Utils.isFile(depends_exe):
+    if not os.path.isfile(depends_exe):
         info("Extracting to '%s'" % depends_exe)
 
         import zipfile
@@ -95,8 +96,8 @@ and put it in APPDATA (no installer needed, cached, one time question).""")
         except Exception: # Catching anything zip throws, pylint:disable=W0703
             info("Problem with the downloaded zip file, deleting it.")
 
-            Utils.deleteFile(depends_exe, must_exist = False)
-            Utils.deleteFile(nuitka_depends_zip, must_exist = True)
+            deleteFile(depends_exe, must_exist = False)
+            deleteFile(nuitka_depends_zip, must_exist = True)
 
             sys.exit(
                 "Error, need '%s' as extracted from '%s'." % (
@@ -105,6 +106,6 @@ and put it in APPDATA (no installer needed, cached, one time question).""")
                 )
             )
 
-    assert Utils.isFile(depends_exe)
+    assert os.path.isfile(depends_exe)
 
     return depends_exe

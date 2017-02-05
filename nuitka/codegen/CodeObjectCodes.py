@@ -20,9 +20,10 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
+import os
+
 from nuitka import Options
 from nuitka.PythonVersions import python_version
-from nuitka.utils.Utils import isAbsolutePath
 
 
 def getCodeObjectsDeclCode(context):
@@ -59,7 +60,7 @@ def getCodeObjectsInitCode(context):
         # We do not care about release of this object, as code object live
         # forever anyway.
         if Options.getFileReferenceMode() == "frozen" or \
-           isAbsolutePath(module_filename):
+           os.path.isabs(module_filename):
             template = "module_filename_obj = %s;"
         else:
             template = "module_filename_obj = MAKE_RELATIVE_PATH( %s );"

@@ -20,6 +20,7 @@
 """
 
 import glob
+import os
 import sys
 from logging import debug, info, warning
 
@@ -29,8 +30,7 @@ from nuitka.importing import ImportCache, Importing, StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
-from nuitka.utils import Utils
-from nuitka.utils.FileOperations import listDir
+from nuitka.utils.FileOperations import listDir, relpath
 
 
 def logRecursion(*args):
@@ -217,18 +217,18 @@ def decideRecursion(module_filename, module_name, module_package, module_kind):
 
 
 def considerFilename(module_filename):
-    module_filename = Utils.normpath(module_filename)
+    module_filename = os.path.normpath(module_filename)
 
-    if Utils.isDir(module_filename):
-        module_filename = Utils.abspath(module_filename)
+    if os.path.isdir(module_filename):
+        module_filename = os.path.abspath(module_filename)
 
-        module_name = Utils.basename(module_filename)
-        module_relpath = Utils.relpath(module_filename)
+        module_name = os.path.basename(module_filename)
+        module_relpath = relpath(module_filename)
 
         return module_filename, module_relpath, module_name
     elif module_filename.endswith(".py"):
-        module_name = Utils.basename(module_filename)[:-3]
-        module_relpath = Utils.relpath(module_filename)
+        module_name = os.path.basename(module_filename)[:-3]
+        module_relpath = relpath(module_filename)
 
         return module_filename, module_relpath, module_name
     else:
@@ -236,12 +236,12 @@ def considerFilename(module_filename):
 
 
 def isSameModulePath(path1, path2):
-    if Utils.basename(path1) == "__init__.py":
-        path1 = Utils.dirname(path1)
-    if Utils.basename(path2) == "__init__.py":
-        path2 = Utils.dirname(path2)
+    if os.path.basename(path1) == "__init__.py":
+        path1 = os.path.dirname(path1)
+    if os.path.basename(path2) == "__init__.py":
+        path2 = os.path.dirname(path2)
 
-    return Utils.abspath(path1) == Utils.abspath(path2)
+    return os.path.abspath(path1) == os.path.abspath(path2)
 
 
 def _checkPluginPath(plugin_filename, module_package):
@@ -264,7 +264,7 @@ def _checkPluginPath(plugin_filename, module_package):
         )
 
         if decision:
-            module_relpath = Utils.relpath(plugin_filename)
+            module_relpath = relpath(plugin_filename)
 
             module, is_added = recurseTo(
                 module_filename = plugin_filename,
@@ -303,7 +303,7 @@ def _checkPluginPath(plugin_filename, module_package):
                 if module.isCompiledPythonPackage():
                     package_filename = module.getFilename()
 
-                    if Utils.isDir(package_filename):
+                    if os.path.isdir(package_filename):
                         # Must be a namespace package.
                         assert python_version >= 330
 
@@ -312,7 +312,7 @@ def _checkPluginPath(plugin_filename, module_package):
                         # Only include it, if it contains actual modules, which will
                         # recurse to this one and find it again.
                     else:
-                        package_dir = Utils.dirname(package_filename)
+                        package_dir = os.path.dirname(package_filename)
 
                         # Real packages will always be included.
                         ModuleRegistry.addRootModule(module)
@@ -352,10 +352,10 @@ def checkPluginPath(plugin_filename, module_package):
 
     if plugin_info is not None:
         # File or package makes a difference, handle that
-        if Utils.isFile(plugin_info[0]) or \
+        if os.path.isfile(plugin_info[0]) or \
            Importing.isPackageDir(plugin_info[0]):
             _checkPluginPath(plugin_filename, module_package)
-        elif Utils.isDir(plugin_info[0]):
+        elif os.path.isdir(plugin_info[0]):
             for sub_path, sub_filename in listDir(plugin_info[0]):
                 assert sub_filename != "__init__.py"
 
@@ -374,7 +374,7 @@ def checkPluginFilenamePattern(pattern):
         pattern,
     )
 
-    if Utils.isDir(pattern):
+    if os.path.isdir(pattern):
         sys.exit("Error, pattern cannot be a directory name.")
 
     found = False
@@ -383,7 +383,7 @@ def checkPluginFilenamePattern(pattern):
         if filename.endswith(".pyc"):
             continue
 
-        if not Utils.isFile(filename):
+        if not os.path.isfile(filename):
             continue
 
         found = True

@@ -25,6 +25,7 @@ If other optimizations make it possible to predict these, the compiler can go
 deeper that what it normally could. The import expression node can recurse.
 """
 
+import os
 from logging import warning
 
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
@@ -39,7 +40,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import (
     ShapeTypeBuiltinModule,
     ShapeTypeModule
 )
-from nuitka.utils import Utils
+from nuitka.utils.FileOperations import relpath
 
 from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
 from .NodeBases import StatementChildrenHavingBase
@@ -131,7 +132,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         assert module_package is None or \
               (type(module_package) is str and module_package != "")
 
-        module_filename = Utils.normpath(module_filename)
+        module_filename = os.path.normpath(module_filename)
 
         module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
 
@@ -144,7 +145,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
             )
 
             if decision:
-                module_relpath = Utils.relpath(module_filename)
+                module_relpath = relpath(module_filename)
 
                 imported_module, added_flag = recurseTo(
                     module_package  = module_package,

@@ -27,7 +27,6 @@ from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
 from .IndicatorMixins import MarkLocalsDictIndicatorMixin
-from .NodeBases import ChildrenHavingMixin
 
 
 class ExpressionClassBody(MarkLocalsDictIndicatorMixin,

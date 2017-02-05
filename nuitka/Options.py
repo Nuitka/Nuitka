@@ -16,12 +16,8 @@
 #     limitations under the License.
 #
 """ Options module """
-
-version_string = """\
-Nuitka V0.5.26rc1
-Copyright (C) 2017 Kay Hayen."""
-
 import logging
+import os
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
@@ -32,9 +28,15 @@ from nuitka.PythonVersions import (
 )
 from nuitka.utils import Utils
 
+version_string = """\
+Nuitka V0.5.26rc1
+Copyright (C) 2017 Kay Hayen."""
+
+
+
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
-is_nuitka_run = Utils.basename(sys.argv[0]).lower().startswith("nuitka-run")
+is_nuitka_run = os.path.basename(sys.argv[0]).lower().startswith("nuitka-run")
 
 def getVersion():
     return version_string.split()[1][1:]
@@ -854,7 +856,7 @@ def shouldCreateGraph():
 
 def getOutputPath(path):
     if options.output_dir:
-        return Utils.normpath(Utils.joinpath(options.output_dir, path))
+        return os.path.normpath(os.path.join(options.output_dir, path))
     else:
         return path
 

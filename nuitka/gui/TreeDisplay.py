@@ -21,6 +21,7 @@ Useful to getting an idea of what the internal representation of Nuitka is about
 code.
 """
 
+import os
 import sys
 
 from PyQt5 import QtCore  # @UnresolvedImport pylint: disable=F0401,I0021
@@ -28,7 +29,6 @@ from PyQt5 import QtGui  # @UnresolvedImport pylint: disable=F0401,I0021
 from PyQt5 import uic  # @UnresolvedImport pylint: disable=F0401,I0021
 
 from nuitka import SourceCodeReferences
-from nuitka.utils import Utils
 
 
 # The API requires a signature, sometimes we don't use it, pylint: disable=R0201
@@ -200,8 +200,12 @@ class InspectNodeTreeDialog(QtGui.QDialog):
     def __init__(self, *args):
         QtGui.QDialog.__init__(self, *args)
 
-        ui_dir = Utils.dirname(__file__)
-        ui_filename = Utils.joinpath(ui_dir, "dialogs", "InspectPythonTree.ui")
+        ui_dir = os.path.dirname(__file__)
+        ui_filename = os.path.join(
+            ui_dir,
+            "dialogs",
+            "InspectPythonTree.ui"
+        )
 
         uic.loadUi(ui_filename, self)
 

@@ -21,6 +21,8 @@ The top of the tree. Packages are also modules. Modules are what hold a program
 together and cross-module optimizations are the most difficult to tackle.
 """
 
+import os
+
 from nuitka import Options, Variables
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing.Importing import (
@@ -32,8 +34,8 @@ from nuitka.ModuleRegistry import getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
-from nuitka.utils import Utils
 from nuitka.utils.CStrings import encodePythonIdentifierToC
+from nuitka.utils.FileOperations import relpath
 
 from .Checkers import checkStatementsSequenceOrNone
 from .ConstantRefNodes import makeConstantRefNode
@@ -123,7 +125,7 @@ class PythonModuleBase(NodeBase):
                 imported_module, is_added = recurseTo(
                     module_package  = package_package,
                     module_filename = package_filename,
-                    module_relpath  = Utils.relpath(package_filename),
+                    module_relpath  = relpath(package_filename),
                     module_kind     = "py",
                     reason          = "Containing package of recursed module '%s'." % self.getFullName(),
                 )
@@ -148,7 +150,7 @@ class PythonModuleBase(NodeBase):
         return None
 
     def getCompileTimeFilename(self):
-        return Utils.abspath(self.getSourceReference().getFilename())
+        return os.path.abspath(self.getSourceReference().getFilename())
 
     def getRunTimeFilename(self):
         reference_mode = Options.getFileReferenceMode()
@@ -162,7 +164,7 @@ class PythonModuleBase(NodeBase):
 
             full_name = self.getFullName()
 
-            result = Utils.basename(filename)
+            result = os.path.basename(filename)
             current = filename
 
             levels = full_name.count('.')
@@ -170,8 +172,12 @@ class PythonModuleBase(NodeBase):
                 levels += 1
 
             for _i in range(levels):
-                current = Utils.dirname(current)
-                result = Utils.joinpath(Utils.basename(current), result)
+                current = os.path.dirname(current)
+
+                result = os.path.join(
+                    os.path.basename(current),
+                    result
+                )
 
             return result
 
@@ -458,7 +464,7 @@ class CompiledPythonPackage(CompiledPythonModule):
         )
 
     def getOutputFilename(self):
-        return Utils.dirname(self.getFilename())
+        return os.path.dirname(self.getFilename())
 
 
 def makeUncompiledPythonModule(module_name, filename, bytecode, is_package,
@@ -631,7 +637,7 @@ class PythonMainModule(CompiledPythonModule):
 
     def getOutputFilename(self):
         if self.main_added:
-            return Utils.dirname(self.getFilename())
+            return os.path.dirname(self.getFilename())
         else:
             return CompiledPythonModule.getOutputFilename(self)
 
@@ -674,7 +680,7 @@ class PythonShlibModule(PythonModuleBase):
         )
 
         # That would be a mistake we just made.
-        assert Utils.basename(source_ref.getFilename()) != "<frozen>"
+        assert os.path.basename(source_ref.getFilename()) != "<frozen>"
 
         # That is too likely a bug.
         assert name != "__main__"

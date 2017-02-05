@@ -21,6 +21,7 @@ To run properly, these need the Qt plug-ins copied along, which have their
 own dependencies.
 """
 
+import os
 import shutil
 import sys
 from logging import info
@@ -28,7 +29,8 @@ from logging import info
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
-from nuitka.utils import Execution, Utils
+from nuitka.utils import Execution
+from nuitka.utils.FileOperations import getFileList
 
 
 class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
@@ -76,7 +78,7 @@ if os.path.exists(guess_path):
 
                 line = line[len("GUESS: "):]
 
-            result.append(Utils.normpath(line))
+            result.append(os.path.normpath(line))
 
         return result
 
@@ -88,7 +90,7 @@ if os.path.exists(guess_path):
 
             plugin_dir, = self.getPyQtPluginDirs(qt_version)
 
-            target_plugin_dir = Utils.joinpath(
+            target_plugin_dir = os.path.join(
                 dist_dir,
                 full_name,
                 "qt-plugins"
@@ -104,7 +106,7 @@ if os.path.exists(guess_path):
             return [
                 (plugin_dir, filename, full_name)
                 for filename in
-                Utils.getFileList(target_plugin_dir)
+                getFileList(target_plugin_dir)
             ]
 
         return ()

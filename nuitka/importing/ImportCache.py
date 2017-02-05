@@ -25,17 +25,19 @@ and then later active again, via another import, and in this case, we should
 not start anew, but reuse what we already found out about it.
 """
 
+import os
+
 from nuitka.plugins.Plugins import Plugins
-from nuitka.utils import Utils
+from nuitka.utils.FileOperations import relpath
 
 imported_modules = {}
 imported_by_name = {}
 
 def addImportedModule(imported_module):
-    module_filename = Utils.relpath(imported_module.getFilename())
+    module_filename = relpath(imported_module.getFilename())
 
-    if Utils.basename(module_filename) == "__init__.py":
-        module_filename = Utils.dirname(module_filename)
+    if os.path.basename(module_filename) == "__init__.py":
+        module_filename = os.path.dirname(module_filename)
 
     key = (
         module_filename,

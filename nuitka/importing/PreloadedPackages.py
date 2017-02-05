@@ -22,10 +22,10 @@ point to package directories, which need no "__init__.py" to count as a
 package. Nuitka will pretend for those that there be one, but without content.
 """
 
+import os
 import sys
 from logging import warning
 
-from nuitka.utils import Utils
 from nuitka.utils.FileOperations import listDir
 
 
@@ -80,11 +80,11 @@ def getPreloadedPackagePath(package_name):
 
 
 def isPreloadedPackagePath(path):
-    path = Utils.normcase(path)
+    path = os.path.normcase(path)
 
     for paths in getPreloadedPackagePaths().values():
         for element in paths:
-            if Utils.normcase(element) == path:
+            if os.path.normcase(element) == path:
                 return True
 
     return False
@@ -97,7 +97,7 @@ def detectPthImportedPackages():
     pth_imports = set()
 
     for prefix in sys.modules["site"].getsitepackages():
-        if not Utils.isDir(prefix):
+        if not os.path.isdir(prefix):
             continue
 
         for path, filename in listDir(prefix):

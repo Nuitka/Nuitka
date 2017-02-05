@@ -77,10 +77,10 @@ def isPackageDir(dirname):
         extra packages provided via "*.pth" file tricks by "site.py" loading.
     """
 
-    return Utils.isDir(dirname) and \
+    return os.path.isdir(dirname) and \
            (
                python_version >= 330 or
-               Utils.isFile(Utils.joinpath(dirname, "__init__.py")) or
+               os.path.isfile(os.path.join(dirname, "__init__.py")) or
                isPreloadedPackagePath(dirname)
            )
 
@@ -106,11 +106,11 @@ def getExtensionModuleSuffixes():
 
 
 def getModuleNameAndKindFromFilename(module_filename):
-    if Utils.isDir(module_filename):
-        module_name = Utils.basename(module_filename)
+    if os.path.isdir(module_filename):
+        module_name = os.path.basename(module_filename)
         module_kind = "py"
     elif module_filename.endswith(".py"):
-        module_name = Utils.basename(module_filename)[:-3]
+        module_name = os.path.basename(module_filename)[:-3]
         module_kind = "py"
     else:
         for suffix, _mode, kind in imp.get_suffixes():
@@ -118,7 +118,7 @@ def getModuleNameAndKindFromFilename(module_filename):
                 continue
 
             if module_filename.endswith(suffix):
-                module_name = Utils.basename(module_filename)[:-len(suffix)]
+                module_name = os.path.basename(module_filename)[:-len(suffix)]
                 module_kind = "shlib"
 
                 break
@@ -179,7 +179,7 @@ def normalizePackageName(module_name):
     # platform, we either cannot look into it, or we require that we resolve it
     # here correctly.
     if module_name == "os.path":
-        module_name = Utils.basename(os.path.__name__)
+        module_name = os.path.basename(os.path.__name__)
 
     return module_name
 
@@ -317,21 +317,21 @@ def _findModuleInPath2(module_name, search_path):
     for entry in search_path:
         # Don't try again, just with an entry of different casing or complete
         # duplicate.
-        if Utils.normcase(entry) in considered:
+        if os.path.normcase(entry) in considered:
             continue
-        considered.add(Utils.normcase(entry))
+        considered.add(os.path.normcase(entry))
 
         package_directory = os.path.join(entry, module_name)
 
         # First, check for a package with an init file, that would be the
         # first choice.
-        if Utils.isDir(package_directory):
+        if os.path.isdir(package_directory):
             for suffix in (".py", ".pyc"):
                 package_file_name = "__init__" + suffix
 
                 file_path = os.path.join(package_directory, package_file_name)
 
-                if Utils.isFile(file_path):
+                if os.path.isfile(file_path):
                     candidates.add(
                         (entry, 1, package_directory)
                     )
@@ -344,8 +344,8 @@ def _findModuleInPath2(module_name, search_path):
 
         # Then, check out suffixes of all kinds.
         for suffix, _mode, _type in imp.get_suffixes():
-            file_path = Utils.joinpath(entry, module_name + suffix)
-            if Utils.isFile(file_path):
+            file_path = os.path.join(entry, module_name + suffix)
+            if os.path.isfile(file_path):
                 candidates.add(
                     (entry, 1, file_path)
                 )
@@ -391,7 +391,7 @@ def getPackageSearchPath(package_name):
 
         result = []
         for element in getPackageSearchPath(parent_package_name):
-            package_dir = Utils.joinpath(
+            package_dir = os.path.join(
                 element,
                 child_package_name
             )
@@ -412,12 +412,12 @@ def getPackageSearchPath(package_name):
             return preloaded_path
 
         def getPackageDirCandidates(element):
-            yield Utils.joinpath(element, package_name), False
+            yield os.path.join(element, package_name), False
 
             # Hack for PyWin32. TODO: Move this "__path__" extensions to be
             # plug-in decisions.
             if package_name == "win32com":
-                yield Utils.joinpath(element, "win32comext"), True
+                yield os.path.join(element, "win32comext"), True
 
         result = []
         for element in getPackageSearchPath(None):

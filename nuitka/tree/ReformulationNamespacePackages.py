@@ -20,6 +20,8 @@ Namespace packages of Python3.3
 
 """
 
+import os
+
 from nuitka import Options
 from nuitka.nodes.AssignNodes import (
     ExpressionTargetVariableRef,
@@ -44,7 +46,6 @@ from nuitka.nodes.ModuleNodes import (
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.tree.Helpers import makeAbsoluteImportNode
-from nuitka.utils.Utils import dirname
 
 from .Helpers import makeStatementsSequenceFromStatement
 from .VariableClosure import completeVariableClosures
@@ -54,7 +55,9 @@ def createPathAssignment(source_ref):
     if Options.getFileReferenceMode() == "original":
         path_value = makeConstantRefNode(
             constant      = [
-                dirname(source_ref.getFilename())
+                os.path.dirname(
+                    source_ref.getFilename()
+                )
             ],
             source_ref    = source_ref,
             user_provided = True

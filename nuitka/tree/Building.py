@@ -49,6 +49,7 @@ catching and passing in exceptions raised.
 
 """
 
+import os
 import sys
 from logging import warning
 
@@ -103,7 +104,8 @@ from nuitka.tree.ReformulationForLoopStatements import (
     buildForLoopNode
 )
 from nuitka.tree.ReformulationWhileLoopStatements import buildWhileLoopNode
-from nuitka.utils import MemoryUsage, Utils
+from nuitka.utils import MemoryUsage
+from nuitka.utils.FileOperations import splitPath
 
 from . import SyntaxErrors
 from .Helpers import (
@@ -883,13 +885,13 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     assert package is None or type(package) is str
     assert filename is not None
 
-    if is_main and Utils.isDir(filename):
-        source_filename = Utils.joinpath(filename, "__main__.py")
+    if is_main and os.path.isdir(filename):
+        source_filename = os.path.join(filename, "__main__.py")
 
-        if not Utils.isFile(source_filename):
+        if not os.path.isfile(source_filename):
             sys.stderr.write(
                 "%s: can't find '__main__' module in '%s'\n" % (
-                    Utils.basename(sys.argv[0]),
+                    os.path.basename(sys.argv[0]),
                     filename
                 )
             )
@@ -901,7 +903,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     else:
         main_added = False
 
-    if Utils.isFile(filename):
+    if os.path.isfile(filename):
         source_filename = filename
 
         source_ref = SourceCodeReferences.fromFilename(
@@ -911,7 +913,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         if is_main:
             module_name = "__main__"
         else:
-            module_name = Utils.basename(filename)
+            module_name = os.path.basename(filename)
 
             if module_name.endswith(".py"):
                 module_name = module_name[:-3]
@@ -955,13 +957,13 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
 
     elif Importing.isPackageDir(filename):
         if is_top:
-            package_name = Utils.splitpath(filename)[-1]
+            package_name = splitPath(filename)[-1]
         else:
-            package_name = Utils.basename(filename)
+            package_name = os.path.basename(filename)
 
-        source_filename = Utils.joinpath(filename, "__init__.py")
+        source_filename = os.path.join(filename, "__init__.py")
 
-        if not Utils.isFile(source_filename):
+        if not os.path.isfile(source_filename):
             source_ref, result = createNamespacePackage(
                 package_name   = package_name,
                 module_relpath = filename
@@ -969,7 +971,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             source_filename = None
         else:
             source_ref = SourceCodeReferences.fromFilename(
-                filename = Utils.abspath(source_filename),
+                filename = os.path.abspath(source_filename),
             )
 
             if package is not None:
@@ -983,10 +985,12 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 mode         = Plugins.decideCompilation(full_name, source_ref),
                 source_ref   = source_ref
             )
+
+            assert result.getFullName() == full_name, result
     else:
         sys.stderr.write(
             "%s: can't open file '%s'.\n" % (
-                Utils.basename(sys.argv[0]),
+                os.path.basename(sys.argv[0]),
                 filename
             )
         )

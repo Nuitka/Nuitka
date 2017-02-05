@@ -23,8 +23,36 @@ stuff. It will also frequently add sorting.
 """
 
 import os
+import shutil
 
-from .Utils import joinpath
+from nuitka.utils.Utils import getOS
+
+
+def areSamePaths(path1, path2):
+    path1 = os.path.normcase(os.path.abspath(os.path.normpath(path1)))
+    path2 = os.path.normcase(os.path.abspath(os.path.normpath(path2)))
+
+    return path1 == path2
+
+
+def relpath(path):
+    """ Relative path, if possible. """
+
+    try:
+        return os.path.relpath(path)
+    except ValueError:
+        # On Windows, paths on different devices prevent it to work. Use that
+        # full path then.
+        if getOS() == "Windows":
+            return os.path.abspath(path)
+        raise
+
+
+def makePath(path):
+    """ Create a directory if it doesn'T exist."""
+
+    if not os.path.isdir(path):
+        os.makedirs(path)
 
 
 def listDir(path):
@@ -33,7 +61,7 @@ def listDir(path):
     return sorted(
         [
             (
-                joinpath(path, filename),
+                os.path.join(path, filename),
                 filename
             )
             for filename in
@@ -42,14 +70,45 @@ def listDir(path):
     )
 
 
+def getFileList(path):
+    for root, _dirnames, filenames in os.walk(path):
+        for filename in filenames:
+            yield os.path.join(root, filename)
+
+
+
 def getSubDirectories(path):
     result = []
 
     for root, dirnames, _filenames in os.walk(path):
         for dirname in dirnames:
             result.append(
-                joinpath(root, dirname)
+                os.path.join(root, dirname)
             )
 
     result.sort()
     return result
+
+
+def deleteFile(path, must_exist):
+    if must_exist or os.path.isfile(path):
+        os.unlink(path)
+
+
+def splitPath(path):
+    """ Split path, skipping empty elements. """
+    return tuple(
+        element
+        for element in
+        os.path.split(path)
+        if element
+    )
+
+
+def hasFilenameExtension(path, extensions):
+    extension = os.path.splitext(os.path.normcase(path))[1]
+
+    return extension in extensions
+
+def removeDirectory(path, ignore_errors):
+    shutil.rmtree(path, ignore_errors)

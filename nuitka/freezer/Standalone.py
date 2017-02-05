@@ -44,7 +44,12 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
-from nuitka.utils.FileOperations import getSubDirectories, listDir
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    deleteFile,
+    getSubDirectories,
+    listDir
+)
 
 from .DependsExe import getDependsExePath
 
@@ -60,7 +65,7 @@ module_names = set()
 def _detectedPrecompiledFile(filename, module_name, result, user_provided,
                              technical):
     if filename.endswith(".pyc"):
-        if Utils.isFile(filename[:-1]):
+        if os.path.isfile(filename[:-1]):
             return _detectedSourceFile(
                 filename      = filename[:-1],
                 module_name   = module_name,
@@ -116,7 +121,7 @@ def _detectedSourceFile(filename, module_name, result, user_provided, technical)
         source_code = """\
 __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
             os.path.sep,
-            Utils.basename(filename),
+            os.path.basename(filename),
             source_code
         )
 
@@ -126,7 +131,7 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
         filename
     )
 
-    is_package = Utils.basename(filename) == "__init__.py"
+    is_package = os.path.basename(filename) == "__init__.py"
     source_code = Plugins.onFrozenModuleSourceCode(
         module_name = module_name,
         is_package  = is_package,
@@ -204,13 +209,13 @@ def _detectImports(command, user_provided, technical):
         path_element
         for path_element in
         sys.path
-        if not Utils.areSamePaths(
+        if not areSamePaths(
             path_element,
             '.'
         )
-        if not Utils.areSamePaths(
+        if not areSamePaths(
             path_element,
-            Utils.dirname(sys.modules["__main__"].__file__)
+            os.path.dirname(sys.modules["__main__"].__file__)
         )
     ]
 
@@ -412,7 +417,7 @@ def detectEarlyImports():
     encoding_names = [
         filename[:-3]
         for _path, filename in
-        listDir(Utils.dirname(sys.modules["encodings"].__file__))
+        listDir(os.path.dirname(sys.modules["encodings"].__file__))
         if filename.endswith(".py")
         if "__init__" not in filename
     ]
@@ -523,7 +528,7 @@ def _detectBinaryPathDLLsLinuxBSD(binary_filename):
             continue
 
         # Do not include kernel specific libraries.
-        if Utils.basename(filename).startswith(
+        if os.path.basename(filename).startswith(
                 (
                     "libc.so.",
                     "libpthread.so.",
@@ -585,9 +590,9 @@ def _makeBinaryPathPathDLLSearchEnv(package_name):
 
     if package_name is not None:
         for element in sys.path:
-            candidate = Utils.joinpath(element, package_name)
+            candidate = os.path.join(element, package_name)
 
-            if Utils.isDir(candidate):
+            if os.path.isdir(candidate):
                 path.append(candidate)
 
 
@@ -620,7 +625,7 @@ SxS
                     "UserDir %s" % dirname
                     for dirname in
                     [original_dir] + getSubDirectories(original_dir)
-                    if not Utils.basename(dirname) == "__pycache__"
+                    if not os.path.basename(dirname) == "__pycache__"
                     if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
                 )
                 if original_dir is not None
@@ -676,9 +681,9 @@ SxS
             first = False
             continue
 
-        assert Utils.isFile(dll_filename), dll_filename
+        assert os.path.isfile(dll_filename), dll_filename
 
-        dll_name = Utils.basename(dll_filename).upper()
+        dll_name = os.path.basename(dll_filename).upper()
 
         # Win API can be assumed.
         if dll_name.startswith("API-MS-WIN-") or \
@@ -737,11 +742,11 @@ SxS
             continue
 
         result.add(
-            Utils.normcase(Utils.abspath(dll_filename))
+            os.path.normcase(os.path.abspath(dll_filename))
         )
 
-    Utils.deleteFile(binary_filename + ".depends", must_exist = True)
-    Utils.deleteFile(binary_filename + ".dwp", must_exist = True)
+    deleteFile(binary_filename + ".depends", must_exist = True)
+    deleteFile(binary_filename + ".dwp", must_exist = True)
 
     return result
 
@@ -785,7 +790,7 @@ def detectUsedDLLs(standalone_entry_points):
 
         for dll_filename in used_dlls:
             # We want these to be absolute paths.
-            assert Utils.isAbsolutePath(dll_filename), dll_filename
+            assert os.path.isabs(dll_filename), dll_filename
 
             if dll_filename not in result:
                 result[dll_filename] = []
@@ -888,7 +893,8 @@ def copyUsedDLLs(dist_dir, standalone_entry_points):
                 continue
 
             # Colliding basenames are an issue to us.
-            if Utils.basename(dll_filename1) != Utils.basename(dll_filename2):
+            if os.path.basename(dll_filename1) != \
+               os.path.basename(dll_filename2):
                 continue
 
             # May already have been removed earlier
@@ -898,7 +904,7 @@ def copyUsedDLLs(dist_dir, standalone_entry_points):
             if dll_filename2 not in used_dlls:
                 continue
 
-            dll_name = Utils.basename(dll_filename1)
+            dll_name = os.path.basename(dll_filename1)
 
             if Options.isShowInclusion():
                 info(
@@ -934,9 +940,9 @@ different from
             )
 
     for dll_filename, sources in iterItems(used_dlls):
-        dll_name = Utils.basename(dll_filename)
+        dll_name = os.path.basename(dll_filename)
 
-        target_path = Utils.joinpath(
+        target_path = os.path.join(
             dist_dir,
             dll_name
         )
@@ -970,7 +976,7 @@ different from
 
         for _original_path, dll_filename in dll_map:
             fixupBinaryDLLPaths(
-                binary_filename = Utils.joinpath(
+                binary_filename = os.path.join(
                     dist_dir,
                     dll_filename
                 ),
@@ -983,7 +989,7 @@ different from
         # removed.
         for _original_path, dll_filename in dll_map:
             removeSharedLibraryRPATH(
-                Utils.joinpath(dist_dir, dll_filename)
+                os.path.join(dist_dir, dll_filename)
             )
 
         for standalone_entry_point in standalone_entry_points[1:]:

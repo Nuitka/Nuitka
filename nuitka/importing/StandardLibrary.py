@@ -28,8 +28,6 @@ module.
 
 import os
 
-from nuitka.utils import Utils
-
 
 def getStandardLibraryPaths():
     """ Get the standard library paths.
@@ -43,21 +41,27 @@ def getStandardLibraryPaths():
         if os_filename.endswith(".pyc"):
             os_filename = os_filename[:-1]
 
-        os_path = Utils.normcase(Utils.dirname(os_filename))
+        os_path = os.path.normcase(
+            os.path.dirname(os_filename)
+        )
 
         stdlib_paths = set([os_path])
 
         # Happens for virtualenv situation, some modules will come from the link
         # this points to.
-        if Utils.isLink(os_filename):
-            os_filename = Utils.readLink(os_filename)
-            stdlib_paths.add(Utils.normcase(Utils.dirname(os_filename)))
+        if os.path.islink(os_filename):
+            os_filename = os.readlink(os_filename)
+            stdlib_paths.add(
+                os.path.normcase(
+                    os.path.dirname(os_filename)
+                )
+            )
 
         # Another possibility is "orig-prefix.txt" file near the os.py, which
         # points to the original install.
-        orig_prefix_filename = Utils.joinpath(os_path, "orig-prefix.txt")
+        orig_prefix_filename = os.path.join(os_path, "orig-prefix.txt")
 
-        if Utils.isFile(orig_prefix_filename):
+        if os.path.isfile(orig_prefix_filename):
             # Scan upwards, until we find a "bin" folder, with "activate" to
             # locate the structural path to be added. We do not know for sure
             # if there is a sub-directory under "lib" to use or not. So we try
@@ -66,19 +70,19 @@ def getStandardLibraryPaths():
             lib_part = ""
 
             while os.path.splitdrive(search)[1] not in (os.path.sep, ""):
-                if Utils.isFile(Utils.joinpath(search,"bin/activate")) or \
-                   Utils.isFile(Utils.joinpath(search,"scripts/activate")):
+                if os.path.isfile(os.path.join(search,"bin/activate")) or \
+                   os.path.isfile(os.path.join(search,"scripts/activate")):
                     break
 
-                lib_part = Utils.joinpath(Utils.basename(search), lib_part)
+                lib_part = os.path.join(os.path.basename(search), lib_part)
 
-                search = Utils.dirname(search)
+                search = os.path.dirname(search)
 
             assert search and lib_part
 
             stdlib_paths.add(
-                Utils.normcase(
-                    Utils.joinpath(
+                os.path.normcase(
+                    os.path.join(
                         open(orig_prefix_filename).read(),
                         lib_part,
                     )
@@ -87,25 +91,25 @@ def getStandardLibraryPaths():
 
         # And yet another possibility, for MacOS Homebrew created virtualenv
         # at least is a link ".Python", which points to the original install.
-        python_link_filename = Utils.joinpath(os_path, "..", ".Python")
-        if Utils.isLink(python_link_filename):
+        python_link_filename = os.path.join(os_path, "..", ".Python")
+        if os.path.islink(python_link_filename):
             stdlib_paths.add(
-                Utils.normcase(
-                    Utils.joinpath(
-                        Utils.readLink(python_link_filename),
+                os.path.normcase(
+                    os.path.join(
+                        os.readlink(python_link_filename),
                         "lib"
                     )
                 )
             )
 
         for stdlib_path in set(stdlib_paths):
-            candidate = Utils.joinpath(stdlib_path, "lib-tk")
+            candidate = os.path.join(stdlib_path, "lib-tk")
 
-            if Utils.isDir(candidate):
+            if os.path.isdir(candidate):
                 stdlib_paths.add(candidate)
 
         getStandardLibraryPaths.result = [
-            Utils.normcase(stdlib_path)
+            os.path.normcase(stdlib_path)
             for stdlib_path in
             stdlib_paths
         ]
@@ -118,7 +122,7 @@ def isStandardLibraryPath(path):
 
     """
 
-    path = Utils.normcase(path)
+    path = os.path.normcase(path)
 
     # In virtualenv, the "site.py" lives in a place that suggests it is not in
     # standard library, although it is.

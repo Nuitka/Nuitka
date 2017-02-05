@@ -22,12 +22,13 @@ be told that. This encodes the knowledge we have for various modules. Feel free
 to add to this and submit patches to make it more complete.
 """
 
+import os
 import shutil
 
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.PythonVersions import python_version
 from nuitka.utils.SharedLibraries import locateDLL
-from nuitka.utils.Utils import basename, getOS, joinpath
+from nuitka.utils.Utils import getOS
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
@@ -168,7 +169,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         if getOS() == "Linux" and full_name == "uuid":
             uuid_dll_path = locateDLL("uuid")
-            dist_dll_path = joinpath(dist_dir, basename(uuid_dll_path))
+            dist_dll_path = os.path.join(dist_dir, os.path.basename(uuid_dll_path))
 
             shutil.copy(uuid_dll_path, dist_dir)
 
