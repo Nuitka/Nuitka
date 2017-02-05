@@ -30,11 +30,11 @@ from nuitka.PythonVersions import python_version
 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from .ConstantRefNodes import makeConstantRefNode
 from .ExceptionNodes import StatementRaiseExceptionImplicit
-from .NodeBases import (
+from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
-    ExpressionChildrenHavingBase,
-    StatementChildrenHavingBase
+    ExpressionChildrenHavingBase
 )
+from .NodeBases import StatementChildrenHavingBase
 from .NodeMakingHelpers import wrapExpressionWithSideEffects
 from .shapes.StandardShapes import ShapeIterator
 

@@ -27,8 +27,8 @@ from nuitka import Constants
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeBases import (
-    ExpressionChildrenHavingBase,
     SideEffectsFromChildrenMixin,
     StatementChildrenHavingBase
 )

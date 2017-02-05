@@ -25,13 +25,12 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import (
-    ChildrenHavingMixin,
+from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationMixin,
-    NodeBase
+    ExpressionSpecBasedComputationMixin
 )
+from .NodeBases import ChildrenHavingMixin, NodeBase
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     wrapExpressionWithNodeSideEffects

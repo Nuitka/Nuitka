@@ -21,7 +21,7 @@ This is a rather two sided beast, as it may be read or write. And we would like 
 to track it, so we can include files into the executable, or write more efficiently.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 
 
 class ExpressionBuiltinOpen(ExpressionChildrenHavingBase):

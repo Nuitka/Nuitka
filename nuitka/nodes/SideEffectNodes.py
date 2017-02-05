@@ -21,7 +21,7 @@ Sometimes, the effect of an expression needs to be had, but the value itself
 does not matter at all.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 

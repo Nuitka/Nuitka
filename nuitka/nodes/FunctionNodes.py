@@ -37,6 +37,11 @@ from nuitka.PythonVersions import python_version
 from nuitka.tree.Extractions import updateVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
+from .ExpressionBases import (
+    CompileTimeConstantExpressionMixin,
+    ExpressionChildrenHavingBase,
+    ExpressionMixin
+)
 from .IndicatorMixins import (
     MarkLocalsDictIndicator,
     MarkUnoptimizedFunctionIndicator
@@ -45,9 +50,6 @@ from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeBase,
     ClosureTakerMixin,
-    CompileTimeConstantExpressionMixin,
-    ExpressionChildrenHavingBase,
-    ExpressionMixin,
     NodeBase,
     SideEffectsFromChildrenMixin
 )

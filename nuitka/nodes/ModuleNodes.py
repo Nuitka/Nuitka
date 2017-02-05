@@ -37,11 +37,11 @@ from nuitka.utils.CStrings import encodePythonIdentifierToC
 
 from .Checkers import checkStatementsSequenceOrNone
 from .ConstantRefNodes import makeConstantRefNode
+from .ExpressionBases import ExpressionMixin
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeBase,
-    ExpressionMixin,
     NodeBase,
     extractKindAndArgsFromXML,
     fromXML

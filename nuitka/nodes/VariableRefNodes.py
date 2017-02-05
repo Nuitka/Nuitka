@@ -33,7 +33,8 @@ from .DictionaryNodes import (
     StatementDictOperationRemove,
     StatementDictOperationSet
 )
-from .NodeBases import ExpressionMixin, NodeBase
+from .ExpressionBases import ExpressionMixin
+from .NodeBases import NodeBase
 from .shapes.StandardShapes import ShapeUnknown
 
 

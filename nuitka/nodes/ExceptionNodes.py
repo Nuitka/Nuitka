@@ -19,12 +19,8 @@
 
 """
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    ExpressionMixin,
-    NodeBase,
-    StatementChildrenHavingBase
-)
+from .ExpressionBases import ExpressionChildrenHavingBase, ExpressionMixin
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 

@@ -25,7 +25,7 @@ There will be a method "computeExpressionCall" to aid predicting them in other
 nodes.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 
 
 class ExpressionCall(ExpressionChildrenHavingBase):

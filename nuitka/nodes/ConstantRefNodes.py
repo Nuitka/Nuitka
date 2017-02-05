@@ -38,7 +38,8 @@ from nuitka.Constants import (
 )
 from nuitka.Options import isDebug
 
-from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
+from .ExpressionBases import CompileTimeConstantExpressionMixin
+from .NodeBases import NodeBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpression,
     wrapExpressionWithSideEffects

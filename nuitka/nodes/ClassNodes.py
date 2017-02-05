@@ -24,9 +24,10 @@ The classes are are at the core of the language and have their complexities.
 from nuitka.PythonVersions import python_version
 
 from .Checkers import checkStatementsSequenceOrNone
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
 from .IndicatorMixins import MarkLocalsDictIndicator
-from .NodeBases import ChildrenHavingMixin, ExpressionChildrenHavingBase
+from .NodeBases import ChildrenHavingMixin
 
 
 class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):

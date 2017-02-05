@@ -25,12 +25,13 @@ whose implementation lives here. The creation itself also lives here.
 from nuitka.PythonVersions import python_version
 
 from .Checkers import checkStatementsSequenceOrNone
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
 from .IndicatorMixins import (
     MarkLocalsDictIndicator,
     MarkUnoptimizedFunctionIndicator
 )
-from .NodeBases import ChildrenHavingMixin, ExpressionChildrenHavingBase
+from .NodeBases import ChildrenHavingMixin
 
 
 class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):

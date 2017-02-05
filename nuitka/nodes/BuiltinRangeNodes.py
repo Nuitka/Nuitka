@@ -28,7 +28,7 @@ import math
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
 from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeXrange
 

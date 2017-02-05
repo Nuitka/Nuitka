@@ -20,7 +20,8 @@
 This one exits functions. The only other exit is the default exit of functions with 'None' value, if no return is done.
 """
 
-from .NodeBases import ExpressionMixin, NodeBase, StatementChildrenHavingBase
+from .ExpressionBases import ExpressionMixin
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
 class StatementReturn(StatementChildrenHavingBase):

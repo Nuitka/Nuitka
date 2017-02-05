@@ -26,12 +26,8 @@ The "dir()" call without arguments is reformulated to locals or globals calls.
 
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import (
-    ExpressionBuiltinSingleArgBase,
-    ExpressionMixin,
-    NodeBase,
-    StatementChildrenHavingBase
-)
+from .ExpressionBases import ExpressionBuiltinSingleArgBase, ExpressionMixin
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
 class ExpressionBuiltinGlobals(NodeBase, ExpressionMixin):

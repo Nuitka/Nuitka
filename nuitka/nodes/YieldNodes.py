@@ -25,7 +25,7 @@ Often it will be used as a statement, which should also be reflected in a
 dedicated node.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 
 
 class ExpressionYield(ExpressionChildrenHavingBase):

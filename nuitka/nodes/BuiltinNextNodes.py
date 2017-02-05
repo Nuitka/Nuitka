@@ -21,7 +21,7 @@
     text, explaining things about its context.
 """
 
-from .NodeBases import (
+from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )

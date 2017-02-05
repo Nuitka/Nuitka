@@ -25,7 +25,7 @@ about performance critical.
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import (
+from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )

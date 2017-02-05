@@ -23,10 +23,8 @@ import functools
 
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    SideEffectsFromChildrenMixin
-)
+from .ExpressionBases import ExpressionChildrenHavingBase
+from .NodeBases import SideEffectsFromChildrenMixin
 from .NodeMakingHelpers import (
     getComputationResult,
     makeStatementOnlyNodesFromExpressions,

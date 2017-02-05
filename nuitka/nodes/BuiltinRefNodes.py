@@ -36,7 +36,8 @@ from nuitka.PythonVersions import python_version
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExceptionNodes import ExpressionBuiltinMakeException
-from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
+from .ExpressionBases import CompileTimeConstantExpressionMixin
+from .NodeBases import NodeBase
 
 
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):

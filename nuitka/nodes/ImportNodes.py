@@ -39,12 +39,8 @@ from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.utils import Utils
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    ExpressionMixin,
-    NodeBase,
-    StatementChildrenHavingBase
-)
+from .ExpressionBases import ExpressionChildrenHavingBase, ExpressionMixin
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 
 
 class ExpressionImportModuleHard(NodeBase, ExpressionMixin):

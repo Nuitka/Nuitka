@@ -25,7 +25,7 @@ answer quite a few questions at compile time.
 
 from nuitka.optimizations import BuiltinOptimization
 
-from .NodeBases import ExpressionBuiltinSingleArgBase
+from .ExpressionBases import ExpressionBuiltinSingleArgBase
 
 
 class ExpressionBuiltinOrd(ExpressionBuiltinSingleArgBase):

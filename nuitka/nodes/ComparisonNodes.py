@@ -21,7 +21,7 @@
 
 from nuitka import PythonOperators
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import (
     makeComparisonNode,
     makeConstantReplacementNode,

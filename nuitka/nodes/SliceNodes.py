@@ -27,10 +27,12 @@ from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
 from .ConstantRefNodes import ExpressionConstantNoneRef
+from .ExpressionBases import (
+    ExpressionChildrenHavingBase,
+    ExpressionSpecBasedComputationMixin
+)
 from .NodeBases import (
     ChildrenHavingMixin,
-    ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationMixin,
     NodeBase,
     StatementChildrenHavingBase
 )

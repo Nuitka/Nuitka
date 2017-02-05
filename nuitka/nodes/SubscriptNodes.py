@@ -24,10 +24,8 @@ There is be a method "computeExpressionSubscript" to aid predicting them in the
 other nodes.
 """
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    StatementChildrenHavingBase
-)
+from .ExpressionBases import ExpressionChildrenHavingBase
+from .NodeBases import StatementChildrenHavingBase
 
 
 class StatementAssignmentSubscript(StatementChildrenHavingBase):

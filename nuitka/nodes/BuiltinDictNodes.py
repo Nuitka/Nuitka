@@ -28,7 +28,7 @@ from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 
 from .BuiltinIteratorNodes import ExpressionBuiltinIter1
 from .ConstantRefNodes import makeConstantRefNode
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 
 
 class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
