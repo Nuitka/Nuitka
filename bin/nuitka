@@ -95,7 +95,7 @@ if intended_version is None:
 # If it's a different version, we find it by guessing it, otherwise we use the
 # one previously used.
 if current_version != intended_version:
-    from nuitka.utils.Execution import getExecutablePath, getPythonExePathWindows
+    from nuitka.utils.Execution import getExecutablePath, getPythonExePathWindows # False alarm, pylint: disable=E0611
 
     if Utils.getOS() == "Windows":
         python_binary = getPythonExePathWindows(

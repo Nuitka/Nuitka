@@ -34,6 +34,7 @@ def generateYieldCode(to_name, expression, emit, context):
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
+    # This will produce GENERATOR_YIELD, COROUTINE_YIELD or ASYNCGEN_YIELD.
     emit(
         "%s = %s_%s( %s, %s );" % (
             to_name,
@@ -71,6 +72,8 @@ def generateYieldFromCode(to_name, expression, emit, context):
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
+    # This will produce GENERATOR_YIELD_FROM, COROUTINE_YIELD_FROM or
+    # ASYNCGEN_YIELD_FROM.
     emit(
         "%s = %s_%s( %s, %s );" % (
             to_name,
