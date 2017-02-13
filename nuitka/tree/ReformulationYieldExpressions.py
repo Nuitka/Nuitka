@@ -39,8 +39,10 @@ def _checkInsideGenerator(provider, node, source_ref):
             source_ref.atColumnNumber(node.col_offset)
         )
 
-    # This is forbidden in 3.5, but allows in 3.6
-    if provider.isExpressionAsyncgenObjectBody() and python_version < 360:
+    # This yield is forbidden in 3.5, but allowed in 3.6, but yield_from
+    # is neither.
+    if provider.isExpressionAsyncgenObjectBody() and \
+       (node.__class__ is not ast.Yield or python_version < 360):
         SyntaxErrors.raiseSyntaxError(
             "'%s' inside async function" % (
                 "yield" if node.__class__ is ast.Yield else "yield from",

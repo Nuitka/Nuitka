@@ -170,6 +170,10 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             self._handleNonLocal(node)
 
             self._handleQualnameSetup(node)
+        elif node.isExpressionAsyncgenObjectBody():
+            self._handleNonLocal(node)
+
+            self._handleQualnameSetup(node)
         elif node.isExpressionClassBody():
             self._handleNonLocal(node)
 

@@ -488,13 +488,22 @@ def buildReturnNode(provider, node, source_ref):
                 source_ref.atColumnNumber(node.col_offset)
             )
 
+    if provider.isExpressionAsyncgenObjectBody():
+        if expression is not None:
+            SyntaxErrors.raiseSyntaxError(
+                "'return' with value in async generator",
+                source_ref.atColumnNumber(node.col_offset)
+            )
+
+
     if expression is None:
         expression = ExpressionConstantNoneRef(
             source_ref    = source_ref,
             user_provided = True
         )
 
-    if provider.isExpressionGeneratorObjectBody():
+    if provider.isExpressionGeneratorObjectBody() or \
+       provider.isExpressionAsyncgenObjectBody():
         return StatementGeneratorReturn(
             expression = expression,
             source_ref = source_ref
