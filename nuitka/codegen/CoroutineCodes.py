@@ -28,6 +28,7 @@ from .ErrorCodes import (
 )
 from .Helpers import generateChildExpressionsCode
 from .Indentation import indented
+from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesCoroutines import (
     template_coroutine_exception_exit,
     template_coroutine_noexception_exit,
@@ -175,6 +176,8 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
 
 
 def generateAsyncWaitCode(to_name, expression, emit, context):
+    emitLineNumberUpdateCode(emit, context)
+
     value_name, = generateChildExpressionsCode(
         expression = expression,
         emit       = emit,
