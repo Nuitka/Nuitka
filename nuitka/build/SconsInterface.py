@@ -145,6 +145,7 @@ scons which is not yet Python3 compatible.""")
 
     return candidate
 
+
 @contextlib.contextmanager
 def _setupSconsEnvironment():
     """ Setup the scons execution environment.

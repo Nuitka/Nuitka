@@ -30,6 +30,13 @@ from nuitka.utils.Utils import getOS
 
 
 def areSamePaths(path1, path2):
+    """ Are two paths the same.
+
+    Same meaning here, that case differences ignored on platforms where
+    that is the norm, and with normalized, and turned absolut paths,
+    there is no differences.
+    """
+
     path1 = os.path.normcase(os.path.abspath(os.path.normpath(path1)))
     path2 = os.path.normcase(os.path.abspath(os.path.normpath(path2)))
 
@@ -110,6 +117,7 @@ def hasFilenameExtension(path, extensions):
     extension = os.path.splitext(os.path.normcase(path))[1]
 
     return extension in extensions
+
 
 def removeDirectory(path, ignore_errors):
     """ Remove a directory recursively.

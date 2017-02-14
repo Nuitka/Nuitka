@@ -35,7 +35,7 @@ def getCodeObjectsDeclCode(context):
         statements.append(declaration)
 
     if context.getOwner().getFullName() == "__main__":
-        statements.append("/* For use in MainProgram.cpp. */")
+        statements.append('/* For use in "MainProgram.c". */')
         statements.append("PyCodeObject *codeobj_main = NULL;")
 
     return statements
