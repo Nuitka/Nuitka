@@ -328,10 +328,13 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
     # Cleanup, some tests apparently forget that.
     try:
         if os.path.isdir("@test"):
-            shutil.rmtree("@test")
+            removeDirectory("@test", ignore_errors = False)
         elif os.path.isfile("@test"):
             os.unlink("@test")
     except OSError:
+        # TODO: Move this into removeDirectory maybe. Doing an external
+        # call as last resort could be a good idea.
+
         # This seems to work for broken "lnk" files.
         if os.name == "nt":
             os.system("rmdir /S /Q @test")
