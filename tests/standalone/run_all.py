@@ -19,20 +19,21 @@
 #     limitations under the License.
 #
 
-import os, sys, shutil
+import os
+import sys
 
-# Find common code relative in file system. Not using packages for test stuff.
+# Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
+            "..",
             ".."
         )
     )
 )
-
-from test_common import (
+from nuitka.tools.testing.Common import (
     my_print,
     setup,
     hasModule,
@@ -42,6 +43,7 @@ from test_common import (
     createSearchMode,
     reportSkip
 )
+from nuitka.utils.FileOperations import removeDirectory
 
 python_version = setup(needs_io_encoding = True)
 
@@ -454,6 +456,6 @@ for filename in sorted(os.listdir('.')):
     if illegal_access:
         sys.exit(1)
 
-    shutil.rmtree(filename[:-3] + ".dist")
+    removeDirectory(filename[:-3] + ".dist", ignore_errors = True)
 
 search_mode.finish()
