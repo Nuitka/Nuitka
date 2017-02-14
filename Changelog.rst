@@ -30,6 +30,9 @@ Bug Fixes
 - Windows: Scan directories for ``.pyd`` files for used DLLs as well. This
   should make the PyQt5 wheel work.
 
+- Python3.5: Fix, coroutines could have different code objects for the object
+  and the frame using by it.
+
 Optimization
 ------------
 
@@ -44,7 +47,6 @@ Optimization
         from __builtin__ import len
     except ImportError:
         from builtins import len
-
 
 Cleanups
 --------
@@ -69,12 +71,17 @@ Cleanups
   deletions of directories on e.g. Windows, where locks tend to live for short
   times beyond program ends, requiring second attempts.
 
+Tests
+-----
+
+- More robust deletion of directories, temporary stages used by CPython test
+  suites, and standalone directories during test execution.
 
 Organizational
 --------------
 
 - Added initial support for testing with Travis to complement the internal
-  Buildbot infrastructure.
+  Buildbot based infrastructure.
 
 Summary
 -------
