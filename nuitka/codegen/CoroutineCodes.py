@@ -125,7 +125,7 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
         line_number  = coroutine_object_body.getSourceReference().getLineNumber(),
         is_optimized = True,
         new_locals   = not coroutine_object_body.needsLocalsDict(),
-        has_closure  = len(closure_variables) > 0,
+        has_closure  = len(coroutine_object_body.getParentVariableProvider().getClosureVariables()) > 0,
         future_flags = coroutine_object_body.getSourceReference().getFutureSpec().asFlags()
     )
 

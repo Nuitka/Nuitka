@@ -124,7 +124,7 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
         line_number  = asyncgen_object_body.getSourceReference().getLineNumber(),
         is_optimized = True,
         new_locals   = not asyncgen_object_body.needsLocalsDict(),
-        has_closure  = len(closure_variables) > 0,
+        has_closure  = len(asyncgen_object_body.getParentVariableProvider().getClosureVariables()) > 0,
         future_flags = asyncgen_object_body.getSourceReference().getFutureSpec().asFlags()
     )
 
@@ -163,106 +163,12 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
 
     emit(
         template_make_asyncgen_template % {
-            "closure_copy"         : indented(closure_copy, 0, True),
+            "closure_copy"        : indented(closure_copy, 0, True),
             "asyncgen_identifier" : asyncgen_object_body.getCodeName(),
-            "to_name"              : to_name,
-            "code_identifier"      : code_identifier,
-            "closure_count"        : len(closure_variables)
+            "to_name"             : to_name,
+            "code_identifier"     : code_identifier,
+            "closure_count"       : len(closure_variables)
         }
-    )
-
-    context.addCleanupTempName(to_name)
-
-
-def generateAsyncWaitCode(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
-        expression = expression,
-        emit       = emit,
-        context    = context
-    )
-
-    emit(
-        "%s = %s( asyncgen, %s );" % (
-            to_name,
-            "AWAIT_ASYNCGEN",
-            value_name
-              if context.needsCleanup(value_name) else
-            "INCREASE_REFCOUNT( %s )" % value_name
-        )
-    )
-
-    if not context.needsCleanup(value_name):
-        context.addCleanupTempName(value_name)
-
-    getReleaseCode(
-        release_name = value_name,
-        emit         = emit,
-        context      = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
-
-    context.addCleanupTempName(to_name)
-
-
-def generateAsyncIterCode(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
-        expression = expression,
-        emit       = emit,
-        context    = context
-    )
-
-    emit(
-        "%s = MAKE_ASYNC_ITERATOR( asyncgen, %s );" % (
-            to_name,
-            value_name
-        )
-    )
-
-    getReleaseCode(
-        release_name = value_name,
-        emit         = emit,
-        context      = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
-
-    context.addCleanupTempName(to_name)
-
-
-def generateAsyncNextCode(to_name, expression, emit, context):
-    value_name, = generateChildExpressionsCode(
-        expression = expression,
-        emit       = emit,
-        context    = context
-    )
-
-    emit(
-        "%s = ASYNC_ITERATOR_NEXT( asyncgen, %s );" % (
-            to_name,
-            value_name,
-        )
-    )
-
-    getReleaseCode(
-        release_name = value_name,
-        emit         = emit,
-        context      = context
-    )
-
-    getErrorExitCode(
-        check_name      = to_name,
-        quick_exception = "StopAsyncIteration",
-        emit            = emit,
-        context         = context
     )
 
     context.addCleanupTempName(to_name)
