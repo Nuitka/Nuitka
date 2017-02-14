@@ -111,7 +111,7 @@ class NuitkaInstallScripts(install_scripts):
             libdir = self.install_lib
         else:
             common = os.path.commonprefix(
-                (self.install_dir, self.install_lib )
+                (self.install_dir, self.install_lib)
             )
             rest = self.install_dir[len(common):]
             uplevel = len([n for n in os.path.split(rest) if n ])
