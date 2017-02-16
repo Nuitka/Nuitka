@@ -20,13 +20,10 @@
 """
 
 from .ErrorCodes import (
-    getErrorExitCode,
     getErrorVariableDeclarations,
     getExceptionKeeperVariableNames,
-    getExceptionPreserverVariableNames,
-    getReleaseCode
+    getExceptionPreserverVariableNames
 )
-from .Helpers import generateChildExpressionsCode
 from .Indentation import indented
 from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_exception_exit,
