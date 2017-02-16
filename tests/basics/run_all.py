@@ -78,7 +78,7 @@ for filename in sorted(os.listdir('.')):
         "expect_success",
         # Keep no temporary files.
         "remove_output",
-        # Include imported files, mostly "test_common" module.
+        # Include imported files, mostly nothing though.
         "recurse_all",
         # Use the original __file__ value, at least one case warns about things
         # with filename included.
@@ -90,7 +90,7 @@ for filename in sorted(os.listdir('.')):
     if filename.startswith("Referencing"):
         extra_flags.append("python_debug")
 
-        extra_flags.append("recurse_not:test_common")
+        extra_flags.append("recurse_not:nuitka")
 
     # This tests warns about __import__() used.
     if filename == "OrderChecks.py":

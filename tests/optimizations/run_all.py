@@ -30,7 +30,7 @@ except ImportError:
     print("Warning, no 'lxml' module installed, cannot do XML based tests.")
     sys.exit(0)
 
-# Find common code relative in file system. Not using packages for test stuff.
+# Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
