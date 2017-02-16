@@ -29,7 +29,7 @@ from nuitka.PythonVersions import (
 from nuitka.utils import Utils
 
 version_string = """\
-Nuitka V0.5.26rc2
+Nuitka V0.5.26rc3
 Copyright (C) 2017 Kay Hayen."""
 
 
