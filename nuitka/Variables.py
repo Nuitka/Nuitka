@@ -96,7 +96,8 @@ class Variable:
             self.shared_users = True
 
             if user.isExpressionGeneratorObjectBody() or \
-               user.isExpressionCoroutineObjectBody():
+               user.isExpressionCoroutineObjectBody() or \
+               user.isExpressionAsyncgenObjectBody():
                 if self.owner is user.getParentVariableProvider():
                     return
 

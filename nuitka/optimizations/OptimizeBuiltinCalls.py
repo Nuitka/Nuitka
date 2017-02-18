@@ -1018,7 +1018,8 @@ def super_extractor(node):
 
             if object_arg is None:
                 if provider.isExpressionGeneratorObjectBody() or \
-                   provider.isExpressionCoroutineObjectBody():
+                   provider.isExpressionCoroutineObjectBody() or \
+                   provider.isExpressionAsyncgenObjectBody():
                     parameter_provider = provider.getParentVariableProvider()
                 else:
                     parameter_provider = provider
