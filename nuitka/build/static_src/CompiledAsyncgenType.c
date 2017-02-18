@@ -152,7 +152,7 @@ static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, 
 
         if ( asyncgen->m_status == status_Unused )
         {
-            // Prepare the generator context to run.
+            // Prepare the asyncgen context to run.
             int res = prepareFiber( &asyncgen->m_yielder_context, (void *)Nuitka_Asyncgen_entry_point, (uintptr_t)asyncgen );
 
             if ( res != 0 )
@@ -381,7 +381,7 @@ static PyObject *_Nuitka_Asyncgen_throw2( struct Nuitka_AsyncgenObject *asyncgen
                 bool res = Nuitka_gen_close_iter( asyncgen->m_yieldfrom );
                 asyncgen->m_running = 0;
 
-                if (res == true)
+                if ( res == true )
                 {
                     return _Nuitka_Asyncgen_send( asyncgen, Py_None, false );
                 }
@@ -1233,8 +1233,7 @@ static PyObject *Nuitka_AsyncgenAthrow_send( struct Nuitka_AsyncgenAthrowObject 
 
             retval = _Nuitka_Asyncgen_throw(
                 asyncgen,
-                0,  /* Do not close generator when
-                               PyExc_GeneratorExit is passed */
+                0,  /* Do not close generator when PyExc_GeneratorExit is passed */
                 PyExc_GeneratorExit,
                 NULL,
                 NULL
@@ -1473,7 +1472,7 @@ static PyObject *Nuitka_AsyncgenAthrow_New( struct Nuitka_AsyncgenObject *asyncg
     return (PyObject*)result;
 }
 
-static void RAISE_GENERATOR_EXCEPTION( struct Nuitka_AsyncgenObject *asyncgen )
+static void RAISE_ASYNCGEN_EXCEPTION( struct Nuitka_AsyncgenObject *asyncgen )
 {
     CHECK_OBJECT( asyncgen->m_exception_type );
 
@@ -1486,13 +1485,15 @@ static void RAISE_GENERATOR_EXCEPTION( struct Nuitka_AsyncgenObject *asyncgen )
     asyncgen->m_exception_type = NULL;
     asyncgen->m_exception_value = NULL;
     asyncgen->m_exception_tb = NULL;
+
+    assert( ERROR_OCCURRED() );
 }
 
 extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
 extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
 extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
 
-PyObject *yieldFromAsyncgen( struct Nuitka_AsyncgenObject *generator, PyObject *value )
+static PyObject *yieldFromAsyncgen( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
 {
     // This is the value, propagated back and forth the sub-generator and the
     // yield from consumer.
@@ -1509,11 +1510,11 @@ PyObject *yieldFromAsyncgen( struct Nuitka_AsyncgenObject *generator, PyObject *
         PyObject *retval;
 
         // Exception, was thrown into us, need to send that to sub-generator.
-        if ( generator->m_exception_type )
+        if ( asyncgen->m_exception_type )
         {
             // The yielding generator is being closed, but we also are tasked to
             // immediately close the currently running sub-generator.
-            if ( EXCEPTION_MATCH_BOOL_SINGLE( generator->m_exception_type, PyExc_GeneratorExit ) )
+            if ( EXCEPTION_MATCH_BOOL_SINGLE( asyncgen->m_exception_type, PyExc_GeneratorExit ) )
             {
                 PyObject *close_method = PyObject_GetAttr( value, const_str_plain_close );
 
@@ -1539,7 +1540,7 @@ PyObject *yieldFromAsyncgen( struct Nuitka_AsyncgenObject *generator, PyObject *
                     }
                 }
 
-                RAISE_GENERATOR_EXCEPTION( generator );
+                RAISE_ASYNCGEN_EXCEPTION( asyncgen );
 
                 return NULL;
             }
@@ -1548,7 +1549,7 @@ PyObject *yieldFromAsyncgen( struct Nuitka_AsyncgenObject *generator, PyObject *
 
             if ( throw_method )
             {
-                retval = PyObject_CallFunctionObjArgs( throw_method, generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb, NULL );
+                retval = PyObject_CallFunctionObjArgs( throw_method, asyncgen->m_exception_type, asyncgen->m_exception_value, asyncgen->m_exception_tb, NULL );
                 Py_DECREF( throw_method );
 
                 if (unlikely( send_value == NULL ))
@@ -1561,15 +1562,15 @@ PyObject *yieldFromAsyncgen( struct Nuitka_AsyncgenObject *generator, PyObject *
                     return NULL;
                 }
 
-                generator->m_exception_type = NULL;
-                generator->m_exception_value = NULL;
-                generator->m_exception_tb = NULL;
+                asyncgen->m_exception_type = NULL;
+                asyncgen->m_exception_value = NULL;
+                asyncgen->m_exception_tb = NULL;
             }
             else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
             {
                 CLEAR_ERROR_OCCURRED();
 
-                RAISE_GENERATOR_EXCEPTION( generator );
+                RAISE_ASYNCGEN_EXCEPTION( asyncgen );
 
                 return NULL;
             }
@@ -1577,9 +1578,9 @@ PyObject *yieldFromAsyncgen( struct Nuitka_AsyncgenObject *generator, PyObject *
             {
                 assert( ERROR_OCCURRED() );
 
-                Py_CLEAR( generator->m_exception_type );
-                Py_CLEAR( generator->m_exception_value );
-                Py_CLEAR( generator->m_exception_tb );
+                Py_CLEAR( asyncgen->m_exception_type );
+                Py_CLEAR( asyncgen->m_exception_value );
+                Py_CLEAR( asyncgen->m_exception_tb );
 
                 return NULL;
             }
@@ -1621,16 +1622,16 @@ PyObject *yieldFromAsyncgen( struct Nuitka_AsyncgenObject *generator, PyObject *
         }
         else
         {
-            generator->m_yielded = retval;
+            asyncgen->m_yielded = retval;
 
-            generator->m_yieldfrom = value;
+            asyncgen->m_yieldfrom = value;
 
             // Return to the calling context.
-            swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
+            swapFiber( &asyncgen->m_yielder_context, &asyncgen->m_caller_context );
 
-            generator->m_yieldfrom = NULL;
+            asyncgen->m_yieldfrom = NULL;
 
-            send_value = generator->m_yielded;
+            send_value = asyncgen->m_yielded;
 
             if ( send_value == NULL )
             {

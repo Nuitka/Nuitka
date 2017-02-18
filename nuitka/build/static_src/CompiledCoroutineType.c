@@ -989,7 +989,7 @@ extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
 
 extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
 
-PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *generator, PyObject *value )
+static PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *generator, PyObject *value )
 {
     CHECK_OBJECT( value );
 
