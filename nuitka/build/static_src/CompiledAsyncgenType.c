@@ -332,44 +332,13 @@ PyObject *Nuitka_Asyncgen_close( struct Nuitka_AsyncgenObject *asyncgen, PyObjec
     return INCREASE_REFCOUNT( Py_None );
 }
 
-static bool Nuitka_gen_close_iter( PyObject *yieldfrom )
-{
-    _Py_IDENTIFIER( close );
+/* Shared from coroutines. */
+extern bool Nuitka_gen_close_iter( PyObject *yieldfrom );
 
-    PyObject *meth = _PyObject_GetAttrId( yieldfrom, &PyId_close );
-
-    if (unlikely( meth == NULL ))
-    {
-        if (!PyErr_ExceptionMatches(PyExc_AttributeError))
-        {
-            PyErr_WriteUnraisable( yieldfrom );
-        }
-
-        PyErr_Clear();
-
-        return true;
-    }
-    else
-    {
-        PyObject *retval = _PyObject_CallNoArg( meth );
-        Py_DECREF( meth );
-
-        if (unlikely (retval == NULL))
-        {
-            return false;
-        }
-
-        Py_DECREF( retval );
-
-        return true;
-    }
-}
-
+extern PyObject *const_str_plain_throw;
 
 static PyObject *_Nuitka_Asyncgen_throw2( struct Nuitka_AsyncgenObject *asyncgen, bool close_on_genexit )
 {
-    _Py_IDENTIFIER(throw);
-
     if ( asyncgen->m_yieldfrom != NULL )
     {
         if ( close_on_genexit )
@@ -390,10 +359,10 @@ static PyObject *_Nuitka_Asyncgen_throw2( struct Nuitka_AsyncgenObject *asyncgen
             }
         }
 
-        PyObject *meth = _PyObject_GetAttrId( asyncgen->m_yieldfrom, &PyId_throw );
+        PyObject *meth = PyObject_GetAttr( asyncgen->m_yieldfrom, const_str_plain_throw );
         if (unlikely( meth == NULL ))
         {
-            if (!PyErr_ExceptionMatches(PyExc_AttributeError))
+            if ( !PyErr_ExceptionMatches( PyExc_AttributeError ) )
             {
                 return NULL;
             }
@@ -411,7 +380,7 @@ static PyObject *_Nuitka_Asyncgen_throw2( struct Nuitka_AsyncgenObject *asyncgen
         {
             PyObject *val;
 
-            if (_PyGen_FetchStopIterationValue(&val) == 0)
+            if ( _PyGen_FetchStopIterationValue( &val ) == 0 )
             {
                 ret = _Nuitka_Asyncgen_send( asyncgen, val, false );
                 Py_DECREF( val );
