@@ -467,8 +467,7 @@ static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *corout
             {
                 return NULL;
             }
-
-            CLEAR_ERROR_OCCURRED();
+            PyErr_Clear();
             goto throw_here;
         }
 
