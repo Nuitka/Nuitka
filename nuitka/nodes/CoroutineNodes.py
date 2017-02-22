@@ -156,6 +156,14 @@ class ExpressionAsyncWait(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.exception_preserving = False
+
+    def markAsExceptionPreserving(self):
+        self.exception_preserving = True
+
+    def isExceptionPreserving(self):
+        return self.exception_preserving
+
     def computeExpression(self, trace_collection):
         # TODO: Might be predictable based awaitable analysis or for constants.
         return self, None, None

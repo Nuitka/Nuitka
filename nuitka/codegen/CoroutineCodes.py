@@ -184,12 +184,19 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
         context    = context
     )
 
+    # In handlers, we must preserve/restore the exception.
+    preserve_exception = expression.isExceptionPreserving()
+
     context_identifier = context.getContextObjectName()
 
+    # This produces AWAIT_COROUTINE or AWAIT_ASYNCGEN calls.
     emit(
-        "%s = %s( %s, %s );" % (
+        "%s = %s_%s( %s, %s );" % (
             to_name,
-            "AWAIT_%s" % context_identifier.upper(),
+            context_identifier.upper(),
+            "AWAIT"
+              if not preserve_exception else
+            "AWAIT_IN_HANDLER",
             context_identifier,
             value_name
               if context.needsCleanup(value_name) else

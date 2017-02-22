@@ -90,7 +90,8 @@ struct Nuitka_AsyncgenWrapperObject {
 
 extern PyTypeObject Nuitka_AsyncgenWrapper_Type;
 
-extern PyObject *AWAIT_ASYNCGEN( struct Nuitka_AsyncgenObject *asyngen, PyObject *awaitable );
+extern PyObject *ASYNCGEN_AWAIT( struct Nuitka_AsyncgenObject *asyngen, PyObject *awaitable );
+extern PyObject *ASYNCGEN_AWAIT_IN_HANDLER( struct Nuitka_AsyncgenObject *asyngen, PyObject *awaitable );
 
 static inline PyObject *ASYNCGEN_YIELD( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
 {

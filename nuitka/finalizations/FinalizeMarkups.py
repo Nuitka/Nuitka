@@ -164,7 +164,9 @@ of '--recurse-directory'.""" % (
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()
 
         if python_version >= 300:
-            if node.isExpressionYield() or node.isExpressionYieldFrom():
+            if node.isExpressionYield() or \
+               node.isExpressionYieldFrom() or \
+               node.isExpressionAsyncWait():
                 search = node.getParent()
 
                 while not search.isExpressionGeneratorObjectBody() and \

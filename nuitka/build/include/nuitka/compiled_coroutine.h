@@ -82,7 +82,8 @@ struct Nuitka_CoroutineWrapperObject {
 
 extern PyTypeObject Nuitka_CoroutineWrapper_Type;
 
-extern PyObject *AWAIT_COROUTINE( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable );
+extern PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable );
+extern PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable );
 
 extern PyObject *MAKE_ASYNC_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
 extern PyObject *ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
