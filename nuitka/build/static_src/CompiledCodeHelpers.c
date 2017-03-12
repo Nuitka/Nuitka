@@ -1471,29 +1471,37 @@ bool PRINT_NEW_LINE_TO( PyObject *file )
 #else
     NUITKA_ASSIGN_BUILTIN( print );
 
+    PyObject *exception_type, *exception_value;
+    PyTracebackObject *exception_tb;
+
+    FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
+
+    PyObject *result;
+
     if (likely( file == NULL ))
     {
-        PyObject *result = CALL_FUNCTION_NO_ARGS(
+        result = CALL_FUNCTION_NO_ARGS(
             NUITKA_ACCESS_BUILTIN( print )
         );
-        Py_XDECREF( result );
-        return result != NULL;
     }
     else
     {
         PyObject *kw_args = PyDict_New();
         PyDict_SetItem( kw_args, const_str_plain_file, GET_STDOUT() );
 
-        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(
+        result = CALL_FUNCTION_WITH_KEYARGS(
             NUITKA_ACCESS_BUILTIN( print ),
             kw_args
         );
 
         Py_DECREF( kw_args );
-        Py_XDECREF( result );
-
-        return result != NULL;
     }
+
+    Py_XDECREF( result );
+
+    RESTORE_ERROR_OCCURRED_UNTRACED( exception_type, exception_value, exception_tb );
+
+    return result != NULL;
 #endif
 }
 
@@ -1624,11 +1632,21 @@ bool PRINT_STRING( char const *str )
 
 bool PRINT_REPR( PyObject *object )
 {
+    PyObject *exception_type, *exception_value;
+    PyTracebackObject *exception_tb;
+
+    FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
+
     bool res;
 
     if ( object != NULL )
     {
+
+        // Cannot have error set for this function, it asserts against that
+        // in debug builds.
         PyObject *repr = PyObject_Repr( object );
+
+
         res = PRINT_ITEM( repr );
         Py_DECREF( repr );
     }
@@ -1636,6 +1654,8 @@ bool PRINT_REPR( PyObject *object )
     {
         res = PRINT_NULL();
     }
+
+    RESTORE_ERROR_OCCURRED_UNTRACED( exception_type, exception_value, exception_tb );
 
     return res;
 }
@@ -1661,6 +1681,14 @@ void PRINT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyObj
     PRINT_REPR( exception_tb );
 
     PRINT_NEW_LINE();
+}
+
+void PRINT_CURRENT_EXCEPTION( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PRINT_EXCEPTION( tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback );
+
 }
 
 // TODO: Could be ported, the "printf" stuff would need to be split. On Python3

@@ -1293,8 +1293,16 @@ PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *a
 #if _DEBUG_COROUTINE
     PRINT_STRING("AWAIT exit");
 
-    PRINT_ITEM( retval );
-    PRINT_NEW_LINE();
+    if ( retval )
+    {
+        PRINT_ITEM( retval );
+        PRINT_NEW_LINE();
+    }
+    else
+    {
+        PRINT_CURRENT_EXCEPTION();
+
+    }
 #endif
 
     return retval;
