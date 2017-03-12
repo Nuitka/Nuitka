@@ -5307,7 +5307,7 @@ void stopProfiling( void )
         PyObject_GetAttrString( vmprof_module, "disable")
     );
 
-    if ( result == NULL ) PyErr_Clear();
+    if ( result == NULL ) CLEAR_ERROR_OCCURRED();
 
     fclose( tempfile_profile );
 

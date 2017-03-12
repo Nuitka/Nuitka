@@ -23,7 +23,8 @@
 
 static PyObject *Nuitka_Coroutine_get_name( struct Nuitka_CoroutineObject *coroutine )
 {
-    return INCREASE_REFCOUNT( coroutine->m_name );
+    Py_INCREF( coroutine->m_name );
+    return coroutine->m_name;
 }
 
 static int Nuitka_Coroutine_set_name( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
@@ -49,7 +50,8 @@ static int Nuitka_Coroutine_set_name( struct Nuitka_CoroutineObject *coroutine, 
 
 static PyObject *Nuitka_Coroutine_get_qualname( struct Nuitka_CoroutineObject *coroutine )
 {
-    return INCREASE_REFCOUNT( coroutine->m_qualname );
+    Py_INCREF( coroutine->m_qualname );
+    return coroutine->m_qualname;
 }
 
 static int Nuitka_Coroutine_set_qualname( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
@@ -89,7 +91,8 @@ static PyObject *Nuitka_Coroutine_get_cr_await( struct Nuitka_CoroutineObject *c
 
 static PyObject *Nuitka_Coroutine_get_code( struct Nuitka_CoroutineObject *coroutine )
 {
-    return INCREASE_REFCOUNT( (PyObject *)coroutine->m_code_object );
+    Py_INCREF( coroutine->m_code_object );
+    return (PyObject *)coroutine->m_code_object;
 }
 
 static int Nuitka_Coroutine_set_code( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
@@ -102,11 +105,13 @@ static PyObject *Nuitka_Coroutine_get_frame( struct Nuitka_CoroutineObject *coro
 {
     if ( coroutine->m_frame )
     {
-        return INCREASE_REFCOUNT( (PyObject *)coroutine->m_frame );
+        Py_INCREF( coroutine->m_frame );
+        return (PyObject *)coroutine->m_frame;
     }
     else
     {
-        return INCREASE_REFCOUNT( Py_None );
+        Py_INCREF( Py_None );
+        return Py_None;
     }
 }
 
@@ -355,7 +360,8 @@ PyObject *Nuitka_Coroutine_close( struct Nuitka_CoroutineObject *coroutine, PyOb
 {
     if ( coroutine->m_status == status_Running )
     {
-        coroutine->m_exception_type = INCREASE_REFCOUNT( PyExc_GeneratorExit );
+        coroutine->m_exception_type = PyExc_GeneratorExit;
+        Py_INCREF( PyExc_GeneratorExit );
         coroutine->m_exception_value = NULL;
         coroutine->m_exception_tb = NULL;
 
@@ -377,14 +383,16 @@ PyObject *Nuitka_Coroutine_close( struct Nuitka_CoroutineObject *coroutine, PyOb
             {
                 CLEAR_ERROR_OCCURRED();
 
-                return INCREASE_REFCOUNT( Py_None );
+                Py_INCREF( Py_None );
+                return Py_None;
             }
 
             return NULL;
         }
     }
 
-    return INCREASE_REFCOUNT( Py_None );
+    Py_INCREF( Py_None );
+    return Py_None;
 }
 
 extern PyObject *const_str_plain_close;
@@ -401,7 +409,7 @@ bool Nuitka_gen_close_iter( PyObject *yieldfrom )
             PyErr_WriteUnraisable( yieldfrom );
         }
 
-        PyErr_Clear();
+        CLEAR_ERROR_OCCURRED();
 
         return true;
     }
@@ -452,7 +460,8 @@ static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *corout
             {
                 return NULL;
             }
-            PyErr_Clear();
+
+            CLEAR_ERROR_OCCURRED();
             goto throw_here;
         }
 
@@ -640,6 +649,7 @@ static long Nuitka_Coroutine_tp_traverse( PyObject *coroutine, visitproc visit, 
     // works might be needed.
     return 0;
 }
+
 static PyObject *Nuitka_Coroutine_await( struct Nuitka_CoroutineObject *coroutine )
 {
 #if _DEBUG_COROUTINE
@@ -1108,7 +1118,7 @@ static PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *coroutine, P
         // Exception, was thrown into us, need to send that to sub-generator.
         if ( coroutine->m_exception_type )
         {
-            // The yielding generator is being closed, but we also are tasked to
+            // The yielding coroutine is being closed, but we also are tasked to
             // immediately close the currently running sub-generator.
             if ( EXCEPTION_MATCH_BOOL_SINGLE( coroutine->m_exception_type, PyExc_GeneratorExit ) )
             {
@@ -1408,7 +1418,7 @@ static PyObject *Nuitka_AIterWrapper_iternext( struct Nuitka_AIterWrapper *aw )
 
 static int Nuitka_AIterWrapper_traverse( struct Nuitka_AIterWrapper *aw, visitproc visit, void *arg )
 {
-    Py_VISIT((PyObject *)aw->aw_aiter);
+    Py_VISIT( (PyObject *)aw->aw_aiter );
     return 0;
 }
 

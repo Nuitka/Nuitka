@@ -454,7 +454,7 @@ NUITKA_MAY_BE_UNUSED static bool MAPPING_SYNC_FROM_VARIABLE( PyObject *mapping, 
         }
         else
         {
-            PyErr_Clear();
+            CLEAR_ERROR_OCCURRED();
             return true;
         }
     }
