@@ -265,9 +265,6 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "elementree.ElementTree", "_gbdm", "resource", "crypt", "bz2", "dbm",
         "mmap", "Mailman",
 
-        # Nuitka tests
-        "test_common",
-
         # Mercurial test
         "statprof", "email.Generator", "email.Utils",
 

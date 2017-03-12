@@ -773,6 +773,7 @@ def reportSkip(reason, dirname, filename):
 
     my_print("Skipped, %s (%s)." % (case, reason))
 
+
 def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
     import gc
     gc.disable()
@@ -818,6 +819,10 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
     gc.enable()
     return result
 
+def checkDebugPython():
+    if not hasattr(sys, "gettotalrefcount"):
+        my_print("Warning, using non-debug Python makes this test ineffective.")
+        sys.gettotalrefcount = lambda : 0
 
 @contextmanager
 def withPythonPathChange(python_path):
@@ -1028,3 +1033,38 @@ def compileLibraryTest(search_mode, stage_dir, decide, action):
             decide      = decide,
             action      = action
         )
+
+
+def run_async(coro):
+    """ Execute a coroutine until it's done. """
+
+    values = []
+    result = None
+    while True:
+        try:
+            values.append(coro.send(None))
+        except StopIteration as ex:
+            result = ex.args[0] if ex.args else None
+            break
+    return values, result
+
+def async_iterate(g):
+    """ Execute async generator until it's done. """
+
+    res = []
+    while True:
+        try:
+            g.__anext__().__next__()
+        except StopAsyncIteration:  # @UndefinedVariable
+            res.append('STOP')
+            break
+        except StopIteration as ex:
+            if ex.args:
+                res.append("ex arg %s" % ex.args[0])
+            else:
+                res.append('EMPTY StopIteration')
+                break
+        except Exception as ex:
+            res.append(str(type(ex)))
+
+    return res

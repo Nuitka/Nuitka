@@ -30,12 +30,10 @@ sys.path.insert(
 )
 from nuitka.tools.testing.Common import (
     executeReferenceChecked,
-    my_print
+    checkDebugPython
 )
 
-if not hasattr(sys, "gettotalrefcount"):
-    my_print("Warning, using non-debug Python makes this test ineffective.")
-    sys.gettotalrefcount = lambda : 0
+checkDebugPython()
 
 
 def simpleFunction1():

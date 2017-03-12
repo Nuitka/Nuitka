@@ -30,23 +30,12 @@ sys.path.insert(
 )
 from nuitka.tools.testing.Common import (
     executeReferenceChecked,
-    my_print
+    checkDebugPython,
+    run_async
 )
 
-if not hasattr(sys, "gettotalrefcount"):
-    my_print("Warning, using non-debug Python makes this test ineffective.")
-    sys.gettotalrefcount = lambda : 0
+checkDebugPython()
 
-def run_async(coro):
-    values = []
-    result = None
-    while True:
-        try:
-            values.append(coro.send(None))
-        except StopIteration as ex:
-            result = ex.args[0] if ex.args else None
-            break
-    return values, result
 
 def raisy():
     raise TypeError
