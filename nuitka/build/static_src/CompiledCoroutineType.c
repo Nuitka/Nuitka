@@ -1239,6 +1239,12 @@ static PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *coroutine, P
 
             send_value = coroutine->m_yielded;
 
+            if ( ERROR_OCCURRED() )
+            {
+                assert( coroutine->m_exception_type != NULL );
+                CLEAR_ERROR_OCCURRED();
+            }
+
             CHECK_OBJECT( send_value );
         }
     }

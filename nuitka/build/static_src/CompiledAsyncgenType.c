@@ -1610,16 +1610,11 @@ static PyObject *yieldFromAsyncgen( struct Nuitka_AsyncgenObject *asyncgen, PyOb
 
             send_value = asyncgen->m_yielded;
 
-            if ( send_value == NULL )
+            if ( ERROR_OCCURRED() )
             {
-                // TODO: Similar to yield, should we take reference?
-                if ( !ERROR_OCCURRED() )
-                {
-                    send_value = Py_None;
-                }
+                assert( asyncgen->m_exception_type != NULL );
+                CLEAR_ERROR_OCCURRED();
             }
-
-            CHECK_OBJECT( send_value );
         }
     }
 }
