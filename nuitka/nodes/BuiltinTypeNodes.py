@@ -22,6 +22,13 @@ that should allow some important optimizations.
 """
 
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    ShapeTypeBool,
+    ShapeTypeIntOrLong,
+    ShapeTypeLong,
+    ShapeTypeStr,
+    ShapeTypeUnicode
+)
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
@@ -135,6 +142,9 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
 
         return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
+    def getTypeShape(self):
+        return ShapeTypeBool
+
 
 class ExpressionBuiltinIntLongBase(ExpressionSpecBasedComputationBase):
     named_children = ("value", "base")
@@ -203,6 +213,9 @@ class ExpressionBuiltinInt(ExpressionBuiltinIntLongBase):
 
     builtin_spec = BuiltinOptimization.builtin_int_spec
     builtin = int
+
+    def getTypeShape(self):
+        return ShapeTypeIntOrLong
 
 
 class ExpressionBuiltinUnicodeBase(ExpressionSpecBasedComputationBase):
@@ -276,6 +289,9 @@ if python_version < 300:
 
             return new_node, change_tags, change_desc
 
+        def getTypeShape(self):
+            return ShapeTypeStr
+
 
     class ExpressionBuiltinLong(ExpressionBuiltinIntLongBase):
         kind = "EXPRESSION_BUILTIN_LONG"
@@ -283,15 +299,26 @@ if python_version < 300:
         builtin_spec = BuiltinOptimization.builtin_long_spec
         builtin = long
 
+        def getTypeShape(self):
+            return ShapeTypeLong
+
+
     class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_UNICODE"
 
         builtin_spec = BuiltinOptimization.builtin_unicode_spec
+
+        def getTypeShape(self):
+            return ShapeTypeUnicode
+
 else:
     class ExpressionBuiltinStr(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_STR"
 
         builtin_spec = BuiltinOptimization.builtin_str_spec
+
+        def getTypeShape(self):
+            return ShapeTypeStr
 
 
 class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
