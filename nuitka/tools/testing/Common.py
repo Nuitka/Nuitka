@@ -1056,13 +1056,13 @@ def async_iterate(g):
         try:
             g.__anext__().__next__()
         except StopAsyncIteration:  # @UndefinedVariable
-            res.append('STOP')
+            res.append("STOP")
             break
         except StopIteration as ex:
             if ex.args:
                 res.append("ex arg %s" % ex.args[0])
             else:
-                res.append('EMPTY StopIteration')
+                res.append("EMPTY StopIteration")
                 break
         except Exception as ex:
             res.append(str(type(ex)))

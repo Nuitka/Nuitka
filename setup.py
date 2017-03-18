@@ -64,7 +64,8 @@ if os.name == "nt" and "bdist_msi" in sys.argv:
         )
     )
 
-def find_packages():
+
+def findNuitkaPackages():
     result = []
 
     for root, _dirnames, filenames in os.walk("nuitka"):
@@ -82,7 +83,6 @@ def find_packages():
 
     return result
 
-package = find_packages()
 
 class NuitkaInstallScripts(install_scripts):
     """
@@ -206,7 +206,7 @@ setup(
     name         = project_name,
     license      = "Apache License, Version 2.0",
     version      = version,
-    packages     = find_packages(),
+    packages     = findNuitkaPackages(),
     scripts      = scripts,
     cmdclass     = cmdclass,
 
