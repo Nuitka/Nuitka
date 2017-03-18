@@ -110,6 +110,49 @@ def getGeneratorObjectCode(context, function_identifier, user_variables,
     }
 
 
+def getClosureCopyCode(to_name, closure_variables, closure_type, context):
+    """ Get code to copy closure variables storage.
+
+    This gets used by generator/coroutine/asyncgen with varying "closure_type".
+    """
+    closure_copy = []
+
+    for count, variable in enumerate(closure_variables):
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+
+        target_cell_code = "((%s)%s)->m_closure[%d]" % (
+            closure_type,
+            to_name,
+            count
+        )
+
+        # Generators might not use them, but they still need to be put there.
+        # TODO: But they don't have to be cells.
+        if variable_c_type == "PyObject *":
+            closure_copy.append(
+                "%s = PyCell_NEW0( %s );" % (
+                    target_cell_code,
+                    variable_code_name
+                )
+            )
+        elif variable_c_type == "struct Nuitka_CellObject *":
+            closure_copy.append(
+                "%s = %s;" % (
+                    target_cell_code,
+                    variable_code_name
+                )
+            )
+            closure_copy.append(
+                "Py_INCREF( %s );" % (
+                    target_cell_code
+                )
+            )
+        else:
+            assert False, variable
+
+    return closure_copy
+
+
 def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     generator_object_body = expression.getGeneratorRef().getFunctionBody()
 
@@ -141,37 +184,12 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
         future_flags = generator_object_body.getSourceReference().getFutureSpec().asFlags()
     )
 
-    closure_copy = []
-
-    for count, variable in enumerate(closure_variables):
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
-
-        # Generators might not use them, but they still need to be put there.
-        # TODO: But they don't have to be cells.
-        if variable_c_type == "PyObject *":
-            closure_copy.append(
-                "((struct Nuitka_GeneratorObject *)%s)->m_closure[%d] = PyCell_NEW0( %s );" % (
-                    to_name,
-                    count,
-                    variable_code_name
-                )
-            )
-        elif variable_c_type == "struct Nuitka_CellObject *":
-            closure_copy.append(
-                "((struct Nuitka_GeneratorObject *)%s)->m_closure[%d] = %s;" % (
-                    to_name,
-                    count,
-                    variable_code_name
-                )
-            )
-            closure_copy.append(
-                "Py_INCREF( ((struct Nuitka_GeneratorObject *)%s)->m_closure[%d] );" % (
-                    to_name,
-                    count
-                )
-            )
-        else:
-            assert False, variable
+    closure_copy = getClosureCopyCode(
+        to_name           = to_name,
+        closure_type      = "struct Nuitka_GeneratorObject *",
+        closure_variables = closure_variables,
+        context           = context
+    )
 
     emit(
         template_generator_making % {

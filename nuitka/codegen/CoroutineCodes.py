@@ -26,6 +26,7 @@ from .ErrorCodes import (
     getExceptionPreserverVariableNames,
     getReleaseCode
 )
+from .GeneratorCodes import getClosureCopyCode
 from .Helpers import generateChildExpressionsCode
 from .Indentation import indented
 from .LineNumberCodes import emitLineNumberUpdateCode
@@ -38,7 +39,7 @@ from .templates.CodeTemplatesCoroutines import (
     template_make_coroutine_template
 )
 from .templates.CodeTemplatesFunction import function_dict_setup
-from .VariableCodes import getLocalVariableCodeType, getLocalVariableInitCode
+from .VariableCodes import getLocalVariableInitCode
 
 
 def getCoroutineObjectDeclCode(function_identifier):
@@ -129,38 +130,12 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
         future_flags = coroutine_object_body.getSourceReference().getFutureSpec().asFlags()
     )
 
-    # TODO: Copy duplication with generator codes, ought to be shared.
-    closure_copy = []
-
-    for count, variable in enumerate(closure_variables):
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
-
-        # Coroutines might not use them, but they still need to be put there.
-        # TODO: But they don't have to be cells.
-        if variable_c_type == "PyObject *":
-            closure_copy.append(
-                "((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] = PyCell_NEW0( %s );" % (
-                    to_name,
-                    count,
-                    variable_code_name
-                )
-            )
-        elif variable_c_type == "struct Nuitka_CellObject *":
-            closure_copy.append(
-                "((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] = %s;" % (
-                    to_name,
-                    count,
-                    variable_code_name
-                )
-            )
-            closure_copy.append(
-                "Py_INCREF( ((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] );" % (
-                    to_name,
-                    count
-                )
-            )
-        else:
-            assert False, variable
+    closure_copy = getClosureCopyCode(
+        to_name           = to_name,
+        closure_type      = "struct Nuitka_CoroutineObject *",
+        closure_variables = closure_variables,
+        context           = context
+    )
 
     emit(
         template_make_coroutine_template % {
