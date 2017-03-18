@@ -33,6 +33,3 @@ recursive-include tests/optimizations *.py
 recursive-include tests/standalone *.py
 recursive-include tests/reflected *.py
 include tests/test_common.py
-
-# Bnechmarks are included too, but will be removed for Debian.
-recursive-include tests/benchmarks *.py LICENSE README
