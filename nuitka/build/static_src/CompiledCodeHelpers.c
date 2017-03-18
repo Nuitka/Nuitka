@@ -1577,18 +1577,21 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
 #else
     NUITKA_ASSIGN_BUILTIN( print );
 
+    PyObject *exception_type, *exception_value;
+    PyTracebackObject *exception_tb;
+
+    FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
+
+    PyObject *result;
+
     if (likely( file == NULL ))
     {
         PyObject *args[] = { object };
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS1(
+        result = CALL_FUNCTION_WITH_ARGS1(
             NUITKA_ACCESS_BUILTIN( print ),
             args
         );
-
-        Py_XDECREF( result );
-
-        return result != NULL;
     }
     else
     {
@@ -1599,7 +1602,7 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         PyObject *print_args = PyTuple_New( 1 );
         PyTuple_SET_ITEM( print_args, 0, INCREASE_REFCOUNT( object ) );
 
-        PyObject *res = CALL_FUNCTION(
+        result = CALL_FUNCTION(
             NUITKA_ACCESS_BUILTIN( print ),
             print_args,
             print_kw
@@ -1607,11 +1610,13 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
 
         Py_DECREF( print_args );
         Py_DECREF( print_kw );
-
-        Py_XDECREF( res );
-
-        return res != NULL;
     }
+
+    Py_XDECREF( result );
+
+    RESTORE_ERROR_OCCURRED_UNTRACED( exception_type, exception_value, exception_tb );
+
+    return result != NULL;
 #endif
 }
 
@@ -1641,11 +1646,11 @@ bool PRINT_REPR( PyObject *object )
 
     if ( object != NULL )
     {
+        CHECK_OBJECT( object );
 
         // Cannot have error set for this function, it asserts against that
         // in debug builds.
         PyObject *repr = PyObject_Repr( object );
-
 
         res = PRINT_ITEM( repr );
         Py_DECREF( repr );

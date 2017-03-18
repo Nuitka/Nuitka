@@ -237,6 +237,13 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
 
         thread_state->frame = return_frame;
 
+#ifndef __NUITKA_NO_ASSERT__
+        if ( return_frame )
+        {
+            assertFrameObject( return_frame );
+        }
+#endif
+
         if ( coroutine->m_returned != NULL )
         {
             coroutine->m_status = status_Finished;
@@ -1254,7 +1261,8 @@ static PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *coroutine, P
 PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable )
 {
 #if _DEBUG_COROUTINE
-    PRINT_STRING("AWAIT entry:");
+    PRINT_STRING("COROUTINE_AWAIT entry:");
+    PRINT_NEW_LINE();
 
     PRINT_ITEM( awaitable );
     PRINT_NEW_LINE();
@@ -1297,18 +1305,19 @@ PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *a
     Py_DECREF( awaitable_iter );
 
 #if _DEBUG_COROUTINE
-    PRINT_STRING("AWAIT exit");
+    PRINT_STRING("COROUTINE_AWAIT exit: ");
 
     if ( retval )
     {
         PRINT_ITEM( retval );
-        PRINT_NEW_LINE();
     }
     else
     {
         PRINT_CURRENT_EXCEPTION();
-
     }
+
+    PRINT_REFCOUNT( (PyObject *)coroutine );
+    PRINT_NEW_LINE();
 #endif
 
     return retval;
@@ -1404,9 +1413,17 @@ PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, 
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 
 #if _DEBUG_COROUTINE
-    PRINT_STRING("AWAIT exit");
+    PRINT_STRING("AWAIT exit: ");
 
-    PRINT_ITEM( retval );
+    if ( retval )
+    {
+        PRINT_ITEM( retval );
+    }
+    else
+    {
+        PRINT_CURRENT_EXCEPTION();
+    }
+
     PRINT_NEW_LINE();
 #endif
 
