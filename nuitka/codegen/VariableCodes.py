@@ -424,7 +424,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
 
         return
     elif variable.isLocalVariable():
-        _variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
 
         if variable_c_type == "struct Nuitka_CellObject *":
             if not needs_check:
@@ -435,7 +435,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
             emit(
                 template % {
                     "tmp_name"   : to_name,
-                    "identifier" : getVariableCode(context, variable)
+                    "identifier" : variable_code_name
                 }
             )
         else:
