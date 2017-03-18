@@ -31,6 +31,17 @@ sys.path.insert(
         )
     )
 )
+
+# Find nuitka package from system installation for package test too.
+try:
+    import nuitka  # @UnusedImport
+except ImportError:
+    # Find nuitka in system install.
+    sys.path[0] = "/usr/share/nuitka/nuitka"
+    import nuitka  # @UnusedImport
+
+
+
 from nuitka.tools.testing.Common import (
     my_print,
     setup,
