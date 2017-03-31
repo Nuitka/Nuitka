@@ -208,7 +208,9 @@ class NodeBase(NodeMetaClassBase):
         """
         parent = self.getParent()
 
-        for key, value in parent.child_values.items():
+        for key in parent.named_children:
+            value = parent.getChild(key)
+
             if self is value:
                 return key
 
@@ -566,16 +568,14 @@ class ChildrenHavingMixin:
         # but of course, might be put to None.
         assert set(values.keys()) == set(self.named_children)
 
-        self.child_values = dict(values)
+        for name, value in values.items():
+            if name in self.checkers:
+                value = self.checkers[name](value)
 
-        for key, value in self.child_values.items():
-            if key in self.checkers:
-                value = self.child_values[key] = self.checkers[key](value)
-
-            assert type(value) is not list, key
+            assert type(value) is not list, name
 
             if type(value) is tuple:
-                assert None not in value, key
+                assert None not in value, name
 
                 for val in value:
                     val.parent = self
@@ -586,13 +586,16 @@ class ChildrenHavingMixin:
             else:
                 assert False, type(value)
 
+            attr_name = "subnode_" + name
+            setattr(self, attr_name, value)
+
     def setChild(self, name, value):
         """ Set a child value.
 
             Do not overload, provider self.checkers instead.
         """
         # Only accept legal child names
-        assert name in self.child_values, name
+        assert name in self.named_children, name
 
         # Lists as inputs are OK, but turn them into tuples.
         if type(value) is list:
@@ -608,26 +611,26 @@ class ChildrenHavingMixin:
         elif value is not None:
             value.parent = self
 
+        attr_name = "subnode_" + name
+
         # Determine old value, and inform it about loosing its parent.
-        old_value = self.child_values[name]
+        old_value = getattr(self, attr_name)
 
         assert old_value is not value, value
 
-        self.child_values[name] = value
+        setattr(self, attr_name, value)
 
     def getChild(self, name):
         # Only accept legal child names
-        assert name in self.child_values, name
-
-        return self.child_values[name]
-
-    def hasChild(self, name):
-        return name in self.child_values
+        attr_name = "subnode_" + name
+        return getattr(self, attr_name)
 
     @staticmethod
     def childGetter(name):
+        attr_name = "subnode_" + name
+
         def getter(self):
-            return self.getChild(name)
+            return getattr(self, attr_name)
 
         return getter
 
@@ -639,10 +642,13 @@ class ChildrenHavingMixin:
         return setter
 
     def getVisitableNodes(self):
+        # TODO: Consider it a generator would be faster.
         result = []
 
         for name in self.named_children:
-            value = self.child_values[ name ]
+            attr_name = "subnode_" + name
+
+            value = getattr(self, attr_name)
 
             if value is None:
                 pass
@@ -677,7 +683,9 @@ class ChildrenHavingMixin:
         # Find the replaced node, as an added difficulty, what might be
         # happening, is that the old node is an element of a tuple, in which we
         # may also remove that element, by setting it to None.
-        for key, value in self.child_values.items():
+        for key in self.named_children:
+            value = self.getChild(key)
+
             if value is None:
                 pass
             elif type(value) is tuple:
@@ -721,7 +729,9 @@ class ChildrenHavingMixin:
     def makeClone(self):
         values = {}
 
-        for key, value in self.child_values.items():
+        for key in self.named_children:
+            value = self.getChild(key)
+
             assert type(value) is not list, key
 
             if value is None:
