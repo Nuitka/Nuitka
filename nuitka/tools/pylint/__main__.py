@@ -85,13 +85,10 @@ def main():
         "SyntaxHighlighting.py",
     )
 
+    filenames = list(scanTargets(positional_args, blacklist))
+    executePyLint(filenames, options.todos, options.verbose)
 
-    found = False
-    for filename in scanTargets(positional_args, blacklist):
-        executePyLint(filename, options.todos, options.verbose)
-        found = True
-
-    if not found:
+    if not filenames:
         sys.exit("No files found.")
 
 if __name__ == "__main__":

@@ -947,7 +947,7 @@ except Exception as __e:
         if line_filter is not None and line_filter(line):
             continue
 
-        if inside and len(line) > 0 and line[0].isalnum() and not isOpener(line):
+        if inside and line and line[0].isalnum() and not isOpener(line):
             output.append(getTried('\n'.join(chunk), line_number))  # @UndefinedVariable
 
             chunk = []
@@ -1050,6 +1050,8 @@ def run_async(coro):
 
 def async_iterate(g):
     """ Execute async generator until it's done. """
+
+    # Test code, pylint: disable=E0602,W0703
 
     res = []
     while True:

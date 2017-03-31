@@ -292,7 +292,20 @@ class PythonChildContextBase(PythonContextBase):
     def addDeclaration(self, key, code):
         self.parent.addDeclaration(key, code)
 
+    def pushFrameVariables(self, frame_variables):
+        return self.parent.pushFrameVariables(frame_variables)
 
+    def popFrameVariables(self):
+        return self.parent.popFrameVariables()
+
+    def getFrameVariableTypeDescriptions(self):
+        return self.parent.getFrameVariableTypeDescriptions()
+
+    def getFrameVariableTypeDescription(self):
+        return self.parent.getFrameVariableTypeDescription()
+
+    def getFrameVariableCodeNames(self):
+        return self.parent.getFrameVariableCodeNames()
 
 def _getConstantDefaultPopulation():
     # Note: Can't work with set here, because we need to put in some values that
@@ -510,16 +523,85 @@ class PythonGlobalContext:
     def getConstants(self):
         return self.constants
 
+type_indicator = {
+    "PyObject *" : 'o',
+    "PyObject **" : 'O',
+    "struct Nuitka_CellObject *" : 'c',
+}
 
 class FrameDeclarationsMixin:
     def __init__(self):
         self.frame_declarations = []
+
+        # Frame is active or not, default not.
+        self.frame_variables_stack = [""]
+        # Type descriptions of the current frame.
+        self.frame_type_descriptions = [()]
+
+        # Indicator if the "type_description" is needed.
+        self.needs_type_description = False
+
+        # Types of variables for current frame.
+        self.variable_types = {}
+
+        # Currently active frame code identifier.
+        self.frame_handle = None
+
+
+    def getFrameHandle(self):
+        return self.frame_handle
+
+    def setFrameHandle(self, frame_handle):
+        self.frame_handle = frame_handle
 
     def addFrameDeclaration(self, frame_decl):
         self.frame_declarations.append(frame_decl)
 
     def getFrameDeclarations(self):
         return self.frame_declarations
+
+    def pushFrameVariables(self, frame_variables):
+        """ Set current the frame variables. """
+        self.frame_variables_stack.append(frame_variables)
+        self.frame_type_descriptions.append(set())
+
+    def popFrameVariables(self):
+        """ End of frame, remove it. """
+        del self.frame_variables_stack[-1]
+        del self.frame_type_descriptions[-1]
+
+    def setVariableType(self, variable, variable_code_name, variable_c_type):
+        assert variable.isLocalVariable(), variable
+
+        self.variable_types[variable.getName()] = variable_code_name, type_indicator[variable_c_type]
+
+    def getFrameVariableTypeDescriptions(self):
+        return self.frame_type_descriptions[-1]
+
+    def getFrameVariableTypeDescription(self):
+        result = "".join(
+            self.variable_types.get(var_name, ("NULL", 'N'))[1]
+            for var_name in
+            self.frame_variables_stack[-1]
+        )
+
+        if result:
+            self.frame_type_descriptions[-1].add(result)
+
+        return result
+
+    def getFrameVariableCodeNames(self):
+        return ", ".join(
+            self.variable_types.get(var_name, ("NULL", 'N'))[0]
+            for var_name in
+            self.frame_variables_stack[-1]
+        )
+
+    def needsFrameVariableTypeDescription(self):
+        return self.needs_type_description
+
+    def markAsNeedsFrameVariableDescription(self):
+        self.needs_type_description = True
 
 
 class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
@@ -568,12 +650,6 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
     def hasLocalsDict(self):
         return False
 
-    def getFrameHandle(self):
-        return self.frame_handle
-
-    def setFrameHandle(self, frame_handle):
-        self.frame_handle = frame_handle
-
     def getName(self):
         return self.name
 
@@ -589,12 +665,6 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
     def getModuleCodeName(self):
         return self.code_name
-
-    # There cannot be local variable in modules no need to consider the name.
-    # pylint: disable=W0613
-    def hasClosureVariable(self, var_name):
-        return False
-    # pylint: enable=W0613
 
     def setFrameGuardMode(self, guard_mode):
         assert guard_mode == "once"
@@ -664,8 +734,7 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
         return self.needs_module_filename_object
 
 
-class PythonFunctionContext(PythonChildContextBase, TempMixin,
-                            FrameDeclarationsMixin):
+class PythonFunctionContext(FrameDeclarationsMixin, PythonChildContextBase, TempMixin):
     def __init__(self, parent, function):
         PythonChildContextBase.__init__(
             self,
@@ -701,15 +770,6 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin,
 
     def hasLocalsDict(self):
         return self.function.hasLocalsDict()
-
-    def hasClosureVariable(self, var_name):
-        return var_name in self.function.getClosureVariableNames()
-
-    def getFrameHandle(self):
-        return self.frame_handle
-
-    def setFrameHandle(self, frame_handle):
-        self.frame_handle = frame_handle
 
     def getReturnValueName(self):
         if self.return_name is None:
@@ -945,6 +1005,12 @@ class PythonStatementCContext(PythonChildContextBase):
     def mayRecurse(self):
         return self.parent.mayRecurse()
 
+    def needsFrameVariableTypeDescription(self):
+        return self.parent.needsFrameVariableTypeDescription()
+
+    def markAsNeedsFrameVariableDescription(self):
+        self.parent.markAsNeedsFrameVariableDescription()
+
     def getCodeObjectHandle(self, **kw):
         return self.parent.getCodeObjectHandle(**kw)
 
@@ -970,3 +1036,6 @@ class PythonStatementCContext(PythonChildContextBase):
 
     def getContextObjectName(self):
         return self.parent.getContextObjectName()
+
+    def setVariableType(self, variable, variable_code_name, variable_c_type):
+        self.parent.setVariableType(variable, variable_code_name, variable_c_type)

@@ -77,7 +77,7 @@ def autoformat(filename, abort = False):
                     argument.second_formatting = ' '
 
                 if '\n' in str(call_node.second_formatting):
-                    if len(argument.first_formatting) > 0:
+                    if argument.first_formatting:
                         spacing = argument.first_formatting[0].value
                     else:
                         spacing = ""
@@ -97,7 +97,7 @@ def autoformat(filename, abort = False):
             tuple_node.third_formatting = ""
 
             if tuple_node.type == "tuple" and tuple_node.with_parenthesis:
-                if len(tuple_node.value.node_list) > 0:
+                if tuple_node.value.node_list:
                     if tuple_node.value.node_list[-1].type not in ("yield_atom",):
                         tuple_node.value.node_list[-1].second_formatting = ""
 

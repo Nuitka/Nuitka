@@ -61,9 +61,11 @@ class ExpressionBuiltinLocals(ExpressionBase):
             source_ref = source_ref
         )
 
+        self.variable_versions = None
+
     def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
-        trace_collection.onLocalsUsage()
+        self.variable_versions = trace_collection.onLocalsUsage()
 
         return self, None, None
 
@@ -88,6 +90,9 @@ class ExpressionBuiltinLocals(ExpressionBase):
 
     def mayBeNone(self):
         return None
+
+    def getVariableVersions(self):
+        return self.variable_versions
 
 
 class StatementSetLocals(StatementChildrenHavingBase):

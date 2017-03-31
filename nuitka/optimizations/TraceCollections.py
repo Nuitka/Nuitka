@@ -241,6 +241,7 @@ class CollectionStartpointMixin:
         self.addVariableTrace(variable, version, trace_merge)
 
         return version
+#         return version, trace_merge
 
     def dumpTraces(self):
         debug("Constraint collection state: %s", self)
@@ -376,11 +377,11 @@ class TraceCollectionBase(CollectionTracingMixin):
 
     @staticmethod
     def signalChange(tags, source_ref, message):
-        # This is monkey patched from another module, pylint: disable=E1102
+        # This is monkey patched from another module.
         signalChange(tags, source_ref, message)
 
-    def onUsedModule(self, module):
-        return self.parent.onUsedModule(module)
+    def onUsedModule(self, module_name):
+        return self.parent.onUsedModule(module_name)
 
     @staticmethod
     def mustAlias(a, b):
@@ -487,17 +488,35 @@ class TraceCollectionBase(CollectionTracingMixin):
 
 
     def onLocalsUsage(self):
+        result = []
+
+        if self.owner.isExpressionFunctionBody():
+            include_closure = not self.owner.isUnoptimized()
+        else:
+            include_closure = False
+
         for variable in self.getActiveVariables():
 
             # TODO: Currently this is a bit difficult to express in a positive
             # way, but we want to have only local variables.
             if not variable.isTempVariable() and \
-               not variable.isModuleVariable():
+               not variable.isModuleVariable() and \
+               (variable.getOwner() is self.owner or include_closure) and \
+               variable.getName() != ".0":
                 variable_trace = self.getVariableCurrentTrace(
                     variable
                 )
 
                 variable_trace.addNameUsage()
+
+                result.append(
+                    (
+                        variable,
+                        variable_trace.getVersion()
+                    )
+                )
+
+        return result
 
     def onVariableRelease(self, variable):
         current = self.getVariableCurrentTrace(variable)
@@ -591,26 +610,26 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         # Refuse to do stupid work
         if collection_yes is None and collection_no is None:
-            pass
+            return None
         elif collection_yes is None or collection_no is None:
             # Handle one branch case, we need to merge versions backwards as
             # they may make themselves obsolete.
-            self.mergeMultipleBranches(
+            return self.mergeMultipleBranches(
                 collections = (self, collection_yes or collection_no)
             )
         else:
-            self.mergeMultipleBranches(
-                collections = (collection_yes,collection_no)
+            return self.mergeMultipleBranches(
+                collections = (collection_yes, collection_no)
             )
 
     def mergeMultipleBranches(self, collections):
-        assert len(collections) > 0
+        assert collections
 
         # Optimize for length 1, which is trivial merge and needs not a
         # lot of work.
         if len(collections) == 1:
             self.replaceBranch(collections[0])
-            return
+            return None
 
         variable_versions = {}
 
@@ -628,6 +647,8 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         self.variable_actives = {}
 
+#         merge_traces = None
+
         for variable, versions in iterItems(variable_versions):
             if len(versions) == 1:
                 version, = versions
@@ -641,7 +662,15 @@ class TraceCollectionBase(CollectionTracingMixin):
                     ]
                 )
 
+#                 if merge_traces is None:
+#                     merge_traces = [trace_merge]
+#                 else:
+#                     merge_traces.append(trace_merge)
+
             self.markCurrentVariableTrace(variable, version)
+
+        # Return "None", or turn the list into a tuple for memory savings.
+#         return merge_traces and tuple(merge_traces)
 
     def replaceBranch(self, collection_replace):
         self.variable_actives.update(collection_replace.variable_actives)
@@ -783,6 +812,15 @@ class TraceCollectionFunction(CollectionStartpointMixin,
             name   = "function_" + str(function_body),
             parent = parent
         )
+
+        if function_body.isExpressionFunctionBody():
+            for parameter_variable in function_body.getParameters().getAllVariables():
+                self._initVariableInit(parameter_variable)
+                self.variable_actives[parameter_variable] = 0
+
+        for closure_variable in function_body.getClosureVariables():
+            self._initVariableUnknown(closure_variable)
+            self.variable_actives[closure_variable] = 0
 
 
 class TraceCollectionModule(CollectionStartpointMixin,

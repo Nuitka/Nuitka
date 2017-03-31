@@ -56,6 +56,8 @@ class VariableTraceBase:
         # If False, this indicates, the variable name needs to be assigned.
         self.has_name_usages = False
 
+        self.closure_usages = False
+
         # If False, this indicates that the value is not yet escaped.
         self.is_escaped = False
 
@@ -67,8 +69,15 @@ class VariableTraceBase:
     def getVariable(self):
         return self.variable
 
+    def getOwner(self):
+        return self.owner
+
     def getVersion(self):
         return self.version
+
+    def addClosureUsage(self):
+        self.addUsage()
+        self.closure_usages = True
 
     def addUsage(self):
         self.usage_count += 1
@@ -103,6 +112,32 @@ class VariableTraceBase:
 
     def getPrevious(self):
         return self.previous
+
+    def getPickedCType(self, context):
+        """ Return type to use for specific context. """
+
+        user = context.getOwner()
+
+        if self.variable.getOwner() is user:
+            if self.variable.isSharedTechnically():
+                result = "struct Nuitka_CellObject *"
+            else:
+                result = "PyObject *"
+        elif context.isForDirectCall():
+            if user.isExpressionGeneratorObjectBody():
+                result = "struct Nuitka_CellObject *"
+            elif user.isExpressionCoroutineObjectBody():
+                result = "struct Nuitka_CellObject *"
+            elif user.isExpressionAsyncgenObjectBody():
+                result = "struct Nuitka_CellObject *"
+            elif self.variable.isSharedTechnically():
+                result = "struct Nuitka_CellObject *"
+            else:
+                result = "PyObject **"
+        else:
+            result = "struct Nuitka_CellObject *"
+
+        return result
 
     @staticmethod
     def isAssignTrace():

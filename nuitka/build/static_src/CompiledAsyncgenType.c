@@ -174,7 +174,7 @@ static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, 
 #ifndef __NUITKA_NO_ASSERT__
         if ( return_frame )
         {
-            assertFrameObject( return_frame );
+            assertFrameObject( (struct Nuitka_FrameObject *)return_frame );
         }
 #endif
 
@@ -185,12 +185,12 @@ static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, 
             assertFrameObject( asyncgen->m_frame );
 
             // It's not supposed to be on the top right now.
-            assert( return_frame != asyncgen->m_frame );
+            assert( return_frame != &asyncgen->m_frame->m_frame );
 
             Py_XINCREF( return_frame );
-            asyncgen->m_frame->f_back = return_frame;
+            asyncgen->m_frame->m_frame.f_back = return_frame;
 
-            thread_state->frame = asyncgen->m_frame;
+            thread_state->frame = &asyncgen->m_frame->m_frame;
         }
 
         // Continue the yielder function while preventing recursion.
@@ -205,10 +205,10 @@ static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, 
         // Remove the asyncgen from the frame stack.
         if ( asyncgen->m_frame )
         {
-            assert( thread_state->frame == asyncgen->m_frame );
+            assert( thread_state->frame == &asyncgen->m_frame->m_frame );
             assertFrameObject( asyncgen->m_frame );
 
-            Py_CLEAR( asyncgen->m_frame->f_back );
+            Py_CLEAR( asyncgen->m_frame->m_frame.f_back );
         }
 
         thread_state->frame = return_frame;

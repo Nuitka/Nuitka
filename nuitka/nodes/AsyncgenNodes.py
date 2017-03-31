@@ -54,6 +54,8 @@ class ExpressionMakeAsyncgenObject(ExpressionChildrenHavingBase):
 
         self.code_object = code_object
 
+        self.variable_closure_traces = []
+
     def getDetails(self):
         return {
             "code_object" : self.code_object
@@ -68,6 +70,14 @@ class ExpressionMakeAsyncgenObject(ExpressionChildrenHavingBase):
         }
 
     def computeExpression(self, trace_collection):
+        self.variable_closure_traces = []
+
+        for closure_variable in self.getAsyncgenRef().getFunctionBody().getClosureVariables():
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            trace.addClosureUsage()
+
+            self.variable_closure_traces.append(trace)
+
         # TODO: Asyncgen body may know something too.
         return self, None, None
 
@@ -76,6 +86,12 @@ class ExpressionMakeAsyncgenObject(ExpressionChildrenHavingBase):
 
     def mayHaveSideEffects(self):
         return False
+
+    def getClosureVariableVersions(self):
+        return [
+            (trace.getVariable(), trace.getVersion())
+            for trace in self.variable_closure_traces
+        ]
 
 
 class ExpressionAsyncgenObjectBody(MarkLocalsDictIndicatorMixin,

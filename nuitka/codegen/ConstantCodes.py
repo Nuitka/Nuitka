@@ -41,7 +41,6 @@ from nuitka.__past__ import (  # pylint: disable=W0622
     unicode,
     xrange
 )
-from nuitka.codegen import Emission
 from nuitka.Constants import (
     constant_builtin_types,
     getConstantWeight,
@@ -303,8 +302,6 @@ def _addConstantInitCode(context, emit, check, constant_type, constant_value,
         constants belong into the same scope.
     """
 
-    # This is just a wrapper to make sure that hash values become initialized
-    # for every constant too.
     if constant_value in constant_builtin_types:
         return
     if constant_value is None:
@@ -988,8 +985,8 @@ constant_counts = {}
 
 def getConstantInitCodes(module_context):
     decls = []
-    inits = Emission.SourceCodeCollector()
-    checks = Emission.SourceCodeCollector()
+    inits = SourceCodeCollector()
+    checks = SourceCodeCollector()
 
     sorted_constants = sorted(
         module_context.getConstants(),

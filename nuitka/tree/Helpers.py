@@ -61,7 +61,7 @@ def extractDocFromBody(node):
     doc = None
 
     # Work around ast.get_docstring breakage.
-    if len(node.body) > 0 and \
+    if node.body and \
        getKind(node.body[0]) == "Expr" and \
        getKind(node.body[0].value) == "Str":
 
@@ -96,17 +96,9 @@ def detectFunctionBodyKind(nodes, start_value = None):
     if start_value is not None:
         indications.add(start_value)
 
-    written_variables = set()
-    non_local_declarations = set()
-    global_declarations = set()
     flags = set()
 
-    # print "Enter"
-
     def _check(node):
-
-        # print "consider", node.__class__
-
         node_class = node.__class__
 
         if node_class is ast.Yield:
@@ -115,21 +107,6 @@ def detectFunctionBodyKind(nodes, start_value = None):
             indications.add("Generator")
         elif python_version >= 350 and node_class in (ast.Await, ast.AsyncWith):  # @UndefinedVariable
             indications.add("Coroutine")
-
-        # Detect assignments to variables, for functions we need to know that
-        # to properly resolve closure.
-        if node_class is ast.Assign:
-            for target in node.targets:
-                if type(target) is str:
-                    written_variables.add(target)
-                elif target.__class__ is ast.Name:
-                    written_variables.add(target.id)
-
-        # Detect global and nonlocal declarations ahead of time.
-        if python_version >= 300 and node_class is ast.Nonlocal:  # @UndefinedVariable
-            non_local_declarations.update(set(node.names))
-        elif node_class is ast.Global:
-            global_declarations.update(set(node.names))
 
         # Recurse to children, but do not cross scope boundary doing so.
         if node_class is ast.ClassDef:
@@ -225,7 +202,7 @@ def detectFunctionBodyKind(nodes, start_value = None):
     else:
         function_kind = "Function"
 
-    return function_kind, flags, written_variables, non_local_declarations, global_declarations
+    return function_kind, flags
 
 
 build_nodes_args3 = None

@@ -98,11 +98,11 @@ class ExpressionOperationBinary(ExpressionOperationBase):
 
     def computeExpression(self, trace_collection):
         operator = self.getOperator()
-        operands = self.getOperands()
 
         assert operator not in ("Mult", "Add")
 
-        left, right = operands
+        left = self.subnode_left
+        right = self.subnode_right
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
@@ -131,7 +131,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
         return self, None, None
 
     def getOperands(self):
-        return (self.getLeft(), self.getRight())
+        return (self.subnode_left, self.subnode_right)
 
     getLeft = ExpressionChildrenHavingBase.childGetter("left")
     getRight = ExpressionChildrenHavingBase.childGetter("right")
@@ -158,9 +158,9 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinary):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         operator = self.getOperator()
-        operands = self.getOperands()
 
-        left, right = operands
+        left = self.subnode_left
+        right = self.subnode_right
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
@@ -274,8 +274,8 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinary):
         if self.shape is not None and self.shape.isConstant():
             return self, None, None
 
-        left  = self.getLeft()
-        right = self.getRight()
+        left  = self.subnode_left
+        right = self.subnode_right
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
@@ -399,7 +399,7 @@ class ExpressionOperationUnary(ExpressionOperationBase):
 
     def computeExpression(self, trace_collection):
         operator = self.getOperator()
-        operand = self.getOperand()
+        operand = self.subnode_operand
 
         if operand.isCompileTimeConstant():
             operand_value = operand.getCompileTimeConstant()

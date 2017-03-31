@@ -19,12 +19,13 @@
 
 """
 
-from .ErrorCodes import (
-    getErrorVariableDeclarations,
-    getExceptionKeeperVariableNames,
-    getExceptionPreserverVariableNames
+from .Emission import SourceCodeCollector
+from .FunctionCodes import (
+    finalizeFunctionLocalVariables,
+    setupFunctionLocalVariables
 )
 from .GeneratorCodes import getClosureCopyCode
+from .Helpers import generateStatementSequenceCode
 from .Indentation import indented
 from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_exception_exit,
@@ -34,8 +35,6 @@ from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_return_exit,
     template_make_asyncgen_template
 )
-from .templates.CodeTemplatesFunction import function_dict_setup
-from .VariableCodes import getLocalVariableInitCode
 
 
 def getAsyncgenObjectDeclCode(function_identifier):
@@ -44,52 +43,30 @@ def getAsyncgenObjectDeclCode(function_identifier):
     }
 
 
-def getAsyncgenObjectCode(context, function_identifier, user_variables,
-                           temp_variables, function_codes, needs_exception_exit,
-                           needs_generator_return):
-    function_locals = []
+def getAsyncgenObjectCode(context, function_identifier, closure_variables,
+                          user_variables, temp_variables, needs_exception_exit,
+                          needs_generator_return):
+    function_locals, function_cleanup = setupFunctionLocalVariables(
+        context           = context,
+        parameters        = None,
+        closure_variables = closure_variables,
+        user_variables    = user_variables,
+        temp_variables    = temp_variables
+    )
 
-    for user_variable in user_variables + temp_variables:
-        function_locals.append(
-            getLocalVariableInitCode(
-                context  = context,
-                variable = user_variable,
-            )
-        )
+    # Doesn't apply to asyncgens.
+    assert not function_cleanup
 
-    if context.hasLocalsDict():
-        function_locals += function_dict_setup.split('\n')
+    function_codes = SourceCodeCollector()
 
-    if context.needsExceptionVariables():
-        function_locals.extend(getErrorVariableDeclarations())
+    generateStatementSequenceCode(
+        statement_sequence = context.getOwner().getBody(),
+        allow_none         = True,
+        emit               = function_codes,
+        context            = context
+    )
 
-    for keeper_index in range(1, context.getKeeperVariableCount()+1):
-        function_locals.extend(getExceptionKeeperVariableNames(keeper_index))
-
-    for preserver_id in context.getExceptionPreserverCounts():
-        function_locals.extend(getExceptionPreserverVariableNames(preserver_id))
-
-    function_locals += [
-        "%s%s%s;" % (
-            tmp_type,
-            ' ' if not tmp_type.endswith('*') else "",
-            tmp_name
-        )
-        for tmp_name, tmp_type in
-        context.getTempNameInfos()
-    ]
-
-    function_locals += context.getFrameDeclarations()
-
-    # TODO: Could avoid this unless try/except or try/finally with returns
-    # occur.
-    if context.hasTempName("generator_return"):
-        function_locals.append("tmp_generator_return = false;")
-    if context.hasTempName("return_value"):
-        function_locals.append("tmp_return_value = NULL;")
-    for tmp_name, tmp_type in context.getTempNameInfos():
-        if tmp_name.startswith("tmp_outline_return_value_"):
-            function_locals.append("%s = NULL;" % tmp_name)
+    function_locals += finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
         generator_exit = template_asyncgen_exception_exit % {
@@ -105,7 +82,7 @@ def getAsyncgenObjectCode(context, function_identifier, user_variables,
 
     return template_asyncgen_object_body_template % {
         "function_identifier" : function_identifier,
-        "function_body"       : indented(function_codes),
+        "function_body"       : indented(function_codes.codes),
         "function_var_inits"  : indented(function_locals),
         "asyncgen_exit"      : generator_exit
     }
@@ -113,8 +90,6 @@ def getAsyncgenObjectCode(context, function_identifier, user_variables,
 
 def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
     asyncgen_object_body = expression.getAsyncgenRef().getFunctionBody()
-
-    closure_variables = asyncgen_object_body.getClosureVariables()
 
     code_identifier = context.getCodeObjectHandle(
         code_object  = expression.getCodeObject(),
@@ -125,6 +100,8 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
         has_closure  = len(asyncgen_object_body.getParentVariableProvider().getClosureVariables()) > 0,
         future_flags = asyncgen_object_body.getSourceReference().getFutureSpec().asFlags()
     )
+
+    closure_variables = expression.getClosureVariableVersions()
 
     closure_copy = getClosureCopyCode(
         to_name           = to_name,

@@ -19,10 +19,8 @@
 
 """
 
-from nuitka.codegen.AsyncgenCodes import getAsyncgenObjectDeclCode
 from nuitka.PythonVersions import python_version
 
-from .CoroutineCodes import getCoroutineObjectDeclCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitCode,
@@ -32,7 +30,6 @@ from .ErrorCodes import (
     getMustNotGetHereCode,
     getReleaseCode
 )
-from .GeneratorCodes import getGeneratorObjectDeclCode
 from .Helpers import generateExpressionCode, generateStatementSequenceCode
 from .Indentation import indented
 from .LabelCodes import getLabelCode
@@ -60,11 +57,12 @@ from .VariableCodes import (
 def getClosureVariableProvisionCode(context, closure_variables):
     result = []
 
-    for variable in closure_variables:
+    for variable, version in closure_variables:
         result.append(
             getVariableCode(
                 context  = context,
-                variable = variable
+                variable = variable,
+                version  = version
             )
         )
 
@@ -301,7 +299,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
         defaults_name       = defaults_name,
         kw_defaults_name    = kw_defaults_name,
         annotations_name    = annotations_name,
-        closure_variables   = function_body.getClosureVariables(),
+        closure_variables   = expression.getClosureVariableVersions(),
         emit                = emit,
         context             = context
     )
@@ -357,10 +355,11 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
 
     suffix_args = []
 
-    for closure_variable in closure_variables:
+    for closure_variable, closure_variable_version in closure_variables:
         variable_code_name, variable_c_type = getLocalVariableCodeType(
             context  = context,
-            variable = closure_variable
+            variable = closure_variable,
+            version  = closure_variable_version
         )
 
         if variable_c_type == "PyObject *":
@@ -431,7 +430,8 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
     for closure_variable in closure_variables:
         variable_code_name, variable_c_type = getLocalVariableCodeType(
             context  = context,
-            variable = closure_variable
+            variable = closure_variable,
+            version  = 0
         )
 
         parameter_objects_decl.append(
@@ -451,20 +451,15 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
     return result
 
 
-def getFunctionCode(context, function_identifier, parameters, closure_variables,
-                    user_variables, temp_variables, function_codes, function_doc,
-                    file_scope, needs_exception_exit):
-
-    # Functions have many details, that we express as variables, with many
-    # branches to decide, pylint: disable=R0912,R0914
+def setupFunctionLocalVariables(context, parameters, closure_variables,
+                                user_variables, temp_variables):
 
     function_locals = []
+    function_cleanup = ""
 
     if context.hasLocalsDict():
         function_locals += function_dict_setup.split('\n')
         function_cleanup = "Py_DECREF( locals_dict );\n"
-    else:
-        function_cleanup = ""
 
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
@@ -472,6 +467,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
                 getLocalVariableInitCode(
                     context   = context,
                     variable  = variable,
+                    version   = 0,
                     init_from = "python_pars[ %d ]" % count
                 )
             )
@@ -481,6 +477,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
         getLocalVariableInitCode(
             context  = context,
             variable = variable,
+            version  = 0,
         )
         for variable in
         user_variables + tuple(
@@ -489,6 +486,32 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
             temp_variables
         )
     ]
+
+    for closure_variable in closure_variables:
+        # Temporary variable closures are to be ignored.
+        if closure_variable.isTempVariable():
+            continue
+
+        if closure_variable.isMaybeLocalVariable():
+            continue
+        # Maybe local is also not worthy.
+
+        variable_code_name, variable_c_type = getLocalVariableCodeType(
+            context  = context,
+            variable = closure_variable,
+            version  = 0
+        )
+
+        if variable_c_type in ("struct Nuitka_CellObject *", "PyObject **"):
+            context.setVariableType(closure_variable, variable_code_name, variable_c_type)
+        else:
+            assert False, (variable_code_name, variable_c_type)
+
+    return function_locals, function_cleanup
+
+
+def finalizeFunctionLocalVariables(context):
+    function_locals = []
 
     if context.needsExceptionVariables():
         function_locals.extend(getErrorVariableDeclarations())
@@ -511,13 +534,47 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
 
     function_locals += context.getFrameDeclarations()
 
+    if context.needsFrameVariableTypeDescription():
+        function_locals.append("char const *type_description;")
+
     # TODO: Could avoid this unless try/except or try/finally with returns
     # occur.
     if context.hasTempName("return_value"):
         function_locals.append("tmp_return_value = NULL;")
+    if context.hasTempName("generator_return"):
+        function_locals.append("tmp_generator_return = false;")
     for tmp_name, tmp_type in context.getTempNameInfos():
         if tmp_name.startswith("tmp_outline_return_value_"):
             function_locals.append("%s = NULL;" % tmp_name)
+
+
+    return function_locals
+
+def getFunctionCode(context, function_identifier, parameters, closure_variables,
+                    user_variables, temp_variables, function_doc, file_scope,
+                    needs_exception_exit):
+
+    # Functions have many details, that we express as variables, with many
+    # branches to decide, pylint: disable=R0914
+
+    function_locals, function_cleanup = setupFunctionLocalVariables(
+        context           = context,
+        parameters        = parameters,
+        closure_variables = closure_variables,
+        user_variables    = user_variables,
+        temp_variables    = temp_variables
+    )
+
+    function_codes = SourceCodeCollector()
+
+    generateStatementSequenceCode(
+        statement_sequence = context.getOwner().getBody(),
+        allow_none         = True,
+        emit               = function_codes,
+        context            = context
+    )
+
+    function_locals += finalizeFunctionLocalVariables(context)
 
     function_doc = context.getConstantCode(
         constant = function_doc
@@ -538,7 +595,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
 
     if needs_exception_exit:
         function_exit += template_function_exception_exit % {
-            "function_cleanup"    : function_cleanup,
+            "function_cleanup" : function_cleanup,
         }
 
     if context.hasTempName("return_value"):
@@ -561,7 +618,8 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
         for closure_variable in closure_variables:
             variable_code_name, variable_c_type = getLocalVariableCodeType(
                 context  = context,
-                variable = closure_variable
+                variable = closure_variable,
+                version  = 0
             )
 
             parameter_objects_decl.append(
@@ -579,7 +637,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
                 parameter_objects_decl
             ),
             "function_locals"      : indented(function_locals),
-            "function_body"        : indented(function_codes),
+            "function_body"        : indented(function_codes.codes),
             "function_exit"        : function_exit
         }
     else:
@@ -587,7 +645,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
             "function_identifier"    : function_identifier,
             "parameter_objects_decl" : ", ".join(parameter_objects_decl),
             "function_locals"        : indented(function_locals),
-            "function_body"          : indented(function_codes),
+            "function_body"          : indented(function_codes.codes),
             "function_exit"          : function_exit
         }
 
@@ -599,42 +657,6 @@ def getExportScopeCode(cross_module):
         return "NUITKA_CROSS_MODULE"
     else:
         return "NUITKA_LOCAL_MODULE"
-
-
-
-def generateFunctionDeclCode(function_body, context):
-    if function_body.isExpressionGeneratorObjectBody():
-        return getGeneratorObjectDeclCode(
-            function_identifier = function_body.getCodeName(),
-        )
-    elif function_body.isExpressionCoroutineObjectBody():
-        return getCoroutineObjectDeclCode(
-            function_identifier = function_body.getCodeName(),
-        )
-    elif function_body.isExpressionAsyncgenObjectBody():
-        return getAsyncgenObjectDeclCode(
-            function_identifier = function_body.getCodeName(),
-        )
-    elif function_body.isExpressionClassBody():
-        return getFunctionDirectDecl(
-            function_identifier = function_body.getCodeName(),
-            closure_variables   = function_body.getClosureVariables(),
-            file_scope          = getExportScopeCode(
-                cross_module = False
-            ),
-            context             = context
-        )
-    elif function_body.needsDirectCall():
-        return getFunctionDirectDecl(
-            function_identifier = function_body.getCodeName(),
-            closure_variables   = function_body.getClosureVariables(),
-            file_scope          = getExportScopeCode(
-                cross_module = function_body.isCrossModuleUsed()
-            ),
-            context             = context
-        )
-    else:
-        return None
 
 
 def generateFunctionCallCode(to_name, expression, emit, context):
@@ -666,7 +688,7 @@ def generateFunctionCallCode(to_name, expression, emit, context):
         to_name             = to_name,
         function_identifier = function_identifier,
         arg_names           = arg_names,
-        closure_variables   = function_body.getClosureVariables(),
+        closure_variables   = expression.getClosureVariableVersions(),
         needs_check         = expression.getFunction().getFunctionRef().\
                                 getFunctionBody().mayRaiseException(BaseException),
         emit                = emit,

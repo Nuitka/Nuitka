@@ -21,14 +21,14 @@
 
 from nuitka.PythonVersions import python_version
 
-from .ErrorCodes import (
-    getErrorVariableDeclarations,
-    getExceptionKeeperVariableNames,
-    getExceptionPreserverVariableNames
+from .Emission import SourceCodeCollector
+from .FunctionCodes import (
+    finalizeFunctionLocalVariables,
+    setupFunctionLocalVariables
 )
+from .Helpers import generateStatementSequenceCode
 from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
-from .templates.CodeTemplatesFunction import function_dict_setup
 from .templates.CodeTemplatesGeneratorFunction import (
     template_generator_exception_exit,
     template_generator_making,
@@ -37,7 +37,7 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_genfunc_yielder_body_template,
     template_genfunc_yielder_decl_template
 )
-from .VariableCodes import getLocalVariableCodeType, getLocalVariableInitCode
+from .VariableCodes import getLocalVariableCodeType
 
 
 def getGeneratorObjectDeclCode(function_identifier):
@@ -46,65 +46,43 @@ def getGeneratorObjectDeclCode(function_identifier):
     }
 
 
-def getGeneratorObjectCode(context, function_identifier, user_variables,
-                           temp_variables, function_codes, needs_exception_exit,
+def getGeneratorObjectCode(context, function_identifier, closure_variables,
+                           user_variables, temp_variables, needs_exception_exit,
                            needs_generator_return):
-    function_locals = []
+    function_locals, function_cleanup = setupFunctionLocalVariables(
+        context           = context,
+        parameters        = None,
+        closure_variables = closure_variables,
+        user_variables    = user_variables,
+        temp_variables    = temp_variables
+    )
 
-    for user_variable in user_variables + temp_variables:
-        function_locals.append(
-            getLocalVariableInitCode(
-                context  = context,
-                variable = user_variable,
-            )
-        )
+    function_codes = SourceCodeCollector()
 
-    if context.hasLocalsDict():
-        function_locals += function_dict_setup.split('\n')
+    generateStatementSequenceCode(
+        statement_sequence = context.getOwner().getBody(),
+        allow_none         = True,
+        emit               = function_codes,
+        context            = context
+    )
 
-    if context.needsExceptionVariables():
-        function_locals.extend(getErrorVariableDeclarations())
-
-    for keeper_index in range(1, context.getKeeperVariableCount()+1):
-        function_locals.extend(getExceptionKeeperVariableNames(keeper_index))
-
-    for preserver_id in context.getExceptionPreserverCounts():
-        function_locals.extend(getExceptionPreserverVariableNames(preserver_id))
-
-    function_locals += [
-        "%s%s%s;" % (
-            tmp_type,
-            ' ' if not tmp_type.endswith('*') else "",
-            tmp_name
-        )
-        for tmp_name, tmp_type in
-        context.getTempNameInfos()
-    ]
-
-    function_locals += context.getFrameDeclarations()
-
-    # TODO: Could avoid this unless try/except or try/finally with returns
-    # occur.
-    if context.hasTempName("generator_return"):
-        function_locals.append("tmp_generator_return = false;")
-    if context.hasTempName("return_value"):
-        function_locals.append("tmp_return_value = NULL;")
-    for tmp_name, tmp_type in context.getTempNameInfos():
-        if tmp_name.startswith("tmp_outline_return_value_"):
-            function_locals.append("%s = NULL;" % tmp_name)
-
+    function_locals += finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
-        generator_exit = template_generator_exception_exit % {}
+        generator_exit = template_generator_exception_exit % {
+            "function_cleanup" : function_cleanup
+        }
     else:
-        generator_exit = template_generator_noexception_exit % {}
+        generator_exit = template_generator_noexception_exit % {
+            "function_cleanup" : function_cleanup
+        }
 
     if needs_generator_return:
         generator_exit += template_generator_return_exit % {}
 
     return template_genfunc_yielder_body_template % {
         "function_identifier" : function_identifier,
-        "function_body"       : indented(function_codes),
+        "function_body"       : indented(function_codes.codes),
         "function_var_inits"  : indented(function_locals),
         "generator_exit"      : generator_exit
     }
@@ -117,8 +95,8 @@ def getClosureCopyCode(to_name, closure_variables, closure_type, context):
     """
     closure_copy = []
 
-    for count, variable in enumerate(closure_variables):
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+    for count, (variable, version) in enumerate(closure_variables):
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
 
         target_cell_code = "((%s)%s)->m_closure[%d]" % (
             closure_type,
@@ -156,8 +134,6 @@ def getClosureCopyCode(to_name, closure_variables, closure_type, context):
 def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     generator_object_body = expression.getGeneratorRef().getFunctionBody()
 
-    closure_variables = generator_object_body.getClosureVariables()
-
     if python_version < 350 or context.isForDirectCall():
         generator_name_obj = context.getConstantCode(
             constant = generator_object_body.getFunctionName()
@@ -183,6 +159,8 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
         has_closure  = len(generator_object_body.getParentVariableProvider().getClosureVariables()) > 0,
         future_flags = generator_object_body.getSourceReference().getFutureSpec().asFlags()
     )
+
+    closure_variables = expression.getClosureVariableVersions()
 
     closure_copy = getClosureCopyCode(
         to_name           = to_name,

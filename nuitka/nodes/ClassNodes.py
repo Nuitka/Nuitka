@@ -123,9 +123,9 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
                     variable_name = "__class__"
                 )
         else:
-            return self.provider.getVariableForClosure(
-                variable_name
-            )
+            result = self.provider.getVariableForClosure(variable_name)
+            self.taken.add(result)
+            return result
 
     def markAsNeedsAnnotationsDictionary(self):
         """ For use during building only. Indicate "__annotations__" need. """

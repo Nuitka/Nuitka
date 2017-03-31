@@ -76,6 +76,7 @@ def generateAssignmentVariableCode(statement, emit, context):
     getVariableAssignmentCode(
         tmp_name      = tmp_name,
         variable      = variable_ref.getVariable(),
+        version       = variable_ref.getVariableVersion(),
         needs_release = statement.needsReleasePreviousValue(),
         in_place      = statement.inplace_suspect,
         emit          = emit,
@@ -91,8 +92,11 @@ def generateDelVariableCode(statement, emit, context):
         statement.getSourceReference()
     )
 
+
     getVariableDelCode(
         variable    = statement.getTargetVariableRef().getVariable(),
+        new_version = statement.variable_trace.getVersion(),
+        old_version = statement.previous_trace.getVersion(),
         tolerant    = statement.isTolerant(),
         needs_check = statement.isTolerant() or \
                       statement.mayRaiseException(BaseException),
@@ -115,6 +119,7 @@ def generateVariableReleaseCode(statement, emit, context):
 
     getVariableReleaseCode(
         variable    = statement.getVariable(),
+        version     = statement.getVariableVersion(),
         needs_check = needs_check,
         emit        = emit,
         context     = context
@@ -125,6 +130,7 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
     getVariableAccessCode(
         to_name     = to_name,
         variable    = expression.getVariable(),
+        version     = expression.getVariableVersion(),
         needs_check = expression.mayRaiseException(BaseException),
         emit        = emit,
         context     = context
@@ -143,61 +149,55 @@ def getVariableCodeName(in_context, variable):
         return "var_" + variable.getCodeName()
 
 
-def getLocalVariableCodeType(context, variable):
-    # Now must be local or temporary variable, we return in each case-
-    # pylint: disable=R0911
+def getLocalVariableCodeType(context, variable, version):
+    # Now must be local or temporary variable.
+
     user = context.getOwner()
     owner = variable.getOwner()
+
+    variable_trace = user.trace_collection.getVariableTrace(variable, version)
+
+    c_type = variable_trace.getPickedCType(context)
 
     if owner is user:
         result = getVariableCodeName(
             in_context = False,
             variable   = variable
         )
-
-        return (
-            result,
-            "struct Nuitka_CellObject *" if variable.isSharedTechnically() else "PyObject *"
-        )
     elif context.isForDirectCall():
+
         if user.isExpressionGeneratorObjectBody():
             closure_index = user.getClosureVariables().index(variable)
 
-            return "generator->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
+            result = "generator->m_closure[%d]" % closure_index
         elif user.isExpressionCoroutineObjectBody():
             closure_index = user.getClosureVariables().index(variable)
 
-            return "coroutine->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
+            result = "coroutine->m_closure[%d]" % closure_index
         elif user.isExpressionAsyncgenObjectBody():
             closure_index = user.getClosureVariables().index(variable)
 
-            return "asyncgen->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
+            result = "asyncgen->m_closure[%d]" % closure_index
         else:
             result = getVariableCodeName(
                 in_context = True,
                 variable   = variable
             )
-
-            # TODO: The reference is only needed for Python3, could make it
-            # version dependent.
-            return (
-                result,
-                "struct Nuitka_CellObject *" if variable.isSharedTechnically() else "PyObject **",
-            )
     else:
         closure_index = user.getClosureVariables().index(variable)
 
         if user.isExpressionGeneratorObjectBody():
-            return "generator->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
+            result = "generator->m_closure[%d]" % closure_index
         elif user.isExpressionCoroutineObjectBody():
-            return "coroutine->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
+            result = "coroutine->m_closure[%d]" % closure_index
         elif user.isExpressionAsyncgenObjectBody():
-            return "asyncgen->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
+            result = "asyncgen->m_closure[%d]" % closure_index
         else:
-            return "self->m_closure[%d]" % closure_index, "struct Nuitka_CellObject *"
+            result = "self->m_closure[%d]" % closure_index
 
+    return result, c_type
 
-def getVariableCode(context, variable):
+def getVariableCode(context, variable, version):
     # Modules are simple.
     if variable.isModuleVariable():
         return getVariableCodeName(
@@ -205,12 +205,12 @@ def getVariableCode(context, variable):
             variable   = variable
         )
 
-    variable_code_name, _variable_c_type = getLocalVariableCodeType(context, variable)
+    variable_code_name, _variable_c_type = getLocalVariableCodeType(context, variable, version)
     return variable_code_name
 
 
-def getLocalVariableObjectAccessCode(context, variable):
-    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+def getLocalVariableObjectAccessCode(context, variable, version):
+    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
 
     if variable_c_type == "struct Nuitka_CellObject *":
         # TODO: Why not use PyCell_GET for readability.
@@ -223,10 +223,10 @@ def getLocalVariableObjectAccessCode(context, variable):
         assert False, variable_c_type
 
 
-def getLocalVariableInitCode(context, variable, init_from = None):
+def getLocalVariableInitCode(context, variable, version, init_from = None):
     assert not variable.isModuleVariable()
 
-    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
 
     if variable_c_type == "struct Nuitka_CellObject *":
         # TODO: Single out "init_from" only user, so it becomes sure that we
@@ -243,6 +243,9 @@ def getLocalVariableInitCode(context, variable, init_from = None):
     else:
         assert False, variable
 
+    if variable.isLocalVariable():
+        context.setVariableType(variable, variable_code_name, variable_c_type)
+
     return "%s%s%s = %s;" % (
         variable_c_type,
         ' ' if variable_c_type[-1] not in "*&" else "",
@@ -251,8 +254,8 @@ def getLocalVariableInitCode(context, variable, init_from = None):
     )
 
 
-def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
-                              in_place):
+def getVariableAssignmentCode(context, emit, variable, version,
+                              tmp_name, needs_release, in_place):
     # Many different cases, as this must be, pylint: disable=R0912,R0915
 
     assert isinstance(variable, Variables.Variable), variable
@@ -278,16 +281,20 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
         if ref_count:
             context.removeCleanupTempName(tmp_name)
     elif variable.isLocalVariable():
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
+
+        context.setVariableType(variable, variable_code_name, variable_c_type)
+
         if in_place:
             # Releasing is not an issue here, local variable reference never
             # gave a reference, and the in-place code deals with possible
             # replacement/release.
-            if variable.isSharedTechnically():
+            if variable_c_type == "struct Nuitka_CellObject *":
                 template = template_write_shared_inplace
             else:
                 template = template_write_local_inplace
 
-        elif variable.isSharedTechnically():
+        elif variable_c_type == "struct Nuitka_CellObject *":
             if ref_count:
                 if needs_release is False:
                     template = template_write_shared_clear_ref0
@@ -299,6 +306,8 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
                 else:
                     template = template_write_shared_unclear_ref1
         else:
+            assert variable_c_type == "PyObject *", variable_c_type
+
             if ref_count:
                 if needs_release is False:
                     template = template_write_local_empty_ref0
@@ -316,7 +325,7 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
 
         emit(
             template % {
-                "identifier" : getVariableCode(context, variable),
+                "identifier" : variable_code_name,
                 "tmp_name"   : tmp_name
             }
         )
@@ -324,7 +333,7 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
         if ref_count:
             context.removeCleanupTempName(tmp_name)
     elif variable.isTempVariable():
-        _variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
 
         if variable_c_type == "struct Nuitka_CellObject *":
             if ref_count:
@@ -351,7 +360,7 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
 
         emit(
             template % {
-                "identifier" : getLocalVariableObjectAccessCode(context, variable),
+                "identifier" : getLocalVariableObjectAccessCode(context, variable, version),
                 "tmp_name"   : tmp_name
             }
         )
@@ -362,7 +371,7 @@ def getVariableAssignmentCode(context, emit, variable, tmp_name, needs_release,
         assert False, variable
 
 
-def getVariableAccessCode(to_name, variable, needs_check, emit, context):
+def getVariableAccessCode(to_name, variable, version, needs_check, emit, context):
     # Many different cases, as this must be, pylint: disable=R0912,R0915
 
     assert isinstance(variable, Variables.Variable), variable
@@ -406,6 +415,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
         getVariableAccessCode(
             to_name     = to_name,
             variable    = variable.getMaybeVariable(),
+            version     = version,
             needs_check = True,
             emit        = fallback_emit,
             context     = context
@@ -424,7 +434,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
 
         return
     elif variable.isLocalVariable():
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
 
         if variable_c_type == "struct Nuitka_CellObject *":
             if not needs_check:
@@ -444,7 +454,7 @@ def getVariableAccessCode(to_name, variable, needs_check, emit, context):
             emit(
                 template % {
                     "tmp_name"   : to_name,
-                    "identifier" : getLocalVariableObjectAccessCode(context, variable)
+                    "identifier" : getLocalVariableObjectAccessCode(context, variable, version)
                 }
             )
 
@@ -478,7 +488,7 @@ local variable '%s' referenced before assignment""",
 
         return
     elif variable.isTempVariable():
-        _variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
 
         if variable_c_type == "struct Nuitka_CellObject *":
             template = template_read_shared_unclear
@@ -486,7 +496,7 @@ local variable '%s' referenced before assignment""",
             emit(
                 template % {
                     "tmp_name"   : to_name,
-                    "identifier" : getVariableCode(context, variable)
+                    "identifier" : variable_code_name
                 }
             )
 
@@ -512,7 +522,7 @@ free variable '%s' referenced before assignment in enclosing scope""",
             emit(
                 template % {
                     "tmp_name"   : to_name,
-                    "identifier" : getLocalVariableObjectAccessCode(context, variable)
+                    "identifier" : getLocalVariableObjectAccessCode(context, variable, version)
                 }
             )
 
@@ -538,8 +548,9 @@ local variable '%s' referenced before assignment""",
     assert False, variable
 
 
-def getVariableDelCode(variable, tolerant, needs_check, emit, context):
-    # Many different cases, as this must be, pylint: disable=R0912
+def getVariableDelCode(variable, old_version, new_version, tolerant,
+                       needs_check, emit, context):
+    # Many different cases, as this must be, pylint: disable=R0912,R0915
     assert isinstance(variable, Variables.Variable), variable
 
     if variable.isModuleVariable():
@@ -572,48 +583,49 @@ def getVariableDelCode(variable, tolerant, needs_check, emit, context):
                 context   = context
             )
     elif variable.isLocalVariable():
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, old_version)
+        variable_code_name_new, variable_c_new_type = getLocalVariableCodeType(context, variable, new_version)
+
+        # TODO: We need to split this operation in two parts. Release and init
+        # are not one thing.
+        assert variable_c_type == variable_c_new_type
+
+        context.setVariableType(variable, variable_code_name_new, variable_c_new_type)
+
         if not needs_check:
-            if variable.isSharedTechnically():
+            if variable_c_type == "struct Nuitka_CellObject *":
                 template = template_del_shared_known
             else:
                 template = template_del_local_known
 
             emit(
                 template % {
-                    "identifier" : getVariableCode(
-                        variable = variable,
-                        context  = context
-                    )
+                    "identifier" : variable_code_name
                 }
             )
+
         elif tolerant:
-            if variable.isSharedTechnically():
+            if variable_c_type == "struct Nuitka_CellObject *":
                 template = template_del_shared_tolerant
             else:
                 template = template_del_local_tolerant
 
             emit(
                 template % {
-                    "identifier" : getVariableCode(
-                        variable = variable,
-                        context  = context
-                    )
+                    "identifier" : variable_code_name
                 }
             )
         else:
             res_name = context.getBoolResName()
 
-            if variable.isSharedTechnically():
+            if variable_c_type == "struct Nuitka_CellObject *":
                 template = template_del_shared_intolerant
             else:
                 template = template_del_local_intolerant
 
             emit(
                 template % {
-                    "identifier" : getVariableCode(
-                        variable = variable,
-                        context  = context
-                    ),
+                    "identifier" : variable_code_name,
                     "result"     : res_name
                 }
             )
@@ -643,36 +655,41 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
                     context   = context
                 )
     elif variable.isTempVariable():
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, old_version)
+        _variable_code_name, variable_c_new_type = getLocalVariableCodeType(context, variable, new_version)
+
+        # TODO: We need to split this operation in two parts. Release and init
+        # are not one thing.
+        assert variable_c_type == variable_c_new_type
+
         if tolerant:
             # Temp variables use similar classes, can use same templates.
 
-            if variable.isSharedTechnically():
+            if variable_c_type == "struct Nuitka_CellObject *":
                 template = template_del_shared_tolerant
-            else:
+            elif variable_c_type == "PyObject *":
                 template = template_del_local_tolerant
+            else:
+                assert False, variable_c_type
 
             emit(
                 template % {
-                    "identifier" : getVariableCode(
-                        variable = variable,
-                        context  = context
-                    )
+                    "identifier" : variable_code_name
                 }
             )
         else:
             res_name = context.getBoolResName()
 
-            if variable.isSharedTechnically():
-                template = template_del_shared_intolerant
+            if variable_c_type == "struct Nuitka_CellObject *":
+                template = template_del_shared_tolerant
+            elif variable_c_type == "PyObject *":
+                template = template_del_local_tolerant
             else:
-                template = template_del_local_intolerant
+                assert False, variable_c_type
 
             emit(
                 template % {
-                    "identifier" : getVariableCode(
-                        variable = variable,
-                        context  = context
-                    ),
+                    "identifier" : variable_code_name,
                     "result"     : res_name
                 }
             )
@@ -685,7 +702,7 @@ free variable '%s' referenced before assignment in enclosing scope""" % (
         assert False, variable
 
 
-def getVariableReleaseCode(variable, needs_check, emit, context):
+def getVariableReleaseCode(variable, version, needs_check, emit, context):
     assert isinstance(variable, Variables.Variable), variable
 
     assert not variable.isModuleVariable()
@@ -702,6 +719,7 @@ def getVariableReleaseCode(variable, needs_check, emit, context):
         template % {
             "identifier" : getVariableCode(
                 variable = variable,
+                version  = version,
                 context  = context
             )
         }

@@ -477,8 +477,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 
 #include "nuitka/builtins.h"
 
-#include "nuitka/frame_stack.h"
-
 #include "nuitka/allocator.h"
 
 NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )

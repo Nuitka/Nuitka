@@ -984,9 +984,6 @@ def super_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):
         if type_arg is None and python_version >= 300:
-
-            provider = node.getParentVariableProvider()
-
             type_arg = ExpressionVariableRef(
                 variable_name = "__class__",
                 source_ref    = source_ref
@@ -1059,11 +1056,15 @@ def super_extractor(node):
             source_ref   = source_ref
         )
 
+    provider = node.getParentVariableProvider()
+    provider.flags.discard("has_super")
+
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = wrapSuperBuiltin,
         builtin_spec  = BuiltinOptimization.builtin_super_spec
     )
+
 
 def hasattr_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(

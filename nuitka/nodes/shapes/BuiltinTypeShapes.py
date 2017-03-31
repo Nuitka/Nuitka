@@ -52,6 +52,11 @@ class ShapeTypeBool(ShapeBase):
         return "bool"
 
     @staticmethod
+    def getCType():
+        # enum: "0: False", "1": True, "2": unassigned
+        return "nuitka_bool"
+
+    @staticmethod
     def hasShapeSlotLen():
         return False
 

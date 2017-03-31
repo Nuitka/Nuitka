@@ -57,6 +57,8 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
 
         self.code_object = code_object
 
+        self.variable_closure_traces = None
+
     def getDetails(self):
         return {
             "code_object" : self.code_object
@@ -66,6 +68,14 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
         return self.code_object
 
     def computeExpression(self, trace_collection):
+        self.variable_closure_traces = []
+
+        for closure_variable in self.getGeneratorRef().getFunctionBody().getClosureVariables():
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            trace.addClosureUsage()
+
+            self.variable_closure_traces.append(trace)
+
         # TODO: Generator body may know something too.
         return self, None, None
 
@@ -74,6 +84,13 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
 
     def mayHaveSideEffects(self):
         return False
+
+    def getClosureVariableVersions(self):
+        return [
+            (trace.getVariable(), trace.getVersion())
+            for trace in self.variable_closure_traces
+        ]
+
 
 
 class ExpressionGeneratorObjectBody(MarkLocalsDictIndicatorMixin,

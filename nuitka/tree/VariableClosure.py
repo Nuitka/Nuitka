@@ -30,10 +30,10 @@ from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
     python_version
 )
-from nuitka.tree import SyntaxErrors
 
 from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
+from .SyntaxErrors import raiseSyntaxError
 
 
 # Note: We do the variable scope assignment, as an extra step from tree
@@ -60,21 +60,24 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     def _handleNonLocal(node):
         # Take closure variables for non-local declarations.
 
-        for non_local_names, source_ref in node.getNonlocalDeclarations():
+        for non_local_names, source_ref in node.consumeNonlocalDeclarations():
             for non_local_name in non_local_names:
-                variable = node.getClosureVariable(
+
+                variable = node.takeVariableForClosure(
                     variable_name = non_local_name
                 )
 
+                node.registerProvidedVariable(variable)
+
                 if variable.isModuleVariable():
-                    SyntaxErrors.raiseSyntaxError(
+                    raiseSyntaxError(
                         "no binding for nonlocal '%s' found" % (
                             non_local_name
                         ),
                         source_ref
                     )
 
-                node.registerProvidedVariable(variable)
+
                 variable.addVariableUser(node)
 
     @staticmethod
@@ -236,7 +239,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     else:
                         message = "'break' outside loop"
 
-                    SyntaxErrors.raiseSyntaxError(
+                    raiseSyntaxError(
                         message,
                         node.getSourceReference(),
                     )
@@ -281,7 +284,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
             if parent_provider.isExpressionFunctionBody() and \
                parent_provider.isUnqualifiedExec():
-                SyntaxErrors.raiseSyntaxError(
+                raiseSyntaxError(
                     getErrorMessageExecWithNestedFunction() % parent_provider.getName(),
                     node.getSourceReference(),
                     display_line = False # Wrong line anyway
@@ -315,7 +318,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
 
             if not variable.isModuleVariable() and \
                variable.isSharedAmongScopes():
-                SyntaxErrors.raiseSyntaxError(
+                raiseSyntaxError(
                     """\
 can not delete variable '%s' referenced in nested scope""" % (
                        variable.getName()
@@ -348,11 +351,6 @@ def completeVariableClosures(tree):
             # "super". So we need to prepare ability to take closure.
             if function.hasFlag("has_super"):
                 if not function.hasVariableName("__class__"):
-                    class_var = function.getClosureVariable("__class__")
+                    class_var = function.takeVariableForClosure("__class__")
                     function.registerProvidedVariable(class_var)
                     class_var.addVariableUser(function)
-
-                if not function.hasVariableName("self"):
-                    self_var = function.getClosureVariable("self")
-                    function.registerProvidedVariable(self_var)
-                    self_var.addVariableUser(function)

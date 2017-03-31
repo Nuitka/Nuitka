@@ -53,7 +53,8 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
     }
 
     def __init__(self, side_effects, expression, source_ref):
-        assert len(side_effects)
+        # We expect to be not used without there actually being side effects.
+        assert side_effects
 
         ExpressionChildrenHavingBase.__init__(
             self,

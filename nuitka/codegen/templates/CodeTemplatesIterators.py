@@ -40,6 +40,7 @@ if (likely( %(attempt_name)s == NULL ))
         {
             FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 %(release_temps_1)s
+%(var_description_code_1)s
             goto %(exception_exit)s;
         }
     }
@@ -56,6 +57,7 @@ else
 #endif
     FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 %(release_temps_2)s
+%(var_description_code_2)s
     goto %(exception_exit)s;
 }"""
 
@@ -71,6 +73,7 @@ if ( %(to_name)s == NULL )
     {
 %(release_temps)s
         FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+%(var_description_code)s
 %(line_number_code)s
         goto %(exception_target)s;
     }

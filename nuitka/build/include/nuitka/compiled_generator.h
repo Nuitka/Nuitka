@@ -71,7 +71,7 @@ struct Nuitka_GeneratorObject {
     PyObject *m_exception_type, *m_exception_value;
     PyTracebackObject *m_exception_tb;
 
-    PyFrameObject *m_frame;
+    struct Nuitka_FrameObject *m_frame;
     PyCodeObject *m_code_object;
 
     // Was it ever used, is it still running, or already finished.
@@ -113,16 +113,12 @@ static inline PyObject *GENERATOR_YIELD( struct Nuitka_GeneratorObject *generato
 
     generator->m_yielded = value;
 
-#if PYTHON_VERSION >= 340
-    generator->m_frame->f_executing -= 1;
-#endif
+    Nuitka_Frame_MarkAsNotExecuting( generator->m_frame );
 
     // Return to the calling context.
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 
-#if PYTHON_VERSION >= 340
-    generator->m_frame->f_executing += 1;
-#endif
+    Nuitka_Frame_MarkAsExecuting( generator->m_frame );
 
     // Check for thrown exception.
     if (unlikely( generator->m_exception_type ))
@@ -173,16 +169,12 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 
-#if PYTHON_VERSION >= 340
-    generator->m_frame->f_executing -= 1;
-#endif
+    Nuitka_Frame_MarkAsNotExecuting( generator->m_frame );
 
     // Return to the calling context.
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 
-#if PYTHON_VERSION >= 340
-    generator->m_frame->f_executing += 1;
-#endif
+    Nuitka_Frame_MarkAsExecuting( generator->m_frame );
 
     // When returning from yield, the exception of the frame is preserved, and
     // the one that enters should be there.

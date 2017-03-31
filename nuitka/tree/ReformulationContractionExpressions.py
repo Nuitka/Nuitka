@@ -522,13 +522,18 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         ),
     )
 
+    if emit_class is ExpressionYield:
+        guard_mode = "generator"
+    elif assign_provider:
+        guard_mode = "pass_through"
+    else:
+        guard_mode = "full"
+
     code_body.setBody(
         makeStatementsSequenceFromStatement(
             statement = StatementsFrame(
                 statements  = mergeStatements(statements, False),
-                guard_mode  = "pass_through"
-                                  if emit_class is not ExpressionYield else
-                                "generator",
+                guard_mode  = guard_mode,
                 code_object = code_object,
                 source_ref  = source_ref
             )

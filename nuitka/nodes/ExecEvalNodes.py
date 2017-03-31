@@ -279,10 +279,13 @@ class StatementLocalsDictSync(StatementChildrenHavingBase):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
-                "locals"  : locals_arg,
+                "locals" : locals_arg,
             },
             source_ref = source_ref,
         )
+
+        self.previous_traces = None
+        self.variable_traces = None
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -295,7 +298,9 @@ class StatementLocalsDictSync(StatementChildrenHavingBase):
         if self.getParentVariableProvider().isCompiledPythonModule():
             return None, "new_statements", "Removed sync back to locals without locals."
 
+        self.previous_traces = trace_collection.onLocalsUsage()
         trace_collection.removeAllKnowledge()
+        self.variable_traces = trace_collection.onLocalsUsage()
 
         return self, None, None
 

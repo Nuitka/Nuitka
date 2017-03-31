@@ -37,22 +37,42 @@ from .ExpressionBases import ExpressionBase
 from .shapes.StandardShapes import ShapeUnknown
 
 
-class ExpressionVariableRef(ExpressionBase):
-    kind = "EXPRESSION_VARIABLE_REF"
+class ExpressionVariableRefBase(ExpressionBase):
+    # Base classes can be abstract, pylint: disable=abstract-method
 
-    def __init__(self, variable_name, source_ref, variable = None):
+    def __init__(self, variable, source_ref):
         ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
 
-        self.variable_name = variable_name
         self.variable = variable
+        self.variable_trace = None
 
+    def getVariableName(self):
+        return self.variable.getName()
+
+    def getVariable(self):
+        return self.variable
+
+    def getVariableVersion(self):
+        return self.variable_trace.getVersion()
+
+
+class ExpressionVariableRef(ExpressionVariableRefBase):
+    kind = "EXPRESSION_VARIABLE_REF"
+
+    def __init__(self, variable_name, source_ref, variable = None):
         if variable is not None:
             assert variable.getName() == variable_name
 
-        self.variable_trace = None
+        ExpressionVariableRefBase.__init__(
+            self,
+            variable   = variable,
+            source_ref = source_ref
+        )
+
+        self.variable_name = variable_name
 
     def getDetails(self):
         if self.variable is None:
@@ -119,7 +139,6 @@ class ExpressionVariableRef(ExpressionBase):
 
     def computeExpressionRaw(self, trace_collection):
         variable = self.variable
-
         assert variable is not None
 
         self.variable_trace = trace_collection.getVariableCurrentTrace(
@@ -133,7 +152,7 @@ class ExpressionVariableRef(ExpressionBase):
                 "new_expression",
                 self.source_ref,
                 "Value propagated for '%s' from '%s'." % (
-                    self.variable.getName(),
+                    variable.getName(),
                     replacement.getSourceReference().getAsString()
                 )
             )
@@ -358,16 +377,17 @@ Check '%s' on dictionary lowered to dictionary '%s'.""" % (
         return variable_trace is None or not self.variable_trace.mustHaveValue()
 
 
-class ExpressionTempVariableRef(ExpressionBase):
+class ExpressionTempVariableRef(ExpressionVariableRefBase):
     kind = "EXPRESSION_TEMP_VARIABLE_REF"
 
     def __init__(self, variable, source_ref):
         assert variable.isTempVariable()
 
-        ExpressionBase.__init__(self, source_ref = source_ref)
-
-        self.variable = variable
-        self.variable_trace = None
+        ExpressionVariableRefBase.__init__(
+            self,
+            variable   = variable,
+            source_ref = source_ref
+        )
 
     def getDetailsForDisplay(self):
         return {
@@ -395,12 +415,6 @@ class ExpressionTempVariableRef(ExpressionBase):
 
     def getDetail(self):
         return self.variable.getName()
-
-    def getVariableName(self):
-        return self.variable.getName()
-
-    def getVariable(self):
-        return self.variable
 
     @staticmethod
     def isTargetVariableRef():

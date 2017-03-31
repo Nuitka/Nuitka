@@ -131,7 +131,7 @@ class StatementsFrame(StatementsSequence):
         """
         provider = self.getParentVariableProvider()
 
-        if provider.isExpressionFunctionBody():
+        if not provider.isCompiledPythonModule():
             self.code_object.updateLocalNames(
                 [
                     variable.getName() for
@@ -181,8 +181,8 @@ class StatementsFrame(StatementsSequence):
             is_optimized = is_optimized,
             new_locals   = new_locals,
             has_closure  = closure_provider.isExpressionFunctionBody() and \
-                            closure_provider.getClosureVariables() != () and \
-                            not closure_provider.isExpressionClassBody(),
+                           closure_provider.getClosureVariables() != () and \
+                           not closure_provider.isExpressionClassBody(),
             future_flags = provider.getSourceReference().getFutureSpec().\
                               asFlags()
         )

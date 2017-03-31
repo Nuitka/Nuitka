@@ -28,17 +28,22 @@ import os
 import subprocess
 import sys
 
+pylint_version = None
 
 def checkVersion():
-    pylint_version = subprocess.check_output(
-        ["pylint", "--version"],
-        stderr = open(os.devnull, 'w')
-    )
+    # pylint: disable=global-statement
+    global pylint_version
 
-    pylint_version = pylint_version.split(b"\n")[0].split()[-1]
+    if pylint_version is None:
+        pylint_version = subprocess.check_output(
+            ["pylint", "--version"],
+            stderr = open(os.devnull, 'w')
+        )
 
-    if pylint_version < b"1.4.4":
-        sys.exit("Error, needs PyLint 1.4.4 or higher.")
+        pylint_version = pylint_version.split(b"\n")[0].split()[-1]
+
+    if pylint_version < b"1.6.5":
+        sys.exit("Error, needs PyLint 1.6.5 or higher not %r." % pylint_version)
 
 
 # Disabled globally:
@@ -86,15 +91,22 @@ def checkVersion():
 # There is no harm to this and imports are deal with by isort binary.
 #
 # C0411: external import "external" comes before "local"
-# There is no harm to this and imports are deal with by isort binary.
+# There is no harm to this and imports are deal with by "isort" binary.
 #
 # R0204: Redefinition of var type from x to y
-# I do this all the time, e.g. to convert str to unicode, or list to string.
+# I do this all the time, e.g. to convert "str" to "unicode", or "list" to "str".
+#
+# R1705: Unnecessary "else" after "return"
+# Frequently we use multiple branches where each returns.
 
-default_pylint_options = """\
+def getOptions():
+    checkVersion()
+
+    default_pylint_options = """\
 --rcfile=/dev/null
---disable=I0011,I0012,W0232,C0326,C0330,C1001,E1103,W0632,W1504,C0123,C0413,C0411,R0204
---msg-template="{path}:{line} {msg_id} {obj} {msg}"
+--disable=I0011,I0012,W0232,C0326,C0330,C1001,E1103,W0632,W1504,C0123,C0413,C0411,R0204,R1705,similar-code,cyclic-import,duplicate-code
+--enable=useless-suppression
+--msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
 --persistent=no
 --method-rgx=[a-z_][a-zA-Z0-9_]{2,40}$
@@ -109,29 +121,51 @@ default_pylint_options = """\
 --max-module-lines=5000
 --min-public-methods=0
 --max-public-methods=100
---max-args=10
+--max-args=11
 --max-parents=10
 --max-nested-blocks=10
---max-bool-expr=10
---enable=useless-suppression""".split('\n')
+--max-bool-expr=10\
+""".split('\n')
+
+
+
+    if pylint_version >= b"1.7":
+        default_pylint_options += """\
+--score=no\
+    """.split('\n')
+
+    return default_pylint_options
 
 our_exit_code = 0
 
-def executePyLint(filename, show_todos, verbose):
+def executePyLint(filenames, show_todos, verbose):
     if verbose:
-        print("Checking", filename, "...")
+        print("Checking", filenames, "...")
 
-    pylint_options = list(default_pylint_options)
+    pylint_options = getOptions()
     if not show_todos:
         pylint_options.append("--notes=")
 
     # This is kind of a singleton module, pylint: disable=W0603
     global our_exit_code
 
+    def hasPyLintBugTrigger(filename):
+        if pylint_version < "1.7":
+            return False
+
+        return os.path.basename(filename) in "ReformulationContractionExpressions.py"
+
+    filenames = [
+        filename
+        for filename in
+        filenames
+        if not hasPyLintBugTrigger(filename)
+    ]
+
     extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()
     if "" in extra_options:
         extra_options.remove("")
-    command = ["pylint"] + pylint_options + extra_options + [filename]
+    command = ["pylint"] + pylint_options + extra_options + filenames
 
     process = subprocess.Popen(
         args   = command,

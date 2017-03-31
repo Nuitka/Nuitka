@@ -23,6 +23,7 @@ Exceptions from other operations are consider ErrorCodes domain.
 
 from nuitka.Options import isDebug
 
+from .ErrorCodes import getFrameVariableTypeDescriptionCode
 from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .LabelCodes import getGotoCode
 from .LineNumberCodes import emitErrorLineNumberUpdateCode
@@ -218,10 +219,14 @@ RERAISE_EXCEPTION( &exception_type, &exception_value, &exception_tb );"""
         if frame_handle:
             emit(
                 """\
-if (exception_tb && exception_tb->tb_frame == %(frame_identifier)s) \
-%(frame_identifier)s->f_lineno = exception_tb->tb_lineno;""" % {
+if (exception_tb && exception_tb->tb_frame == &%(frame_identifier)s->m_frame) \
+%(frame_identifier)s->m_frame.f_lineno = exception_tb->tb_lineno;""" % {
                     "frame_identifier" : context.getFrameHandle()
                 }
+            )
+
+            emit(
+                getFrameVariableTypeDescriptionCode(context)
             )
     else:
         keeper_type, keeper_value, keeper_tb, keeper_lineno = context.getExceptionKeeperVariables()
@@ -264,6 +269,10 @@ RAISE_EXCEPTION_WITH_CAUSE( &exception_type, &exception_value, &exception_tb, \
 %s );""" % raise_cause_name
     )
 
+    emit(
+        getFrameVariableTypeDescriptionCode(context)
+    )
+
     getGotoCode(context.getExceptionEscape(), emit)
 
     if context.needsCleanup(raise_type_name):
@@ -283,6 +292,10 @@ def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
         "RAISE_EXCEPTION_WITH_TYPE( &exception_type, &exception_value, &exception_tb );"
+    )
+
+    emit(
+        getFrameVariableTypeDescriptionCode(context)
     )
 
     getGotoCode(context.getExceptionEscape(), emit)
@@ -307,6 +320,10 @@ def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
         "RAISE_EXCEPTION_%s( &exception_type, &exception_value, &exception_tb );" % (
             ("IMPLICIT" if implicit else "WITH_VALUE")
         )
+    )
+
+    emit(
+        getFrameVariableTypeDescriptionCode(context)
     )
 
     getGotoCode(context.getExceptionEscape(), emit)
@@ -337,6 +354,10 @@ def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
 
     emit(
         "RAISE_EXCEPTION_WITH_TRACEBACK( &exception_type, &exception_value, &exception_tb);"
+    )
+
+    emit(
+        getFrameVariableTypeDescriptionCode(context)
     )
 
     getGotoCode(context.getExceptionEscape(), emit)

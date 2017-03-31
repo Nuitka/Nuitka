@@ -374,6 +374,7 @@ def generateLocalsDictSyncCode(statement, emit, context):
     getStoreLocalsCode(
         locals_name = locals_name,
         provider    = provider,
+        variables   = statement.previous_traces,
         emit        = emit,
         context     = context
     )

@@ -42,11 +42,12 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
     provider = expression.getParentVariableProvider()
 
     getLoadLocalsCode(
-        to_name  = to_name,
-        provider = provider,
-        mode     = provider.getLocalsMode(),
-        emit     = emit,
-        context  = context
+        to_name   = to_name,
+        variables = expression.getVariableVersions(),
+        provider  = provider,
+        mode      = provider.getLocalsMode(),
+        emit      = emit,
+        context   = context
     )
 
 
@@ -90,12 +91,13 @@ def _getLocalVariableList(provider):
     ]
 
 
-def _getVariableDictUpdateCode(target_name, variable, initial, is_dict, emit, context):
+def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict, emit, context):
     # TODO: Variable could known to be set here, get a hand at that
     # information.
 
     access_code = getLocalVariableObjectAccessCode(
         variable = variable,
+        version  = version,
         context  = context
     )
 
@@ -140,14 +142,23 @@ def _getVariableDictUpdateCode(target_name, variable, initial, is_dict, emit, co
         )
 
 
-def getLoadLocalsCode(to_name, provider, mode, emit, context):
+def getLoadLocalsCode(to_name, variables, provider, mode, emit, context):
+
+    def _sorted(variables):
+        all_variables = list(context.getOwner().getVariables())
+
+        return sorted(
+            variables,
+            key = lambda variable_desc: (
+                all_variables.index(variable_desc[0]),
+                variable_desc[1]
+            )
+        )
+
     if provider.isCompiledPythonModule():
         # Optimization will have made this "globals".
         assert False, provider
     elif not context.hasLocalsDict():
-        local_list = _getLocalVariableList(
-            provider = provider,
-        )
 
         # TODO: Use DictCodes ?
         emit(
@@ -158,10 +169,11 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
 
         context.addCleanupTempName(to_name)
 
-        for local_var in local_list:
+        for variable, version in _sorted(variables):
             _getVariableDictUpdateCode(
                 target_name = to_name,
-                variable    = local_var,
+                variable    = variable,
+                version     = version,
                 is_dict     = True,
                 initial     = True,
                 emit        = emit,
@@ -177,10 +189,6 @@ def getLoadLocalsCode(to_name, provider, mode, emit, context):
 
             context.addCleanupTempName(to_name)
         elif mode == "updated":
-            local_list = _getLocalVariableList(
-                provider = provider
-            )
-
             emit(
                 """\
 %s = locals_dict;
@@ -189,10 +197,18 @@ Py_INCREF( locals_dict );""" % (
                 )
             )
 
-            for local_var in local_list:
+            variables = [
+                (variable, variable_version)
+                for variable, variable_version in
+                variables
+                if not variable.isMaybeLocalVariable()
+            ]
+
+            for local_var, version in _sorted(variables):
                 _getVariableDictUpdateCode(
                     target_name = to_name,
                     variable    = local_var,
+                    version     = version,
                     is_dict     = python_version < 300 or \
                                   not context.getFunction().isExpressionClassBody(),
                     initial     = False,
@@ -234,10 +250,10 @@ locals_dict = %s;""" % (
         context.removeCleanupTempName(new_locals_name)
 
 
-def getStoreLocalsCode(locals_name, provider, emit, context):
+def getStoreLocalsCode(locals_name, variables, provider, emit, context):
     assert not provider.isCompiledPythonModule()
 
-    for variable in provider.getVariables():
+    for variable, version in variables:
         if not variable.isModuleVariable() and \
            not variable.isMaybeLocalVariable():
             key_name = context.getConstantCode(
@@ -269,6 +285,7 @@ def getStoreLocalsCode(locals_name, provider, emit, context):
             context.addCleanupTempName(value_name)
             getVariableAssignmentCode(
                 variable      = variable,
+                version       = version,
                 tmp_name      = value_name,
                 needs_release = None, # TODO: Could be known maybe.
                 in_place      = False,

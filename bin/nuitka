@@ -71,7 +71,7 @@ if "NUITKA_PYTHONPATH" in os.environ:
 from nuitka import Options                  # isort:skip
 Options.parseArgs()
 
-from nuitka.utils import Utils, Execution   # isort:skip pylint:disable=E0611
+from nuitka.utils import Utils, Execution   # isort:skip
 
 import logging # isort:skip
 logging.basicConfig(format = "Nuitka:%(levelname)s:%(message)s")
@@ -95,15 +95,13 @@ if intended_version is None:
 # If it's a different version, we find it by guessing it, otherwise we use the
 # one previously used.
 if current_version != intended_version:
-    from nuitka.utils.Execution import getExecutablePath, getPythonExePathWindows # False alarm, pylint: disable=E0611
-
     if Utils.getOS() == "Windows":
-        python_binary = getPythonExePathWindows(
+        python_binary = Execution.getPythonExePathWindows(
             intended_version,
             Options.getIntendedPythonArch()
         )
     else:
-        python_binary = getExecutablePath("python" + intended_version)
+        python_binary = Execution.getExecutablePath("python" + intended_version)
 
     if python_binary is None:
         sys.exit(
@@ -153,7 +151,6 @@ if needs_reexec:
             sys.path
         )
 
-        # False alarm, pylint: disable=E0611
         from nuitka.importing.PreloadedPackages import detectPreLoadedPackagePaths, detectPthImportedPackages
         os.environ["NUITKA_NAMESPACES"] = repr(
             detectPreLoadedPackagePaths()
@@ -186,7 +183,7 @@ if current_version not in Options.getSupportedPythonVersions():
 
 if "NUITKA_NAMESPACES" in os.environ:
     # Restore the detected name space packages, that were force loaded in
-    # site.py, and will need a free pass later on. pylint: disable=E0611,W0123
+    # site.py, and will need a free pass later on. pylint: disable=W0123
 
     from nuitka.importing.PreloadedPackages import setPreloadedPackagePaths
 
@@ -195,7 +192,7 @@ if "NUITKA_NAMESPACES" in os.environ:
 
 if "NUITKA_PTH_IMPORTED" in os.environ:
     # Restore the packages that the ".pth" files asked to import.
-    # pylint: disable=E0611,W0123
+    # pylint: disable=W0123
 
     from nuitka.importing.PreloadedPackages import setPthImportedPackages
 

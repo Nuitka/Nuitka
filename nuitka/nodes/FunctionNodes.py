@@ -208,7 +208,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         return result
 
     def getVariableForReference(self, variable_name):
-        # print( "REF func", self, variable_name )
+        # print( "REF func", self.getCodeName(), variable_name )
 
         if self.hasProvidedVariable(variable_name):
             result = self.getProvidedVariable(variable_name)
@@ -236,12 +236,21 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         return result
 
     def getVariableForClosure(self, variable_name):
-        # print( "getVariableForClosure", self, variable_name )
+        # print( "getVariableForClosure", self.getCodeName(), variable_name, self.isUnoptimized() )
 
         if self.hasProvidedVariable(variable_name):
-            return self.getProvidedVariable(variable_name)
-        else:
-            return self.provider.getVariableForClosure(variable_name)
+            result = self.getProvidedVariable(variable_name)
+
+            # Those are not to be taken for closure.
+            if not result.isMaybeLocalVariable():
+                return result
+
+        return self.takeVariableForClosure(variable_name)
+
+    def takeVariableForClosure(self, variable_name):
+        result = self.provider.getVariableForClosure(variable_name)
+        self.taken.add(result)
+        return result
 
     def createProvidedVariable(self, variable_name):
         # print("createProvidedVariable", self, variable_name)
@@ -256,8 +265,10 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
             (names, source_ref)
         )
 
-    def getNonlocalDeclarations(self):
-        return self.non_local_declarations
+    def consumeNonlocalDeclarations(self):
+        result = self.non_local_declarations
+        self.non_local_declarations = ()
+        return result
 
     def getFunctionName(self):
         return self.name
@@ -530,6 +541,8 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
 
         self.code_object = code_object
 
+        self.variable_closure_traces = None
+
     def getName(self):
         return self.getFunctionRef().getName()
 
@@ -608,6 +621,14 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             )
 
             return result, "new_raise", "Annotation values contain raise."
+
+        self.variable_closure_traces = []
+
+        for closure_variable in self.getFunctionRef().getFunctionBody().getClosureVariables():
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            trace.addClosureUsage()
+
+            self.variable_closure_traces.append(trace)
 
         # TODO: Function body may know something too.
         return self, None, None
@@ -749,6 +770,12 @@ error""" % self.getName()
             values       = values
         )
 
+    def getClosureVariableVersions(self):
+        return [
+            (trace.getVariable(), trace.getVersion())
+            for trace in self.variable_closure_traces
+        ]
+
 
 
 class ExpressionFunctionRef(ExpressionBase):
@@ -869,6 +896,8 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.variable_closure_traces = None
+
     def computeExpression(self, trace_collection):
         function = self.getFunction()
 
@@ -877,7 +906,9 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         # TODO: This needs some design.
         cost = function.getCallCost(values)
 
-        if function.getFunctionRef().getFunctionBody().mayRaiseException(BaseException):
+        function_body = function.getFunctionRef().getFunctionBody()
+
+        if function_body.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         if cost is not None and cost < 50:
@@ -887,6 +918,14 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
             )
 
             return result, "new_statements", "Function call in-lined."
+
+        self.variable_closure_traces = []
+
+        for closure_variable in function_body.getClosureVariables():
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            trace.addClosureUsage()
+
+            self.variable_closure_traces.append(trace)
 
         return self, None, None
 
@@ -907,6 +946,11 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     getFunction = ExpressionChildrenHavingBase.childGetter("function")
     getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
 
+    def getClosureVariableVersions(self):
+        return [
+            (trace.getVariable(), trace.getVersion())
+            for trace in self.variable_closure_traces
+        ]
 
 # Needed for Python3.3 and higher
 class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):

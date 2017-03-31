@@ -52,7 +52,7 @@ struct Nuitka_AsyncgenObject {
     PyObject *m_exception_type, *m_exception_value;
     PyTracebackObject *m_exception_tb;
 
-    PyFrameObject *m_frame;
+    struct Nuitka_FrameObject *m_frame;
     PyCodeObject *m_code_object;
 
     // Was it ever used, is it still running, or already finished.
@@ -100,12 +100,12 @@ static inline PyObject *ASYNCGEN_YIELD( struct Nuitka_AsyncgenObject *asyncgen, 
     asyncgen->m_yielded = _PyAsyncGenValueWrapperNew( value );
     Py_DECREF( value );
 
-    asyncgen->m_frame->f_executing -= 1;
+    Nuitka_Frame_MarkAsNotExecuting( asyncgen->m_frame );
 
     // Return to the calling context.
     swapFiber( &asyncgen->m_yielder_context, &asyncgen->m_caller_context );
 
-    asyncgen->m_frame->f_executing += 1;
+    Nuitka_Frame_MarkAsExecuting( asyncgen->m_frame );
 
     // Check for thrown exception.
     if (unlikely( asyncgen->m_exception_type ))
@@ -156,17 +156,17 @@ static inline PyObject *ASYNCGEN_YIELD_IN_HANDLER( struct Nuitka_AsyncgenObject 
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 
-    asyncgen->m_frame->f_executing -= 1;
-
 #if _DEBUG_ASYNCGEN
     PRINT_STRING("ASYNCGEN_YIELD_FROM_HANDLER:");
     PRINT_NEW_LINE();
 #endif
 
+    Nuitka_Frame_MarkAsNotExecuting( asyncgen->m_frame );
+
     // Return to the calling context.
     swapFiber( &asyncgen->m_yielder_context, &asyncgen->m_caller_context );
 
-    asyncgen->m_frame->f_executing += 1;
+    Nuitka_Frame_MarkAsExecuting( asyncgen->m_frame );
 
     // When returning from yield, the exception of the frame is preserved, and
     // the one that enters should be there.

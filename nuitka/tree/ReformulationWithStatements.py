@@ -52,13 +52,13 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.PythonVersions import python_version
-from nuitka.tree.Helpers import makeReraiseExceptionStatement
 
 from .Helpers import (
     buildNode,
     buildStatementsNode,
     getKind,
     makeConditionalStatement,
+    makeReraiseExceptionStatement,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
 )
@@ -360,7 +360,7 @@ def buildWithNode(provider, node, source_ref):
     # The body for the first context manager is the other things.
     body = buildStatementsNode(provider, node.body, source_ref)
 
-    assert len(context_exprs) > 0 and len(context_exprs) == len(assign_targets)
+    assert context_exprs and len(context_exprs) == len(assign_targets)
 
     context_exprs.reverse()
     assign_targets.reverse()
@@ -399,7 +399,7 @@ def buildAsyncWithNode(provider, node, source_ref):
     # The body for the first context manager is the other things.
     body = buildStatementsNode(provider, node.body, source_ref)
 
-    assert len(context_exprs) > 0 and len(context_exprs) == len(assign_targets)
+    assert context_exprs and len(context_exprs) == len(assign_targets)
 
     context_exprs.reverse()
     assign_targets.reverse()

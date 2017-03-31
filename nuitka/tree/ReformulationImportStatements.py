@@ -40,10 +40,10 @@ from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
-from nuitka.tree import SyntaxErrors
 
 from .Helpers import makeStatementsSequenceOrStatement, mangleName
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .SyntaxErrors import raiseSyntaxError
 
 # For checking afterwards, if __future__ imports really were at the beginning
 # of the file.
@@ -56,7 +56,7 @@ def checkFutureImportsOnlyAtStart(body):
             _future_import_nodes.remove(node)
         else:
             if _future_import_nodes:
-                SyntaxErrors.raiseSyntaxError(
+                raiseSyntaxError(
                     """\
 from __future__ imports must occur at the beginning of the file""",
                     _future_import_nodes[0].source_ref.atColumnNumber(
@@ -68,7 +68,7 @@ from __future__ imports must occur at the beginning of the file""",
 def _handleFutureImport(provider, node, source_ref):
     # Don't allow future imports in functions or classes.
     if not provider.isCompiledPythonModule():
-        SyntaxErrors.raiseSyntaxError(
+        raiseSyntaxError(
             """\
 from __future__ imports must occur at the beginning of the file""",
             source_ref.atColumnNumber(node.col_offset)
@@ -105,7 +105,7 @@ def _enableFutureFeature(node, object_name, future_spec, source_ref):
     elif object_name == "generator_stop":
         future_spec.enableGeneratorStop()
     elif object_name == "braces":
-        SyntaxErrors.raiseSyntaxError(
+        raiseSyntaxError(
             "not a chance",
             source_ref.atColumnNumber(node.col_offset)
         )
@@ -113,7 +113,7 @@ def _enableFutureFeature(node, object_name, future_spec, source_ref):
         # These are enabled in all cases already.
         pass
     else:
-        SyntaxErrors.raiseSyntaxError(
+        raiseSyntaxError(
             "future feature %s is not defined" % object_name,
             source_ref.atColumnNumber(node.col_offset)
         )
@@ -171,7 +171,7 @@ def buildImportFromNode(provider, node, source_ref):
         # so this a syntax error if not there. For Python2 it is OK to
         # occur everywhere though.
         if not provider.isCompiledPythonModule() and python_version >= 300:
-            SyntaxErrors.raiseSyntaxError(
+            raiseSyntaxError(
                 "import * only allowed at module level",
                 source_ref.atColumnNumber(node.col_offset)
             )

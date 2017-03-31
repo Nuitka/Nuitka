@@ -27,13 +27,14 @@ language syntax.
 """
 
 from nuitka.__past__ import iterItems
-from nuitka.codegen.AsyncgenCodes import (
-    generateMakeAsyncgenObjectCode,
-    getAsyncgenObjectCode
-)
 from nuitka.PythonVersions import python_version
 
 from . import Contexts, Emission
+from .AsyncgenCodes import (
+    generateMakeAsyncgenObjectCode,
+    getAsyncgenObjectCode,
+    getAsyncgenObjectDeclCode
+)
 from .AttributeCodes import (
     generateAssignmentAttributeCode,
     generateAttributeLookupCode,
@@ -89,7 +90,8 @@ from .CoroutineCodes import (
     generateAsyncNextCode,
     generateAsyncWaitCode,
     generateMakeCoroutineObjectCode,
-    getCoroutineObjectCode
+    getCoroutineObjectCode,
+    getCoroutineObjectDeclCode
 )
 from .DictCodes import (
     generateBuiltinDictCode,
@@ -126,7 +128,6 @@ from .FrameCodes import (
 from .FunctionCodes import (
     generateFunctionCallCode,
     generateFunctionCreationCode,
-    generateFunctionDeclCode,
     generateFunctionOutlineCode,
     getExportScopeCode,
     getFunctionCode,
@@ -134,7 +135,8 @@ from .FunctionCodes import (
 )
 from .GeneratorCodes import (
     generateMakeGeneratorObjectCode,
-    getGeneratorObjectCode
+    getGeneratorObjectCode,
+    getGeneratorObjectDeclCode
 )
 from .GlobalsLocalsCodes import (
     generateBuiltinDir1Code,
@@ -273,24 +275,15 @@ def generateFunctionBodyCode(function_body, context):
             function = function_body
         )
 
-    function_codes = Emission.SourceCodeCollector()
-
-    generateStatementSequenceCode(
-        statement_sequence = function_body.getBody(),
-        allow_none         = True,
-        emit               = function_codes,
-        context            = function_context
-    )
-
     needs_exception_exit = function_body.mayRaiseException(BaseException)
 
     if function_body.isExpressionGeneratorObjectBody():
         function_code = getGeneratorObjectCode(
             context                = function_context,
             function_identifier    = function_identifier,
+            closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
             temp_variables         = function_body.getTempVariables(),
-            function_codes         = function_codes.codes,
             needs_exception_exit   = needs_exception_exit,
             needs_generator_return = function_body.needsGeneratorReturnExit()
         )
@@ -298,9 +291,9 @@ def generateFunctionBodyCode(function_body, context):
         function_code = getCoroutineObjectCode(
             context                = function_context,
             function_identifier    = function_identifier,
+            closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
             temp_variables         = function_body.getTempVariables(),
-            function_codes         = function_codes.codes,
             needs_exception_exit   = needs_exception_exit,
             needs_generator_return = function_body.needsGeneratorReturnExit()
         )
@@ -308,9 +301,9 @@ def generateFunctionBodyCode(function_body, context):
         function_code = getAsyncgenObjectCode(
             context                = function_context,
             function_identifier    = function_identifier,
+            closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
             temp_variables         = function_body.getTempVariables(),
-            function_codes         = function_codes.codes,
             needs_exception_exit   = needs_exception_exit,
             needs_generator_return = function_body.needsGeneratorReturnExit()
         )
@@ -322,7 +315,6 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables    = function_body.getClosureVariables(),
             user_variables       = function_body.getUserLocalVariables(),
             temp_variables       = function_body.getTempVariables(),
-            function_codes       = function_codes.codes,
             function_doc         = function_body.getDoc(),
             needs_exception_exit = needs_exception_exit,
             file_scope           = getExportScopeCode(
@@ -339,7 +331,6 @@ def generateFunctionBodyCode(function_body, context):
             closure_variables    = function_body.getClosureVariables(),
             user_variables       = function_body.getUserLocalVariables(),
             temp_variables       = function_body.getTempVariables(),
-            function_codes       = function_codes.codes,
             function_doc         = function_body.getDoc(),
             needs_exception_exit = needs_exception_exit,
             file_scope           = getExportScopeCode(
@@ -349,6 +340,40 @@ def generateFunctionBodyCode(function_body, context):
 
     return function_code, function_context
 
+
+def _generateFunctionDeclCode(function_body, context):
+    if function_body.isExpressionGeneratorObjectBody():
+        return getGeneratorObjectDeclCode(
+            function_identifier = function_body.getCodeName(),
+        )
+    elif function_body.isExpressionCoroutineObjectBody():
+        return getCoroutineObjectDeclCode(
+            function_identifier = function_body.getCodeName(),
+        )
+    elif function_body.isExpressionAsyncgenObjectBody():
+        return getAsyncgenObjectDeclCode(
+            function_identifier = function_body.getCodeName(),
+        )
+    elif function_body.isExpressionClassBody():
+        return getFunctionDirectDecl(
+            function_identifier = function_body.getCodeName(),
+            closure_variables   = function_body.getClosureVariables(),
+            file_scope          = getExportScopeCode(
+                cross_module = False
+            ),
+            context             = context
+        )
+    elif function_body.needsDirectCall():
+        return getFunctionDirectDecl(
+            function_identifier = function_body.getCodeName(),
+            closure_variables   = function_body.getClosureVariables(),
+            file_scope          = getExportScopeCode(
+                cross_module = function_body.isCrossModuleUsed()
+            ),
+            context             = context
+        )
+    else:
+        return None
 
 
 def prepareModuleCode(global_context, module, module_name):
@@ -391,7 +416,7 @@ def prepareModuleCode(global_context, module, module_name):
 
         function_body_codes.append(function_code)
 
-        function_decl = generateFunctionDeclCode(
+        function_decl = _generateFunctionDeclCode(
             function_body = function_body,
             context       = function_context
 

@@ -67,7 +67,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
-from nuitka.tree import SyntaxErrors
 
 from .Helpers import (
     buildFrameNode,
@@ -81,6 +80,7 @@ from .Helpers import (
     mangleName
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .SyntaxErrors import raiseSyntaxError
 
 
 def _insertFinalReturnStatement(function_statements_body, return_class,
@@ -114,8 +114,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
-    function_kind, flags, _written_variables, _non_local_declarations, _global_declarations = \
-      detectFunctionBodyKind(
+    function_kind, flags = detectFunctionBodyKind(
         nodes = function_statement_nodes
     )
 
@@ -286,8 +285,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
-    function_kind, flags, _written_variables, _non_local_declarations, _global_declarations = \
-      detectFunctionBodyKind(
+    function_kind, flags = detectFunctionBodyKind(
         nodes       = function_statement_nodes,
         start_value = "Coroutine"
     )
@@ -425,6 +423,10 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_body.qualname_setup = result.getTargetVariableRef()
 
+    # Share the non-local declarations. TODO: This may also apply to generators
+    # and async generators.
+    creator_function_body.non_local_declarations = function_body.non_local_declarations
+
     return result
 
 
@@ -503,8 +505,8 @@ def buildParameterAnnotations(provider, node, source_ref):
                     value = buildNode(provider, arg.annotation, source_ref)
                 )
         elif getKind(arg) == "Tuple":
-            for arg in arg.elts:
-                extractArg(arg)
+            for sub_arg in arg.elts:
+                extractArg(sub_arg)
         else:
             assert False, getKind(arg)
 
@@ -615,7 +617,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
     message = parameters.checkParametersValid()
 
     if message is not None:
-        SyntaxErrors.raiseSyntaxError(
+        raiseSyntaxError(
             message,
             source_ref.atColumnNumber(node.col_offset),
         )
@@ -796,7 +798,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
         outer_body.setBody(
             makeStatementsSequenceFromStatement(
                 statement = makeTryFinallyStatement(
-                    provider,
+                    provider   = outer_body,
                     tried      = statements,
                     final      = [
                         StatementReleaseVariable(

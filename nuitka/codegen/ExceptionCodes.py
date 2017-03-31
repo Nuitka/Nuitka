@@ -176,7 +176,7 @@ def generateExceptionPublishCode(statement, emit, context):
             ),
             "keeper_tb"        : keeper_tb,
             "keeper_lineno"    : keeper_lineno,
-            "frame_identifier" : context.getFrameHandle()
+            "frame_identifier" : context.getFrameHandle(),
         }
     )
 

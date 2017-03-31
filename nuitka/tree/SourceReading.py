@@ -28,9 +28,10 @@ import sys
 from nuitka import Options, SourceCodeReferences
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
-from nuitka.tree import SyntaxErrors
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 from nuitka.utils.Utils import getOS
+
+from .SyntaxErrors import raiseSyntaxError
 
 
 def _readSourceCodeFromFilename3(source_filename):
@@ -96,7 +97,7 @@ def _readSourceCodeFromFilename2(source_filename):
                     str(e)
                 ).group(1)
 
-                SyntaxErrors.raiseSyntaxError(
+                raiseSyntaxError(
                     """\
 Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; \
 see http://python.org/dev/peps/pep-0263/ for details""" % (

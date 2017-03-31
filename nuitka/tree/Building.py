@@ -51,9 +51,9 @@ catching and passing in exceptions raised.
 
 import os
 import sys
-from logging import warning
+from logging import info, warning
 
-from nuitka import Options, SourceCodeReferences, Tracing
+from nuitka import Options, SourceCodeReferences
 from nuitka.__past__ import long, unicode  # pylint: disable=W0622
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
@@ -99,11 +99,6 @@ from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
-from nuitka.tree.ReformulationForLoopStatements import (
-    buildAsyncForLoopNode,
-    buildForLoopNode
-)
-from nuitka.tree.ReformulationWhileLoopStatements import buildWhileLoopNode
 from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
 
@@ -143,6 +138,10 @@ from .ReformulationContractionExpressions import (
 )
 from .ReformulationDictionaryCreation import buildDictionaryNode
 from .ReformulationExecStatements import buildExecNode
+from .ReformulationForLoopStatements import (
+    buildAsyncForLoopNode,
+    buildForLoopNode
+)
 from .ReformulationFunctionStatements import (
     buildAsyncFunctionNode,
     buildFunctionNode
@@ -162,6 +161,7 @@ from .ReformulationSequenceCreation import buildSequenceCreationNode
 from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import buildTryFinallyNode
+from .ReformulationWhileLoopStatements import buildWhileLoopNode
 from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
 from .SourceReading import (
@@ -372,6 +372,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
             variable = closure_variable
         )
 
+    # Drop this, not really part of our tree.
     return None
 
 
@@ -399,8 +400,12 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
                 source_ref.atColumnNumber(node.col_offset)
             )
 
-    provider.addNonlocalsDeclaration(node.names, source_ref.atColumnNumber(node.col_offset))
+    provider.addNonlocalsDeclaration(
+        names      = node.names,
+        source_ref = source_ref.atColumnNumber(node.col_offset)
+    )
 
+    # Drop this, not really part of our tree.
     return None
 
 
@@ -1057,7 +1062,7 @@ def createModuleTree(module, source_ref, source_code, is_main):
     if Options.isShowMemory():
         memory_watch.finish()
 
-        Tracing.printLine(
+        info(
             "Memory usage changed loading module '%s': %s" % (
                 module.getFullName(),
                 memory_watch.asStr()

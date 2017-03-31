@@ -45,9 +45,11 @@ from nuitka.nodes.ModuleNodes import (
 )
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
-from nuitka.tree.Helpers import makeAbsoluteImportNode
 
-from .Helpers import makeStatementsSequenceFromStatement
+from .Helpers import (
+    makeAbsoluteImportNode,
+    makeStatementsSequenceFromStatement
+)
 from .VariableClosure import completeVariableClosures
 
 

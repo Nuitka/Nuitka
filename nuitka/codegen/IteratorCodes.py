@@ -25,6 +25,7 @@ from nuitka.PythonVersions import python_version
 from .ErrorCodes import (
     getErrorExitCode,
     getErrorExitReleaseCode,
+    getFrameVariableTypeDescriptionCode,
     getReleaseCode
 )
 from .Helpers import generateChildExpressionsCode, generateExpressionCode
@@ -90,18 +91,22 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
 
     emit(
         template_loop_break_next % {
-            "to_name" : to_name,
+            "to_name"              : to_name,
             "break_indicator_code" : break_indicator_code,
-            "break_target" : break_target,
-            "release_temps"    : indented(
+            "break_target"         : break_target,
+            "release_temps"        : indented(
                 getErrorExitReleaseCode(context),
                 2
             ),
-            "line_number_code" : indented(
+            "var_description_code" : indented(
+                getFrameVariableTypeDescriptionCode(context),
+                2
+            ),
+            "line_number_code"     : indented(
                 getLineNumberUpdateCode(context),
                 2
             ),
-            "exception_target" : context.getExceptionEscape()
+            "exception_target"     : context.getExceptionEscape()
         }
     )
 
@@ -177,15 +182,18 @@ def generateUnpackCheckCode(statement, emit, context):
     attempt_name = context.allocateTempName("iterator_attempt", unique = True)
 
     release_code = getErrorExitReleaseCode(context)
+    var_description_code = getFrameVariableTypeDescriptionCode(context)
 
     emit(
         template_iterator_check % {
-            "iterator_name"   : iterator_name,
-            "attempt_name"    : attempt_name,
-            "count"           : statement.getCount(),
-            "exception_exit"  : context.getExceptionEscape(),
-            "release_temps_1" : indented(release_code, 2),
-            "release_temps_2" : indented(release_code),
+            "iterator_name"          : iterator_name,
+            "attempt_name"           : attempt_name,
+            "count"                  : statement.getCount(),
+            "exception_exit"         : context.getExceptionEscape(),
+            "release_temps_1"        : indented(release_code, 3),
+            "var_description_code_1" : indented(var_description_code, 3),
+            "release_temps_2"        : indented(release_code),
+            "var_description_code_2" : indented(var_description_code),
         }
     )
 

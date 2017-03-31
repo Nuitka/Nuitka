@@ -24,6 +24,8 @@ expression only stuff.
 """
 
 
+from abc import ABCMeta
+
 from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.containers.odict import OrderedDict
@@ -33,7 +35,6 @@ from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-from abc import ABCMeta
 
 
 class NodeCheckMetaClass(ABCMeta):
@@ -88,7 +89,7 @@ class NodeCheckMetaClass(ABCMeta):
             if not hasattr(NodeBase, checker_method):
                 setattr(NodeBase, checker_method, checkKind)
 
-        type.__init__(cls, name, bases, dictionary)
+        ABCMeta.__init__(cls, name, bases, dictionary)
 
 # For every node type, there is a test, and then some more members,
 
@@ -125,9 +126,9 @@ class NodeBase(NodeMetaClassBase):
             detail = "detail raises exception %s" % e
 
         if not detail:
-            return "<Node %s %s>" % (self.kind, self.getDescription())
+            return "<Node %s>" % (self.getDescription())
         else:
-            return "<Node %s %s %s>" % (self.kind, self.getDescription(), detail)
+            return "<Node %s %s>" % (self.getDescription(), detail)
 
     def getDescription(self):
         """ Description of the node, intended for use in __repr__ and
@@ -137,7 +138,7 @@ class NodeBase(NodeMetaClassBase):
         details = self.getDetails()
 
         if details:
-            return "<'%s' with %s>" % (self.kind, str(self.getDetails())[1:-1])
+            return "'%s' with %s" % (self.kind, self.getDetails())
         else:
             return "'%s'" % self.kind
 
@@ -441,6 +442,11 @@ class NodeBase(NodeMetaClassBase):
         return ()
 
     def getVisitableNodesNamed(self):
+        """ Named children dictionary.
+
+            For use in debugging and XML output.
+        """
+
         # Virtual method, pylint: disable=R0201
         return ()
 
@@ -562,7 +568,7 @@ class ChildrenHavingMixin:
     checkers = {}
 
     def __init__(self, values):
-        assert type(self.named_children) is tuple and len(self.named_children)
+        assert type(self.named_children) is tuple and self.named_children
 
         # Check for completeness of given values, everything should be there
         # but of course, might be put to None.
@@ -642,7 +648,7 @@ class ChildrenHavingMixin:
         return setter
 
     def getVisitableNodes(self):
-        # TODO: Consider it a generator would be faster.
+        # TODO: Consider if a generator would be faster.
         result = []
 
         for name in self.named_children:
@@ -665,14 +671,17 @@ class ChildrenHavingMixin:
         return tuple(result)
 
     def getVisitableNodesNamed(self):
-        result = []
+        """ Named children dictionary.
 
+            For use in debugging and XML output.
+        """
         for name in self.named_children:
-            value = self.child_values[ name ]
+            attr_name = "subnode_" + name
 
-            result.append((name, value))
+            value = getattr(self, attr_name)
 
-        return result
+            yield name, value
+
 
     def replaceChild(self, old_node, new_node):
         if new_node is not None and not isinstance(new_node, NodeBase):

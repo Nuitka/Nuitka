@@ -46,6 +46,7 @@ if ( %(condition)s )
     }
 %(release_temps)s
 
+%(var_description_code)s
 %(line_number_code)s
     goto %(exception_exit)s;
 }"""
@@ -59,6 +60,7 @@ if ( %(condition)s )
 %(release_temps)s
 
 %(line_number_code)s
+%(var_description_code)s
     goto %(exception_exit)s;
 }"""
 
@@ -69,6 +71,7 @@ if ( %(condition)s )
 %(set_exception)s
 
 %(line_number_code)s
+%(var_description_code)s
     goto %(exception_exit)s;
 }
 """

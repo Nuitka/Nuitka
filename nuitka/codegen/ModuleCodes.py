@@ -52,7 +52,8 @@ def getModuleValues(context, module_name, module_identifier, codes,
     local_var_inits = [
         getLocalVariableInitCode(
             context  = context,
-            variable = variable
+            variable = variable,
+            version  = 0
         )
         for variable in
         temp_variables
@@ -81,6 +82,9 @@ def getModuleValues(context, module_name, module_identifier, codes,
             local_var_inits.append("%s = NULL;" % tmp_name)
 
     local_var_inits += context.getFrameDeclarations()
+
+    if context.needsFrameVariableTypeDescription():
+        local_var_inits.append("char *type_description;")
 
     if context.needsExceptionVariables():
         module_exit = template_module_exception_exit

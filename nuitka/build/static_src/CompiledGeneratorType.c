@@ -134,7 +134,7 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
 #ifndef __NUITKA_NO_ASSERT__
         if ( return_frame )
         {
-            assertFrameObject( return_frame );
+            assertFrameObject( (struct Nuitka_FrameObject *)return_frame );
         }
 #endif
 
@@ -145,12 +145,12 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
             assertFrameObject( generator->m_frame );
 
             // It's not supposed to be on the top right now.
-            assert( return_frame != generator->m_frame );
+            assert( return_frame != &generator->m_frame->m_frame );
 
             Py_XINCREF( return_frame );
-            generator->m_frame->f_back = return_frame;
+            generator->m_frame->m_frame.f_back = return_frame;
 
-            thread_state->frame = generator->m_frame;
+            thread_state->frame = &generator->m_frame->m_frame;
         }
 
         // Continue the yielder function while preventing recursion.
@@ -165,10 +165,10 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
         // Remove the generator from the frame stack.
         if ( generator->m_frame )
         {
-            assert( thread_state->frame == generator->m_frame );
+            assert( thread_state->frame == &generator->m_frame->m_frame );
             assertFrameObject( generator->m_frame );
 
-            Py_CLEAR( generator->m_frame->f_back );
+            Py_CLEAR( generator->m_frame->m_frame.f_back );
         }
 
         thread_state->frame = return_frame;
@@ -520,9 +520,10 @@ static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generato
             // TODO: Our compiled objects really need a way to store common
             // stuff in a "shared" part across all instances, and outside of
             // run time, so we could reuse this.
-            PyFrameObject *frame = MAKE_FUNCTION_FRAME(
+            struct Nuitka_FrameObject *frame = MAKE_FUNCTION_FRAME(
                 generator->m_code_object,
-                generator->m_module
+                generator->m_module,
+                0
             );
 
             generator->m_exception_tb = MAKE_TRACEBACK(
@@ -907,6 +908,8 @@ PyObject *PyGen_Send( PyGenObject *generator, PyObject *arg )
     }
 
     PyFrameObject *frame = generator->gi_frame;
+
+    assert( frame == NULL || PyFrame_Check( frame ));
 
     if ( frame == NULL || frame->f_stacktop == NULL )
     {

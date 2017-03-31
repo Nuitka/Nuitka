@@ -55,6 +55,8 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.merge_traces = None
+
     def getBranches(self):
         return (
             self.getExpressionYes(),
@@ -150,7 +152,7 @@ branches."""
             branch_no_collection = None
 
         # Merge into parent execution.
-        trace_collection.mergeBranches(
+        self.merge_traces = trace_collection.mergeBranches(
             branch_yes_collection,
             branch_no_collection
         )
@@ -242,6 +244,8 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.merge_traces = None
+
     getLeft = ExpressionChildrenHavingBase.childGetter(
         "left"
     )
@@ -309,10 +313,12 @@ branches.""" % self.conditional_kind
 
         if branch_yes_collection:
             # Merge into parent execution.
-            trace_collection.mergeBranches(
+            self.merge_traces = trace_collection.mergeBranches(
                 branch_yes_collection,
                 None
             )
+        else:
+            self.merge_traces = None
 
         if truth_value is truth_value_use_left:
             return (
@@ -419,6 +425,8 @@ class StatementConditional(StatementChildrenHavingBase):
             },
             source_ref = source_ref
         )
+
+        self.merge_traces = None
 
     getCondition = StatementChildrenHavingBase.childGetter("condition")
     getBranchYes = StatementChildrenHavingBase.childGetter("yes_branch")
@@ -605,7 +613,7 @@ branches."""
             branch_no_collection = None
 
         # Merge into parent execution.
-        trace_collection.mergeBranches(
+        self.merge_traces = trace_collection.mergeBranches(
             branch_yes_collection,
             branch_no_collection
         )

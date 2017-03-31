@@ -30,6 +30,10 @@ class ShapeBase(object):
     def hasShapeModule():
         return False
 
+    @staticmethod
+    def getCType():
+        return "PyObject *"
+
 
 class ShapeUnknown(ShapeBase):
     @staticmethod

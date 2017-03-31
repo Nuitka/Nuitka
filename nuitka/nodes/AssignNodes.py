@@ -499,6 +499,9 @@ class StatementReleaseVariable(NodeBase):
     def getVariable(self):
         return self.variable
 
+    def getVariableVersion(self):
+        return self.variable_trace.getVersion()
+
     def setVariable(self, variable):
         self.variable = variable
 

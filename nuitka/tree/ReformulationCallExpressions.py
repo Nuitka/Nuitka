@@ -250,8 +250,8 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
         # re-formulation of complex calls according to developer manual.
 
         key = (
-            len(positional_args) > 0,
-            len(keys) > 0,
+            bool(positional_args),
+            bool(keys),
             list_star_arg is not None,
             dict_star_arg is not None
         )

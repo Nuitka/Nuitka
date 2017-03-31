@@ -19,15 +19,17 @@
 
 """
 
-from .ErrorCodes import (
-    getErrorExitCode,
-    getErrorVariableDeclarations,
-    getExceptionKeeperVariableNames,
-    getExceptionPreserverVariableNames,
-    getReleaseCode
+from .Emission import SourceCodeCollector
+from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .FunctionCodes import (
+    finalizeFunctionLocalVariables,
+    setupFunctionLocalVariables
 )
 from .GeneratorCodes import getClosureCopyCode
-from .Helpers import generateChildExpressionsCode
+from .Helpers import (
+    generateChildExpressionsCode,
+    generateStatementSequenceCode
+)
 from .Indentation import indented
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesCoroutines import (
@@ -38,8 +40,6 @@ from .templates.CodeTemplatesCoroutines import (
     template_coroutine_return_exit,
     template_make_coroutine_template
 )
-from .templates.CodeTemplatesFunction import function_dict_setup
-from .VariableCodes import getLocalVariableInitCode
 
 
 def getCoroutineObjectDeclCode(function_identifier):
@@ -48,52 +48,30 @@ def getCoroutineObjectDeclCode(function_identifier):
     }
 
 
-def getCoroutineObjectCode(context, function_identifier, user_variables,
-                           temp_variables, function_codes, needs_exception_exit,
+def getCoroutineObjectCode(context, function_identifier, closure_variables,
+                           user_variables, temp_variables, needs_exception_exit,
                            needs_generator_return):
-    function_locals = []
+    function_locals, function_cleanup = setupFunctionLocalVariables(
+        context           = context,
+        parameters        = None,
+        closure_variables = closure_variables,
+        user_variables    = user_variables,
+        temp_variables    = temp_variables
+    )
 
-    for user_variable in user_variables + temp_variables:
-        function_locals.append(
-            getLocalVariableInitCode(
-                context  = context,
-                variable = user_variable,
-            )
-        )
+    # Doesn't apply to coroutines.
+    assert not function_cleanup
 
-    if context.hasLocalsDict():
-        function_locals += function_dict_setup.split('\n')
+    function_codes = SourceCodeCollector()
 
-    if context.needsExceptionVariables():
-        function_locals.extend(getErrorVariableDeclarations())
+    generateStatementSequenceCode(
+        statement_sequence = context.getOwner().getBody(),
+        allow_none         = True,
+        emit               = function_codes,
+        context            = context
+    )
 
-    for keeper_index in range(1, context.getKeeperVariableCount()+1):
-        function_locals.extend(getExceptionKeeperVariableNames(keeper_index))
-
-    for preserver_id in context.getExceptionPreserverCounts():
-        function_locals.extend(getExceptionPreserverVariableNames(preserver_id))
-
-    function_locals += [
-        "%s%s%s;" % (
-            tmp_type,
-            ' ' if not tmp_type.endswith('*') else "",
-            tmp_name
-        )
-        for tmp_name, tmp_type in
-        context.getTempNameInfos()
-    ]
-
-    function_locals += context.getFrameDeclarations()
-
-    # TODO: Could avoid this unless try/except or try/finally with returns
-    # occur.
-    if context.hasTempName("generator_return"):
-        function_locals.append("tmp_generator_return = false;")
-    if context.hasTempName("return_value"):
-        function_locals.append("tmp_return_value = NULL;")
-    for tmp_name, tmp_type in context.getTempNameInfos():
-        if tmp_name.startswith("tmp_outline_return_value_"):
-            function_locals.append("%s = NULL;" % tmp_name)
+    function_locals += finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
         generator_exit = template_coroutine_exception_exit % {
@@ -109,7 +87,7 @@ def getCoroutineObjectCode(context, function_identifier, user_variables,
 
     return template_coroutine_object_body_template % {
         "function_identifier" : function_identifier,
-        "function_body"       : indented(function_codes),
+        "function_body"       : indented(function_codes.codes),
         "function_var_inits"  : indented(function_locals),
         "coroutine_exit"      : generator_exit
     }
@@ -117,8 +95,6 @@ def getCoroutineObjectCode(context, function_identifier, user_variables,
 
 def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
     coroutine_object_body = expression.getCoroutineRef().getFunctionBody()
-
-    closure_variables = coroutine_object_body.getClosureVariables()
 
     code_identifier = context.getCodeObjectHandle(
         code_object  = expression.getCodeObject(),
@@ -129,6 +105,8 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
         has_closure  = len(coroutine_object_body.getParentVariableProvider().getClosureVariables()) > 0,
         future_flags = coroutine_object_body.getSourceReference().getFutureSpec().asFlags()
     )
+
+    closure_variables = expression.getClosureVariableVersions()
 
     closure_copy = getClosureCopyCode(
         to_name           = to_name,
