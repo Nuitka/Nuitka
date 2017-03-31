@@ -285,6 +285,13 @@ class StatementLocalsDictSync(StatementChildrenHavingBase):
         )
 
     def computeStatement(self, trace_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection = trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
         if self.getParentVariableProvider().isCompiledPythonModule():
             return None, "new_statements", "Removed sync back to locals without locals."
 
