@@ -117,7 +117,7 @@ class ExpressionVariableRef(ExpressionBase):
         else:
             return ShapeUnknown
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         variable = self.variable
 
         assert variable is not None
@@ -139,7 +139,7 @@ class ExpressionVariableRef(ExpressionBase):
             )
 
             # Need to compute the replacement still.
-            return replacement.computeExpression(trace_collection)
+            return replacement.computeExpressionRaw(trace_collection)
 
         if not self.variable_trace.mustHaveValue():
             # TODO: This could be way more specific surely.
@@ -414,7 +414,7 @@ class ExpressionTempVariableRef(ExpressionBase):
         else:
             return ShapeUnknown
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         self.variable_trace = trace_collection.getVariableCurrentTrace(
             variable = self.variable
         )

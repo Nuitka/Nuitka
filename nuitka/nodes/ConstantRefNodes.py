@@ -129,7 +129,7 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
     def isExpressionConstantRef():
         return True
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         # Cannot compute any further, this is already the best.
         return self, None, None
 

@@ -716,7 +716,7 @@ class ExpressionModuleFileAttributeRef(ExpressionBase):
     def mayRaiseException(self, exception_type):
         return False
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         # There is not a whole lot to do here, the path will change at run
         # time
         if Options.getFileReferenceMode() != "runtime":

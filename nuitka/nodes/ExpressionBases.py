@@ -38,7 +38,7 @@ from .shapes.BuiltinTypeShapes import (
     ShapeTypeUnicode
 )
 from .shapes.StandardShapes import ShapeUnknown
-
+from abc import abstractmethod
 
 class ExpressionBase(NodeBase):
     def getTypeShape(self):
@@ -169,47 +169,13 @@ class ExpressionBase(NodeBase):
         # print "onRelease", self
         pass
 
-    def computeExpressionRaw(self, trace_collection):
-        """ Compute an expression.
-
-            Default behavior is to just visit the child expressions first, and
-            then the node "computeExpression". For a few cases this needs to
-            be overloaded, e.g. conditional expressions.
-        """
-        # First apply the sub-expressions, as they are evaluated before.
-        sub_expressions = self.getVisitableNodes()
-
-        for count, sub_expression in enumerate(sub_expressions):
-            assert sub_expression.isExpression(), (self, sub_expression)
-
-            expression = trace_collection.onExpression(
-                expression = sub_expression
-            )
-
-            if expression.willRaiseException(BaseException):
-                wrapped_expression = wrapExpressionWithSideEffects(
-                    side_effects = sub_expressions[:count],
-                    old_node     = sub_expression,
-                    new_node     = expression
-                )
-
-                return (
-                    wrapped_expression,
-                    "new_raise",
-                    "For '%s' the expression '%s' will raise." % (
-                        self.getChildNameNice(),
-                        expression.getChildNameNice()
-                    )
-                )
-
-        # Then ask ourselves to work on it.
-        return self.computeExpression(
-            trace_collection = trace_collection
-        )
-
     def isKnownToHaveAttribute(self, attribute_name):
         # Virtual method, pylint: disable=R0201,W0613
         return None
+
+    @abstractmethod
+    def computeExpressionRaw(self, trace_collection):
+        """ Replace this node with computation result. """
 
     def computeExpressionAttribute(self, lookup_node, attribute_name,
                                    trace_collection):
@@ -802,6 +768,44 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
         ChildrenHavingMixin.__init__(
             self,
             values = values
+        )
+
+    def computeExpressionRaw(self, trace_collection):
+        """ Compute an expression.
+
+            Default behavior is to just visit the child expressions first, and
+            then the node "computeExpression". For a few cases this needs to
+            be overloaded, e.g. conditional expressions.
+        """
+        # First apply the sub-expressions, as they are evaluated before.
+        sub_expressions = self.getVisitableNodes()
+
+        for count, sub_expression in enumerate(sub_expressions):
+            assert sub_expression.isExpression(), (self, sub_expression)
+
+            expression = trace_collection.onExpression(
+                expression = sub_expression
+            )
+
+            if expression.willRaiseException(BaseException):
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects = sub_expressions[:count],
+                    old_node     = sub_expression,
+                    new_node     = expression
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    "For '%s' the expression '%s' will raise." % (
+                        self.getChildNameNice(),
+                        expression.getChildNameNice()
+                    )
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(
+            trace_collection = trace_collection
         )
 
 

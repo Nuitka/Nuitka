@@ -273,7 +273,7 @@ class ExpressionCaughtExceptionTypeRef(ExpressionBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
@@ -291,7 +291,7 @@ class ExpressionCaughtExceptionValueRef(ExpressionBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 
@@ -309,7 +309,7 @@ class ExpressionCaughtExceptionTracebackRef(ExpressionBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
     def mayHaveSideEffects(self):

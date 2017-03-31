@@ -33,9 +33,10 @@ from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
+from abc import ABCMeta
 
 
-class NodeCheckMetaClass(type):
+class NodeCheckMetaClass(ABCMeta):
     kinds = {}
 
     def __new__(cls, name, bases, dictionary):
@@ -52,11 +53,9 @@ class NodeCheckMetaClass(type):
 
             last_mixin = is_mixin
 
+        return ABCMeta.__new__(cls, name, bases, dictionary)
 
-
-        return type.__new__(cls, name, bases, dictionary)
-
-    def __init__(cls, name, bases, dictionary):
+    def __init__(cls, name, bases, dictionary):  # @NoSelf
         if not name.endswith("Base"):
             assert ("kind" in dictionary), name
             kind = dictionary["kind"]

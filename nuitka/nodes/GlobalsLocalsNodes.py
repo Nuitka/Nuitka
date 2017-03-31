@@ -39,7 +39,7 @@ class ExpressionBuiltinGlobals(ExpressionBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
     def mayHaveSideEffects(self):
@@ -61,7 +61,7 @@ class ExpressionBuiltinLocals(ExpressionBase):
             source_ref = source_ref
         )
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
         trace_collection.onLocalsUsage()
 

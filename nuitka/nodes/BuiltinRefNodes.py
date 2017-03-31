@@ -91,7 +91,9 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     def getCompileTimeConstant(self):
         return __builtins__[ self.builtin_name ]
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
+        # TODO: We really should solve this in a factory function and
+        # not reconsider it each time.
         quick_names = {
             "None"      : None,
             "True"      : True,
@@ -146,7 +148,7 @@ class ExpressionBuiltinOriginalRef(ExpressionBuiltinRef):
         # one should be.
         return False
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
 
         # Needs whole program analysis, we don't really know much about it.
         return self, None, None
@@ -170,7 +172,7 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     def getCompileTimeConstant(self):
         return builtin_anon_names[self.builtin_name]
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
     def getStringValue(self):
@@ -205,7 +207,7 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     def getCompileTimeConstant(self):
         return builtin_exception_values[self.builtin_name]
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         # Not much that can be done here.
         return self, None, None
 

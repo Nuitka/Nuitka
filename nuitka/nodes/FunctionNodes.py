@@ -919,7 +919,7 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
 
         self.function_body = function_body
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         result = makeConstantReplacementNode(
             node     = self,
             constant = self.function_body.getFunctionQualname()

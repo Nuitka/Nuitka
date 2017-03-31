@@ -72,7 +72,7 @@ class ExpressionImportModuleHard(ExpressionBase):
     def getImportName(self):
         return self.import_name
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         # TODO: May return a module reference of some sort in the future with
         # embedded modules.
         return self, None, None
