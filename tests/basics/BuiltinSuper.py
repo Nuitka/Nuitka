@@ -86,7 +86,7 @@ class X:
             print("f4", super().__self__)
         except TypeError:
             import sys
-            assert sys.version < (3,)
+            assert sys.version_info < (3,)
 
     f5 = lambda x: __class__
 
@@ -95,14 +95,14 @@ class X:
             print("f6", super())
         except TypeError:
             import sys
-            assert sys.version < (3,)
+            assert sys.version_info < (3,)
 
     def f7(self):
         try:
             yield super()
         except TypeError:
             import sys
-            assert sys.version < (3,)
+            assert sys.version_info < (3,)
 
     print("Early pre-class calls begin")
     print("Set in class __class__", __class__)
