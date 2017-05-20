@@ -37,7 +37,7 @@ try:
     import nuitka  # @UnusedImport
 except ImportError:
     # Find nuitka in system install.
-    sys.path[0] = "/usr/share/nuitka/nuitka"
+    sys.path[0] = "/usr/share/nuitka"
     import nuitka  # @UnusedImport
 
 
