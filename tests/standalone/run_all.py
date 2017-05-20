@@ -381,7 +381,7 @@ for filename in sorted(os.listdir('.')):
             continue
 
         # Looking at site-package dir alone is alone.
-        if loaded_filename.endswith("site-packages"):
+        if loaded_filename.endswith(("site-packages", "dist-packages")):
             continue
 
         # Windows baseline DLLs
