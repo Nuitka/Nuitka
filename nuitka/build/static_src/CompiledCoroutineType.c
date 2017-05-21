@@ -436,10 +436,10 @@ bool Nuitka_gen_close_iter( PyObject *yieldfrom )
     }
 }
 
+extern PyObject *const_str_plain_throw;
+
 static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *coroutine, bool close_on_genexit )
 {
-    _Py_IDENTIFIER( throw );
-
     if ( coroutine->m_yieldfrom != NULL )
     {
         if ( close_on_genexit )
@@ -460,7 +460,7 @@ static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *corout
             }
         }
 
-        PyObject *meth = _PyObject_GetAttrId( coroutine->m_yieldfrom, &PyId_throw );
+        PyObject *meth = PyObject_GetAttr( coroutine->m_yieldfrom, const_str_plain_throw );
         if (unlikely( meth == NULL ))
         {
             if (!PyErr_ExceptionMatches(PyExc_AttributeError))
