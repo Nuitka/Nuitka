@@ -167,7 +167,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             )
 
 
-        if (variable.isModuleVariable() or variable.isMaybeLocalVariable()) \
+        if variable.isModuleVariable() \
             and variable.hasDefiniteWrites() is False:
             if self.variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
@@ -507,3 +507,109 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
     # Python3 only, it updates temporary variables that are closure variables.
     def setVariable(self, variable):
         self.variable = variable
+
+
+class ExpressionLocalsVariableRef(ExpressionBase):
+    kind = "EXPRESSION_LOCALS_VARIABLE_REF"
+
+    def __init__(self, variable_name, fallback_variable, source_ref):
+        self.variable_name = variable_name
+
+        ExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.fallback_variable = fallback_variable
+
+        self.variable_trace = None
+
+    def getDetails(self):
+        return {
+            "variable_name" : self.variable_name,
+        }
+
+    def getVariableName(self):
+        return self.variable_name
+
+    def getFallbackVariable(self):
+        return self.fallback_variable
+
+    def getFallbackVariableVersion(self):
+        return self.variable_trace.getVersion()
+
+    def computeExpressionRaw(self, trace_collection):
+        # TODO: Use dictionary tracings for locals dict
+
+        self.variable_trace = trace_collection.getVariableCurrentTrace(
+            variable = self.fallback_variable
+        )
+
+        if self.fallback_variable.isModuleVariable() and \
+           self.fallback_variable.hasDefiniteWrites() is False:
+            if self.variable_name in Builtins.builtin_exception_names:
+                from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+
+                new_node = ExpressionBuiltinExceptionRef(
+                    exception_name = self.variable_name,
+                    source_ref     = self.getSourceReference()
+                )
+
+                change_tags = "new_builtin_ref"
+                change_desc = """\
+Module variable '%s' found to be built-in exception reference.""" % (
+                    self.variable_name
+                )
+            elif self.variable_name in Builtins.builtin_names and \
+                 self.variable_name != "pow":
+                from .BuiltinRefNodes import ExpressionBuiltinRef
+
+                new_node = ExpressionBuiltinRef(
+                    builtin_name = self.variable_name,
+                    source_ref   = self.getSourceReference()
+                )
+
+                change_tags = "new_builtin_ref"
+                change_desc = """\
+Module variable '%s' found to be built-in reference.""" % (
+                    self.variable_name
+                )
+            elif self.variable_name == "__name__":
+                new_node = makeConstantRefNode(
+                    constant   = self.getParentModule().getFullName(),
+                    source_ref = self.getSourceReference()
+                )
+
+                change_tags = "new_constant"
+                change_desc = """\
+Replaced read-only module attribute '__name__' with constant value."""
+            elif self.variable_name == "__package__":
+                new_node = makeConstantRefNode(
+                    constant   = self.getParentModule().getPackage(),
+                    source_ref = self.getSourceReference()
+                )
+
+                change_tags = "new_constant"
+                change_desc = """\
+Replaced read-only module attribute '__package__' with constant value."""
+            else:
+                # Probably should give a warning once about it.
+                new_node = self
+                change_tags = None
+                change_desc = None
+
+            if new_node is not self:
+                return new_node, change_tags, change_desc
+
+        # TODO: This could be way more specific surely, using dictionary tracing
+        if not self.variable_trace.mustHaveValue():
+            trace_collection.onExceptionRaiseExit(
+                BaseException
+            )
+
+        self.variable_trace.addUsage()
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return self.variable_trace is None or not self.variable_trace.mustHaveValue()

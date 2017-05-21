@@ -340,8 +340,6 @@ class CollectionStartpointMixin:
             result = self._initVariableInit(variable)
         elif variable.isLocalVariable():
             result = self._initVariableUninit(variable)
-        elif variable.isMaybeLocalVariable():
-            result = self._initVariableUnknown(variable)
         elif variable.isModuleVariable():
             result = self._initVariableUnknown(variable)
         elif variable.isTempVariable():
@@ -563,17 +561,6 @@ class TraceCollectionBase(CollectionTracingMixin):
                 # Remember the reference for constraint collection.
                 assert new_node.variable_trace.hasDefiniteUsages()
 
-        # We add variable reference nodes late to their traces, only after they
-        # are actually produced, and not resolved to something else, so we do
-        # not have them dangling, and the code complexity inside of their own
-        # "computeExpression" functions.
-        if new_node.isExpressionVariableRef() or \
-           new_node.isExpressionTempVariableRef():
-            if new_node.getVariable().isMaybeLocalVariable():
-                variable_trace = self.getVariableCurrentTrace(
-                    variable = new_node.getVariable().getMaybeVariable()
-                )
-                variable_trace.addUsage()
 
         return new_node
 

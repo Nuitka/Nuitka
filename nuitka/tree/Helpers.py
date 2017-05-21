@@ -185,6 +185,20 @@ def detectFunctionBodyKind(nodes, start_value = None):
         elif node_class is ast.Name:
             if python_version >= 300 and node.id == "super":
                 flags.add("has_super")
+        elif python_version < 300 and node_class is ast.Exec:
+            flags.add("has_exec")
+
+            if node.globals is None:
+                flags.add("has_unqualified_exec")
+
+            for child in ast.iter_child_nodes(node):
+                _check(child)
+        elif python_version < 300 and node_class is ast.ImportFrom:
+            for import_desc in node.names:
+                if import_desc.name[0] == '*':
+                    flags.add("has_exec")
+            for child in ast.iter_child_nodes(node):
+                _check(child)
         else:
             for child in ast.iter_child_nodes(node):
                 _check(child)

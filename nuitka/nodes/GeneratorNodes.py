@@ -125,7 +125,7 @@ class ExpressionGeneratorObjectBody(MarkLocalsDictIndicatorMixin,
 
         MarkLocalsDictIndicatorMixin.__init__(self)
 
-        MarkUnoptimizedFunctionIndicatorMixin.__init__(self)
+        MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
         self.needs_generator_return_exit = False
 

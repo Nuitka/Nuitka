@@ -226,6 +226,7 @@ from .SubscriptCodes import (
 from .TryCodes import generateTryCode
 from .TupleCodes import generateBuiltinTupleCode, generateTupleCreationCode
 from .VariableCodes import (
+    generateLocalsDictVariableRefCode,
     generateAssignmentVariableCode,
     generateDelVariableCode,
     generateVariableReferenceCode,
@@ -628,6 +629,7 @@ setExpressionDispatchDict(
         "EXPRESSION_STRING_CONCATENATION"           : generateStringContenationCode,
         "EXPRESSION_BUILTIN_FORMAT"                 : generateBuiltinFormatCode,
         "EXPRESSION_BUILTIN_ASCII"                  : generateBuiltinAsciiCode,
+        "EXPRESSION_LOCALS_VARIABLE_REF"            : generateLocalsDictVariableRefCode
     }
 )
 

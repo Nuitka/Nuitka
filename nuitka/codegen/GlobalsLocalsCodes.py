@@ -86,7 +86,6 @@ def _getLocalVariableList(provider):
         for variable in
         provider.getVariables()
         if not variable.isModuleVariable()
-        if not variable.isMaybeLocalVariable()
         if (include_closure or variable.getOwner() is provider)
     ]
 
@@ -201,7 +200,6 @@ Py_INCREF( locals_dict );""" % (
                 (variable, variable_version)
                 for variable, variable_version in
                 variables
-                if not variable.isMaybeLocalVariable()
             ]
 
             for local_var, version in _sorted(variables):
@@ -254,8 +252,7 @@ def getStoreLocalsCode(locals_name, variables, provider, emit, context):
     assert not provider.isCompiledPythonModule()
 
     for variable, version in variables:
-        if not variable.isModuleVariable() and \
-           not variable.isMaybeLocalVariable():
+        if not variable.isModuleVariable():
             key_name = context.getConstantCode(
                 constant = variable.getName()
             )

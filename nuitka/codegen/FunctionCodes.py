@@ -492,10 +492,6 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
         if closure_variable.isTempVariable():
             continue
 
-        if closure_variable.isMaybeLocalVariable():
-            continue
-        # Maybe local is also not worthy.
-
         variable_code_name, variable_c_type = getLocalVariableCodeType(
             context  = context,
             variable = closure_variable,

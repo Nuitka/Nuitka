@@ -25,10 +25,7 @@ whose implementation lives here. The creation itself also lives here.
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
-from .IndicatorMixins import (
-    MarkLocalsDictIndicatorMixin,
-    MarkUnoptimizedFunctionIndicatorMixin
-)
+from .IndicatorMixins import MarkLocalsDictIndicatorMixin
 from .NodeBases import ChildrenHavingMixin
 
 
@@ -94,9 +91,7 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
         ]
 
 
-class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin,
-                                    MarkUnoptimizedFunctionIndicatorMixin,
-                                    ExpressionFunctionBodyBase):
+class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin, ExpressionFunctionBodyBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
     kind = "EXPRESSION_COROUTINE_OBJECT_BODY"
@@ -128,8 +123,6 @@ class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin,
 
         MarkLocalsDictIndicatorMixin.__init__(self)
 
-        MarkUnoptimizedFunctionIndicatorMixin.__init__(self)
-
         self.needs_generator_return_exit = False
 
     def getFunctionName(self):
@@ -152,6 +145,10 @@ class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin,
 
     @staticmethod
     def needsCreation():
+        return False
+
+    @staticmethod
+    def isUnoptimized():
         return False
 
     getBody = ChildrenHavingMixin.childGetter("body")

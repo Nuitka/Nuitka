@@ -371,65 +371,78 @@ def getVariableAssignmentCode(context, emit, variable, version,
         assert False, variable
 
 
+def _generateModuleVariableAccessCode(to_name, variable_name, needs_check, emit, context):
+    emit(
+        template_read_mvar_unclear % {
+            "module_identifier" : context.getModuleCodeName(),
+            "tmp_name"          : to_name,
+            "var_name"          : context.getConstantCode(
+                constant = variable_name
+            )
+        }
+    )
+
+    if needs_check:
+        if python_version < 340 and \
+           not context.isCompiledPythonModule() and \
+           not context.getOwner().isExpressionClassBody():
+            error_message = "global name '%s' is not defined"
+        else:
+            error_message = "name '%s' is not defined"
+
+        getErrorFormatExitCode(
+            check_name = to_name,
+            exception  = "PyExc_NameError",
+            args       = (
+                error_message,
+                variable_name
+            ),
+            emit       = emit,
+            context    = context
+        )
+    elif Options.isDebug():
+        emit("CHECK_OBJECT( %s );" % to_name)
+
+
+def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
+    variable_name = expression.getVariableName()
+
+    fallback_emit = SourceCodeCollector()
+
+    getVariableAccessCode(
+        to_name     = to_name,
+        variable    = expression.getFallbackVariable(),
+        version     = expression.getFallbackVariableVersion(),
+        needs_check = True,
+        emit        = fallback_emit,
+        context     = context
+    )
+
+
+    emit(
+        template_read_maybe_local_unclear % {
+            "locals_dict" : "locals_dict",
+            "fallback"    : indented(fallback_emit.codes),
+            "tmp_name"    : to_name,
+            "var_name"    : context.getConstantCode(
+                constant = variable_name
+            )
+        }
+    )
+
+
 def getVariableAccessCode(to_name, variable, version, needs_check, emit, context):
     # Many different cases, as this must be, pylint: disable=R0912,R0915
 
     assert isinstance(variable, Variables.Variable), variable
 
     if variable.isModuleVariable():
-        emit(
-            template_read_mvar_unclear % {
-                "module_identifier" : context.getModuleCodeName(),
-                "tmp_name"          : to_name,
-                "var_name"          : context.getConstantCode(
-                    constant = variable.getName()
-                )
-            }
-        )
-
-        if needs_check:
-            if python_version < 340 and \
-               not context.isCompiledPythonModule() and \
-               not context.getOwner().isExpressionClassBody():
-                error_message = "global name '%s' is not defined"
-            else:
-                error_message = "name '%s' is not defined"
-
-            getErrorFormatExitCode(
-                check_name = to_name,
-                exception  = "PyExc_NameError",
-                args       = (
-                    error_message,
-                    variable.getName()
-                ),
-                emit       = emit,
-                context    = context
-            )
-        elif Options.isDebug():
-            emit("CHECK_OBJECT( %s );" % to_name)
-
-        return
-    elif variable.isMaybeLocalVariable():
-        fallback_emit = SourceCodeCollector()
-
-        getVariableAccessCode(
-            to_name     = to_name,
-            variable    = variable.getMaybeVariable(),
-            version     = version,
-            needs_check = True,
-            emit        = fallback_emit,
-            context     = context
-        )
-
-        emit(
-            template_read_maybe_local_unclear % {
-                "locals_dict" : "locals_dict",
-                "fallback"    : indented(fallback_emit.codes),
-                "tmp_name"    : to_name,
-                "var_name"    : context.getConstantCode(
-                    constant = variable.getName()
-                )
-            }
+        _generateModuleVariableAccessCode(
+            to_name       = to_name,
+            variable_name = variable.getName(),
+            needs_check   = needs_check,
+            emit          = emit,
+            context       = context
         )
 
         return

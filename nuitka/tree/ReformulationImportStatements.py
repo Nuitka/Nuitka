@@ -176,10 +176,6 @@ def buildImportFromNode(provider, node, source_ref):
                 source_ref.atColumnNumber(node.col_offset)
             )
 
-        # Functions with star imports get a marker.
-        if provider.isExpressionFunctionBody():
-            provider.markAsStarImportContaining()
-
         if provider.isCompiledPythonModule():
             import_globals = ExpressionBuiltinGlobals(source_ref)
             import_locals = ExpressionBuiltinGlobals(source_ref)

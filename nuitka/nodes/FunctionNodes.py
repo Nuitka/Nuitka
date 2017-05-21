@@ -59,6 +59,8 @@ from .NodeMakingHelpers import (
 )
 from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
+class MaybeLocalVariableUsage(Exception):
+    pass
 
 class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
                                  ExpressionChildrenHavingBase):
@@ -222,16 +224,11 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
             if not result.isModuleVariable():
                 self.registerProvidedVariable(result)
 
-            # For "exec" containing/star import containing, we get a
-            # closure variable already, but if it is a module variable,
-            # only then make it a maybe local variable.
-            if not self.isExpressionClassBody() and self.isUnoptimized() and result.isModuleVariable():
-                result = Variables.MaybeLocalVariable(
-                    owner          = self,
-                    maybe_variable = result
-                )
-
-                self.registerProvidedVariable(result)
+            # For "exec" containing/star import containing, we raise this exception to indicate
+            # that instead of merely a variable, to be assigned, we need to replace with locals
+            # dict access.
+            if python_version < 300 and not self.isExpressionClassBody() and self.isUnoptimized() and result.isModuleVariable():
+                raise MaybeLocalVariableUsage
 
         return result
 
@@ -239,11 +236,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         # print( "getVariableForClosure", self.getCodeName(), variable_name, self.isUnoptimized() )
 
         if self.hasProvidedVariable(variable_name):
-            result = self.getProvidedVariable(variable_name)
-
-            # Those are not to be taken for closure.
-            if not result.isMaybeLocalVariable():
-                return result
+            return self.getProvidedVariable(variable_name)
 
         return self.takeVariableForClosure(variable_name)
 
@@ -350,7 +343,7 @@ class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
 
         MarkLocalsDictIndicatorMixin.__init__(self)
 
-        MarkUnoptimizedFunctionIndicatorMixin.__init__(self)
+        MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
         self.doc = doc
 

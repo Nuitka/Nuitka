@@ -84,9 +84,9 @@ def function():
     class DynamicClass:
         y = x
 
-    return DynamicClass
-
     x = 2
+
+    return DynamicClass
 
 print function(), function().y
 

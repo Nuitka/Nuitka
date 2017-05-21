@@ -911,11 +911,6 @@ class ClosureTakerMixin:
         )
         assert result is not None, variable_name
 
-        # There is no maybe with closures. It means, it is closure variable in
-        # this case.
-        if result.isMaybeLocalVariable():
-            result = result.getMaybeVariable()
-
         if not result.isModuleVariable():
             self.addClosureVariable(result)
 

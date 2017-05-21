@@ -273,8 +273,6 @@ exec: arg 1 must be a string, file, or code object""",
             )
 
     if not provider.isCompiledPythonModule():
-        provider.markAsExecContaining()
-
         if orig_globals is None:
             provider.markAsUnqualifiedExecContaining(source_ref)
 

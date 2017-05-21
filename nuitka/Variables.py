@@ -76,9 +76,6 @@ class Variable:
     def isLocalVariable(self):
         return False
 
-    def isMaybeLocalVariable(self):
-        return False
-
     def isParameterVariable(self):
         return False
 
@@ -202,34 +199,6 @@ class LocalVariable(Variable):
 
     def isLocalVariable(self):
         return True
-
-
-class MaybeLocalVariable(Variable):
-    def __init__(self, owner, maybe_variable):
-        Variable.__init__(
-            self,
-            owner         = owner,
-            variable_name = maybe_variable.getName()
-        )
-
-        self.maybe_variable = maybe_variable
-
-    def __repr__(self):
-        return "<%s '%s' of '%s' maybe '%s'" % (
-            self.__class__.__name__,
-            self.variable_name,
-            self.owner.getName(),
-            self.maybe_variable
-        )
-
-    def getDescription(self):
-        return "maybe-local variable '%s'" % self.variable_name
-
-    def isMaybeLocalVariable(self):
-        return True
-
-    def getMaybeVariable(self):
-        return self.maybe_variable
 
 
 class ParameterVariable(LocalVariable):

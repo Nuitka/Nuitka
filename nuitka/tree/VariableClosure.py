@@ -26,6 +26,8 @@ complete.
 
 from nuitka import Variables
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
+from nuitka.nodes.VariableRefNodes import ExpressionLocalsVariableRef
+from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
     python_version
@@ -150,12 +152,21 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         if python_version >= 340 or \
                            (python_version >= 300 and \
                             variable.isModuleVariable()):
-                            variable = Variables.MaybeLocalVariable(
-                                owner          = provider,
-                                maybe_variable = variable
+                            node.replaceWith(
+                                ExpressionLocalsVariableRef(
+                                    variable_name = node.getVariableName(),
+                                    fallback_variable = variable,
+                                    source_ref    = node.getSourceReference()
+                                )
                             )
 
-                    node.setVariable(variable)
+                        else:
+                            node.setVariable(variable)
+                    else:
+                        node.setVariable(variable)
+
+                    variable.addVariableUser(provider)
+
         elif node.isExpressionTempVariableRef():
             if node.getVariable().getOwner() != node.getParentVariableProvider():
                 node.setVariable(
@@ -295,10 +306,25 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
         if node.isExpressionVariableRef():
             provider = node.getParentVariableProvider()
 
-            if node.getVariable() is None:
-                self._attachVariable(node, provider)
+            variable = node.getVariable()
 
-            node.getVariable().addVariableUser(provider)
+            if variable is None:
+                try:
+                    self._attachVariable(node, provider)
+                except MaybeLocalVariableUsage:
+                    variable_name = node.getVariableName()
+
+                    node.replaceWith(
+                        ExpressionLocalsVariableRef(
+                            variable_name = variable_name,
+                            fallback_variable = node.getParentModule().getVariableForReference(variable_name),
+                            source_ref = node.getSourceReference()
+                        )
+                    )
+                else:
+                    node.getVariable().addVariableUser(provider)
+            else:
+                variable.addVariableUser(provider)
 
 
 class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):

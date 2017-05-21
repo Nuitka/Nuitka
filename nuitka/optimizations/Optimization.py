@@ -227,9 +227,6 @@ def optimizeUnusedClosureVariables(function_body):
            variable_name == "__class__":
             continue
 
-        if closure_variable.isMaybeLocalVariable():
-            continue
-
         variable_traces = function_body.trace_collection.getVariableTraces(
             variable = closure_variable
         )

@@ -42,22 +42,17 @@ class MarkUnoptimizedFunctionIndicatorMixin:
         first, because they do.
     """
 
-    def __init__(self):
-        self.unoptimized_locals = False
-        self.unqualified_exec = False
+    def __init__(self, flags):
+        self.unoptimized_locals = "has_exec" in flags
+        self.unqualified_exec = "has_unqualified_exec" in flags
         self.exec_source_ref = None
 
-    def markAsExecContaining(self):
-        self.unoptimized_locals = True
-
     def markAsUnqualifiedExecContaining(self, source_ref):
-        self.unqualified_exec = True
+        assert self.unqualified_exec
 
         # Let the first one win.
         if self.exec_source_ref is None:
             self.exec_source_ref = source_ref
-
-    markAsStarImportContaining = markAsExecContaining
 
     def isUnoptimized(self):
         return self.unoptimized_locals

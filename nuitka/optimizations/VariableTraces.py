@@ -163,7 +163,6 @@ class VariableTraceBase:
         # TODO: Temporarily disable far reaching of assumptions, until value
         # escaping can be trusted.
         if self.variable.isModuleVariable() or \
-           self.variable.isMaybeLocalVariable() or \
            self.variable.isSharedTechnically() is not False:
             return False
 
