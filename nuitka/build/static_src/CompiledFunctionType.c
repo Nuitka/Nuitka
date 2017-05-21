@@ -20,12 +20,10 @@
 
 #include "nuitka/compiled_method.h"
 
+#include "nuitka/freelists.h"
+
 // Needed for offsetof
 #include <stddef.h>
-
-#define NUITKA_FUNCTION_FREE_LIST 1
-#define MAX_FUNCTION_FREE_LIST_COUNT 100
-
 
 // tp_descr_get slot, bind a function to an object.
 static PyObject *Nuitka_Function_descr_get( PyObject *function, PyObject *object, PyObject *klass )
@@ -492,10 +490,10 @@ static PyObject *Nuitka_Function_reduce( struct Nuitka_FunctionObject *function 
 #endif
 }
 
-#if NUITKA_FUNCTION_FREE_LIST
+
+#define MAX_FUNCTION_FREE_LIST_COUNT 100
 static struct Nuitka_FunctionObject *free_list = NULL;
 static int free_list_count = 0;
-#endif
 
 static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
 {
@@ -536,34 +534,8 @@ static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
         Py_DECREF( function->m_closure[i] );
     }
 
-    /* We abuse m_name for making a list of them. */
-#if NUITKA_FUNCTION_FREE_LIST
-    if ( free_list != NULL )
-    {
-        if ( free_list_count > MAX_FUNCTION_FREE_LIST_COUNT )
-        {
-            PyObject_GC_Del( function );
-        }
-        else
-        {
-            function->m_name = (PyObject *)free_list;
-            free_list = function;
-
-            free_list_count += 1;
-        }
-    }
-    else
-    {
-        free_list = function;
-        function->m_name = NULL;
-
-        assert( free_list_count == 0 );
-
-        free_list_count += 1;
-    }
-#else
-    PyObject_GC_Del( function );
-#endif
+    /* Put the object into freelist or release to GC */
+    releaseToFreeList( function, MAX_FUNCTION_FREE_LIST_COUNT );
 
 #ifndef __NUITKA_NO_ASSERT__
     PyThreadState *tstate = PyThreadState_GET();
@@ -583,58 +555,58 @@ static PyMethodDef Nuitka_Function_methods[] =
 PyTypeObject Nuitka_Function_Type =
 {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "compiled_function",                            /* tp_name */
-    sizeof(struct Nuitka_FunctionObject),           /* tp_basicsize */
-    sizeof(struct Nuitka_CellObject *),             /* tp_itemsize */
-    (destructor)Nuitka_Function_tp_dealloc,         /* tp_dealloc */
-    0,                                              /* tp_print */
-    0,                                              /* tp_getattr */
-    0,                                              /* tp_setattr */
-    0,                                              /* tp_compare */
-    (reprfunc)Nuitka_Function_tp_repr,              /* tp_repr */
-    0,                                              /* tp_as_number */
-    0,                                              /* tp_as_sequence */
-    0,                                              /* tp_as_mapping */
-    (hashfunc)Nuitka_Function_tp_hash,              /* tp_hash */
-    (ternaryfunc)Nuitka_Function_tp_call,           /* tp_call */
-    0,                                              /* tp_str */
-    PyObject_GenericGetAttr,                        /* tp_getattro */
-    0,                                              /* tp_setattro */
-    0,                                              /* tp_as_buffer */
+    "compiled_function",                                   /* tp_name */
+    sizeof(struct Nuitka_FunctionObject),                  /* tp_basicsize */
+    sizeof(struct Nuitka_CellObject *),                    /* tp_itemsize */
+    (destructor)Nuitka_Function_tp_dealloc,                /* tp_dealloc */
+    0,                                                     /* tp_print */
+    0,                                                     /* tp_getattr */
+    0,                                                     /* tp_setattr */
+    0,                                                     /* tp_compare */
+    (reprfunc)Nuitka_Function_tp_repr,                     /* tp_repr */
+    0,                                                     /* tp_as_number */
+    0,                                                     /* tp_as_sequence */
+    0,                                                     /* tp_as_mapping */
+    (hashfunc)Nuitka_Function_tp_hash,                     /* tp_hash */
+    (ternaryfunc)Nuitka_Function_tp_call,                  /* tp_call */
+    0,                                                     /* tp_str */
+    PyObject_GenericGetAttr,                               /* tp_getattro */
+    0,                                                     /* tp_setattro */
+    0,                                                     /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT       |
 #if PYTHON_VERSION < 300
     Py_TPFLAGS_HAVE_WEAKREFS |
 #endif
-    Py_TPFLAGS_HAVE_GC,                             /* tp_flags */
-    0,                                              /* tp_doc */
-    (traverseproc)Nuitka_Function_tp_traverse,      /* tp_traverse */
-    0,                                              /* tp_clear */
-    0,                                              /* tp_richcompare */
+    Py_TPFLAGS_HAVE_GC,                                    /* tp_flags */
+    0,                                                     /* tp_doc */
+    (traverseproc)Nuitka_Function_tp_traverse,             /* tp_traverse */
+    0,                                                     /* tp_clear */
+    0,                                                     /* tp_richcompare */
     offsetof( struct Nuitka_FunctionObject, m_weakrefs ),  /* tp_weaklistoffset */
-    0,                                              /* tp_iter */
-    0,                                              /* tp_iternext */
-    Nuitka_Function_methods,                        /* tp_methods */
-    0,                                              /* tp_members */
-    Nuitka_Function_getset,                         /* tp_getset */
-    0,                                              /* tp_base */
-    0,                                              /* tp_dict */
-    Nuitka_Function_descr_get,                      /* tp_descr_get */
-    0,                                              /* tp_descr_set */
-    offsetof( struct Nuitka_FunctionObject, m_dict ), /* tp_dictoffset */
-    0,                                              /* tp_init */
-    0,                                              /* tp_alloc */
-    0,                                              /* tp_new */
-    0,                                              /* tp_free */
-    0,                                              /* tp_is_gc */
-    0,                                              /* tp_bases */
-    0,                                              /* tp_mro */
-    0,                                              /* tp_cache */
-    0,                                              /* tp_subclasses */
-    0,                                              /* tp_weaklist */
-    0,                                              /* tp_del */
-    0                                               /* tp_version_tag */
+    0,                                                     /* tp_iter */
+    0,                                                     /* tp_iternext */
+    Nuitka_Function_methods,                               /* tp_methods */
+    0,                                                     /* tp_members */
+    Nuitka_Function_getset,                                /* tp_getset */
+    0,                                                     /* tp_base */
+    0,                                                     /* tp_dict */
+    Nuitka_Function_descr_get,                             /* tp_descr_get */
+    0,                                                     /* tp_descr_set */
+    offsetof( struct Nuitka_FunctionObject, m_dict ),      /* tp_dictoffset */
+    0,                                                     /* tp_init */
+    0,                                                     /* tp_alloc */
+    0,                                                     /* tp_new */
+    0,                                                     /* tp_free */
+    0,                                                     /* tp_is_gc */
+    0,                                                     /* tp_bases */
+    0,                                                     /* tp_mro */
+    0,                                                     /* tp_cache */
+    0,                                                     /* tp_subclasses */
+    0,                                                     /* tp_weaklist */
+    0,                                                     /* tp_del */
+    0                                                      /* tp_version_tag */
 #if PYTHON_VERSION >= 340
-    ,0                                              /* tp_finalizer */
+    ,0                                                     /* tp_finalizer */
 #endif
 };
 
@@ -655,34 +627,10 @@ struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, Py
 {
     struct Nuitka_FunctionObject *result;
 
-#if NUITKA_FUNCTION_FREE_LIST
-    if ( free_list != NULL )
-    {
-        result = free_list;
-        free_list = (struct Nuitka_FunctionObject *)free_list->m_name;
-        free_list_count -= 1;
-        assert( free_list_count >= 0 );
+    // Macro to assign result memory from GC or free list.
+    allocateFromFreeList(struct Nuitka_FunctionObject, Nuitka_Function_Type, closure_given + 1 );
 
-        if ( Py_SIZE( result ) < closure_given + 1 )
-        {
-            result = PyObject_GC_Resize( struct Nuitka_FunctionObject, result, closure_given + 1 );
-            assert( result != NULL );
-        }
-
-        _Py_NewReference( (PyObject *)result );
-    }
-    else
-#endif
-    {
-        result = (struct Nuitka_FunctionObject *)Nuitka_GC_NewVar(
-            &Nuitka_Function_Type,
-            closure_given + 1         // TODO: This plus 1 seems off.
-        );
-    }
-
-    CHECK_OBJECT( result );
-
-    /* Closure is set externally */
+    /* Closure is set externally after we return */
     result->m_closure_given = closure_given;
 
     result->m_c_code = c_code;

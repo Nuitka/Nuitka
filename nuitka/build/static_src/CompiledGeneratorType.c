@@ -18,8 +18,8 @@
 
 #include "nuitka/prelude.h"
 
-#define NUITKA_GENERATOR_FREE_LIST 1
-#define MAX_GENERATOR_FREE_LIST_COUNT 100
+#include "nuitka/freelists.h"
+
 
 static PyObject *Nuitka_Generator_tp_repr( struct Nuitka_GeneratorObject *generator )
 {
@@ -576,12 +576,12 @@ static void Nuitka_Generator_tp_del( struct Nuitka_GeneratorObject *generator )
     /* Restore the saved exception if any. */
     RESTORE_ERROR_OCCURRED( error_type, error_value, error_traceback );
 }
+
 #endif
 
-#if NUITKA_GENERATOR_FREE_LIST
+#define MAX_GENERATOR_FREE_LIST_COUNT 100
 static struct Nuitka_GeneratorObject *free_list = NULL;
 static int free_list_count = 0;
-#endif
 
 static void Nuitka_Generator_tp_dealloc( struct Nuitka_GeneratorObject *generator )
 {
@@ -632,34 +632,8 @@ static void Nuitka_Generator_tp_dealloc( struct Nuitka_GeneratorObject *generato
     Py_DECREF( generator->m_qualname );
 #endif
 
-    /* We abuse m_frame for making a list of them. */
-#if NUITKA_GENERATOR_FREE_LIST
-    if ( free_list != NULL )
-    {
-        if ( free_list_count > MAX_GENERATOR_FREE_LIST_COUNT )
-        {
-            PyObject_GC_Del( generator );
-        }
-        else
-        {
-            generator->m_frame = (PyFrameObject *)free_list;
-            free_list = generator;
-
-            free_list_count += 1;
-        }
-    }
-    else
-    {
-        free_list = generator;
-        generator->m_frame = NULL;
-
-        assert( free_list_count == 0 );
-
-        free_list_count += 1;
-    }
-#else
-    PyObject_GC_Del( generator );
-#endif
+    /* Put the object into freelist or release to GC */
+    releaseToFreeList( generator, MAX_GENERATOR_FREE_LIST_COUNT );
 
     RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 }
@@ -870,30 +844,8 @@ PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject 
 {
     struct Nuitka_GeneratorObject *result;
 
-#if NUITKA_GENERATOR_FREE_LIST
-    if ( free_list != NULL )
-    {
-        result = free_list;
-        free_list = (struct Nuitka_GeneratorObject *)free_list->m_frame;
-        free_list_count -= 1;
-        assert( free_list_count >= 0 );
-
-        if ( Py_SIZE( result ) < closure_given + 1 )
-        {
-            result = PyObject_GC_Resize( struct Nuitka_GeneratorObject, result, closure_given + 1 );
-            assert( result != NULL );
-        }
-
-        _Py_NewReference( (PyObject *)result );
-    }
-    else
-#endif
-    {
-        result = (struct Nuitka_GeneratorObject *)Nuitka_GC_NewVar(
-            &Nuitka_Generator_Type,
-            closure_given + 1         // TODO: This plus 1 seems off.
-        );
-    }
+    // Macro to assign result memory from GC or free list.
+    allocateFromFreeList(struct Nuitka_GeneratorObject, Nuitka_Generator_Type, closure_given + 1 );
 
     assert( result != NULL );
     CHECK_OBJECT( result );

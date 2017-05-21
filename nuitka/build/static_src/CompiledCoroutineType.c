@@ -18,8 +18,8 @@
 
 #include "nuitka/prelude.h"
 
-#define NUITKA_COROUTINE_FREE_LIST 1
-#define MAX_COROUTINE_FREE_LIST_COUNT 100
+#include "nuitka/freelists.h"
+
 
 static PyObject *Nuitka_Coroutine_get_name( struct Nuitka_CoroutineObject *coroutine )
 {
@@ -678,10 +678,9 @@ static PyObject *Nuitka_Coroutine_await( struct Nuitka_CoroutineObject *coroutin
     return (PyObject *)result;
 }
 
-#if NUITKA_COROUTINE_FREE_LIST
+#define MAX_COROUTINE_FREE_LIST_COUNT 100
 static struct Nuitka_CoroutineObject *free_list = NULL;
 static int free_list_count = 0;
-#endif
 
 static void Nuitka_Coroutine_tp_dealloc( struct Nuitka_CoroutineObject *coroutine )
 {
@@ -726,34 +725,8 @@ static void Nuitka_Coroutine_tp_dealloc( struct Nuitka_CoroutineObject *coroutin
     Py_DECREF( coroutine->m_name );
     Py_DECREF( coroutine->m_qualname );
 
-    /* We abuse m_frame for making a list of them. */
-#if NUITKA_COROUTINE_FREE_LIST
-    if ( free_list != NULL )
-    {
-        if ( free_list_count > MAX_COROUTINE_FREE_LIST_COUNT )
-        {
-            PyObject_GC_Del( coroutine );
-        }
-        else
-        {
-            coroutine->m_frame = (PyFrameObject *)free_list;
-            free_list = coroutine;
-
-            free_list_count += 1;
-        }
-    }
-    else
-    {
-        free_list = coroutine;
-        coroutine->m_frame = NULL;
-
-        assert( free_list_count == 0 );
-
-        free_list_count += 1;
-    }
-#else
-    PyObject_GC_Del( coroutine );
-#endif
+    /* Put the object into freelist or release to GC */
+    releaseToFreeList( coroutine, MAX_COROUTINE_FREE_LIST_COUNT );
 
     RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 }
@@ -943,30 +916,8 @@ PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *q
 {
     struct Nuitka_CoroutineObject *result;
 
-#if NUITKA_COROUTINE_FREE_LIST
-    if ( free_list != NULL )
-    {
-        result = free_list;
-        free_list = (struct Nuitka_CoroutineObject *)free_list->m_frame;
-        free_list_count -= 1;
-        assert( free_list_count >= 0 );
-
-        if ( Py_SIZE( result ) < closure_given + 1 )
-        {
-            result = PyObject_GC_Resize( struct Nuitka_CoroutineObject, result, closure_given + 1 );
-            assert( result != NULL );
-        }
-
-        _Py_NewReference( (PyObject *)result );
-    }
-    else
-#endif
-    {
-        result = (struct Nuitka_CoroutineObject *)Nuitka_GC_NewVar(
-            &Nuitka_Coroutine_Type,
-            closure_given + 1         // TODO: This plus 1 seems off.
-        );
-    }
+    // Macro to assign result memory from GC or free list.
+    allocateFromFreeList(struct Nuitka_CoroutineObject, Nuitka_Coroutine_Type, closure_given + 1 );
 
     result->m_code = (void *)code;
 

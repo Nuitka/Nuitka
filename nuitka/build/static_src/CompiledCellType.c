@@ -18,47 +18,19 @@
 
 #include "nuitka/prelude.h"
 
-#define NUITKA_CELL_FREE_LIST 1
-#define MAX_CELL_FREE_LIST_COUNT 1000
+#include "nuitka/freelists.h"
 
-#if NUITKA_CELL_FREE_LIST
+
+#define MAX_CELL_FREE_LIST_COUNT 1000
 static struct Nuitka_CellObject *free_list = NULL;
 static int free_list_count = 0;
-#endif
 
 static void Nuitka_Cell_tp_dealloc( struct Nuitka_CellObject *cell )
 {
     Nuitka_GC_UnTrack( cell );
     Py_XDECREF( cell->ob_ref );
 
-    /* We abuse ob_ref for making a list of them. */
-#if NUITKA_CELL_FREE_LIST
-    if ( free_list != NULL )
-    {
-        if ( free_list_count > MAX_CELL_FREE_LIST_COUNT )
-        {
-            PyObject_GC_Del( cell );
-        }
-        else
-        {
-            cell->ob_ref = (PyObject *)free_list;
-            free_list = cell;
-
-            free_list_count += 1;
-        }
-    }
-    else
-    {
-        free_list = cell;
-        cell->ob_ref = NULL;
-
-        assert( free_list_count == 0 );
-
-        free_list_count += 1;
-    }
-#else
-    PyObject_GC_Del( cell );
-#endif
+    releaseToFreeList( cell, MAX_CELL_FREE_LIST_COUNT );
 }
 
 #if PYTHON_VERSION < 300
@@ -253,26 +225,7 @@ struct Nuitka_CellObject *Nuitka_Cell_New( void )
 {
     struct Nuitka_CellObject *result;
 
-#if NUITKA_CELL_FREE_LIST
-    if ( free_list != NULL )
-    {
-        result = free_list;
-        free_list = (struct Nuitka_CellObject *)free_list->ob_ref;
-        free_list_count -= 1;
-        assert( free_list_count >= 0 );
-
-        _Py_NewReference( (PyObject *)result );
-    }
-    else
-#endif
-    {
-        result = (struct Nuitka_CellObject *)PyObject_GC_New(
-            struct Nuitka_CellObject,
-            &Nuitka_Cell_Type
-        );
-    }
-
-    assert( result != NULL );
+    allocateFromFreeListFixed( struct Nuitka_CellObject, Nuitka_Cell_Type )
 
     Nuitka_GC_Track( result );
 

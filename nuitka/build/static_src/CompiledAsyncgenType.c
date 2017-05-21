@@ -17,8 +17,8 @@
 //
 #include "nuitka/prelude.h"
 
-#define NUITKA_ASYNCGEN_FREE_LIST 1
-#define MAX_ASYNCGEN_FREE_LIST_COUNT 100
+#include "nuitka/freelists.h"
+
 
 static PyObject *Nuitka_Asyncgen_get_name( struct Nuitka_AsyncgenObject *asyncgen )
 {
@@ -600,12 +600,9 @@ static PyObject *Nuitka_Asyncgen_athrow( struct Nuitka_AsyncgenObject *asyncgen,
     return Nuitka_AsyncgenAthrow_New( asyncgen, args );
 }
 
-
-
-#if NUITKA_ASYNCGEN_FREE_LIST
+#define MAX_ASYNCGEN_FREE_LIST_COUNT 100
 static struct Nuitka_AsyncgenObject *free_list = NULL;
 static int free_list_count = 0;
-#endif
 
 // TODO: This might have to be finalize actually.
 static void Nuitka_Asyncgen_tp_dealloc( struct Nuitka_AsyncgenObject *asyncgen )
@@ -676,34 +673,8 @@ static void Nuitka_Asyncgen_tp_dealloc( struct Nuitka_AsyncgenObject *asyncgen )
     Py_DECREF( asyncgen->m_name );
     Py_DECREF( asyncgen->m_qualname );
 
-    /* We abuse m_frame for making a list of them. */
-#if NUITKA_ASYNCGEN_FREE_LIST
-    if ( free_list != NULL )
-    {
-        if ( free_list_count > MAX_ASYNCGEN_FREE_LIST_COUNT )
-        {
-            PyObject_GC_Del( asyncgen );
-        }
-        else
-        {
-            asyncgen->m_frame = (PyFrameObject *)free_list;
-            free_list = asyncgen;
-
-            free_list_count += 1;
-        }
-    }
-    else
-    {
-        free_list = asyncgen;
-        asyncgen->m_frame = NULL;
-
-        assert( free_list_count == 0 );
-
-        free_list_count += 1;
-    }
-#else
-    PyObject_GC_Del( asyncgen );
-#endif
+    /* Put the object into freelist or release to GC */
+    releaseToFreeList( asyncgen, MAX_ASYNCGEN_FREE_LIST_COUNT );
 
     RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 }
@@ -817,30 +788,8 @@ PyObject *Nuitka_Asyncgen_New( asyncgen_code code, PyObject *name, PyObject *qua
 {
     struct Nuitka_AsyncgenObject *result;
 
-#if NUITKA_ASYNCGEN_FREE_LIST
-    if ( free_list != NULL )
-    {
-        result = free_list;
-        free_list = (struct Nuitka_AsyncgenObject *)free_list->m_frame;
-        free_list_count -= 1;
-        assert( free_list_count >= 0 );
-
-        if ( Py_SIZE( result ) < closure_given + 1 )
-        {
-            result = PyObject_GC_Resize( struct Nuitka_AsyncgenObject, result, closure_given + 1 );
-            assert( result != NULL );
-        }
-
-        _Py_NewReference( (PyObject *)result );
-    }
-    else
-#endif
-    {
-        result = (struct Nuitka_AsyncgenObject *)Nuitka_GC_NewVar(
-            &Nuitka_Asyncgen_Type,
-            closure_given + 1         // TODO: This plus 1 seems off.
-        );
-    }
+    // Macro to assign result memory from GC or free list.
+    allocateFromFreeList(struct Nuitka_AsyncgenObject, Nuitka_Asyncgen_Type, closure_given + 1 );
 
     result->m_code = (void *)code;
 
