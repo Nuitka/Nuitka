@@ -107,6 +107,7 @@ if os.path.exists(guess_path):
                 (plugin_dir, filename, full_name)
                 for filename in
                 getFileList(target_plugin_dir)
+                if not filename.endswith(".qml")
             ]
 
         return ()
