@@ -551,8 +551,9 @@ def buildUnaryOpNode(provider, node, source_ref):
 def buildBinaryOpNode(provider, node, source_ref):
     operator = getKind(node.op)
 
-    if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
-        operator = "TrueDiv"
+    if operator == "Div":
+        if source_ref.getFutureSpec().isFutureDivision():
+            operator = "TrueDiv"
 
     left       = buildNode(provider, node.left, source_ref)
     right      = buildNode(provider, node.right, source_ref)
