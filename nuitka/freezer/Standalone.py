@@ -125,6 +125,11 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
             source_code
         )
 
+        source_code = source_code.replace(
+            "PREFIXES = [sys.prefix, sys.exec_prefix]",
+            "PREFIXES = []"
+        )
+
     debug(
         "Freezing module '%s' (from '%s').",
         module_name,
