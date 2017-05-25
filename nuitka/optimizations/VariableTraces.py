@@ -35,8 +35,14 @@ from logging import debug
 from nuitka.utils import InstanceCounters
 
 
-class VariableTraceBase:
+class VariableTraceBase(object):
     # We are going to have many instance attributes, pylint: disable=too-many-instance-attributes
+
+    __slots__ = (
+        "owner", "variable", "version", "usage_count",
+        "has_potential_usages", "has_releases", "has_name_usages",
+        "closure_usages", "is_escaped", "previous"
+    )
 
     @InstanceCounters.counted_init
     def __init__(self, owner, variable, version, previous):
@@ -189,6 +195,8 @@ class VariableTraceBase:
 
 
 class VariableTraceUninit(VariableTraceBase):
+    __slots__ = ()
+
     def __init__(self, owner, variable, version, previous):
         VariableTraceBase.__init__(
             self,
@@ -227,6 +235,8 @@ class VariableTraceUninit(VariableTraceBase):
 
 
 class VariableTraceInit(VariableTraceBase):
+    __slots__ = ()
+
     def __init__(self, owner, variable, version):
         VariableTraceBase.__init__(
             self,
@@ -324,6 +334,8 @@ class VariableTraceUnknown(VariableTraceBase):
 
 
 class VariableTraceAssign(VariableTraceBase):
+    __slots__ = ("assign_node", "replace_it")
+
     def __init__(self, owner, assign_node, variable, version, previous):
         VariableTraceBase.__init__(
             self,
@@ -386,6 +398,9 @@ class VariableTraceMerge(VariableTraceBase):
         SSA theory. Also used for merging multiple "return", "break" or
         "continue" exits.
     """
+
+    __slots__ = ()
+
     def __init__(self, variable, version, traces):
         VariableTraceBase.__init__(
             self,
@@ -483,8 +498,10 @@ class VariableTraceLoopMerge(VariableTraceBase):
 
         They will start out with just one previous, and later be updated with
         all of the variable versions at loop continue times.
-        .
     """
+
+    __slots__ = "loop_finished",
+
     def __init__(self, variable, version, previous):
         VariableTraceBase.__init__(
             self,
