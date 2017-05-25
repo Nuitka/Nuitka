@@ -36,7 +36,7 @@ def generateTryCode(statement, emit, context):
     # The try construct is the most complex for code generation. We may need to
     # react on break, continue, return, raise in the handlers. For exception
     # and return handlers, we need to be able to re-raise or re-return.
-    # So this is full of detail stuff, pylint: disable=R0912,R0914,R0915
+    # So this is full of detail stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if generateTryNextExceptStopIterationCode(statement, emit, context):
         return
@@ -237,7 +237,7 @@ exception_lineno = -1;
 
 def generateTryNextExceptStopIterationCode(statement, emit, context):
     # This has many branches which mean this optimized code generation is not
-    # applicable, we return each time. pylint: disable=R0911,R0912
+    # applicable, we return each time. pylint: disable=too-many-branches,too-many-return-statements
 
     except_handler = statement.getBlockExceptHandler()
 

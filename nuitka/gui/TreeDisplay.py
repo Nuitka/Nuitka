@@ -24,15 +24,15 @@ code.
 import os
 import sys
 
-from PyQt5 import QtCore  # @UnresolvedImport pylint: disable=F0401,I0021
-from PyQt5 import QtGui  # @UnresolvedImport pylint: disable=F0401,I0021
-from PyQt5 import uic  # @UnresolvedImport pylint: disable=F0401,I0021
+from PyQt5 import QtCore  # @UnresolvedImport pylint: disable=import-error,useless-suppression
+from PyQt5 import QtGui  # @UnresolvedImport pylint: disable=import-error,useless-suppression
+from PyQt5 import uic  # @UnresolvedImport pylint: disable=import-error,useless-suppression
 
 from nuitka import SourceCodeReferences
 
 
-# The API requires a signature, sometimes we don't use it, pylint: disable=R0201
-# Also using private stuff from classes, probably ok, pylint: disable=W0212
+# The API requires a signature, sometimes we don't use it, pylint: disable=no-self-use
+# Also using private stuff from classes, probably ok, pylint: disable=protected-access
 
 class NodeTreeModelItem:
     def __init__(self, node, parent = None):

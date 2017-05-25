@@ -104,7 +104,7 @@ def getOptions():
 
     default_pylint_options = """\
 --rcfile=/dev/null
---disable=I0011,I0012,W0232,C0326,C0330,C1001,E1103,W0632,W1504,C0123,C0413,C0411,R0204,R1705,similar-code,cyclic-import,duplicate-code
+--disable=I0011,I0012,W0232,C0326,C0330,C1001,E1103,W0632,W1504,C0123,C0413,C0411,R0204,similar-code,cyclic-import,duplicate-code
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
@@ -146,7 +146,7 @@ def executePyLint(filenames, show_todos, verbose):
     if not show_todos:
         pylint_options.append("--notes=")
 
-    # This is kind of a singleton module, pylint: disable=W0603
+    # This is kind of a singleton module, pylint: disable=global-statement
     global our_exit_code
 
     def hasPyLintBugTrigger(filename):

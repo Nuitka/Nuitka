@@ -142,7 +142,7 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
         return {}
 
     def isExpressionComparison(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return True
 
     def mayRaiseException(self, exception_type):
@@ -254,7 +254,7 @@ class ExpressionComparisonExceptionMatch(ExpressionComparison):
         return {}
 
     def isExpressionComparison(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return True
 
     def getSimulator(self):
@@ -279,7 +279,7 @@ class ExpressionComparisonInNotInBase(ExpressionComparison):
         return {}
 
     def isExpressionComparison(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return True
 
     def mayRaiseException(self, exception_type):

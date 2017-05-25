@@ -202,7 +202,7 @@ def _detectedShlibFile(filename, module_name):
 
 def _detectImports(command, user_provided, technical):
     # This is pretty complicated stuff, with variants to deal with.
-    # pylint: disable=R0912,R0914,R0915
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # Print statements for stuff to show, the modules loaded.
     if python_version >= 300:
@@ -348,7 +348,7 @@ if Utils.getOS() != "Windows":
 
 def scanStandardLibraryPath(stdlib_dir):
     # There is a lot of black-listing here, done in branches, so there
-    # is many of them, but that's acceptable, pylint: disable=R0912
+    # is many of them, but that's acceptable, pylint: disable=too-many-branches
 
     for root, dirs, filenames in os.walk(stdlib_dir):
         import_path = root[len(stdlib_dir):].strip("/\\")
@@ -886,7 +886,7 @@ def copyUsedDLLs(dist_dir, standalone_entry_points):
     # This is terribly complex, because we check the list of used DLLs
     # trying to avoid duplicates, and detecting errors with them not
     # being binary identical, so we can report them. And then of course
-    # we also need to handle OS specifics, pylint: disable=R0912
+    # we also need to handle OS specifics, pylint: disable=too-many-branches
 
     dll_map = []
 

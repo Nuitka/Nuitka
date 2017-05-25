@@ -59,6 +59,7 @@ from .NodeMakingHelpers import (
 )
 from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
+
 class MaybeLocalVariableUsage(Exception):
     pass
 
@@ -227,7 +228,9 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
             # For "exec" containing/star import containing, we raise this exception to indicate
             # that instead of merely a variable, to be assigned, we need to replace with locals
             # dict access.
-            if python_version < 300 and not self.isExpressionClassBody() and self.isUnoptimized() and result.isModuleVariable():
+            if python_version < 300 and not self.isExpressionClassBody() and \
+               result.isModuleVariable() and \
+               self.isUnoptimized():
                 raise MaybeLocalVariableUsage
 
         return result
@@ -733,7 +736,7 @@ error""" % self.getName()
 
     def getCallCost(self, values):
         # TODO: Ought to use values. If they are all constant, how about we
-        # assume no cost, pylint: disable=W0613
+        # assume no cost, pylint: disable=unused-argument
 
         if not Options.isExperimental():
             return None

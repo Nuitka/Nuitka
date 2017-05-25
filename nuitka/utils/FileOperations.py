@@ -131,7 +131,7 @@ def removeDirectory(path, ignore_errors):
     """
 
     def onError(func, path, exc_info):
-        # Try again immediately, ignore what happened, pylint: disable=W0613
+        # Try again immediately, ignore what happened, pylint: disable=unused-argument
         try:
             func(path)
         except OSError:

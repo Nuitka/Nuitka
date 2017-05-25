@@ -45,7 +45,7 @@ from .shapes.StandardShapes import ShapeUnknown
 
 class ExpressionBase(NodeBase):
     def getTypeShape(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return ShapeUnknown
 
     def getValueShape(self):
@@ -58,7 +58,7 @@ class ExpressionBase(NodeBase):
             compile time and e.g. operations or conditions, or even calls may
             be executed against it.
         """
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return False
 
     def getCompileTimeConstant(self):
@@ -78,7 +78,7 @@ class ExpressionBase(NodeBase):
         """ Could this evaluate to be "None".
 
             Yes or no. Defaults to pessimistic yes."""
-        # For overload, pylint: disable=R0201
+        # For overload, pylint: disable=no-self-use
 
         return True
 
@@ -89,15 +89,15 @@ class ExpressionBase(NodeBase):
             be asked to unpack itself.
         """
 
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def isKnownToBeIterableAtMin(self, count):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def isKnownToBeIterableAtMax(self, count):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def getIterationLength(self):
@@ -106,7 +106,7 @@ class ExpressionBase(NodeBase):
             Otherwise it is "None" to indicate unknown.
         """
 
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return None
 
     def getIterationMinLength(self):
@@ -127,7 +127,7 @@ class ExpressionBase(NodeBase):
 
     def getStringValue(self):
         """ Node as string value, if possible."""
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return None
 
     def getStrValue(self):
@@ -162,7 +162,7 @@ class ExpressionBase(NodeBase):
     def isKnownToBeHashable(self):
         """ Is the value hashable, i.e. suitable for dictionary/set keying."""
 
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         # Unknown by default.
         return None
 
@@ -171,7 +171,7 @@ class ExpressionBase(NodeBase):
         pass
 
     def isKnownToHaveAttribute(self, attribute_name):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
     @abstractmethod
@@ -195,7 +195,7 @@ class ExpressionBase(NodeBase):
     def computeExpressionAttributeSpecial(self, lookup_node, attribute_name,
                                           trace_collection):
         # By default, an attribute lookup may change everything about the lookup
-        # source. Virtual method, pylint: disable=W0613
+        # source. Virtual method, pylint: disable=unused-argument
         trace_collection.removeKnowledge(lookup_node)
 
         # Any code could be run, note that.
@@ -219,7 +219,7 @@ class ExpressionBase(NodeBase):
                                       value_node, trace_collection):
 
         # By default, an attribute lookup may change everything about the lookup
-        # source. Virtual method, pylint: disable=W0613
+        # source. Virtual method, pylint: disable=unused-argument
         trace_collection.removeKnowledge(self)
         trace_collection.removeKnowledge(value_node)
 
@@ -235,7 +235,7 @@ class ExpressionBase(NodeBase):
                                       trace_collection):
 
         # By default, an attribute lookup may change everything about the lookup
-        # source. Virtual method, pylint: disable=W0613
+        # source. Virtual method, pylint: disable=unused-argument
         trace_collection.removeKnowledge(self)
 
         # Any code could be run, note that.
@@ -250,7 +250,7 @@ class ExpressionBase(NodeBase):
                                    trace_collection):
         # By default, an subscript can execute any code and change all values
         # that escaped. This is a virtual method that may consider the subscript
-        # but generally we don't know what to do. pylint: disable=W0613
+        # but generally we don't know what to do. pylint: disable=unused-argument
         trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
@@ -262,7 +262,7 @@ class ExpressionBase(NodeBase):
                                       trace_collection):
         # By default, an subscript can execute any code and change all values
         # that escaped. This is a virtual method that may consider the subscript
-        # but generally we don't know what to do. pylint: disable=W0613
+        # but generally we don't know what to do. pylint: disable=unused-argument
         trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
@@ -274,7 +274,7 @@ class ExpressionBase(NodeBase):
                                       trace_collection):
         # By default, an subscript can execute any code and change all values
         # that escaped. This is a virtual method that may consider the subscript
-        # but generally we don't know what to do. pylint: disable=W0613
+        # but generally we don't know what to do. pylint: disable=unused-argument
         trace_collection.onControlFlowEscape(self)
 
         # Any exception may be raised.
@@ -430,7 +430,7 @@ class ExpressionBase(NodeBase):
         return iter_node, None, None
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
 
         # The value of that node escapes and could change its contents.
         trace_collection.removeKnowledge(not_node)
@@ -444,7 +444,7 @@ class ExpressionBase(NodeBase):
         return not_node, None, None
 
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(in_node)
@@ -465,54 +465,54 @@ class ExpressionBase(NodeBase):
 
     def mayRaiseExceptionBool(self, exception_type):
         """ Unless we are told otherwise, everything may raise being checked. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return True
 
     def mayRaiseExceptionIn(self, exception_type, checked_value):
         """ Unless we are told otherwise, everything may raise being iterated. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return True
 
     def mayRaiseExceptionAttributeLookup(self, exception_type, attribute_name):
         """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return True
 
     def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
         """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return True
 
     def mayRaiseExceptionAttributeLookupObject(self, exception_type, attribute):
         """ Unless we are told otherwise, everything may raise for attribute access. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return True
 
     def mayRaiseExceptionAttributeCheck(self, exception_type, attribute_name):
         """ Unless we are told otherwise, everything may raise for attribute check. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return True
 
     def mayRaiseExceptionAttributeCheckObject(self, exception_type, attribute):
         """ Unless we are told otherwise, everything may raise for attribute check. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return True
 
     def mayRaiseExceptionImportName(self, exception_type, import_name):
         """ Unless we are told otherwise, everything may raise for name import. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return True
 
     def mayHaveSideEffectsBool(self):
         """ Unless we are told otherwise, everything may have a side effect for bool check. """
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
 
         return True
 
@@ -538,14 +538,14 @@ class ExpressionBase(NodeBase):
     # TODO: Maybe this is a shape slot thing.
     def isIndexable(self):
         """ Unless we are told otherwise, it's not indexable. """
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
 
         return False
 
     # TODO: The ought to be a type shape check for that too.
     def getIntegerValue(self):
         """ Node as integer value, if possible."""
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return None
 
     def getIntValue(self):
@@ -555,7 +555,7 @@ class ExpressionBase(NodeBase):
             forget to take side effects into account, when replacing a
             node with its string value.
         """
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return None
 
     def hasShapeDictionaryExact(self):
@@ -598,7 +598,7 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         return True
 
     def isMutable(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return False
 
     def mayHaveSideEffects(self):

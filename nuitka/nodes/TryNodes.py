@@ -99,7 +99,7 @@ class StatementTry(StatementChildrenHavingBase):
     )
 
     def computeStatement(self, trace_collection):
-        # This node has many children to handle, pylint: disable=R0912,R0914
+        # This node has many children to handle, pylint: disable=too-many-branches,too-many-locals
         tried = self.getBlockTry()
 
         except_handler = self.getBlockExceptHandler()

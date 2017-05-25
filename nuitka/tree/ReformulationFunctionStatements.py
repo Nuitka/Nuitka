@@ -108,7 +108,7 @@ def _insertFinalReturnStatement(function_statements_body, return_class,
 
 
 def buildFunctionNode(provider, node, source_ref):
-    # Functions have way too many details, pylint: disable=R0912,R0914
+    # Functions have way too many details, pylint: disable=too-many-branches,too-many-locals
 
     assert getKind(node) == "FunctionDef"
 
@@ -280,7 +280,7 @@ def buildFunctionNode(provider, node, source_ref):
 
 def buildAsyncFunctionNode(provider, node, source_ref):
     # We are creating a function here that creates coroutine objects, with
-    # many details each, pylint: disable=R0914
+    # many details each, pylint: disable=too-many-locals
     assert getKind(node) == "AsyncFunctionDef"
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
@@ -468,7 +468,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
 
 
 def buildParameterAnnotations(provider, node, source_ref):
-    # Too many branches, because there is too many cases, pylint: disable=R0912
+    # Too many branches, because there is too many cases, pylint: disable=too-many-branches
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.
     if python_version < 300:
@@ -560,7 +560,7 @@ def buildParameterAnnotations(provider, node, source_ref):
 def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                              node, source_ref):
     # This contains a complex re-formulation for nested parameter functions.
-    # pylint: disable=R0914
+    # pylint: disable=too-many-locals
 
     kind = getKind(node)
 

@@ -29,7 +29,7 @@ complete = False
 
 class Variable:
     # We will need all of these attributes, since we track the global
-    # state and cache some decisions as attributes, pylint: disable=R0902
+    # state and cache some decisions as attributes, pylint: disable=too-many-instance-attributes
     @InstanceCounters.counted_init
     def __init__(self, owner, variable_name):
         assert type(variable_name) is str, variable_name
@@ -72,7 +72,7 @@ class Variable:
 
         return self.version_number
 
-    # pylint: disable=R0201
+    # pylint: disable=no-self-use
     def isLocalVariable(self):
         return False
 

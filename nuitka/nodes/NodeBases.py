@@ -119,7 +119,7 @@ class NodeBase(NodeMetaClassBase):
 
     def __repr__(self):
         # This is to avoid crashes, because of bugs in detail.
-        # pylint: disable=W0703
+        # pylint: disable=broad-except
         try:
             detail = self.getDetail()
         except Exception as e:
@@ -150,7 +150,7 @@ class NodeBase(NodeMetaClassBase):
             also be added.
 
         """
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return {}
 
     def getDetailsForDisplay(self):
@@ -369,7 +369,7 @@ class NodeBase(NodeMetaClassBase):
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
-        # Only some things need a provider, pylint: disable=W0613
+        # Only some things need a provider, pylint: disable=unused-argument
         return cls(source_ref = source_ref, **args)
 
     def asXmlText(self):
@@ -409,26 +409,26 @@ class NodeBase(NodeMetaClassBase):
         return False
 
     def isExpressionSideEffects(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
 
         # We need to provide this, as these node kinds are only imported if
         # necessary, but we test against them.
         return False
 
     def isStatementReraiseException(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return False
 
     def isExpressionMakeSequence(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return False
 
     def isNumberConstant(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return False
 
     def isExpressionCall(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return False
 
     def visit(self, context, visitor):
@@ -438,7 +438,7 @@ class NodeBase(NodeMetaClassBase):
             visitable.visit(context, visitor)
 
     def getVisitableNodes(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return ()
 
     def getVisitableNodesNamed(self):
@@ -447,7 +447,7 @@ class NodeBase(NodeMetaClassBase):
             For use in debugging and XML output.
         """
 
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return ()
 
     def replaceWith(self, new_node):
@@ -457,12 +457,12 @@ class NodeBase(NodeMetaClassBase):
         )
 
     def getName(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return None
 
     def mayHaveSideEffects(self):
         """ Unless we are told otherwise, everything may have a side effect. """
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
 
         return True
 
@@ -476,7 +476,7 @@ class NodeBase(NodeMetaClassBase):
 
     def mayRaiseException(self, exception_type):
         """ Unless we are told otherwise, everything may raise everything. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return True
 
@@ -484,11 +484,11 @@ class NodeBase(NodeMetaClassBase):
         return "_RETURN" in self.kind
 
     def mayBreak(self):
-        # For overload, pylint: disable=R0201
+        # For overload, pylint: disable=no-self-use
         return False
 
     def mayContinue(self):
-        # For overload, pylint: disable=R0201
+        # For overload, pylint: disable=no-self-use
         return False
 
     def needsFrame(self):
@@ -498,7 +498,7 @@ class NodeBase(NodeMetaClassBase):
 
     def willRaiseException(self, exception_type):
         """ Unless we are told otherwise, nothing may raise anything. """
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return False
 
@@ -511,7 +511,7 @@ class NodeBase(NodeMetaClassBase):
     def needsLocalsDict(self):
         """ Node requires a locals dictionary by provider. """
 
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return False
 
 
@@ -807,7 +807,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         return self.providing[variable_name]
 
     def createProvidedVariable(self, variable_name):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         assert type(variable_name) is str
 
         return None
@@ -1006,7 +1006,7 @@ class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
         return self, None, None
 
     def getStatementNiceName(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return "undescribed statement"
 
 
@@ -1089,7 +1089,7 @@ def fromXML(provider, xml, source_ref = None):
 
     if "constant" in args:
         # TODO: Try and reduce/avoid this, use marshal and/or pickle from a file
-        # global stream     instead. For now, this will do. pylint: disable=W0123
+        # global stream     instead. For now, this will do. pylint: disable=eval-used
         args["constant"] = eval(args["constant"])
 
     if kind in ("ExpressionFunctionBody", "PythonMainModule"):

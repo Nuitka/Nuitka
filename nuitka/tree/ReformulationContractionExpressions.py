@@ -154,7 +154,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=R0912,R0914
+    # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals
     tmp_variables = []
 
     if assign_provider:

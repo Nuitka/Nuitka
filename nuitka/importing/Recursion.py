@@ -140,7 +140,7 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
 
 def decideRecursion(module_filename, module_name, module_package, module_kind):
     # Many branches, which make decisions immediately, by returning
-    # pylint: disable=R0911,R0912
+    # pylint: disable=too-many-branches,too-many-return-statements
     Plugins.onModuleEncounter(
         module_filename,
         module_name,
@@ -245,7 +245,7 @@ def isSameModulePath(path1, path2):
 
 
 def _checkPluginPath(plugin_filename, module_package):
-    # Many branches, for the decision is very complex, pylint: disable=R0912
+    # Many branches, for the decision is very complex, pylint: disable=too-many-branches
 
     debug(
         "Checking detail plug-in path '%s' '%s':",

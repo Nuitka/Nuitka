@@ -53,7 +53,7 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
 
 def generateBuiltinGlobalsCode(to_name, expression, emit, context):
     # Functions used for generation all accept expression, but this one does
-    # not use it. pylint: disable=W0613
+    # not use it. pylint: disable=unused-argument
 
     getLoadGlobalsCode(
         to_name = to_name,

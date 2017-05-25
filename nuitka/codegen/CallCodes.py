@@ -41,7 +41,7 @@ from .templates.CodeTemplatesModules import (
 
 def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_name,
                              emit, context):
-    # We have many variants for this to deal with, pylint: disable=R0912
+    # We have many variants for this to deal with, pylint: disable=too-many-branches
 
     assert called_name is not None
     # TODO: Not yet specialized for method calls.

@@ -122,7 +122,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
                          kw_defaults_name, annotations_name, function_doc,
                          context):
     # We really need this many parameters here and functions have many details,
-    # that we express as variables, pylint: disable=R0914
+    # that we express as variables, pylint: disable=too-many-locals
     function_creation_args = _getFunctionCreationArgs(
         defaults_name     = defaults_name,
         kw_defaults_name  = kw_defaults_name,
@@ -191,7 +191,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
 
 def generateFunctionCreationCode(to_name, expression, emit, context):
     # This is about creating functions, which is detail ridden stuff,
-    # pylint: disable=R0914
+    # pylint: disable=too-many-locals
 
     function_body  = expression.getFunctionRef().getFunctionBody()
     code_object    = expression.getCodeObject()
@@ -551,7 +551,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
                     needs_exception_exit):
 
     # Functions have many details, that we express as variables, with many
-    # branches to decide, pylint: disable=R0914
+    # branches to decide, pylint: disable=too-many-locals
 
     function_locals, function_cleanup = setupFunctionLocalVariables(
         context           = context,

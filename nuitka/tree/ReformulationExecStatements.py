@@ -237,7 +237,7 @@ def buildExecNode(provider, node, source_ref):
     # This is using many variables, due to the many details this is
     # dealing with. The locals and globals need to be dealt with in
     # temporary variables, and we need handling of indicators, so
-    # that is just the complexity, pylint: disable=R0914
+    # that is just the complexity, pylint: disable=too-many-locals
 
     exec_globals = node.globals
     exec_locals = node.locals

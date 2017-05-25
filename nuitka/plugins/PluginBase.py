@@ -120,7 +120,7 @@ class NuitkaPluginBase:
                 )
 
     def getImplicitImports(self, full_name):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
     # Provide fall-back for failed imports here.
@@ -130,15 +130,15 @@ class NuitkaPluginBase:
         return self.module_aliases.get(module_name, None)
 
     def onModuleSourceCode(self, module_name, source_code):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return source_code
 
     def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return source_code
 
     def onFrozenModuleBytecode(self, module_name, is_package, bytecode):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return bytecode
 
     @staticmethod
@@ -170,12 +170,12 @@ class NuitkaPluginBase:
 
     @staticmethod
     def createPreModuleLoadCode(module):
-        # Virtual method, pylint: disable=W0613
+        # Virtual method, pylint: disable=unused-argument
         return None, None
 
     @staticmethod
     def createPostModuleLoadCode(module):
-        # Virtual method, pylint: disable=W0613
+        # Virtual method, pylint: disable=unused-argument
         return None, None
 
     def onModuleDiscovered(self, module):
@@ -275,23 +275,23 @@ class NuitkaPluginBase:
 
 
     def considerExtraDlls(self, dist_dir, module):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
     def considerDataFiles(self, module):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
     def suppressBuiltinImportWarning(self, module_name, source_ref):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def decideCompilation(self, module_name, source_ref):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
     def warnUnusedPlugin(self, message):

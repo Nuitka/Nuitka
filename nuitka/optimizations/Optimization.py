@@ -353,7 +353,7 @@ def makeOptimizationPass(initial_pass):
             _traceProgress(current_module)
 
         # The tag set is global, so it can react to changes without context.
-        # pylint: disable=W0603
+        # pylint: disable=global-statement
         global tag_set
         tag_set = TagSet()
 

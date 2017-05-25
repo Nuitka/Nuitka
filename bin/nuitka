@@ -64,7 +64,7 @@ else:
 
 if "NUITKA_PYTHONPATH" in os.environ:
     # Restore the PYTHONPATH gained from the site module, that we chose not
-    # to have imported. pylint: disable=W0123
+    # to have imported. pylint: disable=eval-used
     sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
     del os.environ["NUITKA_PYTHONPATH"]
 
@@ -183,7 +183,7 @@ if current_version not in Options.getSupportedPythonVersions():
 
 if "NUITKA_NAMESPACES" in os.environ:
     # Restore the detected name space packages, that were force loaded in
-    # site.py, and will need a free pass later on. pylint: disable=W0123
+    # site.py, and will need a free pass later on. pylint: disable=eval-used
 
     from nuitka.importing.PreloadedPackages import setPreloadedPackagePaths
 
@@ -192,7 +192,7 @@ if "NUITKA_NAMESPACES" in os.environ:
 
 if "NUITKA_PTH_IMPORTED" in os.environ:
     # Restore the packages that the ".pth" files asked to import.
-    # pylint: disable=W0123
+    # pylint: disable=eval-used
 
     from nuitka.importing.PreloadedPackages import setPthImportedPackages
 

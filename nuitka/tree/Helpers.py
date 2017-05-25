@@ -90,7 +90,7 @@ def parseSourceCodeToAst(source_code, filename, line_offset):
 
 def detectFunctionBodyKind(nodes, start_value = None):
     # This is a complex mess, following the scope means a lot of checks need
-    # to be done. pylint: disable=R0912,R0915
+    # to be done. pylint: disable=too-many-branches,too-many-statements
 
     indications = set()
     if start_value is not None:
@@ -225,7 +225,7 @@ build_nodes_args1 = None
 
 def setBuildingDispatchers(path_args3, path_args2, path_args1):
     # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=W0603
+    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
 
     global build_nodes_args3, build_nodes_args2, build_nodes_args1
 
@@ -463,7 +463,7 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     # mutable constants we cannot do it though.
 
     # Due to the many sequence types, there is a lot of cases here
-    # pylint: disable=R0912
+    # pylint: disable=too-many-branches
 
     for element in elements:
         if not element.isExpressionConstantRef():

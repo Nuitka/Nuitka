@@ -54,7 +54,7 @@ import sys
 from logging import info, warning
 
 from nuitka import Options, SourceCodeReferences
-from nuitka.__past__ import long, unicode  # pylint: disable=W0622
+from nuitka.__past__ import long, unicode  # pylint: disable=redefined-builtin
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
@@ -462,7 +462,7 @@ def buildStatementLoopContinue(node, source_ref):
 
 def buildStatementLoopBreak(provider, node, source_ref):
     # A bit unusual, we need the provider, but not the node,
-    # pylint: disable=W0613
+    # pylint: disable=unused-argument
 
     return StatementLoopBreak(
         source_ref = source_ref.atColumnNumber(node.col_offset)
@@ -896,7 +896,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
 
 def decideModuleTree(filename, package, is_shlib, is_top, is_main):
-    # Many variables, branches, due to the many cases, pylint: disable=R0912,R0915
+    # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
 
     assert package is None or type(package) is str
     assert filename is not None

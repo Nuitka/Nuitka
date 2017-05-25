@@ -59,7 +59,7 @@ def detectPreLoadedPackagePaths():
 preloaded_packages = None
 
 def getPreloadedPackagePaths():
-    # We need to set this from the outside, pylint: disable=W0603
+    # We need to set this from the outside, pylint: disable=global-statement
     global preloaded_packages
 
     if preloaded_packages is None:
@@ -69,7 +69,7 @@ def getPreloadedPackagePaths():
 
 
 def setPreloadedPackagePaths(value):
-    # We need to set this from the outside, pylint: disable=W0603
+    # We need to set this from the outside, pylint: disable=global-statement
     global preloaded_packages
 
     preloaded_packages = value
@@ -119,7 +119,7 @@ def detectPthImportedPackages():
 pth_imported_packages = ()
 
 def setPthImportedPackages(value):
-    # We need to set this from the outside, pylint: disable=W0603
+    # We need to set this from the outside, pylint: disable=global-statement
     global pth_imported_packages
 
     pth_imported_packages = value

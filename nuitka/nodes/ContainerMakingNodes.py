@@ -69,7 +69,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
     getElements = ExpressionChildrenHavingBase.childGetter("elements")
 
     def getSimulator(self):
-        # Abstract method, pylint: disable=R0201
+        # Abstract method, pylint: disable=no-self-use
         return None
 
     def computeExpression(self, trace_collection):
@@ -93,7 +93,7 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
         simulator = self.getSimulator()
         assert simulator is not None
 
-        # The simulator is in fact callable if not None, pylint: disable=E1102
+        # The simulator is in fact callable if not None, pylint: disable=not-callable
         return getComputationResult(
             node        = self,
             computation = lambda : simulator(

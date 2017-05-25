@@ -118,7 +118,7 @@ print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os
         stderr = subprocess.STDOUT
     )
 
-    global _python_version, _python_arch # singleton, pylint: disable=W0603
+    global _python_version, _python_arch # singleton, pylint: disable=global-statement
 
     _python_version = version_output.split(b"\n")[0].strip()
     _python_arch = version_output.split(b"\n")[1].strip()
@@ -150,7 +150,7 @@ tmp_dir = None
 def getTempDir():
     # Create a temporary directory to work in, automatically remove it in case
     # it is empty in the end.
-    global tmp_dir  # singleton, pylint: disable=W0603
+    global tmp_dir  # singleton, pylint: disable=global-statement
 
     if tmp_dir is None:
         tmp_dir = tempfile.mkdtemp(
@@ -245,7 +245,7 @@ def decideFilenameVersionSkip(filename):
     """
 
     # This will make many decisions with immediate returns.
-    # pylint: disable=R0911
+    # pylint: disable=too-many-return-statements
 
     assert type(filename) is str
     assert type(_python_version) is str
@@ -292,7 +292,7 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
 
     """
 
-    # pylint: disable=R0912
+    # pylint: disable=too-many-branches
 
 
     if dirname is None:
@@ -429,7 +429,7 @@ def isExecutableCommand(command):
 def getRuntimeTraceOfLoadedFiles(path, trace_error = True):
     """ Returns the files loaded when executing a binary. """
 
-    # This will make a crazy amount of work, pylint: disable=R0912,R0915
+    # This will make a crazy amount of work, pylint: disable=too-many-branches,too-many-statements
 
     result = []
 
@@ -684,7 +684,7 @@ def createSearchMode():
             self.may_fail = []
 
         def consider(self, dirname, filename):
-            # Virtual method, pylint: disable=R0201,W0613
+            # Virtual method, pylint: disable=no-self-use,unused-argument
             return True
 
         def finish(self):
@@ -698,7 +698,7 @@ def createSearchMode():
             return True
 
         def getExtraFlags(self, dirname, filename):
-            # Virtual method, pylint: disable=R0201,W0613
+            # Virtual method, pylint: disable=no-self-use,unused-argument
             return []
 
         def mayFailFor(self, *names):
@@ -725,7 +725,7 @@ def createSearchMode():
             )
 
         def isCoverage(self):
-            # Virtual method, pylint: disable=R0201
+            # Virtual method, pylint: disable=no-self-use
             return False
 
     if coverage_mode:
@@ -879,7 +879,7 @@ def convertToPython(doctests, line_filter = None):
     """ Convert give doctest string to static Python code.
 
     """
-    # This is convoluted, but it just needs to work, pylint: disable=R0912
+    # This is convoluted, but it just needs to work, pylint: disable=too-many-branches
 
     import doctest
     code = doctest.script_from_examples(doctests)
@@ -1051,7 +1051,7 @@ def run_async(coro):
 def async_iterate(g):
     """ Execute async generator until it's done. """
 
-    # Test code, pylint: disable=E0602,W0703
+    # Test code, pylint: disable=broad-except,undefined-variable
 
     res = []
     while True:

@@ -110,10 +110,10 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         return self.getAssignSource().mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        # This is very complex stuff, pylint: disable=R0911,R0912
+        # This is very complex stuff, pylint: disable=too-many-branches,too-many-return-statements
 
         # TODO: Way too ugly to have global trace kinds just here, and needs to
-        # be abstracted somehow. But for now we let it live here: pylint: disable=R0915
+        # be abstracted somehow. But for now we let it live here: pylint: disable=too-many-statements
 
         source = self.getAssignSource()
 

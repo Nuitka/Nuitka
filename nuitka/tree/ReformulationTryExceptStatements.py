@@ -264,7 +264,7 @@ def buildTryExceptionNode(provider, node, source_ref):
     # exception types and hides away that they may be built or not.
 
     # Many variables and branches, due to the re-formulation that is going on
-    # here, which just has the complexity, pylint: disable=R0912,R0914
+    # here, which just has the complexity, pylint: disable=too-many-branches,too-many-locals
 
     tried = buildStatementsNode(
         provider   = provider,

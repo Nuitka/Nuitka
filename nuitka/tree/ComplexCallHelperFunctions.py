@@ -749,7 +749,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable_ref,
                                             kw_target_variable_ref,
                                             kw_variable_ref,
                                             star_dict_variable_ref):
-    # This is plain terribly complex, pylint: disable=R0914
+    # This is plain terribly complex, pylint: disable=too-many-locals
     temp_scope = result.allocateTempScope("dict")
 
     tmp_dict_variable = result.allocateTempVariable(temp_scope, "dict")

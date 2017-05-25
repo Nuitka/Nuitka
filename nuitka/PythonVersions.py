@@ -90,7 +90,7 @@ def getComplexCallSequenceErrorTemplate():
     if not hasattr(getComplexCallSequenceErrorTemplate, "result"):
         try:
             # We are doing this on purpose, to get the exception.
-            # pylint: disable=E1102,E1133
+            # pylint: disable=  not-an-iterable,not-callable
             f = None
             f(*None)
         except TypeError as e:
@@ -104,7 +104,7 @@ def getComplexCallSequenceErrorTemplate():
 
 def needsSetLiteralReverseInsertion():
     try:
-        value = eval("{1,1.0}.pop()") # pylint: disable=W0123
+        value = eval("{1,1.0}.pop()") # pylint: disable=eval-used
     except SyntaxError:
         return False
     else:

@@ -43,7 +43,7 @@ sys.path.insert(
 
 from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH # isort:skip
 from nuitka.tools.ScanSources import scanTargets # isort:skip
-from nuitka.tools.pylint.PyLint import executePyLint # isort:skip
+from nuitka.tools.pylint import PyLint # isort:skip
 
 def main():
     goHome()
@@ -86,10 +86,12 @@ def main():
     )
 
     filenames = list(scanTargets(positional_args, blacklist))
-    executePyLint(filenames, options.todos, options.verbose)
+    PyLint.executePyLint(filenames, options.todos, options.verbose)
 
     if not filenames:
         sys.exit("No files found.")
+
+    sys.exit(PyLint.our_exit_code)
 
 if __name__ == "__main__":
     main()

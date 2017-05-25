@@ -85,7 +85,7 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 def _buildClassNode3(provider, node, source_ref):
     # Many variables, due to the huge re-formulation that is going on here,
-    # which just has the complexity, pylint: disable=R0914,R0915
+    # which just has the complexity, pylint: disable=too-many-locals
 
     # This function is the Python3 special case with special re-formulation as
     # according to developer manual.
@@ -594,7 +594,7 @@ def _buildClassNode3(provider, node, source_ref):
 
 def _buildClassNode2(provider, node, source_ref):
     # This function is the Python2 special case with special re-formulation as
-    # according to developer manual, and it's very detailed, pylint: disable=R0914
+    # according to developer manual, and it's very detailed, pylint: disable=too-many-locals
     class_statement_nodes, class_doc = extractDocFromBody(node)
 
     function_body = ExpressionClassBody(

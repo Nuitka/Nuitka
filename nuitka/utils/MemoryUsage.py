@@ -32,7 +32,7 @@ def getOwnProcessMemoryUsage():
         import ctypes.wintypes
 
         # Lets allow this to match Windows API it reflects,
-        # pylint: disable=C0103
+        # pylint: disable=invalid-name
         class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
             _fields_ = [
                 ("cb", ctypes.wintypes.DWORD),
@@ -68,7 +68,7 @@ def getOwnProcessMemoryUsage():
 
         return counters.PrivateUsage
     else:
-        # Posix only code, pylint: disable=F0401,I0021
+        # Posix only code, pylint: disable=import-error,useless-suppression
         import resource  # @UnresolvedImport
 
         # The value is from "getrusage", which has OS dependent scaling, at least

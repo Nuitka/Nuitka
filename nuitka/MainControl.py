@@ -271,7 +271,7 @@ def makeSourceDirectory(main_module):
 
     """
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=R0912,R0914
+    # no sense, pylint: disable=too-many-branches,too-many-locals
 
     assert main_module.isCompiledPythonModule()
 
@@ -429,7 +429,7 @@ def makeSourceDirectory(main_module):
 
 def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
-    # have checks for them, leading to many branches, pylint: disable=R0912
+    # have checks for them, leading to many branches, pylint: disable=too-many-branches
 
     if hasattr(sys, "abiflags"):
         abiflags = sys.abiflags
@@ -693,7 +693,7 @@ def main():
     """
 
     # Main has to fulfill many options, leading to many branches and statements
-    # to deal with them.  pylint: disable=R0912
+    # to deal with them.  pylint: disable=too-many-branches
     filename = Options.getPositionalArgs()[0]
 
     # Inform the importing layer about the main script directory, so it can use

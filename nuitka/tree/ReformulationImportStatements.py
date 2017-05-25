@@ -122,7 +122,7 @@ def _enableFutureFeature(node, object_name, future_spec, source_ref):
 def buildImportFromNode(provider, node, source_ref):
     # "from .. import .." statements. This may trigger a star import, or
     # multiple names being looked up from the given module variable name.
-    # This is pretty complex, pylint: disable=R0912,R0914
+    # This is pretty complex, pylint: disable=too-many-branches,too-many-locals
 
     module_name = node.module if node.module is not None else ""
     level = node.level

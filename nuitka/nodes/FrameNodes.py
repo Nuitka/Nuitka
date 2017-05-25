@@ -189,7 +189,7 @@ class StatementsFrame(StatementsSequence):
 
     def computeStatementsSequence(self, trace_collection):
         # The extraction of parts of the frame that can be moved before or after
-        # the frame scope, takes it toll to complexity, pylint: disable=R0912
+        # the frame scope, takes it toll to complexity, pylint: disable=too-many-branches
         new_statements = []
 
         statements = self.getStatements()

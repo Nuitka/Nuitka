@@ -21,7 +21,7 @@
 
 from logging import warning
 
-from nuitka.__past__ import (  # pylint: disable=W0622
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     iterItems,
     long,
     unicode,
@@ -62,6 +62,7 @@ from .shapes.BuiltinTypeShapes import (
     ShapeTypeXrange
 )
 
+constant_slots = "constant", "user_provided"
 
 class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
     user_provided = False
@@ -704,7 +705,7 @@ class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
 
 def makeConstantRefNode(constant, source_ref, user_provided = False):
     # This is dispatching per constant value and types, every case
-    # to be a return statement, pylint: disable=R0911,R0912
+    # to be a return statement, pylint: disable=too-many-branches,too-many-return-statements
 
     # Dispatch based on constants first.
     if constant is None:

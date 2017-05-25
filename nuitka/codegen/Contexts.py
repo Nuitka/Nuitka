@@ -30,11 +30,11 @@ from nuitka.PythonVersions import python_version
 from .Namify import namifyConstant
 
 
-# Many methods won't use self, but it's the interface. pylint: disable=R0201
+# Many methods won't use self, but it's the interface. pylint: disable=no-self-use
 
 class TempMixin:
     # Lots of details, everything gets to store bits here, to indicate
-    # code generation states, and there are many, pylint: disable=R0902
+    # code generation states, and there are many, pylint: disable=too-many-instance-attributes
 
     def __init__(self):
         self.tmp_names = {}
@@ -607,7 +607,7 @@ class FrameDeclarationsMixin:
 class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
                           FrameDeclarationsMixin):
     # Plenty of attributes, because it's storing so many different things.
-    # pylint: disable=R0902
+    # pylint: disable=too-many-instance-attributes
 
     def __init__(self, module, module_name, code_name, filename, global_context):
         PythonContextBase.__init__(self)

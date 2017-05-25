@@ -349,9 +349,6 @@ def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
     )
     getReferenceExportCode2(raise_tb_name, emit, context)
 
-    if False: # TODO: May be wrong, pylint: disable=W0125
-        emitErrorLineNumberUpdateCode(emit, context)
-
     emit(
         "RAISE_EXCEPTION_WITH_TRACEBACK( &exception_type, &exception_value, &exception_tb);"
     )

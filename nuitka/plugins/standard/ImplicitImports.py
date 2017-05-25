@@ -33,7 +33,7 @@ from nuitka.utils.Utils import getOS
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     def getImplicitImports(self, full_name):
-        # Many variables, branches, due to the many cases, pylint: disable=R0912,R0915
+        # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
         # TODO: Move this out to some kind of configuration format.
         elements = full_name.split('.')
 

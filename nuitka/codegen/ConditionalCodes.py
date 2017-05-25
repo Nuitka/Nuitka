@@ -35,7 +35,7 @@ from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
 
 def generateConditionCode(condition, emit, context):
     # The complexity is needed to avoid unnecessary complex generated C++
-    # pylint: disable=R0914,R0915
+    # pylint: disable=too-many-locals,too-many-statements
 
     if condition.isExpressionComparison():
         left_name = context.allocateTempName("compare_left")
@@ -247,7 +247,7 @@ def getConditionCheckTrueCode(to_name, value_name, needs_check, emit, context):
 def generateConditionalAndOrCode(to_name, expression, emit, context):
     # This is a complex beast, handling both "or" and "and" expressions,
     # and it needs to micro manage details.
-    # pylint: disable=R0914
+    # pylint: disable=too-many-locals
     if expression.isExpressionConditionalOR():
         prefix = "or_"
     else:

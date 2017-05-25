@@ -28,7 +28,6 @@ import sys
 
 from .Utils import getArchitecture, getOS
 
-
 def callExec(args):
     """ Do exec in a portable way preserving exit code.
 
@@ -50,7 +49,7 @@ def callExec(args):
             )
         except KeyboardInterrupt:
             # There was a more relevant stack trace already, so abort this
-            # right here, pylint: disable=W0212
+            # right here, pylint: disable=protected-access
             os._exit(2)
 
 
@@ -89,7 +88,7 @@ def getPythonExePathWindows(search, arch):
     # registry at all unless necessary. Any Python2 will do for Scons, so it
     # might be avoided entirely.
 
-    # Windows only code, pylint: disable=E0602,F0401,I0021
+    # Windows only code, pylint: disable=import-error,undefined-variable,useless-suppression
     try:
         import _winreg as winreg
     except ImportError:

@@ -109,7 +109,7 @@ def matchException(left, right):
             raise TypeError("catching classes that do not inherit from BaseException is not allowed")
 
     # This doesn't yet work, make it error exit. and silence PyLint for now.
-    # pylint: disable=W0212
+    # pylint: disable=protected-access
     import os
     os._exit(16)
 

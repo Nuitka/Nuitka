@@ -26,7 +26,7 @@ import sys
 from logging import info
 
 from nuitka import Tracing
-from nuitka.__past__ import raw_input, urlretrieve  # pylint: disable=W0622
+from nuitka.__past__ import raw_input, urlretrieve  # pylint: disable=redefined-builtin
 from nuitka.utils import Utils
 from nuitka.utils.FileOperations import deleteFile, makePath
 

@@ -127,7 +127,7 @@ def readSourceCodeFromFilename(module_name, source_filename):
 
 
 def checkPythonVersionFromCode(source_code):
-    # There is a lot of cases to consider, pylint: disable=R0912
+    # There is a lot of cases to consider, pylint: disable=too-many-branches
 
     shebang = getShebangFromSource(source_code)
 

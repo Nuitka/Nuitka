@@ -256,7 +256,7 @@ def getLocalVariableInitCode(context, variable, version, init_from = None):
 
 def getVariableAssignmentCode(context, emit, variable, version,
                               tmp_name, needs_release, in_place):
-    # Many different cases, as this must be, pylint: disable=R0912,R0915
+    # Many different cases, as this must be, pylint: disable=too-many-branches,too-many-statements
 
     assert isinstance(variable, Variables.Variable), variable
 
@@ -432,7 +432,7 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
 
 
 def getVariableAccessCode(to_name, variable, version, needs_check, emit, context):
-    # Many different cases, as this must be, pylint: disable=R0912,R0915
+    # Many different cases, as this must be, pylint: disable=too-many-branches
 
     assert isinstance(variable, Variables.Variable), variable
 
@@ -563,7 +563,7 @@ local variable '%s' referenced before assignment""",
 
 def getVariableDelCode(variable, old_version, new_version, tolerant,
                        needs_check, emit, context):
-    # Many different cases, as this must be, pylint: disable=R0912,R0915
+    # Many different cases, as this must be, pylint: disable=too-many-branches,too-many-statements
     assert isinstance(variable, Variables.Variable), variable
 
     if variable.isModuleVariable():

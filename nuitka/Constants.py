@@ -24,13 +24,13 @@ import math
 
 from nuitka.PythonVersions import python_version
 
-from .__past__ import iterItems, long, unicode, xrange  # pylint: disable=W0622
+from .__past__ import iterItems, long, unicode, xrange  # pylint: disable=redefined-builtin
 from .Builtins import builtin_anon_names
 
 NoneType = type(None)
 
 def compareConstants(a, b):
-    # Many many cases to deal with, pylint: disable=R0911,R0912
+    # Many many cases to deal with, pylint: disable=too-many-branches,too-many-return-statements
 
     # Supposed fast path for comparison.
     if type(a) is not type(b):
@@ -128,7 +128,7 @@ else:
 
 def isConstant(constant):
     # Too many cases and all return, that is how we do it here,
-    # pylint: disable=R0911
+    # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
 
@@ -190,7 +190,7 @@ def isHashable(constant):
         mutable, and still not hashable: slices.
     """
     # Too many cases and all return, that is how we do it here,
-    # pylint: disable=R0911
+    # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
 

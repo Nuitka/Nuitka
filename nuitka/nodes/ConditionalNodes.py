@@ -501,7 +501,7 @@ class StatementConditional(StatementChildrenHavingBase):
         return False
 
     def computeStatement(self, trace_collection):
-        # This is rather complex stuff, pylint: disable=R0912,R0915
+        # This is rather complex stuff, pylint: disable=too-many-branches,too-many-statements
 
         trace_collection.onExpression(
             expression = self.getCondition()

@@ -64,7 +64,7 @@ class StatementsSequence(StatementChildrenHavingBase):
 
     # Overloading name based automatic check, so that derived ones know it too.
     def isStatementsSequence(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
 
         return True
 

@@ -63,7 +63,7 @@ def setMainScriptDirectory(main_dir):
 
         We use this as part of the search path for modules.
     """
-    # We need to set this from the outside, pylint: disable=W0603
+    # We need to set this from the outside, pylint: disable=global-statement
 
     global main_path
     main_path = main_dir
@@ -195,7 +195,7 @@ def findModule(importing, module_name, parent_package, level, warn):
     """
 
     # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=R0912
+    # pylint: disable=too-many-branches
     if _debug_module_finding:
         print(
             "findModule: Enter to search %r in package %r level %s." % (
@@ -306,7 +306,7 @@ def _findModuleInPath2(module_name, search_path):
         None, if it is a built-in.
     """
     # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=R0912
+    # pylint: disable=too-many-branches
 
     # We may have to decide between package and module, therefore build
     # a list of candidates.

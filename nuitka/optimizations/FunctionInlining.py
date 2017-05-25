@@ -29,7 +29,7 @@ from nuitka.tree.Helpers import makeStatementsSequence
 
 
 def convertFunctionCallToOutline(provider, function_ref, values):
-    # This has got to have pretty man details, pylint: disable=R0914
+    # This has got to have pretty man details, pylint: disable=too-many-locals
     function_body = function_ref.getFunctionBody()
 
     call_source_ref = function_ref.getSourceReference()

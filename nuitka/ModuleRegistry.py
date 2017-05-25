@@ -62,7 +62,7 @@ def hasRootModule(module_name):
 
 def replaceRootModule(old, new):
     # Using global here, as this is really a singleton, in the form of a module,
-    # pylint: disable=W0603
+    # pylint: disable=global-statement
     global root_modules
     new_root_modules = OrderedSet()
 
@@ -147,7 +147,7 @@ def removeUncompiledModule(module):
 
 def startTraversal():
     # Using global here, as this is really a singleton, in the form of a module,
-    # pylint: disable=W0603
+    # pylint: disable=global-statement
     global active_modules, done_modules
 
     active_modules = OrderedSet(root_modules)

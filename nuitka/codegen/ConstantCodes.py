@@ -35,7 +35,7 @@ from logging import warning
 
 import marshal
 from nuitka import Options
-from nuitka.__past__ import (  # pylint: disable=W0622
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     iterItems,
     long,
     unicode,
@@ -69,7 +69,7 @@ def generateConstantReferenceCode(to_name, expression, emit, context):
 def generateConstantNoneReferenceCode(to_name, expression, emit, context):
     """ Assign 'None' to to_name."""
 
-    # No context or other knowledge needed, pylint: disable=W0613
+    # No context or other knowledge needed, pylint: disable=unused-argument
 
     emit(
         "%s = Py_None;" % to_name
@@ -79,7 +79,7 @@ def generateConstantNoneReferenceCode(to_name, expression, emit, context):
 def generateConstantTrueReferenceCode(to_name, expression, emit, context):
     """ Assign 'True' to to_name."""
 
-    # No context or other knowledge needed, pylint: disable=W0613
+    # No context or other knowledge needed, pylint: disable=unused-argument
 
     emit(
         "%s = Py_True;" % to_name
@@ -89,7 +89,7 @@ def generateConstantTrueReferenceCode(to_name, expression, emit, context):
 def generateConstantFalseReferenceCode(to_name, expression, emit, context):
     """ Assign 'False' to to_name."""
 
-    # No context or other knowledge needed, pylint: disable=W0613
+    # No context or other knowledge needed, pylint: disable=unused-argument
 
     emit(
         "%s = Py_False;" % to_name
@@ -99,7 +99,7 @@ def generateConstantFalseReferenceCode(to_name, expression, emit, context):
 def generateConstantEllipsisReferenceCode(to_name, expression, emit, context):
     """ Assign 'Ellipsis' to to_name."""
 
-    # No context or other knowledge needed, pylint: disable=W0613
+    # No context or other knowledge needed, pylint: disable=unused-argument
 
     emit(
         "%s = Py_Ellipsis;" % to_name
@@ -161,7 +161,7 @@ def _getConstantInitValueCode(constant_value, constant_type):
         error.
     """
 
-    # This function is a case driven by returns, pylint: disable=R0911
+    # This function is a case driven by returns, pylint: disable=too-many-return-statements
 
     if constant_type is unicode:
         # Python3: Strings that can be encoded as UTF-8 are done more or less
@@ -349,7 +349,7 @@ def __addConstantInitCode(context, emit, check, constant_type, constant_value,
         constants belong into the same scope.
     """
     # This has many cases, that all return, and do a lot.
-    # pylint: disable=R0911,R0912,R0914,R0915
+    # pylint: disable=too-many-branches,too-many-locals,too-many-return-statements,too-many-statements
 
     # For the module level, we only mean to create constants that are used only
     # inside of it. For the global level, it must must be single use.
@@ -889,7 +889,7 @@ def getConstantsDeclCode(context):
 
 def getConstantAccess(to_name, constant, emit, context):
     # Many cases, because for each type, we may copy or optimize by creating
-    # empty.  pylint: disable=R0912,R0915
+    # empty.  pylint: disable=too-many-branches,too-many-statements
 
     if type(constant) is dict:
         if constant:
@@ -1035,7 +1035,7 @@ def getConstantInitCodes(module_context):
 
 
 def allocateNestedConstants(module_context):
-    # Lots of types to deal with, pylint: disable=R0912
+    # Lots of types to deal with, pylint: disable=too-many-branches
 
     def considerForDeferral(constant_value):
         module_context.getConstantCode(constant_value)

@@ -146,7 +146,7 @@ class PythonModuleBase(NodeBase):
         return result
 
     def getCodeName(self):
-        # Abstract method, pylint: disable=R0201
+        # Abstract method, pylint: disable=no-self-use
         return None
 
     def getCompileTimeFilename(self):
@@ -252,7 +252,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
 
     def asGraph(self, computation_counter):
-        from graphviz import Digraph # @UnresolvedImport pylint: disable=F0401,I0021
+        from graphviz import Digraph # @UnresolvedImport pylint: disable=import-error,useless-suppression
 
         graph = Digraph("cluster_%d" % computation_counter, comment = "Graph for %s" % self.getName())
         graph.body.append("style=filled")
@@ -349,7 +349,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
     def isEarlyClosure(self):
         # Modules should immediately closure variables on use.
-        # pylint: disable=R0201
+        # pylint: disable=no-self-use
         return True
 
     def getCodeName(self):

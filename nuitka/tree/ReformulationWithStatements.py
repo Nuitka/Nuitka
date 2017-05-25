@@ -70,7 +70,7 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                    sync, source_ref):
-    # Many details, pylint: disable=R0914
+    # Many details, pylint: disable=too-many-locals
     with_source = buildNode(provider, context_expr, source_ref)
 
     if Options.isFullCompat():

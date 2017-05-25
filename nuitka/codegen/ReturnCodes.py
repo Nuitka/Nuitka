@@ -62,7 +62,7 @@ def generateReturnCode(statement, emit, context):
 
 
 def generateReturnedValueRefCode(to_name, expression, emit, context):
-    # We don't need the expression, pylint: disable=W0613
+    # We don't need the expression, pylint: disable=unused-argument
 
     return_value_name = context.getReturnValueName()
 

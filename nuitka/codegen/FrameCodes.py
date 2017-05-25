@@ -67,7 +67,7 @@ def getFrameLocalsStorageSize(type_descriptions):
 def generateStatementsFrameCode(statement_sequence, emit, context):
     # This is a wrapper that provides also handling of frames, which got a
     # lot of variants and details, therefore lots of branches.
-    # pylint: disable=R0912,R0915
+    # pylint: disable=too-many-branches,too-many-statements
 
     context = Contexts.PythonStatementCContext(context)
 
@@ -452,11 +452,11 @@ def generateFrameRestoreExceptionCode(statement, emit, context):
                 }
             )
         else:
-            # pylint: disable=C0301
-
             emit(
                 """\
-SET_CURRENT_EXCEPTION( exception_preserved_type_%(preserver_id)d, exception_preserved_value_%(preserver_id)d, exception_preserved_tb_%(preserver_id)d );""" % {
+SET_CURRENT_EXCEPTION( exception_preserved_type_%(preserver_id)d, \
+exception_preserved_value_%(preserver_id)d, \
+exception_preserved_tb_%(preserver_id)d );""" % {
                     "preserver_id" : preserver_id,
                 }
             )

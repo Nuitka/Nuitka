@@ -46,7 +46,7 @@ def getModuleValues(context, module_name, module_identifier, codes,
                     function_decl_codes, function_body_codes, temp_variables,
                     is_main_module, is_internal_module):
     # For the module code, lots of arguments and attributes come together.
-    # pylint: disable=R0914
+    # pylint: disable=too-many-locals
 
     # Temporary variable initializations
     local_var_inits = [
@@ -156,7 +156,7 @@ def getModuleCode(module_context, template_values):
 
 def generateModuleFileAttributeCode(to_name, expression, emit, context):
     # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=W0613
+    # the expression registry, pylint: disable=unused-argument
 
     emit(
         "%s = module_filename_obj;" % (

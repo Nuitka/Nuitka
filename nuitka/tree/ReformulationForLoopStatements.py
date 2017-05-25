@@ -59,7 +59,7 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     # taken if a for loop exits normally, i.e. because of iterator
     # exhaustion. We do this by introducing an indicator variable.
 
-    # We handle async and sync both here, leading to cases, pylint: disable=R0914
+    # We handle async and sync both here, leading to cases, pylint: disable=too-many-locals
 
     source = buildNode(provider, node.iter, source_ref)
 

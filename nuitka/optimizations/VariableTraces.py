@@ -36,7 +36,7 @@ from nuitka.utils import InstanceCounters
 
 
 class VariableTraceBase:
-    # We are going to have many instance attributes, pylint: disable=R0902
+    # We are going to have many instance attributes, pylint: disable=too-many-instance-attributes
 
     @InstanceCounters.counted_init
     def __init__(self, owner, variable, version, previous):
@@ -178,12 +178,12 @@ class VariableTraceBase:
         return self.isUninitTrace()
 
     def getReplacementNode(self, usage):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return None
 
     def hasShapeDictionaryExact(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return False
 
 

@@ -226,9 +226,9 @@ from .SubscriptCodes import (
 from .TryCodes import generateTryCode
 from .TupleCodes import generateBuiltinTupleCode, generateTupleCreationCode
 from .VariableCodes import (
-    generateLocalsDictVariableRefCode,
     generateAssignmentVariableCode,
     generateDelVariableCode,
+    generateLocalsDictVariableRefCode,
     generateVariableReferenceCode,
     generateVariableReleaseCode
 )

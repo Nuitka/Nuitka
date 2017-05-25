@@ -184,7 +184,7 @@ class CollectionStartpointMixin:
             )
 
     def onExceptionRaiseExit(self, raisable_exceptions, collection = None):
-        # TODO: We might want to track per exception, pylint: disable=W0613
+        # TODO: We might want to track per exception, pylint: disable=unused-argument
 
         if collection is None:
             collection = self
@@ -401,7 +401,7 @@ class TraceCollectionBase(CollectionTracingMixin):
 
     def onControlFlowEscape(self, node):
         # TODO: One day, we should trace which nodes exactly cause a variable
-        # to be considered escaped, pylint: disable=W0613
+        # to be considered escaped, pylint: disable=unused-argument
 
         for variable in self.getActiveVariables():
             if variable.isModuleVariable():

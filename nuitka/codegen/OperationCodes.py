@@ -73,7 +73,7 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
 
 def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
     # This needs to have one case per operation of Python, and there are many
-    # of these, # pylint: disable=R0912
+    # of these, # pylint: disable=too-many-branches,too-many-statements
 
     prefix_args = ()
     ref_count = 1

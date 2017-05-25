@@ -697,7 +697,7 @@ positional_args = None
 extra_args = []
 
 def parseArgs():
-    # many cases, pylint: disable=R0912,W0603
+    # many cases, pylint: disable=global-statement,too-many-branches
     global options, positional_args, extra_args
 
     # First, isolate the first non-option arguments.
@@ -983,5 +983,5 @@ def shallDetectMissingPlugins():
     return options is not None and options.detect_missing_plugins
 
 def getPluginOptions(plugin_name):
-    # TODO: This should come from command line, pylint: disable=W0613
+    # TODO: This should come from command line, pylint: disable=unused-argument
     return {}

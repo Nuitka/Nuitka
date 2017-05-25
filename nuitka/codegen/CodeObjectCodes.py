@@ -43,7 +43,7 @@ def getCodeObjectsDeclCode(context):
 def getCodeObjectsInitCode(context):
     # There is a bit of details to this, code objects have many flags to deal
     # with, and we are making some optimizations as well as customization to
-    # what path should be put there, pylint: disable=R0912
+    # what path should be put there, pylint: disable=too-many-branches
 
     statements = []
 

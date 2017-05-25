@@ -33,7 +33,7 @@ expression_dispatch_dict = {}
 
 def setExpressionDispatchDict(dispatch_dict):
     # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=W0603
+    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
 
     # Please call us only once.
     global expression_dispatch_dict
@@ -165,7 +165,7 @@ statement_dispatch_dict = {}
 
 def setStatementDispatchDict(dispatch_dict):
     # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=W0603
+    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
 
     # Please call us only once.
     global statement_dispatch_dict

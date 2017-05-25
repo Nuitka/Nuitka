@@ -121,7 +121,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                                          source_ref):
     # This is using many variable names on purpose, so as to give names to the
     # unpacked detail values, and has many branches due to the many cases
-    # dealt with, pylint: disable=R0912,R0914
+    # dealt with, pylint: disable=too-many-branches,too-many-locals
 
     if kind == "Name":
         variable_ref = detail
@@ -391,7 +391,7 @@ def buildAssignmentStatements(provider, node, source, source_ref,
 
 def decodeAssignTarget(provider, node, source_ref, allow_none = False):
     # Many cases to deal with, because of the different assign targets,
-    # pylint: disable=R0911,R0912
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     if node is None and allow_none:
         return None
@@ -920,7 +920,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
 
     # Due to the 3 inputs, which we need to also put into temporary variables,
     # there are too many variables here, but they are needed.
-    # pylint: disable=R0914
+    # pylint: disable=too-many-locals
 
     # First assign the target value, lower and upper to temporary variables.
     copy_to_tmp = StatementAssignmentVariable(
@@ -1080,7 +1080,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
 def buildInplaceAssignNode(provider, node, source_ref):
     # There are many inplace assignment variables, and the detail is unpacked
     # into names, so we end up with a lot of variables, which is on purpose,
-    # pylint: disable=R0914
+    # pylint: disable=too-many-locals
 
     operator = getKind(node.op)
 

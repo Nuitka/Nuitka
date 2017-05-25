@@ -24,10 +24,9 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
-from nuitka import Variables
+from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.nodes.VariableRefNodes import ExpressionLocalsVariableRef
-from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
     python_version

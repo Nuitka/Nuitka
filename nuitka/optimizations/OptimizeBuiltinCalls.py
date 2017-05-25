@@ -296,7 +296,7 @@ def sum_extractor(node):
             )
 
     def makeSum0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -364,7 +364,7 @@ def chr_extractor(node):
 
 def ord_extractor(node):
     def makeOrd0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -452,7 +452,7 @@ def range_extractor(node):
             )
 
     def makeRange0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -490,7 +490,7 @@ def xrange_extractor(node):
             )
 
     def makeXrange0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -961,7 +961,7 @@ def compile_extractor(node):
 
 def open_extractor(node):
     def makeOpen0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -1132,7 +1132,7 @@ def hash_extractor(node):
 
 def format_extractor(node):
     def makeFormat0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -1225,7 +1225,7 @@ _builtin_white_list = (
 
 def computeBuiltinCall(call_node, called):
     # There is some dispatching for how to output various types of changes,
-    # with lots of cases, pylint: disable=R0912
+    # with lots of cases, pylint: disable=too-many-branches
 
     builtin_name = called.getBuiltinName()
 

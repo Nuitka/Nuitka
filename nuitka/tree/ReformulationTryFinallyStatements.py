@@ -52,7 +52,7 @@ from .Helpers import (
 
 
 def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = False):
-    # Complex handling, due to the many variants, pylint: disable=R0912,R0914
+    # Complex handling, due to the many variants, pylint: disable=too-many-branches,too-many-locals
 
     if type(tried) in (tuple, list):
         tried = makeStatementsSequenceFromStatements(

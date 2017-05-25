@@ -28,7 +28,7 @@ deeper that what it normally could. The import expression node can recurse.
 import os
 from logging import warning
 
-from nuitka.__past__ import long, unicode  # pylint: disable=W0622
+from nuitka.__past__ import long, unicode  # pylint: disable=redefined-builtin
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.importing.Importing import (
     findModule,
@@ -186,7 +186,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                     )
 
     def _attemptRecursion(self, trace_collection, module_name):
-        # Complex stuff, pylint: disable=R0912
+        # Complex stuff, pylint: disable=too-many-branches
 
         parent_module = self.getParentModule()
 
