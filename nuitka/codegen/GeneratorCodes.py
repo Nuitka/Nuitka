@@ -150,14 +150,16 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
             constant = generator_object_body.getFunctionQualname()
         )
 
+    parent_module = generator_object_body.getParentModule()
+
     code_identifier = context.getCodeObjectHandle(
         code_object  = expression.getCodeObject(),
-        filename     = generator_object_body.getParentModule().getRunTimeFilename(),
+        filename     = parent_module.getRunTimeFilename(),
         line_number  = generator_object_body.getSourceReference().getLineNumber(),
         is_optimized = True,
         new_locals   = not generator_object_body.needsLocalsDict(),
         has_closure  = len(generator_object_body.getParentVariableProvider().getClosureVariables()) > 0,
-        future_flags = generator_object_body.getSourceReference().getFutureSpec().asFlags()
+        future_flags = parent_module.getFutureSpec().asFlags()
     )
 
     closure_variables = expression.getClosureVariableVersions()

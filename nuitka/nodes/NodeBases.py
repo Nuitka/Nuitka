@@ -1064,7 +1064,10 @@ def extractKindAndArgsFromXML(xml, source_ref):
     del args["kind"]
 
     if source_ref is None:
-        source_ref = SourceCodeReference.fromFilenameAndLine(args["filename"], int(args["line"]), None)
+        source_ref = SourceCodeReference.fromFilenameAndLine(
+            args["filename"],
+            int(args["line"])
+        )
 
         del args["filename"]
         del args["line"]

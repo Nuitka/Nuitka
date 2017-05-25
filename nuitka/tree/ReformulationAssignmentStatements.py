@@ -44,7 +44,7 @@ from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
-from nuitka.nodes.OperatorNodes import ExpressionOperationBinaryInplace
+from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
 from nuitka.nodes.SliceNodes import (
     ExpressionBuiltinSlice,
     ExpressionSliceLookup,
@@ -61,6 +61,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
+from nuitka.tree.ReformulationImportStatements import getFutureSpec
 
 from .Helpers import (
     buildNode,
@@ -722,7 +723,7 @@ def _buildInplaceAssignVariableNode(variable_ref, operator, expression,
                                     source_ref):
     assert variable_ref.isExpressionTargetVariableRef(), variable_ref
 
-    inplace_node = ExpressionOperationBinaryInplace(
+    inplace_node = makeExpressionOperationBinaryInplace(
         operator   = operator,
         left       = ExpressionVariableRef(
             variable_name = variable_ref.getVariableName(),
@@ -771,7 +772,7 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
             variable   = tmp_variable2,
             source_ref = source_ref
         ),
-        source       = ExpressionOperationBinaryInplace(
+        source       = makeExpressionOperationBinaryInplace(
             operator   = operator,
             left       = ExpressionTempVariableRef(
                 variable   = tmp_variable1,
@@ -870,7 +871,7 @@ def _buildInplaceAssignSubscriptNode(provider, subscribed, subscript,
             variable   = tmp_variable2,
             source_ref = source_ref
         ),
-        source     = ExpressionOperationBinaryInplace(
+        source     = makeExpressionOperationBinaryInplace(
             operator   = operator,
             left       = ExpressionSubscriptLookup(
                 subscribed = ExpressionTempVariableRef(
@@ -1018,7 +1019,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
                     step       = None,
                     source_ref = source_ref
                 ),
-                source     = ExpressionOperationBinaryInplace(
+                source     = makeExpressionOperationBinaryInplace(
                     operator   = operator,
                     left       = ExpressionSubscriptLookup(
                         subscribed = ExpressionTempVariableRef(
@@ -1048,7 +1049,7 @@ def _buildInplaceAssignSliceNode(provider, lookup_source, lower, upper,
                 ),
                 lower      = lower_ref1,
                 upper      = upper_ref1,
-                source     = ExpressionOperationBinaryInplace(
+                source     = makeExpressionOperationBinaryInplace(
                     operator   = operator,
                     left       = ExpressionSliceLookup(
                         expression = ExpressionTempVariableRef(
@@ -1084,7 +1085,7 @@ def buildInplaceAssignNode(provider, node, source_ref):
 
     operator = getKind(node.op)
 
-    if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
+    if operator == "Div" and getFutureSpec().isFutureDivision():
         operator = "TrueDiv"
 
     operator = 'I' + operator

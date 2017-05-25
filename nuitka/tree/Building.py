@@ -99,6 +99,7 @@ from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
+from nuitka.tree.ReformulationImportStatements import getFutureSpec
 from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
 
@@ -149,7 +150,9 @@ from .ReformulationFunctionStatements import (
 from .ReformulationImportStatements import (
     buildImportFromNode,
     buildImportModulesNode,
-    checkFutureImportsOnlyAtStart
+    checkFutureImportsOnlyAtStart,
+    popFutureSpec,
+    pushFutureSpec
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
 from .ReformulationNamespacePackages import (
@@ -552,7 +555,7 @@ def buildBinaryOpNode(provider, node, source_ref):
     operator = getKind(node.op)
 
     if operator == "Div":
-        if source_ref.getFutureSpec().isFutureDivision():
+        if getFutureSpec().isFutureDivision():
             operator = "TrueDiv"
 
     left       = buildNode(provider, node.left, source_ref)
@@ -709,6 +712,8 @@ setBuildingDispatchers(
 def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     # There are a bunch of branches here, mostly to deal with version
     # differences for module default variables.
+
+    pushFutureSpec()
 
     body = parseSourceCodeToAst(
         source_code = source_code,
@@ -886,11 +891,15 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
 
     if is_module:
-        return makeModuleFrame(
+        result = makeModuleFrame(
             module     = provider,
             statements = statements,
             source_ref = source_ref
         )
+
+        provider.future_spec = popFutureSpec()
+
+        return result
     else:
         assert False
 

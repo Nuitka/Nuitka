@@ -136,9 +136,8 @@ def createNamespacePackage(package_name, module_relpath):
     parts = package_name.split('.')
 
     source_ref = SourceCodeReference.fromFilenameAndLine(
-        filename    = module_relpath,
-        line        = 1,
-        future_spec = FutureSpec(),
+        filename = module_relpath,
+        line     = 1
     )
     source_ref = source_ref.atInternal()
 
@@ -149,6 +148,8 @@ def createNamespacePackage(package_name, module_relpath):
         package_name = package_package_name,
         source_ref   = source_ref,
     )
+
+    package.future_spec = FutureSpec()
 
     if python_version >= 300:
         statement = createPython3NamespacePath(

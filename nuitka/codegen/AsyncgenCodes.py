@@ -91,14 +91,16 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
 def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
     asyncgen_object_body = expression.getAsyncgenRef().getFunctionBody()
 
+    parent_module = asyncgen_object_body.getParentModule()
+
     code_identifier = context.getCodeObjectHandle(
         code_object  = expression.getCodeObject(),
-        filename     = asyncgen_object_body.getParentModule().getRunTimeFilename(),
+        filename     = parent_module.getRunTimeFilename(),
         line_number  = asyncgen_object_body.getSourceReference().getLineNumber(),
         is_optimized = True,
         new_locals   = not asyncgen_object_body.needsLocalsDict(),
         has_closure  = len(asyncgen_object_body.getParentVariableProvider().getClosureVariables()) > 0,
-        future_flags = asyncgen_object_body.getSourceReference().getFutureSpec().asFlags()
+        future_flags = parent_module.getFutureSpec().asFlags()
     )
 
     closure_variables = expression.getClosureVariableVersions()

@@ -371,6 +371,8 @@ def makeBinaryOperationNode(operator, left, right, source_ref):
             source_ref = source_ref
         )
     else:
+        # TODO: Add more specializations for common operators.
+
         return ExpressionOperationBinary(
             operator   = operator,
             left       = left,
@@ -496,10 +498,6 @@ class ExpressionOperationBinaryInplace(ExpressionOperationBinary):
     kind = "EXPRESSION_OPERATION_BINARY_INPLACE"
 
     def __init__(self, operator, left, right, source_ref):
-        if operator == "IDiv":
-            if source_ref.getFutureSpec().isFutureDivision():
-                operator = "ITrueDiv"
-
         ExpressionOperationBinary.__init__(
             self,
             operator   = operator,
@@ -550,3 +548,14 @@ Lowered in-place binary operation of compile time constant to binary operation."
         trace_collection.onControlFlowEscape(self)
 
         return self, None, None
+
+
+def makeExpressionOperationBinaryInplace(operator, left, right, source_ref):
+    # TODO: Add more specializations for common operators.
+
+    return ExpressionOperationBinaryInplace(
+        operator   = operator,
+        left       = left,
+        right      = right,
+        source_ref = source_ref
+    )

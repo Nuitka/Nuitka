@@ -85,8 +85,6 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
             "flags"      : ','.join(sorted(self.flags))
         }
 
-        result["code_flags"] = ','.join(self.getSourceReference().getFutureSpec().asFlags())
-
         if self.doc is not None:
             result["doc"] = self.doc
 

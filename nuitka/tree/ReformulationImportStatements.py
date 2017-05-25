@@ -29,6 +29,7 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.ImportNodes import (
     ExpressionBuiltinImport,
@@ -81,7 +82,6 @@ from __future__ imports must occur at the beginning of the file""",
         _enableFutureFeature(
             node        = node,
             object_name = object_name,
-            future_spec = source_ref.getFutureSpec(),
             source_ref  = source_ref
         )
 
@@ -90,8 +90,23 @@ from __future__ imports must occur at the beginning of the file""",
     node.source_ref = source_ref
     _future_import_nodes.append(node)
 
+_future_specs = []
 
-def _enableFutureFeature(node, object_name, future_spec, source_ref):
+def pushFutureSpec():
+    _future_specs.append(FutureSpec())
+
+
+def getFutureSpec():
+    return _future_specs[-1]
+
+
+def popFutureSpec():
+    return _future_specs.pop()
+
+
+def _enableFutureFeature(node, object_name, source_ref):
+    future_spec = _future_specs[-1]
+
     if object_name == "unicode_literals":
         future_spec.enableUnicodeLiterals()
     elif object_name == "absolute_import":
@@ -130,7 +145,7 @@ def buildImportFromNode(provider, node, source_ref):
     # Use default level under some circumstances.
     if level == -1:
         level = None
-    elif level == 0 and not source_ref.getFutureSpec().isAbsoluteImport():
+    elif level == 0 and not _future_specs[-1].isAbsoluteImport():
         level = None
 
     if level is not None:
@@ -317,7 +332,7 @@ def buildImportModulesNode(provider, node, source_ref):
 
         # Note: The "level" of import is influenced by the future absolute
         # imports.
-        level = makeConstantRefNode(0, source_ref, True) if source_ref.getFutureSpec().isAbsoluteImport() else None
+        level = makeConstantRefNode(0, source_ref, True) if _future_specs[-1].isAbsoluteImport() else None
 
         import_node = ExpressionBuiltinImport(
             name        = makeConstantRefNode(module_name, source_ref, True),

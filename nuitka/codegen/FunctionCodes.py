@@ -258,14 +258,16 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
 
     # Creation code needs to be done only once.
     if not context.hasHelperCode(function_identifier):
+        parent_module = function_body.getParentModule()
+
         code_identifier = context.getCodeObjectHandle(
             code_object  = code_object,
-            filename     = function_body.getParentModule().getRunTimeFilename(),
+            filename     = parent_module.getRunTimeFilename(),
             line_number  = function_body.getSourceReference().getLineNumber(),
             is_optimized = not function_body.needsLocalsDict(),
             new_locals   = True,
             has_closure  = function_body.getClosureVariables() != (),
-            future_flags = function_body.getSourceReference().getFutureSpec().asFlags()
+            future_flags = parent_module.getFutureSpec().asFlags()
         )
 
         maker_code = getFunctionMakerCode(

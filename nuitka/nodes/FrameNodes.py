@@ -173,18 +173,19 @@ class StatementsFrame(StatementsSequence):
         else:
             closure_provider = provider
 
+        parent_module = self.getParentModule()
+
         # TODO: Why do this accessing a node, do this outside.
         return context.getCodeObjectHandle(
             code_object  = self.code_object,
-            filename     = self.getParentModule().getRunTimeFilename(),
+            filename     = parent_module.getRunTimeFilename(),
             line_number  = line_number,
             is_optimized = is_optimized,
             new_locals   = new_locals,
             has_closure  = closure_provider.isExpressionFunctionBody() and \
                            closure_provider.getClosureVariables() != () and \
                            not closure_provider.isExpressionClassBody(),
-            future_flags = provider.getSourceReference().getFutureSpec().\
-                              asFlags()
+            future_flags = parent_module.getFutureSpec().asFlags()
         )
 
     def computeStatementsSequence(self, trace_collection):

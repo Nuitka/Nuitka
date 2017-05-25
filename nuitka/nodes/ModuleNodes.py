@@ -231,6 +231,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         # SSA trace based information about the module.
         self.trace_collection = None
 
+        self.future_spec = None
+
     def getDetails(self):
         return {
             "filename" : self.source_ref.getFilename(),
@@ -241,7 +243,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
     def getDetailsForDisplay(self):
         result = self.getDetails()
 
-        result["code_flags"] = ','.join(self.source_ref.getFutureSpec().asFlags())
+        result["code_flags"] = ','.join(self.future_spec.asFlags())
 
         return result
 
@@ -250,6 +252,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         # Modules are not having any provider, must not be used,
         assert False
 
+    def getFutureSpec(self):
+        return self.future_spec
 
     def asGraph(self, computation_counter):
         from graphviz import Digraph # @UnresolvedImport pylint: disable=import-error,useless-suppression
@@ -653,11 +657,12 @@ class PythonInternalModule(CompiledPythonModule):
             package_name = None,
             mode         = "compiled",
             source_ref   = SourceCodeReference.fromFilenameAndLine(
-                filename    = "internal",
-                line        = 0,
-                future_spec = FutureSpec()
+                filename = "internal",
+                line     = 0
             )
         )
+
+        self.future_spec = FutureSpec()
 
     @staticmethod
     def isInternalModule():
