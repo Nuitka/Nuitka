@@ -122,35 +122,20 @@ def _buildClassNode3(provider, node, source_ref):
         source_ref = source_ref
     )
 
-    if python_version >= 340 and False: # TODO: Temporarily reverted:
-        tmp_class = class_creation_function.allocateTempVariable(
-            temp_scope = None,
-            name       = "__class__"
-        )
+    class_variable = class_creation_function.getVariableForAssignment(
+        "__class__"
+    )
 
-        class_target_variable_ref = ExpressionTargetTempVariableRef(
-            variable   = tmp_class,
-            source_ref = source_ref
-        )
-        class_variable_ref = ExpressionTempVariableRef(
-            variable   = tmp_class,
-            source_ref = source_ref
-        )
-    else:
-        class_variable = class_creation_function.getVariableForAssignment(
-            "__class__"
-        )
-
-        class_target_variable_ref = ExpressionTargetVariableRef(
-            variable_name = "__class__",
-            variable      = class_variable,
-            source_ref    = source_ref
-        )
-        class_variable_ref = ExpressionVariableRef(
-            variable_name = "__class__",
-            variable      = class_variable,
-            source_ref    = source_ref
-        )
+    class_target_variable_ref = ExpressionTargetVariableRef(
+        variable_name = "__class__",
+        variable      = class_variable,
+        source_ref    = source_ref
+    )
+    class_variable_ref = ExpressionVariableRef(
+        variable_name = "__class__",
+        variable      = class_variable,
+        source_ref    = source_ref
+    )
 
     code_object = CodeObjectSpec(
         co_name           = node.name,
