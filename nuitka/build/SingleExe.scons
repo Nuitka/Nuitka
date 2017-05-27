@@ -1163,11 +1163,19 @@ if win_target and target_arch == "x86_64" and gcc_mode:
     env.Append(CPPDEFINES = ["MS_WIN64"])
 
 # Set load libpython from binary directory default
-if standalone_mode and gcc_mode and sys.platform != "darwin":
+if gcc_mode and sys.platform != "darwin" and not win_target:
+    if standalone_mode:
+        rpath = "$$ORIGIN"
+    else:
+        rpath = python_lib_path
+
     env.Append(
-        LINKFLAGS = ["-Wl,-R,'$$ORIGIN'"]
+        LINKFLAGS = ["-Wl,-R,'%s'" % rpath]
     )
 
+    # The rpath is no longer used unless we do this on modern Linux. The
+    # option name is not very revealing, but basically without this, the
+    # rpath in the binary will be ignored by the loader.
     if "linux" in sys.platform:
         env.Append(
             LINKFLAGS = ["-Wl,--disable-new-dtags"]
