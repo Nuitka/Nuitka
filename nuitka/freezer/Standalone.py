@@ -383,11 +383,11 @@ def scanStandardLibraryPath(stdlib_dir):
             ]
 
         if import_path in ("tkinter", "importlib", "ctypes", "unittest",
-                           "sqlite3", "distutils"):
+                           "sqlite3", "distutils", "email", "bsddb"):
             if "test" in dirs:
                 dirs.remove("test")
 
-        if import_path == "lib2to3":
+        if import_path in ("lib2to3", "json", "distutils"):
             if "tests" in dirs:
                 dirs.remove("tests")
 
