@@ -20,12 +20,7 @@
 This is generic stuff.
 """
 
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes
-)
+from .ErrorCodes import getErrorExitCode, getReleaseCodes
 from .Helpers import generateExpressionCode
 
 
@@ -121,30 +116,6 @@ def getCAPIObjectCode(to_name, capi, arg_names, may_raise, ref_count, emit,
 
     if ref_count:
         context.addCleanupTempName(to_name)
-
-
-def getCAPIIntCode(res_name, capi, args, emit, context):
-    emit(
-        "%s = %s( %s );" % (
-            res_name,
-            capi,
-            ", ".join(args)
-        )
-    )
-
-    # TODO: Order, potentially
-    for arg in args:
-        getReleaseCode(
-            release_name = arg,
-            emit         = emit,
-            context      = context
-        )
-
-    getErrorExitBoolCode(
-        condition = "%s == -1" % res_name,
-        emit      = emit,
-        context   = context
-    )
 
 
 def getReferenceExportCode(base_name, context):
