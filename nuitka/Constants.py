@@ -24,7 +24,12 @@ import math
 
 from nuitka.PythonVersions import python_version
 
-from .__past__ import iterItems, long, unicode, xrange  # pylint: disable=redefined-builtin
+from .__past__ import (  # pylint: disable=redefined-builtin
+    iterItems,
+    long,
+    unicode,
+    xrange
+)
 from .Builtins import builtin_anon_names
 
 NoneType = type(None)

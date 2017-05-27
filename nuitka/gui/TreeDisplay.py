@@ -24,12 +24,13 @@ code.
 import os
 import sys
 
-from PyQt5 import QtCore  # @UnresolvedImport pylint: disable=import-error,useless-suppression
-from PyQt5 import QtGui  # @UnresolvedImport pylint: disable=import-error,useless-suppression
-from PyQt5 import uic  # @UnresolvedImport pylint: disable=import-error,useless-suppression
-
 from nuitka import SourceCodeReferences
 
+from PyQt5 import ( # isort:skip pylint: disable=import-error,useless-suppression
+    QtCore,   # @UnresolvedImport
+    QtGui,   # @UnresolvedImport
+    uic
+)
 
 # The API requires a signature, sometimes we don't use it, pylint: disable=no-self-use
 # Also using private stuff from classes, probably ok, pylint: disable=protected-access

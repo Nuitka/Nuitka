@@ -28,7 +28,11 @@ import math
 import re
 from logging import warning
 
-from nuitka.__past__ import long, unicode, xrange  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    long,
+    unicode,
+    xrange
+)
 
 
 class ExceptionCannotNamify(Exception):

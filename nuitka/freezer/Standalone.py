@@ -31,6 +31,7 @@ from logging import debug, info, warning
 import marshal
 from nuitka import Options, SourceCodeReferences, Tracing
 from nuitka.__past__ import iterItems
+from nuitka.containers.odict import OrderedDict
 from nuitka.importing import ImportCache
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
@@ -52,7 +53,6 @@ from nuitka.utils.FileOperations import (
 )
 
 from .DependsExe import getDependsExePath
-from nuitka.containers.odict import OrderedDict
 
 
 def loadCodeObjectData(precompiled_filename):
