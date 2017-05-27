@@ -848,7 +848,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
         )
 
-    if python_version >= 360:
+    if provider.needsAnnotationsDictionary():
         # Set "__annotations__" on module level to {}
         statements.append(
             StatementAssignmentVariable(

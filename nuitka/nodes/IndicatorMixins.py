@@ -62,3 +62,16 @@ class MarkUnoptimizedFunctionIndicatorMixin(object):
 
     def getExecSourceRef(self):
         return self.exec_source_ref
+
+
+class MarkNeedsAnnotationsMixin(object):
+    def __init__(self):
+        self.needs_annotations_dict = False
+
+    def markAsNeedsAnnotationsDictionary(self):
+        """ For use during building only. Indicate "__annotations__" need. """
+        self.needs_annotations_dict = True
+
+    def needsAnnotationsDictionary(self):
+        """ For use during building only. Indicate "__annotations__" need. """
+        return self.needs_annotations_dict

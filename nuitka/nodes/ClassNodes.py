@@ -26,10 +26,14 @@ from nuitka.PythonVersions import python_version
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
-from .IndicatorMixins import MarkLocalsDictIndicatorMixin
+from .IndicatorMixins import (
+    MarkLocalsDictIndicatorMixin,
+    MarkNeedsAnnotationsMixin
+)
 
 
 class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
+                          MarkNeedsAnnotationsMixin,
                           ExpressionFunctionBodyBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
@@ -58,6 +62,8 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
             flags       = flags,
             source_ref  = source_ref
         )
+
+        MarkNeedsAnnotationsMixin.__init__(self)
 
         MarkLocalsDictIndicatorMixin.__init__(self)
 
@@ -124,14 +130,6 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
             result = self.provider.getVariableForClosure(variable_name)
             self.taken.add(result)
             return result
-
-    def markAsNeedsAnnotationsDictionary(self):
-        """ For use during building only. Indicate "__annotations__" need. """
-        self.has_annotations = True
-
-    def needsAnnotationsDictionary(self):
-        """ For use during building only. Indicate "__annotations__" need. """
-        return self.has_annotations
 
     def markAsDirectlyCalled(self):
         pass

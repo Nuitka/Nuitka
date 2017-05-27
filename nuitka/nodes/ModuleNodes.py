@@ -31,6 +31,7 @@ from nuitka.importing.Importing import (
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getOwnerFromCodeName
+from nuitka.nodes.IndicatorMixins import MarkNeedsAnnotationsMixin
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
@@ -185,7 +186,7 @@ class PythonModuleBase(NodeBase):
 
 
 class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
-                           PythonModuleBase):
+                           MarkNeedsAnnotationsMixin, PythonModuleBase):
     """ Compiled Python Module
 
     """
@@ -222,6 +223,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
                 "functions" : (),
             },
         )
+
+        MarkNeedsAnnotationsMixin.__init__(self)
 
         self.mode = mode
 

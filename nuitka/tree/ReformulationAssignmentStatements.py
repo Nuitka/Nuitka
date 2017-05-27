@@ -546,9 +546,13 @@ def buildAssignNode(provider, node, source_ref):
             source_ref = source_ref
         )
 
-# Python3.6 annotation assignment
+
 def buildAnnAssignNode(provider, node, source_ref):
-    if provider.isExpressionClassBody():
+    """ Python3.6 annotation assignment.
+
+    """
+
+    if provider.isCompiledPythonModule() or provider.isExpressionClassBody():
         provider.markAsNeedsAnnotationsDictionary()
 
     # Evaluate the right hand side first, so it can get names provided
@@ -585,7 +589,8 @@ def buildAnnAssignNode(provider, node, source_ref):
         else:
             variable_name = None
 
-    # Only annoations for modules and classes are really made.
+    # Only annotations for modules and classes are really made, for functions
+    # they are ignored like comments.
     if variable_name is not None:
         if provider.isExpressionFunctionBody():
             provider.getVariableForAssignment(variable_name)
