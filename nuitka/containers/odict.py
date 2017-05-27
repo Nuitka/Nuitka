@@ -1,3 +1,15 @@
+""" This module is only an abstraction of OrderedDict as present in 2.7 and 3.x.
+
+It is not in 2.6, for this version we are using the odict.py as mentioned in the
+PEP-0372.
+
+This can be removed safely after Python2.6 support is dropped (if ever), note
+that the documentation was removed, as it's not interesting really, being
+redundant to the Python 2.7 documentation.
+
+Starting with Python 3.6, we can safely use the built-in dictionary.
+"""
+
 #    :copyright: (c) 2008 by Armin Ronacher and PEP 273 authors.
 #    :license: modified BSD license.
 #
@@ -26,19 +38,15 @@
 # Kay Hayen did some changes for Nuitka, and put everything he added under the same
 # modified BSD license.
 
-""" This module is only an abstraction of OrderedDict as present in 2.7 and 3.x.
-
-It is not in 2.6, for this version we are using the odict.py as mentioned in the
-PEP-0372.
-
-This can be removed safely after the transition, note that the documentation was
-removed, as it's not interesting really, being redundant to the Python 2.7
-documentation. """
+from nuitka.PythonVersions import python_version
 
 # pylint: disable=E0611,W0141
 
 try:
     from collections import OrderedDict
+
+    if python_version >= 360:
+        OrderedDict = dict
 except ImportError:
 
     from itertools import izip, imap
