@@ -36,7 +36,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
         (Nuitka_StringObject *)name
     );
 
-    CHECK_OBJECT( result );
+    // This is assumed to not fail, abort if it does.
+    if (unlikely( result == NULL ))
+    {
+        PyErr_PrintEx( 0 );
+        Py_Exit( 1 );
+    }
 
     return result;
 }
