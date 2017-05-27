@@ -454,7 +454,10 @@ class StatementReleaseVariable(NodeBase):
         Typical code: Function exit, try/finally release of temporary
         variables.
     """
+
     kind = "STATEMENT_RELEASE_VARIABLE"
+
+    __slots__ = "variable", "variable_trace"
 
     def __init__(self, variable, source_ref):
         assert variable is not None, source_ref
@@ -542,6 +545,8 @@ class StatementReleaseVariable(NodeBase):
 class ExpressionTargetVariableRef(ExpressionVariableRef):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
 
+    __slots__ = "variable_version",
+
     # TODO: Remove default and correct argument order later.
     def __init__(self, variable_name, source_ref, variable = None, version = None):
         ExpressionVariableRef.__init__(self, variable_name, source_ref)
@@ -602,6 +607,8 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
 
 class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
     kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
+
+    __slots__ = "variable_version",
 
     def __init__(self, variable, source_ref, version = None):
         ExpressionTempVariableRef.__init__(self, variable, source_ref)

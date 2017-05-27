@@ -50,7 +50,11 @@ class ExpressionImportModuleHard(ExpressionBase):
     """ Hard code import, e.g. of "sys" module as done in Python mechanics.
 
     """
+
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
+
+    __slots__ = "module_name", "import_name"
+
     def __init__(self, module_name, import_name, source_ref):
         ExpressionBase.__init__(
             self,
@@ -196,8 +200,9 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             parent_package = self.getParentModule().getPackage()
 
         level = self.getLevel()
+
         if level is None:
-            level = 0 if self.source_ref.getFutureSpec().isAbsoluteImport() else -1
+            level = 0 if parent_module.getFutureSpec().isAbsoluteImport() else -1
         elif not level.isCompileTimeConstant():
             return
         else:

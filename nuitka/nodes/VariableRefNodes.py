@@ -40,6 +40,8 @@ from .shapes.StandardShapes import ShapeUnknown
 class ExpressionVariableRefBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
+    __slots__ = "variable", "variable_trace"
+
     def __init__(self, variable, source_ref):
         ExpressionBase.__init__(
             self,
@@ -61,6 +63,8 @@ class ExpressionVariableRefBase(ExpressionBase):
 
 class ExpressionVariableRef(ExpressionVariableRefBase):
     kind = "EXPRESSION_VARIABLE_REF"
+
+    __slots__ = "variable_name",
 
     def __init__(self, variable_name, source_ref, variable = None):
         if variable is not None:
@@ -511,6 +515,8 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
 
 class ExpressionLocalsVariableRef(ExpressionBase):
     kind = "EXPRESSION_LOCALS_VARIABLE_REF"
+
+    __slots__ = "variable_name", "fallback_variable", "variable_trace"
 
     def __init__(self, variable_name, fallback_variable, source_ref):
         self.variable_name = variable_name

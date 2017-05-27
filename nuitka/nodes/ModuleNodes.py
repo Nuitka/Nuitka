@@ -51,6 +51,8 @@ from .NodeBases import (
 
 
 class PythonModuleBase(NodeBase):
+    __slots__ = "name", "package_name", "package"
+
     def __init__(self, name, package_name, source_ref):
         assert type(name) is str, type(name)
         assert '.' not in name, name
@@ -508,6 +510,8 @@ class UncompiledPythonModule(PythonModuleBase):
     """
 
     kind = "UNCOMPILED_PYTHON_MODULE"
+
+    __slots__ = "bytecode", "filename", "user_provided", "technical", "used_modules"
 
     def __init__(self, name, package_name, bytecode, filename, user_provided,
                  technical, source_ref):

@@ -55,6 +55,8 @@ class ExpressionBuiltinGlobals(ExpressionBase):
 class ExpressionBuiltinLocals(ExpressionBase):
     kind = "EXPRESSION_BUILTIN_LOCALS"
 
+    __slots__ = "variable_versions",
+
     def __init__(self, source_ref):
         ExpressionBase.__init__(
             self,

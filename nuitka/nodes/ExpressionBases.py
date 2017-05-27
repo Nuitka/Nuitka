@@ -44,6 +44,8 @@ from .shapes.StandardShapes import ShapeUnknown
 
 
 class ExpressionBase(NodeBase):
+    __slots__ = "code_generated",
+
     def getTypeShape(self):
         # Virtual method, pylint: disable=no-self-use
         return ShapeUnknown
@@ -586,7 +588,15 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
 
     # TODO: Do this for all computations, do this in the base class of all
     # nodes.
-    computed_attribute = None
+    __slots__ = "computed_attribute",
+
+    def __init__(self, source_ref):
+        ExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.computed_attribute = None
 
     def isCompileTimeConstant(self):
         """ Has a value that we can use at compile time.

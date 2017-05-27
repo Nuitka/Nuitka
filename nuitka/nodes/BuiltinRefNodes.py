@@ -42,6 +42,8 @@ from .ExpressionBases import CompileTimeConstantExpressionBase
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
+    __slots__ = "builtin_name",
+
     def __init__(self, builtin_name, source_ref):
         CompileTimeConstantExpressionBase.__init__(
             self,
@@ -77,6 +79,8 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
 
 class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_REF"
+
+    __slots__ = ()
 
     def __init__(self, builtin_name, source_ref):
         assert builtin_name in builtin_names, builtin_name
@@ -159,6 +163,8 @@ class ExpressionBuiltinOriginalRef(ExpressionBuiltinRef):
 class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
 
+    __slots__ = ()
+
     def __init__(self, builtin_name, source_ref):
         assert builtin_name in builtin_anon_names, builtin_name
 
@@ -183,6 +189,8 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
 
 class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
+
+    __slots__ = ()
 
     def __init__(self, exception_name, source_ref):
         assert exception_name in builtin_exception_names, exception_name

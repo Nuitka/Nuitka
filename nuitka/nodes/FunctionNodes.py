@@ -775,6 +775,8 @@ error""" % self.getName()
 class ExpressionFunctionRef(ExpressionBase):
     kind = "EXPRESSION_FUNCTION_REF"
 
+    __slots__ = "function_body", "code_name"
+
     def __init__(self, source_ref, function_body = None, code_name = None):
         assert function_body is not None or code_name is not None
         assert code_name != "None"
@@ -949,6 +951,9 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 # Needed for Python3.3 and higher
 class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
     kind = "EXPRESSION_FUNCTION_QUALNAME_REF"
+
+    __slots__ = "function_body",
+
     def __init__(self, function_body, source_ref):
         CompileTimeConstantExpressionBase.__init__(
             self,

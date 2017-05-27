@@ -255,6 +255,8 @@ class StatementExpressionOnly(StatementChildrenHavingBase):
 class StatementPreserveFrameException(NodeBase):
     kind = "STATEMENT_PRESERVE_FRAME_EXCEPTION"
 
+    __slots__ = "preserver_id",
+
     def __init__(self, preserver_id, source_ref):
         NodeBase.__init__(
             self,
@@ -293,6 +295,8 @@ class StatementPreserveFrameException(NodeBase):
 
 class StatementRestoreFrameException(NodeBase):
     kind = "STATEMENT_RESTORE_FRAME_EXCEPTION"
+
+    __slots__ = "preserver_id",
 
     def __init__(self, preserver_id, source_ref):
         NodeBase.__init__(

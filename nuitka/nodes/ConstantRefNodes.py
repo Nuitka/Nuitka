@@ -62,10 +62,9 @@ from .shapes.BuiltinTypeShapes import (
     ShapeTypeXrange
 )
 
-constant_slots = "constant", "user_provided"
 
 class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
-    user_provided = False
+    __slots__ = "constant", "user_provided"
 
     def __init__(self, constant, source_ref, user_provided = False):
         CompileTimeConstantExpressionBase.__init__(
@@ -78,8 +77,7 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
         self.constant = constant
 
         # Memory saving method, have the attribute only where necessary.
-        if user_provided:
-            self.user_provided = user_provided
+        self.user_provided = user_provided
 
         if not user_provided and isDebug():
             try:
@@ -351,6 +349,8 @@ Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
 class ExpressionConstantNoneRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_NONE_REF"
 
+    __slots__ = ()
+
     def __init__(self, source_ref, user_provided = False):
         ExpressionConstantRefBase.__init__(
             self,
@@ -368,6 +368,8 @@ class ExpressionConstantNoneRef(ExpressionConstantRefBase):
 
 class ExpressionConstantTrueRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TRUE_REF"
+
+    __slots__ = ()
 
     def __init__(self, source_ref, user_provided = False):
         ExpressionConstantRefBase.__init__(
@@ -387,6 +389,8 @@ class ExpressionConstantTrueRef(ExpressionConstantRefBase):
 class ExpressionConstantFalseRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_FALSE_REF"
 
+    __slots__ = ()
+
     def __init__(self, source_ref, user_provided = False):
         ExpressionConstantRefBase.__init__(
             self,
@@ -404,6 +408,8 @@ class ExpressionConstantFalseRef(ExpressionConstantRefBase):
 
 class ExpressionConstantEllipsisRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_ELLIPSIS_REF"
+
+    __slots__ = ()
 
     def __init__(self, source_ref, user_provided = False):
         ExpressionConstantRefBase.__init__(
@@ -445,6 +451,8 @@ class ExpressionConstantDictRef(ExpressionConstantRefBase):
 class ExpressionConstantTupleRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TUPLE_REF"
 
+    __slots__ = ()
+
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
             self,
@@ -463,6 +471,8 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
 
 class ExpressionConstantListRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_LIST_REF"
+
+    __slots__ = ()
 
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
@@ -483,6 +493,8 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
 class ExpressionConstantSetRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_SET_REF"
 
+    __slots__ = ()
+
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
             self,
@@ -501,6 +513,8 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
 
 class ExpressionConstantIntRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_INT_REF"
+
+    __slots__ = ()
 
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
@@ -521,6 +535,8 @@ class ExpressionConstantIntRef(ExpressionConstantRefBase):
 class ExpressionConstantLongRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_LONG_REF"
 
+    __slots__ = ()
+
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
             self,
@@ -540,6 +556,8 @@ class ExpressionConstantLongRef(ExpressionConstantRefBase):
 class ExpressionConstantStrRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_STR_REF"
 
+    __slots__ = ()
+
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
             self,
@@ -558,6 +576,8 @@ class ExpressionConstantStrRef(ExpressionConstantRefBase):
 
 class ExpressionConstantUnicodeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_UNICODE_REF"
+
+    __slots__ = ()
 
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
@@ -597,6 +617,8 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
 class ExpressionConstantFloatRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_FLOAT_REF"
 
+    __slots__ = ()
+
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
             self,
@@ -616,6 +638,8 @@ class ExpressionConstantFloatRef(ExpressionConstantRefBase):
 class ExpressionConstantComplexRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_COMPLEX_REF"
 
+    __slots__ = ()
+
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
             self,
@@ -631,6 +655,8 @@ class ExpressionConstantComplexRef(ExpressionConstantRefBase):
 
 class ExpressionConstantSliceRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_SLICE_REF"
+
+    __slots__ = ()
 
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
@@ -651,6 +677,8 @@ class ExpressionConstantSliceRef(ExpressionConstantRefBase):
 class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_XRANGE_REF"
 
+    __slots__ = ()
+
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
             self,
@@ -669,6 +697,8 @@ class ExpressionConstantXrangeRef(ExpressionConstantRefBase):
 
 class ExpressionConstantTypeRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TYPE_REF"
+
+    __slots__ = ()
 
     def __init__(self, source_ref, constant, user_provided = False):
         ExpressionConstantRefBase.__init__(
@@ -690,6 +720,8 @@ the_empty_dict = {}
 
 class ExpressionConstantDictEmptyRef(ExpressionConstantDictRef):
     kind = "EXPRESSION_CONSTANT_DICT_EMPTY_REF"
+
+    __slots__ = ()
 
     def __init__(self, source_ref, user_provided = False):
         ExpressionConstantDictRef.__init__(

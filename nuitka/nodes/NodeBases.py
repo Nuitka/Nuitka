@@ -54,6 +54,9 @@ class NodeCheckMetaClass(ABCMeta):
 
             last_mixin = is_mixin
 
+        if "__slots__" not in dictionary:
+            dictionary["__slots__"] = ()
+
         return ABCMeta.__new__(cls, name, bases, dictionary)
 
     def __init__(cls, name, bases, dictionary):  # @NoSelf
@@ -95,10 +98,16 @@ class NodeCheckMetaClass(ABCMeta):
 
 # For Python2/3 compatible source, we create a base class that has the metaclass
 # used and doesn't require making a choice.
-NodeMetaClassBase = NodeCheckMetaClass("NodeMetaClassBase", (object,), {})
+NodeMetaClassBase = NodeCheckMetaClass(
+    "NodeMetaClassBase",
+    (object,),
+    {"__slots__" : () }
+)
 
 
 class NodeBase(NodeMetaClassBase):
+    __slots__ = "parent", "source_ref", "effective_source_ref"
+
     # String to identify the node class, to be consistent with its name.
     kind = None
 
