@@ -45,6 +45,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
+from nuitka.utils.Execution import withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     deleteFile,
@@ -492,61 +493,71 @@ def detectEarlyImports():
 
     return result
 
+_detected_python_rpath = None
 
 def _detectBinaryPathDLLsLinuxBSD(binary_filename):
     # Ask "ldd" about the libraries being used by the created binary, these
     # are the ones that interest us.
     result = set()
 
-    process = subprocess.Popen(
-        args   = [
-            "ldd",
-            binary_filename
-        ],
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE
-    )
+    # This is the rpath of the Python binary, which will be effective when
+    # loading the other DLLs too. This happens at least for Python installs
+    # on Travis. pylint: disable=global-statement
+    global _detected_python_rpath
+    if _detected_python_rpath is None:
+        _detected_python_rpath = getSharedLibraryRPATH(sys.executable) or False
 
-    stdout, _stderr = process.communicate()
+    with withEnvironmentPathAdded("LD_LIBRARY_PATH", _detected_python_rpath):
+        process = subprocess.Popen(
+            args   = [
+                "ldd",
+                binary_filename
+            ],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE
+        )
 
-    for line in stdout.split(b"\n"):
-        if not line:
-            continue
+        stdout, _stderr = process.communicate()
 
-        if b"=>" not in line:
-            continue
+        for line in stdout.split(b"\n"):
+            if not line:
+                continue
 
-        part = line.split(b" => ", 2)[1]
+            if b"=>" not in line:
+                continue
 
-        if b"(" in part:
-            filename = part[:part.rfind(b"(")-1]
-        else:
-            filename = part
+            part = line.split(b" => ", 2)[1]
 
-        if not filename:
-            continue
+            if b"(" in part:
+                filename = part[:part.rfind(b"(")-1]
+            else:
+                filename = part
 
-        if python_version >= 300:
-            filename = filename.decode("utf-8")
+            if not filename:
+                continue
 
-        # Sometimes might use stuff not found.
-        if filename == "not found":
-            continue
+            if python_version >= 300:
+                filename = filename.decode("utf-8")
 
-        # Do not include kernel specific libraries.
-        if os.path.basename(filename).startswith(
-                (
-                    "libc.so.",
-                    "libpthread.so.",
-                    "libm.so.",
-                    "libdl.so."
-                )
-            ):
-            continue
+            # Sometimes might use stuff not found.
+            if filename == "not found":
+                continue
 
-        result.add(filename)
+            # Do not include kernel specific libraries.
+            if os.path.basename(filename).startswith(
+                    (
+                        "libc.so.",
+                        "libpthread.so.",
+                        "libm.so.",
+                        "libdl.so."
+                    )
+                ):
+                continue
+
+            result.add(filename)
 
     return result
+
 
 def _detectBinaryPathDLLsMacOS(binary_filename):
     result = set()
@@ -838,7 +849,7 @@ def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map):
     assert process.returncode == 0, stderr
 
 
-def removeSharedLibraryRPATH(filename):
+def getSharedLibraryRPATH(filename):
     process = subprocess.Popen(
         ["readelf", "-d", filename],
         stdout = subprocess.PIPE,
@@ -859,28 +870,37 @@ def removeSharedLibraryRPATH(filename):
 
     for line in stdout.split(b"\n"):
         if b"RPATH" in line:
-            if Options.isShowInclusion():
-                info("Removing 'RPATH' setting from '%s'.", filename)
+            return line[line.find(b'[')+1:line.rfind(b']')]
 
-            if not Utils.isExecutableCommand("chrpath"):
-                sys.exit(
-                    """\
+    return None
+
+
+def removeSharedLibraryRPATH(filename):
+    rpath = getSharedLibraryRPATH(filename)
+
+    if rpath is not None:
+        if Options.isShowInclusion():
+            info("Removing 'RPATH' setting from '%s'.", filename)
+
+        if not Utils.isExecutableCommand("chrpath"):
+            sys.exit(
+                """\
 Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
 libraries that need to be removed."""
-                )
-
-            os.chmod(filename, int("644", 8))
-            process = subprocess.Popen(
-                ["chrpath", "-d", filename],
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE,
-                shell  = False
             )
-            process.communicate()
-            retcode = process.poll()
-            os.chmod(filename, int("444", 8))
 
-            assert retcode == 0, filename
+        os.chmod(filename, int("644", 8))
+        process = subprocess.Popen(
+            ["chrpath", "-d", filename],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+            shell  = False
+        )
+        process.communicate()
+        retcode = process.poll()
+        os.chmod(filename, int("444", 8))
+
+        assert retcode == 0, filename
 
 
 def copyUsedDLLs(dist_dir, standalone_entry_points):

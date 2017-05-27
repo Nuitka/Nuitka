@@ -845,6 +845,7 @@ def withPythonPathChange(python_path):
         else:
             os.environ["PYTHONPATH"] = old_path
 
+
 @contextmanager
 def withExtendedExtraOptions(*args):
     assert args

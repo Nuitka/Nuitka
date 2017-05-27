@@ -25,6 +25,7 @@ binaries (needed for exec) and run them capturing outputs.
 import os
 import subprocess
 import sys
+from contextlib import contextmanager
 
 from .Utils import getArchitecture, getOS
 
@@ -154,3 +155,28 @@ def check_output(*popenargs, **kwargs):
         raise subprocess.CalledProcessError(retcode, cmd, output = output)
 
     return output
+
+
+@contextmanager
+def withEnvironmentPathAdded(env_var_name, path):
+    if type(path) in (tuple, list):
+        path = os.pathsep.join(path)
+
+    if path:
+        if str is not bytes:
+            path = path.decode("utf-8")
+
+        if env_var_name in os.environ:
+            old_path = os.environ[env_var_name]
+            os.environ[env_var_name] += os.pathsep + path
+        else:
+            old_path = None
+            os.environ[env_var_name] = path
+
+    yield
+
+    if path:
+        if old_path is None:
+            del os.environ[env_var_name]
+        else:
+            os.environ[env_var_name] = old_path
