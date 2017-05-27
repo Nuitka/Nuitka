@@ -473,6 +473,8 @@ static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *corout
         }
 
         coroutine->m_running = 1;
+        CHECK_OBJECT( coroutine->m_exception_type );
+
         PyObject *ret = PyObject_CallFunctionObjArgs( meth, coroutine->m_exception_type, coroutine->m_exception_value, coroutine->m_exception_tb, NULL );
         coroutine->m_running = 0;
 
@@ -1201,6 +1203,7 @@ static PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *coroutine, P
             {
                 assert( coroutine->m_exception_type != NULL );
                 CLEAR_ERROR_OCCURRED();
+                CHECK_OBJECT( coroutine->m_exception_type );
             }
 
             CHECK_OBJECT( send_value );
