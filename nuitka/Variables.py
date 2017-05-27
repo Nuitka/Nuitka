@@ -27,9 +27,15 @@ from nuitka.utils import InstanceCounters, Utils
 
 complete = False
 
-class Variable:
+class Variable(object):
+
     # We will need all of these attributes, since we track the global
     # state and cache some decisions as attributes, pylint: disable=too-many-instance-attributes
+    __slots__ = (
+        "variable_name", "owner", "version_number", "shared_users", "shared_scopes",
+        "traces", "users", "writers"
+    )
+
     @InstanceCounters.counted_init
     def __init__(self, owner, variable_name):
         assert type(variable_name) is str, variable_name
@@ -183,6 +189,8 @@ class Variable:
 
 
 class LocalVariable(Variable):
+    __slots__ = ()
+
     def __init__(self, owner, variable_name):
         Variable.__init__(
             self,
@@ -202,6 +210,8 @@ class LocalVariable(Variable):
 
 
 class ParameterVariable(LocalVariable):
+    __slots__ = ()
+
     def __init__(self, owner, parameter_name):
         LocalVariable.__init__(
             self,
@@ -217,6 +227,8 @@ class ParameterVariable(LocalVariable):
 
 
 class ModuleVariable(Variable):
+    __slots__ = "module",
+
     def __init__(self, module, variable_name):
         assert type(variable_name) is str, repr(variable_name)
         assert module.isCompiledPythonModule()
@@ -246,6 +258,8 @@ class ModuleVariable(Variable):
 
 
 class TempVariable(Variable):
+    __slots__ = ()
+
     def __init__(self, owner, variable_name):
         Variable.__init__(
             self,
