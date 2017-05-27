@@ -52,18 +52,51 @@ class ShapeUnknown(ShapeBase):
     def hasShapeSlotNext():
         return None
 
-class ValueShapeBase:
+
+class ValueShapeBase(object):
+    __slots__ = ()
+
     def hasShapeSlotLen(self):
         return self.getTypeShape().hasShapeSlotLen()
 
 
 class ValueShapeUnknown(ValueShapeBase):
+    __slots__ = ()
+
     @staticmethod
     def getTypeShape():
         return ShapeUnknown
 
 # Singleton value for sharing.
 vshape_unknown = ValueShapeUnknown()
+
+
+class ShapeLargeConstantValue(object):
+    __slots__ = "shape", "size"
+
+    def __init__(self, size, shape):
+        self.size = size
+        self.shape = shape
+
+    def getTypeShape(self):
+        return self.shape
+
+    @staticmethod
+    def isConstant():
+        return True
+
+    def hasShapeSlotLen(self):
+        return self.shape.hasShapeSlotLen()
+
+
+class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
+    __slots__ = "predictor",
+
+    def __init__(self, size, predictor, shape):
+        ShapeLargeConstantValue.__init__(self, size, shape)
+
+        self.predictor = predictor
+
 
 class ShapeIterator(ShapeBase):
     @staticmethod

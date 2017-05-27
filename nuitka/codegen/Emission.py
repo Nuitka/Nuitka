@@ -23,7 +23,7 @@ use of these will occur.
 
 """
 
-class SourceCodeCollector:
+class SourceCodeCollector(object):
     def __init__(self):
         self.codes = []
 

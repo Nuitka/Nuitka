@@ -50,7 +50,7 @@ from .VariableTraces import (
 signalChange = None
 
 
-class CollectionTracingMixin:
+class CollectionTracingMixin(object):
     def __init__(self):
         # For functions, when we are in here, the currently active one,
         self.variable_actives = {}
@@ -128,7 +128,7 @@ class CollectionTracingMixin:
             self.markActiveVariableAsUnknown(variable)
 
 
-class CollectionStartpointMixin:
+class CollectionStartpointMixin(object):
     def __init__(self):
         # Variable assignments performed in here, last issued number, only used
         # to determine the next number that should be used for a new assignment.

@@ -43,7 +43,7 @@ post_modules = {}
 
 warned_unused_plugins = set()
 
-class NuitkaPluginBase:
+class NuitkaPluginBase(object):
     """ Nuitka base class for all plug-ins.
 
         Derive from "UserPlugin" please.

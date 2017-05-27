@@ -31,7 +31,7 @@ _future_division_default = python_version >= 300
 _future_absolute_import_default = python_version >= 300
 _future_generator_stop_default = python_version >= 370
 
-class FutureSpec:
+class FutureSpec(object):
     @counted_init
     def __init__(self):
         self.future_division  = _future_division_default

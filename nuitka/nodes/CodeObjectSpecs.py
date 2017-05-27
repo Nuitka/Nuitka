@@ -23,7 +23,7 @@ objects, as well as tracebacks. They might be shared.
 """
 
 
-class CodeObjectSpec:
+class CodeObjectSpec(object):
     def __init__(self, co_name, co_kind, co_varnames, co_argcount,
                  co_kwonlyargcount, co_has_starlist, co_has_stardict):
 

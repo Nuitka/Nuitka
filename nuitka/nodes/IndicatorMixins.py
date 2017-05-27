@@ -24,7 +24,7 @@ used like this.
 """
 
 
-class MarkLocalsDictIndicatorMixin:
+class MarkLocalsDictIndicatorMixin(object):
     def __init__(self):
         self.needs_locals_dict = False
 
@@ -35,7 +35,7 @@ class MarkLocalsDictIndicatorMixin:
         self.needs_locals_dict = True
 
 
-class MarkUnoptimizedFunctionIndicatorMixin:
+class MarkUnoptimizedFunctionIndicatorMixin(object):
     """ Mixin for indication that a function contains an exec or star import.
 
         These do not access global variables directly, but check a locals dictionary

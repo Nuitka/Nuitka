@@ -138,7 +138,6 @@ def generateChildExpressionsCode(expression, emit, context):
 
             value_names.append(None)
 
-
     return value_names
 
 

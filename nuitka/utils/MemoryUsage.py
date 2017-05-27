@@ -104,7 +104,7 @@ def getHumanReadableProcessMemoryUsage(value = None):
         return "%d bytes" % value
 
 
-class MemoryWatch:
+class MemoryWatch(object):
     def __init__(self):
         self.start = getOwnProcessMemoryUsage()
         self.stop = None

@@ -32,7 +32,7 @@ from .Namify import namifyConstant
 
 # Many methods won't use self, but it's the interface. pylint: disable=no-self-use
 
-class TempMixin:
+class TempMixin(object):
     # Lots of details, everything gets to store bits here, to indicate
     # code generation states, and there are many, pylint: disable=too-many-instance-attributes
 
@@ -211,7 +211,7 @@ class TempMixin:
         self.false_target = label
 
 
-class CodeObjectsMixin:
+class CodeObjectsMixin(object):
     def __init__(self):
         # Code objects needed made unique by a key.
         self.code_objects = {}
@@ -260,7 +260,7 @@ class CodeObjectsMixin:
             return hash_value.hexdigest()
 
 
-class PythonContextBase:
+class PythonContextBase(object):
     def __init__(self):
         self.source_ref = None
 
@@ -462,7 +462,7 @@ def _getConstantDefaultPopulation():
     return result
 
 
-class PythonGlobalContext:
+class PythonGlobalContext(object):
     def __init__(self):
         self.constants = {}
         self.constant_use_count = {}
@@ -529,7 +529,7 @@ type_indicator = {
     "struct Nuitka_CellObject *" : 'c',
 }
 
-class FrameDeclarationsMixin:
+class FrameDeclarationsMixin(object):
     def __init__(self):
         self.frame_declarations = []
 

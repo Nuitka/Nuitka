@@ -43,7 +43,7 @@ class TooManyArguments(Exception):
         return self.real_exception
 
 
-class ParameterSpec:
+class ParameterSpec(object):
     # These got many attributes, in part duplicating name and instance of
     # variables, pylint: disable=too-many-instance-attributes
 

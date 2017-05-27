@@ -48,7 +48,7 @@ def checkVersion():
 
 # Disabled globally:
 #
-# W0232: Class has no __init__ method
+# no-init: Class has no __init__ method
 # Who cares, we are using overrides that don't need to change object init a lot
 # and rarely ever made a mistake with forgetting to call used __init__ of the
 # parent.
@@ -67,9 +67,6 @@ def checkVersion():
 #
 # C0330: Wrong hanging line indentation
 # No it's not wrong.
-#
-# C1001: Old-style class defined.
-# Yes, so what, why care.
 #
 # E1120 / E1123: ....
 # Constructor call checks frequently fail miserably, so this is full of
@@ -104,7 +101,7 @@ def getOptions():
 
     default_pylint_options = """\
 --rcfile=/dev/null
---disable=I0011,I0012,W0232,C0326,C0330,C1001,E1103,W0632,W1504,C0123,C0413,C0411,R0204,similar-code,cyclic-import,duplicate-code
+--disable=I0011,I0012,no-init,C0326,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no

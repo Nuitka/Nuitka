@@ -26,7 +26,11 @@ import math
 from nuitka import PythonOperators
 
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .shapes.StandardShapes import ShapeUnknown, vshape_unknown
+from .shapes.StandardShapes import (
+    ShapeLargeConstantValuePredictable,
+    ShapeUnknown,
+    vshape_unknown
+)
 
 
 class ExpressionOperationBase(ExpressionChildrenHavingBase):
@@ -192,30 +196,6 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinary):
         trace_collection.onControlFlowEscape(self)
 
         return self, None, None
-
-
-class ShapeLargeConstantValue:
-    def __init__(self, size, shape):
-        self.size = size
-        self.shape = shape
-
-    def getTypeShape(self):
-        return self.shape
-
-    @staticmethod
-    def isConstant():
-        return True
-
-    def hasShapeSlotLen(self):
-        return self.shape.hasShapeSlotLen()
-
-
-class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
-    def __init__(self, size, predictor, shape):
-        ShapeLargeConstantValue.__init__(self, size, shape)
-
-        self.predictor = predictor
-
 
 class ExpressionOperationBinaryMult(ExpressionOperationBinary):
     kind = "EXPRESSION_OPERATION_BINARY_MULT"

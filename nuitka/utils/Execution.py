@@ -28,6 +28,7 @@ import sys
 
 from .Utils import getArchitecture, getOS
 
+
 def callExec(args):
     """ Do exec in a portable way preserving exit code.
 

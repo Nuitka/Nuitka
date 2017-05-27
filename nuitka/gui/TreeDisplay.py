@@ -34,7 +34,7 @@ from nuitka import SourceCodeReferences
 # The API requires a signature, sometimes we don't use it, pylint: disable=no-self-use
 # Also using private stuff from classes, probably ok, pylint: disable=protected-access
 
-class NodeTreeModelItem:
+class NodeTreeModelItem(object):
     def __init__(self, node, parent = None):
         self.parent_treeitem = parent
         self.node = node

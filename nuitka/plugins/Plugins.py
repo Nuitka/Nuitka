@@ -101,7 +101,7 @@ for plugin_name, (plugin_class, plugin_detector) in plugin_name2plugin_classes.i
                 plugin_detector()
             )
 
-class Plugins:
+class Plugins(object):
     @staticmethod
     def considerImplicitImports(module, signal_change):
         for plugin in active_plugin_list:

@@ -524,7 +524,7 @@ class NodeBase(NodeMetaClassBase):
         return False
 
 
-class CodeNodeMixin:
+class CodeNodeMixin(object):
     def __init__(self, name, code_prefix):
         assert name is not None
 
@@ -571,7 +571,7 @@ class CodeNodeMixin:
         return self.uids[node.kind]
 
 
-class ChildrenHavingMixin:
+class ChildrenHavingMixin(object):
     named_children = ()
 
     checkers = {}
@@ -900,7 +900,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         return self.preserver_id
 
 
-class ClosureTakerMixin:
+class ClosureTakerMixin(object):
     """ Mixin for nodes that accept variables from closure givers. """
 
     def __init__(self, provider, early_closure):
@@ -1020,7 +1020,7 @@ class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
 
 
 
-class SideEffectsFromChildrenMixin:
+class SideEffectsFromChildrenMixin(object):
     def mayHaveSideEffects(self):
         for child in self.getVisitableNodes():
             if child.mayHaveSideEffects():

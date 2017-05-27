@@ -679,7 +679,7 @@ def createSearchMode():
     start_at = sys.argv[2] if len(sys.argv) > 2 else None
     coverage_mode = len(sys.argv) > 1 and sys.argv[1] == "coverage"
 
-    class SearchModeBase:
+    class SearchModeBase(object):
         def __init__(self):
             self.may_fail = []
 
