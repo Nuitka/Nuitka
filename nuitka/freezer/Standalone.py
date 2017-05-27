@@ -52,6 +52,7 @@ from nuitka.utils.FileOperations import (
 )
 
 from .DependsExe import getDependsExePath
+from nuitka.containers.odict import OrderedDict
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -784,7 +785,7 @@ def detectBinaryDLLs(original_dir, binary_filename, package_name):
 
 
 def detectUsedDLLs(standalone_entry_points):
-    result = {}
+    result = OrderedDict()
 
     for original_dir, binary_filename, package_name in standalone_entry_points:
         used_dlls = detectBinaryDLLs(
@@ -892,6 +893,7 @@ def copyUsedDLLs(dist_dir, standalone_entry_points):
 
     used_dlls = detectUsedDLLs(standalone_entry_points)
 
+    # Fist make checks and remove some.
     for dll_filename1, sources1 in tuple(iterItems(used_dlls)):
         for dll_filename2, sources2 in tuple(iterItems(used_dlls)):
             if dll_filename1 == dll_filename2:
