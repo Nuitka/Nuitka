@@ -391,15 +391,11 @@ static PyObject *Nuitka_Frame_clear( struct Nuitka_FrameObject *frame )
 
 #endif
 
-static PyObject *Nuitka_Frame_sizeof( PyFrameObject *frame )
+static PyObject *Nuitka_Frame_sizeof( struct Nuitka_FrameObject *frame )
 {
-    Py_ssize_t slots =
-        frame->f_code->co_stacksize +
-        frame->f_code->co_nlocals +
-        PyTuple_GET_SIZE( frame->f_code->co_cellvars ) +
-        PyTuple_GET_SIZE( frame->f_code->co_freevars );
-
-    return PyInt_FromSsize_t( sizeof( struct Nuitka_FrameObject ) + slots * sizeof(PyObject *) );
+    return PyInt_FromSsize_t(
+        sizeof( struct Nuitka_FrameObject ) + Py_SIZE( frame )
+    );
 }
 
 static PyMethodDef Nuitka_Frame_methods[] =
