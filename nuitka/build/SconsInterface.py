@@ -60,7 +60,10 @@ def _getSconsBinaryCall():
         scons_path = Execution.getExecutablePath("scons")
 
         if scons_path is not None:
-            return [scons_path]
+            return [
+                _getPython2ExePath(),
+                scons_path
+            ]
 
     return [
         _getPython2ExePath(),
