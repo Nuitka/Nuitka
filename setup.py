@@ -35,7 +35,7 @@ def detectVersion():
     version_line, = [
         line
         for line in
-        open("nuitka/Options.py")
+        open("nuitka/Version.py")
         if line.startswith("Nuitka V")
     ]
 

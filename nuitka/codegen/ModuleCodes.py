@@ -19,7 +19,7 @@
 
 """
 
-from nuitka import Options
+from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import allocateNestedConstants, getConstantInitCodes
@@ -127,8 +127,8 @@ def getModuleValues(context, module_name, module_identifier, codes,
 def getModuleCode(module_context, template_values):
     header = template_global_copyright % {
         "name"    : module_context.getName(),
-        "version" : Options.getVersion(),
-        "year"    : Options.getYear()
+        "version" : getNuitkaVersion(),
+        "year"    : getNuitkaVersionYear()
     }
 
     decls, inits, checks = getConstantInitCodes(module_context)

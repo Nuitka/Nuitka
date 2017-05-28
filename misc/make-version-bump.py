@@ -42,9 +42,9 @@ if positional_args:
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 os.chdir("..")
 
-option_lines = [ line for line in open("nuitka/Options.py") ]
+option_lines = [ line for line in open("nuitka/Version.py") ]
 
-version_line, = [ line for line in open("nuitka/Options.py") if line.startswith("Nuitka V") ]
+version_line, = [ line for line in open("nuitka/Version.py") if line.startswith("Nuitka V") ]
 
 old_version = version_line[ 8:].rstrip()
 
@@ -91,7 +91,7 @@ else:
 # Above code should succeed set this variable
 assert new_version
 
-with open("nuitka/Options.py", 'w') as options_file:
+with open("nuitka/Version.py", 'w') as options_file:
     for line in option_lines:
         if line.startswith("Nuitka V"):
             line = "Nuitka V" + new_version + '\n'

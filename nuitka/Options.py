@@ -27,22 +27,11 @@ from nuitka.PythonVersions import (
     python_version_str
 )
 from nuitka.utils import Utils
-
-version_string = """\
-Nuitka V0.5.26rc5
-Copyright (C) 2017 Kay Hayen."""
-
-
+from nuitka.Version import getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
 is_nuitka_run = os.path.basename(sys.argv[0]).lower().startswith("nuitka-run")
-
-def getVersion():
-    return version_string.split()[1][1:]
-
-def getYear():
-    return int(version_string.split()[4])
 
 if not is_nuitka_run:
     usage = "usage: %prog [--module] [--execute] [options] main_module.py"
@@ -51,7 +40,7 @@ else:
 
 parser = OptionParser(
     usage   = usage,
-    version = getVersion()
+    version = getNuitkaVersion()
 )
 
 # This option is obsolete, and module should be used.
