@@ -210,14 +210,6 @@ for filename in sorted(os.listdir('.')):
 
         extra_flags.append("plugin_enable:pmw-freeze")
 
-    if filename not in ("PySideUsing.py", "PyQt4Using.py", "PyQt5Using.py",
-                        "PyQt4Plugins.py", "PyQt5Plugins.py", "GtkUsing.py",
-                        "LxmlUsing.py", "Win32ComUsing.py", "IdnaUsing.py",
-                        "NumpyUsing.py", "FlaskUsing.py"):
-        extra_flags += [
-            "no_site"
-        ]
-
     my_print("Consider output of recursively compiled program:", filename)
 
     # First compare so we know the program behaves identical.
