@@ -319,6 +319,11 @@ for filename in sorted(os.listdir('.')):
            loaded_filename in ("/home", "/data", "/root"):
             continue
 
+        # For Debian builders, /build is OK too.
+        if loaded_filename.startswith("/build/") or \
+           loaded_filename == "/build":
+            continue
+
         if loaded_basename == "gconv-modules.cache":
             continue
 
