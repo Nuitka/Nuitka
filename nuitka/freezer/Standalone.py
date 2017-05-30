@@ -430,10 +430,9 @@ def detectEarlyImports():
     ]
 
     if Utils.getOS() != "Windows":
-        encoding_names.remove("mbcs")
-
-        if "cp65001" in encoding_names:
-            encoding_names.remove("cp65001")
+        for encoding_name in ("mbcs", "cp65001", "oem"):
+            if encoding_name in encoding_names:
+                encoding_names.remove(encoding_name)
 
     import_code = ';'.join(
         "import encodings.%s" % encoding_name
