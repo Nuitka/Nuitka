@@ -57,6 +57,7 @@ try:
         [
             "debootstrap",
             "--include=ccache",
+            "--include=dpkg-dev",
             "--arch=" + arch,
             "--components=" + components,
             codename,
