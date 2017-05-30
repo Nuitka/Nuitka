@@ -257,6 +257,9 @@ for filename in sorted(os.listdir('.')):
         if loaded_filename.startswith("/tmp/"):
             continue
 
+        if loaded_filename.startswith("/run/"):
+            continue
+
         if loaded_filename.startswith("/usr/lib/locale/"):
             continue
 
@@ -264,6 +267,12 @@ for filename in sorted(os.listdir('.')):
             continue
 
         if loaded_filename.startswith("/usr/share/X11/locale/"):
+            continue
+
+        # Themes may of course be loaded.
+        if loaded_filename.startswith("/usr/share/themes"):
+            continue
+        if "gtk" in loaded_filename and "/engines/" in loaded_filename:
             continue
 
         # Taking these from system is harmless and desirable
