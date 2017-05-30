@@ -80,6 +80,7 @@ def check_result(*popenargs, **kwargs):
 
 _python_version = None
 _python_arch = None
+_python_executable = None
 
 def setup(needs_io_encoding = False, silent = False):
     # Go its own directory, to have it easy with path knowledge.
@@ -113,27 +114,29 @@ def setup(needs_io_encoding = False, silent = False):
 import sys, os;\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
 print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
+print(sys.executable);\
 """,
         ),
         stderr = subprocess.STDOUT
     )
 
-    global _python_version, _python_arch # singleton, pylint: disable=global-statement
+    global _python_version, _python_arch, _python_executable # singleton, pylint: disable=global-statement
 
     _python_version = version_output.split(b"\n")[0].strip()
     _python_arch = version_output.split(b"\n")[1].strip()
+    _python_executable = version_output.split(b"\n")[2].strip()
 
     if sys.version.startswith('3'):
-        _python_arch = _python_arch.decode()
-        _python_version = _python_version.decode()
-
-    os.environ["_python_version"] = _python_version
+        _python_arch = _python_arch.decode("utf-8")
+        _python_version = _python_version.decode("utf-8")
+        _python_executable = _python_executable.decode("utf-8")
 
     if not silent:
         my_print("Using concrete python", _python_version, "on", _python_arch)
 
     assert type(_python_version) is str, repr(_python_version)
     assert type(_python_arch) is str, repr(_python_arch)
+    assert type(_python_executable) is str, repr(_python_executable)
 
     if "COVERAGE_FILE" not in os.environ:
         os.environ["COVERAGE_FILE"] = os.path.join(
@@ -502,14 +505,27 @@ Error, needs 'strace' on your system to scan used libraries."""
                line.startswith(b"readlink("):
                 filename = line[line.find(b"(")+2:line.find(b", ")-1]
 
-                if filename in (b"/usr", b"/usr/bin"):
-                    continue
+                binary_path = _python_executable
+                if str is not bytes:
+                    binary_path = binary_path.encode("utf-8")
 
-                if filename == b"/usr/bin/python" + _python_version[:3].encode("utf8"):
-                    continue
+                found = False
+                while binary_path:
+                    if filename == binary_path:
+                        found = True
+                        break
 
-                if filename in (b"/usr/bin/python", b"/usr/bin/python2",
-                                b"/usr/bin/python3"):
+                    if binary_path == os.path.dirname(binary_path):
+                        break
+
+                    binary_path = os.path.dirname(binary_path)
+
+                    if filename == os.path.join(binary_path, b"python" + _python_version[:3].encode("utf8")):
+                        found = True
+                        continue
+
+
+                if found:
                     continue
 
             result.extend(
