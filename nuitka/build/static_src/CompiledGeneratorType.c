@@ -846,7 +846,7 @@ PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject 
     struct Nuitka_GeneratorObject *result;
 
     // Macro to assign result memory from GC or free list.
-    allocateFromFreeList(struct Nuitka_GeneratorObject, Nuitka_Generator_Type, closure_given + 1 );
+    allocateFromFreeList(struct Nuitka_GeneratorObject, Nuitka_Generator_Type, closure_given );
 
     assert( result != NULL );
     CHECK_OBJECT( result );

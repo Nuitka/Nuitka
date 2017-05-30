@@ -467,7 +467,7 @@ static struct Nuitka_FrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *modu
     struct Nuitka_FrameObject *result;
 
     // Macro to assign result memory from GC or free list.
-    allocateFromFreeList(struct Nuitka_FrameObject, Nuitka_Frame_Type, locals_size + 1 );
+    allocateFromFreeList(struct Nuitka_FrameObject, Nuitka_Frame_Type, locals_size );
 
     result->m_type_description = NULL;
 

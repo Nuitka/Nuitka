@@ -789,7 +789,7 @@ PyObject *Nuitka_Asyncgen_New( asyncgen_code code, PyObject *name, PyObject *qua
     struct Nuitka_AsyncgenObject *result;
 
     // Macro to assign result memory from GC or free list.
-    allocateFromFreeList(struct Nuitka_AsyncgenObject, Nuitka_Asyncgen_Type, closure_given + 1 );
+    allocateFromFreeList(struct Nuitka_AsyncgenObject, Nuitka_Asyncgen_Type, closure_given );
 
     result->m_code = (void *)code;
 

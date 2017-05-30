@@ -919,7 +919,7 @@ PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *q
     struct Nuitka_CoroutineObject *result;
 
     // Macro to assign result memory from GC or free list.
-    allocateFromFreeList(struct Nuitka_CoroutineObject, Nuitka_Coroutine_Type, closure_given + 1 );
+    allocateFromFreeList(struct Nuitka_CoroutineObject, Nuitka_Coroutine_Type, closure_given );
 
     result->m_code = (void *)code;
 
