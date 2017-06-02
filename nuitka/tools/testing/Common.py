@@ -1028,7 +1028,8 @@ def compileLibraryPath(search_mode, path, stage_dir, decide, action):
 
 
 def compileLibraryTest(search_mode, stage_dir, decide, action):
-    my_dirname = os.path.dirname(__file__)
+    my_dirname = os.path.join(os.path.dirname(__file__), "../../..")
+    my_dirname = os.path.normpath(my_dirname)
 
     paths = [
         path
