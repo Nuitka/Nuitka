@@ -283,19 +283,27 @@ def optimizeVariables(module):
     changed = False
 
     if module.isCompiledPythonModule():
-        if Variables.complete:
-            for function_body in module.getUsedFunctions():
-                if optimizeUnusedUserVariables(function_body):
-                    changed = True
+        try:
+            if Variables.complete:
+                try:
+                    for function_body in module.getUsedFunctions():
+                        if optimizeUnusedUserVariables(function_body):
+                            changed = True
 
-                if optimizeUnusedClosureVariables(function_body):
-                    changed = True
+                        if optimizeUnusedClosureVariables(function_body):
+                            changed = True
 
-                if optimizeUnusedTempVariables(function_body):
-                    changed = True
+                        if optimizeUnusedTempVariables(function_body):
+                            changed = True
+                except Exception:
+                    print("Problem with", function_body)
+                    raise
 
-        if optimizeUnusedTempVariables(module):
-            changed = True
+            if optimizeUnusedTempVariables(module):
+                changed = True
+        except Exception:
+            print("Problem with", module)
+            raise
 
     return changed
 
