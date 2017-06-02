@@ -377,5 +377,9 @@ def completeVariableClosures(tree):
             if function.hasFlag("has_super"):
                 if not function.hasVariableName("__class__"):
                     class_var = function.takeVariableForClosure("__class__")
-                    function.registerProvidedVariable(class_var)
                     class_var.addVariableUser(function)
+
+                    function.registerProvidedVariable(class_var)
+                    while function != class_var.getOwner():
+                        function = function.getParentVariableProvider()
+                        function.registerProvidedVariable(class_var)
