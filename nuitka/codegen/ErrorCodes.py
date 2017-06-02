@@ -311,3 +311,7 @@ def getMustNotGetHereCode(reason, context, emit):
 
 def getAssertionCode(check, emit):
     emit("assert( %s );" % check)
+
+
+def getCheckObjectCode(check_name, emit):
+    emit("CHECK_OBJECT( %s );" % check_name)

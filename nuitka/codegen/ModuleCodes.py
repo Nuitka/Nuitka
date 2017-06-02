@@ -51,9 +51,10 @@ def getModuleValues(context, module_name, module_identifier, codes,
     # Temporary variable initializations
     local_var_inits = [
         getLocalVariableInitCode(
-            context  = context,
-            variable = variable,
-            version  = 0
+            context   = context,
+            variable  = variable,
+            version   = 0,
+            init_from = None
         )
         for variable in
         temp_variables

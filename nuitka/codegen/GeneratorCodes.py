@@ -104,29 +104,12 @@ def getClosureCopyCode(to_name, closure_variables, closure_type, context):
             count
         )
 
-        # Generators might not use them, but they still need to be put there.
-        # TODO: But they don't have to be cells.
-        if variable_c_type == "PyObject *":
-            closure_copy.append(
-                "%s = PyCell_NEW0( %s );" % (
-                    target_cell_code,
-                    variable_code_name
-                )
-            )
-        elif variable_c_type == "struct Nuitka_CellObject *":
-            closure_copy.append(
-                "%s = %s;" % (
-                    target_cell_code,
-                    variable_code_name
-                )
-            )
-            closure_copy.append(
-                "Py_INCREF( %s );" % (
-                    target_cell_code
-                )
-            )
-        else:
-            assert False, variable
+
+        variable_c_type.getCellObjectAssignmentCode(
+            target_cell_code,
+            variable_code_name,
+            emit = closure_copy.append
+        )
 
     return closure_copy
 

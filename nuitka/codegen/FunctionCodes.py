@@ -19,6 +19,10 @@
 
 """
 
+from nuitka.codegen.c_types.CTypePyObjectPtrs import (
+    CTypeCellObject,
+    CTypePyObjectPtrPtr
+)
 from nuitka.PythonVersions import python_version
 
 from .Emission import SourceCodeCollector
@@ -364,12 +368,9 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
             version  = closure_variable_version
         )
 
-        if variable_c_type == "PyObject *":
-            suffix_args.append('&' + variable_code_name)
-        elif variable_c_type in ("struct Nuitka_CellObject *", "PyObject **"):
-            suffix_args.append(variable_code_name)
-        else:
-            assert False, variable_c_type
+        suffix_args.append(
+            variable_c_type.getVariableArgReferencePassingCode(variable_code_name)
+        )
 
     # TODO: We ought to not assume references for direct calls, or make a
     # profile if an argument needs a reference at all. Most functions don't
@@ -437,11 +438,7 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
         )
 
         parameter_objects_decl.append(
-            "%s%s%s" % (
-                variable_c_type,
-                ' ' if variable_c_type[-1] in "*&" else ' ',
-                variable_code_name,
-            )
+            variable_c_type.getVariableArgDeclarationCode(variable_code_name)
         )
 
     result = template_function_direct_declaration % {
@@ -477,9 +474,10 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
     # User local variable initializations
     function_locals += [
         getLocalVariableInitCode(
-            context  = context,
-            variable = variable,
-            version  = 0,
+            context   = context,
+            variable  = variable,
+            version   = 0,
+            init_from = None
         )
         for variable in
         user_variables + tuple(
@@ -500,7 +498,7 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
             version  = 0
         )
 
-        if variable_c_type in ("struct Nuitka_CellObject *", "PyObject **"):
+        if variable_c_type in (CTypeCellObject, CTypePyObjectPtrPtr):
             context.setVariableType(closure_variable, variable_code_name, variable_c_type)
         else:
             assert False, (variable_code_name, variable_c_type)
@@ -621,11 +619,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
             )
 
             parameter_objects_decl.append(
-                "%s%s%s" % (
-                    variable_c_type,
-                    ' ' if variable_c_type[-1] in "*&" else ' ',
-                    variable_code_name,
-                )
+                variable_c_type.getVariableArgDeclarationCode(variable_code_name)
             )
 
         result += function_direct_body_template % {

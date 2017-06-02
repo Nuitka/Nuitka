@@ -58,6 +58,7 @@ PACKAGE_LIST = (
     "nuitka/gui",
     "nuitka/codegen",
     "nuitka/codegen/templates",
+    "nuitka/codegen/c_types",
     "nuitka/optimizations",
     "nuitka/finalizations",
     "nuitka/plugins",

@@ -32,6 +32,11 @@ Variable version can start as:
 
 from logging import debug
 
+from nuitka.codegen.c_types.CTypePyObjectPtrs import (
+    CTypeCellObject,
+    CTypePyObjectPtr,
+    CTypePyObjectPtrPtr
+)
 from nuitka.utils import InstanceCounters
 
 
@@ -126,22 +131,22 @@ class VariableTraceBase(object):
 
         if self.variable.getOwner() is user:
             if self.variable.isSharedTechnically():
-                result = "struct Nuitka_CellObject *"
+                result = CTypeCellObject
             else:
-                result = "PyObject *"
+                result = CTypePyObjectPtr
         elif context.isForDirectCall():
             if user.isExpressionGeneratorObjectBody():
-                result = "struct Nuitka_CellObject *"
+                result = CTypeCellObject
             elif user.isExpressionCoroutineObjectBody():
-                result = "struct Nuitka_CellObject *"
+                result = CTypeCellObject
             elif user.isExpressionAsyncgenObjectBody():
-                result = "struct Nuitka_CellObject *"
+                result = CTypeCellObject
             elif self.variable.isSharedTechnically():
-                result = "struct Nuitka_CellObject *"
+                result = CTypeCellObject
             else:
-                result = "PyObject **"
+                result = CTypePyObjectPtrPtr
         else:
-            result = "struct Nuitka_CellObject *"
+            result = CTypeCellObject
 
         return result
 

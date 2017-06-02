@@ -523,12 +523,6 @@ class PythonGlobalContext(object):
     def getConstants(self):
         return self.constants
 
-type_indicator = {
-    "PyObject *" : 'o',
-    "PyObject **" : 'O',
-    "struct Nuitka_CellObject *" : 'c',
-}
-
 class FrameDeclarationsMixin(object):
     def __init__(self):
         self.frame_declarations = []
@@ -573,7 +567,7 @@ class FrameDeclarationsMixin(object):
     def setVariableType(self, variable, variable_code_name, variable_c_type):
         assert variable.isLocalVariable(), variable
 
-        self.variable_types[variable.getName()] = variable_code_name, type_indicator[variable_c_type]
+        self.variable_types[variable.getName()] = variable_code_name, variable_c_type.getTypeIndicator()
 
     def getFrameVariableTypeDescriptions(self):
         return self.frame_type_descriptions[-1]

@@ -130,9 +130,9 @@ if ( %(result)s == true )
 }
 """
 
-# TODO: Storage will not be NULL. What is this used for.
 template_del_shared_intolerant = """\
-%(result)s = %(identifier)s != NULL && PyCell_GET( %(identifier)s ) != NULL;
+assert( %(identifier)s != NULL );
+%(result)s = PyCell_GET( %(identifier)s ) != NULL;
 if ( %(result)s == true )
 {
     Py_DECREF( PyCell_GET( %(identifier)s ) );
@@ -152,6 +152,8 @@ PyCell_SET( %(identifier)s, NULL );
 """
 
 
+# TODO: We could know, if we could loop, and only set the
+# variable to NULL then, using a different template.
 template_release_unclear = """\
 Py_XDECREF( %(identifier)s );
 %(identifier)s = NULL;
@@ -182,6 +184,9 @@ template_read_shared_known = """\
 # For module variable values, need to lookup in module dictionary or in
 # built-in dictionary.
 
+# TODO: Only provide fallback for known actually possible values. Do this
+# by keeping track of things that were added by "site.py" mechanisms. Then
+# we can avoid the second call entirely for most cases.
 template_read_mvar_unclear = """\
 %(tmp_name)s = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)%(var_name)s );
 

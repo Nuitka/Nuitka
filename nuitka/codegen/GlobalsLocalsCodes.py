@@ -20,6 +20,7 @@
 This also includes writing back to locals for exec statements.
 """
 
+from nuitka.codegen.VariableCodes import getLocalVariableCodeType
 from nuitka.PythonVersions import python_version
 
 from .ErrorCodes import getErrorExitBoolCode
@@ -32,10 +33,7 @@ from .templates.CodeTemplatesVariables import (
     template_update_locals_dict_value,
     template_update_locals_mapping_value
 )
-from .VariableCodes import (
-    getLocalVariableObjectAccessCode,
-    getVariableAssignmentCode
-)
+from .VariableCodes import getVariableAssignmentCode
 
 
 def generateBuiltinLocalsCode(to_name, expression, emit, context):
@@ -94,11 +92,9 @@ def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
     # TODO: Variable could known to be set here, get a hand at that
     # information.
 
-    access_code = getLocalVariableObjectAccessCode(
-        variable = variable,
-        version  = version,
-        context  = context
-    )
+    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
+
+    access_code = variable_c_type.getLocalVariableObjectAccessCode(variable_code_name)
 
     if is_dict:
         if initial:
