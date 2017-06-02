@@ -26,6 +26,8 @@ import shutil
 import subprocess
 import sys
 
+from nuitka.tools.release.MSI import makeMsiCompatibleFilename
+
 if os.path.isdir("dist"):
     shutil.rmtree("dist")
 
@@ -58,22 +60,8 @@ for filename in os.listdir("dist"):
 else:
     sys.exit("No MSI created.")
 
-parts = [
-    filename[:-4].\
-        replace("-py2.6","").\
-        replace("-py2.7","").\
-        replace("-py3.2","").\
-        replace("-py3.3","").\
-        replace("-py3.4","").\
-        replace("-py3.5","").\
-        replace("-py3.6","").\
-        replace("Nuitka32","Nuitka").\
-        replace("Nuitka64","Nuitka"),
-    "py" + sys.version[:3].replace('.',""),
-    "msi"
-]
 
-new_filename = '.'.join(parts)
+new_filename = makeMsiCompatibleFilename(filename)
 
 if branch_name == b"factory":
     new_filename = "Nuitka-factory." + new_filename[new_filename.find("win"):]

@@ -529,8 +529,8 @@ The logo was submitted by "dr. Equivalent". It's source is contained in
 
 From these logos, PNG images, and "favicons", and are derived.
 
-The exact ImageMagick commands are in ``misc/make-doc.py``, but are not executed
-each time, the commands are also replicated here:
+The exact ImageMagick commands are in ``nuitka/tools/release/Documentation``,
+but are not executed each time, the commands are also replicated here:
 
 .. code-block:: sh
 

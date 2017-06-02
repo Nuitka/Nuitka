@@ -1,4 +1,4 @@
-#!/usr/bin/python -u
+#!/usr/bin/env python
 #     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -17,58 +17,24 @@
 #     limitations under the License.
 #
 
-""" Make PyPI upload of Nuitka, and check success of it. """
+""" Launcher for PyPI release tool.
 
-from __future__ import print_function
+"""
 
 import os
-import subprocess
-import time
-import xmlrpclib
+import sys
 
-nuitka_version = subprocess.check_output(
-    "./bin/nuitka --version", shell = True
-).strip()
-branch_name = subprocess.check_output(
-    "git name-rev --refs=master --name-only HEAD".split()
-).strip()
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought be there.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+        )
+    )
+)
 
-assert branch_name == "master", branch_name
-assert "pre" not in nuitka_version and "rc" not in nuitka_version
-
-print("Uploading Nuitka '%s'" % nuitka_version)
-
-# Need to remove the contents from the Rest, or else PyPI will not render
-# it. Stupid but true.
-contents = open("README.rst", "rb").read()
-contents = contents.replace(b".. contents::\n", b"")
-contents = contents.replace(b".. image:: doc/images/Nuitka-Logo-Symbol.png\n", b"")
-contents = contents.replace(b".. raw:: pdf\n\n   PageBreak oneColumn\n   SetPageCounter 1", b"")
-
-open("README.rst", "wb").write(contents)
-contents = open("README.rst", "rb").read()
-assert b".. contents" not in contents
-
-print("Creating documentation.")
-assert 0 == os.system("misc/make-doc.py")
-print("Creating source distribution and uploading it.")
-assert 0 == os.system("python setup.py sdist upload")
-print("Uploaded.")
-
-if False:
-    for _i in range(60):
-        # Wait some time for PyPI to catch up with us. Without delay
-        # the old version will still appear. Since this is running
-        # in a Buildbot, we need not be optimal.
-        time.sleep(5*60)
-
-        pypi = xmlrpclib.ServerProxy("https://pypi.python.org/pypi")
-        pypi_versions = pypi.package_releases("Nuitka")
-
-        assert len(pypi_versions) == 1, pypi_versions
-        if nuitka_version == pypi_versions[0]:
-            break
-
-        print("Version check failed:", nuitka_version, pypi_versions)
-
-    print("Uploaded OK:", pypi_versions[0])
+from nuitka.tools.release.pypi.__main__ import main # isort:skip
+main()

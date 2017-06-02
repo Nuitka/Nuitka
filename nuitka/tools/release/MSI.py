@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -16,25 +15,28 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-""" Launcher for OSC status checker tool.
+""" Windows MSI release tools.
 
 """
 
-import os
 import sys
 
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought be there.
-sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-        )
-    )
-)
+from nuitka.PythonVersions import getSupportedPythonVersions
 
-from nuitka.tools.release.osc_check.__main__ import main # isort:skip
-main()
+
+def makeMsiCompatibleFilename(filename):
+    filename = filename[:-4]
+
+    for supported_version in getSupportedPythonVersions():
+        filename = filename.replace("-py" + supported_version, "")
+
+    filename = filename.replace("Nuitka32","Nuitka")
+    filename = filename.replace("Nuitka64","Nuitka")
+
+    parts = [
+        filename,
+        "py" + sys.version[:3].replace('.',""),
+        "msi"
+    ]
+
+    return '.'.join(parts)
