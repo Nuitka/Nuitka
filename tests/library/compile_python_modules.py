@@ -74,7 +74,8 @@ def action(stage_dir, root, path):
         "--output-dir",
         stage_dir,
         "--recurse-none",
-        "--remove-output"
+        "--remove-output",
+        "--plugin-enable=pylint-warnings"
     ]
 
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
@@ -88,7 +89,7 @@ def action(stage_dir, root, path):
         compareWithCPython(
             dirname     = None,
             filename    = path,
-            extra_flags = ["expect_failure"],
+            extra_flags = ["expect_failure", "plugin_enable:pylint-warnings"],
             search_mode = search_mode,
             needs_2to3  = False
         )
