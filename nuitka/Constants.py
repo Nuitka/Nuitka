@@ -133,7 +133,7 @@ else:
 
 def isConstant(constant):
     # Too many cases and all return, that is how we do it here,
-    # pylint: disable=too-many-return-statements
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     constant_type = type(constant)
 
@@ -149,8 +149,15 @@ def isConstant(constant):
             if not isConstant(element_value):
                 return False
         return True
+    elif constant_type is slice:
+        if not isConstant(constant.start) or \
+           not isConstant(constant.stop) or \
+           not isConstant(constant.step):
+            return False
+
+        return True
     elif constant_type in (str, unicode, complex, int, long, bool, float,
-                           NoneType, range, bytes, set, slice, xrange):
+                           NoneType, range, bytes, set, xrange):
         return True
     elif constant in (Ellipsis, NoneType):
         return True
