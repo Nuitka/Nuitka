@@ -127,9 +127,16 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
             source_code
         )
 
+        # Debian stretch site.py
         source_code = source_code.replace(
             "PREFIXES = [sys.prefix, sys.exec_prefix]",
             "PREFIXES = []"
+        )
+
+        # Anaconda3 4.1.2 site.py
+        source_code = source_code.replace(
+            "def main():",
+            "def main():return\n\nif 0:\n def _unused():",
         )
 
     debug(
