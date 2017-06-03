@@ -285,8 +285,8 @@ void Nuitka_Frame_ReleaseLocals( struct Nuitka_FrameObject *frame )
 }
 
 #define MAX_FRAME_FREE_LIST_COUNT 100
-static struct Nuitka_FrameObject *free_list = NULL;
-static int free_list_count = 0;
+static struct Nuitka_FrameObject *free_list_frames = NULL;
+static int free_list_frames_count = 0;
 
 
 static void Nuitka_Frame_tp_dealloc( struct Nuitka_FrameObject *nuitka_frame )
@@ -313,7 +313,11 @@ static void Nuitka_Frame_tp_dealloc( struct Nuitka_FrameObject *nuitka_frame )
 
     Nuitka_Frame_tp_clear( nuitka_frame );
 
-    releaseToFreeList( nuitka_frame, MAX_FRAME_FREE_LIST_COUNT );
+    releaseToFreeList(
+        free_list_frames,
+        nuitka_frame,
+        MAX_FRAME_FREE_LIST_COUNT
+    );
 
 #ifndef __NUITKA_NO_ASSERT__
     PyThreadState *tstate = PyThreadState_GET();
@@ -467,7 +471,12 @@ static struct Nuitka_FrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *modu
     struct Nuitka_FrameObject *result;
 
     // Macro to assign result memory from GC or free list.
-    allocateFromFreeList(struct Nuitka_FrameObject, Nuitka_Frame_Type, locals_size );
+    allocateFromFreeList(
+        free_list_frames,
+        struct Nuitka_FrameObject,
+        Nuitka_Frame_Type,
+        locals_size
+    );
 
     result->m_type_description = NULL;
 

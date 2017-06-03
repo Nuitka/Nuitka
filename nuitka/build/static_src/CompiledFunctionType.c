@@ -492,8 +492,8 @@ static PyObject *Nuitka_Function_reduce( struct Nuitka_FunctionObject *function 
 
 
 #define MAX_FUNCTION_FREE_LIST_COUNT 100
-static struct Nuitka_FunctionObject *free_list = NULL;
-static int free_list_count = 0;
+static struct Nuitka_FunctionObject *free_list_functions = NULL;
+static int free_list_functions_count = 0;
 
 static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
 {
@@ -535,7 +535,11 @@ static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
     }
 
     /* Put the object into freelist or release to GC */
-    releaseToFreeList( function, MAX_FUNCTION_FREE_LIST_COUNT );
+    releaseToFreeList(
+        free_list_functions,
+        function,
+        MAX_FUNCTION_FREE_LIST_COUNT
+    );
 
 #ifndef __NUITKA_NO_ASSERT__
     PyThreadState *tstate = PyThreadState_GET();
@@ -628,7 +632,12 @@ struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, Py
     struct Nuitka_FunctionObject *result;
 
     // Macro to assign result memory from GC or free list.
-    allocateFromFreeList(struct Nuitka_FunctionObject, Nuitka_Function_Type, closure_given );
+    allocateFromFreeList(
+        free_list_functions,
+        struct Nuitka_FunctionObject,
+        Nuitka_Function_Type,
+        closure_given
+    );
 
     /* Closure is set externally after we return */
     result->m_closure_given = closure_given;

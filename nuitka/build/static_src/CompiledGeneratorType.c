@@ -581,8 +581,8 @@ static void Nuitka_Generator_tp_del( struct Nuitka_GeneratorObject *generator )
 #endif
 
 #define MAX_GENERATOR_FREE_LIST_COUNT 100
-static struct Nuitka_GeneratorObject *free_list = NULL;
-static int free_list_count = 0;
+static struct Nuitka_GeneratorObject *free_list_generators = NULL;
+static int free_list_generators_count = 0;
 
 static void Nuitka_Generator_tp_dealloc( struct Nuitka_GeneratorObject *generator )
 {
@@ -634,7 +634,11 @@ static void Nuitka_Generator_tp_dealloc( struct Nuitka_GeneratorObject *generato
 #endif
 
     /* Put the object into freelist or release to GC */
-    releaseToFreeList( generator, MAX_GENERATOR_FREE_LIST_COUNT );
+    releaseToFreeList(
+        free_list_generators,
+        generator,
+        MAX_GENERATOR_FREE_LIST_COUNT
+    );
 
     RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 }
@@ -846,7 +850,12 @@ PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject 
     struct Nuitka_GeneratorObject *result;
 
     // Macro to assign result memory from GC or free list.
-    allocateFromFreeList(struct Nuitka_GeneratorObject, Nuitka_Generator_Type, closure_given );
+    allocateFromFreeList(
+        free_list_generators,
+        struct Nuitka_GeneratorObject,
+        Nuitka_Generator_Type,
+        closure_given
+    );
 
     assert( result != NULL );
     CHECK_OBJECT( result );

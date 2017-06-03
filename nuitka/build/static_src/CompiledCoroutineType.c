@@ -659,13 +659,23 @@ static long Nuitka_Coroutine_tp_traverse( PyObject *coroutine, visitproc visit, 
     return 0;
 }
 
+static struct Nuitka_CoroutineWrapperObject *free_list_coro_wrappers = NULL;
+static int free_list_coro_wrappers_count = 0;
+
+
 static PyObject *Nuitka_Coroutine_await( struct Nuitka_CoroutineObject *coroutine )
 {
 #if _DEBUG_COROUTINE
     puts("Nuitka_Coroutine_await enter");
 #endif
 
-    struct Nuitka_CoroutineWrapperObject *result = PyObject_GC_New( struct Nuitka_CoroutineWrapperObject, &Nuitka_CoroutineWrapper_Type);
+    struct Nuitka_CoroutineWrapperObject *result;
+
+    allocateFromFreeListFixed(
+        free_list_coro_wrappers,
+        struct Nuitka_CoroutineWrapperObject,
+        Nuitka_CoroutineWrapper_Type
+    );
 
     if (unlikely(result == NULL))
     {
@@ -681,8 +691,8 @@ static PyObject *Nuitka_Coroutine_await( struct Nuitka_CoroutineObject *coroutin
 }
 
 #define MAX_COROUTINE_FREE_LIST_COUNT 100
-static struct Nuitka_CoroutineObject *free_list = NULL;
-static int free_list_count = 0;
+static struct Nuitka_CoroutineObject *free_list_coros = NULL;
+static int free_list_coros_count = 0;
 
 static void Nuitka_Coroutine_tp_dealloc( struct Nuitka_CoroutineObject *coroutine )
 {
@@ -728,7 +738,11 @@ static void Nuitka_Coroutine_tp_dealloc( struct Nuitka_CoroutineObject *coroutin
     Py_DECREF( coroutine->m_qualname );
 
     /* Put the object into freelist or release to GC */
-    releaseToFreeList( coroutine, MAX_COROUTINE_FREE_LIST_COUNT );
+    releaseToFreeList(
+        free_list_coros,
+        coroutine,
+        MAX_COROUTINE_FREE_LIST_COUNT
+    );
 
     RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
 }
@@ -834,7 +848,11 @@ static void Nuitka_CoroutineWrapper_tp_dealloc( struct Nuitka_CoroutineWrapperOb
     Py_DECREF( cw->m_coroutine );
     cw->m_coroutine = NULL;
 
-    PyObject_GC_Del( cw );
+    releaseToFreeList(
+        free_list_coro_wrappers,
+        cw,
+        MAX_COROUTINE_FREE_LIST_COUNT
+    );
 }
 
 static PyObject *Nuitka_CoroutineWrapper_tp_iternext( struct Nuitka_CoroutineWrapperObject *cw )
@@ -919,7 +937,12 @@ PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *q
     struct Nuitka_CoroutineObject *result;
 
     // Macro to assign result memory from GC or free list.
-    allocateFromFreeList(struct Nuitka_CoroutineObject, Nuitka_Coroutine_Type, closure_given );
+    allocateFromFreeList(
+        free_list_coros,
+        struct Nuitka_CoroutineObject,
+        Nuitka_Coroutine_Type,
+        closure_given
+    );
 
     result->m_code = (void *)code;
 
@@ -1407,11 +1430,20 @@ static int Nuitka_AIterWrapper_traverse( struct Nuitka_AIterWrapper *aw, visitpr
     return 0;
 }
 
+static struct Nuitka_AIterWrapper *free_list_coroutine_aiter_wrappers = NULL;
+static int free_list_coroutine_aiter_wrappers_count = 0;
+
 static void Nuitka_AIterWrapper_dealloc( struct Nuitka_AIterWrapper *aw )
 {
     Nuitka_GC_UnTrack( (PyObject *)aw );
     Py_CLEAR( aw->aw_aiter );
-    PyObject_GC_Del( aw );
+
+    /* Put the object into freelist or release to GC */
+    releaseToFreeList(
+        free_list_coroutine_aiter_wrappers,
+        aw,
+        MAX_COROUTINE_FREE_LIST_COUNT
+    );
 }
 
 static PyAsyncMethods Nuitka_AIterWrapper_as_async =
@@ -1466,17 +1498,19 @@ PyTypeObject Nuitka_AIterWrapper_Type = {
 
 PyObject *Nuitka_AIterWrapper_New( PyObject *aiter )
 {
-    struct Nuitka_AIterWrapper *aw = PyObject_GC_New(
+    struct Nuitka_AIterWrapper *result;
+
+    allocateFromFreeListFixed(
+        free_list_coroutine_aiter_wrappers,
         struct Nuitka_AIterWrapper,
-        &Nuitka_AIterWrapper_Type
-    );
-    CHECK_OBJECT( aw );
+        Nuitka_AIterWrapper_Type
+    )
 
     Py_INCREF( aiter );
-    aw->aw_aiter = aiter;
+    result->aw_aiter = aiter;
 
-    Nuitka_GC_Track( aw );
-    return (PyObject *)aw;
+    Nuitka_GC_Track( result );
+    return (PyObject *)result;
 }
 
 #endif

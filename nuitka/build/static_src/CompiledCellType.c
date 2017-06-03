@@ -22,15 +22,19 @@
 
 
 #define MAX_CELL_FREE_LIST_COUNT 1000
-static struct Nuitka_CellObject *free_list = NULL;
-static int free_list_count = 0;
+static struct Nuitka_CellObject *free_list_cells = NULL;
+static int free_list_cells_count = 0;
 
 static void Nuitka_Cell_tp_dealloc( struct Nuitka_CellObject *cell )
 {
     Nuitka_GC_UnTrack( cell );
     Py_XDECREF( cell->ob_ref );
 
-    releaseToFreeList( cell, MAX_CELL_FREE_LIST_COUNT );
+    releaseToFreeList(
+        free_list_cells,
+        cell,
+        MAX_CELL_FREE_LIST_COUNT
+    );
 }
 
 #if PYTHON_VERSION < 300
@@ -225,7 +229,11 @@ struct Nuitka_CellObject *Nuitka_Cell_New( void )
 {
     struct Nuitka_CellObject *result;
 
-    allocateFromFreeListFixed( struct Nuitka_CellObject, Nuitka_Cell_Type )
+    allocateFromFreeListFixed(
+        free_list_cells,
+        struct Nuitka_CellObject,
+        Nuitka_Cell_Type
+    );
 
     Nuitka_GC_Track( result );
 

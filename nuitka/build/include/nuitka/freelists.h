@@ -19,13 +19,13 @@
 #ifndef __NUITKA_FREELISTS_H__
 #define __NUITKA_FREELISTS_H__
 
-#define allocateFromFreeList( object_type, type_type, size )            \
+#define allocateFromFreeList( free_list, object_type, type_type, size ) \
     if ( free_list != NULL )                                            \
     {                                                                   \
         result = free_list;                                             \
-        free_list = *((object_type **) free_list);                      \
-        free_list_count -= 1;                                           \
-        assert( free_list_count >= 0 );                                 \
+        free_list = *((object_type **)free_list);                       \
+        free_list ## _count -= 1;                                       \
+        assert( free_list ## _count >= 0 );                             \
                                                                         \
         if ( Py_SIZE( result ) < size )                                 \
         {                                                               \
@@ -44,13 +44,13 @@
     }                                                                   \
     CHECK_OBJECT( result );
 
-#define allocateFromFreeListFixed( object_type, type_type )             \
+#define allocateFromFreeListFixed( free_list, object_type, type_type )  \
     if ( free_list != NULL )                                            \
     {                                                                   \
         result = free_list;                                             \
-        free_list = *((object_type **) free_list);                      \
-        free_list_count -= 1;                                           \
-        assert( free_list_count >= 0 );                                 \
+        free_list = *((object_type **)free_list);                       \
+        free_list ## _count -= 1;                                       \
+        assert( free_list ## _count >= 0 );                             \
                                                                         \
         _Py_NewReference( (PyObject *)result );                         \
     }                                                                   \
@@ -64,10 +64,10 @@
     CHECK_OBJECT( result );
 
 
-#define releaseToFreeList( object, max_free_list_count )                \
+#define releaseToFreeList( free_list, object, max_free_list_count )     \
     if ( free_list != NULL )                                            \
     {                                                                   \
-        if ( free_list_count > max_free_list_count )                    \
+        if ( free_list ## _count > max_free_list_count )                \
         {                                                               \
             PyObject_GC_Del( object );                                  \
         }                                                               \
@@ -76,7 +76,7 @@
             *((void **)object) = (void *)free_list;                     \
             free_list = object;                                         \
                                                                         \
-            free_list_count += 1;                                       \
+            free_list ## _count += 1;                                   \
         }                                                               \
     }                                                                   \
     else                                                                \
@@ -84,9 +84,9 @@
         free_list = object;                                             \
         *((void **)object) = NULL;                                      \
                                                                         \
-        assert( free_list_count == 0 );                                 \
+        assert( free_list ## _count == 0 );                             \
                                                                         \
-        free_list_count += 1;                                           \
+        free_list ## _count += 1;                                       \
     }                                                                   \
 
 #endif
