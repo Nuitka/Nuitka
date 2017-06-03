@@ -17,10 +17,10 @@ Bug Fixes
     # other module:
     from module import *
 
-- Fix, for start imports, also didn't check for values from ``__all__``
+- Fix, for star imports, also didn't check for values from ``__all__``
   if they actually exist in the original values.
 
-- Corner cases of importing should work a lot more precise, as the level of
+- Corner cases of imports should work a lot more precise, as the level of
   compatibility for calls to ``__import__`` went from absurd to insane.
 
 - Windows: Fixed detection of uninstalled Python versions (not for all users
@@ -33,8 +33,64 @@ Bug Fixes
 - Python3.5: Fix, coroutines could have different code objects for the object
   and the frame using by it.
 
+- Fix, slices with built-in names crashed the compiler.
+
+  .. code-block:: python
+
+     something[id:len:range]
+
+- Fix, the C++ compatibility uses symlinks tp C++ filenames where possible
+  instead of making a copy from the C source. However, even on Linux that
+  may not be allowed, e.g. on a DOS file system. Added fallback to using
+  full copy in that case. `Issue#353 <http://bugs.nuitka.net/issue353>`__.
+
+- Python3.5: Fix coroutines to close the yield from where an exception is
+  thrown into them.
+
+- Python3: Fix, list contractions should have their own frame too.
+
+- Linux: Copy the "rpath" of compiling Python binary to the created
+  binary. This will make compiled binaries using uninstalled Python
+  versions transparently find the Python shared library.
+
+- Standalone: Add the "rpath" of the compiling Python binary to the
+  search path when checking for DLL dependencies on Linux. This fixes
+  standalone support for Travis and Anaconda on Linux.
+
+- Scons: When calling scons, also try to locate a Python2 binary to
+  overcome a potential Python3 virtualenv in which Nuitka is running.
+
+- Standalone: Ignore more Windows only encodings on non-Windows.
+
+New Features
+------------
+
+- Added options ``--python-arch`` to pick 32 or 64 bits Python target of
+  the ``--python-version`` argument.
+
+- Support for Python 3.6 with only few corner cases not supported yet.
+
 Optimization
 ------------
+
+- The node tree children are no longer stored in a separate dictionary, but
+  in the instance dictionary as attributes, making the tree more lightweight
+  and in principle faster to access. This also saved about 6% of the memory
+  usage.
+
+- The memory usage of Nuitka for the Python part has falled by roughly 40%
+  due to the use of new style classes, slots where that is possible, and
+  generally reducing useless members e.g. in source code references. This
+  of course also will make things compiled faster (the C compilation of
+  course is not affected by this.)
+
+- The code generation for frames was creating the dictionary for the raised
+  exception by making a dictionary and then adding all variables, each tested
+  to be set. This was a lot of code and has been replaced by a generic attach
+  mechanism which merely stores the values, takes a reference, and then builds
+  the dictionary for frame locals to inspect only when that is absolutely
+  necessary. This of course makes the C code much less verbose, and actual
+  handling of exceptions much more efficient.
 
 - For imports, we now detect for built-in modules, that their import cannot
   fail, and if name lookups can fail. This leads to less code generated for
@@ -47,6 +103,21 @@ Optimization
         from __builtin__ import len
     except ImportError:
         from builtins import len
+
+- Added more type shapes for built-in type calls. These will improve
+  type tracing.
+
+- Compiled frames now have a free list mechanism that should speed up
+  frames that recurse and frames that exit with exceptions. In case of
+  an exception, the frame ownership is immediately transferred to the
+  exception making it easier to deal with.
+
+- The free list implementations have been merged into a new common one
+  that can be used via macro expansion. It is now type agnostic and be
+  slightly more efficient too.
+
+- Also optimize "true" division and "floor division", not only the
+  default division of Python2.
 
 Cleanups
 --------
@@ -71,17 +142,61 @@ Cleanups
   deletions of directories on e.g. Windows, where locks tend to live for short
   times beyond program ends, requiring second attempts.
 
+- Code generation for existing supported types, ``PyObject *``, ``PyObject **``,
+  and ``struct Nuitka_CellObject *`` is now done via a C type class hierachy
+  instead of ``elif`` sequences.
+
+- Closure taking is now always done immediately correctly and references are
+  take for closure variables still needed, making sure the tree is correct and
+  needs no finalization.
+
+- When doing variable traces, initialize more traces immediately so it can be
+  more reliable.
+
+- Code to setup a function for local variables and clean it up has been made
+  common code instead of many similar copies.
+
+- The code was treating the ``f_executing`` frame member as if it were a
+  counter with increases and decreases. Turn it into a mere boolean value
+  and hide its usage behind helper functions.
+
+- The "maybe local variables" are no more. They were replaced by a new
+  locals dict access node with a fallback to a module or closure variable
+  should the dictionary not contain the name. This avoids many ugly checks
+  to not do certain things for that kind of variable.
+
+- We now detect "exec" and "unqualified exec" as well as "star import"
+  ahead of time as flags of the function to be created. We no longer need
+  to mark functions as we go.
+
+- Handle "true", "floor" and normal division properly by applying future
+  flags to decide which one to use.
+
+- We now use symbolic identifiers in all PyLint annotations.
+
+- The release scripts started to move into ``nuitka.tools.release`` so they
+  get PyLint checks, autoformat and proper code re-use.
+
 Tests
 -----
 
 - More robust deletion of directories, temporary stages used by CPython test
   suites, and standalone directories during test execution.
 
+- Moved tests common code into ``nuitka.tools.testing`` namespace and use it
+  from there. The code now is allowed to use ``nuitka.utils`` and therefore
+  often better implementations.
+
+- Made standalone binaries robust against GTK theme access, checking the
+  Python binary (some site.py files do that),
+
 Organizational
 --------------
 
 - Added initial support for testing with Travis to complement the internal
   Buildbot based infrastructure.
+
+- The ``factory`` branch is now also on Github.
 
 Summary
 -------
