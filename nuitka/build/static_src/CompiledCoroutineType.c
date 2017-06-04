@@ -369,6 +369,8 @@ PyObject *Nuitka_Coroutine_close( struct Nuitka_CoroutineObject *coroutine, PyOb
     {
         coroutine->m_exception_type = PyExc_GeneratorExit;
         Py_INCREF( PyExc_GeneratorExit );
+        CHECK_OBJECT( coroutine->m_exception_type );
+
         coroutine->m_exception_value = NULL;
         coroutine->m_exception_tb = NULL;
 
@@ -500,6 +502,8 @@ static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *corout
     }
 
 throw_here:
+
+    CHECK_OBJECT( coroutine->m_exception_type );
 
     if ( (PyObject *)coroutine->m_exception_tb == Py_None )
     {
