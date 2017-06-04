@@ -83,21 +83,16 @@ static inline bool Nuitka_Asyncgen_Check( PyObject *object )
     return Py_TYPE( object ) == &Nuitka_Asyncgen_Type;
 }
 
-struct Nuitka_AsyncgenWrapperObject {
-    PyObject_HEAD
-    struct Nuitka_AsyncgenObject *m_asyncgen;
-};
-
-extern PyTypeObject Nuitka_AsyncgenWrapper_Type;
-
 extern PyObject *ASYNCGEN_AWAIT( struct Nuitka_AsyncgenObject *asyngen, PyObject *awaitable );
 extern PyObject *ASYNCGEN_AWAIT_IN_HANDLER( struct Nuitka_AsyncgenObject *asyngen, PyObject *awaitable );
+
+extern PyObject *Nuitka_AsyncGenValueWrapperNew( PyObject *value );
 
 static inline PyObject *ASYNCGEN_YIELD( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
 {
     CHECK_OBJECT( value );
 
-    asyncgen->m_yielded = _PyAsyncGenValueWrapperNew( value );
+    asyncgen->m_yielded = Nuitka_AsyncGenValueWrapperNew( value );
     Py_DECREF( value );
 
     Nuitka_Frame_MarkAsNotExecuting( asyncgen->m_frame );
@@ -131,7 +126,7 @@ static inline PyObject *ASYNCGEN_YIELD_IN_HANDLER( struct Nuitka_AsyncgenObject 
 {
     CHECK_OBJECT( value );
 
-    asyncgen->m_yielded = _PyAsyncGenValueWrapperNew( value );
+    asyncgen->m_yielded = Nuitka_AsyncGenValueWrapperNew( value );
     Py_DECREF( value );
 
     /* When yielding from an exception handler in Python3, the exception

@@ -60,6 +60,7 @@ template_asyncgen_noexception_exit = """\
 
 template_asyncgen_return_exit = """\
     function_return_exit:;
+    asyncgen->m_yielded = NULL;
     asyncgen->m_status = status_Finished;
     return;
 """

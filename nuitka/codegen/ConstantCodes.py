@@ -28,12 +28,12 @@ for a single module only.
 """
 
 import ctypes
+import marshal
 import re
 import struct
 import sys
 from logging import warning
 
-import marshal
 from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=redefined-builtin
     iterItems,

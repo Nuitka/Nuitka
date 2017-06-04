@@ -29,7 +29,6 @@ from nuitka.PythonVersions import python_version
 
 from .Namify import namifyConstant
 
-
 # Many methods won't use self, but it's the interface. pylint: disable=no-self-use
 
 class TempMixin(object):

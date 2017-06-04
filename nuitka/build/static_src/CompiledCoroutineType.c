@@ -666,7 +666,8 @@ static int free_list_coro_wrappers_count = 0;
 static PyObject *Nuitka_Coroutine_await( struct Nuitka_CoroutineObject *coroutine )
 {
 #if _DEBUG_COROUTINE
-    puts("Nuitka_Coroutine_await enter");
+    PRINT_STRING("Nuitka_Coroutine_await enter");
+    PRINT_NEW_LINE();
 #endif
 
     struct Nuitka_CoroutineWrapperObject *result;
@@ -929,7 +930,7 @@ PyTypeObject Nuitka_CoroutineWrapper_Type =
     0,                                                 /* tp_init */
     0,                                                 /* tp_alloc */
     0,                                                 /* tp_new */
-    PyObject_Del,                                      /* tp_free */
+    0,                                                 /* tp_free */
 };
 
 PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given )
@@ -1492,7 +1493,7 @@ PyTypeObject Nuitka_AIterWrapper_Type = {
     0,                                          /* tp_init */
     0,                                          /* tp_alloc */
     0,                                          /* tp_new */
-    PyObject_Del,                               /* tp_free */
+    0,                                          /* tp_free */
 };
 
 
@@ -1504,7 +1505,7 @@ PyObject *Nuitka_AIterWrapper_New( PyObject *aiter )
         free_list_coroutine_aiter_wrappers,
         struct Nuitka_AIterWrapper,
         Nuitka_AIterWrapper_Type
-    )
+    );
 
     Py_INCREF( aiter );
     result->aw_aiter = aiter;
@@ -1662,4 +1663,8 @@ void _initCompiledCoroutineTypes( void )
 {
     PyType_Ready( &Nuitka_Coroutine_Type );
     PyType_Ready( &Nuitka_CoroutineWrapper_Type );
+
+#if PYTHON_VERSION >= 352
+    PyType_Ready( &Nuitka_AIterWrapper_Type );
+#endif
 }

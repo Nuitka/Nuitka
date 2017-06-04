@@ -104,12 +104,18 @@ def getClosureCopyCode(to_name, closure_variables, closure_type, context):
             count
         )
 
-
         variable_c_type.getCellObjectAssignmentCode(
-            target_cell_code,
-            variable_code_name,
-            emit = closure_copy.append
+            target_cell_code   = target_cell_code,
+            variable_code_name = variable_code_name,
+            emit               = closure_copy.append
         )
+
+    closure_copy.append(
+        "assert( Py_SIZE( %s) >= %s ); " % (
+            to_name,
+            len(closure_variables)
+        )
+    )
 
     return closure_copy
 

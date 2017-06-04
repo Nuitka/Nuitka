@@ -22,8 +22,9 @@
 from nuitka.PythonVersions import python_version
 
 from .Helpers import generateExpressionCode
-from .templates.CodeTemplatesExceptions import \
+from .templates.CodeTemplatesExceptions import (
     template_publish_exception_to_handler
+)
 
 
 def getExceptionIdentifier(exception_type):
