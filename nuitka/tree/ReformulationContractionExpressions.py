@@ -77,24 +77,94 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
-def buildListContractionNode(provider, node, source_ref):
-    # List contractions are dealt with by general code.
+def _buildPython2ListContraction(provider, node, source_ref):
+    # The contraction nodes are reformulated to function bodies, with loops as
+    # described in the developer manual. They use a lot of temporary names,
+    # nested blocks, etc. and so a lot of variable names.
 
-    return _buildContractionNode(
+    # Note: The assign_provider is only to cover Python2 list contractions,
+    # assigning one of the loop variables to the outside scope.
+    function_body = ExpressionOutlineBody(
+        provider   = provider,
+        name       = "list_contraction",
+        source_ref = source_ref
+    )
+
+    iter_tmp = function_body.allocateTempVariable(
+        temp_scope = None,
+        name       = ".0"
+    )
+
+    container_tmp = function_body.allocateTempVariable(
+        temp_scope = None,
+        name       = "contraction_result"
+    )
+
+    statements, release_statements = _buildContractionBodyNode(
+        function_body   = function_body,
+        assign_provider = True,
         provider        = provider,
         node            = node,
-        name            = "list_contraction"
-                            if python_version < 300 else
-                          "<listcontraction>",
         emit_class      = StatementListOperationAppend,
+        iter_tmp        = iter_tmp,
+        temp_scope      = None,
         start_value     = makeConstantRefNode(
             constant   = [],
             source_ref = source_ref
         ),
-        # Note: For Python3, the list contractions no longer assign to the outer
-        # scope.
-        assign_provider = python_version < 300,
-        source_ref      = source_ref
+        container_tmp   = container_tmp,
+        source_ref      = source_ref,
+    )
+
+    statements.append(
+        StatementReturn(
+            expression = ExpressionTempVariableRef(
+                variable   = container_tmp,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
+    )
+
+    statements = (
+        makeTryFinallyStatement(
+            provider   = function_body,
+            tried      = statements,
+            final      = release_statements,
+            source_ref = source_ref.atInternal()
+        ),
+    )
+
+    function_body.setBody(
+        makeStatementsSequenceFromStatement(
+            statement = StatementsFrame(
+                statements  = mergeStatements(statements, False),
+                guard_mode  = "pass_through",
+                code_object = None,
+                source_ref  = source_ref
+            )
+        )
+    )
+
+    return function_body
+
+
+def buildListContractionNode(provider, node, source_ref):
+    # List contractions are dealt with by general code.
+    if python_version < 300:
+        return _buildPython2ListContraction(provider, node, source_ref)
+
+
+    return _buildContractionNode(
+        provider    = provider,
+        node        = node,
+        name        = "<listcontraction>",
+        emit_class  = StatementListOperationAppend,
+        start_value = makeConstantRefNode(
+            constant   = [],
+            source_ref = source_ref
+        ),
+        source_ref  = source_ref
     )
 
 
@@ -102,16 +172,15 @@ def buildSetContractionNode(provider, node, source_ref):
     # Set contractions are dealt with by general code.
 
     return _buildContractionNode(
-        provider        = provider,
-        node            = node,
-        name            = "<setcontraction>",
-        emit_class      = StatementSetOperationAdd,
-        start_value     = makeConstantRefNode(
+        provider    = provider,
+        node        = node,
+        name        = "<setcontraction>",
+        emit_class  = StatementSetOperationAdd,
+        start_value = makeConstantRefNode(
             constant   = set(),
             source_ref = source_ref
         ),
-        assign_provider = False,
-        source_ref      = source_ref
+        source_ref  = source_ref
     )
 
 
@@ -119,16 +188,15 @@ def buildDictContractionNode(provider, node, source_ref):
     # Dict contractions are dealt with by general code.
 
     return _buildContractionNode(
-        provider        = provider,
-        node            = node,
-        name            = "<dictcontraction>",
-        emit_class      = StatementDictOperationSet,
-        start_value     = makeConstantRefNode(
+        provider    = provider,
+        node        = node,
+        name        = "<dictcontraction>",
+        emit_class  = StatementDictOperationSet,
+        start_value = makeConstantRefNode(
             constant   = {},
             source_ref = source_ref
         ),
-        assign_provider = False,
-        source_ref      = source_ref
+        source_ref  = source_ref
     )
 
 
@@ -138,13 +206,12 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
     assert getKind(node) == "GeneratorExp"
 
     return _buildContractionNode(
-        provider        = provider,
-        node            = node,
-        name            = "<genexpr>",
-        emit_class      = ExpressionYield,
-        start_value     = None,
-        assign_provider = False,
-        source_ref      = source_ref
+        provider    = provider,
+        node        = node,
+        name        = "<genexpr>",
+        emit_class  = ExpressionYield,
+        start_value = None,
+        source_ref  = source_ref
     )
 
 
@@ -155,6 +222,10 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
     # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals
+
+    # Note: The assign_provider is only to cover Python2 list contractions,
+    # assigning one of the loop variables to the outside scope.
+
     tmp_variables = []
 
     if assign_provider:
@@ -398,53 +469,38 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
 
 def _buildContractionNode(provider, node, name, emit_class, start_value,
-                          assign_provider, source_ref):
+                          source_ref):
     # The contraction nodes are reformulated to function bodies, with loops as
     # described in the developer manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names.
 
-    # Note: The assign_provider is only to cover Python2 list contractions,
-    # assigning one of the loop variables to the outside scope.
-    if assign_provider:
-        function_body = ExpressionOutlineBody(
-            provider   = provider,
-            name       = name,
-            source_ref = source_ref
-        )
+    # TODO: No function ought to be necessary.
+    function_body = ExpressionFunctionBody(
+        provider   = provider,
+        name       = name,
+        doc        = None,
+        parameters = ParameterSpec(
+            ps_name          = name,
+            ps_normal_args   = (".0",),
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
+        ),
+        flags      = set(),
+        source_ref = source_ref
+    )
 
-        iter_tmp = function_body.allocateTempVariable(
-            temp_scope = None,
-            name       = ".0"
-        )
-    else:
-        # TODO: No function ought to be necessary.
-
-        function_body = ExpressionFunctionBody(
-            provider   = provider,
-            name       = name,
-            doc        = None,
-            parameters = ParameterSpec(
-                ps_name          = name,
-                ps_normal_args   = (".0",),
-                ps_list_star_arg = None,
-                ps_dict_star_arg = None,
-                ps_default_count = 0,
-                ps_kw_only_args  = ()
-            ),
-            flags      = set(),
-            source_ref = source_ref
-        )
-
-        iter_tmp = function_body.getVariableForAssignment(
-            variable_name = ".0"
-        )
-        assert iter_tmp.isParameterVariable()
+    iter_tmp = function_body.getVariableForAssignment(
+        variable_name = ".0"
+    )
+    assert iter_tmp.isParameterVariable()
 
     code_object = CodeObjectSpec(
         co_name           = name,
         co_kind           = "Generator" if emit_class is ExpressionYield else "Function",
-        co_varnames       = () if assign_provider else function_body.getParameters().getParameterNames(),
-        co_argcount       = 0 if assign_provider else len(function_body.getParameters().getParameterNames()),
+        co_varnames       = function_body.getParameters().getParameterNames(),
+        co_argcount       = len(function_body.getParameters().getParameterNames()),
         co_kwonlyargcount = 0,
         co_has_starlist   = False,
         co_has_stardict   = False,
@@ -491,7 +547,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
 
     statements, release_statements = _buildContractionBodyNode(
         function_body   = code_body,
-        assign_provider = assign_provider,
         provider        = provider,
         node            = node,
         emit_class      = emit_class,
@@ -499,6 +554,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         temp_scope      = None,
         start_value     = start_value,
         container_tmp   = container_tmp,
+        assign_provider = False,
         source_ref      = source_ref,
     )
 
@@ -524,8 +580,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
 
     if emit_class is ExpressionYield:
         guard_mode = "generator"
-    elif assign_provider:
-        guard_mode = "pass_through"
     else:
         guard_mode = "full"
 
@@ -540,30 +594,27 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         )
     )
 
-    if not assign_provider:
-        return ExpressionFunctionCall(
-            function   = ExpressionFunctionCreation(
-                function_ref = ExpressionFunctionRef(
-                    function_body = function_body,
-                    source_ref    = source_ref
-                ),
-                code_object  = code_object,
-                defaults     = (),
-                kw_defaults  = None,
-                annotations  = None,
-                source_ref   = source_ref
+    return ExpressionFunctionCall(
+        function   = ExpressionFunctionCreation(
+            function_ref = ExpressionFunctionRef(
+                function_body = function_body,
+                source_ref    = source_ref
             ),
-            values     = (
-                ExpressionBuiltinIter1(
-                    value      = buildNode(
-                        provider   = provider,
-                        node       = node.generators[0].iter,
-                        source_ref = source_ref
-                    ),
+            code_object  = code_object,
+            defaults     = (),
+            kw_defaults  = None,
+            annotations  = None,
+            source_ref   = source_ref
+        ),
+        values     = (
+            ExpressionBuiltinIter1(
+                value      = buildNode(
+                    provider   = provider,
+                    node       = node.generators[0].iter,
                     source_ref = source_ref
                 ),
+                source_ref = source_ref
             ),
-            source_ref = source_ref
-        )
-    else:
-        return function_body
+        ),
+        source_ref = source_ref
+    )

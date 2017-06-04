@@ -131,7 +131,8 @@ class StatementsFrame(StatementsSequence):
         """
         provider = self.getParentVariableProvider()
 
-        if not provider.isCompiledPythonModule():
+        if not provider.isCompiledPythonModule() and \
+           self.code_object is not None:
             self.code_object.updateLocalNames(
                 [
                     variable.getName() for
