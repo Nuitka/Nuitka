@@ -711,7 +711,7 @@ setBuildingDispatchers(
 
 def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     # There are a bunch of branches here, mostly to deal with version
-    # differences for module default variables.
+    # differences for module default variables. pylint: disable=too-many-branches
 
     pushFutureSpec()
 
@@ -721,6 +721,9 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         line_offset = source_ref.getLineNumber() - 1
     )
     body, doc = extractDocFromBody(body)
+
+    if is_module and is_main and python_version >= 360:
+        provider.markAsNeedsAnnotationsDictionary()
 
     result = buildStatementsNode(
         provider   = provider,
