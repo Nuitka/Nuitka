@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -16,25 +15,30 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-""" Launcher for MSI package release tool.
+""" Release: Create and upload Windows MSI files for Nuitka
 
 """
 
-import os
-import sys
+from __future__ import print_function
 
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought be there.
-sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-        )
-    )
-)
+import subprocess
 
-from nuitka.tools.release.msi_create.__main__ import main # isort:skip
-main()
+from nuitka.tools.release.MSI import createMSIPackage
+
+
+def main():
+    msi_filename = createMSIPackage()
+
+    assert subprocess.call(
+        (
+            "scp",
+            msi_filename,
+            "git@nuitka.net:/var/www/releases/"
+        ),
+        shell = True # scan scp in PATH.
+    ) == 0
+
+    print("OK, uploaded", msi_filename)
+
+if __name__ == "__main__":
+    main()

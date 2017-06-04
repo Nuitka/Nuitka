@@ -19,9 +19,15 @@
 
 """
 
+from __future__ import print_function
+
+import os
+import shutil
+import subprocess
 import sys
 
 from nuitka.PythonVersions import getSupportedPythonVersions
+from nuitka.tools.release.Release import checkBranchName
 
 
 def makeMsiCompatibleFilename(filename):
@@ -40,3 +46,47 @@ def makeMsiCompatibleFilename(filename):
     ]
 
     return '.'.join(parts)
+
+
+def createMSIPackage():
+    if os.path.isdir("dist"):
+        shutil.rmtree("dist")
+
+    branch_name = checkBranchName()
+
+    print("Building for branch '%s'." % branch_name)
+
+    assert branch_name in (
+        b"master",
+        b"develop",
+        b"factory",
+    ), branch_name
+
+    assert subprocess.call(
+        (
+            sys.executable,
+            "setup.py",
+            "bdist_msi",
+            "--target-version=" + sys.version[:3]
+        )
+    ) == 0
+
+    filename = None # pylint happiness.
+    for filename in os.listdir("dist"):
+        if filename.endswith(".msi"):
+            break
+    else:
+        sys.exit("No MSI created.")
+
+    new_filename = makeMsiCompatibleFilename(filename)
+
+    if branch_name == b"factory":
+        new_filename = "Nuitka-factory." + new_filename[new_filename.find("win"):]
+
+    result = os.path.join("dist",new_filename)
+
+    os.rename(os.path.join("dist",filename), result)
+
+    print("OK, created as dist/" + new_filename)
+
+    return result
