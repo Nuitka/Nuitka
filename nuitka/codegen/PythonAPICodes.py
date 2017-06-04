@@ -118,13 +118,6 @@ def getCAPIObjectCode(to_name, capi, arg_names, may_raise, ref_count, emit,
         context.addCleanupTempName(to_name)
 
 
-def getReferenceExportCode(base_name, context):
-    if context.needsCleanup(base_name):
-        return base_name
-    else:
-        return "INCREASE_REFCOUNT( %s )" % base_name
-
-
-def getReferenceExportCode2(base_name, emit, context):
+def getReferenceExportCode(base_name, emit, context):
     if not context.needsCleanup(base_name):
         emit("Py_INCREF( %s );" % base_name)

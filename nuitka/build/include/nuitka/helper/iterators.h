@@ -104,7 +104,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
         assert( result );
 
         result->it_index = 0;
-        result->it_seq = INCREASE_REFCOUNT( iterated );
+        Py_INCREF( iterated );
+        result->it_seq = iterated;
 
         Nuitka_GC_Track( result );
 
@@ -222,7 +223,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
             {
                 DROP_ERROR_OCCURRED();
 
-                return INCREASE_REFCOUNT( default_value );
+                Py_INCREF( default_value );
+                return default_value;
             }
             else
             {
@@ -231,7 +233,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT2( PyObject *iterator, PyObjec
         }
         else
         {
-            return INCREASE_REFCOUNT( default_value );
+            Py_INCREF( default_value );
+            return default_value;
         }
     }
     else

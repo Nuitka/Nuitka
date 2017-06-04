@@ -23,6 +23,7 @@ from nuitka.codegen.c_types.CTypePyObjectPtrs import (
     CTypeCellObject,
     CTypePyObjectPtrPtr
 )
+from nuitka.codegen.PythonAPICodes import getReferenceExportCode
 from nuitka.PythonVersions import python_version
 
 from .Emission import SourceCodeCollector
@@ -323,7 +324,8 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
     args = []
 
     if defaults_name is not None:
-        args.append(getReferenceExportCode(defaults_name, context))
+        getReferenceExportCode(defaults_name, emit, context)
+        args.append(defaults_name)
 
     if kw_defaults_name is not None:
         args.append(kw_defaults_name)

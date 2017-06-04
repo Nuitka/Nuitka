@@ -20,6 +20,7 @@
 """
 
 import marshal
+
 from nuitka.importing.ImportCache import replaceImportedModule
 from nuitka.ModuleRegistry import replaceRootModule
 from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule

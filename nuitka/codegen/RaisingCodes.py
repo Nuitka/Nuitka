@@ -27,7 +27,7 @@ from .ErrorCodes import getFrameVariableTypeDescriptionCode
 from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .LabelCodes import getGotoCode
 from .LineNumberCodes import emitErrorLineNumberUpdateCode
-from .PythonAPICodes import getReferenceExportCode2
+from .PythonAPICodes import getReferenceExportCode
 
 
 def generateRaiseCode(statement, emit, context):
@@ -256,11 +256,11 @@ def getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit,
     emit(
         "exception_type = %s;" % raise_type_name
     )
-    getReferenceExportCode2(raise_type_name, emit, context)
+    getReferenceExportCode(raise_type_name, emit, context)
 
     emit("exception_value = NULL;")
 
-    getReferenceExportCode2(raise_cause_name, emit, context)
+    getReferenceExportCode(raise_cause_name, emit, context)
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
@@ -287,7 +287,7 @@ def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
     emit(
         "exception_type = %s;" % raise_type_name
     )
-    getReferenceExportCode2(raise_type_name, emit, context)
+    getReferenceExportCode(raise_type_name, emit, context)
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
@@ -309,11 +309,11 @@ def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
     emit(
         "exception_type = %s;" % raise_type_name
     )
-    getReferenceExportCode2(raise_type_name, emit, context)
+    getReferenceExportCode(raise_type_name, emit, context)
     emit(
         "exception_value = %s;" % raise_value_name
     )
-    getReferenceExportCode2(raise_value_name, emit, context)
+    getReferenceExportCode(raise_value_name, emit, context)
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
@@ -339,15 +339,15 @@ def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
     emit(
         "exception_type = %s;" % raise_type_name
     )
-    getReferenceExportCode2(raise_type_name, emit, context)
+    getReferenceExportCode(raise_type_name, emit, context)
     emit(
         "exception_value = %s;" % raise_value_name
     )
-    getReferenceExportCode2(raise_value_name, emit, context)
+    getReferenceExportCode(raise_value_name, emit, context)
     emit(
         "exception_tb = (PyTracebackObject *)%s;" % raise_tb_name
     )
-    getReferenceExportCode2(raise_tb_name, emit, context)
+    getReferenceExportCode(raise_tb_name, emit, context)
 
     emit(
         "RAISE_EXCEPTION_WITH_TRACEBACK( &exception_type, &exception_value, &exception_tb);"

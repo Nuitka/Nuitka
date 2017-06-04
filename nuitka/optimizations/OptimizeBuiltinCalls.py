@@ -137,8 +137,9 @@ from nuitka.tree.Helpers import (
     makeStatementsSequenceFromStatement
 )
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
-from nuitka.tree.ReformulationTryFinallyStatements import \
+from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyStatement
+)
 
 from . import BuiltinOptimization
 

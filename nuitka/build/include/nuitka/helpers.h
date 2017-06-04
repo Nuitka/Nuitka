@@ -66,15 +66,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
     return object;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
-{
-    CHECK_OBJECT( object );
-
-    Py_DECREF( object );
-
-    return object;
-}
-
 // For checking values if they changed or not.
 #ifndef __NUITKA_NO_ASSERT__
 extern Py_hash_t DEEP_HASH( PyObject *value );
@@ -474,31 +465,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 #include "nuitka/helper/iterators.h"
 #include "nuitka/helper/slices.h"
 #include "nuitka/helper/rangeobjects.h"
+#include "nuitka/helper/lists.h"
 
 #include "nuitka/builtins.h"
 
 #include "nuitka/allocator.h"
 
-NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
-{
-    CHECK_OBJECT( list );
-    assert( PyList_CheckExact( list ) );
-
-    Py_ssize_t size = PyList_GET_SIZE( list );
-    PyObject *result = PyList_New( size );
-
-    if (unlikely( result == NULL ))
-    {
-        return NULL;
-    }
-
-    for ( Py_ssize_t i = 0; i < size; i++ )
-    {
-        PyList_SET_ITEM( result, i, INCREASE_REFCOUNT( PyList_GET_ITEM( list, i ) ) );
-    }
-
-    return result;
-}
 
 
 // Compile source code given, pretending the file name was given.
@@ -680,11 +652,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyO
             return NULL;
         }
 
-        return INCREASE_REFCOUNT( (PyObject *)winner );
+        Py_INCREF( winner );
+        return (PyObject *)winner;
     }
     else
     {
-        return INCREASE_REFCOUNT( metaclass );
+        Py_INCREF( metaclass );
+        return metaclass;
     }
 }
 #else
@@ -707,17 +681,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObjec
         {
             CLEAR_ERROR_OCCURRED();
 
-            metaclass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( base ) );
+            metaclass = (PyObject *)Py_TYPE( base );
+            Py_INCREF( metaclass );
         }
     }
     else if ( metaclass_global != NULL )
     {
-        metaclass = INCREASE_REFCOUNT( metaclass_global );
+        metaclass = metaclass_global;
+        Py_INCREF( metaclass );
     }
     else
     {
         // Default to old style class.
-        metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
+        metaclass = (PyObject *)&PyClass_Type;
+        Py_INCREF( metaclass );
     }
 
     // Cannot fail on Python2.
@@ -763,7 +740,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE( PyObject **elements, Py_ssize_
 
     for( Py_ssize_t i = 0; i < size; i++ )
     {
-        PyTuple_SET_ITEM( result, i, INCREASE_REFCOUNT( elements[i] ) );
+        PyObject *item = elements[i];
+        Py_INCREF( item );
+        PyTuple_SET_ITEM( result, i, item );
     }
 
     return result;

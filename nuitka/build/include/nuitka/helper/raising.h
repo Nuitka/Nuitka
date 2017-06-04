@@ -467,7 +467,8 @@ NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( PyObject **exception_type, P
 #if PYTHON_VERSION >= 300
         Py_DECREF( *exception_type );
 
-        *exception_type = INCREASE_REFCOUNT( PyExc_RuntimeError );
+        Py_INCREF( PyExc_RuntimeError );
+        *exception_type = PyExc_RuntimeError;
         *exception_value = PyUnicode_FromString( "No active exception to reraise" );
         *exception_tb = NULL;
 #else

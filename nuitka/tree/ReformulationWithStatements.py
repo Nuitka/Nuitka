@@ -63,8 +63,9 @@ from .Helpers import (
     makeStatementsSequenceFromStatement
 )
 from .ReformulationAssignmentStatements import buildAssignmentStatements
-from .ReformulationTryExceptStatements import \
+from .ReformulationTryExceptStatements import (
     makeTryExceptSingleHandlerNodeWithPublish
+)
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 

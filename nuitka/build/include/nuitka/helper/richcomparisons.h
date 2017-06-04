@@ -50,7 +50,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_LE( PyObject *operand1, PyObj
     // Quick path for avoidable checks, compatible with CPython.
     if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
     {
-        return INCREASE_REFCOUNT( Py_True );
+        Py_INCREF( Py_True );
+        return Py_True;
     }
 
     PyObject *result = MY_RICHCOMPARE( operand1, operand2, Py_LE );
@@ -68,7 +69,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_EQ( PyObject *operand1, PyObj
     // Quick path for avoidable checks, compatible with CPython.
     if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
     {
-        return INCREASE_REFCOUNT( Py_True );
+        Py_INCREF( Py_True );
+        return Py_True;
     }
 
     return MY_RICHCOMPARE( operand1, operand2, Py_EQ );
@@ -79,7 +81,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_EQ_NORECURSE( PyObject *opera
     // Quick path for avoidable checks, compatible with CPython.
     if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
     {
-        return INCREASE_REFCOUNT( Py_True );
+        Py_INCREF( Py_True );
+        return Py_True;
     }
 
     return MY_RICHCOMPARE_NORECURSE( operand1, operand2, Py_EQ );
@@ -92,7 +95,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_NE( PyObject *operand1, PyObj
     // Quick path for avoidable checks, compatible with CPython.
     if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
     {
-        return INCREASE_REFCOUNT( Py_False );
+        Py_INCREF( Py_False );
+        return Py_False;
     }
 
     return MY_RICHCOMPARE( operand1, operand2, Py_NE );
@@ -108,7 +112,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *RICH_COMPARE_GE( PyObject *operand1, PyObj
     // Quick path for avoidable checks, compatible with CPython.
     if ( operand1 == operand2 && IS_SANE_TYPE( Py_TYPE( operand1 ) ) )
     {
-        return INCREASE_REFCOUNT( Py_True );
+        Py_INCREF( Py_True );
+        return Py_True;
     }
 
     return MY_RICHCOMPARE( operand1, operand2, Py_GE );

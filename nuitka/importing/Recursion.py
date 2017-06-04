@@ -20,11 +20,11 @@
 """
 
 import glob
+import marshal
 import os
 import sys
 from logging import debug, info, warning
 
-import marshal
 from nuitka import ModuleRegistry, Options
 from nuitka.importing import ImportCache, Importing, StandardLibrary
 from nuitka.plugins.Plugins import Plugins

@@ -19,6 +19,8 @@
 
 """
 
+from nuitka.codegen.PythonAPICodes import getReferenceExportCode
+
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode, getReleaseCode
 from .FunctionCodes import (
@@ -145,6 +147,8 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
     context_identifier = context.getContextObjectName()
 
     # This produces AWAIT_COROUTINE or AWAIT_ASYNCGEN calls.
+    getReferenceExportCode(value_name, emit, context)
+
     emit(
         "%s = %s_%s( %s, %s );" % (
             to_name,
@@ -154,8 +158,6 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
             "AWAIT_IN_HANDLER",
             context_identifier,
             value_name
-              if context.needsCleanup(value_name) else
-            "INCREASE_REFCOUNT( %s )" % value_name
         )
     )
 

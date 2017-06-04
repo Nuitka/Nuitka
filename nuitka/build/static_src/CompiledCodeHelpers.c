@@ -42,13 +42,17 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     // case this should just return it.
     if ( PyCode_Check( source_code ) )
     {
-        return INCREASE_REFCOUNT( source_code );
+        Py_INCREF( source_code );
+        return source_code;
     }
 
     PyObject *pos_args = PyTuple_New(3);
-    PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( source_code ) );
-    PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( file_name ) );
-    PyTuple_SET_ITEM( pos_args, 2, INCREASE_REFCOUNT( mode ) );
+    PyTuple_SET_ITEM( pos_args, 0, source_code );
+    Py_INCREF( source_code );
+    PyTuple_SET_ITEM( pos_args, 1, file_name );
+    Py_INCREF( file_name );
+    PyTuple_SET_ITEM( pos_args, 2, mode );
+    Py_INCREF( mode );
 
     PyObject *kw_args = NULL;
 
@@ -440,8 +444,10 @@ PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
     }
 
     // Note: References were taken at call site already.
-    result->it_callable = INCREASE_REFCOUNT( callable );
-    result->it_sentinel = INCREASE_REFCOUNT( sentinel );
+    result->it_callable = callable;
+    Py_INCREF( callable );
+    result->it_sentinel = sentinel;
+    Py_INCREF( sentinel );
 
     Nuitka_GC_Track( result );
 
@@ -450,7 +456,10 @@ PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
 
 PyObject *BUILTIN_TYPE1( PyObject *arg )
 {
-    return INCREASE_REFCOUNT( (PyObject *)Py_TYPE( arg ) );
+    PyObject *result = (PyObject *)Py_TYPE( arg );
+
+    Py_INCREF( result );
+    return result;
 }
 
 extern PyObject *const_str_plain___module__;
@@ -458,9 +467,12 @@ extern PyObject *const_str_plain___module__;
 PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
 {
     PyObject *pos_args = PyTuple_New(3);
-    PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( name ) );
-    PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( bases ) );
-    PyTuple_SET_ITEM( pos_args, 2, INCREASE_REFCOUNT( dict ) );
+    PyTuple_SET_ITEM( pos_args, 0, name );
+    Py_INCREF( name );
+    PyTuple_SET_ITEM( pos_args, 1, bases );
+    Py_INCREF( bases );
+    PyTuple_SET_ITEM( pos_args, 2, dict );
+    Py_INCREF( dict );
 
     PyObject *result = PyType_Type.tp_new(
         &PyType_Type,
@@ -564,7 +576,8 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 {
     if (likely( PyInt_Check( value ) || PyLong_Check( value ) ))
     {
-        return INCREASE_REFCOUNT( value );
+        Py_INCREF( value );
+        return value;
     }
 
     PyTypeObject *type = Py_TYPE( value );
@@ -1600,7 +1613,8 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         PyDict_SetItem( print_kw, const_str_plain_file, GET_STDOUT() );
 
         PyObject *print_args = PyTuple_New( 1 );
-        PyTuple_SET_ITEM( print_args, 0, INCREASE_REFCOUNT( object ) );
+        PyTuple_SET_ITEM( print_args, 0, object );
+        Py_INCREF( object );
 
         result = CALL_FUNCTION(
             NUITKA_ACCESS_BUILTIN( print ),
@@ -2108,15 +2122,26 @@ static PyObject *nuitka_class_getattr( PyClassObject *klass, PyObject *attr_name
     {
         if ( strcmp( sattr_name, "__dict__" ) == 0 )
         {
-            return INCREASE_REFCOUNT( klass->cl_dict );
+            Py_INCREF( klass->cl_dict );
+            return klass->cl_dict;
         }
         else if ( strcmp(sattr_name, "__bases__" ) == 0 )
         {
-            return INCREASE_REFCOUNT( klass->cl_bases );
+            Py_INCREF( klass->cl_bases );
+            return klass->cl_bases;
         }
         else if ( strcmp(sattr_name, "__name__" ) == 0 )
         {
-            return klass->cl_name ? INCREASE_REFCOUNT( klass->cl_name ) : INCREASE_REFCOUNT( Py_None );
+            if ( klass->cl_name == NULL )
+            {
+                Py_INCREF( Py_None );
+                return Py_None;
+            }
+            else
+            {
+                Py_INCREF( klass->cl_name );
+                return klass->cl_name;
+            }
         }
     }
 
@@ -2134,7 +2159,8 @@ static PyObject *nuitka_class_getattr( PyClassObject *klass, PyObject *attr_name
 
     if ( tp_descr_get == NULL )
     {
-        return INCREASE_REFCOUNT( value );
+        Py_INCREF( value );
+        return value;
     }
     else
     {
@@ -2269,18 +2295,22 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
         return NULL;
     }
 
-    result->type = (PyTypeObject *)INCREASE_REFCOUNT( type );
+    result->type = (PyTypeObject *)type;
+    Py_INCREF( type );
     if ( object )
     {
-        result->obj = INCREASE_REFCOUNT( object );
+        result->obj = object;
+        Py_INCREF( object );
 
         if ( PyType_Check( object ) && PyType_IsSubtype( (PyTypeObject *)object, (PyTypeObject *)type ))
         {
-            result->obj_type = (PyTypeObject *)INCREASE_REFCOUNT( object );
+            result->obj_type = (PyTypeObject *)object;
+            Py_INCREF( object );
         }
         else if ( PyType_IsSubtype( Py_TYPE(object ), (PyTypeObject *)type) )
         {
-            result->obj_type = (PyTypeObject *)INCREASE_REFCOUNT( (PyObject *)Py_TYPE( object ) );
+            result->obj_type = Py_TYPE( object );
+            Py_INCREF( result->obj_type );
         }
         else
         {
@@ -2462,7 +2492,8 @@ PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *defa
         {
             CLEAR_ERROR_OCCURRED();
 
-            return INCREASE_REFCOUNT( default_value );
+            Py_INCREF( default_value );
+            return default_value;
         }
         else
         {
@@ -3966,8 +3997,9 @@ void _initSlotIternext()
     PyTuple_SET_ITEM(
         pos_args,
         0,
-        INCREASE_REFCOUNT( (PyObject *)&PyBaseObject_Type )
+        (PyObject *)&PyBaseObject_Type
     );
+    Py_INCREF( &PyBaseObject_Type );
 
     PyObject *kw_args = PyDict_New();
     PyDict_SetItem( kw_args, const_str_plain___iter__, Py_True );
@@ -4014,8 +4046,9 @@ void _initSlotCompare()
     PyTuple_SET_ITEM(
         pos_args,
         0,
-        INCREASE_REFCOUNT( (PyObject *)&PyInt_Type )
+        (PyObject *)&PyInt_Type
     );
+    Py_INCREF( &PyInt_Type );
 
     // Use "__cmp__" with true value, won't matter.
     PyObject *kw_args = PyDict_New();
@@ -4152,6 +4185,8 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
     CHECK_OBJECT( a );
     CHECK_OBJECT( b );
 
+    PyObject *result;
+
     // TODO: Type a-ware rich comparison would be really nice, but this is what
     // CPython does, and should be even in "richcomparisons.h" as the first
     // thing, so it's even cheaper.
@@ -4177,7 +4212,10 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
             case Py_GE: res = aa >= bb; break;
             default: assert( false );
         }
-        return INCREASE_REFCOUNT( BOOL_FROM( res ) );
+
+        result = BOOL_FROM( res );
+        Py_INCREF( result );
+        return result;
     }
 
     // TODO: Get hint from recursion control if that's needed.
@@ -4185,8 +4223,6 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
     {
         return NULL;
     }
-
-    PyObject *result;
 
     // If the types are equal, we may get away immediately.
     if ( a->ob_type == b->ob_type && !PyInstance_Check( a ) )
@@ -4230,7 +4266,9 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
                 case Py_GE: c = c >= 0; break;
             }
 
-            return INCREASE_REFCOUNT( BOOL_FROM( c != 0 ) );
+            result = BOOL_FROM( c != 0 );
+            Py_INCREF( result );
+            return result;
         }
     }
 
@@ -4378,7 +4416,9 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
         case Py_GE: c = c >= 0; break;
     }
 
-    return INCREASE_REFCOUNT( BOOL_FROM( c != 0 ) );
+    result = BOOL_FROM( c != 0 );
+    Py_INCREF( result );
+    return result;
 }
 
 PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
@@ -4411,7 +4451,10 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
             case Py_GE: res = aa >= bb; break;
             default: assert( false );
         }
-        return INCREASE_REFCOUNT( BOOL_FROM( res ) );
+
+        PyObject *result = BOOL_FROM( res );
+        Py_INCREF( result );
+        return result;
     }
 
     PyObject *result;
@@ -4455,7 +4498,9 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
                 case Py_GE: c = c >= 0; break;
             }
 
-            return INCREASE_REFCOUNT( BOOL_FROM( c != 0 ) );
+            result = BOOL_FROM( c != 0 );
+            Py_INCREF( result );
+            return result;
         }
     }
 
@@ -4598,7 +4643,9 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
         case Py_GE: c = c >= 0; break;
     }
 
-    return INCREASE_REFCOUNT( BOOL_FROM( c != 0 ) );
+    result = BOOL_FROM( c != 0 );
+    Py_INCREF( result );
+    return result;
 }
 
 #else
@@ -4702,11 +4749,15 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
     // otherwise give an error
     if ( op == Py_EQ )
     {
-        return INCREASE_REFCOUNT( BOOL_FROM( a == b ) );
+        result = BOOL_FROM( a == b );
+        Py_INCREF( result );
+        return result;
     }
     else if ( op == Py_NE )
     {
-        return INCREASE_REFCOUNT( BOOL_FROM( a != b ) );
+        result = BOOL_FROM( a != b );
+        Py_INCREF( result );
+        return result;
     }
     else
     {
@@ -4814,11 +4865,15 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
     // otherwise give an error
     if ( op == Py_EQ )
     {
-        return INCREASE_REFCOUNT( BOOL_FROM( a == b ) );
+        result = BOOL_FROM( a == b );
+        Py_INCREF( result );
+        return result;
     }
     else if ( op == Py_NE )
     {
-        return INCREASE_REFCOUNT( BOOL_FROM( a != b ) );
+        result = BOOL_FROM( a != b );
+        Py_INCREF( result );
+        return result;
     }
     else
     {
@@ -5006,7 +5061,8 @@ PyObject *DEEP_COPY( PyObject *value )
         value == Py_Ellipsis
         )
     {
-        return INCREASE_REFCOUNT( value );
+        Py_INCREF( value );
+        return value;
     }
     else
     {

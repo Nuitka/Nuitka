@@ -55,7 +55,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
                 }
             }
 
-            return INCREASE_REFCOUNT( ((PyListObject *)source)->ob_item[ int_subscript ] );
+            result = ((PyListObject *)source)->ob_item[ int_subscript ];
+
+            Py_INCREF( result );
+            return result;
         }
 #if PYTHON_VERSION < 300
         else if ( PyString_CheckExact( source ) )
@@ -237,7 +240,8 @@ NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST( PyObject *target, PyObject
             PyListObject *target_list = (PyListObject *)target;
 
             PyObject *old_value = target_list->ob_item[ int_subscript ];
-            target_list->ob_item[ int_subscript ] = INCREASE_REFCOUNT( value );
+            Py_INCREF( value );
+            target_list->ob_item[ int_subscript ] = value;
             Py_DECREF( old_value );
 
             return true;

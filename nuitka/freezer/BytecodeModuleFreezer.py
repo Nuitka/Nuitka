@@ -32,8 +32,9 @@ from logging import info
 from nuitka import Options
 from nuitka.codegen import ConstantCodes
 from nuitka.codegen.Indentation import indented
-from nuitka.codegen.templates.CodeTemplatesFreezer import \
+from nuitka.codegen.templates.CodeTemplatesFreezer import (
     template_frozen_modules
+)
 from nuitka.ModuleRegistry import getUncompiledTechnicalModules
 
 stream_data = ConstantCodes.stream_data

@@ -22,13 +22,13 @@ MacOS, Windows, and Linux. Patches for other platforms are
 very welcome.
 """
 
+import marshal
 import os
 import shutil
 import subprocess
 import sys
 from logging import debug, info, warning
 
-import marshal
 from nuitka import Options, SourceCodeReferences, Tracing
 from nuitka.__past__ import iterItems
 from nuitka.containers.odict import OrderedDict

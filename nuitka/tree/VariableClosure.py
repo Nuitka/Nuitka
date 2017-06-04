@@ -36,7 +36,6 @@ from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
 from .SyntaxErrors import raiseSyntaxError
 
-
 # Note: We do the variable scope assignment, as an extra step from tree
 # building, because tree building creates the tree without any consideration of
 # evaluation order. And the ordered way these visitors are entered, will ensure
