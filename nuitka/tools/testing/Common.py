@@ -296,8 +296,6 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
     """
 
     # pylint: disable=too-many-branches
-
-
     if dirname is None:
         path = filename
     else:
@@ -357,6 +355,31 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
     if result == 2:
         sys.stderr.write("Interrupted, with CTRL-C\n")
         sys.exit(2)
+
+def checkCompilesNotWithCPython(dirname, filename, search_mode):
+    if dirname is None:
+        path = filename
+    else:
+        path = os.path.join(dirname, filename)
+
+    command = [
+        sys.executable,
+        "-mcompile",
+        path
+    ]
+
+    try:
+        result = subprocess.call(
+            command
+        )
+    except KeyboardInterrupt:
+        result = 2
+
+    if result != 1 and \
+       result != 2 and \
+       search_mode.abortOnFinding(dirname, filename):
+        my_print("Error exit!", result)
+        sys.exit(result)
 
 
 def hasDebugPython():
