@@ -16,6 +16,8 @@
 #     limitations under the License.
 #
 """ Standard shapes that commonly appear. """
+from nuitka.codegen.c_types.CTypePyObjectPtrs import CTypePyObjectPtr
+
 
 class ShapeBase(object):
     @staticmethod
@@ -32,7 +34,7 @@ class ShapeBase(object):
 
     @staticmethod
     def getCType():
-        return "PyObject *"
+        return CTypePyObjectPtr
 
 
 class ShapeUnknown(ShapeBase):
