@@ -177,6 +177,16 @@ covered. With Python 2.x these are not run. Default is %default."""
 )
 
 parser.add_option(
+    "--skip-other-cpython-tests",
+    action  = "store_true",
+    dest    = "cpython_no_other",
+    default = False,
+    help    = """\
+Do not execute any CPython test suite other than the one matching the running
+Python. Default is %default."""
+)
+
+parser.add_option(
     "--no-other-python",
     action  = "store_true",
     dest    = "no_other",
@@ -282,6 +292,23 @@ if options.no_other:
         options.no35 = True
     if sys.version_info[0:2] != (3,6):
         options.no36 = True
+
+if options.cpython_no_other:
+    if sys.version_info[0:2] != (2,6):
+        options.cpython26 = False
+    if sys.version_info[0:2] != (2,7):
+        options.cpython27 = False
+    if sys.version_info[0:2] != (3,2):
+        options.cpython32 = False
+    if sys.version_info[0:2] != (3,3):
+        options.cpython33 = False
+    if sys.version_info[0:2] != (3,4):
+        options.cpython34 = False
+    if sys.version_info[0:2] != (3,5):
+        options.cpython35 = False
+    if sys.version_info[0:2] != (3,6):
+        options.cpython36 = False
+
 
 # Go its own directory, to have it easy with path knowledge.
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
