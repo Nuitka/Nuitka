@@ -26,7 +26,6 @@ from nuitka.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
 
-from . import Contexts
 from .LabelCodes import getStatementTrace
 
 expression_dispatch_dict = {}
@@ -241,14 +240,12 @@ def generateStatementSequenceCode(statement_sequence, emit, context,
 
     assert statement_sequence.kind == "STATEMENTS_SEQUENCE", statement_sequence
 
-    statement_context = Contexts.PythonStatementCContext(context)
+    context.pushCleanupScope()
 
     _generateStatementSequenceCode(
         statement_sequence = statement_sequence,
         emit               = emit,
-        context            = statement_context
+        context            = context
     )
 
-    # Complain if any temporary was not dealt with yet.
-    assert not statement_context.getCleanupTempnames(), \
-      statement_context.getCleanupTempnames()
+    context.popCleanupScope()

@@ -23,7 +23,7 @@ of frames for different uses.
 
 from nuitka.PythonVersions import python_version
 
-from . import Contexts, Emission
+from . import Emission
 from .ExceptionCodes import getTracebackMakingIdentifier
 from .Helpers import _generateStatementSequenceCode
 from .Indentation import indented
@@ -69,7 +69,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     # lot of variants and details, therefore lots of branches.
     # pylint: disable=too-many-branches,too-many-statements
 
-    context = Contexts.PythonStatementCContext(context)
+    context.pushCleanupScope()
 
     provider = statement_sequence.getParentVariableProvider()
     guard_mode = statement_sequence.getGuardMode()
@@ -213,9 +213,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
 
     context.setFrameHandle(old_frame_handle)
 
-    # Complain if any temporary was not dealt with yet.
-    assert not context.getCleanupTempnames(), \
-      context.getCleanupTempnames()
+    context.popCleanupScope()
 
 
 def getTypeSizeOf(type_indicator):

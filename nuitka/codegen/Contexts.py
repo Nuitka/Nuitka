@@ -57,6 +57,28 @@ class TempMixin(object):
 
         self.preserver_variable_counts = set()
 
+        self.cleanup_names = []
+
+        self.current_source_ref = None
+        self.last_source_ref = None
+
+    def getCurrentSourceCodeReference(self):
+        return self.current_source_ref
+
+    def setCurrentSourceCodeReference(self, value):
+        result = self.current_source_ref
+        self.current_source_ref = value
+
+        if value is not None:
+            self.last_source_ref = result
+
+        return result
+
+    def getLastSourceCodeReference(self):
+        result = self.last_source_ref
+        # self.last_source_ref = None
+        return result
+
     def formatTempName(self, base_name, number):
         if number is None:
             return "tmp_{name}".format(
@@ -89,8 +111,20 @@ class TempMixin(object):
             number    = number
         )
 
+    def getIntResName(self):
+        return self.allocateTempName("res", "int", unique = True)
+
+    def getBoolResName(self):
+        return self.allocateTempName("result", "bool", unique = True)
+
     def hasTempName(self, base_name):
         return base_name in self.tmp_names
+
+    def isUsed(self, tmp_name):
+        if tmp_name.startswith("tmp_unused_"):
+            return False
+        else:
+            return True
 
     def forgetTempName(self, tmp_name):
         self.forgotten_names.add(tmp_name)
@@ -209,6 +243,27 @@ class TempMixin(object):
     def setFalseBranchTarget(self, label):
         self.false_target = label
 
+    def getCleanupTempnames(self):
+        return self.cleanup_names[-1]
+
+    def addCleanupTempName(self, tmp_name):
+        assert tmp_name not in self.cleanup_names[-1], tmp_name
+
+        self.cleanup_names[-1].append(tmp_name)
+
+    def removeCleanupTempName(self, tmp_name):
+        assert tmp_name in self.cleanup_names[-1], tmp_name
+        self.cleanup_names[-1].remove(tmp_name)
+
+    def needsCleanup(self, tmp_name):
+        return tmp_name in self.cleanup_names[-1]
+
+    def pushCleanupScope(self):
+        self.cleanup_names.append([])
+
+    def popCleanupScope(self):
+        assert not self.cleanup_names[-1]
+        del self.cleanup_names[-1]
 
 class CodeObjectsMixin(object):
     def __init__(self):
@@ -823,6 +878,20 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
     def getContextObjectName(self):
         return "generator"
 
+    def getGeneratorReturnValueName(self):
+        if python_version >= 330:
+            return self.allocateTempName(
+                "return_value",
+                "PyObject *",
+                unique = True
+            )
+        else:
+            return self.allocateTempName(
+                "generator_return",
+                "bool",
+                unique = True
+            )
+
 
 class PythonCoroutineObjectContext(PythonGeneratorObjectContext):
     def getContextObjectName(self):
@@ -840,195 +909,3 @@ class PythonFunctionCreatedContext(PythonFunctionContext):
 
     def isForCreatedFunction(self):
         return True
-
-
-class PythonStatementCContext(PythonChildContextBase):
-    def __init__(self, parent):
-        PythonChildContextBase.__init__(
-            self,
-            parent = parent
-        )
-
-        self.cleanup_names = []
-
-        self.current_source_ref = None
-        self.last_source_ref = None
-
-    def getOwner(self):
-        return self.parent.getOwner()
-
-    def isCompiledPythonModule(self):
-        return self.parent.isCompiledPythonModule()
-
-    def getFunction(self):
-        return self.parent.getFunction()
-
-    def hasLocalsDict(self):
-        return self.parent.hasLocalsDict()
-
-    def isForDirectCall(self):
-        return self.parent.isForDirectCall()
-
-    def allocateTempName(self, base_name, type_code = "PyObject *",
-                         unique = False):
-        return self.parent.allocateTempName(base_name, type_code, unique)
-
-    def getIntResName(self):
-        return self.allocateTempName("res", "int", unique = True)
-
-    def getBoolResName(self):
-        return self.allocateTempName("result", "bool", unique = True)
-
-    def getReturnValueName(self):
-        return self.parent.getReturnValueName()
-
-    def setReturnValueName(self, value):
-        return self.parent.setReturnValueName(value)
-
-    def getGeneratorReturnValueName(self):
-        if python_version >= 330:
-            return self.allocateTempName(
-                "return_value",
-                "PyObject *",
-                unique = True
-            )
-        else:
-            return self.allocateTempName(
-                "generator_return",
-                "bool",
-                unique = True
-            )
-
-    def getExceptionEscape(self):
-        return self.parent.getExceptionEscape()
-
-    def setExceptionEscape(self, label):
-        return self.parent.setExceptionEscape(label)
-
-    def getLoopBreakTarget(self):
-        return self.parent.getLoopBreakTarget()
-
-    def setLoopBreakTarget(self, label):
-        return self.parent.setLoopBreakTarget(label)
-
-    def getLoopContinueTarget(self):
-        return self.parent.getLoopContinueTarget()
-
-    def setLoopContinueTarget(self, label):
-        return self.parent.setLoopContinueTarget(label)
-
-    def getTrueBranchTarget(self):
-        return self.parent.getTrueBranchTarget()
-
-    def setTrueBranchTarget(self, label):
-        return self.parent.setTrueBranchTarget(label)
-
-    def getFalseBranchTarget(self):
-        return self.parent.getFalseBranchTarget()
-
-    def setFalseBranchTarget(self, label):
-        return self.parent.setFalseBranchTarget(label)
-
-    def getReturnTarget(self):
-        return self.parent.getReturnTarget()
-
-    def setReturnTarget(self, label):
-        return self.parent.setReturnTarget(label)
-
-    def getReturnReleaseMode(self):
-        return self.parent.getReturnReleaseMode()
-
-    def setReturnReleaseMode(self, value):
-        return self.parent.setReturnReleaseMode(value)
-
-    def allocateLabel(self, label):
-        return self.parent.allocateLabel(label)
-
-    def addCleanupTempName(self, tmp_name):
-        assert tmp_name not in self.cleanup_names, tmp_name
-
-        self.cleanup_names.append(tmp_name)
-
-    def removeCleanupTempName(self, tmp_name):
-        assert tmp_name in self.cleanup_names, tmp_name
-        self.cleanup_names.remove(tmp_name)
-
-    def needsCleanup(self, tmp_name):
-        return tmp_name in self.cleanup_names
-
-    def isUsed(self, tmp_name):
-        if tmp_name.startswith("tmp_unused_"):
-            return False
-        else:
-            return True
-
-    def forgetTempName(self, tmp_name):
-        self.parent.forgetTempName(tmp_name)
-
-    def getCleanupTempnames(self):
-        return self.cleanup_names
-
-    def getFrameHandle(self):
-        return self.parent.getFrameHandle()
-
-    def setFrameHandle(self, frame_handle):
-        return self.parent.setFrameHandle(frame_handle)
-
-    def allocateExceptionKeeperVariables(self):
-        return self.parent.allocateExceptionKeeperVariables()
-
-    def getExceptionKeeperVariables(self):
-        return self.parent.getExceptionKeeperVariables()
-
-    def setExceptionKeeperVariables(self, keeper_vars):
-        return self.parent.setExceptionKeeperVariables(keeper_vars)
-
-    def addExceptionPreserverVariables(self, count):
-        self.parent.addExceptionPreserverVariables(count)
-
-    def needsExceptionVariables(self):
-        return self.parent.needsExceptionVariables()
-
-    def markAsNeedsExceptionVariables(self):
-        self.parent.markAsNeedsExceptionVariables()
-
-    def addFrameDeclaration(self, frame_decl):
-        self.parent.addFrameDeclaration(frame_decl)
-
-    def mayRecurse(self):
-        return self.parent.mayRecurse()
-
-    def needsFrameVariableTypeDescription(self):
-        return self.parent.needsFrameVariableTypeDescription()
-
-    def markAsNeedsFrameVariableDescription(self):
-        self.parent.markAsNeedsFrameVariableDescription()
-
-    def getCodeObjectHandle(self, **kw):
-        return self.parent.getCodeObjectHandle(**kw)
-
-    def getCurrentSourceCodeReference(self):
-        return self.current_source_ref
-
-    def setCurrentSourceCodeReference(self, value):
-        result = self.current_source_ref
-        self.current_source_ref = value
-
-        if value is not None:
-            self.last_source_ref = result
-
-        return result
-
-    def getLastSourceCodeReference(self):
-        result = self.last_source_ref
-        # self.last_source_ref = None
-        return result
-
-    def markAsNeedsModuleFilenameObject(self):
-        self.parent.markAsNeedsModuleFilenameObject()
-
-    def getContextObjectName(self):
-        return self.parent.getContextObjectName()
-
-    def setVariableType(self, variable, variable_code_name, variable_c_type):
-        self.parent.setVariableType(variable, variable_code_name, variable_c_type)
