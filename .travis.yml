@@ -12,4 +12,4 @@ python:
 # command to install dependencies
 install: "sudo apt-get install scons chrpath"
 # command to run tests
-script: ./tests/run-tests --no-other-python --skip-reflection-test --skip-other-cpython-tests
+script: ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
