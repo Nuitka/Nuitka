@@ -316,7 +316,7 @@ def checkExecutableCommand(command):
         return False
     if command == "python3.5" and options.no35:
         return False
-    if command == "python3.5" and options.no36:
+    if command == "python3.6" and options.no36:
         return False
 
     # Shortcuts for python versions, also needed for Windows as it won't have
