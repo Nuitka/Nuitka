@@ -187,6 +187,17 @@ Python. Default is %default."""
 )
 
 parser.add_option(
+    "--skip-all-cpython-tests",
+    action  = "store_true",
+    dest    = "cpython_none",
+    default = False,
+    help    = """\
+Do not execute any CPython test suite other than the one matching the running
+Python. Default is %default."""
+)
+
+
+parser.add_option(
     "--no-other-python",
     action  = "store_true",
     dest    = "no_other",
@@ -309,6 +320,14 @@ if options.cpython_no_other:
     if sys.version_info[0:2] != (3,6):
         options.cpython36 = False
 
+if options.cpython_none:
+    options.cpython26 = False
+    options.cpython27 = False
+    options.cpython32 = False
+    options.cpython33 = False
+    options.cpython34 = False
+    options.cpython35 = False
+    options.cpython36 = False
 
 # Go its own directory, to have it easy with path knowledge.
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
