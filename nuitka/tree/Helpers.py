@@ -160,10 +160,12 @@ def detectFunctionBodyKind(nodes, start_value = None):
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.ListComp and python_version >= 300:
             for name, field in ast.iter_fields(node):
-                if name in ("name", "body", "comparators", "elt"):
+                if name in ("name", "body", "comparators"):
                     pass
                 elif name == "generators":
                     _check(field[0].iter)
+                elif name in("body", "elt"):
+                    _check(field)
                 else:
                     assert False, (name, field, ast.dump(node))
         elif python_version >= 270 and node_class is ast.SetComp:  # @UndefinedVariable
