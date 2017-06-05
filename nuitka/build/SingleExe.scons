@@ -75,7 +75,7 @@ python_version = ARGUMENTS["python_version"]
 
 # The ABI flags to target.
 abiflags = ARGUMENTS.get("abiflags", "")
-python_version += abiflags
+python_abi_version = python_version + abiflags
 
 # Python debug mode: reference count checking, assertions in CPython core.
 python_debug = getBoolOption("python_debug", False)
@@ -865,7 +865,7 @@ if gcc_mode and "linux" in sys.platform:
                     "-I" + os.path.join(
                         "/usr/include/",
                         host_multiarch,
-                        "python" + python_version
+                        "python" + python_abi_version
                     )
                 ]
             )
@@ -876,18 +876,22 @@ if gcc_mode and "linux" in sys.platform:
 # about building, and finding the headers to compile against that Python, we
 # do not care about any site packages, and so on.
 
+# Some virtualenv, at least on MacOS, have such handy links, pointing to the
+# Python installation.
+
 if not win_target and os.path.islink(os.path.join(python_prefix, ".Python")):
-    # Some virtualenv, at least on MacOS, have such handy links.
     python_prefix = os.path.normpath(
         os.path.join(
             os.readlink(os.path.join(python_prefix, ".Python")), # @UndefinedVariable
             ".."
         )
     )
-elif not win_target and python_version >= "3.3" and \
+
+# Some virtualenv created by "venv" seem to have a different structure, where
+# library and include files are outside of it.
+
+if not win_target and python_version >= "3.3" and \
      os.path.exists(os.path.join(python_prefix, "bin/activate")):
-    # For "venv" of Python3.3, it seems necessary to find include files
-    # and libraries on the outside.
     python_binary = os.path.join(python_prefix, "bin", "python")
     python_binary = os.path.realpath(python_binary)
 
@@ -898,13 +902,20 @@ elif not win_target and python_version >= "3.3" and \
             ".."
         )
     )
-elif os.path.exists(os.path.join(python_prefix, "Lib/orig-prefix.txt")):
-    python_prefix = open(
-        os.path.join(python_prefix, "Lib/orig-prefix.txt")
-    ).read()
 
-    # Trailing spaces in the python prefix, please not.
-    assert python_prefix == python_prefix.strip()
+# Some virtualenv contain the "orig-prefix.txt" as a textual link to
+# the target, this is Windows and standard virtualenv. There are two
+# places to look for.
+for candidate in ("Lib/orig-prefix.txt", "lib/python%s/orig-prefix.txt" % python_version):
+    candidate = os.path.join(python_prefix, candidate)
+    if os.path.exists(candidate):
+        python_prefix = open(candidate).read()
+
+        # Trailing spaces in the python prefix, please not.
+        assert python_prefix == python_prefix.strip()
+
+        break
+
 
 if win_target:
     # On Windows, the installation layout is relatively fixed.
@@ -917,7 +928,7 @@ else:
     python_header_path = os.path.join(
         python_prefix,
         "include",
-        "python" + python_version
+        "python" + python_abi_version
     )
 
 if not os.path.exists(os.path.join(python_header_path, "Python.h")):
@@ -980,7 +991,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
 
     defs_filename = os.path.join(
         new_win_lib_path,
-        "python%s.defs" % python_version.replace('.', "")
+        "python%s.defs" % python_abi_version.replace('.', "")
     )
 
     defs_file = open(
@@ -997,7 +1008,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
 
     lib_filename = os.path.join(
         new_win_lib_path,
-        "libpython%s.a" % python_version.replace('.', "")
+        "libpython%s.a" % python_abi_version.replace('.', "")
     )
 
     dll_tool = os.path.join(
@@ -1027,9 +1038,9 @@ def makeWindowsMingGW64Lib(win_lib_path):
 if win_target:
     # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
     if python_debug:
-        win_lib_name ="python" + python_version.replace('.', "") + "_d"
+        win_lib_name ="python" + python_abi_version.replace('.', "") + "_d"
     else:
-        win_lib_name = "python" + python_version.replace('.', "")
+        win_lib_name = "python" + python_abi_version.replace('.', "")
 
     for candidate in ("libs", "PCBuild"):
         win_lib_path = os.path.join(python_prefix, candidate)
@@ -1053,9 +1064,9 @@ else:
        python_prefix == "/usr" and \
        not python_version.startswith('3') and \
        platform.dist()[0].lower() in ("debian", "ubuntu"):
-        env.Append(LIBS = ["python" + python_version + "_d"])
+        env.Append(LIBS = ["python" + python_abi_version + "_d"])
     else:
-        env.Append(LIBS = ["python" + python_version])
+        env.Append(LIBS = ["python" + python_abi_version])
 
     if python_prefix != "/usr" and "linux" in sys.platform:
         env.Append(
@@ -1663,7 +1674,7 @@ if uninstalled_python:
             os.path.dirname(result_basepath) or "."
         )
     elif sys.platform == "darwin":
-        python_dll_filename = "libpython" + python_version + ".dylib"
+        python_dll_filename = "libpython" + python_abi_version + ".dylib"
 
         result = subprocess.call(
             (
