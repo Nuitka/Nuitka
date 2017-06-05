@@ -62,7 +62,7 @@ tempfile_re                  = re.compile(
 def traceback_re_callback(match):
     return r'%sile "%s", line %s' % (
         match.group(1),
-        os.path.abspath(match.group(2)),
+        os.path.realpath(os.path.abspath(match.group(2))),
         match.group(3)
     )
 
