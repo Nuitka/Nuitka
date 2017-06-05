@@ -70,6 +70,11 @@ New Features
 
 - Support for Python 3.6 with only few corner cases not supported yet.
 
+- Added support for more kinds of virtualenv configurations.
+
+- Uninstalled Python versions such as Anaconda will work fine in accelerated
+  mode too now.
+
 Optimization
 ------------
 
@@ -118,6 +123,9 @@ Optimization
 
 - Also optimize "true" division and "floor division", not only the
   default division of Python2.
+
+- Removed the need for statement context during code generation making it
+  less memory intensive and faster.
 
 Cleanups
 --------
@@ -176,6 +184,14 @@ Cleanups
 
 - The release scripts started to move into ``nuitka.tools.release`` so they
   get PyLint checks, autoformat and proper code re-use.
+
+- The use of ``INCREASE_REFCOUNT_X`` was removed, it got replaced with proper
+  ``Py_XINCREF`` usages.
+
+- The use of ``INCREASE_REFCOUNT`` got reduced further, e.g. no generated code
+  uses it anymore, and only a few compiled types do. The function was once
+  required before "C-ish" lifted the need to do everything in one single
+  function call.
 
 Tests
 -----
