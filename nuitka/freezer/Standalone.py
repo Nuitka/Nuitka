@@ -266,6 +266,8 @@ def _detectImports(command, user_provided, technical):
 
     debug("Detecting imports:")
 
+    detections = []
+
     for line in stderr.replace(b"\r", b"").split(b"\n"):
         if line.startswith(b"import "):
             # print(line)
@@ -289,12 +291,8 @@ def _detectImports(command, user_provided, technical):
                 if not isStandardLibraryPath(filename):
                     continue
 
-                _detectedPrecompiledFile(
-                    filename      = filename,
-                    module_name   = module_name,
-                    result        = result,
-                    user_provided = user_provided,
-                    technical     = technical
+                detections.append(
+                    (module_name, 3, "precompiled", filename)
                 )
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile "):]
@@ -306,12 +304,8 @@ def _detectImports(command, user_provided, technical):
                     continue
 
                 if filename.endswith(".py"):
-                    _detectedSourceFile(
-                        filename      = filename,
-                        module_name   = module_name,
-                        result        = result,
-                        user_provided = user_provided,
-                        technical     = technical
+                    detections.append(
+                        (module_name, 2, "sourcefile", filename)
                     )
                 elif not filename.endswith("<frozen>"):
                     # Python3 started lying in "__name__" for the "_decimal"
@@ -321,9 +315,8 @@ def _detectImports(command, user_provided, technical):
                         if module_name == "decimal":
                             module_name = "_decimal"
 
-                    _detectedShlibFile(
-                        filename    = filename,
-                        module_name = module_name
+                    detections.append(
+                        (module_name, 2, "shlib", filename)
                     )
             elif origin == b"dynamically":
                 # Shared library in early load, happens on RPM based systems and
@@ -336,10 +329,34 @@ def _detectImports(command, user_provided, technical):
                 if not isStandardLibraryPath(filename):
                     continue
 
-                _detectedShlibFile(
-                    filename    = filename,
-                    module_name = module_name
+                detections.append(
+                    (module_name, 1, "shlib", filename)
                 )
+
+    for module_name, _prio, kind, filename in sorted(detections):
+        if kind == "precompiled":
+            _detectedPrecompiledFile(
+                filename      = filename,
+                module_name   = module_name,
+                result        = result,
+                user_provided = user_provided,
+                technical     = technical
+            )
+        elif kind == "sourcefile":
+            _detectedSourceFile(
+                filename      = filename,
+                module_name   = module_name,
+                result        = result,
+                user_provided = user_provided,
+                technical     = technical
+            )
+        elif kind == "shlib":
+            _detectedShlibFile(
+                filename    = filename,
+                module_name = module_name
+            )
+        else:
+            assert False, kind
 
     return result
 
