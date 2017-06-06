@@ -420,9 +420,9 @@ def executeSubTest(command, hide_output = False):
     parts = command.split()
     parts[0] = parts[0].replace('/', os.path.sep)
 
-    # On Windows, we need to specify Python ourselves.
-    if os.name == "nt":
-        parts.insert(0, sys.executable)
+    # The running Python will be good enough, on some platforms there is no
+    # "python", and we need to pass this alone then.
+    parts.insert(0, sys.executable)
 
     print("Run '%s' in '%s'." % (' '.join(parts), os.getcwd()))
 
