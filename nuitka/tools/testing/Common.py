@@ -356,6 +356,7 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
         sys.stderr.write("Interrupted, with CTRL-C\n")
         sys.exit(2)
 
+
 def checkCompilesNotWithCPython(dirname, filename, search_mode):
     if dirname is None:
         path = filename

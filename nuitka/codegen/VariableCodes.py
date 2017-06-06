@@ -256,10 +256,14 @@ def _generateModuleVariableAccessCode(to_name, variable_name, needs_check,
     )
     if needs_check:
 
-        if python_version < 340 and \
-           not context.isCompiledPythonModule() and \
-           not context.getOwner().isExpressionClassBody():
-            error_message = "global name '%s' is not defined"
+        if python_version < 340:
+            owner = context.getOwner()
+
+            if not owner.isCompiledPythonModule() and \
+               not owner.isExpressionClassBody():
+                error_message = "global name '%s' is not defined"
+            else:
+                error_message = "name '%s' is not defined"
         else:
             error_message = "name '%s' is not defined"
 
@@ -345,12 +349,14 @@ def getVariableDelCode(variable, old_version, new_version, tolerant,
 
         # TODO: Apply needs_check for module variables too.
         if check:
+            owner = context.getOwner()
+
             getErrorFormatExitBoolCode(
                 condition = "%s == -1" % res_name,
                 exception = "PyExc_NameError",
                 args      = (
                     "%sname '%s' is not defined" % (
-                        "global " if not context.isCompiledPythonModule() else "",
+                        "global " if not owner.isCompiledPythonModule() else "",
                         variable.getName()
                     ),
                 ),

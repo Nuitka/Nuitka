@@ -318,8 +318,6 @@ class PythonContextBase(object):
     def __init__(self):
         self.source_ref = None
 
-    def isCompiledPythonModule(self):
-        return False
 
 
 class PythonChildContextBase(PythonContextBase):

@@ -1336,9 +1336,6 @@ def discoverSourceFiles():
 
 
     def provideStatic(sub_path):
-        # TODO: That should be normpath maybe.
-        sub_path = sub_path.replace('/', os.path.sep)
-
         source_file = os.path.join(nuitka_src, "static_src", sub_path)
         target_file = os.path.join(source_dir, os.path.basename(sub_path))
 

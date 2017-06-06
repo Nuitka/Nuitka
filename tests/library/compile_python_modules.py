@@ -37,8 +37,9 @@ from nuitka.tools.testing.Common import (
     setup,
     my_print,
     createSearchMode,
-    compileLibraryTest
-, checkCompilesWithCPython)
+    compileLibraryTest,
+    checkCompilesNotWithCPython
+)
 
 setup(needs_io_encoding = True)
 search_mode = createSearchMode()

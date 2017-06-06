@@ -25,8 +25,6 @@ from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 
 class SourceCodeReference(object):
-    # TODO: Measure the access speed impact of slots. The memory savings is
-    # not worth it (only a few percent).
     __slots__ = ["filename", "line", "column", "internal"]
 
     @classmethod
