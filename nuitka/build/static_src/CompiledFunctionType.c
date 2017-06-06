@@ -33,7 +33,8 @@ static PyObject *Nuitka_Function_descr_get( PyObject *function, PyObject *object
 #if PYTHON_VERSION >= 300
     if ( object == NULL || object == Py_None )
     {
-        return INCREASE_REFCOUNT( function );
+        Py_INCREF( function );
+        return function;
     }
 #endif
 
@@ -144,7 +145,9 @@ static long Nuitka_Function_tp_hash( struct Nuitka_FunctionObject *function )
 
 static PyObject *Nuitka_Function_get_name( struct Nuitka_FunctionObject *object )
 {
-    return INCREASE_REFCOUNT( object->m_name );
+    PyObject *result = object->m_name;
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Function_set_name( struct Nuitka_FunctionObject *object, PyObject *value )
@@ -160,7 +163,8 @@ static int Nuitka_Function_set_name( struct Nuitka_FunctionObject *object, PyObj
     }
 
     PyObject *old = object->m_name;
-    object->m_name = INCREASE_REFCOUNT( value );
+    Py_INCREF( value );
+    object->m_name = value;
     Py_DECREF( old );
 
     return 0;
@@ -169,7 +173,9 @@ static int Nuitka_Function_set_name( struct Nuitka_FunctionObject *object, PyObj
 #if PYTHON_VERSION >= 330
 static PyObject *Nuitka_Function_get_qualname( struct Nuitka_FunctionObject *object )
 {
-    return INCREASE_REFCOUNT( object->m_qualname );
+    PyObject *result = object->m_qualname;
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Function_set_qualname( struct Nuitka_FunctionObject *object, PyObject *value )
@@ -181,7 +187,8 @@ static int Nuitka_Function_set_qualname( struct Nuitka_FunctionObject *object, P
     }
 
     PyObject *old = object->m_qualname;
-    object->m_qualname = INCREASE_REFCOUNT( value );
+    Py_INCREF( value );
+    object->m_qualname = value;
     Py_DECREF( old );
 
     return 0;
@@ -190,7 +197,9 @@ static int Nuitka_Function_set_qualname( struct Nuitka_FunctionObject *object, P
 
 static PyObject *Nuitka_Function_get_doc( struct Nuitka_FunctionObject *object )
 {
-    return INCREASE_REFCOUNT( object->m_doc );
+    PyObject *result = object->m_doc;
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Function_set_doc( struct Nuitka_FunctionObject *object, PyObject *value )
@@ -217,7 +226,8 @@ static PyObject *Nuitka_Function_get_dict( struct Nuitka_FunctionObject *object 
         object->m_dict = PyDict_New();
     }
 
-    return INCREASE_REFCOUNT( object->m_dict );
+    Py_INCREF( object->m_dict );
+    return object->m_dict;
 }
 
 static int Nuitka_Function_set_dict( struct Nuitka_FunctionObject *object, PyObject *value )
@@ -231,7 +241,8 @@ static int Nuitka_Function_set_dict( struct Nuitka_FunctionObject *object, PyObj
     if (likely( PyDict_Check( value ) ))
     {
         PyObject *old = object->m_dict;
-        object->m_dict = INCREASE_REFCOUNT( value );
+        Py_INCREF( value );
+        object->m_dict = value;
         Py_XDECREF( old );
 
         return 0;
@@ -245,7 +256,9 @@ static int Nuitka_Function_set_dict( struct Nuitka_FunctionObject *object, PyObj
 
 static PyObject *Nuitka_Function_get_code( struct Nuitka_FunctionObject *object )
 {
-    return INCREASE_REFCOUNT( (PyObject *)object->m_code_object );
+    PyObject *result = (PyObject *)object->m_code_object;
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Function_set_code( struct Nuitka_FunctionObject *object, PyObject *value )
@@ -293,7 +306,9 @@ static int Nuitka_Function_set_closure( struct Nuitka_FunctionObject *object, Py
 
 static PyObject *Nuitka_Function_get_defaults( struct Nuitka_FunctionObject *object )
 {
-    return INCREASE_REFCOUNT( (PyObject *)object->m_defaults );
+    PyObject *result = (PyObject *)object->m_defaults;
+    Py_INCREF( result );
+    return result;
 }
 
 static void onUpdatedDefaultsValue( struct Nuitka_FunctionObject *function )
@@ -334,7 +349,8 @@ static int Nuitka_Function_set_defaults( struct Nuitka_FunctionObject *object, P
     }
 
     PyObject *old = object->m_defaults;
-    object->m_defaults = INCREASE_REFCOUNT( value );
+    Py_INCREF( value );
+    object->m_defaults = value;
     Py_DECREF( old );
 
     onUpdatedDefaultsValue( object );
@@ -345,7 +361,9 @@ static int Nuitka_Function_set_defaults( struct Nuitka_FunctionObject *object, P
 #if PYTHON_VERSION >= 300
 static PyObject *Nuitka_Function_get_kwdefaults( struct Nuitka_FunctionObject *object )
 {
-    return INCREASE_REFCOUNT( (PyObject *)object->m_kwdefaults );
+    PyObject *result = (PyObject *)object->m_kwdefaults;
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Function_set_kwdefaults( struct Nuitka_FunctionObject *object, PyObject *value )
@@ -362,14 +380,17 @@ static int Nuitka_Function_set_kwdefaults( struct Nuitka_FunctionObject *object,
     }
 
     PyObject *old = object->m_kwdefaults;
-    object->m_kwdefaults = INCREASE_REFCOUNT( value );
+    Py_INCREF( value );
+    object->m_kwdefaults = value;
     Py_DECREF( old );
 
     return 0;
 }
 static PyObject *Nuitka_Function_get_annotations( struct Nuitka_FunctionObject *object )
 {
-    return INCREASE_REFCOUNT( (PyObject *)object->m_annotations );
+    PyObject *result = (PyObject *)object->m_annotations;
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Function_set_annotations( struct Nuitka_FunctionObject *object, PyObject *value )
@@ -387,7 +408,8 @@ static int Nuitka_Function_set_annotations( struct Nuitka_FunctionObject *object
     }
 
     PyObject *old = object->m_annotations;
-    object->m_annotations = INCREASE_REFCOUNT( value );
+    Py_INCREF( value );
+    object->m_annotations = value;
     Py_XDECREF( old );
 
     return 0;
@@ -403,7 +425,9 @@ static int Nuitka_Function_set_globals( struct Nuitka_FunctionObject *function, 
 
 static PyObject *Nuitka_Function_get_globals( struct Nuitka_FunctionObject *function )
 {
-    return INCREASE_REFCOUNT( PyModule_GetDict( function->m_module ) );
+    PyObject *result = PyModule_GetDict( function->m_module );
+    Py_INCREF( result );
+    return result;
 }
 
 extern PyObject *const_str_plain___module__;
@@ -425,17 +449,23 @@ static int Nuitka_Function_set_module( struct Nuitka_FunctionObject *object, PyO
 
 static PyObject *Nuitka_Function_get_module( struct Nuitka_FunctionObject *object )
 {
+    PyObject *result;
+
+    // The __dict__ might overrule this.
     if ( object->m_dict )
     {
-        PyObject *result = PyDict_GetItem( object->m_dict, const_str_plain___module__ );
+        result = PyDict_GetItem( object->m_dict, const_str_plain___module__ );
 
         if ( result != NULL )
         {
-            return INCREASE_REFCOUNT( result );
+            Py_INCREF( result );
+            return result;
         }
     }
 
-    return INCREASE_REFCOUNT( MODULE_NAME( object->m_module ) );
+    result = MODULE_NAME( object->m_module );
+    Py_INCREF( result );
+    return result;
 }
 
 
@@ -483,11 +513,16 @@ static PyGetSetDef Nuitka_Function_getset[] =
 
 static PyObject *Nuitka_Function_reduce( struct Nuitka_FunctionObject *function )
 {
+    PyObject *result;
+
 #if PYTHON_VERSION < 330
-    return INCREASE_REFCOUNT( function->m_name );
+    result = function->m_name;
 #else
-    return INCREASE_REFCOUNT( function->m_qualname );
+    result = function->m_qualname;
 #endif
+
+    Py_INCREF( result );
+    return result;
 }
 
 
@@ -644,15 +679,24 @@ struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, Py
 
     result->m_c_code = c_code;
 
-    result->m_name = INCREASE_REFCOUNT( name );
+    Py_INCREF( name );
+    result->m_name = name;
 
 #if PYTHON_VERSION >= 330
-    result->m_qualname = INCREASE_REFCOUNT( qualname ? qualname : name );
+    // The "qualname" defaults to NULL for most compact C code.
+    if ( qualname == NULL )
+    {
+        qualname = name;
+    }
+
+    Py_INCREF( qualname );
+    result->m_qualname = qualname;
 #endif
 
     if ( defaults == NULL )
     {
-        defaults = INCREASE_REFCOUNT( Py_None );
+        Py_INCREF( Py_None );
+        defaults = Py_None;
     }
     CHECK_OBJECT( defaults );
     assert( defaults == Py_None || ( PyTuple_Check( defaults ) && PyTuple_Size( defaults ) > 0 ) );
@@ -663,13 +707,15 @@ struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, Py
 #if PYTHON_VERSION >= 300
     if ( kwdefaults == NULL )
     {
-        kwdefaults = INCREASE_REFCOUNT( Py_None );
+        Py_INCREF( Py_None );
+        kwdefaults = Py_None;
     }
     assert( kwdefaults == Py_None || ( PyDict_Check( kwdefaults ) && DICT_SIZE( kwdefaults ) > 0 ) );
     result->m_kwdefaults = kwdefaults;
 
     assert( annotations == Py_None || PyDict_Check( annotations ) );
-    result->m_annotations = INCREASE_REFCOUNT( annotations );
+    Py_INCREF( annotations );
+    result->m_annotations = annotations;
 #endif
 
     result->m_code_object = code_object;
@@ -716,7 +762,9 @@ struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, Py
     result->m_varnames = &PyTuple_GET_ITEM( code_object->co_varnames, 0 );
 
     result->m_module = module;
-    result->m_doc    = INCREASE_REFCOUNT( doc );
+
+    Py_INCREF( doc );
+    result->m_doc    = doc;
 
     result->m_dict   = NULL;
     result->m_weakrefs = NULL;

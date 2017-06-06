@@ -106,7 +106,9 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
             {
                 PySys_WriteStderr( "import %s # claimed responsibility (compiled)\n", name );
             }
-            return INCREASE_REFCOUNT( metapath_based_loader );
+
+            Py_INCREF( metapath_based_loader );
+            return metapath_based_loader;
         }
 
         current++;
@@ -119,7 +121,8 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
             PySys_WriteStderr( "import %s # claimed responsibility (frozen)\n", name );
         }
 
-        return INCREASE_REFCOUNT( metapath_based_loader );
+        Py_INCREF( metapath_based_loader );
+        return metapath_based_loader;
     }
 
     if ( Py_VerboseFlag )
@@ -127,7 +130,8 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
         PySys_WriteStderr( "import %s # denied responsibility\n", name );
     }
 
-    return INCREASE_REFCOUNT( Py_None );
+    Py_INCREF( Py_None );
+    return Py_None;
 }
 
 #ifdef _NUITKA_STANDALONE
@@ -584,7 +588,8 @@ PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, char const *name )
         return result;
     }
 
-    return INCREASE_REFCOUNT( Py_None );
+    Py_INCREF( Py_None );
+    return Py_None;
 }
 
 static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, PyObject *kwds )
@@ -643,16 +648,20 @@ static PyObject *_path_unfreezer_is_package( PyObject *self, PyObject *args, PyO
 
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
 
+    PyObject *result;
+
     if ( entry )
     {
-        PyObject *result = BOOL_FROM( ( entry->flags & NUITKA_PACKAGE_FLAG ) != 0 );
-        return INCREASE_REFCOUNT( result );
+        result = BOOL_FROM( ( entry->flags & NUITKA_PACKAGE_FLAG ) != 0 );
     }
     else
     {
         // TODO: Maybe needs to be an exception.
-        return INCREASE_REFCOUNT( Py_None );
+        result = Py_None;
     }
+
+    Py_INCREF( result );
+    return result;
 }
 
 #if PYTHON_VERSION >= 340
@@ -716,7 +725,8 @@ static PyObject *_path_unfreezer_find_spec( PyObject *self, PyObject *args, PyOb
 
     if ( entry == NULL )
     {
-        return INCREASE_REFCOUNT( Py_None );
+        Py_INCREF( Py_None );
+        return Py_None;
     }
 
     PyObject *importlib = PyImport_ImportModule( "importlib._bootstrap" );

@@ -363,7 +363,8 @@ PyObject *Nuitka_Generator_close( struct Nuitka_GeneratorObject *generator, PyOb
 {
     if ( generator->m_status == status_Running )
     {
-        generator->m_exception_type = INCREASE_REFCOUNT( PyExc_GeneratorExit );
+        Py_INCREF( PyExc_GeneratorExit );
+        generator->m_exception_type = PyExc_GeneratorExit;
         generator->m_exception_value = NULL;
         generator->m_exception_tb = NULL;
 
@@ -400,7 +401,8 @@ PyObject *Nuitka_Generator_close( struct Nuitka_GeneratorObject *generator, PyOb
         }
     }
 
-    return INCREASE_REFCOUNT( Py_None );
+    Py_INCREF( Py_None );
+    return Py_None;
 }
 
 static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generator, PyObject *args )
@@ -645,7 +647,9 @@ static void Nuitka_Generator_tp_dealloc( struct Nuitka_GeneratorObject *generato
 
 static PyObject *Nuitka_Generator_get_name( struct Nuitka_GeneratorObject *generator )
 {
-    return INCREASE_REFCOUNT( generator->m_name );
+    PyObject *result = generator->m_name;
+    Py_INCREF( result );
+    return result;
 }
 
 #if PYTHON_VERSION >= 350
@@ -672,7 +676,9 @@ static int Nuitka_Generator_set_name( struct Nuitka_GeneratorObject *generator, 
 
 static PyObject *Nuitka_Generator_get_qualname( struct Nuitka_GeneratorObject *generator )
 {
-    return INCREASE_REFCOUNT( generator->m_qualname );
+    PyObject *result = generator->m_qualname;
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Generator_set_qualname( struct Nuitka_GeneratorObject *generator, PyObject *value )
@@ -714,7 +720,9 @@ static PyObject *Nuitka_Generator_get_yieldfrom( struct Nuitka_GeneratorObject *
 
 static PyObject *Nuitka_Generator_get_code( struct Nuitka_GeneratorObject *generator )
 {
-    return INCREASE_REFCOUNT( (PyObject *)generator->m_code_object );
+    PyObject *result = (PyObject *)generator->m_code_object;
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Generator_set_code( struct Nuitka_GeneratorObject *generator, PyObject *value )
@@ -725,14 +733,19 @@ static int Nuitka_Generator_set_code( struct Nuitka_GeneratorObject *generator, 
 
 static PyObject *Nuitka_Generator_get_frame( struct Nuitka_GeneratorObject *generator )
 {
+    PyObject *result;
+
     if ( generator->m_frame )
     {
-        return INCREASE_REFCOUNT( (PyObject *)generator->m_frame );
+        result = (PyObject *)generator->m_frame;
     }
     else
     {
-        return INCREASE_REFCOUNT( Py_None );
+        result = Py_None;
     }
+
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Generator_set_frame( struct Nuitka_GeneratorObject *generator, PyObject *value )
@@ -947,7 +960,9 @@ PyObject *PyGen_Send( PyGenObject *generator, PyObject *arg )
     {
         // Put arg on top of the value stack
         PyObject *tmp = arg ? arg : Py_None;
-        *(frame->f_stacktop++) = INCREASE_REFCOUNT( tmp );
+
+        Py_INCREF( tmp );
+        *(frame->f_stacktop++) = tmp;
     }
 
     // Generators always return to their most recent caller, not necessarily
@@ -1046,7 +1061,8 @@ PyObject *ERROR_GET_STOP_ITERATION_VALUE()
 
     if ( value == NULL )
     {
-        value = INCREASE_REFCOUNT( Py_None );
+        Py_INCREF( Py_None );
+        value = Py_None;
     }
 
     return value;
@@ -1193,7 +1209,8 @@ static PyObject *_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject
             PyObject *error = GET_ERROR_OCCURRED();
             if ( error == NULL )
             {
-                return INCREASE_REFCOUNT( Py_None ) ;
+                Py_INCREF( Py_None );
+                return Py_None;
             }
 
             // The sub-generator has given an exception. In case of
@@ -1384,7 +1401,8 @@ static PyObject *_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generato
         {
             if ( !ERROR_OCCURRED() )
             {
-                return INCREASE_REFCOUNT( Py_None ) ;
+                Py_INCREF( Py_None );
+                return Py_None;
             }
 
             // The sub-generator has given an exception. In case of

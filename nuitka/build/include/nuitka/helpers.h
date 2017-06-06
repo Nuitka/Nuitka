@@ -44,8 +44,6 @@ typedef struct {
 // Most fundamental, because we use it for debugging in everything else.
 #include "nuitka/helper/printing.h"
 
-static PyObject *INCREASE_REFCOUNT( PyObject *object );
-
 // Helper to check that an object is valid and has positive reference count.
 #define CHECK_OBJECT( value ) ( assert( value != NULL ), assert( Py_REFCNT( value ) > 0 ) );
 
@@ -55,16 +53,6 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object );
 // For use with "--trace-execution", code can make outputs. Otherwise they
 // are just like comments.
 #include "nuitka/tracing.h"
-
-// Helper functions for reference count handling in the fly.
-NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
-{
-    CHECK_OBJECT( object );
-
-    Py_INCREF( object );
-
-    return object;
-}
 
 // For checking values if they changed or not.
 #ifndef __NUITKA_NO_ASSERT__
@@ -420,24 +408,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
     assert( PyUnicode_Check( result ) );
 
     return result;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
-{
-    CHECK_OBJECT( method );
-
-    PyObject *attempt = PyStaticMethod_New( method );
-
-    if ( attempt )
-    {
-        return attempt;
-    }
-    else
-    {
-        CLEAR_ERROR_OCCURRED();
-
-        return method;
-    }
 }
 
 
