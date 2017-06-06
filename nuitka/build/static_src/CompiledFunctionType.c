@@ -1056,8 +1056,9 @@ static void formatErrorTooManyArguments( struct Nuitka_FunctionObject const *fun
 
     if ( kw_only > 0 )
     {
-        sprintf(
+        snprintf(
             keyword_only_part,
+            sizeof(keyword_only_part)-1,
             " positional argument%s (and %" PY_FORMAT_SIZE_T "d keyword-only argument%s)",
             given != 1 ? "s" : "",
             kw_only,

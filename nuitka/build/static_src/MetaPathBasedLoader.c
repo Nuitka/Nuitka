@@ -355,8 +355,8 @@ static void loadTriggeredModule( char const *name, char const *trigger_name )
 {
     char trigger_module_name[2048];
 
-    strcpy( trigger_module_name, name );
-    strcat( trigger_module_name, trigger_name);
+    strncpy( trigger_module_name, name, sizeof(trigger_module_name)-1 );
+    strncat( trigger_module_name, trigger_name, sizeof(trigger_module_name)-1 );
 
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( trigger_module_name );
 
@@ -474,12 +474,12 @@ static PyObject *loadModule( PyObject *module_name, struct Nuitka_MetaPathBasedL
             Py_DECREF( module_path_entry_base );
 
             char sep_str[2] = { SEP, 0 };
-            strcat( buffer, sep_str );
-            strcat( buffer, "__init__.py" );
+            strncat( buffer, sep_str, sizeof(buffer)-1 );
+            strncat( buffer, "__init__.py", sizeof(buffer)-1 );
         }
         else
         {
-            strcat( buffer, ".py" );
+            strncat( buffer, ".py", sizeof(buffer)-1 );
         }
 
 #if PYTHON_VERSION < 300

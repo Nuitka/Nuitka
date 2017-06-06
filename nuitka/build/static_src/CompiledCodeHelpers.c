@@ -1637,7 +1637,7 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
 void PRINT_REFCOUNT( PyObject *object )
 {
     char buffer[ 1024 ];
-    sprintf( buffer, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT( object ) );
+    snprintf( buffer, sizeof( buffer ) - 1, " refcnt %" PY_FORMAT_SIZE_T "d ", Py_REFCNT( object ) );
 
     PRINT_STRING( buffer );
 }
@@ -2944,18 +2944,18 @@ char *getBinaryDirectoryUTF8Encoded()
     WCHAR binary_directory2[ MAXPATHLEN + 1 ];
     binary_directory2[0] = 0;
 
-    DWORD res = GetModuleFileNameW( NULL, binary_directory2, MAXPATHLEN + 1 );
+    DWORD res = GetModuleFileNameW( NULL, binary_directory2, MAXPATHLEN );
     assert( res != 0 );
 
-    int res2 = WideCharToMultiByte( CP_UTF8, 0, binary_directory2, -1, binary_directory, MAXPATHLEN + 1, NULL, NULL );
+    int res2 = WideCharToMultiByte( CP_UTF8, 0, binary_directory2, -1, binary_directory, MAXPATHLEN, NULL, NULL );
     assert( res2 != 0 );
 #else
-    DWORD res = GetModuleFileName( NULL, binary_directory, MAXPATHLEN + 1 );
+    DWORD res = GetModuleFileName( NULL, binary_directory, MAXPATHLEN );
     assert( res != 0 );
 #endif
     PathRemoveFileSpec( binary_directory );
 #elif defined(__APPLE__)
-    uint32_t bufsize = MAXPATHLEN + 1;
+    uint32_t bufsize = MAXPATHLEN;
     int res =_NSGetExecutablePath( binary_directory, &bufsize );
 
     if (unlikely( res != 0 ))
@@ -2965,7 +2965,7 @@ char *getBinaryDirectoryUTF8Encoded()
 
     // On MacOS, the "dirname" call creates a separate internal string, we can
     // safely copy back.
-    strncpy(binary_directory, dirname(binary_directory), MAXPATHLEN + 1);
+    strncpy(binary_directory, dirname(binary_directory), MAXPATHLEN);
 
 #elif defined( __FreeBSD__ )
     /* Not all of FreeBSD has /proc file system, so use the appropriate
@@ -2994,7 +2994,7 @@ char *getBinaryDirectoryUTF8Encoded()
         abort();
     }
 
-    strcpy( binary_directory, dirname( binary_directory ) );
+    strncpy( binary_directory, dirname( binary_directory ), MAXPATHLEN );
 #endif
     init_done = true;
     return binary_directory;
@@ -3015,13 +3015,13 @@ char *getBinaryDirectoryHostEncoded()
     WCHAR binary_directory2[ MAXPATHLEN + 1 ];
     binary_directory2[0] = 0;
 
-    DWORD res = GetModuleFileNameW( NULL, binary_directory2, MAXPATHLEN + 1 );
+    DWORD res = GetModuleFileNameW( NULL, binary_directory2, MAXPATHLEN );
     assert( res != 0 );
 
-    int res2 = WideCharToMultiByte( CP_ACP, 0, binary_directory2, -1, binary_directory, MAXPATHLEN + 1, NULL, NULL );
+    int res2 = WideCharToMultiByte( CP_ACP, 0, binary_directory2, -1, binary_directory, MAXPATHLEN, NULL, NULL );
     assert( res2 != 0 );
 #else
-    DWORD res = GetModuleFileName( NULL, binary_directory, MAXPATHLEN + 1 );
+    DWORD res = GetModuleFileName( NULL, binary_directory, MAXPATHLEN );
     assert( res != 0 );
 #endif
     PathRemoveFileSpec( binary_directory );
