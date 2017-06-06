@@ -26,6 +26,7 @@ from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.Constants import constant_builtin_types
 from nuitka.PythonVersions import python_version
+from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .Namify import namifyConstant
 
@@ -265,6 +266,7 @@ class TempMixin(object):
         assert not self.cleanup_names[-1]
         del self.cleanup_names[-1]
 
+
 class CodeObjectsMixin(object):
     def __init__(self):
         # Code objects needed made unique by a key.
@@ -315,9 +317,11 @@ class CodeObjectsMixin(object):
 
 
 class PythonContextBase(object):
+    @counted_init
     def __init__(self):
         self.source_ref = None
 
+    __del__ = counted_del()
 
 
 class PythonChildContextBase(PythonContextBase):
