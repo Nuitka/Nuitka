@@ -26,6 +26,7 @@ import sys
 from optparse import OptionParser
 
 from nuitka.tools.release.Debian import updateDebianChangelog
+from nuitka.tools.Basics import goHome
 
 
 def getBumpedVersion(mode, old_version):
@@ -91,8 +92,7 @@ The mode of update, prerelease, hotfix, or final."""
         sys.exit("\nError, no positional argument allowed.")
 
     # Go its own directory, to have it easy with path knowledge.
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    os.chdir("..")
+    goHome()
 
     option_lines = [ line for line in open("nuitka/Version.py") ]
 
