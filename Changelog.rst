@@ -1,5 +1,5 @@
-Nuitka Release 0.5.26 (Draft)
-=============================
+Nuitka Release 0.5.26
+=====================
 
 This release comes after a long time and contains large amounts of changes in
 all areas. The driving goal was to prepare generating C specific code, which is
