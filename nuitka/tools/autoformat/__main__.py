@@ -57,7 +57,17 @@ def main():
         Default is %default."""
     )
 
-    _options, positional_args = parser.parse_args()
+    parser.add_option(
+        "--abort-on-parsing-error",
+        action  = "store_true",
+        dest    = "abort",
+        default = False,
+        help    = """\
+        Default is %default."""
+    )
+
+
+    options, positional_args = parser.parse_args()
 
     if not positional_args:
         positional_args = ["bin", "nuitka"]
@@ -72,7 +82,7 @@ def main():
 
     found = False
     for filename in scanTargets(positional_args):
-        autoformat(filename)
+        autoformat(filename, abort = options.abort)
         found = True
 
     if not found:

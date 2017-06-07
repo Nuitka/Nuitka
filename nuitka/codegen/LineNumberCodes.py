@@ -38,7 +38,7 @@ def getLineNumberUpdateCode(context):
     if lineno_value:
         frame_handle = context.getFrameHandle()
 
-        return "%s->f_lineno = %s;" % (
+        return "%s->m_frame.f_lineno = %s;" % (
             frame_handle,
             lineno_value
         )
@@ -75,7 +75,7 @@ def getSetLineNumberCodeRaw(to_name, emit, context):
     assert context.getFrameHandle() is not None
 
     emit(
-        "%s->f_lineno = %s;" % (
+        "%s->m_frame.f_lineno = %s;" % (
             context.getFrameHandle(),
             to_name
         )
@@ -86,7 +86,7 @@ def getLineNumberCode(to_name, emit, context):
     assert context.getFrameHandle() is not None
 
     emit(
-        "%s = %s->f_lineno;"  % (
+        "%s = %s->m_frame.f_lineno;"  % (
             to_name,
             context.getFrameHandle()
         )

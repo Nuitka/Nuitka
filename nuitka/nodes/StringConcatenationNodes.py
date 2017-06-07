@@ -22,7 +22,7 @@ code alternative to actually looking up that method from the empty string
 object, so it got a dedicated node, also to perform optimizations specific
 to this.
 """
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .shapes.BuiltinTypeShapes import ShapeTypeStrOrUnicode
 
 

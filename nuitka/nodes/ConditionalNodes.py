@@ -26,10 +26,8 @@ from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBool
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 
 from .Checkers import checkStatementsSequenceOrNone
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    StatementChildrenHavingBase
-)
+from .ExpressionBases import ExpressionChildrenHavingBase
+from .NodeBases import StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     wrapExpressionWithNodeSideEffects,
@@ -56,6 +54,8 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
             },
             source_ref = source_ref
         )
+
+        self.merge_traces = None
 
     def getBranches(self):
         return (
@@ -152,7 +152,7 @@ branches."""
             branch_no_collection = None
 
         # Merge into parent execution.
-        trace_collection.mergeBranches(
+        self.merge_traces = trace_collection.mergeBranches(
             branch_yes_collection,
             branch_no_collection
         )
@@ -244,6 +244,8 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.merge_traces = None
+
     getLeft = ExpressionChildrenHavingBase.childGetter(
         "left"
     )
@@ -311,10 +313,12 @@ branches.""" % self.conditional_kind
 
         if branch_yes_collection:
             # Merge into parent execution.
-            trace_collection.mergeBranches(
+            self.merge_traces = trace_collection.mergeBranches(
                 branch_yes_collection,
                 None
             )
+        else:
+            self.merge_traces = None
 
         if truth_value is truth_value_use_left:
             return (
@@ -422,6 +426,8 @@ class StatementConditional(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.merge_traces = None
+
     getCondition = StatementChildrenHavingBase.childGetter("condition")
     getBranchYes = StatementChildrenHavingBase.childGetter("yes_branch")
     setBranchYes = StatementChildrenHavingBase.childSetter("yes_branch")
@@ -495,7 +501,7 @@ class StatementConditional(StatementChildrenHavingBase):
         return False
 
     def computeStatement(self, trace_collection):
-        # This is rather complex stuff, pylint: disable=R0912,R0915
+        # This is rather complex stuff, pylint: disable=too-many-branches,too-many-statements
 
         trace_collection.onExpression(
             expression = self.getCondition()
@@ -607,7 +613,7 @@ branches."""
             branch_no_collection = None
 
         # Merge into parent execution.
-        trace_collection.mergeBranches(
+        self.merge_traces = trace_collection.mergeBranches(
             branch_yes_collection,
             branch_no_collection
         )

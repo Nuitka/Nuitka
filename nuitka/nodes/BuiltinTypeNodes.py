@@ -22,15 +22,19 @@ that should allow some important optimizations.
 """
 
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    ShapeTypeBool,
+    ShapeTypeIntOrLong,
+    ShapeTypeLong,
+    ShapeTypeStr,
+    ShapeTypeUnicode
+)
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import (
-    ChildrenHavingMixin,
+from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
-    ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationMixin,
-    NodeBase
+    ExpressionSpecBasedComputationBase
 )
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
@@ -42,8 +46,7 @@ class ExpressionBuiltinTypeBase(ExpressionBuiltinSingleArgBase):
     pass
 
 
-class ExpressionBuiltinContainerBase(ExpressionChildrenHavingBase,
-                                     ExpressionSpecBasedComputationMixin):
+class ExpressionBuiltinContainerBase(ExpressionSpecBasedComputationBase):
 
     builtin_spec = None
 
@@ -52,7 +55,7 @@ class ExpressionBuiltinContainerBase(ExpressionChildrenHavingBase,
     )
 
     def __init__(self, value, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ExpressionSpecBasedComputationBase.__init__(
             self,
             values     = {
                 "value" : value,
@@ -60,7 +63,7 @@ class ExpressionBuiltinContainerBase(ExpressionChildrenHavingBase,
             source_ref = source_ref
         )
 
-    getValue = ExpressionChildrenHavingBase.childGetter(
+    getValue = ExpressionSpecBasedComputationBase.childGetter(
         "value"
     )
 
@@ -139,9 +142,11 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
 
         return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
+    def getTypeShape(self):
+        return ShapeTypeBool
 
-class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
-                                   ExpressionSpecBasedComputationMixin):
+
+class ExpressionBuiltinIntLongBase(ExpressionSpecBasedComputationBase):
     named_children = ("value", "base")
 
     # Note: Version specific, may be allowed or not.
@@ -156,24 +161,24 @@ class ExpressionBuiltinIntLongBase(ChildrenHavingMixin, NodeBase,
     builtin = int
 
     def __init__(self, value, base, source_ref):
-        NodeBase.__init__(self, source_ref = source_ref)
-
         if value is None and self.base_only_value:
-            value = makeConstantReplacementNode(
-                constant = '0',
-                node     = self
+            value = makeConstantRefNode(
+                constant      = '0',
+                source_ref    = source_ref,
+                user_provided = True
             )
 
-        ChildrenHavingMixin.__init__(
+        ExpressionSpecBasedComputationBase.__init__(
             self,
-            values = {
+            values     = {
                 "value" : value,
                 "base"  : base
-            }
+            },
+            source_ref = source_ref
         )
 
-    getValue = ChildrenHavingMixin.childGetter("value")
-    getBase = ChildrenHavingMixin.childGetter("base")
+    getValue = ExpressionSpecBasedComputationBase.childGetter("value")
+    getBase = ExpressionSpecBasedComputationBase.childGetter("base")
 
     def computeExpression(self, trace_collection):
         value = self.getValue()
@@ -209,9 +214,11 @@ class ExpressionBuiltinInt(ExpressionBuiltinIntLongBase):
     builtin_spec = BuiltinOptimization.builtin_int_spec
     builtin = int
 
+    def getTypeShape(self):
+        return ShapeTypeIntOrLong
 
-class ExpressionBuiltinUnicodeBase(ChildrenHavingMixin, NodeBase,
-                                   ExpressionSpecBasedComputationMixin):
+
+class ExpressionBuiltinUnicodeBase(ExpressionSpecBasedComputationBase):
     named_children = (
         "value",
         "encoding",
@@ -219,23 +226,19 @@ class ExpressionBuiltinUnicodeBase(ChildrenHavingMixin, NodeBase,
     )
 
     def __init__(self, value, encoding, errors, source_ref):
-        NodeBase.__init__(
+        ExpressionSpecBasedComputationBase.__init__(
             self,
-            source_ref = source_ref
-        )
-
-        ChildrenHavingMixin.__init__(
-            self,
-            values = {
+            values     = {
                 "value"    : value,
                 "encoding" : encoding,
                 "errors"   : errors
-            }
+            },
+            source_ref = source_ref
         )
 
-    getValue = ChildrenHavingMixin.childGetter("value")
-    getEncoding = ChildrenHavingMixin.childGetter("encoding")
-    getErrors = ChildrenHavingMixin.childGetter("errors")
+    getValue = ExpressionSpecBasedComputationBase.childGetter("value")
+    getEncoding = ExpressionSpecBasedComputationBase.childGetter("encoding")
+    getErrors = ExpressionSpecBasedComputationBase.childGetter("errors")
 
     def computeExpression(self, trace_collection):
         args = [
@@ -286,6 +289,9 @@ if python_version < 300:
 
             return new_node, change_tags, change_desc
 
+        def getTypeShape(self):
+            return ShapeTypeStr
+
 
     class ExpressionBuiltinLong(ExpressionBuiltinIntLongBase):
         kind = "EXPRESSION_BUILTIN_LONG"
@@ -293,15 +299,26 @@ if python_version < 300:
         builtin_spec = BuiltinOptimization.builtin_long_spec
         builtin = long
 
+        def getTypeShape(self):
+            return ShapeTypeLong
+
+
     class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_UNICODE"
 
         builtin_spec = BuiltinOptimization.builtin_unicode_spec
+
+        def getTypeShape(self):
+            return ShapeTypeUnicode
+
 else:
     class ExpressionBuiltinStr(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_STR"
 
         builtin_spec = BuiltinOptimization.builtin_str_spec
+
+        def getTypeShape(self):
+            return ShapeTypeStr
 
 
 class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
@@ -328,8 +345,7 @@ class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
         return self, None, None
 
 
-class ExpressionBuiltinComplex(ChildrenHavingMixin, NodeBase,
-                               ExpressionSpecBasedComputationMixin):
+class ExpressionBuiltinComplex(ExpressionSpecBasedComputationBase):
     kind = "EXPRESSION_BUILTIN_COMPLEX"
 
     named_children = (
@@ -340,17 +356,13 @@ class ExpressionBuiltinComplex(ChildrenHavingMixin, NodeBase,
     builtin_spec = BuiltinOptimization.builtin_complex_spec
 
     def __init__(self, real, imag, source_ref):
-        NodeBase.__init__(
+        ExpressionSpecBasedComputationBase.__init__(
             self,
-            source_ref = source_ref
-        )
-
-        ChildrenHavingMixin.__init__(
-            self,
-            values = {
+            values     = {
                 "real" : real,
                 "imag" : imag,
-            }
+            },
+            source_ref = source_ref
         )
 
     def computeExpression(self, trace_collection):
@@ -367,5 +379,5 @@ class ExpressionBuiltinComplex(ChildrenHavingMixin, NodeBase,
             given_values     = args
         )
 
-    getReal = ChildrenHavingMixin.childGetter("real")
-    getImag = ChildrenHavingMixin.childGetter("imag")
+    getReal = ExpressionSpecBasedComputationBase.childGetter("real")
+    getImag = ExpressionSpecBasedComputationBase.childGetter("imag")

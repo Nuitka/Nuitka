@@ -72,7 +72,8 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
 
     if ( result )
     {
-        return INCREASE_REFCOUNT( result );
+        Py_INCREF( result );
+        return result;
     }
 
     // Next see if a class has it
@@ -97,7 +98,8 @@ static PyObject *LOOKUP_INSTANCE( PyObject *source, PyObject *attr_name )
         }
         else
         {
-            return INCREASE_REFCOUNT( result );
+            Py_INCREF( result );
+            return result;
         }
     }
 
@@ -728,7 +730,10 @@ NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE_DICT_SLOT( PyObject *target, PyOb
         }
 
         PyObject *old = target_instance->in_dict;
-        target_instance->in_dict = INCREASE_REFCOUNT( value );
+
+        Py_INCREF( value );
+        target_instance->in_dict = value;
+
         Py_DECREF( old );
     }
     else
@@ -796,7 +801,8 @@ NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE_CLASS_SLOT( PyObject *target, PyO
         }
 
         PyObject *old = (PyObject *)( target_instance->in_class );
-        target_instance->in_class = (PyClassObject *)INCREASE_REFCOUNT( value );
+        Py_INCREF( value );
+        target_instance->in_class = (PyClassObject *)value;
         Py_DECREF( old );
     }
     else
@@ -867,7 +873,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject
 
         if ( func == NULL )
         {
-            return INCREASE_REFCOUNT( result );
+            Py_INCREF( result );
+            return result;
         }
         else
         {

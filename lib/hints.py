@@ -25,7 +25,7 @@ _indentation = 0
 def enableImportTracing():
 
 
-    def _ourimport(name, globals = None, locals = None, fromlist = None,
+    def _ourimport(name, globals = None, locals = None, fromlist = None,  # @ReservedAssignment
                    level = -1):
         global _indentation
         try:

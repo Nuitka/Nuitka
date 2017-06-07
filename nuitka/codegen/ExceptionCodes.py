@@ -22,8 +22,9 @@
 from nuitka.PythonVersions import python_version
 
 from .Helpers import generateExpressionCode
-from .templates.CodeTemplatesExceptions import \
+from .templates.CodeTemplatesExceptions import (
     template_publish_exception_to_handler
+)
 
 
 def getExceptionIdentifier(exception_type):
@@ -61,7 +62,7 @@ def getTracebackMakingIdentifier(context, lineno_name):
 
 def generateExceptionCaughtTypeCode(to_name, expression, emit, context):
     # Functions used for generation all accept expression, but this one does
-    # not use it. pylint: disable=W0613
+    # not use it. pylint: disable=unused-argument
 
     keeper_variables = context.getExceptionKeeperVariables()
 
@@ -82,7 +83,7 @@ def generateExceptionCaughtTypeCode(to_name, expression, emit, context):
 
 def generateExceptionCaughtValueCode(to_name, expression, emit, context):
     # Functions used for generation all accept expression, but this one does
-    # not use it. pylint: disable=W0613
+    # not use it. pylint: disable=unused-argument
 
     keeper_variables = context.getExceptionKeeperVariables()
 
@@ -112,7 +113,7 @@ def generateExceptionCaughtValueCode(to_name, expression, emit, context):
 
 def generateExceptionCaughtTracebackCode(to_name, expression, emit, context):
     # Functions used for generation all accept expression, but this one does
-    # not use it. pylint: disable=W0613
+    # not use it. pylint: disable=unused-argument
 
     keeper_variables = context.getExceptionKeeperVariables()
 
@@ -157,7 +158,7 @@ def getExceptionUnpublishedReleaseCode(emit, context):
 
 
 def generateExceptionPublishCode(statement, emit, context):
-    # This statement has no attributes really, pylint: disable=W0613
+    # This statement has no attributes really, pylint: disable=unused-argument
 
     # TODO: Should this be necessary, something else would have required
     # them already, or it's wrong.
@@ -176,7 +177,7 @@ def generateExceptionPublishCode(statement, emit, context):
             ),
             "keeper_tb"        : keeper_tb,
             "keeper_lineno"    : keeper_lineno,
-            "frame_identifier" : context.getFrameHandle()
+            "frame_identifier" : context.getFrameHandle(),
         }
     )
 

@@ -54,7 +54,7 @@ def indent(elem, level = 0, more_sibs = False):
     return elem
 
 try:
-    import lxml.etree # pylint: disable=F0401,I0021
+    import lxml.etree # pylint: disable=import-error,useless-suppression
     xml_module = lxml.etree
 
     Element = xml_module.Element
@@ -74,7 +74,7 @@ except ImportError:
 # TODO: Use the writer to create the XML we output. That should be more
 # scalable and/or faster.
 try:
-    import lxml.xmlfile # pylint: disable=F0401,I0021
+    import lxml.xmlfile # pylint: disable=import-error,useless-suppression
 
     xml_writer = lxml.xmlfile
 except ImportError:

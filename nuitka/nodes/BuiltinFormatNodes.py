@@ -25,7 +25,7 @@ about performance critical.
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import (
+from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )
@@ -76,7 +76,7 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
                 return (
                     value,
                     "new_expression", """\
-Removed useless 'format' on %s value.""" % value.getTypeShape().getTypeName()
+Removed useless 'format' on '%s' value.""" % value.getTypeShape().getTypeName()
                 )
 
         return self, None, None

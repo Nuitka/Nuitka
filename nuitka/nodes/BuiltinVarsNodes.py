@@ -22,7 +22,7 @@ and hopefully can be predicted, because at run time, it is hard to support.
 """
 
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 
 
 class ExpressionBuiltinVars(ExpressionChildrenHavingBase):

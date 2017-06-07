@@ -28,7 +28,7 @@ import math
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
 from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeXrange
 
@@ -85,7 +85,7 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
                type(child.getConstant()) is float:
                 return True
 
-        step = self.getStep() # false alarm, pylint: disable=E1128
+        step = self.getStep() # false alarm, pylint: disable=assignment-from-none
 
         # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:
@@ -453,7 +453,7 @@ class ExpressionBuiltinXrangeBase(ExpressionChildrenHavingBase):
             if child.getIntegerValue() is None:
                 return True
 
-        step = self.getStep() # false alarm, pylint: disable=E1128
+        step = self.getStep() # false alarm, pylint: disable=assignment-from-none
 
         # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:

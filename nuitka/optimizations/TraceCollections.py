@@ -50,7 +50,7 @@ from .VariableTraces import (
 signalChange = None
 
 
-class CollectionTracingMixin:
+class CollectionTracingMixin(object):
     def __init__(self):
         # For functions, when we are in here, the currently active one,
         self.variable_actives = {}
@@ -128,7 +128,7 @@ class CollectionTracingMixin:
             self.markActiveVariableAsUnknown(variable)
 
 
-class CollectionStartpointMixin:
+class CollectionStartpointMixin(object):
     def __init__(self):
         # Variable assignments performed in here, last issued number, only used
         # to determine the next number that should be used for a new assignment.
@@ -184,7 +184,7 @@ class CollectionStartpointMixin:
             )
 
     def onExceptionRaiseExit(self, raisable_exceptions, collection = None):
-        # TODO: We might want to track per exception, pylint: disable=W0613
+        # TODO: We might want to track per exception, pylint: disable=unused-argument
 
         if collection is None:
             collection = self
@@ -241,6 +241,7 @@ class CollectionStartpointMixin:
         self.addVariableTrace(variable, version, trace_merge)
 
         return version
+#         return version, trace_merge
 
     def dumpTraces(self):
         debug("Constraint collection state: %s", self)
@@ -339,8 +340,6 @@ class CollectionStartpointMixin:
             result = self._initVariableInit(variable)
         elif variable.isLocalVariable():
             result = self._initVariableUninit(variable)
-        elif variable.isMaybeLocalVariable():
-            result = self._initVariableUnknown(variable)
         elif variable.isModuleVariable():
             result = self._initVariableUnknown(variable)
         elif variable.isTempVariable():
@@ -376,11 +375,11 @@ class TraceCollectionBase(CollectionTracingMixin):
 
     @staticmethod
     def signalChange(tags, source_ref, message):
-        # This is monkey patched from another module, pylint: disable=E1102
+        # This is monkey patched from another module.
         signalChange(tags, source_ref, message)
 
-    def onUsedModule(self, module):
-        return self.parent.onUsedModule(module)
+    def onUsedModule(self, module_name):
+        return self.parent.onUsedModule(module_name)
 
     @staticmethod
     def mustAlias(a, b):
@@ -402,7 +401,7 @@ class TraceCollectionBase(CollectionTracingMixin):
 
     def onControlFlowEscape(self, node):
         # TODO: One day, we should trace which nodes exactly cause a variable
-        # to be considered escaped, pylint: disable=W0613
+        # to be considered escaped, pylint: disable=unused-argument
 
         for variable in self.getActiveVariables():
             if variable.isModuleVariable():
@@ -487,17 +486,35 @@ class TraceCollectionBase(CollectionTracingMixin):
 
 
     def onLocalsUsage(self):
+        result = []
+
+        if self.owner.isExpressionFunctionBody():
+            include_closure = not self.owner.isUnoptimized()
+        else:
+            include_closure = False
+
         for variable in self.getActiveVariables():
 
             # TODO: Currently this is a bit difficult to express in a positive
             # way, but we want to have only local variables.
             if not variable.isTempVariable() and \
-               not variable.isModuleVariable():
+               not variable.isModuleVariable() and \
+               (variable.getOwner() is self.owner or include_closure) and \
+               variable.getName() != ".0":
                 variable_trace = self.getVariableCurrentTrace(
                     variable
                 )
 
                 variable_trace.addNameUsage()
+
+                result.append(
+                    (
+                        variable,
+                        variable_trace.getVersion()
+                    )
+                )
+
+        return result
 
     def onVariableRelease(self, variable):
         current = self.getVariableCurrentTrace(variable)
@@ -544,17 +561,6 @@ class TraceCollectionBase(CollectionTracingMixin):
                 # Remember the reference for constraint collection.
                 assert new_node.variable_trace.hasDefiniteUsages()
 
-        # We add variable reference nodes late to their traces, only after they
-        # are actually produced, and not resolved to something else, so we do
-        # not have them dangling, and the code complexity inside of their own
-        # "computeExpression" functions.
-        if new_node.isExpressionVariableRef() or \
-           new_node.isExpressionTempVariableRef():
-            if new_node.getVariable().isMaybeLocalVariable():
-                variable_trace = self.getVariableCurrentTrace(
-                    variable = new_node.getVariable().getMaybeVariable()
-                )
-                variable_trace.addUsage()
 
         return new_node
 
@@ -591,26 +597,26 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         # Refuse to do stupid work
         if collection_yes is None and collection_no is None:
-            pass
+            return None
         elif collection_yes is None or collection_no is None:
             # Handle one branch case, we need to merge versions backwards as
             # they may make themselves obsolete.
-            self.mergeMultipleBranches(
+            return self.mergeMultipleBranches(
                 collections = (self, collection_yes or collection_no)
             )
         else:
-            self.mergeMultipleBranches(
-                collections = (collection_yes,collection_no)
+            return self.mergeMultipleBranches(
+                collections = (collection_yes, collection_no)
             )
 
     def mergeMultipleBranches(self, collections):
-        assert len(collections) > 0
+        assert collections
 
         # Optimize for length 1, which is trivial merge and needs not a
         # lot of work.
         if len(collections) == 1:
             self.replaceBranch(collections[0])
-            return
+            return None
 
         variable_versions = {}
 
@@ -628,6 +634,8 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         self.variable_actives = {}
 
+#         merge_traces = None
+
         for variable, versions in iterItems(variable_versions):
             if len(versions) == 1:
                 version, = versions
@@ -641,7 +649,15 @@ class TraceCollectionBase(CollectionTracingMixin):
                     ]
                 )
 
+#                 if merge_traces is None:
+#                     merge_traces = [trace_merge]
+#                 else:
+#                     merge_traces.append(trace_merge)
+
             self.markCurrentVariableTrace(variable, version)
+
+        # Return "None", or turn the list into a tuple for memory savings.
+#         return merge_traces and tuple(merge_traces)
 
     def replaceBranch(self, collection_replace):
         self.variable_actives.update(collection_replace.variable_actives)
@@ -772,7 +788,8 @@ class TraceCollectionFunction(CollectionStartpointMixin,
         assert function_body.isExpressionFunctionBody() or \
                function_body.isExpressionClassBody() or \
                function_body.isExpressionGeneratorObjectBody() or \
-               function_body.isExpressionCoroutineObjectBody(), function_body
+               function_body.isExpressionCoroutineObjectBody() or \
+               function_body.isExpressionAsyncgenObjectBody(), function_body
 
         CollectionStartpointMixin.__init__(self)
 
@@ -782,6 +799,15 @@ class TraceCollectionFunction(CollectionStartpointMixin,
             name   = "function_" + str(function_body),
             parent = parent
         )
+
+        if function_body.isExpressionFunctionBody():
+            for parameter_variable in function_body.getParameters().getAllVariables():
+                self._initVariableInit(parameter_variable)
+                self.variable_actives[parameter_variable] = 0
+
+        for closure_variable in function_body.getClosureVariables():
+            self._initVariableUnknown(closure_variable)
+            self.variable_actives[closure_variable] = 0
 
 
 class TraceCollectionModule(CollectionStartpointMixin,

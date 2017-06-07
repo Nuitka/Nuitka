@@ -296,7 +296,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *DICT_GET_ITEM( PyObject *dict, PyObject *k
     }
     else
     {
-        return INCREASE_REFCOUNT( result );
+        Py_INCREF( result );
+        return result;
     }
 }
 
@@ -454,7 +455,7 @@ NUITKA_MAY_BE_UNUSED static bool MAPPING_SYNC_FROM_VARIABLE( PyObject *mapping, 
         }
         else
         {
-            PyErr_Clear();
+            CLEAR_ERROR_OCCURRED();
             return true;
         }
     }

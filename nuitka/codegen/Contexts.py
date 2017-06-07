@@ -29,12 +29,11 @@ from nuitka.PythonVersions import python_version
 
 from .Namify import namifyConstant
 
+# Many methods won't use self, but it's the interface. pylint: disable=no-self-use
 
-# Many methods won't use self, but it's the interface. pylint: disable=R0201
-
-class TempMixin:
+class TempMixin(object):
     # Lots of details, everything gets to store bits here, to indicate
-    # code generation states, and there are many, pylint: disable=R0902
+    # code generation states, and there are many, pylint: disable=too-many-instance-attributes
 
     def __init__(self):
         self.tmp_names = {}
@@ -57,6 +56,28 @@ class TempMixin:
         self.exception_keepers = (None, None, None, None)
 
         self.preserver_variable_counts = set()
+
+        self.cleanup_names = []
+
+        self.current_source_ref = None
+        self.last_source_ref = None
+
+    def getCurrentSourceCodeReference(self):
+        return self.current_source_ref
+
+    def setCurrentSourceCodeReference(self, value):
+        result = self.current_source_ref
+        self.current_source_ref = value
+
+        if value is not None:
+            self.last_source_ref = result
+
+        return result
+
+    def getLastSourceCodeReference(self):
+        result = self.last_source_ref
+        # self.last_source_ref = None
+        return result
 
     def formatTempName(self, base_name, number):
         if number is None:
@@ -90,8 +111,20 @@ class TempMixin:
             number    = number
         )
 
+    def getIntResName(self):
+        return self.allocateTempName("res", "int", unique = True)
+
+    def getBoolResName(self):
+        return self.allocateTempName("result", "bool", unique = True)
+
     def hasTempName(self, base_name):
         return base_name in self.tmp_names
+
+    def isUsed(self, tmp_name):
+        if tmp_name.startswith("tmp_unused_"):
+            return False
+        else:
+            return True
 
     def forgetTempName(self, tmp_name):
         self.forgotten_names.add(tmp_name)
@@ -210,8 +243,29 @@ class TempMixin:
     def setFalseBranchTarget(self, label):
         self.false_target = label
 
+    def getCleanupTempnames(self):
+        return self.cleanup_names[-1]
 
-class CodeObjectsMixin:
+    def addCleanupTempName(self, tmp_name):
+        assert tmp_name not in self.cleanup_names[-1], tmp_name
+
+        self.cleanup_names[-1].append(tmp_name)
+
+    def removeCleanupTempName(self, tmp_name):
+        assert tmp_name in self.cleanup_names[-1], tmp_name
+        self.cleanup_names[-1].remove(tmp_name)
+
+    def needsCleanup(self, tmp_name):
+        return tmp_name in self.cleanup_names[-1]
+
+    def pushCleanupScope(self):
+        self.cleanup_names.append([])
+
+    def popCleanupScope(self):
+        assert not self.cleanup_names[-1]
+        del self.cleanup_names[-1]
+
+class CodeObjectsMixin(object):
     def __init__(self):
         # Code objects needed made unique by a key.
         self.code_objects = {}
@@ -230,7 +284,7 @@ class CodeObjectsMixin:
             code_object.getVarNames(),
             code_object.getArgumentCount(),
             code_object.getKwOnlyParameterCount(),
-            code_object.getKind(),
+            code_object.getCodeObjectKind(),
             is_optimized,
             new_locals,
             code_object.hasStarListArg(),
@@ -260,7 +314,7 @@ class CodeObjectsMixin:
             return hash_value.hexdigest()
 
 
-class PythonContextBase:
+class PythonContextBase(object):
     def __init__(self):
         self.source_ref = None
 
@@ -292,7 +346,20 @@ class PythonChildContextBase(PythonContextBase):
     def addDeclaration(self, key, code):
         self.parent.addDeclaration(key, code)
 
+    def pushFrameVariables(self, frame_variables):
+        return self.parent.pushFrameVariables(frame_variables)
 
+    def popFrameVariables(self):
+        return self.parent.popFrameVariables()
+
+    def getFrameVariableTypeDescriptions(self):
+        return self.parent.getFrameVariableTypeDescriptions()
+
+    def getFrameVariableTypeDescription(self):
+        return self.parent.getFrameVariableTypeDescription()
+
+    def getFrameVariableCodeNames(self):
+        return self.parent.getFrameVariableCodeNames()
 
 def _getConstantDefaultPopulation():
     # Note: Can't work with set here, because we need to put in some values that
@@ -338,6 +405,13 @@ def _getConstantDefaultPopulation():
         "sum",
         "format",
         "__import__",
+
+        # Arguments of __import__ built-in used in helper code.
+        "name",
+        "globals",
+        "locals",
+        "fromlist",
+        "level"
     ]
 
     if python_version >= 300:
@@ -442,7 +516,7 @@ def _getConstantDefaultPopulation():
     return result
 
 
-class PythonGlobalContext:
+class PythonGlobalContext(object):
     def __init__(self):
         self.constants = {}
         self.constant_use_count = {}
@@ -503,10 +577,30 @@ class PythonGlobalContext:
     def getConstants(self):
         return self.constants
 
-
-class FrameDeclarationsMixin:
+class FrameDeclarationsMixin(object):
     def __init__(self):
         self.frame_declarations = []
+
+        # Frame is active or not, default not.
+        self.frame_variables_stack = [""]
+        # Type descriptions of the current frame.
+        self.frame_type_descriptions = [()]
+
+        # Indicator if the "type_description" is needed.
+        self.needs_type_description = False
+
+        # Types of variables for current frame.
+        self.variable_types = {}
+
+        # Currently active frame code identifier.
+        self.frame_handle = None
+
+
+    def getFrameHandle(self):
+        return self.frame_handle
+
+    def setFrameHandle(self, frame_handle):
+        self.frame_handle = frame_handle
 
     def addFrameDeclaration(self, frame_decl):
         self.frame_declarations.append(frame_decl)
@@ -514,11 +608,54 @@ class FrameDeclarationsMixin:
     def getFrameDeclarations(self):
         return self.frame_declarations
 
+    def pushFrameVariables(self, frame_variables):
+        """ Set current the frame variables. """
+        self.frame_variables_stack.append(frame_variables)
+        self.frame_type_descriptions.append(set())
+
+    def popFrameVariables(self):
+        """ End of frame, remove it. """
+        del self.frame_variables_stack[-1]
+        del self.frame_type_descriptions[-1]
+
+    def setVariableType(self, variable, variable_code_name, variable_c_type):
+        assert variable.isLocalVariable(), variable
+
+        self.variable_types[variable.getName()] = variable_code_name, variable_c_type.getTypeIndicator()
+
+    def getFrameVariableTypeDescriptions(self):
+        return self.frame_type_descriptions[-1]
+
+    def getFrameVariableTypeDescription(self):
+        result = "".join(
+            self.variable_types.get(var_name, ("NULL", 'N'))[1]
+            for var_name in
+            self.frame_variables_stack[-1]
+        )
+
+        if result:
+            self.frame_type_descriptions[-1].add(result)
+
+        return result
+
+    def getFrameVariableCodeNames(self):
+        return ", ".join(
+            self.variable_types.get(var_name, ("NULL", 'N'))[0]
+            for var_name in
+            self.frame_variables_stack[-1]
+        )
+
+    def needsFrameVariableTypeDescription(self):
+        return self.needs_type_description
+
+    def markAsNeedsFrameVariableDescription(self):
+        self.needs_type_description = True
+
 
 class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
                           FrameDeclarationsMixin):
     # Plenty of attributes, because it's storing so many different things.
-    # pylint: disable=R0902
+    # pylint: disable=too-many-instance-attributes
 
     def __init__(self, module, module_name, code_name, filename, global_context):
         PythonContextBase.__init__(self)
@@ -561,12 +698,6 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
     def hasLocalsDict(self):
         return False
 
-    def getFrameHandle(self):
-        return self.frame_handle
-
-    def setFrameHandle(self, frame_handle):
-        self.frame_handle = frame_handle
-
     def getName(self):
         return self.name
 
@@ -582,12 +713,6 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
     def getModuleCodeName(self):
         return self.code_name
-
-    # There cannot be local variable in modules no need to consider the name.
-    # pylint: disable=W0613
-    def hasClosureVariable(self, var_name):
-        return False
-    # pylint: enable=W0613
 
     def setFrameGuardMode(self, guard_mode):
         assert guard_mode == "once"
@@ -657,8 +782,7 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
         return self.needs_module_filename_object
 
 
-class PythonFunctionContext(PythonChildContextBase, TempMixin,
-                            FrameDeclarationsMixin):
+class PythonFunctionContext(FrameDeclarationsMixin, PythonChildContextBase, TempMixin):
     def __init__(self, parent, function):
         PythonChildContextBase.__init__(
             self,
@@ -694,15 +818,6 @@ class PythonFunctionContext(PythonChildContextBase, TempMixin,
 
     def hasLocalsDict(self):
         return self.function.hasLocalsDict()
-
-    def hasClosureVariable(self, var_name):
-        return var_name in self.function.getClosureVariableNames()
-
-    def getFrameHandle(self):
-        return self.frame_handle
-
-    def setFrameHandle(self, frame_handle):
-        self.frame_handle = frame_handle
 
     def getReturnValueName(self):
         if self.return_name is None:
@@ -749,6 +864,7 @@ class PythonFunctionDirectContext(PythonFunctionContext):
     def isForCreatedFunction(self):
         return False
 
+
 class PythonGeneratorObjectContext(PythonFunctionContext):
     def isForDirectCall(self):
         return False
@@ -761,62 +877,6 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
 
     def getContextObjectName(self):
         return "generator"
-
-class PythonCoroutineObjectContext(PythonGeneratorObjectContext):
-    def getContextObjectName(self):
-        return "coroutine"
-
-
-class PythonFunctionCreatedContext(PythonFunctionContext):
-    def isForDirectCall(self):
-        return False
-
-    def isForCreatedFunction(self):
-        return True
-
-
-class PythonStatementCContext(PythonChildContextBase):
-    def __init__(self, parent):
-        PythonChildContextBase.__init__(
-            self,
-            parent = parent
-        )
-
-        self.cleanup_names = []
-
-        self.current_source_ref = None
-        self.last_source_ref = None
-
-    def getOwner(self):
-        return self.parent.getOwner()
-
-    def isCompiledPythonModule(self):
-        return self.parent.isCompiledPythonModule()
-
-    def getFunction(self):
-        return self.parent.getFunction()
-
-    def hasLocalsDict(self):
-        return self.parent.hasLocalsDict()
-
-    def isForDirectCall(self):
-        return self.parent.isForDirectCall()
-
-    def allocateTempName(self, base_name, type_code = "PyObject *",
-                         unique = False):
-        return self.parent.allocateTempName(base_name, type_code, unique)
-
-    def getIntResName(self):
-        return self.allocateTempName("res", "int", unique = True)
-
-    def getBoolResName(self):
-        return self.allocateTempName("result", "bool", unique = True)
-
-    def getReturnValueName(self):
-        return self.parent.getReturnValueName()
-
-    def setReturnValueName(self, value):
-        return self.parent.setReturnValueName(value)
 
     def getGeneratorReturnValueName(self):
         if python_version >= 330:
@@ -832,127 +892,20 @@ class PythonStatementCContext(PythonChildContextBase):
                 unique = True
             )
 
-    def getExceptionEscape(self):
-        return self.parent.getExceptionEscape()
 
-    def setExceptionEscape(self, label):
-        return self.parent.setExceptionEscape(label)
-
-    def getLoopBreakTarget(self):
-        return self.parent.getLoopBreakTarget()
-
-    def setLoopBreakTarget(self, label):
-        return self.parent.setLoopBreakTarget(label)
-
-    def getLoopContinueTarget(self):
-        return self.parent.getLoopContinueTarget()
-
-    def setLoopContinueTarget(self, label):
-        return self.parent.setLoopContinueTarget(label)
-
-    def getTrueBranchTarget(self):
-        return self.parent.getTrueBranchTarget()
-
-    def setTrueBranchTarget(self, label):
-        return self.parent.setTrueBranchTarget(label)
-
-    def getFalseBranchTarget(self):
-        return self.parent.getFalseBranchTarget()
-
-    def setFalseBranchTarget(self, label):
-        return self.parent.setFalseBranchTarget(label)
-
-    def getReturnTarget(self):
-        return self.parent.getReturnTarget()
-
-    def setReturnTarget(self, label):
-        return self.parent.setReturnTarget(label)
-
-    def getReturnReleaseMode(self):
-        return self.parent.getReturnReleaseMode()
-
-    def setReturnReleaseMode(self, value):
-        return self.parent.setReturnReleaseMode(value)
-
-    def allocateLabel(self, label):
-        return self.parent.allocateLabel(label)
-
-    def addCleanupTempName(self, tmp_name):
-        assert tmp_name not in self.cleanup_names, tmp_name
-
-        self.cleanup_names.append(tmp_name)
-
-    def removeCleanupTempName(self, tmp_name):
-        assert tmp_name in self.cleanup_names, tmp_name
-        self.cleanup_names.remove(tmp_name)
-
-    def needsCleanup(self, tmp_name):
-        return tmp_name in self.cleanup_names
-
-    def isUsed(self, tmp_name):
-        if tmp_name.startswith("tmp_unused_"):
-            return False
-        else:
-            return True
-
-    def forgetTempName(self, tmp_name):
-        self.parent.forgetTempName(tmp_name)
-
-    def getCleanupTempnames(self):
-        return self.cleanup_names
-
-    def getFrameHandle(self):
-        return self.parent.getFrameHandle()
-
-    def setFrameHandle(self, frame_handle):
-        return self.parent.setFrameHandle(frame_handle)
-
-    def allocateExceptionKeeperVariables(self):
-        return self.parent.allocateExceptionKeeperVariables()
-
-    def getExceptionKeeperVariables(self):
-        return self.parent.getExceptionKeeperVariables()
-
-    def setExceptionKeeperVariables(self, keeper_vars):
-        return self.parent.setExceptionKeeperVariables(keeper_vars)
-
-    def addExceptionPreserverVariables(self, count):
-        self.parent.addExceptionPreserverVariables(count)
-
-    def needsExceptionVariables(self):
-        return self.parent.needsExceptionVariables()
-
-    def markAsNeedsExceptionVariables(self):
-        self.parent.markAsNeedsExceptionVariables()
-
-    def addFrameDeclaration(self, frame_decl):
-        self.parent.addFrameDeclaration(frame_decl)
-
-    def mayRecurse(self):
-        return self.parent.mayRecurse()
-
-    def getCodeObjectHandle(self, **kw):
-        return self.parent.getCodeObjectHandle(**kw)
-
-    def getCurrentSourceCodeReference(self):
-        return self.current_source_ref
-
-    def setCurrentSourceCodeReference(self, value):
-        result = self.current_source_ref
-        self.current_source_ref = value
-
-        if value is not None:
-            self.last_source_ref = result
-
-        return result
-
-    def getLastSourceCodeReference(self):
-        result = self.last_source_ref
-        # self.last_source_ref = None
-        return result
-
-    def markAsNeedsModuleFilenameObject(self):
-        self.parent.markAsNeedsModuleFilenameObject()
-
+class PythonCoroutineObjectContext(PythonGeneratorObjectContext):
     def getContextObjectName(self):
-        return self.parent.getContextObjectName()
+        return "coroutine"
+
+
+class PythonAsyncgenObjectContext(PythonGeneratorObjectContext):
+    def getContextObjectName(self):
+        return "asyncgen"
+
+
+class PythonFunctionCreatedContext(PythonFunctionContext):
+    def isForDirectCall(self):
+        return False
+
+    def isForCreatedFunction(self):
+        return True

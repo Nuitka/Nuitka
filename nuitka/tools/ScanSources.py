@@ -29,6 +29,9 @@ def addFromDirectory(path, blacklist):
         if "inline_copy" in dirnames:
             dirnames.remove("inline_copy")
 
+        if "__pycache__" in dirnames:
+            dirnames.remove("__pycache__")
+
         filenames.sort()
 
         for filename in filenames:
@@ -43,6 +46,9 @@ def addFromDirectory(path, blacklist):
                 continue
             # Skip temporary files from unsaved files of Emacs.
             if filename.startswith(".#"):
+                continue
+            # Skip bytecode files
+            if filename.endswith(".pyc"):
                 continue
 
             # Python files only. TODO: Provided this from the outside.

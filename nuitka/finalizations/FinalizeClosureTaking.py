@@ -29,29 +29,6 @@ from nuitka.optimizations.Optimization import areEmptyTraces
 from .FinalizeBase import FinalizationVisitorBase
 
 
-class FinalizeClosureTaking(FinalizationVisitorBase):
-    def onEnterNode(self, node):
-        # print node, node.provider
-
-        for variable in node.getClosureVariables():
-            assert not variable.isModuleVariable()
-
-            current = node
-
-            while current is not variable.getOwner():
-                if current.isParentVariableProvider():
-                    if variable not in current.getClosureVariables():
-                        current.addClosureVariable(variable)
-
-                # Detect loops in the provider relationship
-                assert current.getParentVariableProvider() is not current
-
-                current = current.getParentVariableProvider()
-
-                # Not found?!
-                assert current is not None, variable
-
-
 class FinalizeClassClosure(FinalizationVisitorBase):
     def onEnterNode(self, function_body):
         for closure_variable in function_body.getClosureVariables():

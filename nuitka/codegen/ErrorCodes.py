@@ -58,6 +58,17 @@ def getErrorExitReleaseCode(context):
     return temp_release
 
 
+def getFrameVariableTypeDescriptionCode(context):
+
+    type_description = context.getFrameVariableTypeDescription()
+
+    if type_description:
+        context.markAsNeedsFrameVariableDescription()
+        return 'type_description = "%s";' % type_description
+    else:
+        return ""
+
+
 def getErrorExitBoolCode(condition, emit, context,
                          needs_check = True, quick_exception = None):
     assert not condition.endswith(';')
@@ -72,13 +83,16 @@ def getErrorExitBoolCode(condition, emit, context,
         emit(
             indented(
                 template_error_catch_quick_exception % {
-                    "condition"        : condition,
-                    "exception_exit"   : context.getExceptionEscape(),
-                    "quick_exception"  : getExceptionIdentifier(quick_exception),
-                    "release_temps"    : indented(
+                    "condition"            : condition,
+                    "exception_exit"       : context.getExceptionEscape(),
+                    "quick_exception"      : getExceptionIdentifier(quick_exception),
+                    "release_temps"        : indented(
                         getErrorExitReleaseCode(context)
                     ),
-                    "line_number_code" : indented(
+                    "var_description_code" : indented(
+                        getFrameVariableTypeDescriptionCode(context),
+                    ),
+                    "line_number_code"     : indented(
                         getErrorLineNumberUpdateCode(context)
                     )
                 },
@@ -93,6 +107,9 @@ def getErrorExitBoolCode(condition, emit, context,
                     "exception_exit"   : context.getExceptionEscape(),
                     "release_temps"    : indented(
                         getErrorExitReleaseCode(context)
+                    ),
+                    "var_description_code": indented(
+                        getFrameVariableTypeDescriptionCode(context),
                     ),
                     "line_number_code" : indented(
                         getErrorLineNumberUpdateCode(context)
@@ -169,11 +186,15 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
             "release_temps"    : indented(
                 getErrorExitReleaseCode(context)
             ),
+            "var_description_code" : indented(
+                getFrameVariableTypeDescriptionCode(context),
+            ),
             "line_number_code" : indented(
                 getErrorLineNumberUpdateCode(context)
             )
         }
     )
+
 
 def getErrorVariableDeclarations():
     return (
@@ -280,6 +301,8 @@ def getMustNotGetHereCode(reason, context, emit):
         emit("return;")
     elif provider.isExpressionCoroutineObjectBody():
         emit("return;")
+    elif provider.isExpressionAsyncgenObjectBody():
+        emit("return;")
     elif provider.isCompiledPythonModule():
         emit("return MOD_RETURN_VALUE( NULL );")
     else:
@@ -288,3 +311,7 @@ def getMustNotGetHereCode(reason, context, emit):
 
 def getAssertionCode(check, emit):
     emit("assert( %s );" % check)
+
+
+def getCheckObjectCode(check_name, emit):
+    emit("CHECK_OBJECT( %s );" % check_name)

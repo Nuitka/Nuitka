@@ -26,24 +26,20 @@ The "dir()" call without arguments is reformulated to locals or globals calls.
 
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import (
-    ExpressionBuiltinSingleArgBase,
-    ExpressionMixin,
-    NodeBase,
-    StatementChildrenHavingBase
-)
+from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
+from .NodeBases import StatementChildrenHavingBase
 
 
-class ExpressionBuiltinGlobals(NodeBase, ExpressionMixin):
+class ExpressionBuiltinGlobals(ExpressionBase):
     kind = "EXPRESSION_BUILTIN_GLOBALS"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
     def mayHaveSideEffects(self):
@@ -56,18 +52,22 @@ class ExpressionBuiltinGlobals(NodeBase, ExpressionMixin):
         return None
 
 
-class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
+class ExpressionBuiltinLocals(ExpressionBase):
     kind = "EXPRESSION_BUILTIN_LOCALS"
 
+    __slots__ = "variable_versions",
+
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
 
-    def computeExpression(self, trace_collection):
+        self.variable_versions = None
+
+    def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
-        trace_collection.onLocalsUsage()
+        self.variable_versions = trace_collection.onLocalsUsage()
 
         return self, None, None
 
@@ -92,6 +92,9 @@ class ExpressionBuiltinLocals(NodeBase, ExpressionMixin):
 
     def mayBeNone(self):
         return None
+
+    def getVariableVersions(self):
+        return self.variable_versions
 
 
 class StatementSetLocals(StatementChildrenHavingBase):

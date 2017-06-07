@@ -22,6 +22,7 @@
 #define _DEBUG_REFRAME 0
 #define _DEBUG_EXCEPTIONS 0
 #define _DEBUG_COROUTINE 0
+#define _DEBUG_ASYNCGEN 0
 
 extern PyObject *const_tuple_empty;
 extern PyObject *const_str_plain___dict__;
@@ -61,15 +62,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
     CHECK_OBJECT( object );
 
     Py_INCREF( object );
-
-    return object;
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *DECREASE_REFCOUNT( PyObject *object )
-{
-    CHECK_OBJECT( object );
-
-    Py_DECREF( object );
 
     return object;
 }
@@ -468,63 +460,17 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *import_name )
-{
-    CHECK_OBJECT( module );
-    CHECK_OBJECT( import_name );
-
-    PyObject *result = PyObject_GetAttr( module, import_name );
-
-    if (unlikely( result == NULL ))
-    {
-        if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
-        {
-#if PYTHON_VERSION < 340
-            PyErr_Format( PyExc_ImportError, "cannot import name %s", Nuitka_String_AsString( import_name ));
-#else
-            PyErr_Format( PyExc_ImportError, "cannot import name '%s'", Nuitka_String_AsString( import_name ));
-#endif
-        }
-
-        return NULL;
-    }
-
-    return result;
-}
-
-
 #include "nuitka/helper/subscripts.h"
 #include "nuitka/helper/attributes.h"
 #include "nuitka/helper/iterators.h"
 #include "nuitka/helper/slices.h"
 #include "nuitka/helper/rangeobjects.h"
+#include "nuitka/helper/lists.h"
 
 #include "nuitka/builtins.h"
 
-#include "nuitka/frame_stack.h"
-
 #include "nuitka/allocator.h"
 
-NUITKA_MAY_BE_UNUSED static PyObject *LIST_COPY( PyObject *list )
-{
-    CHECK_OBJECT( list );
-    assert( PyList_CheckExact( list ) );
-
-    Py_ssize_t size = PyList_GET_SIZE( list );
-    PyObject *result = PyList_New( size );
-
-    if (unlikely( result == NULL ))
-    {
-        return NULL;
-    }
-
-    for ( Py_ssize_t i = 0; i < size; i++ )
-    {
-        PyList_SET_ITEM( result, i, INCREASE_REFCOUNT( PyList_GET_ITEM( list, i ) ) );
-    }
-
-    return result;
-}
 
 
 // Compile source code given, pretending the file name was given.
@@ -706,11 +652,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyO
             return NULL;
         }
 
-        return INCREASE_REFCOUNT( (PyObject *)winner );
+        Py_INCREF( winner );
+        return (PyObject *)winner;
     }
     else
     {
-        return INCREASE_REFCOUNT( metaclass );
+        Py_INCREF( metaclass );
+        return metaclass;
     }
 }
 #else
@@ -733,17 +681,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObjec
         {
             CLEAR_ERROR_OCCURRED();
 
-            metaclass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( base ) );
+            metaclass = (PyObject *)Py_TYPE( base );
+            Py_INCREF( metaclass );
         }
     }
     else if ( metaclass_global != NULL )
     {
-        metaclass = INCREASE_REFCOUNT( metaclass_global );
+        metaclass = metaclass_global;
+        Py_INCREF( metaclass );
     }
     else
     {
         // Default to old style class.
-        metaclass = INCREASE_REFCOUNT( (PyObject *)&PyClass_Type );
+        metaclass = (PyObject *)&PyClass_Type;
+        Py_INCREF( metaclass );
     }
 
     // Cannot fail on Python2.
@@ -789,7 +740,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_TUPLE( PyObject **elements, Py_ssize_
 
     for( Py_ssize_t i = 0; i < size; i++ )
     {
-        PyTuple_SET_ITEM( result, i, INCREASE_REFCOUNT( elements[i] ) );
+        PyObject *item = elements[i];
+        Py_INCREF( item );
+        PyTuple_SET_ITEM( result, i, item );
     }
 
     return result;

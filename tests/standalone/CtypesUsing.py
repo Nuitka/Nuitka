@@ -24,7 +24,7 @@ if os.name == "nt":
     from ctypes import wintypes
 
     # Lets allow this to match Windows API it reflects,
-    # pylint: disable=C0103
+    # pylint: disable=invalid-name
     class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
         _fields_ = [
             ("cb", wintypes.DWORD),

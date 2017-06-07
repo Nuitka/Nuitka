@@ -26,14 +26,13 @@ from nuitka.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
 
-from . import Contexts
 from .LabelCodes import getStatementTrace
 
 expression_dispatch_dict = {}
 
 def setExpressionDispatchDict(dispatch_dict):
     # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=W0603
+    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
 
     # Please call us only once.
     global expression_dispatch_dict
@@ -138,7 +137,6 @@ def generateChildExpressionsCode(expression, emit, context):
 
             value_names.append(None)
 
-
     return value_names
 
 
@@ -165,7 +163,7 @@ statement_dispatch_dict = {}
 
 def setStatementDispatchDict(dispatch_dict):
     # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=W0603
+    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
 
     # Please call us only once.
     global statement_dispatch_dict
@@ -242,14 +240,12 @@ def generateStatementSequenceCode(statement_sequence, emit, context,
 
     assert statement_sequence.kind == "STATEMENTS_SEQUENCE", statement_sequence
 
-    statement_context = Contexts.PythonStatementCContext(context)
+    context.pushCleanupScope()
 
     _generateStatementSequenceCode(
         statement_sequence = statement_sequence,
         emit               = emit,
-        context            = statement_context
+        context            = context
     )
 
-    # Complain if any temporary was not dealt with yet.
-    assert not statement_context.getCleanupTempnames(), \
-      statement_context.getCleanupTempnames()
+    context.popCleanupScope()

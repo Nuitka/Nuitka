@@ -24,17 +24,17 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
-from nuitka import Variables
+from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
+from nuitka.nodes.VariableRefNodes import ExpressionLocalsVariableRef
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
     python_version
 )
-from nuitka.tree import SyntaxErrors
 
 from .Operations import VisitorNoopMixin, visitTree
 from .ReformulationFunctionStatements import addFunctionVariableReleases
-
+from .SyntaxErrors import raiseSyntaxError
 
 # Note: We do the variable scope assignment, as an extra step from tree
 # building, because tree building creates the tree without any consideration of
@@ -60,21 +60,24 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     def _handleNonLocal(node):
         # Take closure variables for non-local declarations.
 
-        for non_local_names, source_ref in node.getNonlocalDeclarations():
+        for non_local_names, source_ref in node.consumeNonlocalDeclarations():
             for non_local_name in non_local_names:
-                variable = node.getClosureVariable(
+
+                variable = node.takeVariableForClosure(
                     variable_name = non_local_name
                 )
 
+                node.registerProvidedVariable(variable)
+
                 if variable.isModuleVariable():
-                    SyntaxErrors.raiseSyntaxError(
+                    raiseSyntaxError(
                         "no binding for nonlocal '%s' found" % (
                             non_local_name
                         ),
                         source_ref
                     )
 
-                node.registerProvidedVariable(variable)
+
                 variable.addVariableUser(node)
 
     @staticmethod
@@ -147,12 +150,21 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         if python_version >= 340 or \
                            (python_version >= 300 and \
                             variable.isModuleVariable()):
-                            variable = Variables.MaybeLocalVariable(
-                                owner          = provider,
-                                maybe_variable = variable
+                            node.replaceWith(
+                                ExpressionLocalsVariableRef(
+                                    variable_name = node.getVariableName(),
+                                    fallback_variable = variable,
+                                    source_ref    = node.getSourceReference()
+                                )
                             )
 
-                    node.setVariable(variable)
+                        else:
+                            node.setVariable(variable)
+                    else:
+                        node.setVariable(variable)
+
+                    variable.addVariableUser(provider)
+
         elif node.isExpressionTempVariableRef():
             if node.getVariable().getOwner() != node.getParentVariableProvider():
                 node.setVariable(
@@ -167,6 +179,10 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             if python_version >= 340:
                 self._handleQualnameSetup(node)
         elif node.isExpressionCoroutineObjectBody():
+            self._handleNonLocal(node)
+
+            self._handleQualnameSetup(node)
+        elif node.isExpressionAsyncgenObjectBody():
             self._handleNonLocal(node)
 
             self._handleQualnameSetup(node)
@@ -232,7 +248,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     else:
                         message = "'break' outside loop"
 
-                    SyntaxErrors.raiseSyntaxError(
+                    raiseSyntaxError(
                         message,
                         node.getSourceReference(),
                     )
@@ -277,7 +293,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
             if parent_provider.isExpressionFunctionBody() and \
                parent_provider.isUnqualifiedExec():
-                SyntaxErrors.raiseSyntaxError(
+                raiseSyntaxError(
                     getErrorMessageExecWithNestedFunction() % parent_provider.getName(),
                     node.getSourceReference(),
                     display_line = False # Wrong line anyway
@@ -288,10 +304,25 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
         if node.isExpressionVariableRef():
             provider = node.getParentVariableProvider()
 
-            if node.getVariable() is None:
-                self._attachVariable(node, provider)
+            variable = node.getVariable()
 
-            node.getVariable().addVariableUser(provider)
+            if variable is None:
+                try:
+                    self._attachVariable(node, provider)
+                except MaybeLocalVariableUsage:
+                    variable_name = node.getVariableName()
+
+                    node.replaceWith(
+                        ExpressionLocalsVariableRef(
+                            variable_name = variable_name,
+                            fallback_variable = node.getParentModule().getVariableForReference(variable_name),
+                            source_ref = node.getSourceReference()
+                        )
+                    )
+                else:
+                    node.getVariable().addVariableUser(provider)
+            else:
+                variable.addVariableUser(provider)
 
 
 class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
@@ -311,7 +342,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
 
             if not variable.isModuleVariable() and \
                variable.isSharedAmongScopes():
-                SyntaxErrors.raiseSyntaxError(
+                raiseSyntaxError(
                     """\
 can not delete variable '%s' referenced in nested scope""" % (
                        variable.getName()
@@ -344,11 +375,10 @@ def completeVariableClosures(tree):
             # "super". So we need to prepare ability to take closure.
             if function.hasFlag("has_super"):
                 if not function.hasVariableName("__class__"):
-                    class_var = function.getClosureVariable("__class__")
-                    function.registerProvidedVariable(class_var)
+                    class_var = function.takeVariableForClosure("__class__")
                     class_var.addVariableUser(function)
 
-                if not function.hasVariableName("self"):
-                    self_var = function.getClosureVariable("self")
-                    function.registerProvidedVariable(self_var)
-                    self_var.addVariableUser(function)
+                    function.registerProvidedVariable(class_var)
+                    while function != class_var.getOwner():
+                        function = function.getParentVariableProvider()
+                        function.registerProvidedVariable(class_var)

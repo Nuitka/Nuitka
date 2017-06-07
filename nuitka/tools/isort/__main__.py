@@ -26,6 +26,7 @@ from __future__ import print_function
 import os
 import subprocess
 import sys
+from optparse import OptionParser
 
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
@@ -48,11 +49,27 @@ from nuitka.tools.ScanSources import scanTargets # isort:skip
 def main():
     goHome()
 
-    # So PyLint finds nuitka package.
+    # So isort finds nuitka package.
     addPYTHONPATH(os.getcwd())
 
+    parser = OptionParser()
+
+    parser.add_option(
+        "--verbose",
+        action  = "store_true",
+        dest    = "verbose",
+        default = False,
+        help    = """\
+        Default is %default."""
+    )
+
+    _options, positional_args = parser.parse_args()
+
+    if not positional_args:
+        positional_args = ["bin", "nuitka", "tests/reflected/compile_itself.py"]
+
     target_files = []
-    for filename in scanTargets(["nuitka", "bin"]):
+    for filename in scanTargets(positional_args):
         target_files.append(filename)
 
     target_files.append("nuitka/build/SingleExe.scons")

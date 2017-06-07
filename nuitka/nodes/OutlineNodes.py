@@ -23,7 +23,8 @@ own anything by themselves. It's just a way of having try/finally for the
 expressions, or multiple returns, without running in a too different context.
 """
 
-from .NodeBases import ChildrenHavingMixin, ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
+from .NodeBases import ChildrenHavingMixin
 
 
 class ExpressionOutlineBody(ExpressionChildrenHavingBase):

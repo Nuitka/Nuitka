@@ -49,11 +49,12 @@ catching and passing in exceptions raised.
 
 """
 
+import os
 import sys
-from logging import warning
+from logging import info, warning
 
-from nuitka import Options, SourceCodeReferences, Tracing
-from nuitka.__past__ import long, unicode  # pylint: disable=W0622
+from nuitka import Options, SourceCodeReferences
+from nuitka.__past__ import long, unicode  # pylint: disable=redefined-builtin
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
@@ -79,7 +80,6 @@ from nuitka.nodes.ConstantRefNodes import (
 from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
-from nuitka.nodes.ImportNodes import ExpressionImportModule
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
@@ -99,12 +99,9 @@ from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
-from nuitka.tree.ReformulationForLoopStatements import (
-    buildAsyncForLoopNode,
-    buildForLoopNode
-)
-from nuitka.tree.ReformulationWhileLoopStatements import buildWhileLoopNode
-from nuitka.utils import MemoryUsage, Utils
+from nuitka.tree.ReformulationImportStatements import getFutureSpec
+from nuitka.utils import MemoryUsage
+from nuitka.utils.FileOperations import splitPath
 
 from . import SyntaxErrors
 from .Helpers import (
@@ -114,6 +111,7 @@ from .Helpers import (
     extractDocFromBody,
     getBuildContext,
     getKind,
+    makeAbsoluteImportNode,
     makeModuleFrame,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -141,6 +139,10 @@ from .ReformulationContractionExpressions import (
 )
 from .ReformulationDictionaryCreation import buildDictionaryNode
 from .ReformulationExecStatements import buildExecNode
+from .ReformulationForLoopStatements import (
+    buildAsyncForLoopNode,
+    buildForLoopNode
+)
 from .ReformulationFunctionStatements import (
     buildAsyncFunctionNode,
     buildFunctionNode
@@ -148,7 +150,9 @@ from .ReformulationFunctionStatements import (
 from .ReformulationImportStatements import (
     buildImportFromNode,
     buildImportModulesNode,
-    checkFutureImportsOnlyAtStart
+    checkFutureImportsOnlyAtStart,
+    popFutureSpec,
+    pushFutureSpec
 )
 from .ReformulationLambdaExpressions import buildLambdaNode
 from .ReformulationNamespacePackages import (
@@ -160,6 +164,7 @@ from .ReformulationSequenceCreation import buildSequenceCreationNode
 from .ReformulationSubscriptExpressions import buildSubscriptNode
 from .ReformulationTryExceptStatements import buildTryExceptionNode
 from .ReformulationTryFinallyStatements import buildTryFinallyNode
+from .ReformulationWhileLoopStatements import buildWhileLoopNode
 from .ReformulationWithStatements import buildAsyncWithNode, buildWithNode
 from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
 from .SourceReading import (
@@ -370,6 +375,7 @@ def handleGlobalDeclarationNode(provider, node, source_ref):
             variable = closure_variable
         )
 
+    # Drop this, not really part of our tree.
     return None
 
 
@@ -379,7 +385,8 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
     parameter_provider = provider
 
     while parameter_provider.isExpressionGeneratorObjectBody() or \
-          parameter_provider.isExpressionCoroutineObjectBody():
+          parameter_provider.isExpressionCoroutineObjectBody() or \
+          parameter_provider.isExpressionAsyncgenObjectBody():
         parameter_provider = parameter_provider.getParentVariableProvider()
 
     if parameter_provider.isExpressionClassBody():
@@ -396,8 +403,12 @@ def handleNonlocalDeclarationNode(provider, node, source_ref):
                 source_ref.atColumnNumber(node.col_offset)
             )
 
-    provider.addNonlocalsDeclaration(node.names, source_ref.atColumnNumber(node.col_offset))
+    provider.addNonlocalsDeclaration(
+        names      = node.names,
+        source_ref = source_ref.atColumnNumber(node.col_offset)
+    )
 
+    # Drop this, not really part of our tree.
     return None
 
 
@@ -454,7 +465,7 @@ def buildStatementLoopContinue(node, source_ref):
 
 def buildStatementLoopBreak(provider, node, source_ref):
     # A bit unusual, we need the provider, but not the node,
-    # pylint: disable=W0613
+    # pylint: disable=unused-argument
 
     return StatementLoopBreak(
         source_ref = source_ref.atColumnNumber(node.col_offset)
@@ -485,13 +496,22 @@ def buildReturnNode(provider, node, source_ref):
                 source_ref.atColumnNumber(node.col_offset)
             )
 
+    if provider.isExpressionAsyncgenObjectBody():
+        if expression is not None:
+            SyntaxErrors.raiseSyntaxError(
+                "'return' with value in async generator",
+                source_ref.atColumnNumber(node.col_offset)
+            )
+
+
     if expression is None:
         expression = ExpressionConstantNoneRef(
             source_ref    = source_ref,
             user_provided = True
         )
 
-    if provider.isExpressionGeneratorObjectBody():
+    if provider.isExpressionGeneratorObjectBody() or \
+       provider.isExpressionAsyncgenObjectBody():
         return StatementGeneratorReturn(
             expression = expression,
             source_ref = source_ref
@@ -534,8 +554,9 @@ def buildUnaryOpNode(provider, node, source_ref):
 def buildBinaryOpNode(provider, node, source_ref):
     operator = getKind(node.op)
 
-    if operator == "Div" and source_ref.getFutureSpec().isFutureDivision():
-        operator = "TrueDiv"
+    if operator == "Div":
+        if getFutureSpec().isFutureDivision():
+            operator = "TrueDiv"
 
     left       = buildNode(provider, node.left, source_ref)
     right      = buildNode(provider, node.right, source_ref)
@@ -690,7 +711,9 @@ setBuildingDispatchers(
 
 def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     # There are a bunch of branches here, mostly to deal with version
-    # differences for module default variables.
+    # differences for module default variables. pylint: disable=too-many-branches
+
+    pushFutureSpec()
 
     body = parseSourceCodeToAst(
         source_code = source_code,
@@ -698,6 +721,9 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         line_offset = source_ref.getLineNumber() - 1
     )
     body, doc = extractDocFromBody(body)
+
+    if is_module and is_main and python_version >= 360:
+        provider.markAsNeedsAnnotationsDictionary()
 
     result = buildStatementsNode(
         provider   = provider,
@@ -718,10 +744,8 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             for path_imported_name in getPthImportedPackages():
                 statements.append(
                     StatementExpressionOnly(
-                        expression = ExpressionImportModule(
+                        expression = makeAbsoluteImportNode(
                             module_name = path_imported_name,
-                            import_list = (),
-                            level       = 0,
                             source_ref  = source_ref,
                         ),
                         source_ref = source_ref
@@ -730,10 +754,8 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
             statements.append(
                 StatementExpressionOnly(
-                    expression = ExpressionImportModule(
+                    expression = makeAbsoluteImportNode(
                         module_name = "site",
-                        import_list = (),
-                        level       = 0,
                         source_ref  = source_ref,
                     ),
                     source_ref = source_ref
@@ -829,7 +851,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
         )
 
-    if python_version >= 360:
+    if provider.needsAnnotationsDictionary():
         # Set "__annotations__" on module level to {}
         statements.append(
             StatementAssignmentVariable(
@@ -872,28 +894,32 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
 
     if is_module:
-        return makeModuleFrame(
+        result = makeModuleFrame(
             module     = provider,
             statements = statements,
             source_ref = source_ref
         )
+
+        provider.future_spec = popFutureSpec()
+
+        return result
     else:
         assert False
 
 
 def decideModuleTree(filename, package, is_shlib, is_top, is_main):
-    # Many variables, branches, due to the many cases, pylint: disable=R0912,R0915
+    # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
 
     assert package is None or type(package) is str
     assert filename is not None
 
-    if is_main and Utils.isDir(filename):
-        source_filename = Utils.joinpath(filename, "__main__.py")
+    if is_main and os.path.isdir(filename):
+        source_filename = os.path.join(filename, "__main__.py")
 
-        if not Utils.isFile(source_filename):
+        if not os.path.isfile(source_filename):
             sys.stderr.write(
                 "%s: can't find '__main__' module in '%s'\n" % (
-                    Utils.basename(sys.argv[0]),
+                    os.path.basename(sys.argv[0]),
                     filename
                 )
             )
@@ -905,7 +931,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     else:
         main_added = False
 
-    if Utils.isFile(filename):
+    if os.path.isfile(filename):
         source_filename = filename
 
         source_ref = SourceCodeReferences.fromFilename(
@@ -915,7 +941,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         if is_main:
             module_name = "__main__"
         else:
-            module_name = Utils.basename(filename)
+            module_name = os.path.basename(filename)
 
             if module_name.endswith(".py"):
                 module_name = module_name[:-3]
@@ -959,13 +985,13 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
 
     elif Importing.isPackageDir(filename):
         if is_top:
-            package_name = Utils.splitpath(filename)[-1]
+            package_name = splitPath(filename)[-1]
         else:
-            package_name = Utils.basename(filename)
+            package_name = os.path.basename(filename)
 
-        source_filename = Utils.joinpath(filename, "__init__.py")
+        source_filename = os.path.join(filename, "__init__.py")
 
-        if not Utils.isFile(source_filename):
+        if not os.path.isfile(source_filename):
             source_ref, result = createNamespacePackage(
                 package_name   = package_name,
                 module_relpath = filename
@@ -973,7 +999,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             source_filename = None
         else:
             source_ref = SourceCodeReferences.fromFilename(
-                filename = Utils.abspath(source_filename),
+                filename = os.path.abspath(source_filename),
             )
 
             if package is not None:
@@ -987,10 +1013,12 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 mode         = Plugins.decideCompilation(full_name, source_ref),
                 source_ref   = source_ref
             )
+
+            assert result.getFullName() == full_name, result
     else:
         sys.stderr.write(
             "%s: can't open file '%s'.\n" % (
-                Utils.basename(sys.argv[0]),
+                os.path.basename(sys.argv[0]),
                 filename
             )
         )
@@ -1047,7 +1075,7 @@ def createModuleTree(module, source_ref, source_code, is_main):
     if Options.isShowMemory():
         memory_watch.finish()
 
-        Tracing.printLine(
+        info(
             "Memory usage changed loading module '%s': %s" % (
                 module.getFullName(),
                 memory_watch.asStr()

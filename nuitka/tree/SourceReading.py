@@ -25,37 +25,21 @@ import os
 import re
 import sys
 
-from nuitka import Options, PythonVersions, SourceCodeReferences
+from nuitka import Options, SourceCodeReferences
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
-from nuitka.tree import SyntaxErrors
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 from nuitka.utils.Utils import getOS
 
+from .SyntaxErrors import raiseSyntaxError
+
 
 def _readSourceCodeFromFilename3(source_filename):
+    # Only using this for Python3, for Python2 it's too buggy.
     import tokenize
 
-    try:
-        with tokenize.open(source_filename) as source_file:   # @UndefinedVariable
-            return source_file.read()
-    except SyntaxError as e:
-        if Options.isFullCompat():
-            if PythonVersions.doShowUnknownEncodingName():
-                match = re.match("unknown encoding for '.*?': (.*)", e.args[0])
-                complaint = match.group(1)
-            else:
-                complaint = "with BOM"
-
-            e.args = (
-                "encoding problem: %s" % complaint,
-                (source_filename, 1, None, None)
-            )
-
-            if hasattr(e, "msg"):
-                e.msg = e.args[0]
-
-        raise
+    with tokenize.open(source_filename) as source_file:   # @UndefinedVariable
+        return source_file.read()
 
 
 def _detectEncoding2(source_file):
@@ -113,7 +97,7 @@ def _readSourceCodeFromFilename2(source_filename):
                     str(e)
                 ).group(1)
 
-                SyntaxErrors.raiseSyntaxError(
+                raiseSyntaxError(
                     """\
 Non-ASCII character '\\x%s' in file %s on line %d, but no encoding declared; \
 see http://python.org/dev/peps/pep-0263/ for details""" % (
@@ -143,7 +127,7 @@ def readSourceCodeFromFilename(module_name, source_filename):
 
 
 def checkPythonVersionFromCode(source_code):
-    # There is a lot of cases to consider, pylint: disable=R0912
+    # There is a lot of cases to consider, pylint: disable=too-many-branches
 
     shebang = getShebangFromSource(source_code)
 

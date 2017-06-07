@@ -131,7 +131,8 @@ class StatementsFrame(StatementsSequence):
         """
         provider = self.getParentVariableProvider()
 
-        if provider.isExpressionFunctionBody():
+        if not provider.isCompiledPythonModule() and \
+           self.code_object is not None:
             self.code_object.updateLocalNames(
                 [
                     variable.getName() for
@@ -161,25 +162,36 @@ class StatementsFrame(StatementsSequence):
                      not provider.isExpressionClassBody() and \
                      not provider.hasLocalsDict()))
 
+        if provider.isCompiledPythonModule():
+            line_number = 1
+        else:
+            line_number = self.source_ref.getLineNumber()
+
+        if provider.isExpressionGeneratorObjectBody() or \
+           provider.isExpressionCoroutineObjectBody() or \
+           provider.isExpressionAsyncgenObjectBody():
+            closure_provider = provider.getParentVariableProvider()
+        else:
+            closure_provider = provider
+
+        parent_module = self.getParentModule()
+
         # TODO: Why do this accessing a node, do this outside.
         return context.getCodeObjectHandle(
             code_object  = self.code_object,
-            filename     = self.getParentModule().getRunTimeFilename(),
-            line_number  = 1
-                              if provider.isCompiledPythonModule() else
-                            self.source_ref.getLineNumber(),
+            filename     = parent_module.getRunTimeFilename(),
+            line_number  = line_number,
             is_optimized = is_optimized,
             new_locals   = new_locals,
-            has_closure  = provider.isExpressionFunctionBody() and \
-                            provider.getClosureVariables() != () and \
-                            not provider.isExpressionClassBody(),
-            future_flags = provider.getSourceReference().getFutureSpec().\
-                              asFlags()
+            has_closure  = closure_provider.isExpressionFunctionBody() and \
+                           closure_provider.getClosureVariables() != () and \
+                           not closure_provider.isExpressionClassBody(),
+            future_flags = parent_module.getFutureSpec().asFlags()
         )
 
     def computeStatementsSequence(self, trace_collection):
         # The extraction of parts of the frame that can be moved before or after
-        # the frame scope, takes it toll to complexity, pylint: disable=R0912
+        # the frame scope, takes it toll to complexity, pylint: disable=too-many-branches
         new_statements = []
 
         statements = self.getStatements()

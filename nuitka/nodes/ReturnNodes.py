@@ -20,7 +20,8 @@
 This one exits functions. The only other exit is the default exit of functions with 'None' value, if no return is done.
 """
 
-from .NodeBases import ExpressionMixin, NodeBase, StatementChildrenHavingBase
+from .ExpressionBases import ExpressionBase
+from .NodeBases import StatementChildrenHavingBase
 
 
 class StatementReturn(StatementChildrenHavingBase):
@@ -71,16 +72,16 @@ Return statement raises in returned expression, removed return."""
         return self, None, None
 
 
-class ExpressionReturnedValueRef(NodeBase, ExpressionMixin):
+class ExpressionReturnedValueRef(ExpressionBase):
     kind = "EXPRESSION_RETURNED_VALUE_REF"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
 

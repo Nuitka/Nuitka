@@ -22,7 +22,7 @@ efficiently. The "StreamData" class is used in two places, for constants
 and for freezing of bytecode.
 """
 
-class StreamData:
+class StreamData(object):
     def __init__(self):
         self.stream_data = bytes()
 

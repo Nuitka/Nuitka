@@ -24,13 +24,18 @@ import math
 
 from nuitka.PythonVersions import python_version
 
-from .__past__ import iterItems, long, unicode, xrange  # pylint: disable=W0622
+from .__past__ import (  # pylint: disable=redefined-builtin
+    iterItems,
+    long,
+    unicode,
+    xrange
+)
 from .Builtins import builtin_anon_names
 
 NoneType = type(None)
 
 def compareConstants(a, b):
-    # Many many cases to deal with, pylint: disable=R0911,R0912
+    # Many many cases to deal with, pylint: disable=too-many-branches,too-many-return-statements
 
     # Supposed fast path for comparison.
     if type(a) is not type(b):
@@ -128,7 +133,7 @@ else:
 
 def isConstant(constant):
     # Too many cases and all return, that is how we do it here,
-    # pylint: disable=R0911
+    # pylint: disable=too-many-branches,too-many-return-statements
 
     constant_type = type(constant)
 
@@ -144,8 +149,15 @@ def isConstant(constant):
             if not isConstant(element_value):
                 return False
         return True
+    elif constant_type is slice:
+        if not isConstant(constant.start) or \
+           not isConstant(constant.stop) or \
+           not isConstant(constant.step):
+            return False
+
+        return True
     elif constant_type in (str, unicode, complex, int, long, bool, float,
-                           NoneType, range, bytes, set, slice, xrange):
+                           NoneType, range, bytes, set, xrange):
         return True
     elif constant in (Ellipsis, NoneType):
         return True
@@ -190,7 +202,7 @@ def isHashable(constant):
         mutable, and still not hashable: slices.
     """
     # Too many cases and all return, that is how we do it here,
-    # pylint: disable=R0911
+    # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
 

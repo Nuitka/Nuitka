@@ -37,18 +37,19 @@ from nuitka.PythonVersions import python_version
 from nuitka.tree.Extractions import updateVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
+from .ExpressionBases import (
+    CompileTimeConstantExpressionBase,
+    ExpressionBase,
+    ExpressionChildrenHavingBase
+)
 from .IndicatorMixins import (
-    MarkLocalsDictIndicator,
-    MarkUnoptimizedFunctionIndicator
+    MarkLocalsDictIndicatorMixin,
+    MarkUnoptimizedFunctionIndicatorMixin
 )
 from .NodeBases import (
     ChildrenHavingMixin,
-    ClosureGiverNodeBase,
+    ClosureGiverNodeMixin,
     ClosureTakerMixin,
-    CompileTimeConstantExpressionMixin,
-    ExpressionChildrenHavingBase,
-    ExpressionMixin,
-    NodeBase,
     SideEffectsFromChildrenMixin
 )
 from .NodeMakingHelpers import (
@@ -59,29 +60,32 @@ from .NodeMakingHelpers import (
 from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
 
-class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
-                                 ClosureGiverNodeBase, ExpressionMixin):
+class MaybeLocalVariableUsage(Exception):
+    pass
+
+class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
+                                 ExpressionChildrenHavingBase):
 
     def __init__(self, provider, name, code_prefix, is_class, flags, source_ref,
                  body = None):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "body" : body # Might be None initially in some cases.
+            },
+            source_ref = source_ref
+        )
+
         ClosureTakerMixin.__init__(
             self,
             provider      = provider,
             early_closure = is_class
         )
 
-        ClosureGiverNodeBase.__init__(
+        ClosureGiverNodeMixin.__init__(
             self,
             name        = name,
-            code_prefix = code_prefix,
-            source_ref  = source_ref
-        )
-
-        ChildrenHavingMixin.__init__(
-            self,
-            values = {
-                "body" : body # Might be None initially in some cases.
-            }
+            code_prefix = code_prefix
         )
 
         # Special things, "has_super" indicates presence of "super" in variable
@@ -207,7 +211,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
         return result
 
     def getVariableForReference(self, variable_name):
-        # print( "REF func", self, variable_name )
+        # print( "REF func", self.getCodeName(), variable_name )
 
         if self.hasProvidedVariable(variable_name):
             result = self.getProvidedVariable(variable_name)
@@ -221,26 +225,28 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             if not result.isModuleVariable():
                 self.registerProvidedVariable(result)
 
-            # For "exec" containing/star import containing, we get a
-            # closure variable already, but if it is a module variable,
-            # only then make it a maybe local variable.
-            if not self.isExpressionClassBody() and self.isUnoptimized() and result.isModuleVariable():
-                result = Variables.MaybeLocalVariable(
-                    owner          = self,
-                    maybe_variable = result
-                )
-
-                self.registerProvidedVariable(result)
+            # For "exec" containing/star import containing, we raise this exception to indicate
+            # that instead of merely a variable, to be assigned, we need to replace with locals
+            # dict access.
+            if python_version < 300 and not self.isExpressionClassBody() and \
+               result.isModuleVariable() and \
+               self.isUnoptimized():
+                raise MaybeLocalVariableUsage
 
         return result
 
     def getVariableForClosure(self, variable_name):
-        # print( "getVariableForClosure", self, variable_name )
+        # print( "getVariableForClosure", self.getCodeName(), variable_name, self.isUnoptimized() )
 
         if self.hasProvidedVariable(variable_name):
             return self.getProvidedVariable(variable_name)
-        else:
-            return self.provider.getVariableForClosure(variable_name)
+
+        return self.takeVariableForClosure(variable_name)
+
+    def takeVariableForClosure(self, variable_name):
+        result = self.provider.getVariableForClosure(variable_name)
+        self.taken.add(result)
+        return result
 
     def createProvidedVariable(self, variable_name):
         # print("createProvidedVariable", self, variable_name)
@@ -255,8 +261,10 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             (names, source_ref)
         )
 
-    def getNonlocalDeclarations(self):
-        return self.non_local_declarations
+    def consumeNonlocalDeclarations(self):
+        result = self.non_local_declarations
+        self.non_local_declarations = ()
+        return result
 
     def getFunctionName(self):
         return self.name
@@ -297,9 +305,9 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ChildrenHavingMixin,
             return self.getBody().mayRaiseException(exception_type)
 
 
-class ExpressionFunctionBody(ExpressionFunctionBodyBase,
-                             MarkLocalsDictIndicator,
-                             MarkUnoptimizedFunctionIndicator):
+class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
+                             MarkUnoptimizedFunctionIndicatorMixin,
+                             ExpressionFunctionBodyBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, leading to many methods, pylint: disable=R0901
 
@@ -336,9 +344,9 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
             source_ref  = source_ref
         )
 
-        MarkLocalsDictIndicator.__init__(self)
+        MarkLocalsDictIndicatorMixin.__init__(self)
 
-        MarkUnoptimizedFunctionIndicator.__init__(self)
+        MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
         self.doc = doc
 
@@ -377,8 +385,6 @@ class ExpressionFunctionBody(ExpressionFunctionBodyBase,
         }
 
         result.update(self.parameters.getDetails())
-
-        result["code_flags"] = ','.join(self.getSourceReference().getFutureSpec().asFlags())
 
         if self.doc is not None:
             result["doc"] = self.doc
@@ -529,6 +535,8 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
 
         self.code_object = code_object
 
+        self.variable_closure_traces = None
+
     def getName(self):
         return self.getFunctionRef().getName()
 
@@ -607,6 +615,14 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             )
 
             return result, "new_raise", "Annotation values contain raise."
+
+        self.variable_closure_traces = []
+
+        for closure_variable in self.getFunctionRef().getFunctionBody().getClosureVariables():
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            trace.addClosureUsage()
+
+            self.variable_closure_traces.append(trace)
 
         # TODO: Function body may know something too.
         return self, None, None
@@ -718,7 +734,7 @@ error""" % self.getName()
 
     def getCallCost(self, values):
         # TODO: Ought to use values. If they are all constant, how about we
-        # assume no cost, pylint: disable=W0613
+        # assume no cost, pylint: disable=unused-argument
 
         if not Options.isExperimental():
             return None
@@ -748,16 +764,24 @@ error""" % self.getName()
             values       = values
         )
 
+    def getClosureVariableVersions(self):
+        return [
+            (trace.getVariable(), trace.getVersion())
+            for trace in self.variable_closure_traces
+        ]
 
 
-class ExpressionFunctionRef(NodeBase, ExpressionMixin):
+
+class ExpressionFunctionRef(ExpressionBase):
     kind = "EXPRESSION_FUNCTION_REF"
+
+    __slots__ = "function_body", "code_name"
 
     def __init__(self, source_ref, function_body = None, code_name = None):
         assert function_body is not None or code_name is not None
         assert code_name != "None"
 
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -868,6 +892,8 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.variable_closure_traces = None
+
     def computeExpression(self, trace_collection):
         function = self.getFunction()
 
@@ -876,7 +902,9 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         # TODO: This needs some design.
         cost = function.getCallCost(values)
 
-        if function.getFunctionRef().getFunctionBody().mayRaiseException(BaseException):
+        function_body = function.getFunctionRef().getFunctionBody()
+
+        if function_body.mayRaiseException(BaseException):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         if cost is not None and cost < 50:
@@ -886,6 +914,14 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
             )
 
             return result, "new_statements", "Function call in-lined."
+
+        self.variable_closure_traces = []
+
+        for closure_variable in function_body.getClosureVariables():
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            trace.addClosureUsage()
+
+            self.variable_closure_traces.append(trace)
 
         return self, None, None
 
@@ -906,18 +942,27 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     getFunction = ExpressionChildrenHavingBase.childGetter("function")
     getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
 
+    def getClosureVariableVersions(self):
+        return [
+            (trace.getVariable(), trace.getVersion())
+            for trace in self.variable_closure_traces
+        ]
 
 # Needed for Python3.3 and higher
-class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionMixin,
-                                    NodeBase):
+class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
     kind = "EXPRESSION_FUNCTION_QUALNAME_REF"
+
+    __slots__ = "function_body",
+
     def __init__(self, function_body, source_ref):
-        NodeBase.__init__(self, source_ref = source_ref)
-        CompileTimeConstantExpressionMixin.__init__(self)
+        CompileTimeConstantExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         self.function_body = function_body
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         result = makeConstantReplacementNode(
             node     = self,
             constant = self.function_body.getFunctionQualname()

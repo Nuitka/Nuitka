@@ -25,6 +25,11 @@ import tempfile
 
 debian, codename, output = sys.argv[1:]
 
+if "-" in codename:
+    codename, arch = codename.split("-")
+else:
+    arch = subprocess.check_output("dpkg-architecture -q DEB_HOST_ARCH".split()).strip()
+
 start_dir = os.getcwd()
 
 stage = tempfile.mkdtemp()
@@ -52,6 +57,8 @@ try:
         [
             "debootstrap",
             "--include=ccache",
+            "--include=dpkg-dev",
+            "--arch=" + arch,
             "--components=" + components,
             codename,
             "chroot",

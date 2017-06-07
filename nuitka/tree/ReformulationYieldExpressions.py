@@ -27,21 +27,23 @@ import ast
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
 from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
 from nuitka.PythonVersions import python_version
-from nuitka.tree import SyntaxErrors
 
 from .Helpers import buildNode
+from .SyntaxErrors import raiseSyntaxError
 
 
 def _checkInsideGenerator(provider, node, source_ref):
     if provider.isCompiledPythonModule():
-        SyntaxErrors.raiseSyntaxError(
+        raiseSyntaxError(
             "'yield' outside function",
             source_ref.atColumnNumber(node.col_offset)
         )
 
-    # This is forbidden in 3.5, but allows in 3.6
-    if provider.isExpressionCoroutineObjectBody() and python_version < 360:
-        SyntaxErrors.raiseSyntaxError(
+    # This yield is forbidden in 3.5, but allowed in 3.6, but yield_from
+    # is neither.
+    if provider.isExpressionAsyncgenObjectBody() and \
+       (node.__class__ is not ast.Yield or python_version < 360):
+        raiseSyntaxError(
             "'%s' inside async function" % (
                 "yield" if node.__class__ is ast.Yield else "yield from",
             ),
@@ -49,7 +51,7 @@ def _checkInsideGenerator(provider, node, source_ref):
         )
 
     assert provider.isExpressionGeneratorObjectBody() or \
-           provider.isExpressionCoroutineObjectBody(), provider
+           provider.isExpressionAsyncgenObjectBody(), provider
 
 
 def buildYieldNode(provider, node, source_ref):

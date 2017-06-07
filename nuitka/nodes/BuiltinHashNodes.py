@@ -23,7 +23,7 @@ for some types, so it is still useful. Also calls to it can be accelerated
 slightly.
 """
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 
 
 class ExpressionBuiltinHash(ExpressionChildrenHavingBase):

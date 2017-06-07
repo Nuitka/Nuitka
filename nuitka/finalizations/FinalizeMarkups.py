@@ -61,10 +61,10 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
     def _onEnterNode(self, node):
         # This has many different things it deals with, so there need to be a
-        # lot of branches and statements, pylint: disable=R0912,R0915
+        # lot of branches and statements, pylint: disable=too-many-branches,too-many-statements
 
         # Also all self specific things have been done on the outside,
-        # pylint: disable=R0201
+        # pylint: disable=no-self-use
 
         # Find nodes with only compile time constant children, these are
         # missing some obvious optimization potentially.
@@ -107,7 +107,8 @@ class FinalizeMarkups(FinalizationVisitorBase):
             search = search.getParentReturnConsumer()
 
             if search.isExpressionGeneratorObjectBody() or \
-               search.isExpressionCoroutineObjectBody():
+               search.isExpressionCoroutineObjectBody() or \
+               search.isExpressionAsyncgenObjectBody():
                 if in_tried_block:
                     search.markAsNeedsGeneratorReturnHandling(2)
                 else:
@@ -118,6 +119,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
            not Options.getShallFollowExtraFilePatterns() and \
            not Options.shallFollowNoImports() and \
            not isWhiteListedImport(node) and \
+           not node.recurse_attempted and \
            not Plugins.suppressBuiltinImportWarning(node.getParentModule(), node.getSourceReference()):
             warning("""Unresolved '__import__' call at '%s' may require use \
 of '--recurse-directory'.""" % (
@@ -162,11 +164,15 @@ of '--recurse-directory'.""" % (
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()
 
         if python_version >= 300:
-            if node.isExpressionYield() or node.isExpressionYieldFrom():
+            if node.isExpressionYield() or \
+               node.isExpressionYieldFrom() or \
+               node.isExpressionAsyncWait():
                 search = node.getParent()
 
                 while not search.isExpressionGeneratorObjectBody() and \
-                      not search.isExpressionCoroutineObjectBody():
+                      not search.isExpressionCoroutineObjectBody() and \
+                      not search.isExpressionAsyncgenObjectBody():
+
 
                     last_search = search
                     search = search.getParent()

@@ -40,10 +40,12 @@ static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *gene
 """
 
 template_generator_exception_exit = """\
+%(function_cleanup)s\
     generator->m_yielded = NULL;
     return;
 
     function_exception_exit:
+%(function_cleanup)s\
     assert( exception_type );
     RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
     generator->m_yielded = NULL;
@@ -51,6 +53,7 @@ template_generator_exception_exit = """\
 
 template_generator_noexception_exit = """\
     // Return statement need not be present.
+%(function_cleanup)s\
 
     generator->m_yielded = NULL;
     return;"""

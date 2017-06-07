@@ -176,6 +176,36 @@ The standard CPython3.6 test suite. Execute this for all corner cases to be
 covered. With Python 2.x these are not run. Default is %default."""
 )
 
+parser.add_option(
+    "--skip-other-cpython-tests",
+    action  = "store_true",
+    dest    = "cpython_no_other",
+    default = False,
+    help    = """\
+Do not execute any CPython test suite other than the one matching the running
+Python. Default is %default."""
+)
+
+parser.add_option(
+    "--skip-all-cpython-tests",
+    action  = "store_true",
+    dest    = "cpython_none",
+    default = False,
+    help    = """\
+Do not execute any CPython test suite other than the one matching the running
+Python. Default is %default."""
+)
+
+
+parser.add_option(
+    "--no-other-python",
+    action  = "store_true",
+    dest    = "no_other",
+    default = False,
+    help    = """\
+Do not use any other Python than the one running, even if available on
+the system. Default is %default."""
+)
 
 parser.add_option(
     "--no-python2.6",
@@ -258,6 +288,47 @@ if positional_args:
 
     sys.exit("\nError, no positional argument allowed.")
 
+if options.no_other:
+    if sys.version_info[0:2] != (2,6):
+        options.no26 = True
+    if sys.version_info[0:2] != (2,7):
+        options.no27 = True
+    if sys.version_info[0:2] != (3,2):
+        options.no32 = True
+    if sys.version_info[0:2] != (3,3):
+        options.no33 = True
+    if sys.version_info[0:2] != (3,4):
+        options.no34 = True
+    if sys.version_info[0:2] != (3,5):
+        options.no35 = True
+    if sys.version_info[0:2] != (3,6):
+        options.no36 = True
+
+if options.cpython_no_other:
+    if sys.version_info[0:2] != (2,6):
+        options.cpython26 = False
+    if sys.version_info[0:2] != (2,7):
+        options.cpython27 = False
+    if sys.version_info[0:2] != (3,2):
+        options.cpython32 = False
+    if sys.version_info[0:2] != (3,3):
+        options.cpython33 = False
+    if sys.version_info[0:2] != (3,4):
+        options.cpython34 = False
+    if sys.version_info[0:2] != (3,5):
+        options.cpython35 = False
+    if sys.version_info[0:2] != (3,6):
+        options.cpython36 = False
+
+if options.cpython_none:
+    options.cpython26 = False
+    options.cpython27 = False
+    options.cpython32 = False
+    options.cpython33 = False
+    options.cpython34 = False
+    options.cpython35 = False
+    options.cpython36 = False
+
 # Go its own directory, to have it easy with path knowledge.
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 os.chdir("..")
@@ -291,7 +362,7 @@ def checkExecutableCommand(command):
         return False
     if command == "python3.5" and options.no35:
         return False
-    if command == "python3.5" and options.no36:
+    if command == "python3.6" and options.no36:
         return False
 
     # Shortcuts for python versions, also needed for Windows as it won't have
@@ -349,9 +420,9 @@ def executeSubTest(command, hide_output = False):
     parts = command.split()
     parts[0] = parts[0].replace('/', os.path.sep)
 
-    # On Windows, we need to specify Python ourselves.
-    if os.name == "nt":
-        parts.insert(0, sys.executable)
+    # The running Python will be good enough, on some platforms there is no
+    # "python", and we need to pass this alone then.
+    parts.insert(0, sys.executable)
 
     print("Run '%s' in '%s'." % (' '.join(parts), os.getcwd()))
 

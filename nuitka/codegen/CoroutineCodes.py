@@ -19,15 +19,21 @@
 
 """
 
-from .ErrorCodes import (
-    getErrorExitCode,
-    getErrorVariableDeclarations,
-    getExceptionKeeperVariableNames,
-    getExceptionPreserverVariableNames,
-    getReleaseCode
+from nuitka.codegen.PythonAPICodes import getReferenceExportCode
+
+from .Emission import SourceCodeCollector
+from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .FunctionCodes import (
+    finalizeFunctionLocalVariables,
+    setupFunctionLocalVariables
 )
-from .Helpers import generateChildExpressionsCode
+from .GeneratorCodes import getClosureCopyCode
+from .Helpers import (
+    generateChildExpressionsCode,
+    generateStatementSequenceCode
+)
 from .Indentation import indented
+from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesCoroutines import (
     template_coroutine_exception_exit,
     template_coroutine_noexception_exit,
@@ -36,8 +42,6 @@ from .templates.CodeTemplatesCoroutines import (
     template_coroutine_return_exit,
     template_make_coroutine_template
 )
-from .templates.CodeTemplatesFunction import function_dict_setup
-from .VariableCodes import getLocalVariableCodeType, getLocalVariableInitCode
 
 
 def getCoroutineObjectDeclCode(function_identifier):
@@ -46,52 +50,30 @@ def getCoroutineObjectDeclCode(function_identifier):
     }
 
 
-def getCoroutineObjectCode(context, function_identifier, user_variables,
-                           temp_variables, function_codes, needs_exception_exit,
+def getCoroutineObjectCode(context, function_identifier, closure_variables,
+                           user_variables, temp_variables, needs_exception_exit,
                            needs_generator_return):
-    function_locals = []
+    function_locals, function_cleanup = setupFunctionLocalVariables(
+        context           = context,
+        parameters        = None,
+        closure_variables = closure_variables,
+        user_variables    = user_variables,
+        temp_variables    = temp_variables
+    )
 
-    for user_variable in user_variables + temp_variables:
-        function_locals.append(
-            getLocalVariableInitCode(
-                context  = context,
-                variable = user_variable,
-            )
-        )
+    # Doesn't apply to coroutines.
+    assert not function_cleanup
 
-    if context.hasLocalsDict():
-        function_locals += function_dict_setup.split('\n')
+    function_codes = SourceCodeCollector()
 
-    if context.needsExceptionVariables():
-        function_locals.extend(getErrorVariableDeclarations())
+    generateStatementSequenceCode(
+        statement_sequence = context.getOwner().getBody(),
+        allow_none         = True,
+        emit               = function_codes,
+        context            = context
+    )
 
-    for keeper_index in range(1, context.getKeeperVariableCount()+1):
-        function_locals.extend(getExceptionKeeperVariableNames(keeper_index))
-
-    for preserver_id in context.getExceptionPreserverCounts():
-        function_locals.extend(getExceptionPreserverVariableNames(preserver_id))
-
-    function_locals += [
-        "%s%s%s;" % (
-            tmp_type,
-            ' ' if not tmp_type.endswith('*') else "",
-            tmp_name
-        )
-        for tmp_name, tmp_type in
-        context.getTempNameInfos()
-    ]
-
-    function_locals += context.getFrameDeclarations()
-
-    # TODO: Could avoid this unless try/except or try/finally with returns
-    # occur.
-    if context.hasTempName("generator_return"):
-        function_locals.append("tmp_generator_return = false;")
-    if context.hasTempName("return_value"):
-        function_locals.append("tmp_return_value = NULL;")
-    for tmp_name, tmp_type in context.getTempNameInfos():
-        if tmp_name.startswith("tmp_outline_return_value_"):
-            function_locals.append("%s = NULL;" % tmp_name)
+    function_locals += finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
         generator_exit = template_coroutine_exception_exit % {
@@ -107,7 +89,7 @@ def getCoroutineObjectCode(context, function_identifier, user_variables,
 
     return template_coroutine_object_body_template % {
         "function_identifier" : function_identifier,
-        "function_body"       : indented(function_codes),
+        "function_body"       : indented(function_codes.codes),
         "function_var_inits"  : indented(function_locals),
         "coroutine_exit"      : generator_exit
     }
@@ -116,50 +98,26 @@ def getCoroutineObjectCode(context, function_identifier, user_variables,
 def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
     coroutine_object_body = expression.getCoroutineRef().getFunctionBody()
 
-    closure_variables = coroutine_object_body.getClosureVariables()
+    parent_module = coroutine_object_body.getParentModule()
 
     code_identifier = context.getCodeObjectHandle(
         code_object  = expression.getCodeObject(),
-        filename     = coroutine_object_body.getParentModule().getRunTimeFilename(),
+        filename     = parent_module.getRunTimeFilename(),
         line_number  = coroutine_object_body.getSourceReference().getLineNumber(),
         is_optimized = True,
         new_locals   = not coroutine_object_body.needsLocalsDict(),
-        has_closure  = len(closure_variables) > 0,
-        future_flags = coroutine_object_body.getSourceReference().getFutureSpec().asFlags()
+        has_closure  = len(coroutine_object_body.getParentVariableProvider().getClosureVariables()) > 0,
+        future_flags = parent_module.getFutureSpec().asFlags()
     )
 
-    # TODO: Copy duplication with generator codes, ought to be shared.
-    closure_copy = []
+    closure_variables = expression.getClosureVariableVersions()
 
-    for count, variable in enumerate(closure_variables):
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable)
-
-        # Coroutines might not use them, but they still need to be put there.
-        # TODO: But they don't have to be cells.
-        if variable_c_type == "PyObject *":
-            closure_copy.append(
-                "((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] = PyCell_NEW0( %s );" % (
-                    to_name,
-                    count,
-                    variable_code_name
-                )
-            )
-        elif variable_c_type == "struct Nuitka_CellObject *":
-            closure_copy.append(
-                "((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] = %s;" % (
-                    to_name,
-                    count,
-                    variable_code_name
-                )
-            )
-            closure_copy.append(
-                "Py_INCREF( ((struct Nuitka_CoroutineObject *)%s)->m_closure[%d] );" % (
-                    to_name,
-                    count
-                )
-            )
-        else:
-            assert False, variable
+    closure_copy = getClosureCopyCode(
+        to_name           = to_name,
+        closure_type      = "struct Nuitka_CoroutineObject *",
+        closure_variables = closure_variables,
+        context           = context
+    )
 
     emit(
         template_make_coroutine_template % {
@@ -175,19 +133,31 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
 
 
 def generateAsyncWaitCode(to_name, expression, emit, context):
+    emitLineNumberUpdateCode(emit, context)
+
     value_name, = generateChildExpressionsCode(
         expression = expression,
         emit       = emit,
         context    = context
     )
 
+    # In handlers, we must preserve/restore the exception.
+    preserve_exception = expression.isExceptionPreserving()
+
+    context_identifier = context.getContextObjectName()
+
+    # This produces AWAIT_COROUTINE or AWAIT_ASYNCGEN calls.
+    getReferenceExportCode(value_name, emit, context)
+
     emit(
-        "%s = %s( coroutine, %s );" % (
+        "%s = %s_%s( %s, %s );" % (
             to_name,
-            "AWAIT_COROUTINE",
+            context_identifier.upper(),
+            "AWAIT"
+              if not preserve_exception else
+            "AWAIT_IN_HANDLER",
+            context_identifier,
             value_name
-              if context.needsCleanup(value_name) else
-            "INCREASE_REFCOUNT( %s )" % value_name
         )
     )
 

@@ -29,7 +29,7 @@ Milestones
    absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not target any
-   older CPython release. For CPython 3.2 up to 3.5 it also has been reached. We
+   older CPython release. For CPython 3.2 up to 3.6 it also has been reached. We
    do not target the older and practically unused CPython 3.1 and 3.0 releases.
 
    This milestone was reached. Dropping support for Python 2.6 and 3.2 is an
@@ -73,23 +73,23 @@ should express which of these, we consider done.
 
 - So far:
 
-  Before milestone 1, we used "0.1.x" version numbers. After reaching it, we
-  used "0.2.x" version numbers.
+  Before milestone 1, we used ``0.1.x`` version numbers. After reaching it, we
+  used ``0.2.x`` version numbers.
 
-  Before milestone 2 and 3, we used "0.3.x" version numbers. After almost
+  Before milestone 2 and 3, we used ``0.3.x`` version numbers. After almost
   reaching 3, and beginning with 4, we use "0.4.x" version numbers. Due to an
   interface change, "0.5.x" version numbers are being used.
 
 - Future:
 
   When we start to have sufficient amount of type inference in a stable release,
-  that will be "0.6.x" version numbers. With ``ctypes`` bindings in a sufficient
-  state it will be "0.7.x".
+  that will be ``0.6.x`` version numbers. With ``ctypes`` bindings in a usable
+  state it will be ``0.7.x``.
 
 - Final:
 
-  We will then round it up and call it "Nuitka 1.0" when this works as expected
-  for a bunch of people. The plan is to reach this goal during 2017. This is
+  We will then round it up and call it Nuitka ``1.0`` when this works as expected
+  for a bunch of people. The plan is to reach this goal during 2018. This is
   based on positive assumptions that may not hold up though.
 
 Of course, all of this may be subject to change.
@@ -102,7 +102,7 @@ Nuitka top level works like this:
 
 - ``nuitka.tree.Building`` outputs node tree
 - ``nuitka.optimization`` enhances it as best as it can
-- ``nuitka.finalization`` marks the tree for code generation
+- ``nuitka.finalization`` prepares the tree for code generation
 - ``nuitka.codegen.CodeGeneration`` orchestrates the creation of code snippets
 - ``nuitka.codegen.*Codes`` knows how specific code kinds are created
 - ``nuitka.MainControl`` keeps it all together
@@ -121,7 +121,7 @@ Regarding Types, the state is:
   result, if it is not a constant, then we know nothing about it. For some
   interfaces, e.g. iteration, there are initial attempts at abstracting it.
 
-The limitation to only do ``PyObject *`` will go away.
+The limitation to only do ``PyObject *`` will soon go away.
 
 Coding Rules
 ============
@@ -148,7 +148,7 @@ incomprehensible code.
 Indentation
 -----------
 
-No tabs, 4 spaces, no trailing white space.
+No tabs, 4 spaces, no trailing white space. Files end in a new line.
 
 
 Identifiers
@@ -317,9 +317,10 @@ The "git flow" model
 
 * Feature Branches
 
-  On these long lived developments that extend for multiple release cycles or
-  contain changes that break Nuitka temporarily. They need not be functional at
-  all, and may lag behind main branches.
+  We are not currently using these. They could be used for long lived changes
+  that extend for multiple release cycles and are not ready yet. Currently we
+  perform all changes in steps that can be included in releases or delay making
+  those changes.
 
 
 Checking the Source
@@ -528,8 +529,8 @@ The logo was submitted by "dr. Equivalent". It's source is contained in
 
 From these logos, PNG images, and "favicons", and are derived.
 
-The exact ImageMagick commands are in ``misc/make-doc.py``, but are not executed
-each time, the commands are also replicated here:
+The exact ImageMagick commands are in ``nuitka/tools/release/Documentation``,
+but are not executed each time, the commands are also replicated here:
 
 .. code-block:: sh
 
@@ -558,7 +559,7 @@ Choice of the Target Language
 
 * These candidates were considered
 
-  * C++03, C++11, Ada, C11, C89
+  * C++03, C++11, C11, C89, Ada
 
 .. table:: Requirement to Language matrix:
 
@@ -798,8 +799,8 @@ module.
 
 The decision making and caching are located in the ``nuitka.tree`` package, in
 modules ``nuitka.tree.Recursion`` and ``nuitka.tree.ImportCache``. Each module
-is only imported once (cache), and we need to obey lots of user choices, e.g.
-to compile standard library or not.
+is only considered once (then cached), and we need to obey lots of user choices,
+e.g. to compile standard library or not.
 
 
 Hooking for module ``import`` process
@@ -1114,9 +1115,9 @@ checks, know what exceptions might raise.
 Code Generation towards C
 -------------------------
 
-Currently, Nuitka uses C++ as a glorified C, it will tend to use less and less
-actual C++ patterns. Nuitka needs to control the order of releases fully, and
-may have objects becoming illegal references by e.g. in-place operations.
+Currently, Nuitka uses Pure C and no C++ patterns at all. The use of C11
+requires on some platforms to compile the C11 using a C++ compiler, which
+works relatively well, but also limits the amount of C11 that can be used.
 
 Exceptions
 ++++++++++
@@ -1180,6 +1181,11 @@ Frames are containers for variable declarations and cleanups. As such, frames
 provide error exits and success exits, which remove the frame from the frame
 stack, and then proceed to the parent exit.
 
+With the use of non ``PyObject **`` C types, but frame exception exits, the
+need to convert those types becomes apparent. Exceptions should still resolve
+the C version. When using different C types at frame exception exits, there
+is a need to trace the active type, so it can be used in the correct form.
+
 Abortive Statements
 +++++++++++++++++++
 
@@ -1203,8 +1209,8 @@ Problems were
 * Even unused code contributed to start-up time, this can become a lot for
   large programs, especially in standalone mode.
 
-* The massive amount of constant creation codes gave backend compilers a much
-  harder time than necessary to analyse it all at once.
+* The massive amount of constant creation codes gave backend C compilers a
+  much harder time than necessary to analyse it all at once.
 
 The current approach is as follows. Code generation detects constants used in
 only one module, and declared ``static`` there, if the module is the only user,
@@ -1968,6 +1974,7 @@ re-formulation towards those, but we now do these via dedicated nodes too.
 These new nodes, present the evaluation of the left value, checking for its
 truth value, and depending on it, to pick it, or use the right value.
 
+
 Simple Calls
 ++++++++++++
 
@@ -2066,6 +2073,7 @@ difficult stuff. Our example becomes this:
 The call to ``_complex_call`` is be a direct function call with no parameter
 parsing overhead. And the call in its end, is a special call operation, which
 relates to the "PyObject_Call" C-API.
+
 
 Print statements
 ++++++++++++++++
@@ -2785,15 +2793,19 @@ The following is the intended interface:
 
 - Nodes can be queried about their properties.
 
-  The node base classes offers methods that allow to check if certain operations
-  are supported or not. These can always return ``True`` (yes), ``False`` (no),
+  There is a type shape and a value shape that each node can be asked about. The
+  type shape offers methods that allow to check if certain operations are at all
+  supported or not. These can always return ``True`` (yes), ``False`` (no),
   and ``None`` (cannot decide). In the case of the later, optimizations may not
   be able do much about it. Lets call these values "tri-state".
 
-  The default implementation will be very pessimistic. Specific node types may
-  then declare, that they e.g. have no side effects, do no raise, have a know
-  truth value, have a known iteration length, can predict their iteration
-  values, etc.
+  There is also the value shape of a node. This can go deeper, and be more
+  specific to a given node.
+
+  The default implementation will be very pessimistic. Specific node types and
+  shapes may then declare, that they e.g. have no side effects, will not raise
+  for certain operations, have a known truth value, have a known iteration length,
+  can predict their iteration values, etc.
 
 - Nodes are linked to certain states.
 
@@ -2805,11 +2817,18 @@ The following is the intended interface:
      a = 1
      b = a + a
 
-  In this example, the references to "a", can look-up the "1" in the trace, and
-  base their responses to "+" on it. It will ask "isCompileTimeConstant()" and
-  both nodes will respond "True", then "getCompileTimeConstant()" will return
-  "1", which will be computed. Then "extractSideEffects()" will return "()" and
-  therefore, the result "2" will not be wrapped.
+  In this example, the references to ``a``, can look-up the ``1`` in the trace,
+  and base value shape response to ``+`` on it. For compile time evaluation,
+  it may also ask ``isCompileTimeConstant()`` and if both nodes will respond
+  ``True``, then "getCompileTimeConstant()" will return ``1``, which will be
+  be used in computation.
+
+  Then ``extractSideEffects()`` for the ``a`` reference will return ``()`` and
+  therefore, the result ``2`` will not be wrapped.
+
+  An alternative approach would be ``hasTypeSlotAdd()`` on the both nodes, and
+  they both do, to see if the selection mechanism used by CPython can be used
+  to find which types ``+`` should be used.
 
 - Class for module import expression ``ExpressionImportModule``.
 

@@ -24,12 +24,20 @@ The classes are are at the core of the language and have their complexities.
 from nuitka.PythonVersions import python_version
 
 from .Checkers import checkStatementsSequenceOrNone
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
-from .IndicatorMixins import MarkLocalsDictIndicator
-from .NodeBases import ChildrenHavingMixin, ExpressionChildrenHavingBase
+from .IndicatorMixins import (
+    MarkLocalsDictIndicatorMixin,
+    MarkNeedsAnnotationsMixin
+)
 
 
-class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
+class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
+                          MarkNeedsAnnotationsMixin,
+                          ExpressionFunctionBodyBase):
+    # We really want these many ancestors, as per design, we add properties via
+    # base class mix-ins a lot, pylint: disable=R0901
+
     kind = "EXPRESSION_CLASS_BODY"
 
     named_children = (
@@ -55,7 +63,9 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
             source_ref  = source_ref
         )
 
-        MarkLocalsDictIndicator.__init__(self)
+        MarkNeedsAnnotationsMixin.__init__(self)
+
+        MarkLocalsDictIndicatorMixin.__init__(self)
 
         self.doc = doc
 
@@ -81,8 +91,6 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
             "flags"      : ','.join(sorted(self.flags))
         }
 
-        result["code_flags"] = ','.join(self.getSourceReference().getFutureSpec().asFlags())
-
         if self.doc is not None:
             result["doc"] = self.doc
 
@@ -96,8 +104,8 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
             **args
         )
 
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
+    getBody = ExpressionFunctionBodyBase.childGetter("body")
+    setBody = ExpressionFunctionBodyBase.childSetter("body")
 
     def getDoc(self):
         return self.doc
@@ -119,17 +127,9 @@ class ExpressionClassBody(ExpressionFunctionBodyBase, MarkLocalsDictIndicator):
                     variable_name = "__class__"
                 )
         else:
-            return self.provider.getVariableForClosure(
-                variable_name
-            )
-
-    def markAsNeedsAnnotationsDictionary(self):
-        """ For use during building only. Indicate "__annotations__" need. """
-        self.has_annotations = True
-
-    def needsAnnotationsDictionary(self):
-        """ For use during building only. Indicate "__annotations__" need. """
-        return self.has_annotations
+            result = self.provider.getVariableForClosure(variable_name)
+            self.taken.add(result)
+            return result
 
     def markAsDirectlyCalled(self):
         pass

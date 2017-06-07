@@ -34,32 +34,54 @@ from nuitka.utils import Execution, Utils
 
 
 def getSconsDataPath():
-    return Utils.dirname(__file__)
+    """ Return path to where data for scons lives, e.g. static C source files.
+
+    """
+
+    return os.path.dirname(__file__)
 
 
-def getSconsInlinePath():
-    return Utils.joinpath(getSconsDataPath(), "inline_copy")
+def _getSconsInlinePath():
+    """ Return path to inline copy of scons. """
+
+    return os.path.join(
+        getSconsDataPath(),
+        "inline_copy"
+    )
 
 
-def getSconsBinaryCall():
+def _getSconsBinaryCall():
     """ Return a way to execute Scons.
 
-        Using potentially in-line copy if no system Scons is available
-        or if we are on Windows.
+    Using potentially in-line copy if no system Scons is available
+    or if we are on Windows, there it is mandatory.
     """
     if Utils.getOS() != "Windows":
         scons_path = Execution.getExecutablePath("scons")
 
         if scons_path is not None:
-            return [scons_path]
+            return [
+                _getPython2ExePath(),
+                scons_path
+            ]
 
     return [
-        getPython2ExePath(),
-        Utils.joinpath(getSconsInlinePath(), "bin", "scons.py")
+        _getPython2ExePath(),
+        os.path.join(
+            _getSconsInlinePath(),
+            "bin",
+            "scons.py"
+        )
     ]
 
 
 def _getPython2ExePathWindows():
+    """ Find Python2 on Windows.
+
+    First try a few guesses, the look into registry for user or system wide
+    installations of Python2. Both Python 2.6 and 2.7 will do.
+    """
+
     # Shortcuts for the default installation directories, to avoid going to
     # registry at all unless necessary. Any Python2 will do for Scons, so it
     # might be avoided entirely.
@@ -69,7 +91,7 @@ def _getPython2ExePathWindows():
     elif os.path.isfile(r"c:\Python26\python.exe"):
         return r"c:\Python26\python.exe"
 
-    # Windows only code, pylint: disable=E0602,F0401,I0021
+    # Windows only code, pylint: disable=import-error,undefined-variable,useless-suppression
     try:
         import _winreg as winreg
     except ImportError:
@@ -86,7 +108,7 @@ def _getPython2ExePathWindows():
                         winreg.KEY_READ | arch_key
                     )
 
-                    return Utils.joinpath(
+                    return os.path.join(
                         winreg.QueryValue(key, ""),
                         "python.exe"
                     )
@@ -94,8 +116,11 @@ def _getPython2ExePathWindows():
                     pass
 
 
-def getPython2ExePath():
-    """ Find a way to call any Python2. Scons needs it."""
+def _getPython2ExePath():
+    """ Find a way to call any Python2.
+
+    Scons needs it as it doesn't support Python3.
+    """
     if python_version < 300:
         return sys.executable
     elif Utils.getOS() == "Windows":
@@ -123,16 +148,22 @@ scons which is not yet Python3 compatible.""")
 
     return candidate
 
+
 @contextlib.contextmanager
-def setupSconsEnvironment():
-    # For the scons file to find the static C++ files and include path. The
-    # scons file is unable to use __file__ for the task.
-    os.environ["NUITKA_SCONS"] = getSconsDataPath()
+def _setupSconsEnvironment():
+    """ Setup the scons execution environment.
+
+    For the scons inline copy on Windows needs to find the library, using
+    the "SCONS_LIB_DIR" environment variable "NUITKA_SCONS". And for the
+    target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
+    Python DLL lives, in case it needs to be copied, and then the
+    "NUITKA_PYTHON_EXE_PATH" to find the Python installation itself.
+    """
 
     if Utils.getOS() == "Windows":
         # On Windows this Scons variable must be set by us.
-        os.environ["SCONS_LIB_DIR"] = Utils.joinpath(
-            getSconsInlinePath(),
+        os.environ["SCONS_LIB_DIR"] = os.path.join(
+            _getSconsInlinePath(),
             "lib",
             "scons-2.3.2"
         )
@@ -172,8 +203,14 @@ def setupSconsEnvironment():
         del os.environ["NUITKA_PYTHON_EXE_PATH"]
 
 
-def buildSconsCommand(quiet, options):
-    scons_command = getSconsBinaryCall()
+def _buildSconsCommand(quiet, options):
+    """ Build the scons command to run.
+
+    The options are a dictionary to be passed to scons as a command line,
+    and other scons stuff is set.
+    """
+
+    scons_command = _getSconsBinaryCall()
 
     if quiet:
         scons_command.append("--quiet")
@@ -181,7 +218,10 @@ def buildSconsCommand(quiet, options):
     scons_command += [
         # The scons file
         "-f",
-        Utils.joinpath(getSconsDataPath(), "SingleExe.scons"),
+        os.path.join(
+            getSconsDataPath(),
+            "SingleExe.scons"
+        ),
 
         # Parallel compilation.
         "--jobs",
@@ -205,8 +245,8 @@ def buildSconsCommand(quiet, options):
 
 
 def runScons(options, quiet):
-    with setupSconsEnvironment():
-        scons_command = buildSconsCommand(quiet, options)
+    with _setupSconsEnvironment():
+        scons_command = _buildSconsCommand(quiet, options)
 
         if Options.isShowScons():
             Tracing.printLine("Scons command:", ' '.join(scons_command))

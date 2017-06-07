@@ -17,82 +17,24 @@
 #     limitations under the License.
 #
 
-from __future__ import print_function
+""" Launcher for OSC status checker tool.
 
-import csv
-import StringIO
-import subprocess
+"""
+
+import os
 import sys
 
-print("Querying openSUSE build service status of Nuitka packages.")
-
-osc_cmd = [
-    "osc",
-    "pr",
-    "-c",
-    "home:kayhayen"
-]
-
-process = subprocess.Popen(
-    args   = osc_cmd,
-    stdout = subprocess.PIPE,
-    stderr = subprocess.PIPE
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought be there.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+        )
+    )
 )
 
-stdout_osc, stderr_osc = process.communicate()
-exit_osc = process.returncode
-
-assert exit_osc == 0, stderr_osc
-
-# print(stdout_osc)
-
-csvfile = StringIO.StringIO(stdout_osc)
-osc_reader = csv.reader(csvfile, delimiter = ';')
-
-osc_reader = iter(osc_reader)
-
-bad = ("failed", "unresolvable", "broken", "blocked", "disabled")
-
-titles = osc_reader.next()[1:]
-
-# Nuitka (follow git master branch)
-row1 = osc_reader.next()
-# Nuitka-Unstable (follow git develop branch)
-row2 = osc_reader.next()
-
-problems = []
-
-for count, title in enumerate(titles):
-    status = row1[count+1]
-
-    # print(row1[0], title, ":", status)
-    # Ignore PowerPC builds for now, they seem to not even boot.
-    if "ppc" in title:
-        continue
-
-    if status in bad:
-        problems.append(
-            (row1[0], title, status)
-        )
-
-for count, title in enumerate(titles):
-    status = row2[count+1]
-
-    # print(row2[0], title, ":", status)
-    # Ignore PowerPC builds for now, they seem to not even boot.
-    if "ppc" in title:
-        continue
-
-    if status in bad:
-        problems.append(
-            (row2[0], title, status)
-        )
-
-if problems:
-    print("There are problems with:")
-    print('\n'.join("%s: %s (%s)" % problem for problem in problems))
-
-    sys.exit(1)
-else:
-    print("Looks good.")
-    sys.exit(0)
+from nuitka.tools.release.osc_check.__main__ import main # isort:skip
+main()

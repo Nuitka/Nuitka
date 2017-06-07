@@ -223,6 +223,8 @@ typedef long Py_hash_t;
 
 #include "nuitka/helpers.h"
 
+#include "nuitka/compiled_frame.h"
+
 #include "nuitka/compiled_cell.h"
 
 #include "nuitka/compiled_function.h"
@@ -234,10 +236,12 @@ extern PyObject *_sentinel_value;
 
 #include "nuitka/compiled_method.h"
 
-#include "nuitka/compiled_frame.h"
-
 #if PYTHON_VERSION >= 350
 #include "nuitka/compiled_coroutine.h"
+#endif
+
+#if PYTHON_VERSION >= 360
+#include "nuitka/compiled_asyncgen.h"
 #endif
 
 #endif

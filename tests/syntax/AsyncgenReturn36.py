@@ -15,4 +15,6 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-from err import CrasherModule16
+async def gen():
+   yield 1
+   return 2

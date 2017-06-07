@@ -53,7 +53,7 @@ class BuiltinParameterSpec(ParameterSpec):
     def isCompileTimeComputable(self, values):
         # By default, we make this dependent on the ability to compute the
         # arguments, which is of course a good start for most cases, so this
-        # is for overloads, pylint: disable=R0201
+        # is for overloads, pylint: disable=no-self-use
 
         for value in values:
             if value is not None and not value.isCompileTimeConstant():
@@ -63,7 +63,7 @@ class BuiltinParameterSpec(ParameterSpec):
 
     def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really
-        # fatal, pylint: disable=W0703
+        # fatal, pylint: disable=broad-except
 
         try:
             given_normal_args = given_values[:len(self.normal_args)]
@@ -113,7 +113,7 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
 
     def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really fatal,
-        # pylint: disable=W0703
+        # pylint: disable=broad-except
 
         try:
             if self.list_star_arg:
@@ -291,7 +291,7 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
 
     def isCompileTimeComputable(self, values):
         # For ranges, we need have many cases that can prevent the ability
-        # to pre-compute, pylint: disable=R0911,R0912
+        # to pre-compute, pylint: disable=too-many-branches,too-many-return-statements
 
         result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
             self,

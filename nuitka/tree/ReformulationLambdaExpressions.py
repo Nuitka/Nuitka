@@ -62,12 +62,11 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildLambdaNode(provider, node, source_ref):
-    # Many details to deal with, pylint: disable=R0914
+    # Many details to deal with
 
     assert getKind(node) == "Lambda"
 
-    function_kind, flags, _written_variables, _non_local_declarations, _global_declarations = \
-      detectFunctionBodyKind(
+    function_kind, flags = detectFunctionBodyKind(
         nodes = (node.body,)
     )
 

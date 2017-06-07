@@ -17,24 +17,23 @@
 #
 import sys, os
 
-# Find common code relative in file system. Not using packages for test stuff.
+# Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
+            "..",
             ".."
         )
     )
 )
-from test_common import (
+from nuitka.tools.testing.Common import (
     executeReferenceChecked,
-    my_print,
+    checkDebugPython
 )
 
-if not hasattr(sys, "gettotalrefcount"):
-    my_print("Warning, using non-debug Python makes this test ineffective.")
-    sys.gettotalrefcount = lambda : 0
+checkDebugPython()
 
 
 def simpleFunction1():

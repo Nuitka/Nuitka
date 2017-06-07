@@ -26,7 +26,7 @@ good.
 
 from nuitka.optimizations import BuiltinOptimization
 
-from .NodeBases import ExpressionBuiltinSingleArgBase
+from .ExpressionBases import ExpressionBuiltinSingleArgBase
 from .shapes.BuiltinTypeShapes import ShapeTypeIntOrLong
 
 

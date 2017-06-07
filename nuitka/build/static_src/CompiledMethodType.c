@@ -18,7 +18,7 @@
 
 #include "nuitka/prelude.h"
 
-#include "nuitka/compiled_method.h"
+#include "nuitka/freelists.h"
 
 #include "structmember.h"
 
@@ -97,8 +97,6 @@ static PyObject *Nuitka_Method_deepcopy( struct Nuitka_MethodObject *method, PyO
 
     return Nuitka_Method_New( method->m_function, object, method->m_class );
 }
-
-
 
 static PyMethodDef Nuitka_Method_methods[] =
 {
@@ -494,10 +492,9 @@ static long Nuitka_Method_tp_hash( struct Nuitka_MethodObject *method )
     return method->m_function->m_counter;
 }
 
-// Cache for method object, try to avoid malloc overhead.
-static struct Nuitka_MethodObject *method_cache_head = NULL;
-static int method_cache_size = 0;
-static const int max_method_cache_size = 4096;
+#define MAX_METHOD_FREE_LIST_COUNT 100
+static struct Nuitka_MethodObject *free_list_methods = NULL;
+static int free_list_methods_count = 0;
 
 static void Nuitka_Method_tp_dealloc( struct Nuitka_MethodObject *method )
 {
@@ -521,15 +518,12 @@ static void Nuitka_Method_tp_dealloc( struct Nuitka_MethodObject *method )
 
     Py_DECREF( (PyObject *)method->m_function );
 
-    if (likely( method_cache_size < max_method_cache_size ))
-    {
-        method->m_object = (PyObject *)method_cache_head;
-        method_cache_head = method;
-        method_cache_size += 1;
-    }
-    else {
-        PyObject_GC_Del( method );
-    }
+    /* Put the object into freelist or release to GC */
+    releaseToFreeList(
+        free_list_methods,
+        method,
+        MAX_METHOD_FREE_LIST_COUNT
+    );
 
 #ifndef __NUITKA_NO_ASSERT__
     PyThreadState *tstate = PyThreadState_GET();
@@ -648,20 +642,13 @@ void _initCompiledMethodType( void )
 
 PyObject *Nuitka_Method_New( struct Nuitka_FunctionObject *function, PyObject *object, PyObject *klass )
 {
-    struct Nuitka_MethodObject *result = method_cache_head;
+    struct Nuitka_MethodObject *result;
 
-    if ( result != NULL )
-    {
-        method_cache_head = (struct Nuitka_MethodObject *)method_cache_head->m_object;
-        method_cache_size -= 1;
-
-        Py_TYPE( result ) = &Nuitka_Method_Type;
-        _Py_NewReference( (PyObject *)result );
-    }
-    else
-    {
-        result = PyObject_GC_New(struct Nuitka_MethodObject, &Nuitka_Method_Type);
-    }
+    allocateFromFreeListFixed(
+        free_list_methods,
+        struct Nuitka_MethodObject,
+        Nuitka_Method_Type
+    );
 
     if (unlikely( result == NULL ))
     {

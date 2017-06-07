@@ -110,10 +110,10 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         return self.getAssignSource().mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        # This is very complex stuff, pylint: disable=R0911,R0912
+        # This is very complex stuff, pylint: disable=too-many-branches,too-many-return-statements
 
         # TODO: Way too ugly to have global trace kinds just here, and needs to
-        # be abstracted somehow. But for now we let it live here: pylint: disable=R0915
+        # be abstracted somehow. But for now we let it live here: pylint: disable=too-many-statements
 
         source = self.getAssignSource()
 
@@ -454,7 +454,10 @@ class StatementReleaseVariable(NodeBase):
         Typical code: Function exit, try/finally release of temporary
         variables.
     """
+
     kind = "STATEMENT_RELEASE_VARIABLE"
+
+    __slots__ = "variable", "variable_trace"
 
     def __init__(self, variable, source_ref):
         assert variable is not None, source_ref
@@ -499,6 +502,9 @@ class StatementReleaseVariable(NodeBase):
     def getVariable(self):
         return self.variable
 
+    def getVariableVersion(self):
+        return self.variable_trace.getVersion()
+
     def setVariable(self, variable):
         self.variable = variable
 
@@ -538,6 +544,8 @@ class StatementReleaseVariable(NodeBase):
 
 class ExpressionTargetVariableRef(ExpressionVariableRef):
     kind = "EXPRESSION_TARGET_VARIABLE_REF"
+
+    __slots__ = "variable_version",
 
     # TODO: Remove default and correct argument order later.
     def __init__(self, variable_name, source_ref, variable = None, version = None):
@@ -599,6 +607,8 @@ class ExpressionTargetVariableRef(ExpressionVariableRef):
 
 class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
     kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
+
+    __slots__ = "variable_version",
 
     def __init__(self, variable, source_ref, version = None):
         ExpressionTempVariableRef.__init__(self, variable, source_ref)

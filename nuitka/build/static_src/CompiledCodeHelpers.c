@@ -42,13 +42,17 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     // case this should just return it.
     if ( PyCode_Check( source_code ) )
     {
-        return INCREASE_REFCOUNT( source_code );
+        Py_INCREF( source_code );
+        return source_code;
     }
 
     PyObject *pos_args = PyTuple_New(3);
-    PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( source_code ) );
-    PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( file_name ) );
-    PyTuple_SET_ITEM( pos_args, 2, INCREASE_REFCOUNT( mode ) );
+    PyTuple_SET_ITEM( pos_args, 0, source_code );
+    Py_INCREF( source_code );
+    PyTuple_SET_ITEM( pos_args, 1, file_name );
+    Py_INCREF( file_name );
+    PyTuple_SET_ITEM( pos_args, 2, mode );
+    Py_INCREF( mode );
 
     PyObject *kw_args = NULL;
 
@@ -440,8 +444,10 @@ PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
     }
 
     // Note: References were taken at call site already.
-    result->it_callable = INCREASE_REFCOUNT( callable );
-    result->it_sentinel = INCREASE_REFCOUNT( sentinel );
+    result->it_callable = callable;
+    Py_INCREF( callable );
+    result->it_sentinel = sentinel;
+    Py_INCREF( sentinel );
 
     Nuitka_GC_Track( result );
 
@@ -450,7 +456,10 @@ PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
 
 PyObject *BUILTIN_TYPE1( PyObject *arg )
 {
-    return INCREASE_REFCOUNT( (PyObject *)Py_TYPE( arg ) );
+    PyObject *result = (PyObject *)Py_TYPE( arg );
+
+    Py_INCREF( result );
+    return result;
 }
 
 extern PyObject *const_str_plain___module__;
@@ -458,9 +467,12 @@ extern PyObject *const_str_plain___module__;
 PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
 {
     PyObject *pos_args = PyTuple_New(3);
-    PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( name ) );
-    PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( bases ) );
-    PyTuple_SET_ITEM( pos_args, 2, INCREASE_REFCOUNT( dict ) );
+    PyTuple_SET_ITEM( pos_args, 0, name );
+    Py_INCREF( name );
+    PyTuple_SET_ITEM( pos_args, 1, bases );
+    Py_INCREF( bases );
+    PyTuple_SET_ITEM( pos_args, 2, dict );
+    Py_INCREF( dict );
 
     PyObject *result = PyType_Type.tp_new(
         &PyType_Type,
@@ -564,7 +576,8 @@ static PyObject *TO_RANGE_ARG( PyObject *value, char const *name )
 {
     if (likely( PyInt_Check( value ) || PyLong_Check( value ) ))
     {
-        return INCREASE_REFCOUNT( value );
+        Py_INCREF( value );
+        return value;
     }
 
     PyTypeObject *type = Py_TYPE( value );
@@ -1174,7 +1187,145 @@ PyObject *BUILTIN_FORMAT( PyObject *value, PyObject *format_spec )
 
 NUITKA_DEFINE_BUILTIN( __import__ );
 
-PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
+extern PyObject *const_str_plain_name;
+extern PyObject *const_str_plain_globals;
+extern PyObject *const_str_plain_locals;
+extern PyObject *const_str_plain_fromlist;
+extern PyObject *const_str_plain_level;
+
+PyObject *IMPORT_MODULE_KW( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
+{
+    if (module_name)
+    if (globals) CHECK_OBJECT( globals );
+    if (locals) CHECK_OBJECT( locals );
+    if (import_items) CHECK_OBJECT( import_items );
+    if (level) CHECK_OBJECT( level );
+
+    PyObject *kw_args = PyDict_New();
+    if ( module_name )
+    {
+        CHECK_OBJECT( module_name );
+        PyDict_SetItem( kw_args, const_str_plain_name, module_name );
+    }
+    if ( globals )
+    {
+        CHECK_OBJECT( globals );
+        PyDict_SetItem( kw_args, const_str_plain_globals, globals );
+    }
+    if ( locals )
+    {
+        CHECK_OBJECT( locals );
+        PyDict_SetItem( kw_args, const_str_plain_locals, locals );
+    }
+    if ( import_items )
+    {
+        CHECK_OBJECT( import_items );
+        PyDict_SetItem( kw_args, const_str_plain_fromlist, import_items );
+    }
+    if ( level )
+    {
+        CHECK_OBJECT( level );
+        PyDict_SetItem( kw_args, const_str_plain_level, level );
+    }
+    NUITKA_ASSIGN_BUILTIN( __import__ );
+
+    PyObject *import_result = CALL_FUNCTION_WITH_KEYARGS(
+        NUITKA_ACCESS_BUILTIN( __import__ ),
+        kw_args
+    );
+
+    Py_DECREF( kw_args );
+
+    return import_result;
+}
+
+PyObject *IMPORT_MODULE1( PyObject *module_name )
+{
+    CHECK_OBJECT( module_name );
+
+    PyObject *pos_args[] = {
+        module_name
+    };
+
+    NUITKA_ASSIGN_BUILTIN( __import__ );
+
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS1(
+        NUITKA_ACCESS_BUILTIN( __import__ ),
+        pos_args
+    );
+
+    return import_result;
+}
+
+PyObject *IMPORT_MODULE2( PyObject *module_name, PyObject *globals )
+{
+    CHECK_OBJECT( module_name );
+    CHECK_OBJECT( globals );
+
+    PyObject *pos_args[] = {
+        module_name,
+        globals
+    };
+
+    NUITKA_ASSIGN_BUILTIN( __import__ );
+
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS2(
+        NUITKA_ACCESS_BUILTIN( __import__ ),
+        pos_args
+    );
+
+    return import_result;
+}
+
+
+PyObject *IMPORT_MODULE3( PyObject *module_name, PyObject *globals, PyObject *locals )
+{
+    CHECK_OBJECT( module_name );
+    CHECK_OBJECT( globals );
+    CHECK_OBJECT( locals );
+
+    PyObject *pos_args[] = {
+        module_name,
+        globals,
+        locals
+    };
+
+    NUITKA_ASSIGN_BUILTIN( __import__ );
+
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS3(
+        NUITKA_ACCESS_BUILTIN( __import__ ),
+        pos_args
+    );
+
+    return import_result;
+}
+
+
+PyObject *IMPORT_MODULE4( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items )
+{
+    CHECK_OBJECT( module_name );
+    CHECK_OBJECT( globals );
+    CHECK_OBJECT( locals );
+    CHECK_OBJECT( import_items );
+
+    PyObject *pos_args[] = {
+        module_name,
+        globals,
+        locals,
+        import_items
+    };
+
+    NUITKA_ASSIGN_BUILTIN( __import__ );
+
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS4(
+        NUITKA_ACCESS_BUILTIN( __import__ ),
+        pos_args
+    );
+
+    return import_result;
+}
+
+PyObject *IMPORT_MODULE5( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level )
 {
     CHECK_OBJECT( module_name );
     CHECK_OBJECT( globals );
@@ -1182,21 +1333,20 @@ PyObject *IMPORT_MODULE( PyObject *module_name, PyObject *globals, PyObject *loc
     CHECK_OBJECT( import_items );
     CHECK_OBJECT( level );
 
-    PyObject *pos_args = PyTuple_New(5);
-    PyTuple_SET_ITEM( pos_args, 0, INCREASE_REFCOUNT( module_name ) );
-    PyTuple_SET_ITEM( pos_args, 1, INCREASE_REFCOUNT( globals ) );
-    PyTuple_SET_ITEM( pos_args, 2, INCREASE_REFCOUNT( locals ) );
-    PyTuple_SET_ITEM( pos_args, 3, INCREASE_REFCOUNT( import_items ) );
-    PyTuple_SET_ITEM( pos_args, 4, INCREASE_REFCOUNT( level ) );
+    PyObject *pos_args[] = {
+        module_name,
+        globals,
+        locals,
+        import_items,
+        level
+    };
 
     NUITKA_ASSIGN_BUILTIN( __import__ );
 
-    PyObject *import_result = CALL_FUNCTION_WITH_POSARGS(
+    PyObject *import_result = CALL_FUNCTION_WITH_ARGS5(
         NUITKA_ACCESS_BUILTIN( __import__ ),
         pos_args
     );
-
-    Py_DECREF( pos_args );
 
     return import_result;
 }
@@ -1245,10 +1395,21 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
         PyObject *item = ITERATOR_NEXT( iter );
         if ( item == NULL ) break;
 
-        assert( Nuitka_String_Check( item ) );
+#if PYTHON_VERSION < 300
+        if (unlikely( PyString_Check( item ) == false && PyUnicode_Check( item ) == false ))
+#else
+        if (unlikely( PyUnicode_Check( item ) == false ))
+#endif
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "attribute name must be string, not '%s'",
+                Py_TYPE( item )->tp_name
+            );
+            break;
+        }
 
-        // TODO: Not yet clear, what happens with __all__ and "_" of its
-        // contents.
+        // When we are not using the "__all__", we should skip private variables.
         if ( all_case == false )
         {
             if ( Nuitka_String_AsString_Unchecked( item )[0] == '_' )
@@ -1257,8 +1418,14 @@ bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module )
             }
         }
 
-        // TODO: What if it isn't there, because of e.g. wrong __all__ value.
         PyObject *value = LOOKUP_ATTRIBUTE( module, item );
+
+        // Might not exist, because of e.g. wrong "__all__" value.
+        if (unlikely( value == NULL ))
+        {
+            Py_DECREF( item );
+            break;
+        }
 
         // TODO: Check if the reference is handled correctly
         if ( is_module )
@@ -1317,29 +1484,37 @@ bool PRINT_NEW_LINE_TO( PyObject *file )
 #else
     NUITKA_ASSIGN_BUILTIN( print );
 
+    PyObject *exception_type, *exception_value;
+    PyTracebackObject *exception_tb;
+
+    FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
+
+    PyObject *result;
+
     if (likely( file == NULL ))
     {
-        PyObject *result = CALL_FUNCTION_NO_ARGS(
+        result = CALL_FUNCTION_NO_ARGS(
             NUITKA_ACCESS_BUILTIN( print )
         );
-        Py_XDECREF( result );
-        return result != NULL;
     }
     else
     {
         PyObject *kw_args = PyDict_New();
         PyDict_SetItem( kw_args, const_str_plain_file, GET_STDOUT() );
 
-        PyObject *result = CALL_FUNCTION_WITH_KEYARGS(
+        result = CALL_FUNCTION_WITH_KEYARGS(
             NUITKA_ACCESS_BUILTIN( print ),
             kw_args
         );
 
         Py_DECREF( kw_args );
-        Py_XDECREF( result );
-
-        return result != NULL;
     }
+
+    Py_XDECREF( result );
+
+    RESTORE_ERROR_OCCURRED_UNTRACED( exception_type, exception_value, exception_tb );
+
+    return result != NULL;
 #endif
 }
 
@@ -1415,18 +1590,21 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
 #else
     NUITKA_ASSIGN_BUILTIN( print );
 
+    PyObject *exception_type, *exception_value;
+    PyTracebackObject *exception_tb;
+
+    FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
+
+    PyObject *result;
+
     if (likely( file == NULL ))
     {
         PyObject *args[] = { object };
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS1(
+        result = CALL_FUNCTION_WITH_ARGS1(
             NUITKA_ACCESS_BUILTIN( print ),
             args
         );
-
-        Py_XDECREF( result );
-
-        return result != NULL;
     }
     else
     {
@@ -1435,9 +1613,10 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
         PyDict_SetItem( print_kw, const_str_plain_file, GET_STDOUT() );
 
         PyObject *print_args = PyTuple_New( 1 );
-        PyTuple_SET_ITEM( print_args, 0, INCREASE_REFCOUNT( object ) );
+        PyTuple_SET_ITEM( print_args, 0, object );
+        Py_INCREF( object );
 
-        PyObject *res = CALL_FUNCTION(
+        result = CALL_FUNCTION(
             NUITKA_ACCESS_BUILTIN( print ),
             print_args,
             print_kw
@@ -1445,11 +1624,13 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
 
         Py_DECREF( print_args );
         Py_DECREF( print_kw );
-
-        Py_XDECREF( res );
-
-        return res != NULL;
     }
+
+    Py_XDECREF( result );
+
+    RESTORE_ERROR_OCCURRED_UNTRACED( exception_type, exception_value, exception_tb );
+
+    return result != NULL;
 #endif
 }
 
@@ -1470,11 +1651,21 @@ bool PRINT_STRING( char const *str )
 
 bool PRINT_REPR( PyObject *object )
 {
+    PyObject *exception_type, *exception_value;
+    PyTracebackObject *exception_tb;
+
+    FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
+
     bool res;
 
     if ( object != NULL )
     {
+        CHECK_OBJECT( object );
+
+        // Cannot have error set for this function, it asserts against that
+        // in debug builds.
         PyObject *repr = PyObject_Repr( object );
+
         res = PRINT_ITEM( repr );
         Py_DECREF( repr );
     }
@@ -1482,6 +1673,8 @@ bool PRINT_REPR( PyObject *object )
     {
         res = PRINT_NULL();
     }
+
+    RESTORE_ERROR_OCCURRED_UNTRACED( exception_type, exception_value, exception_tb );
 
     return res;
 }
@@ -1507,6 +1700,14 @@ void PRINT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyObj
     PRINT_REPR( exception_tb );
 
     PRINT_NEW_LINE();
+}
+
+void PRINT_CURRENT_EXCEPTION( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PRINT_EXCEPTION( tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback );
+
 }
 
 // TODO: Could be ported, the "printf" stuff would need to be split. On Python3
@@ -1921,15 +2122,26 @@ static PyObject *nuitka_class_getattr( PyClassObject *klass, PyObject *attr_name
     {
         if ( strcmp( sattr_name, "__dict__" ) == 0 )
         {
-            return INCREASE_REFCOUNT( klass->cl_dict );
+            Py_INCREF( klass->cl_dict );
+            return klass->cl_dict;
         }
         else if ( strcmp(sattr_name, "__bases__" ) == 0 )
         {
-            return INCREASE_REFCOUNT( klass->cl_bases );
+            Py_INCREF( klass->cl_bases );
+            return klass->cl_bases;
         }
         else if ( strcmp(sattr_name, "__name__" ) == 0 )
         {
-            return klass->cl_name ? INCREASE_REFCOUNT( klass->cl_name ) : INCREASE_REFCOUNT( Py_None );
+            if ( klass->cl_name == NULL )
+            {
+                Py_INCREF( Py_None );
+                return Py_None;
+            }
+            else
+            {
+                Py_INCREF( klass->cl_name );
+                return klass->cl_name;
+            }
         }
     }
 
@@ -1947,7 +2159,8 @@ static PyObject *nuitka_class_getattr( PyClassObject *klass, PyObject *attr_name
 
     if ( tp_descr_get == NULL )
     {
-        return INCREASE_REFCOUNT( value );
+        Py_INCREF( value );
+        return value;
     }
     else
     {
@@ -2082,18 +2295,22 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
         return NULL;
     }
 
-    result->type = (PyTypeObject *)INCREASE_REFCOUNT( type );
+    result->type = (PyTypeObject *)type;
+    Py_INCREF( type );
     if ( object )
     {
-        result->obj = INCREASE_REFCOUNT( object );
+        result->obj = object;
+        Py_INCREF( object );
 
         if ( PyType_Check( object ) && PyType_IsSubtype( (PyTypeObject *)object, (PyTypeObject *)type ))
         {
-            result->obj_type = (PyTypeObject *)INCREASE_REFCOUNT( object );
+            result->obj_type = (PyTypeObject *)object;
+            Py_INCREF( object );
         }
         else if ( PyType_IsSubtype( Py_TYPE(object ), (PyTypeObject *)type) )
         {
-            result->obj_type = (PyTypeObject *)INCREASE_REFCOUNT( (PyObject *)Py_TYPE( object ) );
+            result->obj_type = Py_TYPE( object );
+            Py_INCREF( result->obj_type );
         }
         else
         {
@@ -2275,7 +2492,8 @@ PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *defa
         {
             CLEAR_ERROR_OCCURRED();
 
-            return INCREASE_REFCOUNT( default_value );
+            Py_INCREF( default_value );
+            return default_value;
         }
         else
         {
@@ -3779,8 +3997,9 @@ void _initSlotIternext()
     PyTuple_SET_ITEM(
         pos_args,
         0,
-        INCREASE_REFCOUNT( (PyObject *)&PyBaseObject_Type )
+        (PyObject *)&PyBaseObject_Type
     );
+    Py_INCREF( &PyBaseObject_Type );
 
     PyObject *kw_args = PyDict_New();
     PyDict_SetItem( kw_args, const_str_plain___iter__, Py_True );
@@ -3827,8 +4046,9 @@ void _initSlotCompare()
     PyTuple_SET_ITEM(
         pos_args,
         0,
-        INCREASE_REFCOUNT( (PyObject *)&PyInt_Type )
+        (PyObject *)&PyInt_Type
     );
+    Py_INCREF( &PyInt_Type );
 
     // Use "__cmp__" with true value, won't matter.
     PyObject *kw_args = PyDict_New();
@@ -3965,6 +4185,8 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
     CHECK_OBJECT( a );
     CHECK_OBJECT( b );
 
+    PyObject *result;
+
     // TODO: Type a-ware rich comparison would be really nice, but this is what
     // CPython does, and should be even in "richcomparisons.h" as the first
     // thing, so it's even cheaper.
@@ -3990,7 +4212,10 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
             case Py_GE: res = aa >= bb; break;
             default: assert( false );
         }
-        return INCREASE_REFCOUNT( BOOL_FROM( res ) );
+
+        result = BOOL_FROM( res );
+        Py_INCREF( result );
+        return result;
     }
 
     // TODO: Get hint from recursion control if that's needed.
@@ -3998,8 +4223,6 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
     {
         return NULL;
     }
-
-    PyObject *result;
 
     // If the types are equal, we may get away immediately.
     if ( a->ob_type == b->ob_type && !PyInstance_Check( a ) )
@@ -4043,7 +4266,9 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
                 case Py_GE: c = c >= 0; break;
             }
 
-            return INCREASE_REFCOUNT( BOOL_FROM( c != 0 ) );
+            result = BOOL_FROM( c != 0 );
+            Py_INCREF( result );
+            return result;
         }
     }
 
@@ -4191,7 +4416,9 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
         case Py_GE: c = c >= 0; break;
     }
 
-    return INCREASE_REFCOUNT( BOOL_FROM( c != 0 ) );
+    result = BOOL_FROM( c != 0 );
+    Py_INCREF( result );
+    return result;
 }
 
 PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
@@ -4224,7 +4451,10 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
             case Py_GE: res = aa >= bb; break;
             default: assert( false );
         }
-        return INCREASE_REFCOUNT( BOOL_FROM( res ) );
+
+        PyObject *result = BOOL_FROM( res );
+        Py_INCREF( result );
+        return result;
     }
 
     PyObject *result;
@@ -4268,7 +4498,9 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
                 case Py_GE: c = c >= 0; break;
             }
 
-            return INCREASE_REFCOUNT( BOOL_FROM( c != 0 ) );
+            result = BOOL_FROM( c != 0 );
+            Py_INCREF( result );
+            return result;
         }
     }
 
@@ -4411,7 +4643,9 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
         case Py_GE: c = c >= 0; break;
     }
 
-    return INCREASE_REFCOUNT( BOOL_FROM( c != 0 ) );
+    result = BOOL_FROM( c != 0 );
+    Py_INCREF( result );
+    return result;
 }
 
 #else
@@ -4515,11 +4749,15 @@ PyObject *MY_RICHCOMPARE( PyObject *a, PyObject *b, int op )
     // otherwise give an error
     if ( op == Py_EQ )
     {
-        return INCREASE_REFCOUNT( BOOL_FROM( a == b ) );
+        result = BOOL_FROM( a == b );
+        Py_INCREF( result );
+        return result;
     }
     else if ( op == Py_NE )
     {
-        return INCREASE_REFCOUNT( BOOL_FROM( a != b ) );
+        result = BOOL_FROM( a != b );
+        Py_INCREF( result );
+        return result;
     }
     else
     {
@@ -4627,11 +4865,15 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
     // otherwise give an error
     if ( op == Py_EQ )
     {
-        return INCREASE_REFCOUNT( BOOL_FROM( a == b ) );
+        result = BOOL_FROM( a == b );
+        Py_INCREF( result );
+        return result;
     }
     else if ( op == Py_NE )
     {
-        return INCREASE_REFCOUNT( BOOL_FROM( a != b ) );
+        result = BOOL_FROM( a != b );
+        Py_INCREF( result );
+        return result;
     }
     else
     {
@@ -4819,7 +5061,8 @@ PyObject *DEEP_COPY( PyObject *value )
         value == Py_Ellipsis
         )
     {
-        return INCREASE_REFCOUNT( value );
+        Py_INCREF( value );
+        return value;
     }
     else
     {
@@ -5153,7 +5396,7 @@ void stopProfiling( void )
         PyObject_GetAttrString( vmprof_module, "disable")
     );
 
-    if ( result == NULL ) PyErr_Clear();
+    if ( result == NULL ) CLEAR_ERROR_OCCURRED();
 
     fclose( tempfile_profile );
 

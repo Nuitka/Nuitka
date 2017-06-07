@@ -18,9 +18,27 @@
 #
 
 import os
+import sys
+
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought be there.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+        )
+    )
+)
+
 import shutil
 import subprocess
 from optparse import OptionParser
+
+from nuitka.tools.release.Release import checkAtHome, checkBranchName
+from nuitka.tools.release.Debian import checkChangeLog
+from nuitka.tools.release.Documentation import createReleaseDocumentation
 
 parser = OptionParser()
 
@@ -34,90 +52,36 @@ When given, use this as the source for the Debian package instead. Default \
 %default."""
 )
 
-parser.add_option(
-    "--no-branch-check",
-    action  = "store_true",
-    dest    = "no_branch_check",
-    default = False,
-    help    = """\
-Do not check the git branch. Default %default."""
-)
-
-
 options, positional_args = parser.parse_args()
 
 assert not positional_args, positional_args
 
-def checkAtHome():
-    assert os.path.isfile("setup.py")
-
-    if os.path.isdir(".git"):
-        git_dir = ".git"
-    else:
-        git_dir = open(".git")
-
-        with open(".git") as f:
-            line = f.readline().strip()
-
-            assert line.startswith("gitdir:")
-
-            git_dir = line[ 8:]
-
-    git_description_filename = os.path.join(git_dir, "description")
-
-    assert open(git_description_filename).read().strip() == "Nuitka Staging"
-
 checkAtHome()
 
-nuitka_version = subprocess.check_output(
-    "./bin/nuitka --version", shell = True
-).strip()
+from nuitka.Version import getNuitkaVersion
+nuitka_version = getNuitkaVersion()
 
-branch_name = subprocess.check_output(
-    "git symbolic-ref --short HEAD".split()
-).strip()
+branch_name = checkBranchName()
 
-assert options.no_branch_check or branch_name in (
-    b"master",
-    b"develop",
-    b"release/" + nuitka_version,
-    b"hotfix/" + nuitka_version
-), branch_name
-
-def checkDebianChangeLog(message):
-    for line in open("debian/changelog"):
-        if line.startswith(" --"):
-            return False
-
-        if message in line:
-            return True
-    else:
-        assert False, message # No new messages.
-
-def checkNuitkaChangelog():
-    first_line = open("Changelog.rst").readline()
-
-    if "(Draft)" in first_line:
-        return "draft"
-    else:
-        return "final"
+from nuitka.tools.release.Release import checkNuitkaChangelog
 
 if branch_name.startswith("release") or \
    branch_name == "master" or \
    branch_name.startswith("hotfix/"):
     if nuitka_version.count('.') == 2:
-        assert checkDebianChangeLog("New upstream release.")
+        assert checkChangeLog("New upstream release.")
     else:
-        assert checkDebianChangeLog("New upstream hotfix release.")
+        assert checkChangeLog("New upstream hotfix release.")
 
     assert checkNuitkaChangelog() == "final", checkNuitkaChangelog()
 else:
-    assert checkDebianChangeLog("New upstream pre-release."), branch_name
+    assert checkChangeLog("New upstream pre-release."), branch_name
     assert checkNuitkaChangelog() == "draft", checkNuitkaChangelog()
 
 shutil.rmtree("dist", ignore_errors = True)
 shutil.rmtree("build", ignore_errors = True)
 
+createReleaseDocumentation()
 assert 0 == os.system("python setup.py sdist --formats=bztar,gztar,zip")
 
 os.chdir("dist")
@@ -145,7 +109,7 @@ for filename in os.listdir('.'):
         assert 0 == os.system("gunzip " + new_name)
         assert 0 == os.system(
             "tar --wildcards --delete --file " + new_name[:-3] + \
-            " Nuitka*/tests/benchmarks Nuitka*/*.pdf" + \
+            " Nuitka*/*.pdf" + \
             " Nuitka*/build/inline_copy" + \
             " Nuitka*/Nuitka.egg-info"
         )

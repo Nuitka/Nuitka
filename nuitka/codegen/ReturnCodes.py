@@ -62,7 +62,7 @@ def generateReturnCode(statement, emit, context):
 
 
 def generateReturnedValueRefCode(to_name, expression, emit, context):
-    # We don't need the expression, pylint: disable=W0613
+    # We don't need the expression, pylint: disable=unused-argument
 
     return_value_name = context.getReturnValueName()
 
@@ -75,7 +75,9 @@ def generateReturnedValueRefCode(to_name, expression, emit, context):
 
 
 def generateGeneratorReturnCode(statement, emit, context):
-    if python_version >= 330:
+    if context.getOwner().isExpressionAsyncgenObjectBody():
+        pass
+    elif python_version >= 330:
         return_value_name = context.getGeneratorReturnValueName()
 
         expression = statement.getExpression()

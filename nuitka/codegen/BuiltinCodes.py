@@ -49,7 +49,7 @@ def generateBuiltinRefCode(to_name, expression, emit, context):
 
 def generateBuiltinAnonymousRefCode(to_name, expression, emit, context):
     # Functions used for generation all accept context, but this one does
-    # not use it. pylint: disable=W0613
+    # not use it. pylint: disable=unused-argument
     builtin_name = expression.getBuiltinName()
 
     emit(

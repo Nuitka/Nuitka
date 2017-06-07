@@ -22,15 +22,16 @@ MacOS, Windows, and Linux. Patches for other platforms are
 very welcome.
 """
 
+import marshal
 import os
 import shutil
 import subprocess
 import sys
 from logging import debug, info, warning
 
-import marshal
 from nuitka import Options, SourceCodeReferences, Tracing
 from nuitka.__past__ import iterItems
+from nuitka.containers.odict import OrderedDict
 from nuitka.importing import ImportCache
 from nuitka.importing.StandardLibrary import (
     getStandardLibraryPaths,
@@ -44,6 +45,13 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
+from nuitka.utils.Execution import withEnvironmentPathAdded
+from nuitka.utils.FileOperations import (
+    areSamePaths,
+    deleteFile,
+    getSubDirectories,
+    listDir
+)
 
 from .DependsExe import getDependsExePath
 
@@ -59,7 +67,7 @@ module_names = set()
 def _detectedPrecompiledFile(filename, module_name, result, user_provided,
                              technical):
     if filename.endswith(".pyc"):
-        if Utils.isFile(filename[:-1]):
+        if os.path.isfile(filename[:-1]):
             return _detectedSourceFile(
                 filename      = filename[:-1],
                 module_name   = module_name,
@@ -115,8 +123,20 @@ def _detectedSourceFile(filename, module_name, result, user_provided, technical)
         source_code = """\
 __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__builtins__ ) else '<frozen>';%s""" % (
             os.path.sep,
-            Utils.basename(filename),
+            os.path.basename(filename),
             source_code
+        )
+
+        # Debian stretch site.py
+        source_code = source_code.replace(
+            "PREFIXES = [sys.prefix, sys.exec_prefix]",
+            "PREFIXES = []"
+        )
+
+        # Anaconda3 4.1.2 site.py
+        source_code = source_code.replace(
+            "def main():",
+            "def main():return\n\nif 0:\n def _unused():",
         )
 
     debug(
@@ -125,7 +145,7 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
         filename
     )
 
-    is_package = Utils.basename(filename) == "__init__.py"
+    is_package = os.path.basename(filename) == "__init__.py"
     source_code = Plugins.onFrozenModuleSourceCode(
         module_name = module_name,
         is_package  = is_package,
@@ -191,7 +211,7 @@ def _detectedShlibFile(filename, module_name):
 
 def _detectImports(command, user_provided, technical):
     # This is pretty complicated stuff, with variants to deal with.
-    # pylint: disable=R0912,R0914,R0915
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # Print statements for stuff to show, the modules loaded.
     if python_version >= 300:
@@ -203,13 +223,13 @@ def _detectImports(command, user_provided, technical):
         path_element
         for path_element in
         sys.path
-        if not Utils.areSamePaths(
+        if not areSamePaths(
             path_element,
             '.'
         )
-        if not Utils.areSamePaths(
+        if not areSamePaths(
             path_element,
-            Utils.dirname(sys.modules["__main__"].__file__)
+            os.path.dirname(sys.modules["__main__"].__file__)
         )
     ]
 
@@ -246,6 +266,8 @@ def _detectImports(command, user_provided, technical):
 
     debug("Detecting imports:")
 
+    detections = []
+
     for line in stderr.replace(b"\r", b"").split(b"\n"):
         if line.startswith(b"import "):
             # print(line)
@@ -269,12 +291,8 @@ def _detectImports(command, user_provided, technical):
                 if not isStandardLibraryPath(filename):
                     continue
 
-                _detectedPrecompiledFile(
-                    filename      = filename,
-                    module_name   = module_name,
-                    result        = result,
-                    user_provided = user_provided,
-                    technical     = technical
+                detections.append(
+                    (module_name, 3, "precompiled", filename)
                 )
             elif origin == b"sourcefile":
                 filename = parts[1][len(b"sourcefile "):]
@@ -286,12 +304,8 @@ def _detectImports(command, user_provided, technical):
                     continue
 
                 if filename.endswith(".py"):
-                    _detectedSourceFile(
-                        filename      = filename,
-                        module_name   = module_name,
-                        result        = result,
-                        user_provided = user_provided,
-                        technical     = technical
+                    detections.append(
+                        (module_name, 2, "sourcefile", filename)
                     )
                 elif not filename.endswith("<frozen>"):
                     # Python3 started lying in "__name__" for the "_decimal"
@@ -301,9 +315,8 @@ def _detectImports(command, user_provided, technical):
                         if module_name == "decimal":
                             module_name = "_decimal"
 
-                    _detectedShlibFile(
-                        filename    = filename,
-                        module_name = module_name
+                    detections.append(
+                        (module_name, 2, "shlib", filename)
                     )
             elif origin == b"dynamically":
                 # Shared library in early load, happens on RPM based systems and
@@ -316,10 +329,34 @@ def _detectImports(command, user_provided, technical):
                 if not isStandardLibraryPath(filename):
                     continue
 
-                _detectedShlibFile(
-                    filename    = filename,
-                    module_name = module_name
+                detections.append(
+                    (module_name, 1, "shlib", filename)
                 )
+
+    for module_name, _prio, kind, filename in sorted(detections):
+        if kind == "precompiled":
+            _detectedPrecompiledFile(
+                filename      = filename,
+                module_name   = module_name,
+                result        = result,
+                user_provided = user_provided,
+                technical     = technical
+            )
+        elif kind == "sourcefile":
+            _detectedSourceFile(
+                filename      = filename,
+                module_name   = module_name,
+                result        = result,
+                user_provided = user_provided,
+                technical     = technical
+            )
+        elif kind == "shlib":
+            _detectedShlibFile(
+                filename    = filename,
+                module_name = module_name
+            )
+        else:
+            assert False, kind
 
     return result
 
@@ -337,7 +374,7 @@ if Utils.getOS() != "Windows":
 
 def scanStandardLibraryPath(stdlib_dir):
     # There is a lot of black-listing here, done in branches, so there
-    # is many of them, but that's acceptable, pylint: disable=R0912
+    # is many of them, but that's acceptable, pylint: disable=too-many-branches
 
     for root, dirs, filenames in os.walk(stdlib_dir):
         import_path = root[len(stdlib_dir):].strip("/\\")
@@ -370,11 +407,11 @@ def scanStandardLibraryPath(stdlib_dir):
             ]
 
         if import_path in ("tkinter", "importlib", "ctypes", "unittest",
-                           "sqlite3", "distutils"):
+                           "sqlite3", "distutils", "email", "bsddb"):
             if "test" in dirs:
                 dirs.remove("test")
 
-        if import_path == "lib2to3":
+        if import_path in ("lib2to3", "json", "distutils"):
             if "tests" in dirs:
                 dirs.remove("tests")
 
@@ -411,16 +448,15 @@ def detectEarlyImports():
     encoding_names = [
         filename[:-3]
         for _path, filename in
-        Utils.listDir(Utils.dirname(sys.modules["encodings"].__file__))
+        listDir(os.path.dirname(sys.modules["encodings"].__file__))
         if filename.endswith(".py")
         if "__init__" not in filename
     ]
 
     if Utils.getOS() != "Windows":
-        encoding_names.remove("mbcs")
-
-        if "cp65001" in encoding_names:
-            encoding_names.remove("cp65001")
+        for encoding_name in ("mbcs", "cp65001", "oem"):
+            if encoding_name in encoding_names:
+                encoding_names.remove(encoding_name)
 
     import_code = ';'.join(
         "import encodings.%s" % encoding_name
@@ -480,61 +516,77 @@ def detectEarlyImports():
 
     return result
 
+_detected_python_rpath = None
 
 def _detectBinaryPathDLLsLinuxBSD(binary_filename):
     # Ask "ldd" about the libraries being used by the created binary, these
     # are the ones that interest us.
     result = set()
 
-    process = subprocess.Popen(
-        args   = [
-            "ldd",
-            binary_filename
-        ],
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE
-    )
+    # This is the rpath of the Python binary, which will be effective when
+    # loading the other DLLs too. This happens at least for Python installs
+    # on Travis. pylint: disable=global-statement
+    global _detected_python_rpath
+    if _detected_python_rpath is None:
+        _detected_python_rpath = getSharedLibraryRPATH(sys.executable) or False
 
-    stdout, _stderr = process.communicate()
+        if _detected_python_rpath:
+            _detected_python_rpath = _detected_python_rpath.replace(
+                b"$ORIGIN",
+                os.path.dirname(sys.executable).encode("utf-8")
+            )
 
-    for line in stdout.split(b"\n"):
-        if not line:
-            continue
+    with withEnvironmentPathAdded("LD_LIBRARY_PATH", _detected_python_rpath):
+        process = subprocess.Popen(
+            args   = [
+                "ldd",
+                binary_filename
+            ],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE
+        )
 
-        if b"=>" not in line:
-            continue
+        stdout, _stderr = process.communicate()
 
-        part = line.split(b" => ", 2)[1]
+        for line in stdout.split(b"\n"):
+            if not line:
+                continue
 
-        if b"(" in part:
-            filename = part[:part.rfind(b"(")-1]
-        else:
-            filename = part
+            if b"=>" not in line:
+                continue
 
-        if not filename:
-            continue
+            part = line.split(b" => ", 2)[1]
 
-        if python_version >= 300:
-            filename = filename.decode("utf-8")
+            if b"(" in part:
+                filename = part[:part.rfind(b"(")-1]
+            else:
+                filename = part
 
-        # Sometimes might use stuff not found.
-        if filename == "not found":
-            continue
+            if not filename:
+                continue
 
-        # Do not include kernel specific libraries.
-        if Utils.basename(filename).startswith(
-                (
-                    "libc.so.",
-                    "libpthread.so.",
-                    "libm.so.",
-                    "libdl.so."
-                )
-            ):
-            continue
+            if python_version >= 300:
+                filename = filename.decode("utf-8")
 
-        result.add(filename)
+            # Sometimes might use stuff not found.
+            if filename == "not found":
+                continue
+
+            # Do not include kernel specific libraries.
+            if os.path.basename(filename).startswith(
+                    (
+                        "libc.so.",
+                        "libpthread.so.",
+                        "libm.so.",
+                        "libdl.so."
+                    )
+                ):
+                continue
+
+            result.add(filename)
 
     return result
+
 
 def _detectBinaryPathDLLsMacOS(binary_filename):
     result = set()
@@ -584,9 +636,9 @@ def _makeBinaryPathPathDLLSearchEnv(package_name):
 
     if package_name is not None:
         for element in sys.path:
-            candidate = Utils.joinpath(element, package_name)
+            candidate = os.path.join(element, package_name)
 
-            if Utils.isDir(candidate):
+            if os.path.isdir(candidate):
                 path.append(candidate)
 
 
@@ -607,13 +659,25 @@ def _detectBinaryPathDLLsWindows(original_dir, binary_filename, package_name):
 KnownDLLs
 SysPath
 AppDir
-{original_dir}
+{original_dirs}
 32BitSysDir
 16BitSysDir
 OSDir
 AppPath
 SxS
-""".format(original_dir = "UserDir %s" % original_dir if original_dir is not None else "")
+""".format(
+            original_dirs = (
+                '\n'.join(
+                    "UserDir %s" % dirname
+                    for dirname in
+                    [original_dir] + getSubDirectories(original_dir)
+                    if not os.path.basename(dirname) == "__pycache__"
+                    if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
+                )
+                if original_dir is not None
+                else ""
+            )
+        )
     )
 
     subprocess.call(
@@ -663,9 +727,9 @@ SxS
             first = False
             continue
 
-        assert Utils.isFile(dll_filename), dll_filename
+        assert os.path.isfile(dll_filename), dll_filename
 
-        dll_name = Utils.basename(dll_filename).upper()
+        dll_name = os.path.basename(dll_filename).upper()
 
         # Win API can be assumed.
         if dll_name.startswith("API-MS-WIN-") or \
@@ -724,11 +788,11 @@ SxS
             continue
 
         result.add(
-            Utils.normcase(Utils.abspath(dll_filename))
+            os.path.normcase(os.path.abspath(dll_filename))
         )
 
-    Utils.deleteFile(binary_filename + ".depends", must_exist = True)
-    Utils.deleteFile(binary_filename + ".dwp", must_exist = True)
+    deleteFile(binary_filename + ".depends", must_exist = True)
+    deleteFile(binary_filename + ".dwp", must_exist = True)
 
     return result
 
@@ -761,7 +825,7 @@ def detectBinaryDLLs(original_dir, binary_filename, package_name):
 
 
 def detectUsedDLLs(standalone_entry_points):
-    result = {}
+    result = OrderedDict()
 
     for original_dir, binary_filename, package_name in standalone_entry_points:
         used_dlls = detectBinaryDLLs(
@@ -772,7 +836,7 @@ def detectUsedDLLs(standalone_entry_points):
 
         for dll_filename in used_dlls:
             # We want these to be absolute paths.
-            assert Utils.isAbsolutePath(dll_filename), dll_filename
+            assert os.path.isabs(dll_filename), dll_filename
 
             if dll_filename not in result:
                 result[dll_filename] = []
@@ -814,7 +878,7 @@ def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map):
     assert process.returncode == 0, stderr
 
 
-def removeSharedLibraryRPATH(filename):
+def getSharedLibraryRPATH(filename):
     process = subprocess.Popen(
         ["readelf", "-d", filename],
         stdout = subprocess.PIPE,
@@ -835,47 +899,58 @@ def removeSharedLibraryRPATH(filename):
 
     for line in stdout.split(b"\n"):
         if b"RPATH" in line:
-            if Options.isShowInclusion():
-                info("Removing 'RPATH' setting from '%s'.", filename)
+            return line[line.find(b'[')+1:line.rfind(b']')]
 
-            if not Utils.isExecutableCommand("chrpath"):
-                sys.exit(
-                    """\
+    return None
+
+
+def removeSharedLibraryRPATH(filename):
+    rpath = getSharedLibraryRPATH(filename)
+
+    if rpath is not None:
+        if Options.isShowInclusion():
+            info("Removing 'RPATH' setting from '%s'.", filename)
+
+        if not Utils.isExecutableCommand("chrpath"):
+            sys.exit(
+                """\
 Error, needs 'chrpath' on your system, due to 'RPATH' settings in used shared
 libraries that need to be removed."""
-                )
-
-            os.chmod(filename, int("644", 8))
-            process = subprocess.Popen(
-                ["chrpath", "-d", filename],
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE,
-                shell  = False
             )
-            process.communicate()
-            retcode = process.poll()
-            os.chmod(filename, int("444", 8))
 
-            assert retcode == 0, filename
+        os.chmod(filename, int("644", 8))
+        process = subprocess.Popen(
+            ["chrpath", "-d", filename],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+            shell  = False
+        )
+        process.communicate()
+        retcode = process.poll()
+        os.chmod(filename, int("444", 8))
+
+        assert retcode == 0, filename
 
 
 def copyUsedDLLs(dist_dir, standalone_entry_points):
     # This is terribly complex, because we check the list of used DLLs
     # trying to avoid duplicates, and detecting errors with them not
     # being binary identical, so we can report them. And then of course
-    # we also need to handle OS specifics, pylint: disable=R0912
+    # we also need to handle OS specifics, pylint: disable=too-many-branches
 
     dll_map = []
 
     used_dlls = detectUsedDLLs(standalone_entry_points)
 
+    # Fist make checks and remove some.
     for dll_filename1, sources1 in tuple(iterItems(used_dlls)):
         for dll_filename2, sources2 in tuple(iterItems(used_dlls)):
             if dll_filename1 == dll_filename2:
                 continue
 
             # Colliding basenames are an issue to us.
-            if Utils.basename(dll_filename1) != Utils.basename(dll_filename2):
+            if os.path.basename(dll_filename1) != \
+               os.path.basename(dll_filename2):
                 continue
 
             # May already have been removed earlier
@@ -885,7 +960,7 @@ def copyUsedDLLs(dist_dir, standalone_entry_points):
             if dll_filename2 not in used_dlls:
                 continue
 
-            dll_name = Utils.basename(dll_filename1)
+            dll_name = os.path.basename(dll_filename1)
 
             if Options.isShowInclusion():
                 info(
@@ -921,9 +996,9 @@ different from
             )
 
     for dll_filename, sources in iterItems(used_dlls):
-        dll_name = Utils.basename(dll_filename)
+        dll_name = os.path.basename(dll_filename)
 
-        target_path = Utils.joinpath(
+        target_path = os.path.join(
             dist_dir,
             dll_name
         )
@@ -957,7 +1032,7 @@ different from
 
         for _original_path, dll_filename in dll_map:
             fixupBinaryDLLPaths(
-                binary_filename = Utils.joinpath(
+                binary_filename = os.path.join(
                     dist_dir,
                     dll_filename
                 ),
@@ -970,7 +1045,7 @@ different from
         # removed.
         for _original_path, dll_filename in dll_map:
             removeSharedLibraryRPATH(
-                Utils.joinpath(dist_dir, dll_filename)
+                os.path.join(dist_dir, dll_filename)
             )
 
         for standalone_entry_point in standalone_entry_points[1:]:

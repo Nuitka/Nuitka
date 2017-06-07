@@ -40,12 +40,12 @@ def onModuleOptimizationStep(module):
 
 
 def startGraph():
-    # We maintain this globally to make it accessible, pylint: disable=W0603
+    # We maintain this globally to make it accessible, pylint: disable=global-statement
     global graph
 
     if Options.shouldCreateGraph():
         try:
-            from graphviz import Digraph # pylint: disable=F0401,I0021
+            from graphviz import Digraph # pylint: disable=import-error,useless-suppression
             graph = Digraph('G')
         except ImportError:
             warning("Cannot import graphviz module, no graphing capability.")

@@ -75,7 +75,7 @@ def encodePythonStringToC(value):
     result = _encodePythonStringToC(value[:16000 ])
     value = value[16000:]
 
-    while len(value) > 0:
+    while value:
         result += ' '
         result += _encodePythonStringToC(value[:16000 ])
         value = value[16000:]

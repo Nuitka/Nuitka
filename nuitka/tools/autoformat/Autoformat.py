@@ -28,16 +28,25 @@ import re
 import shutil
 import sys
 
+from baron.parser import ParsingError  # @UnresolvedImport
 from redbaron import RedBaron  # @UnresolvedImport
 
 
-def autoformat(filename):
-    # All the complexity in one place, pylint: disable=R0912,R0915
+def autoformat(filename, abort = False):
+    # All the complexity in one place, pylint: disable=too-many-branches,too-many-statements
     print("Consider", filename, end = ": ")
 
     old_code = open(filename, 'r').read()
 
-    red = RedBaron(old_code.rstrip()+'\n')
+    try:
+        red = RedBaron(old_code)
+        # red = RedBaron(old_code.rstrip()+'\n')
+    except ParsingError:
+        if abort:
+            raise
+
+        print("PARSING ERROR.")
+        return 2
 
     def updateCall(call_node):
         max_len = 0
@@ -68,7 +77,7 @@ def autoformat(filename):
                     argument.second_formatting = ' '
 
                 if '\n' in str(call_node.second_formatting):
-                    if len(argument.first_formatting) > 0:
+                    if argument.first_formatting:
                         spacing = argument.first_formatting[0].value
                     else:
                         spacing = ""
@@ -88,7 +97,7 @@ def autoformat(filename):
             tuple_node.third_formatting = ""
 
             if tuple_node.type == "tuple" and tuple_node.with_parenthesis:
-                if len(tuple_node.value.node_list) > 0:
+                if tuple_node.value.node_list:
                     if tuple_node.value.node_list[-1].type not in ("yield_atom",):
                         tuple_node.value.node_list[-1].second_formatting = ""
 
@@ -119,7 +128,7 @@ def autoformat(filename):
 
         if '\n' not in real_value:
             # Single characters, should be quoted with "'"
-            if len(eval(value)) == 1: # pylint: disable=W0123
+            if len(eval(value)) == 1: # pylint: disable=eval-used
                 if real_value != "'":
                     string_node.value = "'" + real_value + "'"
             else:
@@ -144,7 +153,52 @@ def autoformat(filename):
 
         if "pylint:" in str(comment_node.value):
             def replacer(part):
-                return part.group(1) + ','.join(sorted(part.group(2).split(',')))
+                def renamer(pylint_token):
+                    # pylint: disable=too-many-return-statements
+                    if pylint_token == "E0602":
+                        return "undefined-variable"
+                    elif pylint_token in ("E0401", "F0401"):
+                        return "import-error"
+                    elif pylint_token == "E1102":
+                        return "not-callable"
+                    elif pylint_token == "E1133":
+                        return "  not-an-iterable"
+                    elif pylint_token == "E1128":
+                        return "assignment-from-none"
+                    elif pylint_token == "I0021":
+                        return "useless-suppression"
+                    elif pylint_token == "R0911":
+                        return "too-many-return-statements"
+                    elif pylint_token == "R0201":
+                        return "no-self-use"
+                    elif pylint_token == "R0902":
+                        return "too-many-instance-attributes"
+                    elif pylint_token == "R0912":
+                        return "too-many-branches"
+                    elif pylint_token == "R0914":
+                        return "too-many-locals"
+                    elif pylint_token == "R0915":
+                        return "too-many-statements"
+                    elif pylint_token == "W0123":
+                        return "eval-used"
+                    elif pylint_token == "W0603":
+                        return "global-statement"
+                    elif pylint_token == "W0613":
+                        return "unused-argument"
+                    elif pylint_token == "W0622":
+                        return "redefined-builtin"
+                    elif pylint_token == "W0703":
+                        return "broad-except"
+                    else:
+                        return pylint_token
+
+                return part.group(1) + ','.join(
+                    sorted(
+                        renamer(token)
+                        for token in
+                        part.group(2).split(',')
+                    )
+                )
 
             new_value = re.sub(r"(pylint\: disable=)(.*)", replacer, str(comment_node.value), flags = re.M)
             comment_node.value = new_value
@@ -208,7 +262,6 @@ def autoformat(filename):
     new_code = red.dumps()
 
     if new_code != old_code:
-
         new_name = filename + ".new"
 
         with open(new_name, 'w') as source_code:
@@ -226,5 +279,9 @@ def autoformat(filename):
         os.chmod(filename, old_stat.st_mode)
 
         print("updated.")
+        changed = 1
     else:
         print("OK.")
+        changed = 0
+
+    return changed

@@ -22,15 +22,11 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from nuitka.PythonVersions import python_version
-
 from .Checkers import checkStatementsSequenceOrNone
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionBodyBase
-from .IndicatorMixins import (
-    MarkLocalsDictIndicator,
-    MarkUnoptimizedFunctionIndicator
-)
-from .NodeBases import ChildrenHavingMixin, ExpressionChildrenHavingBase
+from .IndicatorMixins import MarkLocalsDictIndicatorMixin
+from .NodeBases import ChildrenHavingMixin
 
 
 class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
@@ -55,6 +51,8 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
 
         self.code_object = code_object
 
+        self.variable_closure_traces = None
+
     def getDetails(self):
         return {
             "code_object" : self.code_object
@@ -69,6 +67,14 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
         }
 
     def computeExpression(self, trace_collection):
+        self.variable_closure_traces = []
+
+        for closure_variable in self.getCoroutineRef().getFunctionBody().getClosureVariables():
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            trace.addClosureUsage()
+
+            self.variable_closure_traces.append(trace)
+
         # TODO: Coroutine body may know something too.
         return self, None, None
 
@@ -78,10 +84,14 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
     def mayHaveSideEffects(self):
         return False
 
+    def getClosureVariableVersions(self):
+        return [
+            (trace.getVariable(), trace.getVersion())
+            for trace in self.variable_closure_traces
+        ]
 
-class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
-                                    MarkLocalsDictIndicator,
-                                    MarkUnoptimizedFunctionIndicator):
+
+class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin, ExpressionFunctionBodyBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
     kind = "EXPRESSION_COROUTINE_OBJECT_BODY"
@@ -95,8 +105,7 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
         "body" : checkStatementsSequenceOrNone
     }
 
-    if python_version >= 340:
-        qualname_setup = None
+    qualname_setup = None
 
     def __init__(self, provider, name, flags, source_ref):
         while provider.isExpressionOutlineBody():
@@ -112,9 +121,7 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
             source_ref  = source_ref
         )
 
-        MarkLocalsDictIndicator.__init__(self)
-
-        MarkUnoptimizedFunctionIndicator.__init__(self)
+        MarkLocalsDictIndicatorMixin.__init__(self)
 
         self.needs_generator_return_exit = False
 
@@ -140,6 +147,10 @@ class ExpressionCoroutineObjectBody(ExpressionFunctionBodyBase,
     def needsCreation():
         return False
 
+    @staticmethod
+    def isUnoptimized():
+        return False
+
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
 
@@ -158,8 +169,16 @@ class ExpressionAsyncWait(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.exception_preserving = False
+
+    def markAsExceptionPreserving(self):
+        self.exception_preserving = True
+
+    def isExceptionPreserving(self):
+        return self.exception_preserving
+
     def computeExpression(self, trace_collection):
         # TODO: Might be predictable based awaitable analysis or for constants.
         return self, None, None
 
-    getValue = ChildrenHavingMixin.childGetter("expression")
+    getValue = ExpressionFunctionBodyBase.childGetter("expression")

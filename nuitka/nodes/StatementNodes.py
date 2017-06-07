@@ -64,7 +64,7 @@ class StatementsSequence(StatementChildrenHavingBase):
 
     # Overloading name based automatic check, so that derived ones know it too.
     def isStatementsSequence(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
 
         return True
 
@@ -255,6 +255,8 @@ class StatementExpressionOnly(StatementChildrenHavingBase):
 class StatementPreserveFrameException(NodeBase):
     kind = "STATEMENT_PRESERVE_FRAME_EXCEPTION"
 
+    __slots__ = "preserver_id",
+
     def __init__(self, preserver_id, source_ref):
         NodeBase.__init__(
             self,
@@ -293,6 +295,8 @@ class StatementPreserveFrameException(NodeBase):
 
 class StatementRestoreFrameException(NodeBase):
     kind = "STATEMENT_RESTORE_FRAME_EXCEPTION"
+
+    __slots__ = "preserver_id",
 
     def __init__(self, preserver_id, source_ref):
         NodeBase.__init__(

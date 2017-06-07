@@ -37,7 +37,7 @@ def generateExpressionOnlyCode(statement, emit, context):
 def getStatementOnlyCode(value, emit, context):
     tmp_name = context.allocateTempName(
         base_name = "unused",
-        type_code = "NUITKA_MAY_BE_UNUSED PyObject *",
+        type_name = "NUITKA_MAY_BE_UNUSED PyObject *",
         unique    = True
     )
 

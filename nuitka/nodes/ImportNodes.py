@@ -22,117 +22,121 @@ cover the uses of "__import__" built-in and other import techniques, that
 allow dynamic values.
 
 If other optimizations make it possible to predict these, the compiler can go
-deeper that what it normally could. The import expression node can recurse. An
-"__import__" built-in may be converted to it, once the module name becomes a
-compile time constant.
+deeper that what it normally could. The import expression node can recurse.
 """
 
+import os
 from logging import warning
 
-from nuitka.__past__ import unicode  # pylint: disable=W0622
+from nuitka.__past__ import long, unicode  # pylint: disable=redefined-builtin
+from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.importing.Importing import (
     findModule,
     getModuleNameAndKindFromFilename
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
-from nuitka.utils import Utils
-
-from .ConstantRefNodes import makeConstantRefNode
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    ExpressionMixin,
-    NodeBase,
-    StatementChildrenHavingBase
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    ShapeTypeBuiltinModule,
+    ShapeTypeModule
 )
+from nuitka.utils.FileOperations import relpath
+
+from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
+from .NodeBases import StatementChildrenHavingBase
 
 
-class ExpressionImportModule(NodeBase, ExpressionMixin):
-    kind = "EXPRESSION_IMPORT_MODULE"
+class ExpressionImportModuleHard(ExpressionBase):
+    """ Hard code import, e.g. of "sys" module as done in Python mechanics.
 
-    # Set of modules, that we failed to import, and gave warning to the user
-    # about it.
-    _warned_about = set()
+    """
 
-    def __init__(self, module_name, import_list, level, source_ref):
-        assert type(module_name) in (str, unicode), type(module_name)
+    kind = "EXPRESSION_IMPORT_MODULE_HARD"
 
-        NodeBase.__init__(
+    __slots__ = "module_name", "import_name"
+
+    def __init__(self, module_name, import_name, source_ref):
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
 
         self.module_name = module_name
-        self.import_list = import_list
-        self.level = level
-
-        # Are we pointing to a known module or not. If so, we can expect it to
-        # be in the module registry.
-        self.found = None
-
-        # If we are pointing to a known module, this is the module behind it,
-        # and the ones behind the "import_list".
-        self.imported_module = None
-        self.found_modules = None
-
-        # The scan of modules should give a reason for the finding or not
-        # finding of stuff to compile.
-        self.finding = None
+        self.import_name = import_name
 
     def getDetails(self):
         return {
             "module_name" : self.module_name,
-            "level"       : self.level,
-            "import_list" : self.import_list
+            "import_name" : self.import_name
         }
-
-    def getDetailsForDisplay(self):
-        result = {
-            "module_name" : self.module_name,
-            "level"       : self.level,
-        }
-
-        if self.import_list is not None:
-            result["import_list"] = ','.join(self.import_list)
-
-        return result
-
-    @classmethod
-    def fromXML(cls, provider, source_ref, **args):
-        if "import_list" in args:
-            import_list = args["import_list"].split(',')
-        else:
-            import_list = None
-
-        level = int(args["level"])
-
-        return cls(
-            module_name = args["module_name"],
-            import_list = import_list,
-            level       = level,
-            source_ref  = source_ref
-        )
 
     def getModuleName(self):
         return self.module_name
 
-    def getImportList(self):
-        return self.import_list
+    def getImportName(self):
+        return self.import_name
 
-    def getLevel(self):
-        if self.level == 0:
-            if self.source_ref.getFutureSpec().isAbsoluteImport():
-                return 0
-            else:
-                return -1
+    def computeExpressionRaw(self, trace_collection):
+        # TODO: May return a module reference of some sort in the future with
+        # embedded modules.
+        return self, None, None
+
+    def mayHaveSideEffects(self):
+        if self.module_name == "sys" and self.import_name == "stdout":
+            return False
+        elif self.module_name == "__future__":
+            return False
         else:
-            return self.level
+            return True
+
+    def mayRaiseException(self, exception_type):
+        return self.mayHaveSideEffects()
+
+
+class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_BUILTIN_IMPORT"
+
+    named_children = (
+        "name", "globals", "locals", "fromlist", "level"
+    )
+
+    _warned_about = set()
+
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, name, globals_arg, locals_arg, fromlist, level,
+                source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "name"        : name,
+                "globals"     : globals_arg,
+                "locals"      : locals_arg,
+                "fromlist"    : fromlist,
+                "level"       : level
+            },
+            source_ref = source_ref
+        )
+
+        self.recurse_attempted = False
+        self.imported_module = None
+        self.import_list_modules = []
+        self.finding = None
+
+        self.type_shape = ShapeTypeModule
+
+        self.builtin_module = None
+
+    getImportName = ExpressionChildrenHavingBase.childGetter("name")
+    getFromList = ExpressionChildrenHavingBase.childGetter("fromlist")
+    getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
+    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
+    getLevel = ExpressionChildrenHavingBase.childGetter("level")
 
     def _consider(self, trace_collection, module_filename, module_package):
         assert module_package is None or \
               (type(module_package) is str and module_package != "")
 
-        module_filename = Utils.normpath(module_filename)
+        module_filename = os.path.normpath(module_filename)
 
         module_name, module_kind = getModuleNameAndKindFromFilename(module_filename)
 
@@ -145,7 +149,7 @@ class ExpressionImportModule(NodeBase, ExpressionMixin):
             )
 
             if decision:
-                module_relpath = Utils.relpath(module_filename)
+                module_relpath = relpath(module_filename)
 
                 imported_module, added_flag = recurseTo(
                     module_package  = module_package,
@@ -185,8 +189,8 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         }
                     )
 
-    def _attemptRecursion(self, trace_collection):
-        found = False
+    def _attemptRecursion(self, trace_collection, module_name):
+        # Complex stuff, pylint: disable=too-many-branches
 
         parent_module = self.getParentModule()
 
@@ -195,11 +199,24 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         else:
             parent_package = self.getParentModule().getPackage()
 
+        level = self.getLevel()
+
+        if level is None:
+            level = 0 if parent_module.getFutureSpec().isAbsoluteImport() else -1
+        elif not level.isCompileTimeConstant():
+            return
+        else:
+            level = level.getCompileTimeConstant()
+
+        # TODO: Catch this as a static error maybe.
+        if type(level) not in (int, long):
+            return
+
         module_package, module_filename, self.finding = findModule(
             importing      = self,
-            module_name    = self.getModuleName(),
+            module_name    = module_name,
             parent_package = parent_package,
-            level          = self.getLevel(),
+            level          = level,
             warn           = True
         )
 
@@ -211,11 +228,14 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             )
 
             if self.imported_module is not None:
-                found = self.imported_module.getFullName()
+                import_list = self.getFromList()
 
-                self.found_modules = []
+                if import_list is not None:
+                    if import_list.isCompileTimeConstant():
+                        import_list = import_list.getCompileTimeConstant()
 
-                import_list = self.getImportList()
+                    if type(import_list) not in (tuple, list):
+                        import_list = None
 
                 if import_list and \
                    self.imported_module.isCompiledPythonPackage():
@@ -226,8 +246,8 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         module_package, module_filename, _finding = findModule(
                             importing      = self,
                             module_name    = import_item,
-                            parent_package = found,
-                            level          = -1,
+                            parent_package = self.imported_module.getFullName(),
+                            level          = -1, # Relative import, so child is used.
                             warn           = False
                         )
 
@@ -239,158 +259,53 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                             )
 
                             if sub_imported_module is not None:
-                                self.found_modules.append(
+                                self.import_list_modules.append(
                                     sub_imported_module.getFullName()
                                 )
 
-        return found
 
     def computeExpression(self, trace_collection):
-        # Attempt to recurse if not already done.
-        if self.found is None:
-            self.found = self._attemptRecursion(
-                trace_collection = trace_collection
-            )
-
-        assert self.found is not None
-
-        if self.found:
-            trace_collection.onUsedModule(self.found)
-
-            for found_module in self.found_modules:
-                trace_collection.onUsedModule(found_module)
-
-        if self.mayRaiseException(BaseException):
-            # When a module is recursed to and included, we know it won't raise,
-            # right? But even if you import, that successful import may still raise
-            # and we don't know how to check yet.
-            trace_collection.onExceptionRaiseExit(
-                BaseException
-            )
-
-        return self, None, None
-
-    def mayRaiseException(self, exception_type):
-        return self.finding != "built-in" or self.import_list != ()
-
-    def mayHaveSideEffects(self):
-        return self.finding != "built-in" or self.import_list != ()
-
-
-class ExpressionImportModuleHard(NodeBase, ExpressionMixin):
-    """ Hard code import, e.g. of "sys" module as done in Python mechanics.
-
-    """
-    kind = "EXPRESSION_IMPORT_MODULE_HARD"
-    def __init__(self, module_name, import_name, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-        self.module_name = module_name
-        self.import_name = import_name
-
-    def getDetails(self):
-        return {
-            "module_name" : self.module_name,
-            "import_name" : self.import_name
-        }
-
-    def getModuleName(self):
-        return self.module_name
-
-    def getImportName(self):
-        return self.import_name
-
-    def computeExpression(self, trace_collection):
-        # TODO: May return a module reference of some sort in the future with
-        # embedded modules.
-        return self, None, None
-
-    def mayHaveSideEffects(self):
-        if self.module_name == "sys" and self.import_name == "stdout":
-            return False
-        elif self.module_name == "__future__":
-            return False
-        else:
-            return True
-
-    def mayRaiseException(self, exception_type):
-        return self.mayHaveSideEffects()
-
-
-class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_BUILTIN_IMPORT"
-
-    named_children = (
-        "import_name", "globals", "locals", "fromlist", "level"
-    )
-
-    def __init__(self, name, import_globals, import_locals, fromlist, level,
-                source_ref):
-        if fromlist is None:
-            fromlist = makeConstantRefNode(
-                constant   = (),
-                source_ref = source_ref
-            )
-
-        if level is None:
-            level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
-
-            level = makeConstantRefNode(
-                constant   = level,
-                source_ref = source_ref
-            )
-
-        ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "import_name" : name,
-                "globals"     : import_globals,
-                "locals"      : import_locals,
-                "fromlist"    : fromlist,
-                "level"       : level
-            },
-            source_ref = source_ref
-        )
-
-    getImportName = ExpressionChildrenHavingBase.childGetter("import_name")
-    getFromList = ExpressionChildrenHavingBase.childGetter("fromlist")
-    getGlobals = ExpressionChildrenHavingBase.childGetter("globals")
-    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
-    getLevel = ExpressionChildrenHavingBase.childGetter("level")
-
-    def computeExpression(self, trace_collection):
-        module_name = self.getImportName()
-        fromlist = self.getFromList()
-        level = self.getLevel()
-
         # TODO: In fact, if the module is not a package, we don't have to insist
         # on the "fromlist" that much, but normally it's not used for anything
         # but packages, so it will be rare.
+        # Attempt to recurse if not already done.
+        if self.finding != "not-found":
+            if self.imported_module is not None:
+                trace_collection.onUsedModule(self.imported_module.getFullName())
 
-        if module_name.isExpressionConstantRef() and \
-           fromlist.isExpressionConstantRef() and \
-           level.isExpressionConstantRef():
+            for import_list_module in self.import_list_modules:
+                trace_collection.onUsedModule(import_list_module)
 
-            if module_name.isStringConstant() or module_name.isUnicodeConstant():
-                new_node = ExpressionImportModule(
-                    module_name = module_name.getConstant(),
-                    import_list = fromlist.getConstant(),
-                    level       = level.getConstant(),
-                    source_ref  = self.getSourceReference()
-                )
-
-                # Importing may raise an exception obviously.
+        if self.recurse_attempted:
+            if self.finding == "not-found":
+                # Importing and not finding, may raise an exception obviously.
                 trace_collection.onExceptionRaiseExit(BaseException)
-
-                return (
-                    new_node,
-                    "new_import",
-                    "Replaced '__import__' call with module import expression."
-                )
             else:
+                # If we know it exists, only RuntimeError shall occur.
+                trace_collection.onExceptionRaiseExit(RuntimeError)
+
+            # We stay here.
+            return self, None, None
+
+        module_name = self.getImportName()
+
+        if module_name.isCompileTimeConstant():
+            imported_module_name = module_name.getCompileTimeConstant()
+
+            if type(imported_module_name) in (str, unicode):
+                self._attemptRecursion(
+                    trace_collection = trace_collection,
+                    module_name      = imported_module_name
+                )
+
+                self.recurse_attempted = True
+
+                if self.finding == "built-in":
+                    self.type_shape = ShapeTypeBuiltinModule
+                    self.builtin_module = __import__(imported_module_name)
+            else:
+                # TODO: This doesn't preserve side effects.
+
                 # Non-strings is going to raise an error.
                 new_node, change_tags, message = trace_collection.getCompileTimeComputationResult(
                     node        = self,
@@ -403,12 +318,28 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
                 return new_node, change_tags, message
 
-        # Importing may raise an exception obviously.
-        trace_collection.onExceptionRaiseExit(BaseException)
+        # Importing may raise an exception obviously, unless we know it will
+        # not.
+        if self.finding != "built-in":
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         # TODO: May return a module or module variable reference of some sort in
         # the future with embedded modules.
         return self, None, None
+
+    # TODO: Add computeExpressionImportName
+
+    def mayRaiseException(self, exception_type):
+        return self.finding != "built-in"
+
+    def mayRaiseExceptionImportName(self, exception_type, import_name):
+        if self.finding == "built-in":
+            return not hasattr(self.builtin_module, import_name)
+        else:
+            return True
+
+    def getTypeShape(self):
+        return self.type_shape
 
 
 class StatementImportStar(StatementChildrenHavingBase):
@@ -425,16 +356,25 @@ class StatementImportStar(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-    getModule = StatementChildrenHavingBase.childGetter("module")
+    getSourceModule = StatementChildrenHavingBase.childGetter("module")
 
     def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.getModule())
+        trace_collection.onExpression(self.getSourceModule())
 
         # Need to invalidate everything, and everything could be assigned to
         # something else now.
         trace_collection.removeAllKnowledge()
 
+        # We could always encounter that __all__ is a strange beast and causes
+        # the exception.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # Not done. TODO: Later we can try and check for "__all__" if it
+        # really can be that way.
+        return True
 
 
 class ExpressionImportName(ExpressionChildrenHavingBase):
@@ -474,10 +414,14 @@ class ExpressionImportName(ExpressionChildrenHavingBase):
     getModule = ExpressionChildrenHavingBase.childGetter("module")
 
     def computeExpression(self, trace_collection):
-        # TODO: May return a module or module variable reference of some sort in
-        # the future with embedded modules.
+        return self.getModule().computeExpressionImportName(
+            import_node      = self,
+            import_name      = self.import_name,
+            trace_collection = trace_collection
+        )
 
-        # Importing may raise an exception obviously.
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        return self, None, None
+    def mayRaiseException(self, exception_type):
+        return self.getModule().mayRaiseExceptionImportName(
+            exception_type = exception_type,
+            import_name    = self.import_name
+        )

@@ -27,8 +27,8 @@ from nuitka import Constants
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
+from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeBases import (
-    ExpressionChildrenHavingBase,
     SideEffectsFromChildrenMixin,
     StatementChildrenHavingBase
 )
@@ -183,7 +183,7 @@ Created dictionary found to be constant."""
         return len(self.getPairs())
 
     def canPredictIterationValues(self):
-        # Dictionaries are fully predictable, pylint: disable=R0201
+        # Dictionaries are fully predictable, pylint: disable=no-self-use
 
         # TODO: For some things, that may not be true, when key collisions
         # happen for example. We will have to check that then.
@@ -200,7 +200,7 @@ Created dictionary found to be constant."""
 
     def isMapping(self):
         # Dictionaries are always mappings, but this is a virtual method,
-        # pylint: disable=R0201
+        # pylint: disable=no-self-use
         return True
 
     def isMappingWithConstantStringKeys(self):

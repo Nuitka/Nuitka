@@ -60,6 +60,7 @@ template_coroutine_noexception_exit = """\
 
 template_coroutine_return_exit = """\
     function_return_exit:;
+    coroutine->m_yielded = NULL;
     coroutine->m_returned = tmp_return_value;
     return;
 """

@@ -26,6 +26,7 @@ import sys
 from nuitka import Options
 from nuitka.__past__ import StringIO
 from nuitka.plugins.PluginBase import NuitkaPluginBase
+from nuitka.utils.FileOperations import listDir
 
 # The main logic of this is from StackOverflow answer:
 # http://stackoverflow.com/questions/6772916/python-pmw-and-cx-freeze
@@ -76,7 +77,7 @@ class NuitkaPluginPmw(NuitkaPluginBase):
 
         # This mimicks the scan the __init__.py does.
         candidates = []
-        for candidate in os.listdir(pmw_path):
+        for _fullpath, candidate in listDir(pmw_path):
             if _hasLoader(candidate):
                 candidates.append(candidate)
 

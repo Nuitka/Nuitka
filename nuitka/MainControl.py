@@ -41,6 +41,13 @@ from nuitka.PythonVersions import (
 )
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
+from nuitka.utils.FileOperations import (
+    deleteFile,
+    hasFilenameExtension,
+    listDir,
+    makePath,
+    removeDirectory
+)
 
 from . import ModuleRegistry, Options, Tracing, TreeXML
 from .build import SconsInterface
@@ -81,10 +88,13 @@ def createNodeTree(filename):
     # Prepare the ".dist" directory, throwing away what was there before.
     if Options.isStandaloneMode():
         standalone_dir = getStandaloneDirectoryPath(main_module)
-        shutil.rmtree(standalone_dir, ignore_errors = True)
-        Utils.makePath(standalone_dir)
+        removeDirectory(
+            path          = standalone_dir,
+            ignore_errors = True
+        )
+        makePath(standalone_dir)
 
-    Utils.deleteFile(
+    deleteFile(
         path       = getResultFullpath(main_module),
         must_exist = False
     )
@@ -137,7 +147,7 @@ def getSourceDirectoryPath(main_module):
     assert main_module.isCompiledPythonModule()
 
     return Options.getOutputPath(
-        path = Utils.basename(
+        path = os.path.basename(
             getTreeFilenameWithSuffix(main_module, ".build")
         )
     )
@@ -145,7 +155,7 @@ def getSourceDirectoryPath(main_module):
 
 def getStandaloneDirectoryPath(main_module):
     return Options.getOutputPath(
-        path = Utils.basename(
+        path = os.path.basename(
             getTreeFilenameWithSuffix(main_module, ".dist")
         )
     )
@@ -155,15 +165,15 @@ def getResultBasepath(main_module):
     assert main_module.isCompiledPythonModule()
 
     if Options.isStandaloneMode():
-        return Utils.joinpath(
+        return os.path.join(
             getStandaloneDirectoryPath(main_module),
-            Utils.basename(
+            os.path.basename(
                 getTreeFilenameWithSuffix(main_module, "")
             )
         )
     else:
         return Options.getOutputPath(
-            path = Utils.basename(
+            path = os.path.basename(
                 getTreeFilenameWithSuffix(main_module, "")
             )
         )
@@ -181,14 +191,17 @@ def getResultFullpath(main_module):
 
 
 def cleanSourceDirectory(source_dir):
-    if Utils.isDir(source_dir):
-        for path, _filename in Utils.listDir(source_dir):
-            if Utils.getExtension(path) in (".c", ".h", ".o", ".os", ".obj",
-                                            ".bin", ".res", ".rc", ".S", ".cpp",
-                                            ".manifest"):
-                Utils.deleteFile(path, True)
+    if os.path.isdir(source_dir):
+        for path, _filename in listDir(source_dir):
+            if hasFilenameExtension(
+                path       = path,
+                extensions = (".c", ".h", ".o", ".os", ".obj",
+                              ".bin", ".res", ".rc", ".S", ".cpp",
+                              ".manifest")
+            ):
+                deleteFile(path, must_exist = True)
     else:
-        Utils.makePath(source_dir)
+        makePath(source_dir)
 
 
 def pickSourceFilenames(source_dir, modules):
@@ -199,7 +212,7 @@ def pickSourceFilenames(source_dir, modules):
     module_filenames = {}
 
     def getFilenames(module):
-        base_filename =  Utils.joinpath(
+        base_filename =  os.path.join(
             source_dir,
             "module." + module.getFullName()
               if not module.isInternalModule() else
@@ -209,7 +222,7 @@ def pickSourceFilenames(source_dir, modules):
         # Note: Could detect if the file system is cases sensitive in source_dir
         # or not, but that's probably not worth the effort. False positives do
         # no harm at all.
-        collision_filename = Utils.normcase(base_filename)
+        collision_filename = os.path.normcase(base_filename)
 
         return base_filename, collision_filename
 
@@ -258,7 +271,7 @@ def makeSourceDirectory(main_module):
 
     """
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=R0912,R0914
+    # no sense, pylint: disable=too-many-branches,too-many-locals
 
     assert main_module.isCompiledPythonModule()
 
@@ -355,7 +368,7 @@ def makeSourceDirectory(main_module):
             if Options.isShowInclusion():
                 info("Included compiled module '%s'." % module.getFullName())
         elif module.isPythonShlibModule():
-            target_filename = Utils.joinpath(
+            target_filename = os.path.join(
                 getStandaloneDirectoryPath(main_module),
                 *module.getFullName().split('.')
             )
@@ -365,10 +378,10 @@ def makeSourceDirectory(main_module):
             else:
                 target_filename += ".so"
 
-            target_dir = Utils.dirname(target_filename)
+            target_dir = os.path.dirname(target_filename)
 
-            if not Utils.isDir(target_dir):
-                Utils.makePath(target_dir)
+            if not os.path.isdir(target_dir):
+                makePath(target_dir)
 
             shutil.copy(
                 module.getFilename(),
@@ -376,7 +389,7 @@ def makeSourceDirectory(main_module):
             )
 
             standalone_entry_points.append(
-                (Utils.dirname(module.getFilename()), target_filename, module.getPackage())
+                (os.path.dirname(module.getFilename()), target_filename, module.getPackage())
             )
         elif module.isUncompiledPythonModule():
             pass
@@ -384,7 +397,7 @@ def makeSourceDirectory(main_module):
             assert False, module
 
     writeSourceCode(
-        filename    = Utils.joinpath(
+        filename    = os.path.join(
             source_dir,
             "__constants.c"
         ),
@@ -398,19 +411,25 @@ def makeSourceDirectory(main_module):
     )
 
     writeSourceCode(
-        filename    = Utils.joinpath(source_dir, "__helpers.h"),
+        filename    = os.path.join(
+            source_dir,
+            "__helpers.h"
+        ),
         source_code = helper_decl_code
     )
 
     writeSourceCode(
-        filename    = Utils.joinpath(source_dir, "__helpers.c"),
+        filename    = os.path.join(
+            source_dir,
+            "__helpers.c"
+        ),
         source_code = helper_impl_code
     )
 
 
 def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
-    # have checks for them, leading to many branches, pylint: disable=R0912
+    # have checks for them, leading to many branches, pylint: disable=too-many-branches
 
     if hasattr(sys, "abiflags"):
         abiflags = sys.abiflags
@@ -426,7 +445,7 @@ def runScons(main_module, quiet):
         return "true" if value else "false"
 
     options = {
-        "name"            : Utils.basename(
+        "name"            : os.path.basename(
             getTreeFilenameWithSuffix(main_module, "")
         ),
         "result_name"     : getResultBasepath(main_module),
@@ -527,7 +546,7 @@ def runScons(main_module, quiet):
 def writeSourceCode(filename, source_code):
     # Prevent accidental overwriting. When this happens the collision detection
     # or something else has failed.
-    assert not Utils.isFile(filename), filename
+    assert not os.path.isfile(filename), filename
 
     if python_version >= 300:
         with open(filename, "wb") as output_file:
@@ -540,7 +559,7 @@ def writeSourceCode(filename, source_code):
 def writeBinaryData(filename, binary_data):
     # Prevent accidental overwriting. When this happens the collision detection
     # or something else has failed.
-    assert not Utils.isFile(filename), filename
+    assert not os.path.isfile(filename), filename
 
     assert type(binary_data) is bytes
 
@@ -618,7 +637,7 @@ def compileTree(main_module):
 
         if frozen_code is not None:
             writeSourceCode(
-                filename    = Utils.joinpath(
+                filename    = os.path.join(
                     source_dir,
                     "__frozen.c"
                 ),
@@ -626,13 +645,16 @@ def compileTree(main_module):
             )
 
         writeBinaryData(
-            filename    = Utils.joinpath(source_dir, "__constants.bin"),
+            filename    = os.path.join(
+                source_dir,
+                "__constants.bin"
+            ),
             binary_data = ConstantCodes.stream_data.getBytes()
         )
     else:
         source_dir = getSourceDirectoryPath(main_module)
 
-        if not Utils.isFile(Utils.joinpath(source_dir, "__helpers.h")):
+        if not os.path.isfile(os.path.join(source_dir, "__helpers.h")):
             sys.exit("Error, no previous build directory exists.")
 
     if Options.isShowProgress() or Options.isShowMemory():
@@ -670,17 +692,14 @@ def main():
         representation of the internal node tree after optimization, etc.
     """
 
-    # Main has to fullfil many options, leading to many branches and statements
-    # to deal with them.  pylint: disable=R0912,R0915
-    positional_args = Options.getPositionalArgs()
-    assert len(positional_args) > 0
-
+    # Main has to fulfill many options, leading to many branches and statements
+    # to deal with them.  pylint: disable=too-many-branches
     filename = Options.getPositionalArgs()[0]
 
     # Inform the importing layer about the main script directory, so it can use
     # it when attempting to follow imports.
     Importing.setMainScriptDirectory(
-        main_dir = Utils.dirname(Utils.abspath(filename))
+        main_dir = os.path.dirname(os.path.abspath(filename))
     )
 
     # Detect to be frozen modules if any, so we can consider to not recurse
@@ -690,12 +709,12 @@ def main():
             ModuleRegistry.addUncompiledModule(module)
 
             if module.getName() == "site":
-                origin_prefix_filename = Utils.joinpath(
-                    Utils.dirname(module.getCompileTimeFilename()),
+                origin_prefix_filename = os.path.join(
+                    os.path.dirname(module.getCompileTimeFilename()),
                     "orig-prefix.txt"
                 )
 
-                if Utils.isFile(origin_prefix_filename):
+                if os.path.isfile(origin_prefix_filename):
                     data_files.append(
                         (filename, "orig-prefix.txt")
                     )
@@ -746,8 +765,9 @@ of e.g. '--python-version=%s' option, if that's not the one expected.
 
         # Remove the source directory (now build directory too) if asked to.
         if Options.isRemoveBuildDir():
-            shutil.rmtree(
-                getSourceDirectoryPath(main_module)
+            removeDirectory(
+                path          = getSourceDirectoryPath(main_module),
+                ignore_errors = False
             )
 
         if Options.isStandaloneMode():
@@ -781,12 +801,12 @@ of e.g. '--python-version=%s' option, if that's not the one expected.
                 )
 
             for source_filename, target_filename in data_files:
-                target_filename = Utils.joinpath(
+                target_filename = os.path.join(
                     getStandaloneDirectoryPath(main_module),
                     target_filename
                 )
 
-                Utils.makePath(Utils.dirname(target_filename))
+                makePath(os.path.dirname(target_filename))
 
                 shutil.copy2(
                     source_filename,

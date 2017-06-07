@@ -28,6 +28,7 @@ it being used.
 
 """
 
+import os
 # This is heavily WIP.
 import sys
 from logging import info, warning
@@ -35,14 +36,14 @@ from logging import info, warning
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
-from nuitka.utils import Utils
+from nuitka.utils.FileOperations import relpath
 
 pre_modules = {}
 post_modules = {}
 
 warned_unused_plugins = set()
 
-class NuitkaPluginBase:
+class NuitkaPluginBase(object):
     """ Nuitka base class for all plug-ins.
 
         Derive from "UserPlugin" please.
@@ -90,7 +91,7 @@ class NuitkaPluginBase:
                         module.getFullName()
                     )
                 )
-            elif Utils.isDir(module_filename):
+            elif os.path.isdir(module_filename):
                 module_kind = "py"
             elif module_filename.endswith(".py"):
                 module_kind = "py"
@@ -119,7 +120,7 @@ class NuitkaPluginBase:
                 )
 
     def getImplicitImports(self, full_name):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
     # Provide fall-back for failed imports here.
@@ -129,15 +130,15 @@ class NuitkaPluginBase:
         return self.module_aliases.get(module_name, None)
 
     def onModuleSourceCode(self, module_name, source_code):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return source_code
 
     def onFrozenModuleSourceCode(self, module_name, is_package, source_code):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return source_code
 
     def onFrozenModuleBytecode(self, module_name, is_package, bytecode):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return bytecode
 
     @staticmethod
@@ -169,12 +170,12 @@ class NuitkaPluginBase:
 
     @staticmethod
     def createPreModuleLoadCode(module):
-        # Virtual method, pylint: disable=W0613
+        # Virtual method, pylint: disable=unused-argument
         return None, None
 
     @staticmethod
     def createPostModuleLoadCode(module):
-        # Virtual method, pylint: disable=W0613
+        # Virtual method, pylint: disable=unused-argument
         return None, None
 
     def onModuleDiscovered(self, module):
@@ -258,7 +259,7 @@ class NuitkaPluginBase:
         imported_module, added_flag = Recursion.recurseTo(
             module_package  = module_package,
             module_filename = module_filename,
-            module_relpath  = Utils.relpath(module_filename),
+            module_relpath  = relpath(module_filename),
             module_kind     = module_kind,
             reason          = reason
         )
@@ -274,23 +275,23 @@ class NuitkaPluginBase:
 
 
     def considerExtraDlls(self, dist_dir, module):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
     def considerDataFiles(self, module):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
     def suppressBuiltinImportWarning(self, module_name, source_ref):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def suppressUnknownImportWarning(self, importing, module_name, source_ref):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 
     def decideCompilation(self, module_name, source_ref):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
         return None
 
     def warnUnusedPlugin(self, message):

@@ -28,11 +28,11 @@ from logging import debug, info
 
 from nuitka import ModuleRegistry, Options, Variables
 from nuitka.importing import ImportCache
-from nuitka.optimizations import Graphs, TraceCollections
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import printLine
 from nuitka.utils import MemoryUsage
 
+from . import Graphs, TraceCollections
 from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
 
@@ -74,7 +74,7 @@ TraceCollections.signalChange = signalChange
 
 def optimizeCompiledPythonModule(module):
     if _progress:
-        printLine(
+        info(
             "Doing module local optimizations for '{module_name}'.".format(
                 module_name = module.getFullName()
             )
@@ -111,7 +111,7 @@ def optimizeCompiledPythonModule(module):
     if _progress and Options.isShowMemory():
         memory_watch.finish()
 
-        printLine(
+        info(
             "Memory usage changed during optimization of '%s': %s" % (
                 module.getFullName(),
                 memory_watch.asStr()
@@ -124,7 +124,7 @@ def optimizeCompiledPythonModule(module):
 
 def optimizeUncompiledPythonModule(module):
     if _progress:
-        printLine(
+        info(
             "Doing module dependency considerations for '{module_name}':".format(
                 module_name = module.getFullName()
             )
@@ -209,30 +209,22 @@ def areEmptyTraces(variable_traces):
     return empty
 
 
-def areReadOnlyTraces(variable_traces):
-    read_only = True
-
-    for variable_trace in variable_traces:
-        if variable_trace.isAssignTrace():
-            read_only = False
-            break
-        elif variable_trace.isInitTrace():
-            read_only = False
-            break
-
-    return read_only
-
-
 def optimizeUnusedClosureVariables(function_body):
+    changed = False
+
     for closure_variable in function_body.getClosureVariables():
         # print "VAR", closure_variable
 
-        # Need to take closure of
+        # Need to take closure of those.
         if closure_variable.isParameterVariable() and \
            function_body.isExpressionGeneratorObjectBody():
             continue
 
-        if function_body.hasFlag("has_super") and closure_variable.getName() in ("__class__", "self"):
+        variable_name = closure_variable.getName()
+
+        # These will be used in code generation for "super" maybe.
+        if function_body.hasFlag("has_super") and \
+           variable_name == "__class__":
             continue
 
         variable_traces = function_body.trace_collection.getVariableTraces(
@@ -241,28 +233,22 @@ def optimizeUnusedClosureVariables(function_body):
 
         empty = areEmptyTraces(variable_traces)
         if empty:
+            changed = True
+
             signalChange(
                 "var_usage",
                 function_body.getSourceReference(),
-                message = "Remove unused closure variable."
+                message = "Remove unused closure variable '%s'." % variable_name
             )
 
             function_body.removeClosureVariable(closure_variable)
-        else:
-            read_only = areReadOnlyTraces(variable_traces)
 
-            if read_only:
-                if closure_variable.hasWritesOutsideOf(function_body) is False:
-                    function_body.demoteClosureVariable(closure_variable)
-
-                    signalChange(
-                        "var_usage",
-                        function_body.getSourceReference(),
-                        message = "Turn read-only usage of unassigned closure variable to local variable."
-                    )
+    return changed
 
 
 def optimizeUnusedUserVariables(function_body):
+    changed = False
+
     for local_variable in function_body.getUserLocalVariables():
         variable_traces = function_body.trace_collection.getVariableTraces(
             variable = local_variable
@@ -271,9 +257,14 @@ def optimizeUnusedUserVariables(function_body):
         empty = areEmptyTraces(variable_traces)
         if empty:
             function_body.removeUserVariable(local_variable)
+            changed = True
+
+    return changed
 
 
 def optimizeUnusedTempVariables(provider):
+    changed = False
+
     for temp_variable in provider.getTempVariables():
 
         variable_traces = provider.trace_collection.getVariableTraces(
@@ -283,19 +274,38 @@ def optimizeUnusedTempVariables(provider):
         empty = areEmptyTraces(variable_traces)
         if empty:
             provider.removeTempVariable(temp_variable)
+            changed = True
+
+    return changed
 
 
 def optimizeVariables(module):
+    changed = False
+
     if module.isCompiledPythonModule():
-        if Variables.complete:
-            for function_body in module.getUsedFunctions():
-                optimizeUnusedUserVariables(function_body)
+        try:
+            if Variables.complete:
+                try:
+                    for function_body in module.getUsedFunctions():
+                        if optimizeUnusedUserVariables(function_body):
+                            changed = True
 
-                optimizeUnusedClosureVariables(function_body)
+                        if optimizeUnusedClosureVariables(function_body):
+                            changed = True
 
-                optimizeUnusedTempVariables(function_body)
+                        if optimizeUnusedTempVariables(function_body):
+                            changed = True
+                except Exception:
+                    print("Problem with", function_body)
+                    raise
 
-        optimizeUnusedTempVariables(module)
+            if optimizeUnusedTempVariables(module):
+                changed = True
+        except Exception:
+            print("Problem with", module)
+            raise
+
+    return changed
 
 
 def _traceProgress(current_module):
@@ -311,7 +321,7 @@ after that.""".format(
             memory = MemoryUsage.getHumanReadableProcessMemoryUsage()
         )
 
-    printLine(output)
+    info(output)
 
 
 def restoreFromXML(text):
@@ -337,9 +347,9 @@ def makeOptimizationPass(initial_pass):
 
     if _progress:
         if initial_pass:
-            printLine("Initial optimization pass.")
+            info("Initial optimization pass.")
         else:
-            printLine("Next global optimization pass.")
+            info("Next global optimization pass.")
 
     while True:
         current_module = ModuleRegistry.nextModule()
@@ -351,7 +361,7 @@ def makeOptimizationPass(initial_pass):
             _traceProgress(current_module)
 
         # The tag set is global, so it can react to changes without context.
-        # pylint: disable=W0603
+        # pylint: disable=global-statement
         global tag_set
         tag_set = TagSet()
 
@@ -373,7 +383,8 @@ def makeOptimizationPass(initial_pass):
                 function.trace_collection = None
 
     for current_module in ModuleRegistry.getDoneModules():
-        optimizeVariables(current_module)
+        if optimizeVariables(current_module):
+            finished = False
 
     return finished
 

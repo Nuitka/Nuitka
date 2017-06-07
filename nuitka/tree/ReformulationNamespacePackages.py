@@ -20,6 +20,8 @@ Namespace packages of Python3.3
 
 """
 
+import os
+
 from nuitka import Options
 from nuitka.nodes.AssignNodes import (
     ExpressionTargetVariableRef,
@@ -34,7 +36,6 @@ from nuitka.nodes.ContainerMakingNodes import (
 )
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
-    ExpressionImportModule,
     ExpressionImportModuleHard,
     ExpressionImportName
 )
@@ -44,9 +45,11 @@ from nuitka.nodes.ModuleNodes import (
 )
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
-from nuitka.utils.Utils import dirname
 
-from .Helpers import makeStatementsSequenceFromStatement
+from .Helpers import (
+    makeAbsoluteImportNode,
+    makeStatementsSequenceFromStatement
+)
 from .VariableClosure import completeVariableClosures
 
 
@@ -54,7 +57,9 @@ def createPathAssignment(source_ref):
     if Options.getFileReferenceMode() == "original":
         path_value = makeConstantRefNode(
             constant      = [
-                dirname(source_ref.getFilename())
+                os.path.dirname(
+                    source_ref.getFilename()
+                )
             ],
             source_ref    = source_ref,
             user_provided = True
@@ -104,12 +109,10 @@ def createPython3NamespacePath(package_name, module_relpath, source_ref):
         ),
         source       = ExpressionCallNoKeywords(
             called     = ExpressionImportName(
-                module      = ExpressionImportModule(
+                module      = makeAbsoluteImportNode(
                     module_name = "_frozen_importlib"
                                     if python_version < 350 else
                                   "_frozen_importlib_external",
-                    import_list = (),
-                    level       = 0,
                     source_ref  = source_ref
                 ),
                 import_name = "_NamespacePath",
@@ -133,9 +136,8 @@ def createNamespacePackage(package_name, module_relpath):
     parts = package_name.split('.')
 
     source_ref = SourceCodeReference.fromFilenameAndLine(
-        filename    = module_relpath,
-        line        = 1,
-        future_spec = FutureSpec(),
+        filename = module_relpath,
+        line     = 1
     )
     source_ref = source_ref.atInternal()
 
@@ -146,6 +148,8 @@ def createNamespacePackage(package_name, module_relpath):
         package_name = package_package_name,
         source_ref   = source_ref,
     )
+
+    package.future_spec = FutureSpec()
 
     if python_version >= 300:
         statement = createPython3NamespacePath(

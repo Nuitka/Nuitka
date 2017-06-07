@@ -24,7 +24,7 @@ used like this.
 """
 
 
-class MarkLocalsDictIndicator:
+class MarkLocalsDictIndicatorMixin(object):
     def __init__(self):
         self.needs_locals_dict = False
 
@@ -35,29 +35,24 @@ class MarkLocalsDictIndicator:
         self.needs_locals_dict = True
 
 
-class MarkUnoptimizedFunctionIndicator:
+class MarkUnoptimizedFunctionIndicatorMixin(object):
     """ Mixin for indication that a function contains an exec or star import.
 
         These do not access global variables directly, but check a locals dictionary
         first, because they do.
     """
 
-    def __init__(self):
-        self.unoptimized_locals = False
-        self.unqualified_exec = False
+    def __init__(self, flags):
+        self.unoptimized_locals = "has_exec" in flags
+        self.unqualified_exec = "has_unqualified_exec" in flags
         self.exec_source_ref = None
 
-    def markAsExecContaining(self):
-        self.unoptimized_locals = True
-
     def markAsUnqualifiedExecContaining(self, source_ref):
-        self.unqualified_exec = True
+        assert self.unqualified_exec
 
         # Let the first one win.
         if self.exec_source_ref is None:
             self.exec_source_ref = source_ref
-
-    markAsStarImportContaining = markAsExecContaining
 
     def isUnoptimized(self):
         return self.unoptimized_locals
@@ -67,3 +62,16 @@ class MarkUnoptimizedFunctionIndicator:
 
     def getExecSourceRef(self):
         return self.exec_source_ref
+
+
+class MarkNeedsAnnotationsMixin(object):
+    def __init__(self):
+        self.needs_annotations_dict = False
+
+    def markAsNeedsAnnotationsDictionary(self):
+        """ For use during building only. Indicate "__annotations__" need. """
+        self.needs_annotations_dict = True
+
+    def needsAnnotationsDictionary(self):
+        """ For use during building only. Indicate "__annotations__" need. """
+        return self.needs_annotations_dict

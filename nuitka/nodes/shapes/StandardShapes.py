@@ -16,8 +16,10 @@
 #     limitations under the License.
 #
 """ Standard shapes that commonly appear. """
+from nuitka.codegen.c_types.CTypePyObjectPtrs import CTypePyObjectPtr
 
-class ShapeBase:
+
+class ShapeBase(object):
     @staticmethod
     def getShapeIter():
         return ShapeUnknown
@@ -25,6 +27,14 @@ class ShapeBase:
     @staticmethod
     def getTypeName():
         return None
+
+    @staticmethod
+    def hasShapeModule():
+        return False
+
+    @staticmethod
+    def getCType():
+        return CTypePyObjectPtr
 
 
 class ShapeUnknown(ShapeBase):
@@ -44,18 +54,51 @@ class ShapeUnknown(ShapeBase):
     def hasShapeSlotNext():
         return None
 
-class ValueShapeBase:
+
+class ValueShapeBase(object):
+    __slots__ = ()
+
     def hasShapeSlotLen(self):
         return self.getTypeShape().hasShapeSlotLen()
 
 
 class ValueShapeUnknown(ValueShapeBase):
+    __slots__ = ()
+
     @staticmethod
     def getTypeShape():
         return ShapeUnknown
 
 # Singleton value for sharing.
 vshape_unknown = ValueShapeUnknown()
+
+
+class ShapeLargeConstantValue(object):
+    __slots__ = "shape", "size"
+
+    def __init__(self, size, shape):
+        self.size = size
+        self.shape = shape
+
+    def getTypeShape(self):
+        return self.shape
+
+    @staticmethod
+    def isConstant():
+        return True
+
+    def hasShapeSlotLen(self):
+        return self.shape.hasShapeSlotLen()
+
+
+class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
+    __slots__ = "predictor",
+
+    def __init__(self, size, predictor, shape):
+        ShapeLargeConstantValue.__init__(self, size, shape)
+
+        self.predictor = predictor
+
 
 class ShapeIterator(ShapeBase):
     @staticmethod

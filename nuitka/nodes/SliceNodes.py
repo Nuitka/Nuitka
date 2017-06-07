@@ -27,13 +27,11 @@ from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
 from .ConstantRefNodes import ExpressionConstantNoneRef
-from .NodeBases import (
-    ChildrenHavingMixin,
+from .ExpressionBases import (
     ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationMixin,
-    NodeBase,
-    StatementChildrenHavingBase
+    ExpressionSpecBasedComputationBase
 )
+from .NodeBases import StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     convertNoneConstantToNone,
     makeStatementExpressionOnlyReplacementNode,
@@ -266,8 +264,7 @@ class ExpressionSliceLookup(ExpressionChildrenHavingBase):
         return None
 
 
-class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
-                             ExpressionSpecBasedComputationMixin):
+class ExpressionBuiltinSlice(ExpressionSpecBasedComputationBase):
     kind = "EXPRESSION_BUILTIN_SLICE"
 
     named_children = (
@@ -279,11 +276,6 @@ class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
     builtin_spec = BuiltinOptimization.builtin_slice_spec
 
     def __init__(self, start, stop, step, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
         if start is None:
             start = ExpressionConstantNoneRef(
                 source_ref = source_ref
@@ -297,13 +289,14 @@ class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
                 source_ref = source_ref
             )
 
-        ChildrenHavingMixin.__init__(
+        ExpressionSpecBasedComputationBase.__init__(
             self,
-            values = {
+            values     = {
                 "start" : start,
                 "stop"  : stop,
                 "step"  : step
-            }
+            },
+            source_ref = source_ref
         )
 
     def computeExpression(self, trace_collection):
@@ -327,6 +320,6 @@ class ExpressionBuiltinSlice(ChildrenHavingMixin, NodeBase,
                self.getStop().mayRaiseException(exception_type) or \
                self.getStep().mayRaiseException(exception_type)
 
-    getStart = ChildrenHavingMixin.childGetter("start")
-    getStop = ChildrenHavingMixin.childGetter("stop")
-    getStep = ChildrenHavingMixin.childGetter("step")
+    getStart = ExpressionSpecBasedComputationBase.childGetter("start")
+    getStop = ExpressionSpecBasedComputationBase.childGetter("stop")
+    getStep = ExpressionSpecBasedComputationBase.childGetter("step")

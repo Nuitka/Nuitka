@@ -19,7 +19,18 @@
 
 from __future__ import print_function
 
-import os, sys, subprocess, tempfile, atexit, shutil, re, ast
+import ast
+import atexit
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from contextlib import contextmanager
+
+from nuitka.utils.FileOperations import removeDirectory
+
 
 # Make sure we flush after every print, the "-u" option does more than that
 # and this is easy enough.
@@ -67,6 +78,10 @@ def check_result(*popenargs, **kwargs):
         return True
 
 
+_python_version = None
+_python_arch = None
+_python_executable = None
+
 def setup(needs_io_encoding = False, silent = False):
     # Go its own directory, to have it easy with path knowledge.
     os.chdir(
@@ -99,26 +114,29 @@ def setup(needs_io_encoding = False, silent = False):
 import sys, os;\
 print(".".join(str(s) for s in list(sys.version_info)[:3]));\
 print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os.uname()[4]);\
+print(sys.executable);\
 """,
         ),
         stderr = subprocess.STDOUT
     )
 
-    global python_version, python_arch
-    python_version = version_output.split(b"\n")[0].strip()
-    python_arch = version_output.split(b"\n")[1].strip()
+    global _python_version, _python_arch, _python_executable # singleton, pylint: disable=global-statement
+
+    _python_version = version_output.split(b"\n")[0].strip()
+    _python_arch = version_output.split(b"\n")[1].strip()
+    _python_executable = version_output.split(b"\n")[2].strip()
 
     if sys.version.startswith('3'):
-        python_arch = python_arch.decode()
-        python_version = python_version.decode()
-
-    os.environ["PYTHON_VERSION"] = python_version
+        _python_arch = _python_arch.decode("utf-8")
+        _python_version = _python_version.decode("utf-8")
+        _python_executable = _python_executable.decode("utf-8")
 
     if not silent:
-        my_print("Using concrete python", python_version, "on", python_arch)
+        my_print("Using concrete python", _python_version, "on", _python_arch)
 
-    assert type(python_version) is str, repr(python_version)
-    assert type(python_arch) is str, repr(python_arch)
+    assert type(_python_version) is str, repr(_python_version)
+    assert type(_python_arch) is str, repr(_python_arch)
+    assert type(_python_executable) is str, repr(_python_executable)
 
     if "COVERAGE_FILE" not in os.environ:
         os.environ["COVERAGE_FILE"] = os.path.join(
@@ -127,7 +145,7 @@ print(("x86_64" if "AMD64" in sys.version else "x86") if os.name == "nt" else os
             ".coverage"
         )
 
-    return python_version
+    return _python_version
 
 
 tmp_dir = None
@@ -135,7 +153,7 @@ tmp_dir = None
 def getTempDir():
     # Create a temporary directory to work in, automatically remove it in case
     # it is empty in the end.
-    global tmp_dir
+    global tmp_dir  # singleton, pylint: disable=global-statement
 
     if tmp_dir is None:
         tmp_dir = tempfile.mkdtemp(
@@ -150,10 +168,10 @@ def getTempDir():
         )
 
         def removeTempDir():
-            try:
-                shutil.rmtree(tmp_dir)
-            except OSError:
-                pass
+            removeDirectory(
+                path          = tmp_dir,
+                ignore_errors = True
+            )
 
         atexit.register(removeTempDir)
 
@@ -216,40 +234,68 @@ def convertUsing2to3(path, force = False):
 
 
 def decideFilenameVersionSkip(filename):
+    """ Make decision whether to skip based on filename and Python version.
+
+    This codifies certain rules that files can have as suffixes or prefixes
+    to make them be part of the set of tests executed for a version or not.
+
+    Generally, an ening of "<major><minor>.py" indicates that it must be that
+    Python version or higher. There is no need for ending in "26.py" as this
+    is the minimum version anyway.
+
+    The "_2.py" indicates a maxmimum version of 2.7, i.e. not Python 3.x, for
+    language syntax no more supported.
+    """
+
+    # This will make many decisions with immediate returns.
+    # pylint: disable=too-many-return-statements
+
     assert type(filename) is str
-    assert type(python_version) is str
+    assert type(_python_version) is str
 
     # Skip runner scripts by default.
     if filename.startswith("run_"):
         return False
 
     # Skip tests that require Python 2.7 at least.
-    if filename.endswith("27.py") and python_version.startswith("2.6"):
+    if filename.endswith("27.py") and _python_version.startswith("2.6"):
         return False
 
-    if filename.endswith("_2.py") and python_version.startswith('3'):
+    if filename.endswith("_2.py") and _python_version.startswith('3'):
         return False
 
     # Skip tests that require Python 3.2 at least.
-    if filename.endswith("32.py") and python_version < "3.2":
+    if filename.endswith("32.py") and _python_version < "3.2":
         return False
 
     # Skip tests that require Python 3.3 at least.
-    if filename.endswith("33.py") and python_version < "3.3":
+    if filename.endswith("33.py") and _python_version < "3.3":
         return False
 
     # Skip tests that require Python 3.4 at least.
-    if filename.endswith("34.py") and python_version < "3.4":
+    if filename.endswith("34.py") and _python_version < "3.4":
         return False
 
     # Skip tests that require Python 3.5 at least.
-    if filename.endswith("35.py") and python_version < "3.5":
+    if filename.endswith("35.py") and _python_version < "3.5":
+        return False
+
+    # Skip tests that require Python 3.6 at least.
+    if filename.endswith("36.py") and _python_version < "3.6":
         return False
 
     return True
 
 
 def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
+    """ Call the comparison tool. For a given directory filename.
+
+    The search mode decides if the test case aborts on error or gets extra
+    flags that are exceptions.
+
+    """
+
+    # pylint: disable=too-many-branches
     if dirname is None:
         path = filename
     else:
@@ -283,10 +329,13 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
     # Cleanup, some tests apparently forget that.
     try:
         if os.path.isdir("@test"):
-            shutil.rmtree("@test")
+            removeDirectory("@test", ignore_errors = False)
         elif os.path.isfile("@test"):
             os.unlink("@test")
     except OSError:
+        # TODO: Move this into removeDirectory maybe. Doing an external
+        # call as last resort could be a good idea.
+
         # This seems to work for broken "lnk" files.
         if os.name == "nt":
             os.system("rmdir /S /Q @test")
@@ -307,10 +356,33 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
         sys.stderr.write("Interrupted, with CTRL-C\n")
         sys.exit(2)
 
+def checkCompilesNotWithCPython(dirname, filename, search_mode):
+    if dirname is None:
+        path = filename
+    else:
+        path = os.path.join(dirname, filename)
+
+    command = [
+        sys.executable,
+        "-mcompile",
+        path
+    ]
+
+    try:
+        result = subprocess.call(
+            command
+        )
+    except KeyboardInterrupt:
+        result = 2
+
+    if result != 1 and \
+       result != 2 and \
+       search_mode.abortOnFinding(dirname, filename):
+        my_print("Error exit!", result)
+        sys.exit(result)
+
 
 def hasDebugPython():
-    global python_version
-
     # On Debian systems, these work.
     debug_python = os.path.join("/usr/bin/", os.environ["PYTHON"] + "-dbg")
     if os.path.exists(debug_python):
@@ -353,7 +425,7 @@ def getDependsExePath():
 
     depends_dir = os.path.join(
         nuitka_app_dir,
-        python_arch,
+        _python_arch,
     )
     depends_exe = os.path.join(
         depends_dir,
@@ -382,6 +454,8 @@ def isExecutableCommand(command):
 
 def getRuntimeTraceOfLoadedFiles(path, trace_error = True):
     """ Returns the files loaded when executing a binary. """
+
+    # This will make a crazy amount of work, pylint: disable=too-many-branches,too-many-statements
 
     result = []
 
@@ -454,14 +528,27 @@ Error, needs 'strace' on your system to scan used libraries."""
                line.startswith(b"readlink("):
                 filename = line[line.find(b"(")+2:line.find(b", ")-1]
 
-                if filename in (b"/usr", b"/usr/bin"):
-                    continue
+                binary_path = _python_executable
+                if str is not bytes:
+                    binary_path = binary_path.encode("utf-8")
 
-                if filename == b"/usr/bin/python" + python_version[:3].encode("utf8"):
-                    continue
+                found = False
+                while binary_path:
+                    if filename == binary_path:
+                        found = True
+                        break
 
-                if filename in (b"/usr/bin/python", b"/usr/bin/python2",
-                                b"/usr/bin/python3"):
+                    if binary_path == os.path.dirname(binary_path):
+                        break
+
+                    binary_path = os.path.dirname(binary_path)
+
+                    if filename == os.path.join(binary_path, b"python" + _python_version[:3].encode("utf8")):
+                        found = True
+                        continue
+
+
+                if found:
                     continue
 
             result.extend(
@@ -546,10 +633,8 @@ def snapObjRefCntMap(before):
     import gc
 
     if before:
-        global m1
         m = m1
     else:
-        global m2
         m = m2
 
     for x in gc.get_objects():
@@ -609,7 +694,7 @@ def checkReferenceCount(checked_function, max_rounds = 10):
             assert m1
             assert m2
 
-            for key in m1.keys():
+            for key in m1:
                 if key not in m2:
                     print('*' * 80)
                     print(key)
@@ -633,11 +718,12 @@ def createSearchMode():
     start_at = sys.argv[2] if len(sys.argv) > 2 else None
     coverage_mode = len(sys.argv) > 1 and sys.argv[1] == "coverage"
 
-    class SearchModeBase:
+    class SearchModeBase(object):
         def __init__(self):
             self.may_fail = []
 
         def consider(self, dirname, filename):
+            # Virtual method, pylint: disable=no-self-use,unused-argument
             return True
 
         def finish(self):
@@ -651,12 +737,14 @@ def createSearchMode():
             return True
 
         def getExtraFlags(self, dirname, filename):
+            # Virtual method, pylint: disable=no-self-use,unused-argument
             return []
 
         def mayFailFor(self, *names):
             self.may_fail += names
 
-        def _match(self, dirname, filename, candidate):
+        @classmethod
+        def _match(cls, dirname, filename, candidate):
             parts = [dirname, filename]
 
             while None in parts:
@@ -669,13 +757,14 @@ def createSearchMode():
                 dirname,
                 filename,
                 filename.replace(".py", ""),
-                filename.split(".")[0],
+                filename.split('.')[0],
                 path,
                 path.replace(".py", ""),
 
             )
 
         def isCoverage(self):
+            # Virtual method, pylint: disable=no-self-use
             return False
 
     if coverage_mode:
@@ -723,6 +812,7 @@ def reportSkip(reason, dirname, filename):
 
     my_print("Skipped, %s (%s)." % (case, reason))
 
+
 def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
     import gc
     gc.disable()
@@ -753,7 +843,7 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
         try:
             if number in tests_stderr:
                 sys.stderr = open(os.devnull, "wb")
-        except Exception: # Windows
+        except OSError: # Windows
             if not checkReferenceCount(names[name]):
                 result = False
         else:
@@ -768,7 +858,10 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
     gc.enable()
     return result
 
-from contextlib import contextmanager
+def checkDebugPython():
+    if not hasattr(sys, "gettotalrefcount"):
+        my_print("Warning, using non-debug Python makes this test ineffective.")
+        sys.gettotalrefcount = lambda : 0
 
 @contextmanager
 def withPythonPathChange(python_path):
@@ -790,6 +883,7 @@ def withPythonPathChange(python_path):
             del os.environ["PYTHONPATH"]
         else:
             os.environ["PYTHONPATH"] = old_path
+
 
 @contextmanager
 def withExtendedExtraOptions(*args):
@@ -825,6 +919,8 @@ def convertToPython(doctests, line_filter = None):
     """ Convert give doctest string to static Python code.
 
     """
+    # This is convoluted, but it just needs to work, pylint: disable=too-many-branches
+
     import doctest
     code = doctest.script_from_examples(doctests)
 
@@ -836,7 +932,7 @@ def convertToPython(doctests, line_filter = None):
     output = []
     inside = False
 
-    def getPrintPrefixed(evaluated):
+    def getPrintPrefixed(evaluated, line_number):
         try:
             node = ast.parse(evaluated.lstrip(), "eval")
         except SyntaxError:
@@ -850,28 +946,28 @@ def convertToPython(doctests, line_filter = None):
 
             if sys.version_info < (3,):
                 modified = (count-1) * ' ' + "print " + evaluated
-                return (count-1) * ' ' + ("print 'Line %d'" % line_number) + "\n" + modified
+                return (count-1) * ' ' + ("print 'Line %d'" % line_number) + '\n' + modified
             else:
                 modified = (count-1) * ' ' + "print(" + evaluated + "\n)\n"
                 return (count-1) * ' ' + ("print('Line %d'" % line_number) + ")\n" + modified
         else:
             return evaluated
 
-    def getTried(evaluated):
+    def getTried(evaluated, line_number):
         if sys.version_info < (3,):
             return """
 try:
 %(evaluated)s
 except Exception as __e:
     print "Occurred", type(__e), __e
-""" % { "evaluated" : indentedCode(getPrintPrefixed(evaluated).split('\n'), 4) }
+""" % { "evaluated" : indentedCode(getPrintPrefixed(evaluated, line_number).split('\n'), 4) }
         else:
             return """
 try:
 %(evaluated)s
 except Exception as __e:
     print("Occurred", type(__e), __e)
-""" % { "evaluated" : indentedCode(getPrintPrefixed(evaluated).split('\n'), 4) }
+""" % { "evaluated" : indentedCode(getPrintPrefixed(evaluated, line_number).split('\n'), 4) }
 
     def isOpener(evaluated):
         evaluated = evaluated.lstrip()
@@ -879,19 +975,20 @@ except Exception as __e:
         if evaluated == "":
             return False
 
-        if evaluated.split()[0] in ("def", "class", "for", "while", "try:", "except", "except:", "finally:", "else:"):
-            return True
-        else:
-            return False
+        return evaluated.split()[0] in (
+            "def", "class", "for", "while", "try:", "except", "except:",
+            "finally:", "else:"
+        )
 
+    chunk = None
     for line_number, line in enumerate(code.split('\n')):
         # print "->", inside, line
 
         if line_filter is not None and line_filter(line):
             continue
 
-        if inside and len(line) > 0 and line[0].isalnum() and not isOpener(line):
-            output.append(getTried('\n'.join(chunk)))  # @UndefinedVariable
+        if inside and line and line[0].isalnum() and not isOpener(line):
+            output.append(getTried('\n'.join(chunk), line_number))  # @UndefinedVariable
 
             chunk = []
             inside = False
@@ -915,20 +1012,19 @@ except Exception as __e:
         elif line.strip() == "":
             output.append(line)
         else:
-            output.append(getTried(line))
+            output.append(getTried(line, line_number))
 
     return '\n'.join(output).rstrip() + '\n'
 
 
 def compileLibraryPath(search_mode, path, stage_dir, decide, action):
     my_print("Checking standard library path:", path)
-    global active
 
     for root, dirnames, filenames in os.walk(path):
         dirnames_to_remove = [
             dirname
             for dirname in dirnames
-            if "-" in dirname
+            if '-' in dirname
         ]
 
         for dirname in dirnames_to_remove:
@@ -955,7 +1051,8 @@ def compileLibraryPath(search_mode, path, stage_dir, decide, action):
 
 
 def compileLibraryTest(search_mode, stage_dir, decide, action):
-    my_dirname = os.path.dirname(__file__)
+    my_dirname = os.path.join(os.path.dirname(__file__), "../../..")
+    my_dirname = os.path.normpath(my_dirname)
 
     paths = [
         path
@@ -977,3 +1074,40 @@ def compileLibraryTest(search_mode, stage_dir, decide, action):
             decide      = decide,
             action      = action
         )
+
+
+def run_async(coro):
+    """ Execute a coroutine until it's done. """
+
+    values = []
+    result = None
+    while True:
+        try:
+            values.append(coro.send(None))
+        except StopIteration as ex:
+            result = ex.args[0] if ex.args else None
+            break
+    return values, result
+
+def async_iterate(g):
+    """ Execute async generator until it's done. """
+
+    # Test code, pylint: disable=broad-except,undefined-variable
+
+    res = []
+    while True:
+        try:
+            g.__anext__().__next__()
+        except StopAsyncIteration:  # @UndefinedVariable
+            res.append("STOP")
+            break
+        except StopIteration as ex:
+            if ex.args:
+                res.append("ex arg %s" % ex.args[0])
+            else:
+                res.append("EMPTY StopIteration")
+                break
+        except Exception as ex:
+            res.append(str(type(ex)))
+
+    return res

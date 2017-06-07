@@ -21,6 +21,8 @@ The top of the tree. Packages are also modules. Modules are what hold a program
 together and cross-module optimizations are the most difficult to tackle.
 """
 
+import os
+
 from nuitka import Options, Variables
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing.Importing import (
@@ -29,31 +31,39 @@ from nuitka.importing.Importing import (
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getOwnerFromCodeName
+from nuitka.nodes.IndicatorMixins import MarkNeedsAnnotationsMixin
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
-from nuitka.utils import Utils
 from nuitka.utils.CStrings import encodePythonIdentifierToC
+from nuitka.utils.FileOperations import relpath
 
 from .Checkers import checkStatementsSequenceOrNone
 from .ConstantRefNodes import makeConstantRefNode
+from .ExpressionBases import ExpressionBase
 from .FutureSpecs import FutureSpec
 from .NodeBases import (
     ChildrenHavingMixin,
-    ClosureGiverNodeBase,
-    ExpressionMixin,
+    ClosureGiverNodeMixin,
     NodeBase,
     extractKindAndArgsFromXML,
     fromXML
 )
 
 
-class PythonModuleMixin:
-    def __init__(self, name, package_name):
+class PythonModuleBase(NodeBase):
+    __slots__ = "name", "package_name", "package"
+
+    def __init__(self, name, package_name, source_ref):
         assert type(name) is str, type(name)
         assert '.' not in name, name
         assert package_name is None or \
                (type(package_name) is str and package_name != "")
+
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         self.name = name
         self.package_name = package_name
@@ -118,7 +128,7 @@ class PythonModuleMixin:
                 imported_module, is_added = recurseTo(
                     module_package  = package_package,
                     module_filename = package_filename,
-                    module_relpath  = Utils.relpath(package_filename),
+                    module_relpath  = relpath(package_filename),
                     module_kind     = "py",
                     reason          = "Containing package of recursed module '%s'." % self.getFullName(),
                 )
@@ -139,11 +149,11 @@ class PythonModuleMixin:
         return result
 
     def getCodeName(self):
-        # Abstract method, pylint: disable=R0201
+        # Abstract method, pylint: disable=no-self-use
         return None
 
     def getCompileTimeFilename(self):
-        return Utils.abspath(self.getSourceReference().getFilename())
+        return os.path.abspath(self.getSourceReference().getFilename())
 
     def getRunTimeFilename(self):
         reference_mode = Options.getFileReferenceMode()
@@ -157,7 +167,7 @@ class PythonModuleMixin:
 
             full_name = self.getFullName()
 
-            result = Utils.basename(filename)
+            result = os.path.basename(filename)
             current = filename
 
             levels = full_name.count('.')
@@ -165,14 +175,18 @@ class PythonModuleMixin:
                 levels += 1
 
             for _i in range(levels):
-                current = Utils.dirname(current)
-                result = Utils.joinpath(Utils.basename(current), result)
+                current = os.path.dirname(current)
+
+                result = os.path.join(
+                    os.path.basename(current),
+                    result
+                )
 
             return result
 
 
-class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
-                           ClosureGiverNodeBase):
+class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
+                           MarkNeedsAnnotationsMixin, PythonModuleBase):
     """ Compiled Python Module
 
     """
@@ -189,17 +203,17 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     }
 
     def __init__(self, name, package_name, mode, source_ref):
-        ClosureGiverNodeBase.__init__(
-            self,
-            name        = name,
-            code_prefix = "module",
-            source_ref  = source_ref
-        )
-
-        PythonModuleMixin.__init__(
+        PythonModuleBase.__init__(
             self,
             name         = name,
-            package_name = package_name
+            package_name = package_name,
+            source_ref   = source_ref
+        )
+
+        ClosureGiverNodeMixin.__init__(
+            self,
+            name        = name,
+            code_prefix = "module"
         )
 
         ChildrenHavingMixin.__init__(
@@ -209,6 +223,8 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
                 "functions" : (),
             },
         )
+
+        MarkNeedsAnnotationsMixin.__init__(self)
 
         self.mode = mode
 
@@ -220,6 +236,8 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         # SSA trace based information about the module.
         self.trace_collection = None
 
+        self.future_spec = None
+
     def getDetails(self):
         return {
             "filename" : self.source_ref.getFilename(),
@@ -230,21 +248,20 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
     def getDetailsForDisplay(self):
         result = self.getDetails()
 
-        result["code_flags"] = ','.join(self.source_ref.getFutureSpec().asFlags())
+        result["code_flags"] = ','.join(self.future_spec.asFlags())
 
         return result
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
-        # Modules are not having any provider.
-        assert provider is None
-
-
+        # Modules are not having any provider, must not be used,
         assert False
 
+    def getFutureSpec(self):
+        return self.future_spec
 
     def asGraph(self, computation_counter):
-        from graphviz import Digraph # @UnresolvedImport pylint: disable=F0401,I0021
+        from graphviz import Digraph # @UnresolvedImport pylint: disable=import-error,useless-suppression
 
         graph = Digraph("cluster_%d" % computation_counter, comment = "Graph for %s" % self.getName())
         graph.body.append("style=filled")
@@ -296,9 +313,11 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         return True
 
     def getParent(self):
-        assert False
+        # We have never have a parent
+        return None
 
     def getParentVariableProvider(self):
+        # We have never have a provider
         return None
 
     def hasVariableName(self, variable_name):
@@ -339,7 +358,7 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
 
     def isEarlyClosure(self):
         # Modules should immediately closure variables on use.
-        # pylint: disable=R0201
+        # pylint: disable=no-self-use
         return True
 
     def getCodeName(self):
@@ -363,7 +382,8 @@ class CompiledPythonModule(PythonModuleMixin, ChildrenHavingMixin,
         assert function_body.isExpressionFunctionBody() or \
                function_body.isExpressionClassBody() or \
                function_body.isExpressionGeneratorObjectBody() or \
-               function_body.isExpressionCoroutineObjectBody()
+               function_body.isExpressionCoroutineObjectBody() or \
+               function_body.isExpressionAsyncgenObjectBody()
 
         if function_body not in self.active_functions:
             self.active_functions.add(function_body)
@@ -454,7 +474,7 @@ class CompiledPythonPackage(CompiledPythonModule):
         )
 
     def getOutputFilename(self):
-        return Utils.dirname(self.getFilename())
+        return os.path.dirname(self.getFilename())
 
 
 def makeUncompiledPythonModule(module_name, filename, bytecode, is_package,
@@ -487,24 +507,22 @@ def makeUncompiledPythonModule(module_name, filename, bytecode, is_package,
         )
 
 
-class UncompiledPythonModule(PythonModuleMixin, NodeBase):
+class UncompiledPythonModule(PythonModuleBase):
     """ Compiled Python Module
 
     """
 
     kind = "UNCOMPILED_PYTHON_MODULE"
 
+    __slots__ = "bytecode", "filename", "user_provided", "technical", "used_modules"
+
     def __init__(self, name, package_name, bytecode, filename, user_provided,
                  technical, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-        PythonModuleMixin.__init__(
+        PythonModuleBase.__init__(
             self,
             name         = name,
-            package_name = package_name
+            package_name = package_name,
+            source_ref   = source_ref
         )
 
         self.bytecode = bytecode
@@ -631,7 +649,7 @@ class PythonMainModule(CompiledPythonModule):
 
     def getOutputFilename(self):
         if self.main_added:
-            return Utils.dirname(self.getFilename())
+            return os.path.dirname(self.getFilename())
         else:
             return CompiledPythonModule.getOutputFilename(self)
 
@@ -646,11 +664,12 @@ class PythonInternalModule(CompiledPythonModule):
             package_name = None,
             mode         = "compiled",
             source_ref   = SourceCodeReference.fromFilenameAndLine(
-                filename    = "internal",
-                line        = 0,
-                future_spec = FutureSpec()
+                filename = "internal",
+                line     = 0
             )
         )
+
+        self.future_spec = FutureSpec()
 
     @staticmethod
     def isInternalModule():
@@ -660,25 +679,21 @@ class PythonInternalModule(CompiledPythonModule):
         return "__internal"
 
 
-class PythonShlibModule(PythonModuleMixin, NodeBase):
+class PythonShlibModule(PythonModuleBase):
     kind = "PYTHON_SHLIB_MODULE"
 
     avoid_duplicates = set()
 
     def __init__(self, name, package_name, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-        PythonModuleMixin.__init__(
+        PythonModuleBase.__init__(
             self,
             name         = name,
-            package_name = package_name
+            package_name = package_name,
+            source_ref   = source_ref
         )
 
         # That would be a mistake we just made.
-        assert Utils.basename(source_ref.getFilename()) != "<frozen>"
+        assert os.path.basename(source_ref.getFilename()) != "<frozen>"
 
         # That is too likely a bug.
         assert name != "__main__"
@@ -701,11 +716,11 @@ class PythonShlibModule(PythonModuleMixin, NodeBase):
         pass
 
 
-class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
+class ExpressionModuleFileAttributeRef(ExpressionBase):
     kind = "EXPRESSION_MODULE_FILE_ATTRIBUTE_REF"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -713,7 +728,7 @@ class ExpressionModuleFileAttributeRef(NodeBase, ExpressionMixin):
     def mayRaiseException(self, exception_type):
         return False
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         # There is not a whole lot to do here, the path will change at run
         # time
         if Options.getFileReferenceMode() != "runtime":

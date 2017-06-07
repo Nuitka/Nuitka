@@ -19,7 +19,9 @@
 #     limitations under the License.
 #
 
-import os, sys, subprocess
+import os
+import subprocess
+import sys
 
 # The test runner needs "lxml" itself.
 try:
@@ -28,24 +30,27 @@ except ImportError:
     print("Warning, no 'lxml' module installed, cannot do XML based tests.")
     sys.exit(0)
 
-# Find common code relative in file system. Not using packages for test stuff.
+# Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
+            "..",
             ".."
         )
     )
 )
-from test_common import (
-    my_print,
-    setup,
+
+from nuitka.tools.testing.Common import (  # isort:skip
+    check_output,
     convertUsing2to3,
     createSearchMode,
     hasModule,
-    check_output
+    my_print,
+    setup
 )
+
 
 python_version = setup()
 

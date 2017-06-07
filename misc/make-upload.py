@@ -52,6 +52,12 @@ branch_name = subprocess.check_output(
     "git symbolic-ref --short HEAD".split()
 ).strip()
 
+if branch_name == "factory":
+    for remote in "origin", "github":
+        assert 0 == os.system("git push --recurse-submodules=no -f %s factory" % remote)
+
+    sys.exit(0)
+
 assert branch_name in (b"master", b"develop", b"release/" + nuitka_version, b"hotfix/" +nuitka_version), branch_name
 
 assert 0 == os.system("rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/")
@@ -64,7 +70,7 @@ if branch_name.startswith("release") or branch_name == "master":
     pass
 elif branch_name == "develop":
     for remote in "origin", "bitbucket", "github", "gitlab":
-        assert 0 == os.system("git push --tags -f %s develop" % remote)
+        assert 0 == os.system("git push --recurse-submodules=no --tags -f %s develop" % remote)
         assert 0 == os.system("git push %s master" % remote)
 else:
     sys.stdout.write("Skipping for branch '%s'" % branch_name)

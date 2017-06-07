@@ -24,7 +24,7 @@ it that could be in-lined sometimes for more static analysis.
 
 from nuitka.optimizations import BuiltinOptimization
 
-from .NodeBases import ExpressionChildrenHavingBase
+from .ExpressionBases import ExpressionChildrenHavingBase
 
 
 class ExpressionBuiltinSumBase(ExpressionChildrenHavingBase):

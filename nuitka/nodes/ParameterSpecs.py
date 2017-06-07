@@ -43,9 +43,9 @@ class TooManyArguments(Exception):
         return self.real_exception
 
 
-class ParameterSpec:
+class ParameterSpec(object):
     # These got many attributes, in part duplicating name and instance of
-    # variables, pylint: disable=R0902
+    # variables, pylint: disable=too-many-instance-attributes
 
     def __init__(self, ps_name, ps_normal_args, ps_kw_only_args, ps_list_star_arg,
                  ps_dict_star_arg, ps_default_count):
@@ -230,7 +230,7 @@ class ParameterSpec:
         return self.kw_only_variables
 
     def allowsKeywords(self):
-        # Abstract method, pylint: disable=R0201
+        # Abstract method, pylint: disable=no-self-use
         return True
 
     def getKeywordRefusalText(self):
@@ -251,7 +251,7 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
               positional, pairs, improved = False):
     # This is of incredible code complexity, but there really is no other way to
     # express this with less statements, branches, or variables.
-    # pylint: disable=R0912,R0914,R0915
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     assert type(positional) is tuple, positional
     assert type(pairs) in (tuple, list), pairs

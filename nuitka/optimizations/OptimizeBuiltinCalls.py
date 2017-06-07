@@ -137,8 +137,9 @@ from nuitka.tree.Helpers import (
     makeStatementsSequenceFromStatement
 )
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
-from nuitka.tree.ReformulationTryFinallyStatements import \
+from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyStatement
+)
 
 from . import BuiltinOptimization
 
@@ -296,7 +297,7 @@ def sum_extractor(node):
             )
 
     def makeSum0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -364,7 +365,7 @@ def chr_extractor(node):
 
 def ord_extractor(node):
     def makeOrd0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -452,7 +453,7 @@ def range_extractor(node):
             )
 
     def makeRange0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -490,7 +491,7 @@ def xrange_extractor(node):
             )
 
     def makeXrange0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -961,7 +962,7 @@ def compile_extractor(node):
 
 def open_extractor(node):
     def makeOpen0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -984,9 +985,6 @@ def super_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):
         if type_arg is None and python_version >= 300:
-
-            provider = node.getParentVariableProvider()
-
             type_arg = ExpressionVariableRef(
                 variable_name = "__class__",
                 source_ref    = source_ref
@@ -1018,7 +1016,8 @@ def super_extractor(node):
 
             if object_arg is None:
                 if provider.isExpressionGeneratorObjectBody() or \
-                   provider.isExpressionCoroutineObjectBody():
+                   provider.isExpressionCoroutineObjectBody() or \
+                   provider.isExpressionAsyncgenObjectBody():
                     parameter_provider = provider.getParentVariableProvider()
                 else:
                     parameter_provider = provider
@@ -1058,11 +1057,15 @@ def super_extractor(node):
             source_ref   = source_ref
         )
 
+    provider = node.getParentVariableProvider()
+    provider.flags.discard("has_super")
+
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = wrapSuperBuiltin,
         builtin_spec  = BuiltinOptimization.builtin_super_spec
     )
+
 
 def hasattr_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
@@ -1130,7 +1133,7 @@ def hash_extractor(node):
 
 def format_extractor(node):
     def makeFormat0(source_ref):
-        # pylint: disable=W0613
+        # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
             expression = node,
@@ -1223,7 +1226,7 @@ _builtin_white_list = (
 
 def computeBuiltinCall(call_node, called):
     # There is some dispatching for how to output various types of changes,
-    # with lots of cases, pylint: disable=R0912
+    # with lots of cases, pylint: disable=too-many-branches
 
     builtin_name = called.getBuiltinName()
 
@@ -1245,9 +1248,7 @@ def computeBuiltinCall(call_node, called):
         if inspect_node.isExpressionBuiltinImport():
             tags    = "new_import"
             message = """\
-Replaced dynamic __import__ %s with static module import.""" % (
-                inspect_node.kind,
-            )
+Replaced dynamic "__import__" call with static built-in call."""
         elif inspect_node.isExpressionBuiltin() or \
              inspect_node.isStatementExec():
             tags = "new_builtin"
@@ -1258,21 +1259,21 @@ Replaced dynamic __import__ %s with static module import.""" % (
         elif inspect_node.isExpressionRaiseException():
             tags = "new_raise"
             message = """\
-Replaced call to built-in '%s' with exception raising call.""" % (
-                inspect_node.kind,
+Replaced call to built-in '%s' with exception raise.""" % (
+                builtin_name,
             )
         elif inspect_node.isExpressionOperationUnary():
             tags = "new_expression"
             message = """\
 Replaced call to built-in '%s' with unary operation '%s'.""" % (
-                inspect_node.kind,
+                builtin_name,
                 inspect_node.getOperator()
             )
         elif inspect_node.isExpressionCall():
             tags = "new_expression"
             message = """\
 Replaced call to built-in '%s' with call.""" % (
-                inspect_node.kind,
+                builtin_name,
             )
         elif inspect_node.isExpressionOutlineBody():
             tags = "new_expression"

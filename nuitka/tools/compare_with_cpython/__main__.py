@@ -62,7 +62,7 @@ tempfile_re                  = re.compile(
 def traceback_re_callback(match):
     return r'%sile "%s", line %s' % (
         match.group(1),
-        os.path.abspath(match.group(2)),
+        os.path.realpath(os.path.abspath(match.group(2))),
         match.group(3)
     )
 
@@ -118,7 +118,7 @@ def compareOutput(kind, out_cpython, out_nuitka, ignore_warnings, ignore_infos,
 
 
 def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
-    # Of course many cases to deal with, pylint: disable=R0912
+    # Of course many cases to deal with, pylint: disable=too-many-branches
 
     result = []
 
@@ -186,7 +186,10 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
 
         # This is a bug potentially, occurs only for CPython when re-directed,
         # we are going to ignore the issue as Nuitka is fine.
-        if line == "Exception RuntimeError: 'maximum recursion depth exceeded while calling a Python object' in <type 'exceptions.AttributeError'> ignored": # need not read this, pylint: disable=C0301
+        if line == """\
+Exception RuntimeError: 'maximum recursion depth \
+exceeded while calling a Python object' in \
+<type 'exceptions.AttributeError'> ignored""":
             continue
 
         # This is also a bug potentially, but only visible under
@@ -224,8 +227,7 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
 
 
 def main():
-    # Of course many cases to deal with, pylint: disable=R0912,R0914,R0915
-
+    # Of course many cases to deal with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     filename = sys.argv[1]
     args     = sys.argv[2:]

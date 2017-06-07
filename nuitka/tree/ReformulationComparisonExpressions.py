@@ -76,7 +76,7 @@ def buildComparisonNode(provider, node, source_ref):
 
 def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
 
-    # This is a bit complex, due to the many details, pylint: disable=R0914
+    # This is a bit complex, due to the many details, pylint: disable=too-many-locals
 
     outline_body = ExpressionOutlineBody(
         provider   = provider,

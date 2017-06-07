@@ -53,7 +53,7 @@ struct Nuitka_CoroutineObject {
     PyObject *m_exception_type, *m_exception_value;
     PyTracebackObject *m_exception_tb;
 
-    PyFrameObject *m_frame;
+    struct Nuitka_FrameObject *m_frame;
     PyCodeObject *m_code_object;
 
     // Was it ever used, is it still running, or already finished.
@@ -82,7 +82,8 @@ struct Nuitka_CoroutineWrapperObject {
 
 extern PyTypeObject Nuitka_CoroutineWrapper_Type;
 
-extern PyObject *AWAIT_COROUTINE( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable );
+extern PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable );
+extern PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable );
 
 extern PyObject *MAKE_ASYNC_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
 extern PyObject *ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
@@ -93,12 +94,12 @@ static inline PyObject *COROUTINE_YIELD( struct Nuitka_CoroutineObject *coroutin
 
     coroutine->m_yielded = value;
 
-    coroutine->m_frame->f_executing -= 1;
+    Nuitka_Frame_MarkAsNotExecuting( coroutine->m_frame );
 
     // Return to the calling context.
     swapFiber( &coroutine->m_yielder_context, &coroutine->m_caller_context );
 
-    coroutine->m_frame->f_executing += 1;
+    Nuitka_Frame_MarkAsExecuting( coroutine->m_frame );
 
     // Check for thrown exception.
     if (unlikely( coroutine->m_exception_type ))
@@ -148,12 +149,12 @@ static inline PyObject *COROUTINE_YIELD_IN_HANDLER( struct Nuitka_CoroutineObjec
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 
-    coroutine->m_frame->f_executing -= 1;
+    Nuitka_Frame_MarkAsNotExecuting( coroutine->m_frame );
 
     // Return to the calling context.
     swapFiber( &coroutine->m_yielder_context, &coroutine->m_caller_context );
 
-    coroutine->m_frame->f_executing += 1;
+    Nuitka_Frame_MarkAsExecuting( coroutine->m_frame );
 
     // When returning from yield, the exception of the frame is preserved, and
     // the one that enters should be there.
@@ -194,6 +195,10 @@ static inline PyObject *COROUTINE_YIELD_IN_HANDLER( struct Nuitka_CoroutineObjec
 
     return coroutine->m_yielded;
 }
+
+#if PYTHON_VERSION >= 360
+extern PyObject *PyCoro_GetAwaitableIter( PyObject *value );
+#endif
 
 #endif
 

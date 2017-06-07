@@ -15,6 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
 import sys
 
@@ -30,15 +31,31 @@ def displayDict(d):
     import pprint
     return pprint.pformat(d)
 
+counter = 1
+
 class X:
+    def __init__(self):
+        global counter
+        self.counter = counter
+        counter += 1
+
     def __del__(self):
-        print("X.__del__ occurred")
+        print("X.__del__ occurred", self.counter)
 
 def raising(doit):
     _x = X()
 
-    if doit:
-        1 / 0
+    def nested():
+        if doit:
+            1 / 0
+    try:
+        return nested()
+    except ZeroDivisionError:
+        print("Changing closure variable value.")
+        # This is just to prove that closure variables get updates in frame
+        # locals.
+        doit = 5
+        raise
 
 # Call it without an exception
 raising(False)
@@ -47,11 +64,12 @@ def catcher():
     try:
         raising(True)
     except ZeroDivisionError:
-        print("Catching")
+        print("Catched.")
 
         print("Top traceback code is '%s'." % sys.exc_info()[2].tb_frame.f_code.co_name)
-        print("Previous frame locals (module) are", displayDict(sys.exc_info()[2].tb_next.tb_frame.f_locals))
-        pass
+        print("Second traceback code is '%s'." % sys.exc_info()[2].tb_next.tb_frame.f_code.co_name)
+        print("Third traceback code is '%s'." % sys.exc_info()[2].tb_next.tb_next.tb_frame.f_code.co_name)
+        print("Previous frame locals (module) are", displayDict(sys.exc_info()[2].tb_next.tb_next.tb_frame.f_locals))
 
 catcher()
 

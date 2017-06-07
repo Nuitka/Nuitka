@@ -39,7 +39,7 @@ from .ReformulationAssignmentStatements import buildExtSliceNode
 
 
 def buildSubscriptNode(provider, node, source_ref):
-    # Subscript expression nodes.
+    # Subscript expression nodes, various types are dispatched here.
 
     assert getKind(node.ctx) == "Load", source_ref
 

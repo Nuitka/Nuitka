@@ -16,22 +16,32 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys, os, subprocess
-if __name__ == "__main__":
-    for ver in ("3.5", "3.4", 3.3", "3.2"):
+
+""" Runner for Nuitka that changes to Python3 version installed.
+
+"""
+
+import os
+import subprocess
+import sys
+
+def main():
+    from nuitka.PythonVersions import getSupportedPythonVersions()
+    from nuitka.utils.Execution import callExec
+
+    for ver in reversed(getSupportedPythonVersions()):
+        if ver.startswith("2"):
+            continue
+
         path = "/usr/bin/python" + ver
         nuitka_cmd = "nuitka-run" if os.path.basename(sys.argv[0]).lower().startswith("nuitka-run") else "nuitka"
         if os.path.exists(path):
             cmd = [nuitka_cmd, "--python-version=%s" % ver]
             cmd += sys.argv[1:]
-            subprocess.Popen(
-                cmd,
-                stdout = sys.stdout,
-                stderr = sys.stderr,
-                stdin  = sys.stdin,
-                shell  = 0
-            ).wait()
-            os._exit(0)
-    sys.stderr.write("error: python 3 not available\n")
-    sys.stderr.flush()
-    os._exit(1)
+
+            callExec(args)
+
+    sys.exit("Error, python 3 not available")
+
+if __name__ == "__main__":
+    main()

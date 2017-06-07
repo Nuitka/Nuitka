@@ -28,7 +28,11 @@ import math
 import re
 from logging import warning
 
-from nuitka.__past__ import long, unicode, xrange  # pylint: disable=W0622
+from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+    long,
+    unicode,
+    xrange
+)
 
 
 class ExceptionCannotNamify(Exception):
@@ -37,7 +41,7 @@ class ExceptionCannotNamify(Exception):
 def namifyConstant(constant):
     # Many branches, statements and every case has a return, this is a huge case
     # statement, that encodes the naming policy of constants, with often complex
-    # conditions, pylint: disable=R0911,R0912,R0915
+    # conditions, pylint: disable=too-many-branches,too-many-return-statements,too-many-statements
 
     if type(constant) is int:
         if constant == 0:
@@ -171,7 +175,7 @@ _re_str_needs_no_digest = re.compile(r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S)
 
 def _namifyString(string):
     # Many branches case has a return, encodes the naming policy of strings
-    # constants, with often complex decisions to make, pylint: disable=R0911
+    # constants, with often complex decisions to make, pylint: disable=too-many-return-statements
 
     if string in ("", b""):
         return "empty"

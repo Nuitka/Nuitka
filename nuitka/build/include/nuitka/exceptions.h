@@ -151,17 +151,17 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED_UNTRACED( PyObject *exce
     Py_XDECREF( old_exception_traceback );
 }
 
+struct Nuitka_FrameObject;
 
-// Create a traceback for a given frame. TODO: Probably we ought to have a quick
-// cache for it, in case of repeated usage.
-NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *frame, int lineno )
+// Create a traceback for a given frame. TODO: No freelist usage yet.
+NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( struct Nuitka_FrameObject *frame, int lineno )
 {
     CHECK_OBJECT( frame );
 
     PyTracebackObject *result = PyObject_GC_New( PyTracebackObject, &PyTraceBack_Type );
 
     result->tb_next = NULL;
-    result->tb_frame = frame;
+    result->tb_frame = (PyFrameObject *)frame;
     Py_INCREF( frame );
 
     result->tb_lasti = 0;
@@ -173,7 +173,7 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( PyFrameObject *fr
 }
 
 // Add a frame to an existing exception trace-back.
-NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK( PyTracebackObject *exception_tb, PyFrameObject *frame, int lineno )
+NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK( PyTracebackObject *exception_tb, struct Nuitka_FrameObject *frame, int lineno )
 {
     PyTracebackObject *traceback_new = MAKE_TRACEBACK( frame, lineno );
     traceback_new->tb_next = exception_tb;
@@ -226,10 +226,12 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION( PyObject *excepti
 }
 
 // Preserve the current exception as the frame to restore.
-NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION( PyFrameObject *frame_object )
+NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION( struct Nuitka_FrameObject *frame_object )
 {
+    PyFrameObject *frame = (PyFrameObject *)frame_object;
+
     // Setting exception for frame if not already done.
-    if ( frame_object->f_exc_type == NULL )
+    if ( frame->f_exc_type == NULL )
     {
         PyThreadState *thread_state = PyThreadState_GET();
 
@@ -238,22 +240,22 @@ NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION( PyFrameObject 
 #if _DEBUG_EXCEPTIONS
             PRINT_STRING("PRESERVE_FRAME_EXCEPTION: preserve thread exception\n");
 #endif
-            frame_object->f_exc_type = thread_state->exc_type;
-            Py_INCREF( frame_object->f_exc_type );
-            frame_object->f_exc_value = thread_state->exc_value;
-            Py_XINCREF( frame_object->f_exc_value );
-            frame_object->f_exc_traceback = thread_state->exc_traceback;
-            Py_XINCREF( frame_object->f_exc_traceback );
+            frame->f_exc_type = thread_state->exc_type;
+            Py_INCREF( frame->f_exc_type );
+            frame->f_exc_value = thread_state->exc_value;
+            Py_XINCREF( frame->f_exc_value );
+            frame->f_exc_traceback = thread_state->exc_traceback;
+            Py_XINCREF( frame->f_exc_traceback );
         }
         else
         {
 #if _DEBUG_EXCEPTIONS
             PRINT_STRING("PRESERVE_FRAME_EXCEPTION: no exception to preserve\n");
 #endif
-            frame_object->f_exc_type = Py_None;
-            Py_INCREF( frame_object->f_exc_type );
-            frame_object->f_exc_value = NULL;
-            frame_object->f_exc_traceback = NULL;
+            frame->f_exc_type = Py_None;
+            Py_INCREF( frame->f_exc_type );
+            frame->f_exc_value = NULL;
+            frame->f_exc_traceback = NULL;
         }
     }
 #if _DEBUG_EXCEPTIONS
@@ -264,15 +266,17 @@ NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION( PyFrameObject 
 
     PRINT_ITEM( (PyObject *)frame_object );
     PRINT_NEW_LINE();
-    PRINT_EXCEPTION( frame_object->f_exc_type,  frame_object->f_exc_value, frame_object->f_exc_traceback );
+    PRINT_EXCEPTION( frame->f_exc_type,  frame->f_exc_value, frame->f_exc_traceback );
 #endif
 
 }
 
 // Restore a previously preserved exception to the frame.
-NUITKA_MAY_BE_UNUSED static inline void RESTORE_FRAME_EXCEPTION( PyFrameObject *frame_object )
+NUITKA_MAY_BE_UNUSED static inline void RESTORE_FRAME_EXCEPTION( struct Nuitka_FrameObject *frame_object )
 {
-    if ( frame_object->f_exc_type )
+    PyFrameObject *frame = (PyFrameObject *)frame_object;
+
+    if ( frame->f_exc_type )
     {
 #if _DEBUG_EXCEPTIONS
         PRINT_STRING("RESTORE_FRAME_EXCEPTION: restoring preserved\n");
@@ -280,11 +284,11 @@ NUITKA_MAY_BE_UNUSED static inline void RESTORE_FRAME_EXCEPTION( PyFrameObject *
         PRINT_NEW_LINE();
 #endif
 
-        SET_CURRENT_EXCEPTION( frame_object->f_exc_type, frame_object->f_exc_value, (PyTracebackObject *)frame_object->f_exc_traceback );
+        SET_CURRENT_EXCEPTION( frame->f_exc_type, frame->f_exc_value, (PyTracebackObject *)frame->f_exc_traceback );
 
-        frame_object->f_exc_type = NULL;
-        frame_object->f_exc_value = NULL;
-        frame_object->f_exc_traceback = NULL;
+        frame->f_exc_type = NULL;
+        frame->f_exc_value = NULL;
+        frame->f_exc_traceback = NULL;
     }
 #if _DEBUG_EXCEPTIONS
     else

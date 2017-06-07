@@ -22,10 +22,11 @@ point to package directories, which need no "__init__.py" to count as a
 package. Nuitka will pretend for those that there be one, but without content.
 """
 
+import os
 import sys
 from logging import warning
 
-from nuitka.utils import Utils
+from nuitka.utils.FileOperations import listDir
 
 
 def getLoadedPackages():
@@ -58,7 +59,7 @@ def detectPreLoadedPackagePaths():
 preloaded_packages = None
 
 def getPreloadedPackagePaths():
-    # We need to set this from the outside, pylint: disable=W0603
+    # We need to set this from the outside, pylint: disable=global-statement
     global preloaded_packages
 
     if preloaded_packages is None:
@@ -68,7 +69,7 @@ def getPreloadedPackagePaths():
 
 
 def setPreloadedPackagePaths(value):
-    # We need to set this from the outside, pylint: disable=W0603
+    # We need to set this from the outside, pylint: disable=global-statement
     global preloaded_packages
 
     preloaded_packages = value
@@ -79,11 +80,11 @@ def getPreloadedPackagePath(package_name):
 
 
 def isPreloadedPackagePath(path):
-    path = Utils.normcase(path)
+    path = os.path.normcase(path)
 
     for paths in getPreloadedPackagePaths().values():
         for element in paths:
-            if Utils.normcase(element) == path:
+            if os.path.normcase(element) == path:
                 return True
 
     return False
@@ -96,10 +97,10 @@ def detectPthImportedPackages():
     pth_imports = set()
 
     for prefix in sys.modules["site"].getsitepackages():
-        if not Utils.isDir(prefix):
+        if not os.path.isdir(prefix):
             continue
 
-        for path, filename in Utils.listDir(prefix):
+        for path, filename in listDir(prefix):
             if filename.endswith(".pth"):
                 try:
                     for line in open(path, "rU"):
@@ -118,7 +119,7 @@ def detectPthImportedPackages():
 pth_imported_packages = ()
 
 def setPthImportedPackages(value):
-    # We need to set this from the outside, pylint: disable=W0603
+    # We need to set this from the outside, pylint: disable=global-statement
     global pth_imported_packages
 
     pth_imported_packages = value

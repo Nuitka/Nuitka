@@ -118,8 +118,10 @@ extern void _initCompiledFunctionType();
 extern void _initCompiledMethodType();
 extern void _initCompiledFrameType();
 #if PYTHON_VERSION >= 350
-extern void _initCompiledCoroutineType();
-extern void _initCompiledCoroutineWrapperType();
+extern void _initCompiledCoroutineTypes();
+#endif
+#if PYTHON_VERSION >= 360
+extern void _initCompiledAsyncgenTypes();
 #endif
 
 // The exported interface to CPython. On import of the module, this function
@@ -157,10 +159,11 @@ MOD_INIT_DECL( %(module_identifier)s )
     _initCompiledFunctionType();
     _initCompiledMethodType();
     _initCompiledFrameType();
-
 #if PYTHON_VERSION >= 350
-    _initCompiledCoroutineType();
-    _initCompiledCoroutineWrapperType();
+    _initCompiledCoroutineTypes();
+#endif
+#if PYTHON_VERSION >= 360
+    _initCompiledAsyncgenTypes();
 #endif
 
 #if PYTHON_VERSION < 300

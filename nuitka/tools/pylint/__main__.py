@@ -41,15 +41,16 @@ sys.path.insert(
     )
 )
 
-from nuitka.tools.Basics import goHome, addPYTHONPATH # isort:skip
+from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH # isort:skip
 from nuitka.tools.ScanSources import scanTargets # isort:skip
-from nuitka.tools.pylint.PyLint import executePyLint # isort:skip
+from nuitka.tools.pylint import PyLint # isort:skip
 
 def main():
     goHome()
 
     # So PyLint finds nuitka package.
     addPYTHONPATH(os.getcwd())
+    setupPATH()
 
     parser = OptionParser()
 
@@ -84,14 +85,13 @@ def main():
         "SyntaxHighlighting.py",
     )
 
+    filenames = list(scanTargets(positional_args, blacklist))
+    PyLint.executePyLint(filenames, options.todos, options.verbose)
 
-    found = False
-    for filename in scanTargets(positional_args, blacklist):
-        executePyLint(filename, options.todos, options.verbose)
-        found = True
-
-    if not found:
+    if not filenames:
         sys.exit("No files found.")
+
+    sys.exit(PyLint.our_exit_code)
 
 if __name__ == "__main__":
     main()

@@ -73,7 +73,7 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
 
 def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
     # This needs to have one case per operation of Python, and there are many
-    # of these, # pylint: disable=R0912
+    # of these, # pylint: disable=too-many-branches,too-many-statements
 
     prefix_args = ()
     ref_count = 1
@@ -94,6 +94,10 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
         helper = "BINARY_OPERATION_SUB"
     elif operator == "Div":
         helper = "BINARY_OPERATION_DIV"
+    elif operator == "FloorDiv":
+        helper = "BINARY_OPERATION_FLOORDIV"
+    elif operator == "TrueDiv":
+        helper = "BINARY_OPERATION_TRUEDIV"
     elif operator == "Mult":
         helper = "BINARY_OPERATION_MUL"
     elif operator == "Mod":

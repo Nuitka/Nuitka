@@ -16,12 +16,8 @@
 #     limitations under the License.
 #
 """ Options module """
-
-version_string = """\
-Nuitka V0.5.25
-Copyright (C) 2017 Kay Hayen."""
-
 import logging
+import os
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
@@ -31,16 +27,11 @@ from nuitka.PythonVersions import (
     python_version_str
 )
 from nuitka.utils import Utils
+from nuitka.Version import getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
-is_nuitka_run = Utils.basename(sys.argv[0]).lower().startswith("nuitka-run")
-
-def getVersion():
-    return version_string.split()[1][1:]
-
-def getYear():
-    return int(version_string.split()[4])
+is_nuitka_run = os.path.basename(sys.argv[0]).lower().startswith("nuitka-run")
 
 if not is_nuitka_run:
     usage = "usage: %prog [--module] [--execute] [options] main_module.py"
@@ -49,7 +40,7 @@ else:
 
 parser = OptionParser(
     usage   = usage,
-    version = getVersion()
+    version = getNuitkaVersion()
 )
 
 # This option is obsolete, and module should be used.
@@ -109,6 +100,20 @@ Defaults to what you run Nuitka with (currently %s)""" % (
        python_version_str
     )
 )
+
+if os.name == "nt":
+    parser.add_option(
+        "--python-arch",
+        action  = "store",
+        dest    = "python_arch",
+        choices = ("x86", "x86_64"),
+        default = None,
+        help    = """\
+Architecture of Python to use. One of "x86" or "x86_64".
+Defaults to what you run Nuitka with (currently "%s").""" % (
+           Utils.getArchitecture()
+        )
+    )
 
 parser.add_option(
     "--python-debug", "--python-dbg",
@@ -681,7 +686,7 @@ positional_args = None
 extra_args = []
 
 def parseArgs():
-    # many cases, pylint: disable=R0912,W0603
+    # many cases, pylint: disable=global-statement,too-many-branches
     global options, positional_args, extra_args
 
     # First, isolate the first non-option arguments.
@@ -854,7 +859,7 @@ def shouldCreateGraph():
 
 def getOutputPath(path):
     if options.output_dir:
-        return Utils.normpath(Utils.joinpath(options.output_dir, path))
+        return os.path.normpath(os.path.join(options.output_dir, path))
     else:
         return path
 
@@ -912,6 +917,9 @@ def isRemoveBuildDir():
 def getIntendedPythonVersion():
     return options.python_version
 
+def getIntendedPythonArch():
+    return options.python_arch
+
 def isExperimental():
     """ Are experimental features to be enabled."""
 
@@ -964,5 +972,5 @@ def shallDetectMissingPlugins():
     return options is not None and options.detect_missing_plugins
 
 def getPluginOptions(plugin_name):
-    # TODO: This should come from command line, pylint: disable=W0613
+    # TODO: This should come from command line, pylint: disable=unused-argument
     return {}

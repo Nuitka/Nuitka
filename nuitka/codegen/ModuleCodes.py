@@ -19,7 +19,7 @@
 
 """
 
-from nuitka import Options
+from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import allocateNestedConstants, getConstantInitCodes
@@ -46,13 +46,15 @@ def getModuleValues(context, module_name, module_identifier, codes,
                     function_decl_codes, function_body_codes, temp_variables,
                     is_main_module, is_internal_module):
     # For the module code, lots of arguments and attributes come together.
-    # pylint: disable=R0914
+    # pylint: disable=too-many-locals
 
     # Temporary variable initializations
     local_var_inits = [
         getLocalVariableInitCode(
-            context  = context,
-            variable = variable
+            context   = context,
+            variable  = variable,
+            version   = 0,
+            init_from = None
         )
         for variable in
         temp_variables
@@ -81,6 +83,9 @@ def getModuleValues(context, module_name, module_identifier, codes,
             local_var_inits.append("%s = NULL;" % tmp_name)
 
     local_var_inits += context.getFrameDeclarations()
+
+    if context.needsFrameVariableTypeDescription():
+        local_var_inits.append("char *type_description;")
 
     if context.needsExceptionVariables():
         module_exit = template_module_exception_exit
@@ -123,8 +128,8 @@ def getModuleValues(context, module_name, module_identifier, codes,
 def getModuleCode(module_context, template_values):
     header = template_global_copyright % {
         "name"    : module_context.getName(),
-        "version" : Options.getVersion(),
-        "year"    : Options.getYear()
+        "version" : getNuitkaVersion(),
+        "year"    : getNuitkaVersionYear()
     }
 
     decls, inits, checks = getConstantInitCodes(module_context)
@@ -152,7 +157,7 @@ def getModuleCode(module_context, template_values):
 
 def generateModuleFileAttributeCode(to_name, expression, emit, context):
     # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=W0613
+    # the expression registry, pylint: disable=unused-argument
 
     emit(
         "%s = module_filename_obj;" % (

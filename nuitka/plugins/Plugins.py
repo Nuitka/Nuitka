@@ -27,11 +27,11 @@ The base class in PluginBase will serve as documentation of available.
 
 """
 
+import os
 import sys
 
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
-from nuitka.utils.Utils import isFile
 
 from .PluginBase import post_modules, pre_modules
 from .standard.DataFileCollectorPlugin import (
@@ -101,7 +101,7 @@ for plugin_name, (plugin_class, plugin_detector) in plugin_name2plugin_classes.i
                 plugin_detector()
             )
 
-class Plugins:
+class Plugins(object):
     @staticmethod
     def considerImplicitImports(module, signal_change):
         for plugin in active_plugin_list:
@@ -122,7 +122,7 @@ class Plugins:
 
         for plugin in active_plugin_list:
             for extra_dll in plugin.considerExtraDlls(dist_dir, module):
-                assert isFile(extra_dll[1])
+                assert os.path.isfile(extra_dll[1])
 
                 result.append(extra_dll)
 

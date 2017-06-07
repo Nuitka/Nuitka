@@ -28,6 +28,10 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
+from nuitka.nodes.AsyncgenNodes import (
+    ExpressionAsyncgenObjectBody,
+    ExpressionMakeAsyncgenObject
+)
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
     StatementSpecialUnpackCheck
@@ -63,7 +67,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
-from nuitka.tree import SyntaxErrors
 
 from .Helpers import (
     buildFrameNode,
@@ -77,6 +80,7 @@ from .Helpers import (
     mangleName
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .SyntaxErrors import raiseSyntaxError
 
 
 def _insertFinalReturnStatement(function_statements_body, return_class,
@@ -90,7 +94,7 @@ def _insertFinalReturnStatement(function_statements_body, return_class,
 
     if function_statements_body is None:
         function_statements_body = makeStatementsSequenceFromStatement(
-            statement = return_statement,
+            statement = return_statement
         )
     elif not function_statements_body.isStatementAborting():
         function_statements_body.setStatements(
@@ -104,14 +108,13 @@ def _insertFinalReturnStatement(function_statements_body, return_class,
 
 
 def buildFunctionNode(provider, node, source_ref):
-    # Functions have way too many details, pylint: disable=R0912,R0914
+    # Functions have way too many details, pylint: disable=too-many-branches,too-many-locals
 
     assert getKind(node) == "FunctionDef"
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
-    function_kind, flags, _written_variables, _non_local_declarations, _global_declarations = \
-      detectFunctionBodyKind(
+    function_kind, flags = detectFunctionBodyKind(
         nodes = function_statement_nodes
     )
 
@@ -277,19 +280,19 @@ def buildFunctionNode(provider, node, source_ref):
 
 def buildAsyncFunctionNode(provider, node, source_ref):
     # We are creating a function here that creates coroutine objects, with
-    # many details each, pylint: disable=R0914
+    # many details each, pylint: disable=too-many-locals
     assert getKind(node) == "AsyncFunctionDef"
 
     function_statement_nodes, function_doc = extractDocFromBody(node)
 
-    _function_kind, flags, _written_variables, _non_local_declarations, _global_declarations = \
-      detectFunctionBodyKind(
-        nodes = function_statement_nodes
+    function_kind, flags = detectFunctionBodyKind(
+        nodes       = function_statement_nodes,
+        start_value = "Coroutine"
     )
 
     creator_function_body, _, code_object = buildFunctionWithParsing(
         provider      = provider,
-        function_kind = "Coroutine",
+        function_kind = function_kind,
         name          = node.name,
         flags         = (),
         function_doc  = function_doc,
@@ -297,12 +300,21 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         source_ref    = source_ref
     )
 
-    function_body = ExpressionCoroutineObjectBody(
-        provider   = creator_function_body,
-        name       = node.name,
-        flags      = flags,
-        source_ref = source_ref
-    )
+    if function_kind == "Coroutine":
+        function_body = ExpressionCoroutineObjectBody(
+            provider   = creator_function_body,
+            name       = node.name,
+            flags      = flags,
+            source_ref = source_ref
+        )
+    else:
+        function_body = ExpressionAsyncgenObjectBody(
+            provider   = creator_function_body,
+            name       = node.name,
+            flags      = flags,
+            source_ref = source_ref
+        )
+
 
     decorators = buildNodeList(
         provider   = provider,
@@ -347,17 +359,30 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         source_ref    = source_ref
     )
 
+    if function_kind == "Coroutine":
+        creation_node = ExpressionMakeCoroutineObject(
+            coroutine_ref = ExpressionFunctionRef(
+                function_body = function_body,
+                source_ref    = source_ref
+            ),
+            code_object   = code_object,
+            source_ref    = source_ref
+        )
+    else:
+        creation_node = ExpressionMakeAsyncgenObject(
+            asyncgen_ref = ExpressionFunctionRef(
+                function_body = function_body,
+                source_ref    = source_ref
+            ),
+            code_object  = code_object,
+            source_ref   = source_ref
+        )
+
+
     creator_function_body.setBody(
         makeStatementsSequenceFromStatement(
             statement = StatementReturn(
-                expression = ExpressionMakeCoroutineObject(
-                    coroutine_ref = ExpressionFunctionRef(
-                        function_body = function_body,
-                        source_ref    = source_ref
-                    ),
-                    code_object   = code_object,
-                    source_ref    = source_ref
-                ),
+                expression = creation_node,
                 source_ref = source_ref
             )
         )
@@ -397,6 +422,10 @@ def buildAsyncFunctionNode(provider, node, source_ref):
     )
 
     function_body.qualname_setup = result.getTargetVariableRef()
+
+    # Share the non-local declarations. TODO: This may also apply to generators
+    # and async generators.
+    creator_function_body.non_local_declarations = function_body.non_local_declarations
 
     return result
 
@@ -439,7 +468,7 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
 
 
 def buildParameterAnnotations(provider, node, source_ref):
-    # Too many branches, because there is too many cases, pylint: disable=R0912
+    # Too many branches, because there is too many cases, pylint: disable=too-many-branches
 
     # Build annotations. We are hiding here, that it is a Python3 only feature.
     if python_version < 300:
@@ -476,8 +505,8 @@ def buildParameterAnnotations(provider, node, source_ref):
                     value = buildNode(provider, arg.annotation, source_ref)
                 )
         elif getKind(arg) == "Tuple":
-            for arg in arg.elts:
-                extractArg(arg)
+            for sub_arg in arg.elts:
+                extractArg(sub_arg)
         else:
             assert False, getKind(arg)
 
@@ -531,7 +560,7 @@ def buildParameterAnnotations(provider, node, source_ref):
 def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                              node, source_ref):
     # This contains a complex re-formulation for nested parameter functions.
-    # pylint: disable=R0914
+    # pylint: disable=too-many-locals
 
     kind = getKind(node)
 
@@ -588,7 +617,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
     message = parameters.checkParametersValid()
 
     if message is not None:
-        SyntaxErrors.raiseSyntaxError(
+        raiseSyntaxError(
             message,
             source_ref.atColumnNumber(node.col_offset),
         )
@@ -769,7 +798,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
         outer_body.setBody(
             makeStatementsSequenceFromStatement(
                 statement = makeTryFinallyStatement(
-                    provider,
+                    provider   = outer_body,
                     tried      = statements,
                     final      = [
                         StatementReleaseVariable(
@@ -794,8 +823,8 @@ def addFunctionVariableReleases(function):
     assert function.isExpressionFunctionBody() or \
            function.isExpressionClassBody() or \
            function.isExpressionGeneratorObjectBody() or \
-           function.isExpressionCoroutineObjectBody()
-
+           function.isExpressionCoroutineObjectBody() or \
+           function.isExpressionAsyncgenObjectBody()
 
     releases = []
 

@@ -25,8 +25,12 @@ import math
 
 from nuitka import PythonOperators
 
-from .NodeBases import ExpressionChildrenHavingBase
-from .shapes.StandardShapes import ShapeUnknown, vshape_unknown
+from .ExpressionBases import ExpressionChildrenHavingBase
+from .shapes.StandardShapes import (
+    ShapeLargeConstantValuePredictable,
+    ShapeUnknown,
+    vshape_unknown
+)
 
 
 class ExpressionOperationBase(ExpressionChildrenHavingBase):
@@ -98,11 +102,11 @@ class ExpressionOperationBinary(ExpressionOperationBase):
 
     def computeExpression(self, trace_collection):
         operator = self.getOperator()
-        operands = self.getOperands()
 
         assert operator not in ("Mult", "Add")
 
-        left, right = operands
+        left = self.subnode_left
+        right = self.subnode_right
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
@@ -131,7 +135,7 @@ class ExpressionOperationBinary(ExpressionOperationBase):
         return self, None, None
 
     def getOperands(self):
-        return (self.getLeft(), self.getRight())
+        return (self.subnode_left, self.subnode_right)
 
     getLeft = ExpressionChildrenHavingBase.childGetter("left")
     getRight = ExpressionChildrenHavingBase.childGetter("right")
@@ -158,9 +162,9 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinary):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         operator = self.getOperator()
-        operands = self.getOperands()
 
-        left, right = operands
+        left = self.subnode_left
+        right = self.subnode_right
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
@@ -192,30 +196,6 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinary):
         trace_collection.onControlFlowEscape(self)
 
         return self, None, None
-
-
-class ShapeLargeConstantValue:
-    def __init__(self, size, shape):
-        self.size = size
-        self.shape = shape
-
-    def getTypeShape(self):
-        return self.shape
-
-    @staticmethod
-    def isConstant():
-        return True
-
-    def hasShapeSlotLen(self):
-        return self.shape.hasShapeSlotLen()
-
-
-class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
-    def __init__(self, size, predictor, shape):
-        ShapeLargeConstantValue.__init__(self, size, shape)
-
-        self.predictor = predictor
-
 
 class ExpressionOperationBinaryMult(ExpressionOperationBinary):
     kind = "EXPRESSION_OPERATION_BINARY_MULT"
@@ -274,8 +254,8 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinary):
         if self.shape is not None and self.shape.isConstant():
             return self, None, None
 
-        left  = self.getLeft()
-        right = self.getRight()
+        left  = self.subnode_left
+        right = self.subnode_right
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
@@ -371,6 +351,8 @@ def makeBinaryOperationNode(operator, left, right, source_ref):
             source_ref = source_ref
         )
     else:
+        # TODO: Add more specializations for common operators.
+
         return ExpressionOperationBinary(
             operator   = operator,
             left       = left,
@@ -399,7 +381,7 @@ class ExpressionOperationUnary(ExpressionOperationBase):
 
     def computeExpression(self, trace_collection):
         operator = self.getOperator()
-        operand = self.getOperand()
+        operand = self.subnode_operand
 
         if operand.isCompileTimeConstant():
             operand_value = operand.getCompileTimeConstant()
@@ -546,3 +528,14 @@ Lowered in-place binary operation of compile time constant to binary operation."
         trace_collection.onControlFlowEscape(self)
 
         return self, None, None
+
+
+def makeExpressionOperationBinaryInplace(operator, left, right, source_ref):
+    # TODO: Add more specializations for common operators.
+
+    return ExpressionOperationBinaryInplace(
+        operator   = operator,
+        left       = left,
+        right      = right,
+        source_ref = source_ref
+    )

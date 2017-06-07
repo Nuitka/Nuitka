@@ -37,12 +37,12 @@ from nuitka.nodes.DictionaryNodes import (
 )
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.FrameNodes import StatementsFrame
+from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.PythonVersions import (
-    doShowUnknownEncodingName,
     needsSetLiteralReverseInsertion,
     python_version
 )
@@ -61,7 +61,7 @@ def extractDocFromBody(node):
     doc = None
 
     # Work around ast.get_docstring breakage.
-    if len(node.body) > 0 and \
+    if node.body and \
        getKind(node.body[0]) == "Expr" and \
        getKind(node.body[0].value) == "Str":
 
@@ -73,39 +73,13 @@ def extractDocFromBody(node):
     return body, doc
 
 
-def _makeSyntaxErrorCompatible(e):
-    # Encoding problems for Python happen here, for Python3, this was
-    # already done when we read the source code.
-    if Options.isFullCompat() and \
-       (e.args[0].startswith("unknown encoding:") or \
-        e.args[0].startswith("encoding problem:")):
-        if doShowUnknownEncodingName():
-            complaint = e.args[0].split(':',2)[1]
-        else:
-            complaint = " with BOM"
-
-        e.args = (
-            "encoding problem:%s" % complaint,
-            (e.args[1][0], 1, None, None)
-        )
-
-        if hasattr(e, "msg"):
-            e.msg = e.args[0]
-
-
 def parseSourceCodeToAst(source_code, filename, line_offset):
     # Workaround: ast.parse cannot cope with some situations where a file is not
     # terminated by a new line.
     if not source_code.endswith('\n'):
         source_code = source_code + '\n'
 
-    try:
-        body = ast.parse(source_code, filename)
-    except SyntaxError as e:
-        _makeSyntaxErrorCompatible(e)
-
-        raise e
-
+    body = ast.parse(source_code, filename)
     assert getKind(body) == "Module"
 
     if line_offset > 0:
@@ -114,22 +88,17 @@ def parseSourceCodeToAst(source_code, filename, line_offset):
     return body
 
 
-def detectFunctionBodyKind(nodes):
+def detectFunctionBodyKind(nodes, start_value = None):
     # This is a complex mess, following the scope means a lot of checks need
-    # to be done. pylint: disable=R0912,R0915
+    # to be done. pylint: disable=too-many-branches,too-many-statements
 
     indications = set()
-    written_variables = set()
-    non_local_declarations = set()
-    global_declarations = set()
+    if start_value is not None:
+        indications.add(start_value)
+
     flags = set()
 
-    # print "Enter"
-
     def _check(node):
-
-        # print "consider", node.__class__
-
         node_class = node.__class__
 
         if node_class is ast.Yield:
@@ -138,21 +107,6 @@ def detectFunctionBodyKind(nodes):
             indications.add("Generator")
         elif python_version >= 350 and node_class in (ast.Await, ast.AsyncWith):  # @UndefinedVariable
             indications.add("Coroutine")
-
-        # Detect assignments to variables, for functions we need to know that
-        # to properly resolve closure.
-        if node_class is ast.Assign:
-            for target in node.targets:
-                if type(target) is str:
-                    written_variables.add(target)
-                elif target.__class__ is ast.Name:
-                    written_variables.add(target.id)
-
-        # Detect global and nonlocal declarations ahead of time.
-        if python_version >= 300 and node_class is ast.Nonlocal:  # @UndefinedVariable
-            non_local_declarations.update(set(node.names))
-        elif node_class is ast.Global:
-            global_declarations.update(set(node.names))
 
         # Recurse to children, but do not cross scope boundary doing so.
         if node_class is ast.ClassDef:
@@ -206,13 +160,15 @@ def detectFunctionBodyKind(nodes):
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.ListComp and python_version >= 300:
             for name, field in ast.iter_fields(node):
-                if name in ("name", "body", "comparators", "elt"):
+                if name in ("name", "body", "comparators"):
                     pass
                 elif name == "generators":
                     _check(field[0].iter)
+                elif name in("body", "elt"):
+                    _check(field)
                 else:
                     assert False, (name, field, ast.dump(node))
-        elif python_version >= 270 and node_class is ast.SetComp:
+        elif python_version >= 270 and node_class is ast.SetComp:  # @UndefinedVariable
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body", "comparators", "elt"):
                     pass
@@ -220,7 +176,7 @@ def detectFunctionBodyKind(nodes):
                     _check(field[0].iter)
                 else:
                     assert False, (name, field, ast.dump(node))
-        elif python_version >= 270 and node_class is ast.DictComp:
+        elif python_version >= 270 and node_class is ast.DictComp:  # @UndefinedVariable
             for name, field in ast.iter_fields(node):
                 if name in ("name", "body", "comparators", "key", "value"):
                     pass
@@ -231,6 +187,20 @@ def detectFunctionBodyKind(nodes):
         elif node_class is ast.Name:
             if python_version >= 300 and node.id == "super":
                 flags.add("has_super")
+        elif python_version < 300 and node_class is ast.Exec:
+            flags.add("has_exec")
+
+            if node.globals is None:
+                flags.add("has_unqualified_exec")
+
+            for child in ast.iter_child_nodes(node):
+                _check(child)
+        elif python_version < 300 and node_class is ast.ImportFrom:
+            for import_desc in node.names:
+                if import_desc.name[0] == '*':
+                    flags.add("has_exec")
+            for child in ast.iter_child_nodes(node):
+                _check(child)
         else:
             for child in ast.iter_child_nodes(node):
                 _check(child)
@@ -240,15 +210,15 @@ def detectFunctionBodyKind(nodes):
 
     if indications:
         if "Coroutine" in indications and "Generator" in indications:
-            indications.remove("Generator")
-
-        # If we found something, make sure we agree on all clues.
-        assert len(indications) == 1, indications
-        function_kind = indications.pop()
+            function_kind = "Asyncgen"
+        else:
+            # If we found something, make sure we agree on all clues.
+            assert len(indications) == 1, indications
+            function_kind = indications.pop()
     else:
         function_kind = "Function"
 
-    return function_kind, flags, written_variables, non_local_declarations, global_declarations
+    return function_kind, flags
 
 
 build_nodes_args3 = None
@@ -257,7 +227,7 @@ build_nodes_args1 = None
 
 def setBuildingDispatchers(path_args3, path_args2, path_args1):
     # Using global here, as this is really a singleton, in the form of a module,
-    # and this is to break the cyclic dependency it has, pylint: disable=W0603
+    # and this is to break the cyclic dependency it has, pylint: disable=global-statement
 
     global build_nodes_args3, build_nodes_args2, build_nodes_args1
 
@@ -398,7 +368,15 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
     if not statements:
         return None
 
-    if provider.isExpressionGeneratorObjectBody():
+    if provider.isExpressionFunctionBody() or \
+       provider.isExpressionClassBody():
+        result = StatementsFrame(
+            statements  = statements,
+            guard_mode  = "full",
+            code_object = code_object,
+            source_ref  = source_ref
+        )
+    elif provider.isExpressionGeneratorObjectBody():
         result = StatementsFrame(
             statements  = statements,
             guard_mode  = "generator",
@@ -406,24 +384,21 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
             source_ref  = source_ref
         )
     elif provider.isExpressionCoroutineObjectBody():
-        # TODO: That might be wrong
-
         result = StatementsFrame(
             statements  = statements,
             guard_mode  = "generator",
             code_object = code_object,
             source_ref  = source_ref
         )
-    elif provider.isExpressionFunctionBody() or \
-         provider.isExpressionClassBody():
+    elif provider.isExpressionAsyncgenObjectBody():
         result = StatementsFrame(
             statements  = statements,
-            guard_mode  = "full",
+            guard_mode  = "generator",
             code_object = code_object,
             source_ref  = source_ref
         )
     else:
-        assert False
+        assert False, provider
 
     return result
 
@@ -490,7 +465,7 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     # mutable constants we cannot do it though.
 
     # Due to the many sequence types, there is a lot of cases here
-    # pylint: disable=R0912
+    # pylint: disable=too-many-branches
 
     for element in elements:
         if not element.isExpressionConstantRef():
@@ -640,6 +615,17 @@ def makeReraiseExceptionStatement(source_ref):
             ),
         ),
         source_ref = source_ref
+    )
+
+
+def makeAbsoluteImportNode(module_name, source_ref):
+    return ExpressionBuiltinImport(
+        name        = makeConstantRefNode(module_name, source_ref, True),
+        globals_arg = None,
+        locals_arg  = None,
+        fromlist    = None,
+        level       = makeConstantRefNode(0, source_ref, True),
+        source_ref  = source_ref
     )
 
 

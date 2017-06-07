@@ -20,6 +20,8 @@
 The normal "yield", and the Python 3.3 or higher "yield from" variant.
 """
 
+from nuitka.codegen.PythonAPICodes import getReferenceExportCode
+
 from .ErrorCodes import getErrorExitCode, getReleaseCode
 from .Helpers import generateChildExpressionsCode
 
@@ -34,6 +36,9 @@ def generateYieldCode(to_name, expression, emit, context):
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
+    # This will produce GENERATOR_YIELD, COROUTINE_YIELD or ASYNCGEN_YIELD.
+    getReferenceExportCode(value_name, emit, context)
+
     emit(
         "%s = %s_%s( %s, %s );" % (
             to_name,
@@ -43,8 +48,6 @@ def generateYieldCode(to_name, expression, emit, context):
             "YIELD_IN_HANDLER",
             context.getContextObjectName(),
             value_name
-              if context.needsCleanup(value_name) else
-            "INCREASE_REFCOUNT( %s )" % value_name
         )
     )
 
@@ -71,6 +74,10 @@ def generateYieldFromCode(to_name, expression, emit, context):
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
+    # This will produce GENERATOR_YIELD_FROM, COROUTINE_YIELD_FROM or
+    # ASYNCGEN_YIELD_FROM.
+    getReferenceExportCode(value_name, emit, context)
+
     emit(
         "%s = %s_%s( %s, %s );" % (
             to_name,
@@ -80,8 +87,6 @@ def generateYieldFromCode(to_name, expression, emit, context):
             "YIELD_FROM_IN_HANDLER",
             context.getContextObjectName(),
             value_name
-              if context.needsCleanup(value_name) else
-            "INCREASE_REFCOUNT( %s )" % value_name
         )
     )
 

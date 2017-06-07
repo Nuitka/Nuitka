@@ -189,7 +189,7 @@ def getComputationResult(node, computation, description):
 
     """
 
-    # Try and turn raised exceptions into static raises. pylint: disable=W0703
+    # Try and turn raised exceptions into static raises. pylint: disable=broad-except
     try:
         result = computation()
     except Exception as e:

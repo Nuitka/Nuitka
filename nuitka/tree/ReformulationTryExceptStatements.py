@@ -47,7 +47,6 @@ from nuitka.nodes.StatementNodes import (
 )
 from nuitka.nodes.TryNodes import StatementTry
 from nuitka.PythonVersions import python_version
-from nuitka.tree import SyntaxErrors
 
 from .Helpers import (
     buildNode,
@@ -64,6 +63,7 @@ from .ReformulationAssignmentStatements import (
     decodeAssignTarget
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .SyntaxErrors import raiseSyntaxError
 
 
 def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
@@ -264,7 +264,7 @@ def buildTryExceptionNode(provider, node, source_ref):
     # exception types and hides away that they may be built or not.
 
     # Many variables and branches, due to the re-formulation that is going on
-    # here, which just has the complexity, pylint: disable=R0912,R0914
+    # here, which just has the complexity, pylint: disable=too-many-branches,too-many-locals
 
     tried = buildStatementsNode(
         provider   = provider,
@@ -360,7 +360,7 @@ def buildTryExceptionNode(provider, node, source_ref):
         # The exception types should be a tuple, so as to be most general.
         if exception_types is None:
             if handler is not node.handlers[-1]:
-                SyntaxErrors.raiseSyntaxError(
+                raiseSyntaxError(
                     "default 'except:' must be last",
                     source_ref.atLineNumber(handler.lineno).atColumnNumber(
                         handler.col_offset

@@ -25,10 +25,8 @@ to do.
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
-from .NodeBases import (
-    ExpressionChildrenHavingBase,
-    StatementChildrenHavingBase
-)
+from .ExpressionBases import ExpressionChildrenHavingBase
+from .NodeBases import StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     convertNoneConstantToNone,
     makeStatementOnlyNodesFromExpressions
@@ -281,16 +279,28 @@ class StatementLocalsDictSync(StatementChildrenHavingBase):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
-                "locals"  : locals_arg,
+                "locals" : locals_arg,
             },
             source_ref = source_ref,
         )
 
+        self.previous_traces = None
+        self.variable_traces = None
+
     def computeStatement(self, trace_collection):
+        result, change_tags, change_desc = self.computeStatementSubExpressions(
+            trace_collection = trace_collection
+        )
+
+        if result is not self:
+            return result, change_tags, change_desc
+
         if self.getParentVariableProvider().isCompiledPythonModule():
             return None, "new_statements", "Removed sync back to locals without locals."
 
+        self.previous_traces = trace_collection.onLocalsUsage()
         trace_collection.removeAllKnowledge()
+        self.variable_traces = trace_collection.onLocalsUsage()
 
         return self, None, None
 

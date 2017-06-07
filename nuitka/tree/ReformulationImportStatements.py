@@ -28,8 +28,11 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
+from nuitka.nodes.FutureSpecs import FutureSpec
+from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.ImportNodes import (
-    ExpressionImportModule,
+    ExpressionBuiltinImport,
     ExpressionImportModuleHard,
     ExpressionImportName,
     StatementImportStar
@@ -38,10 +41,10 @@ from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
-from nuitka.tree import SyntaxErrors
 
 from .Helpers import makeStatementsSequenceOrStatement, mangleName
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .SyntaxErrors import raiseSyntaxError
 
 # For checking afterwards, if __future__ imports really were at the beginning
 # of the file.
@@ -54,7 +57,7 @@ def checkFutureImportsOnlyAtStart(body):
             _future_import_nodes.remove(node)
         else:
             if _future_import_nodes:
-                SyntaxErrors.raiseSyntaxError(
+                raiseSyntaxError(
                     """\
 from __future__ imports must occur at the beginning of the file""",
                     _future_import_nodes[0].source_ref.atColumnNumber(
@@ -66,7 +69,7 @@ from __future__ imports must occur at the beginning of the file""",
 def _handleFutureImport(provider, node, source_ref):
     # Don't allow future imports in functions or classes.
     if not provider.isCompiledPythonModule():
-        SyntaxErrors.raiseSyntaxError(
+        raiseSyntaxError(
             """\
 from __future__ imports must occur at the beginning of the file""",
             source_ref.atColumnNumber(node.col_offset)
@@ -79,7 +82,6 @@ from __future__ imports must occur at the beginning of the file""",
         _enableFutureFeature(
             node        = node,
             object_name = object_name,
-            future_spec = source_ref.getFutureSpec(),
             source_ref  = source_ref
         )
 
@@ -88,8 +90,23 @@ from __future__ imports must occur at the beginning of the file""",
     node.source_ref = source_ref
     _future_import_nodes.append(node)
 
+_future_specs = []
 
-def _enableFutureFeature(node, object_name, future_spec, source_ref):
+def pushFutureSpec():
+    _future_specs.append(FutureSpec())
+
+
+def getFutureSpec():
+    return _future_specs[-1]
+
+
+def popFutureSpec():
+    return _future_specs.pop()
+
+
+def _enableFutureFeature(node, object_name, source_ref):
+    future_spec = _future_specs[-1]
+
     if object_name == "unicode_literals":
         future_spec.enableUnicodeLiterals()
     elif object_name == "absolute_import":
@@ -103,7 +120,7 @@ def _enableFutureFeature(node, object_name, future_spec, source_ref):
     elif object_name == "generator_stop":
         future_spec.enableGeneratorStop()
     elif object_name == "braces":
-        SyntaxErrors.raiseSyntaxError(
+        raiseSyntaxError(
             "not a chance",
             source_ref.atColumnNumber(node.col_offset)
         )
@@ -111,7 +128,7 @@ def _enableFutureFeature(node, object_name, future_spec, source_ref):
         # These are enabled in all cases already.
         pass
     else:
-        SyntaxErrors.raiseSyntaxError(
+        raiseSyntaxError(
             "future feature %s is not defined" % object_name,
             source_ref.atColumnNumber(node.col_offset)
         )
@@ -120,10 +137,19 @@ def _enableFutureFeature(node, object_name, future_spec, source_ref):
 def buildImportFromNode(provider, node, source_ref):
     # "from .. import .." statements. This may trigger a star import, or
     # multiple names being looked up from the given module variable name.
-    # This is pretty complex, pylint: disable=R0912,R0914
+    # This is pretty complex, pylint: disable=too-many-branches,too-many-locals
 
     module_name = node.module if node.module is not None else ""
     level = node.level
+
+    # Use default level under some circumstances.
+    if level == -1:
+        level = None
+    elif level == 0 and not _future_specs[-1].isAbsoluteImport():
+        level = None
+
+    if level is not None:
+        level = makeConstantRefNode(level, source_ref, True)
 
     # Importing from "__future__" module may enable flags to the parser,
     # that we need to know about, handle that.
@@ -160,19 +186,24 @@ def buildImportFromNode(provider, node, source_ref):
         # so this a syntax error if not there. For Python2 it is OK to
         # occur everywhere though.
         if not provider.isCompiledPythonModule() and python_version >= 300:
-            SyntaxErrors.raiseSyntaxError(
+            raiseSyntaxError(
                 "import * only allowed at module level",
                 source_ref.atColumnNumber(node.col_offset)
             )
 
-        # Functions with star imports get a marker.
-        if provider.isExpressionFunctionBody():
-            provider.markAsStarImportContaining()
+        if provider.isCompiledPythonModule():
+            import_globals = ExpressionBuiltinGlobals(source_ref)
+            import_locals = ExpressionBuiltinGlobals(source_ref)
+        else:
+            import_globals = ExpressionBuiltinGlobals(source_ref)
+            import_locals = makeConstantRefNode({}, source_ref, True)
 
         return StatementImportStar(
-            module_import = ExpressionImportModule(
-                module_name = module_name,
-                import_list = ('*',),
+            module_import = ExpressionBuiltinImport(
+                name        = makeConstantRefNode(module_name, source_ref, True),
+                globals_arg = import_globals,
+                locals_arg  = import_locals,
+                fromlist    = makeConstantRefNode(('*',), source_ref, True),
                 level       = level,
                 source_ref  = source_ref
             ),
@@ -196,9 +227,11 @@ def buildImportFromNode(provider, node, source_ref):
                     source_ref  = source_ref
                 )
 
-        imported_from_module = ExpressionImportModule(
-            module_name = module_name,
-            import_list = tuple(import_names),
+        imported_from_module = ExpressionBuiltinImport(
+            name        = makeConstantRefNode(module_name, source_ref, True),
+            globals_arg = ExpressionBuiltinGlobals(source_ref),
+            locals_arg  = makeConstantRefNode(None, source_ref, True),
+            fromlist    = makeConstantRefNode(tuple(import_names), source_ref, True),
             level       = level,
             source_ref  = source_ref
         )
@@ -299,32 +332,26 @@ def buildImportModulesNode(provider, node, source_ref):
 
         # Note: The "level" of import is influenced by the future absolute
         # imports.
-        level = 0 if source_ref.getFutureSpec().isAbsoluteImport() else -1
+        level = makeConstantRefNode(0, source_ref, True) if _future_specs[-1].isAbsoluteImport() else None
+
+        import_node = ExpressionBuiltinImport(
+            name        = makeConstantRefNode(module_name, source_ref, True),
+            globals_arg = ExpressionBuiltinGlobals(source_ref),
+            locals_arg  = makeConstantRefNode(None, source_ref, True),
+            fromlist    = makeConstantRefNode(None, source_ref, True),
+            level       = level,
+            source_ref  = source_ref
+        )
 
         if local_name:
             # If is gets a local name, the real name must be used as a
             # temporary value only, being looked up recursively.
-
-            import_node = ExpressionImportModule(
-                module_name = module_name,
-                import_list = None,
-                level       = level,
-                source_ref  = source_ref
-            )
-
             for import_name in module_name.split('.')[1:]:
                 import_node = ExpressionImportName(
                     module      = import_node,
                     import_name = import_name,
                     source_ref  = source_ref
                 )
-        else:
-            import_node = ExpressionImportModule(
-                module_name = module_name,
-                import_list = None,
-                level       = level,
-                source_ref  = source_ref
-            )
 
         # If a name was given, use the one provided, otherwise the import gives
         # the top level package name given for assignment of the imported

@@ -28,7 +28,7 @@ from nuitka.Options import isDebug
 def enableDebug(globals_dict):
     templates = dict(globals_dict)
 
-    class TemplateWrapper:
+    class TemplateWrapper(object):
         """ Wrapper around templates.
 
             To better trace and control template usage.

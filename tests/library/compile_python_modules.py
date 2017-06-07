@@ -21,24 +21,24 @@
 
 import os, sys, tempfile, subprocess
 
-# Find common code relative in file system. Not using packages for test stuff.
+# Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
+            "..",
             ".."
         )
     )
 )
 
-from test_common import (
-    setup,               # @UnresolvedImport
-    my_print,            # @UnresolvedImport
-    createSearchMode,    # @UnresolvedImport
-    compareWithCPython,  # @UnresolvedImport
-    compileLibraryTest   # @UnresolvedImport
-)
+from nuitka.tools.testing.Common import (
+    setup,
+    my_print,
+    createSearchMode,
+    compileLibraryTest
+, checkCompilesWithCPython)
 
 setup(needs_io_encoding = True)
 search_mode = createSearchMode()
@@ -73,7 +73,8 @@ def action(stage_dir, root, path):
         "--output-dir",
         stage_dir,
         "--recurse-none",
-        "--remove-output"
+        "--remove-output",
+        "--plugin-enable=pylint-warnings"
     ]
 
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
@@ -84,12 +85,11 @@ def action(stage_dir, root, path):
         subprocess.check_call(command)
     except subprocess.CalledProcessError:
         my_print("Falling back to full comparison due to error exit.")
-        compareWithCPython(
+
+        checkCompilesNotWithCPython(
             dirname     = None,
             filename    = path,
-            extra_flags = ["expect_failure"],
             search_mode = search_mode,
-            needs_2to3  = False
         )
     else:
         my_print("OK")

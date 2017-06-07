@@ -17,8 +17,7 @@
 #
 """ Utility module.
 
-Here the small things for file/dir names, Python version, CPU counting,
-memory usage, etc. that fit nowhere else and don't deserve their own names.
+Here the small things that fit nowhere else and don't deserve their own module.
 
 """
 
@@ -59,116 +58,6 @@ def getSharedLibrarySuffix():
             result = suffix
 
     return result
-
-
-def relpath(path):
-    try:
-        return os.path.relpath(path)
-    except ValueError:
-        # On Windows, paths on different devices prevent it to work. Use that
-        # full path then.
-        if getOS() == "Windows":
-            return os.path.abspath(path)
-        raise
-
-
-def abspath(path):
-    return os.path.abspath(path)
-
-
-def isAbsolutePath(path):
-    return os.path.isabs(path)
-
-
-def joinpath(*parts):
-    return os.path.join(*parts)
-
-
-def splitpath(path):
-    return tuple(
-        element
-        for element in
-        os.path.split(path)
-        if element
-    )
-
-
-def basename(path):
-    return os.path.basename(path)
-
-
-def dirname(path):
-    return os.path.dirname(path)
-
-
-def normpath(path):
-    return os.path.normpath(path)
-
-
-def realpath(path):
-    return os.path.realpath(path)
-
-
-def normcase(path):
-    return os.path.normcase(path)
-
-
-def getExtension(path):
-    return os.path.splitext(path)[1]
-
-
-def isFile(path):
-    return os.path.isfile(path)
-
-
-def isDir(path):
-    return os.path.isdir(path)
-
-
-def isLink(path):
-    return os.path.islink(path)
-
-
-def areSamePaths(path1, path2):
-    path1 = normcase(abspath(normpath(path1)))
-    path2 = normcase(abspath(normpath(path2)))
-
-    return path1 == path2
-
-
-def readLink(path):
-    return os.readlink(path)  # @UndefinedVariable
-
-
-def listDir(path):
-    """ Give a sorted path, base filename pairs of a directory."""
-
-    return sorted(
-        [
-            (
-                joinpath(path, filename),
-                filename
-            )
-            for filename in
-            os.listdir(path)
-        ]
-    )
-
-
-def getFileList(path):
-    for root, _dirnames, filenames in os.walk(path):
-        for filename in filenames:
-            yield joinpath(root, filename)
-
-
-def deleteFile(path, must_exist):
-    if must_exist or isFile(path):
-        os.unlink(path)
-
-
-def makePath(path):
-    if not os.path.isdir(path):
-        os.makedirs(path)
 
 
 def getCoreCount():
@@ -218,7 +107,7 @@ def isExecutableCommand(command):
             continue
 
         for suffix in suffixes:
-            if isFile(joinpath(part, command + suffix)):
+            if os.path.isfile(os.path.join(part, command + suffix)):
                 return True
 
     return False

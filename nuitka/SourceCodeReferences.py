@@ -21,22 +21,20 @@ All the information to lookup line and file of a code location, together with
 the future flags in use there.
 """
 
-from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 
 class SourceCodeReference(object):
     # TODO: Measure the access speed impact of slots. The memory savings is
     # not worth it (only a few percent).
-    __slots__ = ["filename", "line", "column", "future_spec", "internal"]
+    __slots__ = ["filename", "line", "column", "internal"]
 
     @classmethod
-    def fromFilenameAndLine(cls, filename, line, future_spec):
+    def fromFilenameAndLine(cls, filename, line):
         result = cls()
 
         result.filename = filename
         result.line = line
-        result.future_spec = future_spec
 
         return result
 
@@ -47,7 +45,6 @@ class SourceCodeReference(object):
         self.filename = None
         self.line = None
         self.column = None
-        self.future_spec = None
         self.internal = False
 
     def __repr__(self):
@@ -74,9 +71,8 @@ class SourceCodeReference(object):
 
         """
         result = SourceCodeReference.fromFilenameAndLine(
-            filename    = self.filename,
-            line        = line,
-            future_spec = self.future_spec
+            filename = self.filename,
+            line     = line
         )
 
         result.internal = self.internal
@@ -131,9 +127,6 @@ class SourceCodeReference(object):
     def getFilename(self):
         return self.filename
 
-    def getFutureSpec(self):
-        return self.future_spec
-
     def getAsString(self):
         return "%s:%s" % (self.filename, self.line)
 
@@ -143,7 +136,6 @@ class SourceCodeReference(object):
 
 def fromFilename(filename):
     return SourceCodeReference.fromFilenameAndLine(
-        filename    = filename,
-        line        = 1,
-        future_spec = FutureSpec(),
+        filename = filename,
+        line     = 1
     )

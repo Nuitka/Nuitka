@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -15,77 +16,25 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Release: Create and upload Windows MSI files for Nuitka
+
+""" Launcher for MSI upload release tool.
 
 """
 
-from __future__ import print_function
-
 import os
-import shutil
-import subprocess
 import sys
 
-if os.path.isdir("dist"):
-    shutil.rmtree("dist")
-
-branch_name = subprocess.check_output(
-    "git symbolic-ref --short HEAD".split()
-).strip()
-
-print("Building for branch '%s'." % branch_name)
-
-assert branch_name in (
-    b"master",
-    b"develop",
-    b"factory",
-), branch_name
-
-assert 0 == subprocess.call(
-    (
-        sys.executable,
-        "setup.py",
-        "bdist_msi",
-        "--target-version=" + sys.version[:3]
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought be there.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+        )
     )
 )
 
-for filename in os.listdir("dist"):
-    if not filename.endswith(".msi"):
-        continue
-
-    break
-else:
-    sys.exit("No MSI created.")
-
-parts = [
-    filename[:-4].\
-        replace("-py2.6","").\
-        replace("-py2.7","").\
-        replace("-py3.2","").\
-        replace("-py3.3","").\
-        replace("-py3.4","").\
-        replace("-py3.5","").\
-        replace("Nuitka32","Nuitka").\
-        replace("Nuitka64","Nuitka"),
-    "py" + sys.version[:3].replace('.',""),
-    "msi"
-]
-
-new_filename = '.'.join(parts)
-
-if branch_name == b"factory":
-    new_filename = "Nuitka-factory." + new_filename[new_filename.find("win"):]
-
-os.rename(os.path.join("dist",filename),os.path.join("dist",new_filename))
-
-assert 0 == subprocess.call(
-    (
-        "scp",
-        "dist/"+new_filename,
-        "git@nuitka.net:/var/www/releases/"
-    ),
-    shell = True # scan scp in PATH.
-)
-
-print("OK, uploaded to dist/" + new_filename)
+from nuitka.tools.release.msi_upload.__main__ import main # isort:skip
+main()

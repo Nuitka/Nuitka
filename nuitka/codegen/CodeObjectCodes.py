@@ -20,9 +20,10 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
+import os
+
 from nuitka import Options
 from nuitka.PythonVersions import python_version
-from nuitka.utils.Utils import isAbsolutePath
 
 
 def getCodeObjectsDeclCode(context):
@@ -34,7 +35,7 @@ def getCodeObjectsDeclCode(context):
         statements.append(declaration)
 
     if context.getOwner().getFullName() == "__main__":
-        statements.append("/* For use in MainProgram.cpp. */")
+        statements.append('/* For use in "MainProgram.c". */')
         statements.append("PyCodeObject *codeobj_main = NULL;")
 
     return statements
@@ -42,7 +43,7 @@ def getCodeObjectsDeclCode(context):
 def getCodeObjectsInitCode(context):
     # There is a bit of details to this, code objects have many flags to deal
     # with, and we are making some optimizations as well as customization to
-    # what path should be put there, pylint: disable=R0912
+    # what path should be put there, pylint: disable=too-many-branches
 
     statements = []
 
@@ -59,7 +60,7 @@ def getCodeObjectsInitCode(context):
         # We do not care about release of this object, as code object live
         # forever anyway.
         if Options.getFileReferenceMode() == "frozen" or \
-           isAbsolutePath(module_filename):
+           os.path.isabs(module_filename):
             template = "module_filename_obj = %s;"
         else:
             template = "module_filename_obj = MAKE_RELATIVE_PATH( %s );"
@@ -78,10 +79,16 @@ def getCodeObjectsInitCode(context):
         # Make sure the filename is always identical.
         assert code_object_key[0] == module_filename
 
-        if code_object_key[6] == "Generator":
+        if code_object_key[6] in ("Module", "Class", "Function"):
+            pass
+        elif code_object_key[6] == "Generator":
             co_flags.append("CO_GENERATOR")
         elif code_object_key[6] == "Coroutine":
             co_flags.append("CO_COROUTINE")
+        elif code_object_key[6] == "Asyncgen":
+            co_flags.append("CO_ASYNC_GENERATOR")
+        else:
+            assert False, code_object_key[6]
 
         if code_object_key[7]:
             co_flags.append("CO_OPTIMIZED")

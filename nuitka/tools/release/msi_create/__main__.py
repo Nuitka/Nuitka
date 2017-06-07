@@ -1,7 +1,7 @@
 #     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
-#     Python tests originally created or extracted from other peoples work. The
-#     parts were too small to be protected.
+#     Part of "Nuitka", an optimizing Python compiler that is compatible and
+#     integrates with CPython, but also works on its own.
 #
 #     Licensed under the Apache License, Version 2.0 (the "License");
 #     you may not use this file except in compliance with the License.
@@ -15,4 +15,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Release: Create Windows MSI files for Nuitka
 
+"""
+
+from nuitka.tools.release.MSI import createMSIPackage
+
+
+def main():
+    createMSIPackage()
+
+if __name__ == "__main__":
+    main()

@@ -29,7 +29,7 @@ import sys
 
 
 def getSupportedPythonVersions():
-    return ("2.6", "2.7", "3.2", "3.3", "3.4", "3.5")
+    return ("2.6", "2.7", "3.2", "3.3", "3.4", "3.5", "3.6")
 
 
 def getSupportedPythonVersionStr():
@@ -67,22 +67,6 @@ def isAtLeastSubVersion(version):
     return python_version >= version
 
 
-def doShowUnknownEncodingName():
-    # Python 3.3.3 or higher does it, 3.4 always did.
-    if python_version >= 333:
-        return True
-
-    # Python2.7 after 2.7.6 does it.
-    if isAtLeastSubVersion(276):
-        return True
-
-    # Debian back ports do it.
-    if  "2.7.5+" in sys.version or "3.3.2+" in sys.version:
-        return True
-
-    return False
-
-
 def getErrorMessageExecWithNestedFunction():
     """ Error message of the concrete Python in case an exec occurs in a
         function that takes a closure variable.
@@ -106,7 +90,7 @@ def getComplexCallSequenceErrorTemplate():
     if not hasattr(getComplexCallSequenceErrorTemplate, "result"):
         try:
             # We are doing this on purpose, to get the exception.
-            # pylint: disable=E1102,E1133
+            # pylint: disable=  not-an-iterable,not-callable
             f = None
             f(*None)
         except TypeError as e:
@@ -120,7 +104,7 @@ def getComplexCallSequenceErrorTemplate():
 
 def needsSetLiteralReverseInsertion():
     try:
-        value = eval("{1,1.0}.pop()") # pylint: disable=W0123
+        value = eval("{1,1.0}.pop()") # pylint: disable=eval-used
     except SyntaxError:
         return False
     else:
@@ -135,9 +119,26 @@ def needsDuplicateArgumentColOffset():
 
 
 def isUninstalledPython():
-    return "Anaconda" in sys.version or \
-           "WinPython" in sys.version or \
-           (os.name == "nt" and python_version >= 350)
+    if os.name == "nt":
+        import ctypes.wintypes
+
+        GetSystemDirectory  = ctypes.windll.kernel32.GetSystemDirectoryW   # @UndefinedVariable
+        GetSystemDirectory.argtypes = (
+            ctypes.wintypes.LPWSTR,
+            ctypes.wintypes.DWORD
+        )
+        GetSystemDirectory.restype = ctypes.wintypes.DWORD
+
+        MAX_PATH = 4096
+        buf = ctypes.create_unicode_buffer(MAX_PATH)
+
+        res = GetSystemDirectory(buf, MAX_PATH)
+        assert res != 0
+
+        system_path = os.path.normcase(buf.value)
+        return not getRunningPythonDLLPath().startswith(system_path)
+
+    return "Anaconda" in sys.version or "WinPython" in sys.version
 
 
 def getRunningPythonDLLPath():

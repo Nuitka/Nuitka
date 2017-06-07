@@ -27,14 +27,19 @@ from nuitka.utils import InstanceCounters, Utils
 
 complete = False
 
-class Variable:
+class Variable(object):
+
     # We will need all of these attributes, since we track the global
-    # state and cache some decisions as attributes, pylint: disable=R0902
+    # state and cache some decisions as attributes, pylint: disable=too-many-instance-attributes
+    __slots__ = (
+        "variable_name", "owner", "version_number", "shared_users", "shared_scopes",
+        "traces", "users", "writers"
+    )
+
     @InstanceCounters.counted_init
     def __init__(self, owner, variable_name):
         assert type(variable_name) is str, variable_name
         assert type(owner) not in (tuple, list), owner
-        assert owner.getFullName
 
         self.variable_name = variable_name
         self.owner = owner
@@ -73,11 +78,8 @@ class Variable:
 
         return self.version_number
 
-    # pylint: disable=R0201
+    # pylint: disable=no-self-use
     def isLocalVariable(self):
-        return False
-
-    def isMaybeLocalVariable(self):
         return False
 
     def isParameterVariable(self):
@@ -97,7 +99,8 @@ class Variable:
             self.shared_users = True
 
             if user.isExpressionGeneratorObjectBody() or \
-               user.isExpressionCoroutineObjectBody():
+               user.isExpressionCoroutineObjectBody() or \
+               user.isExpressionAsyncgenObjectBody():
                 if self.owner is user.getParentVariableProvider():
                     return
 
@@ -186,6 +189,8 @@ class Variable:
 
 
 class LocalVariable(Variable):
+    __slots__ = ()
+
     def __init__(self, owner, variable_name):
         Variable.__init__(
             self,
@@ -204,35 +209,9 @@ class LocalVariable(Variable):
         return True
 
 
-class MaybeLocalVariable(Variable):
-    def __init__(self, owner, maybe_variable):
-        Variable.__init__(
-            self,
-            owner         = owner,
-            variable_name = maybe_variable.getName()
-        )
-
-        self.maybe_variable = maybe_variable
-
-    def __repr__(self):
-        return "<%s '%s' of '%s' maybe '%s'" % (
-            self.__class__.__name__,
-            self.variable_name,
-            self.owner.getName(),
-            self.maybe_variable
-        )
-
-    def getDescription(self):
-        return "maybe-local variable '%s'" % self.variable_name
-
-    def isMaybeLocalVariable(self):
-        return True
-
-    def getMaybeVariable(self):
-        return self.maybe_variable
-
-
 class ParameterVariable(LocalVariable):
+    __slots__ = ()
+
     def __init__(self, owner, parameter_name):
         LocalVariable.__init__(
             self,
@@ -248,6 +227,8 @@ class ParameterVariable(LocalVariable):
 
 
 class ModuleVariable(Variable):
+    __slots__ = "module",
+
     def __init__(self, module, variable_name):
         assert type(variable_name) is str, repr(variable_name)
         assert module.isCompiledPythonModule()
@@ -277,6 +258,8 @@ class ModuleVariable(Variable):
 
 
 class TempVariable(Variable):
+    __slots__ = ()
+
     def __init__(self, owner, variable_name):
         Variable.__init__(
             self,

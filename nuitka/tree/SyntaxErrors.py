@@ -27,6 +27,9 @@ def formatOutput(e):
 
         if message is None and colno is not None:
             colno = None
+
+        if lineno is not None and lineno == 0:
+            lineno = 1
     else:
         reason, = e.args
 

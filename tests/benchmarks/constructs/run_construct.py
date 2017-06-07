@@ -23,6 +23,7 @@ from __future__ import print_function
 
 import os, sys, subprocess, shutil, hashlib
 
+# Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
@@ -30,8 +31,16 @@ sys.path.insert(
             os.path.dirname(os.path.abspath(__file__)),
             "..",
             "..",
+            ".."
         )
     )
+)
+
+from nuitka.tools.testing.Common import (
+    my_print,
+    setup,
+    convertUsing2to3,
+    getTempDir
 )
 
 from optparse import OptionParser
@@ -86,13 +95,6 @@ if os.path.exists(nuitka):
     nuitka = os.path.abspath(nuitka)
 elif nuitka:
     sys.exit("Error, nuitka binary '%s' not found." % nuitka)
-
-from test_common import (
-    my_print,
-    setup,
-    convertUsing2to3,
-    getTempDir
-)
 
 python_version = setup(silent = True)
 

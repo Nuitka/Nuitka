@@ -19,20 +19,21 @@
 #     limitations under the License.
 #
 
-import os, sys, shutil
+import os
+import sys
 
-# Find common code relative in file system. Not using packages for test stuff.
+# Find nuitka package relative to us.
 sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
+            "..",
             ".."
         )
     )
 )
-
-from test_common import (
+from nuitka.tools.testing.Common import (
     my_print,
     setup,
     hasModule,
@@ -42,6 +43,7 @@ from test_common import (
     createSearchMode,
     reportSkip
 )
+from nuitka.utils.FileOperations import removeDirectory
 
 python_version = setup(needs_io_encoding = True)
 
@@ -208,14 +210,6 @@ for filename in sorted(os.listdir('.')):
 
         extra_flags.append("plugin_enable:pmw-freeze")
 
-    if filename not in ("PySideUsing.py", "PyQt4Using.py", "PyQt5Using.py",
-                        "PyQt4Plugins.py", "PyQt5Plugins.py", "GtkUsing.py",
-                        "LxmlUsing.py", "Win32ComUsing.py", "IdnaUsing.py",
-                        "NumpyUsing.py", "FlaskUsing.py"):
-        extra_flags += [
-            "no_site"
-        ]
-
     my_print("Consider output of recursively compiled program:", filename)
 
     # First compare so we know the program behaves identical.
@@ -263,6 +257,9 @@ for filename in sorted(os.listdir('.')):
         if loaded_filename.startswith("/tmp/"):
             continue
 
+        if loaded_filename.startswith("/run/"):
+            continue
+
         if loaded_filename.startswith("/usr/lib/locale/"):
             continue
 
@@ -270,6 +267,12 @@ for filename in sorted(os.listdir('.')):
             continue
 
         if loaded_filename.startswith("/usr/share/X11/locale/"):
+            continue
+
+        # Themes may of course be loaded.
+        if loaded_filename.startswith("/usr/share/themes"):
+            continue
+        if "gtk" in loaded_filename and "/engines/" in loaded_filename:
             continue
 
         # Taking these from system is harmless and desirable
@@ -314,6 +317,11 @@ for filename in sorted(os.listdir('.')):
            loaded_filename.startswith("/data/") or \
            loaded_filename.startswith("/root/") or \
            loaded_filename in ("/home", "/data", "/root"):
+            continue
+
+        # For Debian builders, /build is OK too.
+        if loaded_filename.startswith("/build/") or \
+           loaded_filename == "/build":
             continue
 
         if loaded_basename == "gconv-modules.cache":
@@ -379,7 +387,7 @@ for filename in sorted(os.listdir('.')):
             continue
 
         # Looking at site-package dir alone is alone.
-        if loaded_filename.endswith("site-packages"):
+        if loaded_filename.endswith(("site-packages", "dist-packages")):
             continue
 
         # Windows baseline DLLs
@@ -454,6 +462,6 @@ for filename in sorted(os.listdir('.')):
     if illegal_access:
         sys.exit(1)
 
-    shutil.rmtree(filename[:-3] + ".dist")
+    removeDirectory(filename[:-3] + ".dist", ignore_errors = True)
 
 search_mode.finish()

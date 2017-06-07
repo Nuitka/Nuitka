@@ -35,7 +35,7 @@ def detectVersion():
     version_line, = [
         line
         for line in
-        open("nuitka/Options.py")
+        open("nuitka/Version.py")
         if line.startswith("Nuitka V")
     ]
 
@@ -64,7 +64,8 @@ if os.name == "nt" and "bdist_msi" in sys.argv:
         )
     )
 
-def find_packages():
+
+def findNuitkaPackages():
     result = []
 
     for root, _dirnames, filenames in os.walk("nuitka"):
@@ -82,7 +83,6 @@ def find_packages():
 
     return result
 
-package = find_packages()
 
 class NuitkaInstallScripts(install_scripts):
     """
@@ -111,7 +111,7 @@ class NuitkaInstallScripts(install_scripts):
             libdir = self.install_lib
         else:
             common = os.path.commonprefix(
-                (self.install_dir, self.install_lib )
+                (self.install_dir, self.install_lib)
             )
             rest = self.install_dir[len(common):]
             uplevel = len([n for n in os.path.split(rest) if n ])
@@ -206,7 +206,7 @@ setup(
     name         = project_name,
     license      = "Apache License, Version 2.0",
     version      = version,
-    packages     = find_packages(),
+    packages     = findNuitkaPackages(),
     scripts      = scripts,
     cmdclass     = cmdclass,
 

@@ -19,6 +19,7 @@
 
 """
 
+from nuitka.codegen.c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
 from nuitka.PythonVersions import python_version
 
 from .StandardShapes import ShapeBase, ShapeIterator
@@ -50,6 +51,11 @@ class ShapeTypeBool(ShapeBase):
     @staticmethod
     def getTypeName():
         return "bool"
+
+    @staticmethod
+    def getCType():
+        # enum: "0: False", "1": True, "2": unassigned
+        return CTypeNuitkaBoolEnum
 
     @staticmethod
     def hasShapeSlotLen():
@@ -516,6 +522,10 @@ class ShapeTypeXrangeIterator(ShapeIterator):
 
 class ShapeTypeType(ShapeBase):
     @staticmethod
+    def getTypeName():
+        return "type"
+
+    @staticmethod
     def hasShapeSlotLen():
         return False
 
@@ -530,3 +540,33 @@ class ShapeTypeType(ShapeBase):
     @staticmethod
     def hasShapeSlotNext():
         return False
+
+
+class ShapeTypeModule(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "module"
+
+    @staticmethod
+    def hasShapeModule():
+        return True
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+
+class ShapeTypeBuiltinModule(ShapeTypeModule):
+    pass

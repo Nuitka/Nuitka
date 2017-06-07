@@ -32,11 +32,22 @@ Variable version can start as:
 
 from logging import debug
 
+from nuitka.codegen.c_types.CTypePyObjectPtrs import (
+    CTypeCellObject,
+    CTypePyObjectPtr,
+    CTypePyObjectPtrPtr
+)
 from nuitka.utils import InstanceCounters
 
 
-class VariableTraceBase:
-    # We are going to have many instance attributes, pylint: disable=R0902
+class VariableTraceBase(object):
+    # We are going to have many instance attributes, pylint: disable=too-many-instance-attributes
+
+    __slots__ = (
+        "owner", "variable", "version", "usage_count",
+        "has_potential_usages", "has_releases", "has_name_usages",
+        "closure_usages", "is_escaped", "previous"
+    )
 
     @InstanceCounters.counted_init
     def __init__(self, owner, variable, version, previous):
@@ -56,6 +67,8 @@ class VariableTraceBase:
         # If False, this indicates, the variable name needs to be assigned.
         self.has_name_usages = False
 
+        self.closure_usages = False
+
         # If False, this indicates that the value is not yet escaped.
         self.is_escaped = False
 
@@ -67,8 +80,15 @@ class VariableTraceBase:
     def getVariable(self):
         return self.variable
 
+    def getOwner(self):
+        return self.owner
+
     def getVersion(self):
         return self.version
+
+    def addClosureUsage(self):
+        self.addUsage()
+        self.closure_usages = True
 
     def addUsage(self):
         self.usage_count += 1
@@ -104,6 +124,32 @@ class VariableTraceBase:
     def getPrevious(self):
         return self.previous
 
+    def getPickedCType(self, context):
+        """ Return type to use for specific context. """
+
+        user = context.getOwner()
+
+        if self.variable.getOwner() is user:
+            if self.variable.isSharedTechnically():
+                result = CTypeCellObject
+            else:
+                result = CTypePyObjectPtr
+        elif context.isForDirectCall():
+            if user.isExpressionGeneratorObjectBody():
+                result = CTypeCellObject
+            elif user.isExpressionCoroutineObjectBody():
+                result = CTypeCellObject
+            elif user.isExpressionAsyncgenObjectBody():
+                result = CTypeCellObject
+            elif self.variable.isSharedTechnically():
+                result = CTypeCellObject
+            else:
+                result = CTypePyObjectPtrPtr
+        else:
+            result = CTypeCellObject
+
+        return result
+
     @staticmethod
     def isAssignTrace():
         return False
@@ -128,7 +174,6 @@ class VariableTraceBase:
         # TODO: Temporarily disable far reaching of assumptions, until value
         # escaping can be trusted.
         if self.variable.isModuleVariable() or \
-           self.variable.isMaybeLocalVariable() or \
            self.variable.isSharedTechnically() is not False:
             return False
 
@@ -144,17 +189,19 @@ class VariableTraceBase:
         return self.isUninitTrace()
 
     def getReplacementNode(self, usage):
-        # Virtual method, pylint: disable=R0201,W0613
+        # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return None
 
     def hasShapeDictionaryExact(self):
-        # Virtual method, pylint: disable=R0201
+        # Virtual method, pylint: disable=no-self-use
         return False
 
 
 
 class VariableTraceUninit(VariableTraceBase):
+    __slots__ = ()
+
     def __init__(self, owner, variable, version, previous):
         VariableTraceBase.__init__(
             self,
@@ -193,6 +240,8 @@ class VariableTraceUninit(VariableTraceBase):
 
 
 class VariableTraceInit(VariableTraceBase):
+    __slots__ = ()
+
     def __init__(self, owner, variable, version):
         VariableTraceBase.__init__(
             self,
@@ -290,6 +339,8 @@ class VariableTraceUnknown(VariableTraceBase):
 
 
 class VariableTraceAssign(VariableTraceBase):
+    __slots__ = ("assign_node", "replace_it")
+
     def __init__(self, owner, assign_node, variable, version, previous):
         VariableTraceBase.__init__(
             self,
@@ -352,6 +403,9 @@ class VariableTraceMerge(VariableTraceBase):
         SSA theory. Also used for merging multiple "return", "break" or
         "continue" exits.
     """
+
+    __slots__ = ()
+
     def __init__(self, variable, version, traces):
         VariableTraceBase.__init__(
             self,
@@ -449,8 +503,10 @@ class VariableTraceLoopMerge(VariableTraceBase):
 
         They will start out with just one previous, and later be updated with
         all of the variable versions at loop continue times.
-        .
     """
+
+    __slots__ = "loop_finished",
+
     def __init__(self, variable, version, previous):
         VariableTraceBase.__init__(
             self,

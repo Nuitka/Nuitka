@@ -36,13 +36,19 @@ from nuitka.PythonVersions import python_version
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExceptionNodes import ExpressionBuiltinMakeException
-from .NodeBases import CompileTimeConstantExpressionMixin, NodeBase
+from .ExpressionBases import CompileTimeConstantExpressionBase
 
 
-class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
+class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
+    # Base classes can be abstract, pylint: disable=abstract-method
+
+    __slots__ = "builtin_name",
+
     def __init__(self, builtin_name, source_ref):
-        NodeBase.__init__(self, source_ref = source_ref)
-        CompileTimeConstantExpressionMixin.__init__(self)
+        CompileTimeConstantExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
 
         self.builtin_name = builtin_name
 
@@ -74,6 +80,8 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionMixin, NodeBase):
 class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_REF"
 
+    __slots__ = ()
+
     def __init__(self, builtin_name, source_ref):
         assert builtin_name in builtin_names, builtin_name
 
@@ -89,7 +97,9 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     def getCompileTimeConstant(self):
         return __builtins__[ self.builtin_name ]
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
+        # TODO: We really should solve this in a factory function and
+        # not reconsider it each time.
         quick_names = {
             "None"      : None,
             "True"      : True,
@@ -144,7 +154,7 @@ class ExpressionBuiltinOriginalRef(ExpressionBuiltinRef):
         # one should be.
         return False
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
 
         # Needs whole program analysis, we don't really know much about it.
         return self, None, None
@@ -152,6 +162,8 @@ class ExpressionBuiltinOriginalRef(ExpressionBuiltinRef):
 
 class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_ANONYMOUS_REF"
+
+    __slots__ = ()
 
     def __init__(self, builtin_name, source_ref):
         assert builtin_name in builtin_anon_names, builtin_name
@@ -168,7 +180,7 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
     def getCompileTimeConstant(self):
         return builtin_anon_names[self.builtin_name]
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
     def getStringValue(self):
@@ -177,6 +189,8 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
 
 class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_EXCEPTION_REF"
+
+    __slots__ = ()
 
     def __init__(self, exception_name, source_ref):
         assert exception_name in builtin_exception_names, exception_name
@@ -203,7 +217,7 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
     def getCompileTimeConstant(self):
         return builtin_exception_values[self.builtin_name]
 
-    def computeExpression(self, trace_collection):
+    def computeExpressionRaw(self, trace_collection):
         # Not much that can be done here.
         return self, None, None
 

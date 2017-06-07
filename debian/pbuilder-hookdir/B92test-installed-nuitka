@@ -21,6 +21,9 @@ apt-get install -y -f "${APTGETOPT[@]}"
 # Run tests with the installed one only.
 export NUITKA=/usr/bin/nuitka
 
+# Remove tests that only work in checkouts.
+rm tests/basics/Referencing*.py
+
 # Run the basic tests with default options.
 ./tests/basics/run_all.py search
 
