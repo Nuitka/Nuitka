@@ -126,23 +126,16 @@ def _buildPython2ListContraction(provider, node, source_ref):
         )
     )
 
-    statements = (
-        makeTryFinallyStatement(
-            provider   = function_body,
-            tried      = statements,
-            final      = release_statements,
-            source_ref = source_ref.atInternal()
-        ),
+    statement = makeTryFinallyStatement(
+        provider   = function_body,
+        tried      = statements,
+        final      = release_statements,
+        source_ref = source_ref.atInternal()
     )
 
     function_body.setBody(
         makeStatementsSequenceFromStatement(
-            statement = StatementsFrame(
-                statements  = mergeStatements(statements, False),
-                guard_mode  = "pass_through",
-                code_object = None,
-                source_ref  = source_ref
-            )
+            statement = statement
         )
     )
 

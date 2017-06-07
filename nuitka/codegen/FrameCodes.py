@@ -79,27 +79,24 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     # Allow stacking of frame handles.
     old_frame_handle = context.getFrameHandle()
 
-    if guard_mode != "pass_through":
-        if provider.isExpressionGeneratorObjectBody():
-            context.setFrameHandle("generator->m_frame")
-        elif provider.isExpressionCoroutineObjectBody():
-            context.setFrameHandle("coroutine->m_frame")
-        elif provider.isExpressionAsyncgenObjectBody():
-            context.setFrameHandle("asyncgen->m_frame")
-        elif provider.isCompiledPythonModule():
-            context.setFrameHandle("frame_module")
-        else:
-            context.setFrameHandle("frame_function")
-
-        context.setExceptionEscape(
-            context.allocateLabel("frame_exception_exit")
-        )
+    if provider.isExpressionGeneratorObjectBody():
+        context.setFrameHandle("generator->m_frame")
+    elif provider.isExpressionCoroutineObjectBody():
+        context.setFrameHandle("coroutine->m_frame")
+    elif provider.isExpressionAsyncgenObjectBody():
+        context.setFrameHandle("asyncgen->m_frame")
+    elif provider.isCompiledPythonModule():
+        context.setFrameHandle("frame_module")
     else:
-        context.setFrameHandle("((struct Nuitka_FrameObject *)PyThreadState_GET()->frame)")
+        context.setFrameHandle("frame_function")
+
+    context.setExceptionEscape(
+        context.allocateLabel("frame_exception_exit")
+    )
 
     needs_preserve = statement_sequence.needsFrameExceptionPreserving()
 
-    if statement_sequence.mayReturn() and guard_mode != "pass_through":
+    if statement_sequence.mayReturn():
         parent_return_exit = context.getReturnTarget()
 
         context.setReturnTarget(
@@ -108,15 +105,12 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     else:
         parent_return_exit = None
 
-    if guard_mode != "pass_through":
-        pushed_frame_variables = statement_sequence.mayRaiseException(BaseException)
+    pushed_frame_variables = statement_sequence.mayRaiseException(BaseException)
 
-        if pushed_frame_variables:
-            context.pushFrameVariables(
-                statement_sequence.getCodeObject().getVarNames()
-            )
-    else:
-        pushed_frame_variables = None
+    if pushed_frame_variables:
+        context.pushFrameVariables(
+            statement_sequence.getCodeObject().getVarNames()
+        )
 
     # Now generate the statements code into a local buffer, to we can wrap
     # the frame stuff around it.
@@ -162,10 +156,6 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             emit                  = emit,
             context               = context
         )
-    elif guard_mode == "pass_through":
-        # This case does not care about "needs_preserve", as for that kind
-        # of frame, it is an empty code stub anyway.
-        local_emit.emitTo(emit)
     elif guard_mode == "full":
         assert provider.isExpressionFunctionBody() or \
                provider.isExpressionClassBody()
