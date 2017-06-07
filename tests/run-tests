@@ -347,7 +347,7 @@ os.environ["PATH"] = \
 def checkExecutableCommand(command):
     """ Check if a command is executable. """
 
-    # Many cases, pylint: disable=R0911,R0912
+    # Many cases, pylint: disable=too-many-branches,too-many-return-statements
 
     # Do respect given options to disable specific Python versions
     if command == "python2.6" and options.no26:
@@ -443,7 +443,7 @@ def executeSubTest(command, hide_output = False):
         sys.exit(result)
 
 def execute_tests(where, use_python, flags):
-    # Many cases, pylint: disable=R0912,R0915
+    # Many cases, pylint: disable=too-many-branches,too-many-statements
 
     print(
         "Executing test case called %s with CPython %s and extra flags '%s'." % (
@@ -688,7 +688,7 @@ if options.coverage:
         import platform
         suffix = platform.uname()[0] + '.' + platform.uname()[4]
 
-    with open("data.coverage", "w") as data_file:
+    with open("data.coverage", 'w') as data_file:
         source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
         data_file.write("NUITKA_SOURCE_DIR='%s'\n" % source_dir)

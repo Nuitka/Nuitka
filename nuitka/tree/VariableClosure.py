@@ -115,7 +115,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     def onEnterNode(self, node):
         # Mighty complex code with lots of branches and statements, but it
         # couldn't be less without making it more difficult.
-        # pylint: disable=R0912,R0915
+        # pylint: disable=too-many-branches,too-many-statements
 
         if node.isExpressionTargetVariableRef():
             provider = node.getParentVariableProvider()
@@ -152,9 +152,9 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                             variable.isModuleVariable()):
                             node.replaceWith(
                                 ExpressionLocalsVariableRef(
-                                    variable_name = node.getVariableName(),
+                                    variable_name     = node.getVariableName(),
                                     fallback_variable = variable,
-                                    source_ref    = node.getSourceReference()
+                                    source_ref        = node.getSourceReference()
                                 )
                             )
 
@@ -314,9 +314,9 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
                     node.replaceWith(
                         ExpressionLocalsVariableRef(
-                            variable_name = variable_name,
+                            variable_name     = variable_name,
                             fallback_variable = node.getParentModule().getVariableForReference(variable_name),
-                            source_ref = node.getSourceReference()
+                            source_ref        = node.getSourceReference()
                         )
                     )
                 else:
