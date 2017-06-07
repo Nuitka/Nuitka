@@ -57,9 +57,9 @@ def createMSIPackage():
     print("Building for branch '%s'." % branch_name)
 
     assert branch_name in (
-        b"master",
-        b"develop",
-        b"factory",
+        "master",
+        "develop",
+        "factory",
     ), branch_name
 
     assert subprocess.call(
