@@ -17,8 +17,40 @@
 #
 """ Reformulation of while loop statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Loops in Nuitka have no condition attached anymore, so while loops are
+re-formulated like this:
+
+.. code-block:: python
+
+    while condition:
+        something()
+
+.. code-block:: python
+
+    while 1:
+        if not condition:
+            break
+
+        something()
+
+This is to totally remove the specialization of loops, with the condition moved
+to the loop body in an initial conditional statement, which contains a ``break``
+statement.
+
+That achieves, that only ``break`` statements exit the loop, and allow for
+optimization to remove always true loop conditions, without concerning code
+generation about it, and to detect such a situation, consider e.g. endless
+loops.
+
+.. note::
+
+   Loop analysis (not yet done) can then work on a reduced problem (which
+   ``break`` statements are executed under what conditions) and is then
+   automatically very general.
+
+   The fact that the loop body may not be entered at all, is still optimized,
+   but also in the general sense. Explicit breaks at the loop start and loop
+   conditions are the same.
 
 """
 

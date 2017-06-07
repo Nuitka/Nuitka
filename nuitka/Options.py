@@ -843,7 +843,7 @@ def shallWarnUnusualCode():
     return options.warn_unusual_code
 
 def isDebug():
-    return options.debug or options.debugger
+    return options is not None and (options.debug or options.debugger)
 
 def isPythonDebug():
     return options.python_debug or sys.flags.debug
