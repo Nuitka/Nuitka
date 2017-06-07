@@ -1,6 +1,11 @@
 Nuitka Release 0.5.26 (Draft)
 =============================
 
+This release comes after a long time and contains large amounts of changes in
+all areas. The driving goal was to prepare generating C specific code, which is
+still not the case, but this is very likely going to change soon. However this
+release improves all aspects.
+
 Bug Fixes
 ---------
 
@@ -39,12 +44,12 @@ Bug Fixes
 
      something[id:len:range]
 
-- Fix, the C++ compatibility uses symlinks tp C++ filenames where possible
-  instead of making a copy from the C source. However, even on Linux that
-  may not be allowed, e.g. on a DOS file system. Added fallback to using
+- Fix, the C11 via C++ compatibility uses symlinks tp C++ filenames where
+  possible instead of making a copy from the C source. However, even on Linux
+  that may not be allowed, e.g. on a DOS file system. Added fallback to using
   full copy in that case. `Issue#353 <http://bugs.nuitka.net/issue353>`__.
 
-- Python3.5: Fix coroutines to close the yield from where an exception is
+- Python3.5: Fix coroutines to close the "yield from" where an exception is
   thrown into them.
 
 - Python3: Fix, list contractions should have their own frame too.
@@ -65,15 +70,15 @@ Bug Fixes
 New Features
 ------------
 
+- Support for Python 3.6 with only few corner cases not supported yet.
+
 - Added options ``--python-arch`` to pick 32 or 64 bits Python target of
   the ``--python-version`` argument.
-
-- Support for Python 3.6 with only few corner cases not supported yet.
 
 - Added support for more kinds of virtualenv configurations.
 
 - Uninstalled Python versions such as Anaconda will work fine in accelerated
-  mode too now.
+  mode, except on Windows.
 
 Optimization
 ------------
@@ -83,19 +88,21 @@ Optimization
   and in principle faster to access. This also saved about 6% of the memory
   usage.
 
-- The memory usage of Nuitka for the Python part has falled by roughly 40%
-  due to the use of new style classes, slots where that is possible, and
-  generally reducing useless members e.g. in source code references. This
-  of course also will make things compiled faster (the C compilation of
-  course is not affected by this.)
+- The memory usage of Nuitka for the Python part has fallen by roughly 40%
+  due to the use of new style classes, and slots where that is possible (some
+  classes use multiple inheritance, where they don't work), and generally by
+  reducing useless members e.g. in source code references. This of course also
+  will make things compiled faster (the C compilation of course is not affected
+  by this.)
 
 - The code generation for frames was creating the dictionary for the raised
   exception by making a dictionary and then adding all variables, each tested
-  to be set. This was a lot of code and has been replaced by a generic attach
-  mechanism which merely stores the values, takes a reference, and then builds
-  the dictionary for frame locals to inspect only when that is absolutely
-  necessary. This of course makes the C code much less verbose, and actual
-  handling of exceptions much more efficient.
+  to be set. This was a lot of code for each frame specific, and has been
+  replaced by a generic "attach" mechanism which merely stores the values,
+  and only takes a reference. When asked for frame locals, it only then builds
+  the dictionary. So this is now only done, when that is absolutely necessary,
+  which it normally never is. This of course makes the C code much less verbose,
+  and actual handling of exceptions much more efficient.
 
 - For imports, we now detect for built-in modules, that their import cannot
   fail, and if name lookups can fail. This leads to less code generated for
@@ -209,15 +216,42 @@ Tests
 Organizational
 --------------
 
-- Added initial support for testing with Travis to complement the internal
-  Buildbot based infrastructure.
+- Added repository for Ubuntu Yekkety (17.04) for download.
+
+- Added support for testing with Travis to complement the internal Buildbot
+  based infrastructure and have pull requests on Github automatically tested
+  before merge.
 
 - The ``factory`` branch is now also on Github.
 
 Summary
 -------
 
-This release is not done yet.
+This release marks huge progress. The node tree is now absolutely clean, the
+variable closure taking is fully represented, and code generation is prepared
+to add another type, e.g. for ``bool`` for which work has already started.
+
+On a practical level, the scalability of the release will have increased very
+much, as this uses so much less memory, generates simpler C code, while at the
+same time getting faster for the exception cases.
+
+Coming releases will expand on the work of this release.
+
+Frame objects should be allowed to be nested inside a function for better
+re-formulations of classes and contractions of all kinds, as well as real
+inline of functions, even if they could raise.
+
+The memory savings could be even larger, if we stopped doing multiple
+inheritance for more node types. The ``__slots__`` were and the child API
+change could potentially make things not only more compact, but faster to
+use too.
+
+And also once special C code generation for ``bool`` is done, it will set the
+stage for more types to follow (``int``, ``float``, etc). Only this will
+finally start to give the C type speed we are looking for.
+
+Until then, this release marks a huge cleanup and progress to what we already
+had, as well as preparing the big jump in speed.
 
 
 Nuitka Release 0.5.25
