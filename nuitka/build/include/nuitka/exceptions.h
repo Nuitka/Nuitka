@@ -153,24 +153,7 @@ NUITKA_MAY_BE_UNUSED static void RESTORE_ERROR_OCCURRED_UNTRACED( PyObject *exce
 
 struct Nuitka_FrameObject;
 
-// Create a traceback for a given frame. TODO: No freelist usage yet.
-NUITKA_MAY_BE_UNUSED static PyTracebackObject *MAKE_TRACEBACK( struct Nuitka_FrameObject *frame, int lineno )
-{
-    CHECK_OBJECT( frame );
-
-    PyTracebackObject *result = PyObject_GC_New( PyTracebackObject, &PyTraceBack_Type );
-
-    result->tb_next = NULL;
-    result->tb_frame = (PyFrameObject *)frame;
-    Py_INCREF( frame );
-
-    result->tb_lasti = 0;
-    result->tb_lineno = lineno;
-
-    Nuitka_GC_Track( result );
-
-    return result;
-}
+extern PyTracebackObject *MAKE_TRACEBACK( struct Nuitka_FrameObject *frame, int lineno );
 
 // Add a frame to an existing exception trace-back.
 NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK( PyTracebackObject *exception_tb, struct Nuitka_FrameObject *frame, int lineno )

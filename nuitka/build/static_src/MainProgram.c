@@ -392,6 +392,9 @@ int main( int argc, char **argv )
     NUITKA_PRINT_TRACE("main(): Calling patchTypeComparison().");
     patchTypeComparison();
 
+    NUITKA_PRINT_TRACE("main(): Calling patchTracebackDealloc().");
+    patchTracebackDealloc();
+
     /* Allow to override the ticker value, to remove checks for threads in
      * CPython core from impact on benchmarks. */
     char const *ticker_value = getenv( "NUITKA_TICKER" );

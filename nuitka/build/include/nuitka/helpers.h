@@ -572,6 +572,10 @@ extern void patchInspectModule( void );
 // for "==" and "!=", but not for "is" checks.
 extern void patchTypeComparison( void );
 
+// Patch the CPython type for tracebacks and make it use a freelist mechanism
+// to be slightly faster for exception control flows.
+extern void patchTracebackDealloc( void );
+
 #if PYTHON_VERSION < 300
 // Initialize value for "tp_compare" default.
 extern void _initSlotCompare( void );
