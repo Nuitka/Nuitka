@@ -116,11 +116,9 @@ class StatementsFrame(StatementsSequence):
 
     def needsExceptionFramePreservation(self):
         if python_version < 300:
-            preserving = ("full", "once")
+            return self.guard_mode != "generator"
         else:
-            preserving = ("full", "once", "generator")
-
-        return self.guard_mode in preserving
+            return True
 
     def getVarNames(self):
         return self.code_object.getVarNames()
@@ -225,6 +223,12 @@ class StatementsFrame(StatementsSequence):
                     break
 
         if not new_statements:
+            trace_collection.signalChange(
+                "new_statements",
+                self.getSourceReference(),
+                "Removed empty frame object of '%s'." % self.code_object.getCodeObjectName()
+            )
+
             return None
 
         # If our statements changed just now, they are not immediately usable,

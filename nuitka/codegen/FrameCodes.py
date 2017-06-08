@@ -237,8 +237,6 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
         }
     )
 
-
-
     emit(
         template_frame_guard_full_block % {
             "frame_identifier"  : frame_identifier,
