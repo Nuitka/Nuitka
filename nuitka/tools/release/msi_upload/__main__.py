@@ -21,6 +21,7 @@
 
 from __future__ import print_function
 
+import os
 import subprocess
 
 from nuitka.tools.release.MSI import createMSIPackage
@@ -33,7 +34,7 @@ def main():
         (
             "scp",
             msi_filename,
-            "git@nuitka.net:/var/www/releases/"
+            "git@nuitka.net:/var/www/releases/" + os.path.basename(msi_filename)
         ),
         shell = True # scan scp in PATH.
     ) == 0
