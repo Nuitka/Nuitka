@@ -222,13 +222,17 @@ Tests
 Organizational
 --------------
 
-- Added repository for Ubuntu Yekkety (17.04) for download.
+- Added repository for Ubuntu Zesty (17.04) for download.
 
 - Added support for testing with Travis to complement the internal Buildbot
   based infrastructure and have pull requests on Github automatically tested
   before merge.
 
 - The ``factory`` branch is now also on Github.
+
+- Removed MSI for Python3.4 32 bits. It seems impossible to co-install this
+  one with the 64 bits variant. All other versions are provided for both
+  bit sizes still.
 
 Summary
 -------
@@ -397,7 +401,7 @@ Organizational
   sync, so that descriptions can be quoted there. Eventually a full Sphinx
   documentation might become available, but for now this makes it workable.
 
-- Added repository for Ubuntu Yekkety (16.10) for download.
+- Added repository for Ubuntu Yakkety (16.10) for download.
 
 - Added repository for Fedora 25 for download.
 
