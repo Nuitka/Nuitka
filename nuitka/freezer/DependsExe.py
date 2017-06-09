@@ -56,8 +56,16 @@ def getDependsExePath():
         nuitka_app_dir,
         os.path.basename(depends_url)
     )
+    nuitka_depends_dir = os.path.join(
+        nuitka_app_dir,
+        Utils.getArchitecture()
+    )
+    depends_exe = os.path.join(
+        nuitka_depends_dir,
+        "depends.exe"
+    )
 
-    if not os.path.isfile(nuitka_depends_zip):
+    if not os.path.isfile(nuitka_depends_zip) and not os.path.isfile(depends_exe):
         Tracing.printLine("""\
 Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules. Is it OK to download
@@ -69,24 +77,18 @@ and put it in APPDATA (no installer needed, cached, one time question).""")
             sys.exit("Nuitka does not work in --standalone on Windows without.")
 
         info("Downloading '%s'" % depends_url)
-
-        urlretrieve(
-            depends_url,
-            nuitka_depends_zip
-        )
-
-    nuitka_depends_dir = os.path.join(
-        nuitka_app_dir,
-        Utils.getArchitecture()
-    )
+        
+        try:
+            urlretrieve(
+                depends_url,
+                nuitka_depends_zip
+            )
+        except:
+            sys.exit("Failed to download %s. Contents should manually be extracted to %s" % (depends_url, nuitka_depends_dir))
 
     if not os.path.isdir(nuitka_depends_dir):
         os.makedirs(nuitka_depends_dir)
 
-    depends_exe = os.path.join(
-        nuitka_depends_dir,
-        "depends.exe"
-    )
 
     if not os.path.isfile(depends_exe):
         info("Extracting to '%s'" % depends_exe)
