@@ -303,6 +303,14 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 if self.finding == "built-in":
                     self.type_shape = ShapeTypeBuiltinModule
                     self.builtin_module = __import__(imported_module_name)
+
+                # TODO: Code duplication with avove, try to avoid it.
+                if self.finding != "not-found":
+                    if self.imported_module is not None:
+                        trace_collection.onUsedModule(self.imported_module.getFullName())
+
+                    for import_list_module in self.import_list_modules:
+                        trace_collection.onUsedModule(import_list_module)
             else:
                 # TODO: This doesn't preserve side effects.
 
