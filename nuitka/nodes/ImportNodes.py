@@ -263,12 +263,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                                     sub_imported_module.getFullName()
                                 )
 
-
-    def computeExpression(self, trace_collection):
-        # TODO: In fact, if the module is not a package, we don't have to insist
-        # on the "fromlist" that much, but normally it's not used for anything
-        # but packages, so it will be rare.
-        # Attempt to recurse if not already done.
+    def _addUsedModules(self, trace_collection):
         if self.finding != "not-found":
             if self.imported_module is not None:
                 trace_collection.onUsedModule(self.imported_module.getFullName())
@@ -276,6 +271,13 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             for import_list_module in self.import_list_modules:
                 trace_collection.onUsedModule(import_list_module)
 
+    def computeExpression(self, trace_collection):
+        # TODO: In fact, if the module is not a package, we don't have to insist
+        # on the "fromlist" that much, but normally it's not used for anything
+        # but packages, so it will be rare.
+        self._addUsedModules(trace_collection)
+
+        # Attempt to recurse if not already done.
         if self.recurse_attempted:
             if self.finding == "not-found":
                 # Importing and not finding, may raise an exception obviously.
@@ -309,13 +311,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                     self.type_shape = ShapeTypeBuiltinModule
                     self.builtin_module = __import__(imported_module_name)
 
-                # TODO: Code duplication with avove, try to avoid it.
-                if self.finding != "not-found":
-                    if self.imported_module is not None:
-                        trace_collection.onUsedModule(self.imported_module.getFullName())
-
-                    for import_list_module in self.import_list_modules:
-                        trace_collection.onUsedModule(import_list_module)
+                self._addUsedModules(trace_collection)
             else:
                 # TODO: This doesn't preserve side effects.
 
