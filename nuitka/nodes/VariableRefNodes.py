@@ -34,6 +34,7 @@ from .DictionaryNodes import (
     StatementDictOperationSet
 )
 from .ExpressionBases import ExpressionBase
+from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 from .shapes.StandardShapes import ShapeUnknown
 
 
@@ -170,7 +171,6 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
                 BaseException
             )
 
-
         if variable.isModuleVariable() \
             and variable.hasDefiniteWrites() is False:
             if self.variable_name in Builtins.builtin_exception_names:
@@ -230,6 +230,18 @@ Replaced read-only module attribute '__package__' with constant value."""
             return new_node, change_tags, change_desc
 
         self.variable_trace.addUsage()
+
+        if self.variable_trace.mustNotHaveValue():
+            assert self.variable.isLocalVariable(), self.variable
+
+            result = makeRaiseExceptionReplacementExpression(
+                expression      = self,
+                exception_type  = "UnboundLocalError",
+                exception_value = """\
+local variable '%s' referenced before assignment""" % self.variable_name
+            )
+
+            return result, "new_raise", "Variable access of not initialized variable '%s'" % self.variable_name
 
         return self, None, None
 
