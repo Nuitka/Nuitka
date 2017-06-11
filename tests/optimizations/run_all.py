@@ -127,7 +127,7 @@ def checkSequence(statements):
                     if called_expression.attrib["builtin_name"] == "print":
                         continue
 
-        if kind == "Frame":
+        if kind == "FrameModule":
             checkSequence(getRole(statement, "statements"))
 
             continue

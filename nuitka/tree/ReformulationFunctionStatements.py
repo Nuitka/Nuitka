@@ -137,6 +137,7 @@ def buildFunctionNode(provider, node, source_ref):
             flags      = flags,
             source_ref = source_ref
         )
+        code_body.qualname_provider = provider
 
         for variable in function_body.getVariables():
             code_body.getVariableForReference(variable.getName())
@@ -622,6 +623,8 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
             source_ref.atColumnNumber(node.col_offset),
         )
 
+    parent_module = provider.getParentModule()
+
     code_object = CodeObjectSpec(
         co_name           = name,
         co_kind           = function_kind,
@@ -629,7 +632,10 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
         co_argcount       = parameters.getArgumentCount(),
         co_kwonlyargcount = parameters.getKwOnlyParameterCount(),
         co_has_starlist   = parameters.getStarListArgumentName() is not None,
-        co_has_stardict   = parameters.getStarDictArgumentName() is not None
+        co_has_stardict   = parameters.getStarDictArgumentName() is not None,
+        filename          = parent_module.getRunTimeFilename(),
+        line_number       = source_ref.getLineNumber(),
+        future_spec       = parent_module.getFutureSpec()
     )
 
     outer_body = ExpressionFunctionBody(

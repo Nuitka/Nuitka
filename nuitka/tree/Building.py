@@ -714,6 +714,8 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     # differences for module default variables. pylint: disable=too-many-branches
 
     pushFutureSpec()
+    if is_module:
+        provider.future_spec = getFutureSpec()
 
     body = parseSourceCodeToAst(
         source_code = source_code,
@@ -900,7 +902,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             source_ref = source_ref
         )
 
-        provider.future_spec = popFutureSpec()
+        popFutureSpec()
 
         return result
     else:

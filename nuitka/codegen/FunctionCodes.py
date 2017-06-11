@@ -39,7 +39,6 @@ from .Helpers import generateExpressionCode, generateStatementSequenceCode
 from .Indentation import indented
 from .LabelCodes import getLabelCode
 from .ModuleCodes import getModuleAccessCode
-from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesFunction import (
     function_dict_setup,
     function_direct_body_template,
@@ -263,23 +262,13 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
 
     # Creation code needs to be done only once.
     if not context.hasHelperCode(function_identifier):
-        parent_module = function_body.getParentModule()
-
-        code_identifier = context.getCodeObjectHandle(
-            code_object  = code_object,
-            filename     = parent_module.getRunTimeFilename(),
-            line_number  = function_body.getSourceReference().getLineNumber(),
-            is_optimized = not function_body.needsLocalsDict(),
-            new_locals   = True,
-            has_closure  = function_body.getClosureVariables() != (),
-            future_flags = parent_module.getFutureSpec().asFlags()
-        )
-
         maker_code = getFunctionMakerCode(
             function_name       = function_body.getFunctionName(),
             function_qualname   = function_body.getFunctionQualname(),
             function_identifier = function_identifier,
-            code_identifier     = code_identifier,
+            code_identifier     = context.getCodeObjectHandle(
+                code_object = code_object,
+            ),
             closure_variables   = function_body.getClosureVariables(),
             defaults_name       = defaults_name,
             kw_defaults_name    = kw_defaults_name,

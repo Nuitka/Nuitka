@@ -50,8 +50,7 @@ def checkFrameStatements(value):
 
 
 
-class StatementsFrame(StatementsSequence):
-    kind = "STATEMENTS_FRAME"
+class StatementsFrameBase(StatementsSequence):
 
     checkers = {
         "statements" : checkFrameStatements
@@ -70,6 +69,9 @@ class StatementsFrame(StatementsSequence):
         self.code_object = code_object
 
         self.needs_frame_exception_preserve = False
+
+    def isStatementsFrame(self):
+        return True
 
     def getDetails(self):
         result = {
@@ -124,13 +126,12 @@ class StatementsFrame(StatementsSequence):
         return self.code_object.getVarNames()
 
     def updateLocalNames(self):
-        """ For use during variable closure phase.
+        """ For use during variable closure phase. Finalize attributes.
 
         """
         provider = self.getParentVariableProvider()
 
-        if not provider.isCompiledPythonModule() and \
-           self.code_object is not None:
+        if not provider.isCompiledPythonModule():
             self.code_object.updateLocalNames(
                 [
                     variable.getName() for
@@ -138,6 +139,32 @@ class StatementsFrame(StatementsSequence):
                     provider.getLocalVariables()
                 ]
             )
+
+        is_optimized = not provider.isCompiledPythonModule() and \
+                       not provider.isExpressionClassBody() and \
+                       not provider.hasLocalsDict()
+
+        self.code_object.setFlagIsOptimizedValue(is_optimized)
+
+        new_locals = not provider.isCompiledPythonModule() and \
+                     (python_version < 340 or (
+                     not provider.isExpressionClassBody() and \
+                     not provider.hasLocalsDict()))
+
+        self.code_object.setFlagNewLocalsValue(new_locals)
+
+        if provider.isExpressionGeneratorObjectBody() or \
+           provider.isExpressionCoroutineObjectBody() or \
+           provider.isExpressionAsyncgenObjectBody():
+            closure_provider = provider.getParentVariableProvider()
+        else:
+            closure_provider = provider
+
+        has_closure  = closure_provider.isExpressionFunctionBody() and \
+                       closure_provider.getClosureVariables() != () and \
+                       not closure_provider.isExpressionClassBody()
+
+        self.code_object.setFlagHasClosureValue(has_closure)
 
     def markAsFrameExceptionPreserving(self):
         self.needs_frame_exception_preserve = True
@@ -147,45 +174,6 @@ class StatementsFrame(StatementsSequence):
 
     def getCodeObject(self):
         return self.code_object
-
-    def getCodeObjectHandle(self, context):
-        provider = self.getParentVariableProvider()
-
-        is_optimized = not provider.isCompiledPythonModule() and \
-                       not provider.isExpressionClassBody() and \
-                       not provider.hasLocalsDict()
-
-        new_locals = not provider.isCompiledPythonModule() and \
-                     (python_version < 340 or (
-                     not provider.isExpressionClassBody() and \
-                     not provider.hasLocalsDict()))
-
-        if provider.isCompiledPythonModule():
-            line_number = 1
-        else:
-            line_number = self.source_ref.getLineNumber()
-
-        if provider.isExpressionGeneratorObjectBody() or \
-           provider.isExpressionCoroutineObjectBody() or \
-           provider.isExpressionAsyncgenObjectBody():
-            closure_provider = provider.getParentVariableProvider()
-        else:
-            closure_provider = provider
-
-        parent_module = self.getParentModule()
-
-        # TODO: Why do this accessing a node, do this outside.
-        return context.getCodeObjectHandle(
-            code_object  = self.code_object,
-            filename     = parent_module.getRunTimeFilename(),
-            line_number  = line_number,
-            is_optimized = is_optimized,
-            new_locals   = new_locals,
-            has_closure  = closure_provider.isExpressionFunctionBody() and \
-                           closure_provider.getClosureVariables() != () and \
-                           not closure_provider.isExpressionClassBody(),
-            future_flags = parent_module.getFutureSpec().asFlags()
-        )
 
     def computeStatementsSequence(self, trace_collection):
         # The extraction of parts of the frame that can be moved before or after
@@ -279,3 +267,89 @@ class StatementsFrame(StatementsSequence):
                 self.setStatements(new_statements)
 
             return self
+
+
+
+class StatementsFrameModule(StatementsFrameBase):
+    kind = "STATEMENTS_FRAME_MODULE"
+
+    def __init__(self, statements, code_object, source_ref):
+        StatementsFrameBase.__init__(
+            self,
+            statements  = statements,
+            code_object = code_object,
+            guard_mode  = "once",
+            source_ref  = source_ref
+        )
+
+    @staticmethod
+    def hasStructureMember():
+        return False
+
+
+class StatementsFrameFunction(StatementsFrameBase):
+    kind = "STATEMENTS_FRAME_FUNCTION"
+
+    def __init__(self, statements, code_object, source_ref):
+        StatementsFrameBase.__init__(
+            self,
+            statements  = statements,
+            code_object = code_object,
+            guard_mode  = "full",
+            source_ref  = source_ref
+        )
+
+    @staticmethod
+    def hasStructureMember():
+        return False
+
+
+class StatementsFrameGenerator(StatementsFrameBase):
+    kind = "STATEMENTS_FRAME_GENERATOR"
+
+    def __init__(self, statements, code_object, source_ref):
+        StatementsFrameBase.__init__(
+            self,
+            statements  = statements,
+            code_object = code_object,
+            guard_mode  = "generator",
+            source_ref  = source_ref
+        )
+
+    @staticmethod
+    def hasStructureMember():
+        return True
+
+
+class StatementsFrameCoroutine(StatementsFrameBase):
+    kind = "STATEMENTS_FRAME_COROUTINE"
+
+    def __init__(self, statements, code_object, source_ref):
+        StatementsFrameBase.__init__(
+            self,
+            statements  = statements,
+            code_object = code_object,
+            guard_mode  = "generator",
+            source_ref  = source_ref
+        )
+
+    @staticmethod
+    def hasStructureMember():
+        return True
+
+
+class StatementsFrameAsyncgen(StatementsFrameBase):
+    kind = "STATEMENTS_FRAME_ASYNCGEN"
+
+    def __init__(self, statements, code_object, source_ref):
+        StatementsFrameBase.__init__(
+            self,
+            statements  = statements,
+            code_object = code_object,
+            guard_mode  = "generator",
+            source_ref  = source_ref
+        )
+
+    @staticmethod
+    def hasStructureMember():
+        return True

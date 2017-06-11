@@ -137,6 +137,8 @@ def _buildClassNode3(provider, node, source_ref):
         source_ref    = source_ref
     )
 
+    parent_module = provider.getParentModule()
+
     code_object = CodeObjectSpec(
         co_name           = node.name,
         co_kind           = "Class",
@@ -144,7 +146,10 @@ def _buildClassNode3(provider, node, source_ref):
         co_argcount       = 0,
         co_kwonlyargcount = 0,
         co_has_starlist   = False,
-        co_has_stardict   = False
+        co_has_stardict   = False,
+        filename          = parent_module.getRunTimeFilename(),
+        line_number       = source_ref.getLineNumber(),
+        future_spec       = parent_module.getFutureSpec()
     )
 
     body = buildFrameNode(
@@ -605,6 +610,8 @@ def _buildClassNode2(provider, node, source_ref):
         source_ref = source_ref
     )
 
+    parent_module = provider.getParentModule()
+
     code_object = CodeObjectSpec(
         co_name           = node.name,
         co_kind           = "Class",
@@ -612,7 +619,10 @@ def _buildClassNode2(provider, node, source_ref):
         co_argcount       = 0,
         co_kwonlyargcount = 0,
         co_has_starlist   = False,
-        co_has_stardict   = False
+        co_has_stardict   = False,
+        filename          = parent_module.getRunTimeFilename(),
+        line_number       = source_ref.getLineNumber(),
+        future_spec       = parent_module.getFutureSpec()
     )
 
     body = buildFrameNode(

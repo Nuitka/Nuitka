@@ -123,33 +123,16 @@ def getClosureCopyCode(to_name, closure_variables, closure_type, context):
 def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     generator_object_body = expression.getGeneratorRef().getFunctionBody()
 
-    if python_version < 350 or context.isForDirectCall():
-        generator_name_obj = context.getConstantCode(
-            constant = generator_object_body.getFunctionName()
-        )
-    else:
-        generator_name_obj = "self->m_name"
+    generator_name_obj = context.getConstantCode(
+        constant = generator_object_body.getFunctionName()
+    )
 
     if python_version < 350:
         generator_qualname_obj = "NULL"
-    elif not context.isForDirectCall():
-        generator_qualname_obj = "self->m_qualname"
     else:
         generator_qualname_obj = context.getConstantCode(
             constant = generator_object_body.getFunctionQualname()
         )
-
-    parent_module = generator_object_body.getParentModule()
-
-    code_identifier = context.getCodeObjectHandle(
-        code_object  = expression.getCodeObject(),
-        filename     = parent_module.getRunTimeFilename(),
-        line_number  = generator_object_body.getSourceReference().getLineNumber(),
-        is_optimized = True,
-        new_locals   = not generator_object_body.needsLocalsDict(),
-        has_closure  = len(generator_object_body.getParentVariableProvider().getClosureVariables()) > 0,
-        future_flags = parent_module.getFutureSpec().asFlags()
-    )
 
     closure_variables = expression.getClosureVariableVersions()
 
@@ -168,7 +151,9 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
             "generator_module"       : getModuleAccessCode(context),
             "generator_name_obj"     : generator_name_obj,
             "generator_qualname_obj" : generator_qualname_obj,
-            "code_identifier"        : code_identifier,
+            "code_identifier"        : context.getCodeObjectHandle(
+                code_object = expression.getCodeObject()
+            ),
             "closure_count"          : len(closure_variables)
         }
     )

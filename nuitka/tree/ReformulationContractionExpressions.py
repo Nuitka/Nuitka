@@ -38,7 +38,10 @@ from nuitka.nodes.ContainerOperationNodes import (
     StatementSetOperationAdd
 )
 from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
-from nuitka.nodes.FrameNodes import StatementsFrame
+from nuitka.nodes.FrameNodes import (
+    StatementsFrameFunction,
+    StatementsFrameGenerator
+)
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
     ExpressionFunctionCall,
@@ -63,6 +66,7 @@ from nuitka.nodes.StatementNodes import (
 )
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.PythonVersions import python_version
+from nuitka.tree.Helpers import makeStatementsSequenceFromStatements
 
 from .Helpers import (
     buildNode,
@@ -198,14 +202,111 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
     assert getKind(node) == "GeneratorExp"
 
-    return _buildContractionNode(
-        provider    = provider,
-        node        = node,
-        name        = "<genexpr>",
-        emit_class  = ExpressionYield,
-        start_value = None,
-        source_ref  = source_ref
+    function_body = ExpressionOutlineBody(
+        provider   = provider,
+        name       = "genexpr",
+        source_ref = source_ref
     )
+
+    iter_tmp = function_body.allocateTempVariable(
+        temp_scope = None,
+        name       = ".0"
+    )
+
+    parent_module = provider.getParentModule()
+
+    code_object = CodeObjectSpec(
+        co_name           = "<genexpr>",
+        co_kind           = "Generator",
+        co_varnames       = (".0",),
+        co_argcount       = 1,
+        co_kwonlyargcount = 0,
+        co_has_starlist   = False,
+        co_has_stardict   = False,
+        filename          = parent_module.getRunTimeFilename(),
+        line_number       = source_ref.getLineNumber(),
+        future_spec       = parent_module.getFutureSpec()
+    )
+
+    code_body = ExpressionGeneratorObjectBody(
+        provider   = provider,
+        name       = "<genexpr>",
+        flags      = set(),
+        source_ref = source_ref
+    )
+
+    function_body.setBody(
+        makeStatementsSequenceFromStatements(
+            StatementAssignmentVariable(
+                variable_ref = ExpressionTargetTempVariableRef(
+                    variable   = iter_tmp,
+                    source_ref = source_ref
+                ),
+                source       = ExpressionBuiltinIter1(
+                    value      = buildNode(
+                        provider   = provider,
+                        node       = node.generators[0].iter,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                source_ref   = source_ref
+            ),
+            makeTryFinallyStatement(
+                provider   = function_body,
+                tried      = StatementReturn(
+                    expression = ExpressionMakeGeneratorObject(
+                        generator_ref = ExpressionFunctionRef(
+                            function_body = code_body,
+                            source_ref    = source_ref
+                        ),
+                        code_object   = code_object,
+                        source_ref    = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                final      = StatementReleaseVariable(
+                    variable   = iter_tmp,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+        )
+    )
+
+    statements, release_statements = _buildContractionBodyNode(
+        function_body   = code_body,
+        provider        = provider,
+        node            = node,
+        emit_class      = ExpressionYield,
+        iter_tmp        = iter_tmp,
+        temp_scope      = None,
+        start_value     = None,
+        container_tmp   = None,
+        assign_provider = False,
+        source_ref      = source_ref,
+    )
+
+    statements = (
+        makeTryFinallyStatement(
+            provider   = function_body,
+            tried      = statements,
+            final      = release_statements,
+            source_ref = source_ref.atInternal()
+        ),
+    )
+
+    code_body.setBody(
+        makeStatementsSequenceFromStatement(
+            statement = StatementsFrameGenerator(
+                statements  = mergeStatements(statements, False),
+                code_object = code_object,
+                source_ref  = source_ref
+            )
+        )
+    )
+
+    return function_body
 
 
 def _buildContractionBodyNode(provider, node, emit_class, start_value,
@@ -467,7 +568,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     # described in the developer manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names.
 
-    # TODO: No function ought to be necessary.
+    # TODO: No function ought to be necessary, only a variable scope is.
     function_body = ExpressionFunctionBody(
         provider   = provider,
         name       = name,
@@ -489,57 +590,28 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     )
     assert iter_tmp.isParameterVariable()
 
+    parent_module = provider.getParentModule()
+
     code_object = CodeObjectSpec(
         co_name           = name,
-        co_kind           = "Generator" if emit_class is ExpressionYield else "Function",
+        co_kind           = "Function",
         co_varnames       = function_body.getParameters().getParameterNames(),
         co_argcount       = len(function_body.getParameters().getParameterNames()),
         co_kwonlyargcount = 0,
         co_has_starlist   = False,
         co_has_stardict   = False,
+        filename          = parent_module.getRunTimeFilename(),
+        line_number       = source_ref.getLineNumber(),
+        future_spec       = parent_module.getFutureSpec()
     )
 
-    if emit_class is ExpressionYield:
-        code_body = ExpressionGeneratorObjectBody(
-            provider   = function_body,
-            name       = "<genexpr>",
-            flags      = set(),
-            source_ref = source_ref
-        )
-
-        iter_tmp = code_body.getVariableForReference(
-            variable_name = ".0"
-        )
-        assert iter_tmp.isLocalVariable()
-
-        function_body.setBody(
-            makeStatementsSequenceFromStatement(
-                statement = StatementReturn(
-                    expression = ExpressionMakeGeneratorObject(
-                        generator_ref = ExpressionFunctionRef(
-                            function_body = code_body,
-                            source_ref    = source_ref
-                        ),
-                        code_object   = code_object,
-                        source_ref    = source_ref
-                    ),
-                    source_ref = source_ref
-                )
-            )
-        )
-    else:
-        code_body = function_body
-
-    if start_value is not None:
-        container_tmp = code_body.allocateTempVariable(
-            temp_scope = None,
-            name       = "contraction_result"
-        )
-    else:
-        container_tmp = None
+    container_tmp = function_body.allocateTempVariable(
+        temp_scope = None,
+        name       = "contraction_result"
+    )
 
     statements, release_statements = _buildContractionBodyNode(
-        function_body   = code_body,
+        function_body   = function_body,
         provider        = provider,
         node            = node,
         emit_class      = emit_class,
@@ -551,16 +623,17 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         source_ref      = source_ref,
     )
 
-    if start_value is not None:
-        statements.append(
-            StatementReturn(
-                expression = ExpressionTempVariableRef(
-                    variable   = container_tmp,
-                    source_ref = source_ref
-                ),
+    assert start_value
+
+    statements.append(
+        StatementReturn(
+            expression = ExpressionTempVariableRef(
+                variable   = container_tmp,
                 source_ref = source_ref
-            )
+            ),
+            source_ref = source_ref
         )
+    )
 
     statements = (
         makeTryFinallyStatement(
@@ -571,16 +644,10 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         ),
     )
 
-    if emit_class is ExpressionYield:
-        guard_mode = "generator"
-    else:
-        guard_mode = "full"
-
-    code_body.setBody(
+    function_body.setBody(
         makeStatementsSequenceFromStatement(
-            statement = StatementsFrame(
+            statement = StatementsFrameFunction(
                 statements  = mergeStatements(statements, False),
-                guard_mode  = guard_mode,
                 code_object = code_object,
                 source_ref  = source_ref
             )

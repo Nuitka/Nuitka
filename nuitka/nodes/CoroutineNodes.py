@@ -128,9 +128,6 @@ class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin, ExpressionFunc
     def getFunctionName(self):
         return self.name
 
-    def getFunctionQualname(self):
-        return self.getParentVariableProvider().getFunctionQualname()
-
     def markAsNeedsGeneratorReturnHandling(self, value):
         self.needs_generator_return_exit = max(
             self.needs_generator_return_exit,

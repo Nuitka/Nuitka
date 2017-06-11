@@ -95,13 +95,11 @@ _future_specs = []
 def pushFutureSpec():
     _future_specs.append(FutureSpec())
 
-
 def getFutureSpec():
     return _future_specs[-1]
 
-
 def popFutureSpec():
-    return _future_specs.pop()
+    del _future_specs[-1]
 
 
 def _enableFutureFeature(node, object_name, source_ref):

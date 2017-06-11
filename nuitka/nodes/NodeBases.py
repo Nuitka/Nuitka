@@ -396,6 +396,10 @@ class NodeBase(NodeMetaClassBase):
         Tracing.printSeparator(level)
 
     @staticmethod
+    def isStatementsFrame():
+        return False
+
+    @staticmethod
     def isCompiledPythonModule():
         # For overload by module nodes
         return False

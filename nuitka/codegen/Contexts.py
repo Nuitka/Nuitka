@@ -275,24 +275,21 @@ class CodeObjectsMixin(object):
     def getCodeObjects(self):
         return sorted(iterItems(self.code_objects))
 
-    def getCodeObjectHandle(self, code_object, filename, line_number,
-                            is_optimized, new_locals, has_closure,
-                            future_flags):
-
+    def getCodeObjectHandle(self, code_object):
         key = (
-            filename,
+            code_object.getFilename(),
             code_object.getCodeObjectName(),
-            line_number,
+            code_object.getLineNumber(),
             code_object.getVarNames(),
             code_object.getArgumentCount(),
             code_object.getKwOnlyParameterCount(),
             code_object.getCodeObjectKind(),
-            is_optimized,
-            new_locals,
+            code_object.getFlagIsOptimizedValue(),
+            code_object.getFlagNewLocalsValue(),
             code_object.hasStarListArg(),
             code_object.hasStarDictArg(),
-            has_closure,
-            future_flags
+            code_object.getFlagHasClosureValue(),
+            code_object.getFutureSpec().asFlags()
         )
 
         if key not in self.code_objects:
@@ -852,8 +849,8 @@ class PythonFunctionContext(FrameDeclarationsMixin, PythonChildContextBase, Temp
         # TODO: Determine this at compile time for enhanced optimizations.
         return True
 
-    def getCodeObjectHandle(self, **kw):
-        return self.parent.getCodeObjectHandle(**kw)
+    def getCodeObjectHandle(self, code_object):
+        return self.parent.getCodeObjectHandle(code_object)
 
 
 class PythonFunctionDirectContext(PythonFunctionContext):

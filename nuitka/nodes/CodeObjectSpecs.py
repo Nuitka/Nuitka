@@ -24,8 +24,14 @@ objects, as well as tracebacks. They might be shared.
 
 
 class CodeObjectSpec(object):
+    # TODO: Missing slots, there are quite a few of these.
+    # One attribute for each code object aspect, and even flag,
+    # pylint: disable=too-many-arguments,too-many-instance-attributes
+
     def __init__(self, co_name, co_kind, co_varnames, co_argcount,
-                 co_kwonlyargcount, co_has_starlist, co_has_stardict):
+                 co_kwonlyargcount, co_has_starlist, co_has_stardict,
+                 filename, line_number, future_spec, new_locals = None,
+                 has_closure = None, is_optimized = None):
 
         self.co_name = co_name
         self.co_kind = co_kind
@@ -50,6 +56,15 @@ class CodeObjectSpec(object):
         self.co_has_starlist = co_has_starlist
         self.co_has_stardict = co_has_stardict
 
+        self.filename = filename
+        self.line_number = line_number
+
+        self.new_locals = new_locals
+        self.has_closure = has_closure
+        self.is_optimized = is_optimized
+        self.future_spec = future_spec
+        assert future_spec
+
     def __repr__(self):
         return """\
 <CodeObjectSpec %(co_kind)s '%(co_name)s' with %(co_varnames)r>""" % self.getDetails()
@@ -63,6 +78,11 @@ class CodeObjectSpec(object):
             "co_kwonlyargcount" : self.co_kwonlyargcount,
             "co_has_starlist"   : self.co_has_starlist,
             "co_has_stardict"   : self.co_has_stardict,
+            "filename"          : self.filename,
+            "line_number"       : self.line_number,
+            "new_locals"        : self.new_locals,
+            "has_closure"       : self.has_closure,
+            "is_optimized"      : self.is_optimized
         }
 
     def getCodeObjectKind(self):
@@ -78,6 +98,27 @@ class CodeObjectSpec(object):
             local_names
             if local_name not in self.co_varnames
         )
+
+    def setFlagIsOptimizedValue(self, value):
+        self.is_optimized = value
+
+    def getFlagIsOptimizedValue(self):
+        return self.is_optimized
+
+    def setFlagNewLocalsValue(self, value):
+        self.new_locals = value
+
+    def getFlagNewLocalsValue(self):
+        return self.new_locals
+
+    def setFlagHasClosureValue(self, value):
+        self.has_closure = value
+
+    def getFlagHasClosureValue(self):
+        return self.has_closure
+
+    def getFutureSpec(self):
+        return self.future_spec
 
     def getVarNames(self):
         return self.co_varnames
@@ -96,3 +137,9 @@ class CodeObjectSpec(object):
 
     def hasStarDictArg(self):
         return self.co_has_stardict
+
+    def getFilename(self):
+        return self.filename
+
+    def getLineNumber(self):
+        return self.line_number

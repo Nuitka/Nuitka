@@ -144,9 +144,9 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
 
         if first_statement.isStatementRaiseException():
             result = ExpressionRaiseException(
-                exception_type = first_statement.getExceptionType(),
+                exception_type  = first_statement.getExceptionType(),
                 exception_value = first_statement.getExceptionValue(),
-                source_ref = first_statement.getSourceReference()
+                source_ref      = first_statement.getSourceReference()
             )
 
             return (
@@ -158,6 +158,10 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         # TODO: Function outline may become too trivial to outline and return
         # collections may tell us something.
         return self, None, None
+
+
+    def mayRaiseException(self, exception_type):
+        return self.getBody().mayRaiseException(exception_type)
 
     def willRaiseException(self, exception_type):
         return self.getBody().willRaiseException(exception_type)

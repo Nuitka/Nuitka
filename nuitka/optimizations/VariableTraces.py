@@ -135,13 +135,7 @@ class VariableTraceBase(object):
             else:
                 result = CTypePyObjectPtr
         elif context.isForDirectCall():
-            if user.isExpressionGeneratorObjectBody():
-                result = CTypeCellObject
-            elif user.isExpressionCoroutineObjectBody():
-                result = CTypeCellObject
-            elif user.isExpressionAsyncgenObjectBody():
-                result = CTypeCellObject
-            elif self.variable.isSharedTechnically():
+            if self.variable.isSharedTechnically():
                 result = CTypeCellObject
             else:
                 result = CTypePyObjectPtrPtr
