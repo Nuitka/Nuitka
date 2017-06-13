@@ -66,7 +66,7 @@ class MaybeLocalVariableUsage(Exception):
 class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
                                  ExpressionChildrenHavingBase):
 
-    def __init__(self, provider, name, code_prefix, is_class, flags, source_ref,
+    def __init__(self, provider, name, code_prefix, flags, source_ref,
                  body = None):
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -78,8 +78,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
         ClosureTakerMixin.__init__(
             self,
-            provider      = provider,
-            early_closure = is_class
+            provider = provider
         )
 
         ClosureGiverNodeMixin.__init__(
@@ -126,6 +125,20 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
     def hasFlag(self, flag):
         return flag in self.flags
+
+    @staticmethod
+    def isEarlyClosure():
+        """ Early closure taking means immediate binding of references.
+
+        Normally it's good to lookup name references immediately, but not for
+        functions. In case of a function body it is not allowed to do that,
+        because a later assignment needs to be queried first. Nodes need to
+        indicate via this if they would like to resolve references at the same
+        time as assignments.
+        """
+
+        return False
+
 
     def getLocalsMode(self):
         if python_version >= 300:
@@ -338,7 +351,6 @@ class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
             provider    = provider,
             name        = name,
             code_prefix = "function",
-            is_class    = False,
             flags       = flags,
             body        = body,
             source_ref  = source_ref

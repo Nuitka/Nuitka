@@ -357,9 +357,9 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
     def getContainingClassDictCreation():
         return None
 
-    def isEarlyClosure(self):
+    @staticmethod
+    def isEarlyClosure():
         # Modules should immediately closure variables on use.
-        # pylint: disable=no-self-use
         return True
 
     def getCodeName(self):
@@ -420,12 +420,6 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         # There are some characters that somehow are passed to shell, by
         # Scons or unknown, so lets avoid them for now.
         return result.replace(')',"").replace('(',"")
-
-    # TODO: Can't really use locals for modules, this should probably be made
-    # sure to not be used.
-    @staticmethod
-    def getLocalsMode():
-        return "copy"
 
     def computeModule(self):
         old_collection = self.trace_collection

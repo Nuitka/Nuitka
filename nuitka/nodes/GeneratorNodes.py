@@ -120,7 +120,6 @@ class ExpressionGeneratorObjectBody(MarkLocalsDictIndicatorMixin,
             self,
             provider    = provider,
             name        = name,
-            is_class    = False,
             code_prefix = "genexpr" if name == "<genexpr>" else "genobj",
             flags       = flags,
             source_ref  = source_ref

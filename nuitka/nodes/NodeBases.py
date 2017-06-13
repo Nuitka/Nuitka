@@ -907,11 +907,10 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 class ClosureTakerMixin(object):
     """ Mixin for nodes that accept variables from closure givers. """
 
-    def __init__(self, provider, early_closure):
+    def __init__(self, provider):
         assert provider.isParentVariableProvider(), provider
 
         self.provider = provider
-        self.early_closure = early_closure
 
         self.taken = set()
 
@@ -960,19 +959,6 @@ class ClosureTakerMixin(object):
                 return variable
 
         return None
-
-    def isEarlyClosure(self):
-        """ Early closure taking means immediate binding of references.
-
-        Normally it's good to lookup name references immediately, but not for
-        functions. In case of a function body it is not allowed to do that,
-        because a later assignment needs to be queried first. Nodes need to
-        indicate via this if they would like to resolve references at the same
-        time as assignments.
-        """
-
-        return self.early_closure
-
 
 
 class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):

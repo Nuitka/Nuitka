@@ -116,7 +116,6 @@ class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin, ExpressionFunc
             provider    = provider,
             name        = name,
             code_prefix = "coroutine",
-            is_class    = False,
             flags       = flags,
             source_ref  = source_ref
         )

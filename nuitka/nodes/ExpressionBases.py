@@ -648,7 +648,9 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         return False
 
     def mayBeNone(self):
-        return self.getCompileTimeConstant() is None
+        # Only the "None" compile time constant is going to allow that, and
+        # it overload this again.
+        return False
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(

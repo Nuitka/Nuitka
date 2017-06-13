@@ -183,6 +183,7 @@ def makeCompileTimeConstantReplacementNode(value, node):
     else:
         return node
 
+
 def getComputationResult(node, computation, description):
     """ With a computation function, execute it and return constant result or
         exception node.

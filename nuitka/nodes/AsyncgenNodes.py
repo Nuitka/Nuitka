@@ -117,7 +117,6 @@ class ExpressionAsyncgenObjectBody(MarkLocalsDictIndicatorMixin,
             provider    = provider,
             name        = name,
             code_prefix = "asyncgen",
-            is_class    = False,
             flags       = flags,
             source_ref  = source_ref
         )

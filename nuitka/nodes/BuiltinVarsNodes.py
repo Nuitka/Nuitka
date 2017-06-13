@@ -48,4 +48,4 @@ class ExpressionBuiltinVars(ExpressionChildrenHavingBase):
         return self, None, None
 
     def mayBeNone(self):
-        return None
+        return False

@@ -49,7 +49,7 @@ class ExpressionBuiltinGlobals(ExpressionBase):
         return False
 
     def mayBeNone(self):
-        return None
+        return False
 
 
 class ExpressionBuiltinLocals(ExpressionBase):
@@ -81,8 +81,7 @@ class ExpressionBuiltinLocals(ExpressionBase):
 
         provider = self.getParentVariableProvider()
 
-        if provider.isCompiledPythonModule():
-            return False
+        assert not provider.isCompiledPythonModule()
 
         # TODO: That's not true.
         return self.getParentVariableProvider().isExpressionClassBody()
@@ -91,7 +90,7 @@ class ExpressionBuiltinLocals(ExpressionBase):
         return self.mayHaveSideEffects()
 
     def mayBeNone(self):
-        return None
+        return False
 
     def getVariableVersions(self):
         return self.variable_versions
@@ -152,4 +151,4 @@ class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):
         return self, None, None
 
     def mayBeNone(self):
-        return None
+        return False
