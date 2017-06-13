@@ -23,8 +23,71 @@ from .CTypeBases import CTypeBase
 
 
 class CTypeNuitkaBoolEnum(CTypeBase):
+    c_type = "nuitka_bool"
+
     @classmethod
     def getLocalVariableAssignCode(cls, variable_code_name, needs_release,
                                    tmp_name, ref_count, in_place):
 
-        assert False
+        assert not in_place
+
+        return """\
+if (%(tmp_name)s == Py_True)
+{
+    %(variable_code_name)s = NUITKA_BOOL_TRUE;
+}
+else
+{
+    %(variable_code_name)s = NUITKA_BOOL_FALSE;
+}
+        """ % {
+            "variable_code_name" : variable_code_name,
+            "tmp_name"            : tmp_name,
+        }
+
+    @classmethod
+    def getVariableObjectAccessCode(cls, to_name, needs_check, variable_code_name,
+                                    variable, emit, context):
+        emit(
+            """\
+switch (%(variable_code_name)s)
+{
+    case NUITKA_BOOL_TRUE:
+    {
+        %(to_name)s = Py_True;
+        break;
+    }
+    case NUITKA_BOOL_FALSE:
+    {
+        %(to_name)s = Py_False;
+        break;
+    }
+#if %(needs_check)s
+    default:
+    {
+        %(to_name)s = NULL;
+        break;
+    }
+#endif
+}""" % {
+        "variable_code_name" : variable_code_name,
+        "to_name"            : to_name,
+        "needs_check"        : '1' if needs_check else '0'
+    }
+        )
+
+        if 0: # Future work, pylint: disable=using-constant-test
+            context.reportObjectConversion(variable)
+
+    @classmethod
+    def getInitValue(cls, init_from):
+        if init_from is None:
+            return "NUITKA_BOOL_UNASSIGNED"
+        else:
+            assert False, init_from
+            return init_from
+
+    @classmethod
+    def getReleaseCode(cls, variable_code_name, needs_check, emit):
+        # TODO: Allow optimization to not get here.
+        pass

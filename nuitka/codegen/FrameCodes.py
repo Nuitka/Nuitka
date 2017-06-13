@@ -201,6 +201,8 @@ def getTypeSizeOf(type_indicator):
         return "sizeof(struct Nuitka_CellObject *)"
     elif type_indicator == 'N':
         return "sizeof(void *)"
+    elif type_indicator == 'b':
+        return "sizeof(nuitka_bool)"
     else:
         assert False, type_indicator
 

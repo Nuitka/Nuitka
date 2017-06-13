@@ -184,6 +184,27 @@ static PyObject *Nuitka_Frame_getlocals( struct Nuitka_FrameObject *frame, void 
                     t += sizeof(void *);
                     break;
                 }
+                case NUITKA_TYPE_DESCRIPTION_BOOL:
+                {
+                    nuitka_bool value = *(nuitka_bool *)t;
+                    t += sizeof(nuitka_bool);
+                    switch (value)
+                    {
+                        case NUITKA_BOOL_TRUE:
+                        {
+                            PyDict_SetItem( result, *varnames, Py_True);
+                            break;
+                        }
+                        case NUITKA_BOOL_FALSE:
+                        {
+                            PyDict_SetItem( result, *varnames, Py_False);
+                            break;
+                        }
+                        default:
+                            break;
+                    }
+                    break;
+                }
                 default:
                     assert(false);
 
@@ -280,6 +301,12 @@ static void Nuitka_Frame_tp_clear( struct Nuitka_FrameObject *frame )
                 case NUITKA_TYPE_DESCRIPTION_NULL:
                 {
                     t += sizeof(void *);
+
+                    break;
+                }
+                case NUITKA_TYPE_DESCRIPTION_BOOL:
+                {
+                    t += sizeof(nuitka_bool);
 
                     break;
                 }
@@ -672,7 +699,7 @@ void Nuitka_Frame_AttachLocals( struct Nuitka_FrameObject *frame, char const *ty
                 struct Nuitka_CellObject *value = va_arg( ap, struct Nuitka_CellObject * );
                 CHECK_OBJECT( value );
 
-                memcpy( t, &value, sizeof(value));
+                memcpy( t, &value, sizeof(value) );
                 Py_INCREF( value );
                 t += sizeof(value);
 
@@ -681,6 +708,13 @@ void Nuitka_Frame_AttachLocals( struct Nuitka_FrameObject *frame, char const *ty
             case NUITKA_TYPE_DESCRIPTION_NULL:
             {
                 void *value = va_arg( ap, struct Nuitka_CellObject * );
+                t += sizeof(value);
+                break;
+            }
+            case NUITKA_TYPE_DESCRIPTION_BOOL:
+            {
+                nuitka_bool value = va_arg( ap, nuitka_bool );
+                memcpy( t, &value, sizeof(nuitka_bool) );
                 t += sizeof(value);
                 break;
             }
