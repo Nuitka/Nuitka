@@ -15,6 +15,10 @@ Bug Fixes
   had been a regress of 0.5.25, but only happens with custom extension types.
   Fixed in 0.5.26.1 already.
 
+- Standalone: For Linux and BSD extension modules and shared libraries using
+  their own ``$ORIGIN`` to find loaded DLLs resulted in thos not being included
+  in the distribution.
+
 Optimization
 ------------
 
