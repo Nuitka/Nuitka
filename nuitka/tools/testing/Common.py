@@ -365,7 +365,7 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
 
     command = [
         sys.executable,
-        "-mcompile",
+        "-mcompileall",
         path
     ]
 
