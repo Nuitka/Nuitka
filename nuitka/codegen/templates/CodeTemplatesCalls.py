@@ -590,7 +590,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
                     %(args_count)d
                 );
             }
-            else
+            else if ( descr_get != NULL )
             {
                 PyObject *method = descr_get(
                     called_object,
@@ -607,6 +607,11 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
                 Py_DECREF( method );
                 return result;
             }
+            else
+            {
+                return CALL_FUNCTION_WITH_ARGS%(args_count)d( called_object, args );
+            }
+
         }
         else if (unlikely( source_instance->in_class->cl_getattr == NULL ))
         {
