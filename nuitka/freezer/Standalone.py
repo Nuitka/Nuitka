@@ -518,7 +518,7 @@ def detectEarlyImports():
 
 _detected_python_rpath = None
 
-def _detectBinaryPathDLLsLinuxBSD(binary_filename):
+def _detectBinaryPathDLLsLinuxBSD(dll_filename):
     # Ask "ldd" about the libraries being used by the created binary, these
     # are the ones that interest us.
     result = set()
@@ -540,7 +540,7 @@ def _detectBinaryPathDLLsLinuxBSD(binary_filename):
         process = subprocess.Popen(
             args   = [
                 "ldd",
-                binary_filename
+                dll_filename
             ],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE
@@ -797,7 +797,7 @@ SxS
     return result
 
 
-def detectBinaryDLLs(original_dir, binary_filename, package_name):
+def detectBinaryDLLs(original_filename, binary_filename, package_name):
     """ Detect the DLLs used by a binary.
 
         Using "ldd" (Linux), "depends.exe" (Windows), or "otool" (MacOS) the list
@@ -807,11 +807,11 @@ def detectBinaryDLLs(original_dir, binary_filename, package_name):
 
     if Utils.getOS() in ("Linux", "NetBSD", "FreeBSD"):
         return _detectBinaryPathDLLsLinuxBSD(
-            binary_filename = binary_filename
+            dll_filename = original_filename
         )
     elif Utils.getOS() == "Windows":
         return _detectBinaryPathDLLsWindows(
-            original_dir    = original_dir,
+            original_dir    = os.path.dirname(original_filename),
             binary_filename = binary_filename,
             package_name    = package_name
         )
@@ -827,11 +827,11 @@ def detectBinaryDLLs(original_dir, binary_filename, package_name):
 def detectUsedDLLs(standalone_entry_points):
     result = OrderedDict()
 
-    for original_dir, binary_filename, package_name in standalone_entry_points:
+    for original_filename, binary_filename, package_name in standalone_entry_points:
         used_dlls = detectBinaryDLLs(
-            original_dir    = original_dir,
-            binary_filename = binary_filename,
-            package_name    = package_name
+            original_filename = original_filename,
+            binary_filename   = binary_filename,
+            package_name      = package_name
         )
 
         for dll_filename in used_dlls:

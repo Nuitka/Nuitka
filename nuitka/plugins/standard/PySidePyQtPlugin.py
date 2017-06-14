@@ -104,7 +104,11 @@ if os.path.exists(guess_path):
             info("Copying all Qt plug-ins to '%s'." % target_plugin_dir)
 
             return [
-                (plugin_dir, filename, full_name)
+                (
+                    os.path.join(plugin_dir, os.path.basename(filename)),
+                    filename,
+                    full_name
+                )
                 for filename in
                 getFileList(target_plugin_dir)
                 if not filename.endswith(".qml")
