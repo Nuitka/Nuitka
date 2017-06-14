@@ -27,6 +27,7 @@ used like this.
 class MarkLocalsDictIndicatorMixin(object):
     def __init__(self):
         self.needs_locals_dict = False
+        self.foreign_locals_dict = False
 
     def hasLocalsDict(self):
         return self.needs_locals_dict
@@ -34,6 +35,11 @@ class MarkLocalsDictIndicatorMixin(object):
     def markAsLocalsDict(self):
         self.needs_locals_dict = True
 
+    def markAsForeignLocalsDict(self):
+        self.foreign_locals_dict = True
+
+    def hasForeignLocalsDict(self):
+        return self.foreign_locals_dict
 
 class MarkUnoptimizedFunctionIndicatorMixin(object):
     """ Mixin for indication that a function contains an exec or star import.

@@ -57,7 +57,7 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.GlobalsLocalsNodes import (
-    ExpressionBuiltinLocals,
+    ExpressionBuiltinLocalsUpdated,
     StatementSetLocals
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -291,7 +291,7 @@ def _buildClassNode3(provider, node, source_ref):
                             variable   = tmp_bases,
                             source_ref = source_ref
                         ),
-                        ExpressionBuiltinLocals(
+                        ExpressionBuiltinLocalsUpdated(
                             source_ref = source_ref
                         )
                     ),
@@ -672,7 +672,7 @@ def _buildClassNode2(provider, node, source_ref):
     statements += [
         body,
         StatementReturn(
-            expression = ExpressionBuiltinLocals(
+            expression = ExpressionBuiltinLocalsUpdated(
                 source_ref = source_ref
             ),
             source_ref = source_ref.atInternal()

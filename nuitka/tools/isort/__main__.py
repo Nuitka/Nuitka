@@ -74,14 +74,14 @@ def main():
 
         package_name = os.path.dirname(filename)
         if package_name.startswith("nuitka" + os.path.sep):
-            package_name = package_name.replace(os.path.sep, ".")
+            package_name = package_name.replace(os.path.sep, '.')
 
             source_code = open(filename).read()
             updated_code = re.sub(r"from %s import" % package_name, "from . import", source_code)
             updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
 
             if source_code != updated_code:
-                with open(filename, "w") as out_file:
+                with open(filename, 'w') as out_file:
                     out_file.write(updated_code)
 
 

@@ -106,11 +106,11 @@ from nuitka.nodes.ExecEvalNodes import (
 )
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinDir1,
-    ExpressionBuiltinGlobals,
-    ExpressionBuiltinLocals
+    ExpressionBuiltinGlobals
 )
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeMakingHelpers import (
+    makeExpressionBuiltinLocals,
     makeRaiseExceptionReplacementExpression,
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects
@@ -146,14 +146,10 @@ from . import BuiltinOptimization
 
 def dir_extractor(node):
     def buildDirEmptyCase(source_ref):
-        if node.getParentVariableProvider().isCompiledPythonModule():
-            source = ExpressionBuiltinGlobals(
-                source_ref = source_ref
-            )
-        else:
-            source = ExpressionBuiltinLocals(
-                source_ref = source_ref
-            )
+        source = makeExpressionBuiltinLocals(
+            provider   = node.getParentVariableProvider(),
+            source_ref = source_ref
+        )
 
         result = ExpressionCallEmpty(
             called     = ExpressionAttributeLookup(
@@ -165,7 +161,7 @@ def dir_extractor(node):
         )
 
         # For Python3, keys doesn't really return values, but instead a handle
-        # only.
+        # only, but we want it to be a list.
         if python_version >= 300:
             result = ExpressionBuiltinList(
                 value      = result,
@@ -185,14 +181,10 @@ def dir_extractor(node):
 
 def vars_extractor(node):
     def selectVarsEmptyClass(source_ref):
-        if node.getParentVariableProvider().isCompiledPythonModule():
-            return ExpressionBuiltinGlobals(
-                source_ref = source_ref
-            )
-        else:
-            return ExpressionBuiltinLocals(
-                source_ref = source_ref
-            )
+        return makeExpressionBuiltinLocals(
+            provider   = node.getParentVariableProvider(),
+            source_ref = source_ref
+        )
 
     return BuiltinOptimization.extractBuiltinArgs(
         node                = node,
@@ -605,6 +597,12 @@ def locals_extractor(node):
     # Note: Locals on the module level is really globals.
     provider = node.getParentVariableProvider()
 
+    def makeLocalsNode(source_ref):
+        return makeExpressionBuiltinLocals(
+            provider   = provider,
+            source_ref = source_ref
+        )
+
     if provider.isCompiledPythonModule():
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
@@ -614,7 +612,7 @@ def locals_extractor(node):
     else:
         return BuiltinOptimization.extractBuiltinArgs(
             node          = node,
-            builtin_class = ExpressionBuiltinLocals,
+            builtin_class = makeLocalsNode,
             builtin_spec  = BuiltinOptimization.builtin_locals_spec
         )
 

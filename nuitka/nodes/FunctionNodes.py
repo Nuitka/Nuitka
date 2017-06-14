@@ -157,16 +157,24 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
     def getLocalVariables(self):
         return [
-            variable for
-            variable in
+            variable
+            for variable in
+            self.providing.values()
+            if variable.isLocalVariable()
+        ]
+
+    def getLocalVariableNames(self):
+        return [
+            variable.getName()
+            for variable in
             self.providing.values()
             if variable.isLocalVariable()
         ]
 
     def getUserLocalVariables(self):
         return tuple(
-            variable for
-            variable in
+            variable
+            for variable in
             self.providing.values()
             if variable.isLocalVariable() and not variable.isParameterVariable()
             if variable.getOwner() is self

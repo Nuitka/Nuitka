@@ -45,10 +45,8 @@ from nuitka.nodes.ConstantRefNodes import (
 )
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import StatementExec, StatementLocalsDictSync
-from nuitka.nodes.GlobalsLocalsNodes import (
-    ExpressionBuiltinGlobals,
-    ExpressionBuiltinLocals
-)
+from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
+from nuitka.nodes.NodeMakingHelpers import makeExpressionBuiltinLocals
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
 
 from .Helpers import (
@@ -59,13 +57,6 @@ from .Helpers import (
     makeStatementsSequenceFromStatements
 )
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
-
-
-def _getLocalsClassNode(provider):
-    if provider.isCompiledPythonModule():
-        return ExpressionBuiltinGlobals
-    else:
-        return ExpressionBuiltinLocals
 
 
 def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
@@ -136,7 +127,8 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
             variable   = globals_keeper_variable,
             source_ref = source_ref
         ),
-        expression_yes = _getLocalsClassNode(provider)(
+        expression_yes = makeExpressionBuiltinLocals(
+            provider   = provider,
             source_ref = source_ref
         ),
         source_ref     = source_ref
@@ -394,7 +386,8 @@ exec: arg 1 must be a string, file, or code object""",
                                 variable   = locals_keeper_variable,
                                 source_ref = source_ref
                             ),
-                            source       = _getLocalsClassNode(provider)(
+                            source       = makeExpressionBuiltinLocals(
+                                provider   = provider,
                                 source_ref = source_ref
                             ),
                             source_ref   = source_ref,

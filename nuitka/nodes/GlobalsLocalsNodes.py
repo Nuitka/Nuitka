@@ -26,8 +26,11 @@ The "dir()" call without arguments is reformulated to locals or globals calls.
 
 from nuitka.PythonVersions import python_version
 
+from .ConstantRefNodes import makeConstantRefNode
+from .DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
 from .NodeBases import StatementChildrenHavingBase
+from .VariableRefNodes import ExpressionVariableRef
 
 
 class ExpressionBuiltinGlobals(ExpressionBase):
@@ -52,8 +55,8 @@ class ExpressionBuiltinGlobals(ExpressionBase):
         return False
 
 
-class ExpressionBuiltinLocals(ExpressionBase):
-    kind = "EXPRESSION_BUILTIN_LOCALS"
+class ExpressionBuiltinLocalsBase(ExpressionBase):
+    # Base classes can be abstract, pylint: disable=abstract-method
 
     __slots__ = "variable_versions",
 
@@ -64,16 +67,6 @@ class ExpressionBuiltinLocals(ExpressionBase):
         )
 
         self.variable_versions = None
-
-    def computeExpressionRaw(self, trace_collection):
-        # Just inform the collection that all escaped.
-        self.variable_versions = trace_collection.onLocalsUsage()
-
-        return self, None, None
-
-    def needsLocalsDict(self):
-        return self.getParentVariableProvider().isEarlyClosure() and \
-               not self.getParent().isStatementReturn()
 
     def mayHaveSideEffects(self):
         if python_version < 300:
@@ -94,6 +87,94 @@ class ExpressionBuiltinLocals(ExpressionBase):
 
     def getVariableVersions(self):
         return self.variable_versions
+
+
+class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
+    kind = "EXPRESSION_BUILTIN_LOCALS_UPDATED"
+
+    @staticmethod
+    def getLocalsMode():
+        return "updated"
+
+    def needsLocalsDict(self):
+        return not self.getParent().isStatementReturn()
+
+    def computeExpressionRaw(self, trace_collection):
+        # Just inform the collection that all escaped.
+        self.variable_versions = trace_collection.onLocalsUsage()
+
+        if self.getParent().isStatementReturn():
+            result = ExpressionBuiltinLocalsCopy(
+                source_ref = self.getSourceReference()
+            )
+
+            return result, "new_expression", "Locals does not escape, no write back needed."
+
+        return self, None, None
+
+
+class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
+    kind = "EXPRESSION_BUILTIN_LOCALS_COPY"
+
+    @staticmethod
+    def getLocalsMode():
+        return "copy"
+
+    def needsLocalsDict(self):
+        return False
+
+    def computeExpressionRaw(self, trace_collection):
+        # Just inform the collection that all escaped.
+        self.variable_versions = trace_collection.onLocalsUsage()
+
+        for variable, version in self.variable_versions:
+            trace = trace_collection.getVariableTrace(variable, version)
+
+            if not trace.mustHaveValue() and not trace.mustNotHaveValue():
+                return self, None, None
+
+            # Other locals elsewhere.
+            if trace.getNameUsageCount() > 1:
+                return self, None, None
+
+        pairs = []
+        for variable, version in self.variable_versions:
+            trace = trace_collection.getVariableTrace(variable, version)
+
+            if trace.mustHaveValue():
+                pairs.append(
+                    ExpressionKeyValuePair(
+                        key        = makeConstantRefNode(
+                            constant      = variable.getName(),
+                            user_provided = True,
+                            source_ref    = self.source_ref
+                        ),
+                        value      = ExpressionVariableRef(
+                            variable_name = variable.getName(),
+                            variable      = variable,
+                            source_ref    = self.source_ref
+                        ),
+                        source_ref = self.source_ref
+                    )
+                )
+
+        # Locals is sorted of course.
+        def _sorted(pairs):
+            names = self.getParentVariableProvider().getLocalVariableNames()
+
+            return sorted(
+                pairs,
+                key = lambda pair: names.index(
+                    pair.getKey().getCompileTimeConstant()
+                ),
+            )
+
+        result = ExpressionMakeDict(
+            pairs      = _sorted(pairs),
+            source_ref = self.source_ref
+        )
+
+        return result, "new_expression", "Statically predicted locals dictionary."
 
 
 class StatementSetLocals(StatementChildrenHavingBase):

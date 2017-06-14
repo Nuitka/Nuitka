@@ -427,3 +427,23 @@ def makeVariableTargetRefNode(variable, source_ref):
             variable      = variable,
             source_ref    = source_ref
         )
+
+
+def makeExpressionBuiltinLocals(provider, source_ref):
+    if provider.isCompiledPythonModule():
+        from .GlobalsLocalsNodes import ExpressionBuiltinGlobals
+
+        return ExpressionBuiltinGlobals(
+            source_ref = source_ref
+        )
+    else:
+        from .GlobalsLocalsNodes import ExpressionBuiltinLocalsUpdated, ExpressionBuiltinLocalsCopy
+
+        if provider.getLocalsMode() == "updated":
+            locals_class = ExpressionBuiltinLocalsUpdated
+        else:
+            locals_class = ExpressionBuiltinLocalsCopy
+
+        return locals_class(
+            source_ref = source_ref
+        )

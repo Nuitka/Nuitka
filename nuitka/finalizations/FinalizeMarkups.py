@@ -97,6 +97,9 @@ class FinalizeMarkups(FinalizationVisitorBase):
             if not provider.isCompiledPythonModule():
                 provider.markAsLocalsDict()
 
+            if node.isStatementSetLocals():
+                provider.markAsForeignLocalsDict()
+
         if node.isStatementReturn() or node.isStatementGeneratorReturn():
             search = node
 

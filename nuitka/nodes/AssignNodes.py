@@ -232,7 +232,7 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                                 else:
                                     propagated = False
 
-                                if not last_trace.hasPotentialUsages() and not last_trace.hasNameUsages():
+                                if not last_trace.hasPotentialUsages() and not last_trace.getNameUsageCount():
                                     if not last_trace.getPrevious().isUninitTrace():
                                         # TODO: We could well decide, if that's even necessary, but for now
                                         # the "StatementDelVariable" is tasked with that.
@@ -272,7 +272,7 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
 
                             if last_trace.getDefiniteUsages() <= 1 and \
                                not last_trace.hasPotentialUsages() and \
-                               not last_trace.hasNameUsages():
+                               not last_trace.getNameUsageCount():
 
                                 if last_trace.getDefiniteUsages() == 1:
                                     self.variable_trace.setReplacementNode(

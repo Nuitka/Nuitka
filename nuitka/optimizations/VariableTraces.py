@@ -45,7 +45,7 @@ class VariableTraceBase(object):
 
     __slots__ = (
         "owner", "variable", "version", "usage_count",
-        "has_potential_usages", "has_releases", "has_name_usages",
+        "has_potential_usages", "has_releases", "name_usages",
         "closure_usages", "is_escaped", "previous"
     )
 
@@ -64,8 +64,8 @@ class VariableTraceBase(object):
         # If False, this indicates the trace has no explicit releases.
         self.has_releases = False
 
-        # If False, this indicates, the variable name needs to be assigned.
-        self.has_name_usages = False
+        # If 0, this indicates, the variable name needs to be assigned as name.
+        self.name_usages = 0
 
         self.closure_usages = False
 
@@ -101,7 +101,7 @@ class VariableTraceBase(object):
 
     def addNameUsage(self):
         self.usage_count += 1
-        self.has_name_usages = True
+        self.name_usages += 1
 
     def onValueEscape(self):
         self.is_escaped = True
@@ -118,8 +118,8 @@ class VariableTraceBase(object):
     def hasPotentialUsages(self):
         return self.has_potential_usages
 
-    def hasNameUsages(self):
-        return self.has_name_usages
+    def getNameUsageCount(self):
+        return self.name_usages
 
     def getPrevious(self):
         return self.previous
@@ -526,11 +526,11 @@ class VariableTraceLoopMerge(VariableTraceBase):
 
         return self.has_potential_usages
 
-    def hasNameUsages(self):
+    def getNameUsageCount(self):
         if not self.loop_finished:
-            return True
+            return 10000
 
-        return self.has_name_usages
+        return self.name_usages
 
     def getPrevious(self):
         assert self.loop_finished
