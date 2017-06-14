@@ -111,6 +111,9 @@ static struct PyModuleDef mdef_%(module_identifier)s =
 #if PYTHON_VERSION >= 300
 extern PyObject *metapath_based_loader;
 #endif
+#if PYTHON_VERSION >= 330
+extern PyObject *const_str_plain___loader__;
+#endif
 
 extern void _initCompiledCellType();
 extern void _initCompiledGeneratorType();
