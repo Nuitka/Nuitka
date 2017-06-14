@@ -733,7 +733,10 @@ def parseArgs():
     # only for this machine, recursing to all modules, and even including the
     # standard library.
     if options.is_standalone:
-        options.executable = True
+        if not options.executable:
+            sys.exit("""\
+Error, conflicting options, cannot make standalone module, only executable.""")
+
         options.recurse_all = True
 
         if Utils.getOS() == "NetBSD":
