@@ -19,6 +19,11 @@
 
 """
 
+from nuitka.codegen.ErrorCodes import (
+    getAssertionCode,
+    getErrorFormatExitBoolCode
+)
+
 from .CTypeBases import CTypeBase
 
 
@@ -101,3 +106,58 @@ switch (%(variable_code_name)s)
     def getReleaseCode(cls, variable_code_name, needs_check, emit):
         # TODO: Allow optimization to not get here.
         pass
+
+    @classmethod
+    def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,
+                            variable, emit, context):
+        if not needs_check:
+            emit(
+                "%s = NUITKA_BOOL_UNASSIGNED;" % variable_code_name
+            )
+        elif tolerant:
+            emit(
+                "%s = NUITKA_BOOL_UNASSIGNED;" % variable_code_name
+            )
+        else:
+            res_name = context.getBoolResName()
+
+            emit(
+                "%s = %s == NUITKA_BOOL_UNASSIGNED;" % (
+                    res_name,
+                    variable_code_name,
+                )
+            )
+            emit(
+                "%s = NUITKA_BOOL_UNASSIGNED;" % variable_code_name
+            )
+
+            if variable.isLocalVariable():
+                if variable.getOwner() is context.getOwner():
+                    getErrorFormatExitBoolCode(
+                        condition = "%s == false" % res_name,
+                        exception = "PyExc_UnboundLocalError",
+                        args      = ("""\
+local variable '%s' referenced before assignment""" % (
+                               variable.getName()
+                            ),
+                        ),
+                        emit      = emit,
+                        context   = context
+                    )
+                else:
+                    getErrorFormatExitBoolCode(
+                        condition = "%s == false" % res_name,
+                        exception = "PyExc_NameError",
+                        args      = ("""\
+free variable '%s' referenced before assignment in enclosing scope""" % (
+                                variable.getName()
+                            ),
+                        ),
+                        emit      = emit,
+                        context   = context
+                    )
+            else:
+                getAssertionCode(
+                    check = "%s != false" % res_name,
+                    emit  = emit
+                )
