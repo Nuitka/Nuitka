@@ -36,14 +36,11 @@ from nuitka.importing.Importing import (
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
-from nuitka.nodes.shapes.BuiltinTypeShapes import (
-    ShapeTypeBuiltinModule,
-    ShapeTypeModule
-)
 from nuitka.utils.FileOperations import relpath
 
 from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
 from .NodeBases import StatementChildrenHavingBase
+from .shapes.BuiltinTypeShapes import ShapeTypeBuiltinModule, ShapeTypeModule
 
 
 class ExpressionImportModuleHard(ExpressionBase):

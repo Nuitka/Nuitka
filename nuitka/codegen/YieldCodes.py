@@ -20,10 +20,9 @@
 The normal "yield", and the Python 3.3 or higher "yield from" variant.
 """
 
-from nuitka.codegen.PythonAPICodes import getReferenceExportCode
-
 from .ErrorCodes import getErrorExitCode, getReleaseCode
 from .Helpers import generateChildExpressionsCode
+from .PythonAPICodes import getReferenceExportCode
 
 
 def generateYieldCode(to_name, expression, emit, context):

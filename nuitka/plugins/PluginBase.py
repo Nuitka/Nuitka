@@ -145,7 +145,7 @@ class NuitkaPluginBase(object):
     def _createTriggerLoadedModule(module, trigger_name, code):
         from nuitka.tree.Building import createModuleTree
         from nuitka.nodes.ModuleNodes import CompiledPythonModule
-        from nuitka.plugins.Plugins import Plugins
+        from .Plugins import Plugins
 
         module_name = module.getName() + trigger_name
         source_ref = fromFilename(module.getCompileTimeFilename() + trigger_name)

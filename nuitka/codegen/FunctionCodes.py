@@ -19,13 +19,9 @@
 
 """
 
-from nuitka.codegen.c_types.CTypePyObjectPtrs import (
-    CTypeCellObject,
-    CTypePyObjectPtrPtr
-)
-from nuitka.codegen.PythonAPICodes import getReferenceExportCode
 from nuitka.PythonVersions import python_version
 
+from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitCode,
@@ -39,6 +35,7 @@ from .Helpers import generateExpressionCode, generateStatementSequenceCode
 from .Indentation import indented
 from .LabelCodes import getLabelCode
 from .ModuleCodes import getModuleAccessCode
+from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesFunction import (
     function_dict_setup,
     function_direct_body_template,

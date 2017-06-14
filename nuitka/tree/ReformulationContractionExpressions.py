@@ -66,13 +66,13 @@ from nuitka.nodes.StatementNodes import (
 )
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.PythonVersions import python_version
-from nuitka.tree.Helpers import makeStatementsSequenceFromStatements
 
 from .Helpers import (
     buildNode,
     buildNodeList,
     getKind,
     makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements,
     mergeStatements
 )
 from .ReformulationAssignmentStatements import buildAssignmentStatements

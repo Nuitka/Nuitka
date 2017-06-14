@@ -19,8 +19,6 @@
 
 """
 
-from nuitka.codegen.PythonAPICodes import getReferenceExportCode
-
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode, getReleaseCode
 from .FunctionCodes import (
@@ -34,6 +32,7 @@ from .Helpers import (
 )
 from .Indentation import indented
 from .LineNumberCodes import emitLineNumberUpdateCode
+from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesCoroutines import (
     template_coroutine_exception_exit,
     template_coroutine_noexception_exit,

@@ -26,7 +26,7 @@ import os
 import shutil
 import time
 
-from nuitka.utils.Utils import getOS
+from .Utils import getOS
 
 
 def areSamePaths(path1, path2):

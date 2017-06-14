@@ -24,6 +24,7 @@
 from __future__ import print_function
 
 import os
+import re
 import subprocess
 import sys
 from optparse import OptionParser
@@ -70,6 +71,20 @@ def main():
 
     target_files = []
     for filename in scanTargets(positional_args):
+
+        package_name = os.path.dirname(filename)
+        if package_name.startswith("nuitka" + os.path.sep):
+            package_name = package_name.replace(os.path.sep, ".")
+
+            source_code = open(filename).read()
+            updated_code = re.sub(r"from %s import" % package_name, "from . import", source_code)
+            updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
+
+            if source_code != updated_code:
+                with open(filename, "w") as out_file:
+                    out_file.write(updated_code)
+
+
         target_files.append(filename)
 
     target_files.append("nuitka/build/SingleExe.scons")

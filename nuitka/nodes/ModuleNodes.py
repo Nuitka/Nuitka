@@ -31,7 +31,6 @@ from nuitka.importing.Importing import (
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getOwnerFromCodeName
-from nuitka.nodes.IndicatorMixins import MarkNeedsAnnotationsMixin
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
@@ -42,6 +41,7 @@ from .Checkers import checkStatementsSequenceOrNone
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase
 from .FutureSpecs import FutureSpec
+from .IndicatorMixins import MarkNeedsAnnotationsMixin
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeMixin,

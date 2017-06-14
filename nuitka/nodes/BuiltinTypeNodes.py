@@ -21,17 +21,10 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.shapes.BuiltinTypeShapes import (
-    ShapeTypeBool,
-    ShapeTypeIntOrLong,
-    ShapeTypeLong,
-    ShapeTypeStr,
-    ShapeTypeUnicode
-)
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionSpecBasedComputationBase
@@ -39,6 +32,13 @@ from .ExpressionBases import (
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     wrapExpressionWithNodeSideEffects
+)
+from .shapes.BuiltinTypeShapes import (
+    ShapeTypeBool,
+    ShapeTypeIntOrLong,
+    ShapeTypeLong,
+    ShapeTypeStr,
+    ShapeTypeUnicode
 )
 
 

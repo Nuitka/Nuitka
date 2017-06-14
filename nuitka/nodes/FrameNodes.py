@@ -26,9 +26,9 @@ them.
 
 """
 
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.PythonVersions import python_version
 
+from .CodeObjectSpecs import CodeObjectSpec
 from .StatementNodes import StatementsSequence
 
 

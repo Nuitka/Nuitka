@@ -61,7 +61,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
-from nuitka.tree.ReformulationImportStatements import getFutureSpec
 
 from .Helpers import (
     buildNode,
@@ -74,6 +73,7 @@ from .Helpers import (
     makeStatementsSequenceOrStatement,
     mangleName
 )
+from .ReformulationImportStatements import getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 

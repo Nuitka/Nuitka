@@ -30,18 +30,18 @@ classes.
 """
 
 from nuitka import Options, Variables
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.FutureSpecs import fromFlags
 from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Extractions import updateVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
+from .CodeObjectSpecs import CodeObjectSpec
 from .ExpressionBases import (
     CompileTimeConstantExpressionBase,
     ExpressionBase,
     ExpressionChildrenHavingBase
 )
+from .FutureSpecs import fromFlags
 from .IndicatorMixins import (
     MarkLocalsDictIndicatorMixin,
     MarkUnoptimizedFunctionIndicatorMixin
@@ -140,6 +140,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         return False
 
 
+    # TODO: Turn this into an indication.
     def getLocalsMode(self):
         if python_version >= 300:
             return "updated"

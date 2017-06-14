@@ -22,9 +22,9 @@ statement, 'if a: ... else: ...' and there is no 'elif', because that is
 expressed via nesting of conditional statements.
 """
 
-from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBool
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 
+from .BuiltinTypeNodes import ExpressionBuiltinBool
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeBases import StatementChildrenHavingBase

@@ -99,7 +99,6 @@ from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
-from nuitka.tree.ReformulationImportStatements import getFutureSpec
 from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
 
@@ -151,6 +150,7 @@ from .ReformulationImportStatements import (
     buildImportFromNode,
     buildImportModulesNode,
     checkFutureImportsOnlyAtStart,
+    getFutureSpec,
     popFutureSpec,
     pushFutureSpec
 )
