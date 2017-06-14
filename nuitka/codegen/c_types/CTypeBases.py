@@ -56,13 +56,14 @@ class CTypeBase(object):
         )
 
     @classmethod
-    def getLocalVariableObjectAccessCode(cls,variable_code_name):
-        """ Get code to access as object.
+    def getLocalVariableInitTestCode(cls, variable_code_name):
+        """ Get code to test for uninitialized.
 
         """
 
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
+
 
     @classmethod
     def getLocalVariableAssignCode(cls, variable_code_name, needs_release,

@@ -211,15 +211,23 @@ if ( %(res_name)s == -1 ) CLEAR_ERROR_OCCURRED();
 """
 
 template_update_locals_dict_value = """\
-DICT_SYNC_FROM_VARIABLE(
-    %(dict_name)s,
-    %(var_name)s,
-    %(access_code)s
-);
+if ( %(test_code)s )
+{
+    UPDATE_STRING_DICT0( (PyDictObject *)%(dict_name)s, (Nuitka_StringObject *)%(var_name)s, %(access_code)s );
+}
+else
+{
+    int res = PyDict_DelItem( %(dict_name)s, %(var_name)s );
+
+    if ( res != 0 )
+    {
+        CLEAR_ERROR_OCCURRED();
+    }
+}
 """
 
 template_set_locals_dict_value = """\
-if ( %(access_code)s )
+if ( %(test_code)s )
 {
     int res = PyDict_SetItem(
         %(dict_name)s,
@@ -232,17 +240,54 @@ if ( %(access_code)s )
 """
 
 template_update_locals_mapping_value = """\
-%(tmp_name)s = MAPPING_SYNC_FROM_VARIABLE( %(mapping_name)s, %(var_name)s, %(access_code)s );
+if ( %(test_code)s )
+{
+    int res = PyObject_SetItem(
+        %(mapping_name)s,
+        %(var_name)s,
+        %(access_code)s
+    );
+
+    %(tmp_name)s = res == 0;
+}
+else
+{
+    PyObject *test_value = PyObject_GetItem(
+        %(mapping_name)s,
+        %(var_name)s
+    );
+
+    if ( test_value )
+    {
+        Py_DECREF( test_value );
+
+        int res = PyObject_DelItem(
+            %(mapping_name)s,
+            %(var_name)s
+        );
+
+        %(tmp_name)s = res == 0;
+    }
+    else
+    {
+        CLEAR_ERROR_OCCURRED();
+        %(tmp_name)s = true;
+    }
+}
 """
 
 template_set_locals_mapping_value = """\
-if %(check_code)s
+if ( %(test_code)s )
 {
     %(tmp_name)s = SET_SUBSCRIPT(
         %(mapping_name)s,
         %(var_name)s,
         %(access_code)s
     );
+}
+else
+{
+    %(tmp_name)s = true;
 }
 """
 

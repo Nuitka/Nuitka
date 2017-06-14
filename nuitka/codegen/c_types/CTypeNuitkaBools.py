@@ -30,6 +30,7 @@ class CTypeNuitkaBoolEnum(CTypeBase):
                                    tmp_name, ref_count, in_place):
 
         assert not in_place
+        assert not ref_count
 
         return """\
 if (%(tmp_name)s == Py_True)
@@ -44,6 +45,7 @@ else
             "variable_code_name" : variable_code_name,
             "tmp_name"            : tmp_name,
         }
+
 
     @classmethod
     def getVariableObjectAccessCode(cls, to_name, needs_check, variable_code_name,
@@ -78,6 +80,14 @@ switch (%(variable_code_name)s)
 
         if 0: # Future work, pylint: disable=using-constant-test
             context.reportObjectConversion(variable)
+
+    @classmethod
+    def getLocalVariableInitTestCode(cls, variable_code_name):
+        return "%s != NUITKA_BOOL_UNASSIGNED" % variable_code_name
+
+    @classmethod
+    def getLocalVariableObjectAccessCode(cls, variable_code_name):
+        return "%s == NUITKA_BOOL_TRUE ? Py_True : Py_False" % variable_code_name
 
     @classmethod
     def getInitValue(cls, init_from):

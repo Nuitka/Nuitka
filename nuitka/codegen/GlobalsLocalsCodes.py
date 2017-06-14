@@ -94,6 +94,7 @@ def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
 
     variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
 
+    test_code = variable_c_type.getLocalVariableInitTestCode(variable_code_name)
     access_code = variable_c_type.getLocalVariableObjectAccessCode(variable_code_name)
 
     if is_dict:
@@ -108,7 +109,8 @@ def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
                 "var_name"    : context.getConstantCode(
                     constant = variable.getName()
                 ),
-                "access_code" : access_code,
+                "test_code"   : test_code,
+                "access_code" : access_code
             }
         )
     else:
@@ -125,6 +127,7 @@ def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
                 "var_name"     : context.getConstantCode(
                     constant = variable.getName()
                 ),
+                "test_code"    : test_code,
                 "access_code"  : access_code,
                 "tmp_name"     : res_name
             }
