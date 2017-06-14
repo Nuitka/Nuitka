@@ -270,7 +270,7 @@ class TempVariable(Variable):
     def __repr__(self):
         return "<TempVariable '%s' of '%s'>" % (
             self.getName(),
-            self.getOwner()
+            self.getOwner().getName()
         )
 
     def getDescription(self):
