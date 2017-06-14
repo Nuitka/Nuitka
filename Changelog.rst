@@ -1,6 +1,47 @@
 Nuitka Release 0.5.27 (Draft)
 =============================
 
+This release consolidates the previous release.
+
+Bug Fixes
+---------
+
+- Fix, need to add recursed modules immediately to the working set, or else
+  they might first be processed in second pass, where global names that are
+  locally assigned, are optimized to the built-in names although that should
+  not happen. Fixed in 0.5.26.1 already.
+
+- Fix, the accelerated call of methods could crash for some special types. This
+  had been a regress of 0.5.25, but only happens with custom extension types.
+  Fixed in 0.5.26.1 already.
+
+Optimization
+------------
+
+- References to known unassigned variables are now statically optimized and
+  warned about if the according option is enabled.
+
+- For executables, we now also use a freelist for traceback objects, which
+  also makes exception cases slightly faster.
+
+- Remove "pass through" frames for Python2 list contractions, they are no
+  longer needed. Minimal gain for generated code, but more leightweight at
+  compile time.
+
+Cleanups
+--------
+
+- The use of ``INCREASE_REFCOUNT`` got fully eliminated.
+
+- Use functions not vulenerable for buffer overflow. This is generally good
+  and avoids warnings given on OpenBSD during linking.
+
+- Variable closure of classes is different from all functions, don't handle
+  the difference in the base class, but for class nodes only.
+
+- Make sure "mayBeNone" doesn't return "None" which means normally "unclear",
+  but "False" instead, since it's always clear for those cases.
+
 This release is not done yet.
 
 
