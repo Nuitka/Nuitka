@@ -467,9 +467,6 @@ def prepareModuleCode(global_context, module, module_name):
         context             = context
     )
 
-    if python_version >= 330:
-        context.getConstantCode("__loader__")
-
     return template_values, context
 
 

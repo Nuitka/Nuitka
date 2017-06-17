@@ -24,8 +24,8 @@ from __future__ import print_function
 import sys
 from optparse import OptionParser
 
-from nuitka.tools.release.Debian import updateDebianChangelog
 from nuitka.tools.Basics import goHome
+from nuitka.tools.release.Debian import updateDebianChangelog
 
 
 def getBumpedVersion(mode, old_version):
