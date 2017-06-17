@@ -150,11 +150,11 @@ def getLoadLocalsCode(to_name, variables, provider, mode, emit, context):
             )
         )
 
-    if provider.isCompiledPythonModule():
-        # Optimization will have made this "globals".
-        assert False, provider
-    elif not context.hasLocalsDict():
+    # Optimization will have made this "globals", and it wouldn't be
+    # about local variables at all.
+    assert not provider.isCompiledPythonModule(), provider
 
+    if not context.hasLocalsDict():
         # TODO: Use DictCodes ?
         emit(
             "%s = PyDict_New();" % (

@@ -83,8 +83,14 @@ and put it in APPDATA (no installer needed, cached, one time question).""")
                 depends_url,
                 nuitka_depends_zip
             )
-        except:
-            sys.exit("Failed to download %s. Contents should manually be extracted to %s" % (depends_url, nuitka_depends_dir))
+        except Exception: # Any kind of error, pylint: disable=broad-except
+            sys.exit(
+                """Failed to download '%s'.\
+Contents should manually be extracted to '%s'.""" % (
+                    depends_url,
+                    nuitka_depends_dir
+                )
+            )
 
     if not os.path.isdir(nuitka_depends_dir):
         os.makedirs(nuitka_depends_dir)
