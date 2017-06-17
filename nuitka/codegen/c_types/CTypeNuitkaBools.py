@@ -69,16 +69,22 @@ switch (%(variable_code_name)s)
         %(to_name)s = Py_False;
         break;
     }
-#if %(needs_check)s
+    // case NUITKA_BOOL_UNASSIGNED: (MSVC wants default to believe it). We may
+    // try to add an illegal default instead, but that may trigger warnings
+    // from better compilers.
     default:
     {
+#if %(needs_check)s
         %(to_name)s = NULL;
+#else
+        NUITKA_CANNOT_GET_HERE(%(identifier)s);
+#endif
         break;
     }
-#endif
 }""" % {
         "variable_code_name" : variable_code_name,
         "to_name"            : to_name,
+        "identifier"         : context.getOwner().getCodeName(),
         "needs_check"        : '1' if needs_check else '0'
     }
         )
