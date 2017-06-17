@@ -638,8 +638,16 @@ class FrameDeclarationsMixin(object):
         return result
 
     def getFrameVariableCodeNames(self):
+        def casted(var_name):
+            variable_desc = self.variable_types.get(var_name, ("NULL", 'N'))
+
+            if variable_desc[1] in ('b',):
+                return "(int)" + variable_desc[0]
+            else:
+                return variable_desc[0]
+
         return ", ".join(
-            self.variable_types.get(var_name, ("NULL", 'N'))[0]
+            casted(var_name)
             for var_name in
             self.frame_variables_stack[-1]
         )

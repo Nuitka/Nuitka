@@ -186,9 +186,9 @@ static PyObject *Nuitka_Frame_getlocals( struct Nuitka_FrameObject *frame, void 
                 }
                 case NUITKA_TYPE_DESCRIPTION_BOOL:
                 {
-                    nuitka_bool value = *(nuitka_bool *)t;
-                    t += sizeof(nuitka_bool);
-                    switch (value)
+                    int value = *(int *)t;
+                    t += sizeof(int);
+                    switch ((nuitka_bool)value)
                     {
                         case NUITKA_BOOL_TRUE:
                         {
@@ -306,7 +306,7 @@ static void Nuitka_Frame_tp_clear( struct Nuitka_FrameObject *frame )
                 }
                 case NUITKA_TYPE_DESCRIPTION_BOOL:
                 {
-                    t += sizeof(nuitka_bool);
+                    t += sizeof(int);
 
                     break;
                 }
@@ -713,8 +713,8 @@ void Nuitka_Frame_AttachLocals( struct Nuitka_FrameObject *frame, char const *ty
             }
             case NUITKA_TYPE_DESCRIPTION_BOOL:
             {
-                nuitka_bool value = va_arg( ap, nuitka_bool );
-                memcpy( t, &value, sizeof(nuitka_bool) );
+                int value = va_arg( ap, int );
+                memcpy( t, &value, sizeof(int) );
                 t += sizeof(value);
                 break;
             }
