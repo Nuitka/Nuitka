@@ -109,12 +109,11 @@ def action(stage_dir, root, path):
             )
         )
 
-
+from nuitka.PythonVersions import python_version
 
 compileLibraryTest(
     search_mode = search_mode,
-    stage_dir   = os.path.join(tmp_dir, "compile_library"),
+    stage_dir   = os.path.join(tmp_dir, "compile_library_%s" % python_version ),
     decide      = decide,
     action      = action
 )
-
