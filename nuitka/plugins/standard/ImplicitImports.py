@@ -107,6 +107,17 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "cairo"
             yield "gio"
             yield "atk"
+        elif full_name == "atk":
+            yield "gobject"
+        elif full_name == "gtkunixprint":
+            yield "gobject"
+            yield "cairo"
+            yield "gtk"
+        elif full_name == "pango":
+            yield "gobject"
+        elif full_name == "pangocairo":
+            yield "pango"
+            yield "cairo"
         elif full_name == "reportlab.rl_config":
             yield "reportlab.rl_settings"
         elif full_name == "ctypes":
