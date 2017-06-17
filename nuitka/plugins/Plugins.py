@@ -122,7 +122,7 @@ class Plugins(object):
 
         for plugin in active_plugin_list:
             for extra_dll in plugin.considerExtraDlls(dist_dir, module):
-                assert os.path.isfile(extra_dll[1])
+                assert os.path.isfile(extra_dll[1]), extra_dll[1]
 
                 result.append(extra_dll)
 

@@ -27,7 +27,6 @@ language syntax.
 """
 
 from nuitka.__past__ import iterItems
-from nuitka.PythonVersions import python_version
 
 from . import Contexts, Emission
 from .AsyncgenCodes import (

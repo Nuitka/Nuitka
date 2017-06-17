@@ -84,7 +84,6 @@ def getFileList(path):
             yield os.path.join(root, filename)
 
 
-
 def getSubDirectories(path):
     result = []
 
