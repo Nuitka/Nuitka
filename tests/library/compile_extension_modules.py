@@ -120,3 +120,4 @@ compileLibraryTest(
     action      = action
 )
 
+my_print("FINISHED, all extension modules compiled.")
