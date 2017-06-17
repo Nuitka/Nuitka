@@ -134,7 +134,7 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
     def _consider(self, trace_collection, module_filename, module_package):
         assert module_package is None or \
-              (type(module_package) is str and module_package != "")
+              (type(module_package) is str and module_package != ""), repr(module_package)
 
         module_filename = os.path.normpath(module_filename)
 
@@ -293,6 +293,11 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             imported_module_name = module_name.getCompileTimeConstant()
 
             if type(imported_module_name) in (str, unicode):
+                # TODO: This is not handling decoding errors all that well.
+                if str is not unicode and type(imported_module_name) is unicode:
+                    imported_module_name = str(imported_module_name)
+
+
                 self._attemptRecursion(
                     trace_collection = trace_collection,
                     module_name      = imported_module_name
@@ -303,6 +308,14 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 if self.finding == "built-in":
                     self.type_shape = ShapeTypeBuiltinModule
                     self.builtin_module = __import__(imported_module_name)
+
+                # TODO: Code duplication with avove, try to avoid it.
+                if self.finding != "not-found":
+                    if self.imported_module is not None:
+                        trace_collection.onUsedModule(self.imported_module.getFullName())
+
+                    for import_list_module in self.import_list_modules:
+                        trace_collection.onUsedModule(import_list_module)
             else:
                 # TODO: This doesn't preserve side effects.
 
