@@ -105,12 +105,12 @@ if os.path.exists(guess_path):
 
             return [
                 (
-                    os.path.join(plugin_dir, os.path.basename(filename)),
                     filename,
+                    os.path.join(target_plugin_dir, os.path.relpath(filename, plugin_dir)),
                     full_name
                 )
                 for filename in
-                getFileList(target_plugin_dir)
+                getFileList(plugin_dir)
                 if not filename.endswith(".qml")
             ]
 
