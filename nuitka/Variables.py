@@ -23,6 +23,7 @@ module variable references.
 
 """
 
+from nuitka.nodes.shapes.StandardShapes import ShapeUnknown
 from nuitka.utils import InstanceCounters, Utils
 
 complete = False
@@ -186,6 +187,28 @@ class Variable(object):
                 return trace
 
         return None
+
+    def getTypeShapes(self):
+        result = set()
+
+        for trace in self.traces:
+            if trace.isAssignTrace():
+                result.add(
+                    trace.getAssignNode().getAssignSource().getTypeShape()
+                )
+            elif trace.isUnknownTrace():
+                result.add(ShapeUnknown)
+            elif trace.isUninitTrace():
+                if trace.hasDefiniteUsages() or trace.hasPotentialUsages():
+                    result.add(ShapeUnknown)
+            elif trace.isInitTrace():
+                result.add(ShapeUnknown)
+            elif trace.isMergeTrace():
+                pass
+            else:
+                assert False, trace
+
+        return result
 
 
 class LocalVariable(Variable):
