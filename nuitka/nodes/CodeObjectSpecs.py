@@ -30,11 +30,14 @@ class CodeObjectSpec(object):
 
     def __init__(self, co_name, co_kind, co_varnames, co_argcount,
                  co_kwonlyargcount, co_has_starlist, co_has_stardict,
-                 filename, line_number, future_spec, new_locals = None,
-                 has_closure = None, is_optimized = None):
+                 co_filename, co_lineno, future_spec, co_new_locals = None,
+                 co_has_closure = None, co_is_optimized = None):
 
         self.co_name = co_name
         self.co_kind = co_kind
+
+        self.future_spec = future_spec
+        assert future_spec
 
         # Strings happens from XML parsing, make sure to convert them.
         if type(co_varnames) is str:
@@ -56,14 +59,19 @@ class CodeObjectSpec(object):
         self.co_has_starlist = co_has_starlist
         self.co_has_stardict = co_has_stardict
 
-        self.filename = filename
-        self.line_number = line_number
+        self.filename = co_filename
+        self.line_number = int(co_lineno)
 
-        self.new_locals = new_locals
-        self.has_closure = has_closure
-        self.is_optimized = is_optimized
-        self.future_spec = future_spec
-        assert future_spec
+        if type(co_has_starlist) is not bool:
+            co_new_locals = co_new_locals != "False"
+        if type(co_has_starlist) is not bool:
+            co_has_closure = co_has_closure != "False"
+        if type(co_has_starlist) is not bool:
+            co_is_optimized = co_is_optimized != "False"
+
+        self.new_locals = co_new_locals
+        self.has_closure = co_has_closure
+        self.is_optimized = co_is_optimized
 
     def __repr__(self):
         return """\
@@ -78,11 +86,12 @@ class CodeObjectSpec(object):
             "co_kwonlyargcount" : self.co_kwonlyargcount,
             "co_has_starlist"   : self.co_has_starlist,
             "co_has_stardict"   : self.co_has_stardict,
-            "filename"          : self.filename,
-            "line_number"       : self.line_number,
-            "new_locals"        : self.new_locals,
-            "has_closure"       : self.has_closure,
-            "is_optimized"      : self.is_optimized
+            "co_filename"       : self.filename,
+            "co_lineno"         : self.line_number,
+            "co_new_locals"     : self.new_locals,
+            "co_has_closure"    : self.has_closure,
+            "co_is_optimized"   : self.is_optimized,
+            "code_flags"        : ",".join(self.future_spec.asFlags())
         }
 
     def getCodeObjectKind(self):

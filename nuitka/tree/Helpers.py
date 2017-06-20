@@ -329,8 +329,8 @@ def makeModuleFrame(module, statements, source_ref):
             co_kwonlyargcount = 0,
             co_has_starlist   = False,
             co_has_stardict   = False,
-            filename          = module.getRunTimeFilename(),
-            line_number       = source_ref.getLineNumber(),
+            co_filename       = module.getRunTimeFilename(),
+            co_lineno         = source_ref.getLineNumber(),
             future_spec       = module.getFutureSpec()
         ),
         source_ref  = source_ref

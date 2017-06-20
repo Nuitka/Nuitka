@@ -156,6 +156,7 @@ class NuitkaPluginBase(object):
             name         = module_name,
             package_name = module.getPackage(),
             mode         = mode,
+            future_spec  = None,
             source_ref   = source_ref
         )
 

@@ -108,7 +108,6 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         assert cls is ExpressionVariableRef, cls
 
         owner = getOwnerFromCodeName(args["owner"])
-
         variable = owner.getProvidedVariable(args["variable_name"])
 
         return cls(

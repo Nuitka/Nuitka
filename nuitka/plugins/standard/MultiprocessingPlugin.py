@@ -104,6 +104,7 @@ Monkey patching "multiprocessing" for compiled methods."""
             name         = module_name,
             package_name = None,
             mode         = mode,
+            future_spec  = None,
             source_ref   = root_module.getSourceReference()
         )
 

@@ -109,7 +109,6 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
             "variable_name" : self.variable_name,
             "is_temp"       : self.variable.isTempVariable(),
             "owner"         : self.variable.getOwner().getCodeName(),
-            "version"       : self.variable_version,
         }
 
     @classmethod
@@ -121,10 +120,12 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         if args["is_temp"] == "True":
             variable = owner.createTempVariable(args["variable_name"])
         else:
-            variable = owner.createProvidedVariable(args["variable_name"])
+            variable = owner.getProvidedVariable(args["variable_name"])
 
-        version = int(args["version"])
-        variable.version_number = max(variable.version_number, version)
+        del args["is_temp"]
+        del args["owner"]
+
+        version = variable.allocateTargetNumber()
 
         return cls(
             variable   = variable,
@@ -324,7 +325,7 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                             # Something might be possible still.
 
                             pass
-                    elif False and Options.isExperimental() and \
+                    elif False and Options.isExperimental("unnamed_yet") and \
                         source.isExpressionFunctionCreation() and \
                         source.getFunctionRef().getFunctionBody().isExpressionFunctionBody() and \
                         not source.getDefaults() and  \
@@ -447,8 +448,7 @@ class StatementDelVariable(NodeBase):
     def getDetails(self):
         return {
             "variable" : self.variable,
-            "variable_name" : self.variable_name,
-            "version" : self.variable_version,
+            "version"  : self.variable_version,
             "tolerant" : self.tolerant
         }
 
@@ -457,26 +457,28 @@ class StatementDelVariable(NodeBase):
             "variable_name" : self.variable_name,
             "is_temp"       : self.variable.isTempVariable(),
             "owner"         : self.variable.getOwner().getCodeName(),
-            "version"       : self.variable_version,
+            "tolerant"      : self.tolerant
         }
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
-        assert cls is StatementAssignmentVariable, cls
+        assert cls is StatementDelVariable, cls
 
         owner = getOwnerFromCodeName(args["owner"])
 
         if args["is_temp"] == "True":
             variable = owner.createTempVariable(args["variable_name"])
         else:
-            variable = owner.createProvidedVariable(args["variable_name"])
+            variable = owner.getProvidedVariable(args["variable_name"])
 
-        version = int(args["version"])
+        del args["is_temp"]
+        del args["owner"]
+
+        version = variable.allocateTargetNumber()
         variable.version_number = max(variable.version_number, version)
 
         return cls(
             variable   = variable,
-            version    = version,
             source_ref = source_ref,
             **args
         )

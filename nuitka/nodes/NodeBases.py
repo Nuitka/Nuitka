@@ -127,17 +127,7 @@ class NodeBase(NodeMetaClassBase):
     __del__ = counted_del()
 
     def __repr__(self):
-        # This is to avoid crashes, because of bugs in detail.
-        # pylint: disable=broad-except
-        try:
-            detail = self.getDetail()
-        except Exception as e:
-            detail = "detail raises exception %s" % e
-
-        if not detail:
-            return "<Node %s>" % (self.getDescription())
-        else:
-            return "<Node %s %s>" % (self.getDescription(), detail)
+        return "<Node %s>" % (self.getDescription())
 
     def getDescription(self):
         """ Description of the node, intended for use in __repr__ and
@@ -1075,10 +1065,6 @@ def extractKindAndArgsFromXML(xml, source_ref):
         source_ref = source_ref.atLineNumber(int(args["line"]))
         del args["line"]
 
-    if "code_flags" in args:
-        source_ref.future_spec = fromFlags(args["code_flags"])
-        del args["code_flags"]
-
     node_class = getNodeClassFromName(kind)
 
     return kind, node_class, args, source_ref
@@ -1094,8 +1080,13 @@ def fromXML(provider, xml, source_ref = None):
         # global stream     instead. For now, this will do. pylint: disable=eval-used
         args["constant"] = eval(args["constant"])
 
-    if kind in ("ExpressionFunctionBody", "PythonMainModule"):
+    if kind in ("ExpressionFunctionBody", "PythonMainModule",
+                "PythonCompiledModule", "PythonCompiledPackage",
+                "PythonInternalModule"):
         delayed = node_class.named_children
+
+        if "code_flags" in args:
+            args["future_spec"] = fromFlags(args["code_flags"])
     else:
         delayed = ()
 

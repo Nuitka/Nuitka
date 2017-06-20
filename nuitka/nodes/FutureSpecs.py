@@ -43,6 +43,9 @@ class FutureSpec(object):
 
     __del__ = counted_del()
 
+    def __repr__(self):
+        return "<FutureSpec %s>" % ",".join(self.asFlags())
+
     def clone(self):
         result = FutureSpec()
 

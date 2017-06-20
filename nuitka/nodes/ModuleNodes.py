@@ -40,7 +40,7 @@ from nuitka.utils.FileOperations import relpath
 from .Checkers import checkStatementsSequenceOrNone
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase
-from .FutureSpecs import FutureSpec
+from .FutureSpecs import FutureSpec, fromFlags
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
 from .NodeBases import (
     ChildrenHavingMixin,
@@ -203,7 +203,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         "body": checkStatementsSequenceOrNone
     }
 
-    def __init__(self, name, package_name, mode, source_ref):
+    def __init__(self, name, package_name, mode, future_spec, source_ref):
         PythonModuleBase.__init__(
             self,
             name         = name,
@@ -237,7 +237,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         # SSA trace based information about the module.
         self.trace_collection = None
 
-        self.future_spec = None
+        # Often None until tree building finishes its part.
+        self.future_spec = future_spec
 
     def getDetails(self):
         return {
@@ -249,7 +250,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
     def getDetailsForDisplay(self):
         result = self.getDetails()
 
-        result["code_flags"] = ','.join(self.future_spec.asFlags())
+        if self.future_spec is not None:
+            result["code_flags"] = ','.join(self.future_spec.asFlags())
 
         return result
 
@@ -457,7 +459,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 class CompiledPythonPackage(CompiledPythonModule):
     kind = "COMPILED_PYTHON_PACKAGE"
 
-    def __init__(self, name, package_name, mode, source_ref):
+    def __init__(self, name, package_name, mode, future_spec, source_ref):
         assert name
 
         CompiledPythonModule.__init__(
@@ -465,6 +467,7 @@ class CompiledPythonPackage(CompiledPythonModule):
             name         = name,
             package_name = package_name,
             mode         = mode,
+            future_spec  = future_spec,
             source_ref   = source_ref
         )
 
@@ -562,12 +565,13 @@ class UncompiledPythonPackage(UncompiledPythonModule):
 class PythonMainModule(CompiledPythonModule):
     kind = "PYTHON_MAIN_MODULE"
 
-    def __init__(self, main_added, mode, source_ref):
+    def __init__(self, main_added, mode, future_spec, source_ref):
         CompiledPythonModule.__init__(
             self,
             name         = "__main__",
             package_name = None,
             mode         = mode,
+            future_spec  = future_spec,
             source_ref   = source_ref
         )
 
@@ -582,10 +586,14 @@ class PythonMainModule(CompiledPythonModule):
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
+        if "code_flags" in args:
+            future_spec = fromFlags(args["code_flags"])
+
         result = cls(
-            main_added = args["main_added"] == "True",
-            mode       = args["mode"],
-            source_ref = source_ref
+            main_added  = args["main_added"] == "True",
+            mode        = args["mode"],
+            future_spec = future_spec,
+            source_ref  = source_ref
         )
 
         from nuitka.ModuleRegistry import addRootModule
@@ -661,10 +669,9 @@ class PythonInternalModule(CompiledPythonModule):
             source_ref   = SourceCodeReference.fromFilenameAndLine(
                 filename = "internal",
                 line     = 0
-            )
+            ),
+            future_spec  = FutureSpec()
         )
-
-        self.future_spec = FutureSpec()
 
     @staticmethod
     def isInternalModule():

@@ -137,10 +137,9 @@ def createNamespacePackage(package_name, module_relpath):
         name         = parts[-1],
         mode         = "compiled",
         package_name = package_package_name,
+        future_spec  = FutureSpec(),
         source_ref   = source_ref,
     )
-
-    package.future_spec = FutureSpec()
 
     if python_version >= 300:
         statement = createPython3NamespacePath(

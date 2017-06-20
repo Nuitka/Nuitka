@@ -577,17 +577,19 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
-        code_object_specs = {}
+        code_object_args = {}
         other_args = {}
 
         for key, value in args.items():
             if key.startswith("co_"):
-                code_object_specs[key] = value
+                code_object_args[key] = value
+            elif key == "code_flags":
+                code_object_args["future_spec"] = fromFlags(args["code_flags"])
             else:
                 other_args[key] = value
 
-        if code_object_specs:
-            code_object = CodeObjectSpec(**code_object_specs)
+        if code_object_args:
+            code_object = CodeObjectSpec(**code_object_args)
         else:
             code_object = None
 
@@ -757,7 +759,7 @@ error""" % self.getName()
         # TODO: Ought to use values. If they are all constant, how about we
         # assume no cost, pylint: disable=unused-argument
 
-        if True or not Options.isExperimental():
+        if True or not Options.isExperimental("function_inlining"):
             return None
 
         function_body = self.getFunctionRef().getFunctionBody()

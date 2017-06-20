@@ -29,6 +29,7 @@ them.
 from nuitka.PythonVersions import python_version
 
 from .CodeObjectSpecs import CodeObjectSpec
+from .FutureSpecs import fromFlags
 from .StatementNodes import StatementsSequence
 
 
@@ -75,7 +76,6 @@ class StatementsFrameBase(StatementsSequence):
 
     def getDetails(self):
         result = {
-            "guard_mode"  : self.guard_mode,
             "code_object" : self.code_object
         }
 
@@ -84,11 +84,8 @@ class StatementsFrameBase(StatementsSequence):
         return result
 
     def getDetailsForDisplay(self):
-        result = {
-            "guard_mode"  : self.guard_mode,
-        }
-
-        result.update(StatementsSequence.getDetails(self))
+        result = StatementsSequence.getDetails(self)
+        result.update()
 
         result.update(self.code_object.getDetails())
 
@@ -102,6 +99,8 @@ class StatementsFrameBase(StatementsSequence):
         for key, value in args.items():
             if key.startswith("co_"):
                 code_object_args[key] = value
+            elif key == "code_flags":
+                code_object_args["future_spec"] = fromFlags(args["code_flags"])
             else:
                 other_args[key] = value
 

@@ -115,7 +115,7 @@ def createNodeTree(filename):
     # Then optimize the tree and potentially recursed modules.
     Optimization.optimize()
 
-    if False and Options.isExperimental():
+    if Options.isExperimental("check_xml_persistence"):
         for module in ModuleRegistry.getRootModules():
             if module.isMainModule():
                 return module

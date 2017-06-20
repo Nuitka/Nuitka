@@ -944,9 +944,10 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             )
         elif is_main:
             result = PythonMainModule(
-                main_added = main_added,
-                mode       = Plugins.decideCompilation("__main__", source_ref),
-                source_ref = source_ref
+                main_added  = main_added,
+                mode        = Plugins.decideCompilation("__main__", source_ref),
+                future_spec = None,
+                source_ref  = source_ref
             )
         else:
             if package is not None:
@@ -958,6 +959,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 name         = module_name,
                 package_name = package,
                 mode         = Plugins.decideCompilation(full_name, source_ref),
+                future_spec  = None,
                 source_ref   = source_ref
             )
 
@@ -989,6 +991,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 name         = package_name,
                 package_name = package,
                 mode         = Plugins.decideCompilation(full_name, source_ref),
+                future_spec  = None,
                 source_ref   = source_ref
             )
 

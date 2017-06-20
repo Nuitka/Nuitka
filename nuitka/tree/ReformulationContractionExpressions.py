@@ -219,8 +219,8 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         co_kwonlyargcount = 0,
         co_has_starlist   = False,
         co_has_stardict   = False,
-        filename          = parent_module.getRunTimeFilename(),
-        line_number       = source_ref.getLineNumber(),
+        co_filename       = parent_module.getRunTimeFilename(),
+        co_lineno         = source_ref.getLineNumber(),
         future_spec       = parent_module.getFutureSpec()
     )
 
@@ -581,8 +581,8 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         co_kwonlyargcount = 0,
         co_has_starlist   = False,
         co_has_stardict   = False,
-        filename          = parent_module.getRunTimeFilename(),
-        line_number       = source_ref.getLineNumber(),
+        co_filename       = parent_module.getRunTimeFilename(),
+        co_lineno         = source_ref.getLineNumber(),
         future_spec       = parent_module.getFutureSpec()
     )
 

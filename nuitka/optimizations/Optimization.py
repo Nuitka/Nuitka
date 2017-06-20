@@ -420,7 +420,7 @@ def optimize():
                (module.getOutputFilename(),restored.getOutputFilename())
 
             # The variable versions give diffs.
-            if False: # To manually enable, pylint: disable=W0125
+            if True: # To manually enable, pylint: disable=W0125
                 import difflib
                 diff = difflib.unified_diff(
                     text.splitlines(),

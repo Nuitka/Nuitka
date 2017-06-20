@@ -625,8 +625,8 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
         co_kwonlyargcount = parameters.getKwOnlyParameterCount(),
         co_has_starlist   = parameters.getStarListArgumentName() is not None,
         co_has_stardict   = parameters.getStarDictArgumentName() is not None,
-        filename          = parent_module.getRunTimeFilename(),
-        line_number       = source_ref.getLineNumber(),
+        co_filename       = parent_module.getRunTimeFilename(),
+        co_lineno         = source_ref.getLineNumber(),
         future_spec       = parent_module.getFutureSpec()
     )
 
