@@ -23,8 +23,6 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTargetVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -265,16 +263,13 @@ def buildFunctionNode(provider, node, source_ref):
         )
 
     result = StatementAssignmentVariable(
-        variable_ref = ExpressionTargetVariableRef(
-            variable_name = mangleName(node.name, provider),
-            source_ref    = source_ref
-        ),
-        source       = decorated_function,
-        source_ref   = source_ref
+        variable_name = mangleName(node.name, provider),
+        source        = decorated_function,
+        source_ref    = source_ref
     )
 
     if python_version >= 340:
-        function_body.qualname_setup = result.getTargetVariableRef()
+        function_body.qualname_setup = result
 
     return result
 
@@ -414,15 +409,12 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
 
     result = StatementAssignmentVariable(
-        variable_ref = ExpressionTargetVariableRef(
-            variable_name = mangleName(node.name, provider),
-            source_ref    = source_ref
-        ),
-        source       = decorated_function,
-        source_ref   = source_ref
+        variable_name = mangleName(node.name, provider),
+        source        = decorated_function,
+        source_ref    = source_ref
     )
 
-    function_body.qualname_setup = result.getTargetVariableRef()
+    function_body.qualname_setup = result
 
     # Share the non-local declarations. TODO: This may also apply to generators
     # and async generators.
@@ -666,15 +658,12 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
 
             statements.append(
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = iter_var,
-                        source_ref = source_ref
-                    ),
-                    source       = ExpressionBuiltinIter1(
+                    variable   = iter_var,
+                    source     = ExpressionBuiltinIter1(
                         value      = source,
                         source_ref = source_ref
                     ),
-                    source_ref   = source_ref
+                    source_ref = source_ref
                 )
             )
 
@@ -686,11 +675,8 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
 
                     statements.append(
                         StatementAssignmentVariable(
-                            variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = arg_var,
-                                source_ref = source_ref
-                            ),
-                            source       = ExpressionSpecialUnpack(
+                            variable   = arg_var,
+                            source     = ExpressionSpecialUnpack(
                                 value      = ExpressionTempVariableRef(
                                     variable   = iter_var,
                                     source_ref = source_ref
@@ -699,7 +685,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                                 expected   = len(arg_names),
                                 source_ref = source_ref
                             ),
-                            source_ref   = source_ref
+                            source_ref = source_ref
                         )
                     )
 

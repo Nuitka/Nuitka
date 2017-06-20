@@ -23,8 +23,6 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -53,10 +51,7 @@ from nuitka.nodes.GeneratorNodes import (
     ExpressionMakeGeneratorObject
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.NodeMakingHelpers import (
-    makeVariableRefNode,
-    makeVariableTargetRefNode
-)
+from nuitka.nodes.NodeMakingHelpers import makeVariableRefNode
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -64,6 +59,7 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence
 )
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.PythonVersions import python_version
 
@@ -238,11 +234,8 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
     function_body.setBody(
         makeStatementsSequenceFromStatements(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = iter_tmp,
-                    source_ref = source_ref
-                ),
-                source       = ExpressionBuiltinIter1(
+                variable   = iter_tmp,
+                source     = ExpressionBuiltinIter1(
                     value      = buildNode(
                         provider   = provider,
                         node       = node.generators[0].iter,
@@ -250,7 +243,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                source_ref   = source_ref
+                source_ref = source_ref
             ),
             makeTryFinallyStatement(
                 provider   = function_body,
@@ -332,11 +325,8 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
     if assign_provider:
         statements = [
             StatementAssignmentVariable(
-                variable_ref = makeVariableTargetRefNode(
-                    variable   = iter_tmp,
-                    source_ref = source_ref
-                ),
-                source       = ExpressionBuiltinIter1(
+                variable   = iter_tmp,
+                source     = ExpressionBuiltinIter1(
                     value      = buildNode(
                         provider   = provider,
                         node       = node.generators[0].iter,
@@ -344,7 +334,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                     ),
                     source_ref = source_ref
                 ),
-                source_ref   = source_ref.atInternal()
+                source_ref = source_ref.atInternal()
             )
         ]
     else:
@@ -353,12 +343,9 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
     if start_value is not None:
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = container_tmp,
-                    source_ref = source_ref
-                ),
-                source       = start_value,
-                source_ref   = source_ref.atInternal()
+                variable   = container_tmp,
+                source     = start_value,
+                source_ref = source_ref.atInternal()
             )
         )
 
@@ -456,12 +443,9 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
             nested_statements = [
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_iter_variable,
-                        source_ref = source_ref
-                    ),
-                    source       = value_iterator,
-                    source_ref   = source_ref
+                    variable   = tmp_iter_variable,
+                    source     = value_iterator,
+                    source_ref = source_ref
                 )
             ]
 
@@ -473,15 +457,12 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         loop_statements = [
             makeTryExceptSingleHandlerNode(
                 tried          = StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_value_variable,
-                        source_ref = source_ref
-                    ),
-                    source       = ExpressionBuiltinNext1(
+                    variable   = tmp_value_variable,
+                    source     = ExpressionBuiltinNext1(
                         value      = iterator_ref,
                         source_ref = source_ref
                     ),
-                    source_ref   = source_ref
+                    source_ref = source_ref
                 ),
                 exception_name = "StopIteration",
                 handler_body   = StatementLoopBreak(

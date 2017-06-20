@@ -67,9 +67,12 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
 
     __slots__ = "variable_name",
 
-    def __init__(self, variable_name, source_ref, variable = None):
-        if variable is not None:
-            assert variable.getName() == variable_name
+    def __init__(self, source_ref, variable_name = None, variable = None):
+        assert variable_name is not None or variable is not None
+        assert variable_name is None or variable is None
+
+        if variable is not None and variable_name is None:
+            variable_name = variable.getName()
 
         ExpressionVariableRefBase.__init__(
             self,
@@ -86,7 +89,6 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             }
         else:
             return {
-                "variable_name" : self.variable_name,
                 "variable"      : self.variable
             }
 
@@ -110,9 +112,8 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         variable = owner.getProvidedVariable(args["variable_name"])
 
         return cls(
-            variable_name = variable.getName(),
-            variable      = variable,
-            source_ref    = source_ref
+            variable   = variable,
+            source_ref = source_ref
         )
 
     def getDetail(self):

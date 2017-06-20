@@ -58,10 +58,7 @@ from nuitka.__past__ import long, unicode  # pylint: disable=redefined-builtin
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
-from nuitka.nodes.AssignNodes import (
-    ExpressionTargetVariableRef,
-    StatementAssignmentVariable
-)
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
@@ -766,29 +763,23 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__doc__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = makeConstantRefNode(
+                variable_name = "__doc__",
+                source        = makeConstantRefNode(
                     constant      = doc,
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__file__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = ExpressionModuleFileAttributeRef(
+                variable_name = "__file__",
+                source        = ExpressionModuleFileAttributeRef(
                     source_ref = internal_source_ref,
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
@@ -801,15 +792,12 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if python_version >= 300:
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__cached__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = ExpressionConstantNoneRef(
+                variable_name = "__cached__",
+                source        = ExpressionConstantNoneRef(
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
@@ -818,18 +806,15 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # For Python3.3, it's set for both packages and non-packages.
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__package__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = makeConstantRefNode(
+                variable_name = "__package__",
+                source        = makeConstantRefNode(
                     constant      = provider.getFullName()
                                       if provider.isCompiledPythonPackage() else
                                     provider.getPackage(),
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
@@ -840,16 +825,13 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # Set "__initializing__" at the beginning to True
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__initializing__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = makeConstantRefNode(
+                variable_name = "__initializing__",
+                source        = makeConstantRefNode(
                     constant      = True,
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
@@ -857,16 +839,13 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # Set "__annotations__" on module level to {}
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__annotations__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = makeConstantRefNode(
+                variable_name = "__annotations__",
+                source        = makeConstantRefNode(
                     constant      = {},
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
@@ -881,16 +860,13 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # Set "__initializing__" at the end to False
         statements.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__initializing__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = makeConstantRefNode(
+                variable_name = "__initializing__",
+                source        = makeConstantRefNode(
                     constant      = False,
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 

@@ -23,8 +23,6 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -39,6 +37,7 @@ from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .Helpers import (
     buildNode,
@@ -90,15 +89,12 @@ def _buildForLoopNode(provider, node, sync, source_ref):
 
         statements = [
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_break_indicator,
-                    source_ref = source_ref
-                ),
-                source       = makeConstantRefNode(
+                variable   = tmp_break_indicator,
+                source     = makeConstantRefNode(
                     constant   = True,
                     source_ref = source_ref
                 ),
-                source_ref   = source_ref
+                source_ref = source_ref
             )
         ]
     else:
@@ -136,12 +132,9 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     statements = (
         makeTryExceptSingleHandlerNode(
             tried          = StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_value_variable,
-                    source_ref = source_ref
-                ),
-                source       = next_node,
-                source_ref   = source_ref
+                variable   = tmp_value_variable,
+                source     = next_node,
+                source_ref = source_ref
             ),
             exception_name = "StopIteration" if sync else "StopAsyncIteration",
             handler_body   = handler_body,
@@ -188,15 +181,12 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     if else_block is not None:
         statements = [
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_break_indicator,
-                    source_ref = source_ref
-                ),
-                source       = makeConstantRefNode(
+                variable   = tmp_break_indicator,
+                source     = makeConstantRefNode(
                     constant   = False,
                     source_ref = source_ref
                 ),
-                source_ref   = source_ref
+                source_ref = source_ref
             )
         ]
     else:
@@ -216,12 +206,9 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     statements += [
         # First create the iterator and store it.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable,
-                source_ref = source_ref
-            ),
-            source       = iter_source,
-            source_ref   = source_ref
+            variable   = tmp_iter_variable,
+            source     = iter_source,
+            source_ref = source_ref
         ),
         makeTryFinallyStatement(
             provider   = provider,

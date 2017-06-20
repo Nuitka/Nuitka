@@ -150,7 +150,7 @@ of '--recurse-directory'.""" % (
                 node_module.addCrossUsedFunction(function_body)
 
         if node.isStatementAssignmentVariable():
-            target_var = node.getTargetVariableRef().getVariable()
+            target_var = node.getVariable()
             assign_source = node.getAssignSource()
 
             if assign_source.isExpressionOperationBinary():

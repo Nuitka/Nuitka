@@ -29,7 +29,6 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -125,18 +124,15 @@ def getDictUnpackingHelper():
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
             tried          = StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_item_variable,
-                    source_ref = internal_source_ref
-                ),
-                source       = ExpressionBuiltinNext1(
+                variable   = tmp_item_variable,
+                source     = ExpressionBuiltinNext1(
                     value      = ExpressionTempVariableRef(
                         variable   = tmp_iter_variable,
                         source_ref = internal_source_ref
                     ),
                     source_ref = internal_source_ref
                 ),
-                source_ref   = internal_source_ref
+                source_ref = internal_source_ref
             ),
             exception_name = "StopIteration",
             handler_body   = StatementLoopBreak(
@@ -220,30 +216,23 @@ def getDictUnpackingHelper():
 
     tried = makeStatementsSequenceFromStatements(
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_iter_variable,
-                source_ref = internal_source_ref
-            ),
-            source       = ExpressionBuiltinIter1(
+            variable   = tmp_iter_variable,
+            source     = ExpressionBuiltinIter1(
                 value      = ExpressionVariableRef(
-                    variable_name = "args",
-                    variable      = args_variable,
-                    source_ref    = internal_source_ref
+                    variable   = args_variable,
+                    source_ref = internal_source_ref
                 ),
                 source_ref = internal_source_ref
             ),
-            source_ref   = internal_source_ref
+            source_ref = internal_source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_result_variable,
-                source_ref = internal_source_ref
-            ),
-            source       = makeConstantRefNode(
+            variable   = tmp_result_variable,
+            source     = makeConstantRefNode(
                 constant   = {},
                 source_ref = internal_source_ref
             ),
-            source_ref   = internal_source_ref
+            source_ref = internal_source_ref
         ),
         StatementLoop(
             body       = loop_body,

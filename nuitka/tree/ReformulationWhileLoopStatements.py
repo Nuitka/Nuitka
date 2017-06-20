@@ -55,8 +55,6 @@ loops.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -66,6 +64,7 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .Helpers import (
     buildNode,
@@ -100,15 +99,12 @@ def buildWhileLoopNode(provider, node, source_ref):
 
         statements = (
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_break_indicator,
-                    source_ref = source_ref
-                ),
-                source       = makeConstantRefNode(
+                variable   = tmp_break_indicator,
+                source     = makeConstantRefNode(
                     constant   = True,
                     source_ref = source_ref
                 ),
-                source_ref   = source_ref
+                source_ref = source_ref
             ),
             StatementLoopBreak(
                 source_ref = source_ref
@@ -161,15 +157,12 @@ def buildWhileLoopNode(provider, node, source_ref):
     else:
         statements = (
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_break_indicator,
-                    source_ref = source_ref
-                ),
-                source       = makeConstantRefNode(
+                variable   = tmp_break_indicator,
+                source     = makeConstantRefNode(
                     constant   = False,
                     source_ref = source_ref
                 ),
-                source_ref   = source_ref
+                source_ref = source_ref
             ),
             loop_statement,
             StatementConditional(

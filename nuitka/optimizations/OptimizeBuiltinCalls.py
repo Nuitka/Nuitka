@@ -25,8 +25,6 @@ from logging import warning
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementDelVariable
 )
@@ -128,7 +126,10 @@ from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinSuper,
     ExpressionBuiltinType1
 )
-from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionTempVariableRef,
+    ExpressionVariableRef
+)
 from nuitka.Options import isDebug, shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Helpers import (
@@ -723,12 +724,9 @@ def eval_extractor(node):
         final.setStatements(
             final.getStatements() + (
                 StatementDelVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = source_variable,
-                        source_ref = source_ref
-                    ),
-                    tolerant     = True,
-                    source_ref   = source_ref
+                    variable   = source_variable,
+                    tolerant   = True,
+                    source_ref = source_ref
                 ),
             )
         )
@@ -767,11 +765,8 @@ def eval_extractor(node):
         # must be stripped.
         string_fixup = [
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = source_variable,
-                    source_ref = source_ref
-                ),
-                source       = ExpressionCallNoKeywords(
+                variable   = source_variable,
+                source     = ExpressionCallNoKeywords(
                     called     = ExpressionAttributeLookup(
                         source         = ExpressionTempVariableRef(
                             variable   = source_variable,
@@ -783,7 +778,7 @@ def eval_extractor(node):
                     args       = strip_choice,
                     source_ref = source_ref
                 ),
-                source_ref   = source_ref
+                source_ref = source_ref
             )
         ]
 
@@ -804,12 +799,9 @@ def eval_extractor(node):
 
         statements = (
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = source_variable,
-                    source_ref = source_ref
-                ),
-                source       = source,
-                source_ref   = source_ref,
+                variable   = source_variable,
+                source     = source,
+                source_ref = source_ref,
             ),
             StatementConditional(
                 condition  = ExpressionOperationNOT(

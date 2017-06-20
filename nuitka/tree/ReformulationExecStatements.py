@@ -23,8 +23,6 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -48,6 +46,7 @@ from nuitka.nodes.ExecEvalNodes import StatementExec, StatementLocalsDictSync
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.NodeMakingHelpers import makeExpressionBuiltinLocals
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .Helpers import (
     buildNode,
@@ -137,20 +136,14 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
     pre_statements = [
         # First assign globals and locals temporary the values given.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = globals_keeper_variable,
-                source_ref = source_ref
-            ),
-            source       = globals_node,
-            source_ref   = source_ref,
+            variable   = globals_keeper_variable,
+            source     = globals_node,
+            source_ref = source_ref,
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = locals_keeper_variable,
-                source_ref = source_ref
-            ),
-            source       = locals_node,
-            source_ref   = source_ref,
+            variable   = locals_keeper_variable,
+            source     = locals_node,
+            source_ref = source_ref,
         ),
         StatementConditional(
             condition  = ExpressionComparisonIs(
@@ -165,12 +158,9 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
             ),
             yes_branch = makeStatementsSequenceFromStatement(
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = locals_keeper_variable,
-                        source_ref = source_ref
-                    ),
-                    source       = locals_default,
-                    source_ref   = source_ref,
+                    variable   = locals_keeper_variable,
+                    source     = locals_default,
+                    source_ref = source_ref,
                 )
             ),
             no_branch  = None,
@@ -189,14 +179,11 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
             ),
             yes_branch = makeStatementsSequenceFromStatement(
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = globals_keeper_variable,
+                    variable   = globals_keeper_variable,
+                    source     = ExpressionBuiltinGlobals(
                         source_ref = source_ref
                     ),
-                    source       = ExpressionBuiltinGlobals(
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref,
+                    source_ref = source_ref,
                 )
             ),
             no_branch  = None,
@@ -309,43 +296,31 @@ exec: arg 1 must be a string, file, or code object""",
     tried = (
         # First evaluate the source code expressions.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = source_variable,
-                source_ref = source_ref
-            ),
-            source       = source_code,
-            source_ref   = source_ref
+            variable   = source_variable,
+            source     = source_code,
+            source_ref = source_ref
         ),
         # Assign globals and locals temporary the values given, then fix it
         # up, taking note in the "plain" temporary variable, if it was an
         # "exec" statement with None arguments, in which case the copy back
         # will be necessary.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = globals_keeper_variable,
-                source_ref = source_ref
-            ),
-            source       = globals_value,
-            source_ref   = source_ref
+            variable   = globals_keeper_variable,
+            source     = globals_value,
+            source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = locals_keeper_variable,
-                source_ref = source_ref
-            ),
-            source       = locals_value,
-            source_ref   = source_ref
+            variable   = locals_keeper_variable,
+            source     = locals_value,
+            source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = plain_indicator_variable,
-                source_ref = source_ref
-            ),
-            source       = makeConstantRefNode(
+            variable   = plain_indicator_variable,
+            source     = makeConstantRefNode(
                 constant   = False,
                 source_ref = source_ref
             ),
-            source_ref   = source_ref
+            source_ref = source_ref
         ),
         StatementConditional(
             condition  = ExpressionComparisonIs(
@@ -360,14 +335,11 @@ exec: arg 1 must be a string, file, or code object""",
             ),
             yes_branch = makeStatementsSequenceFromStatements(
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = globals_keeper_variable,
+                    variable   = globals_keeper_variable,
+                    source     = ExpressionBuiltinGlobals(
                         source_ref = source_ref
                     ),
-                    source       = ExpressionBuiltinGlobals(
-                        source_ref = source_ref
-                    ),
-                    source_ref   = source_ref,
+                    source_ref = source_ref,
                 ),
                 StatementConditional(
                     condition  = ExpressionComparisonIs(
@@ -382,26 +354,20 @@ exec: arg 1 must be a string, file, or code object""",
                     ),
                     yes_branch = makeStatementsSequenceFromStatements(
                         StatementAssignmentVariable(
-                            variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = locals_keeper_variable,
-                                source_ref = source_ref
-                            ),
-                            source       = makeExpressionBuiltinLocals(
+                            variable   = locals_keeper_variable,
+                            source     = makeExpressionBuiltinLocals(
                                 provider   = provider,
                                 source_ref = source_ref
                             ),
-                            source_ref   = source_ref,
+                            source_ref = source_ref,
                         ),
                         StatementAssignmentVariable(
-                            variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = plain_indicator_variable,
-                                source_ref = source_ref
-                            ),
-                            source       = makeConstantRefNode(
+                            variable   = plain_indicator_variable,
+                            source     = makeConstantRefNode(
                                 constant   = True,
                                 source_ref = source_ref
                             ),
-                            source_ref   = source_ref,
+                            source_ref = source_ref,
                         )
                     ),
                     no_branch  = None,
@@ -422,15 +388,12 @@ exec: arg 1 must be a string, file, or code object""",
                     ),
                     yes_branch = makeStatementsSequenceFromStatement(
                         statement = StatementAssignmentVariable(
-                            variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = locals_keeper_variable,
-                                source_ref = source_ref
-                            ),
-                            source       = ExpressionTempVariableRef(
+                            variable   = locals_keeper_variable,
+                            source     = ExpressionTempVariableRef(
                                 variable   = globals_keeper_variable,
                                 source_ref = source_ref
                             ),
-                            source_ref   = source_ref,
+                            source_ref = source_ref,
                         )
                     ),
                     no_branch  = None,
@@ -455,11 +418,8 @@ exec: arg 1 must be a string, file, or code object""",
             ),
             yes_branch = makeStatementsSequenceFromStatement(
                 statement = StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = source_variable,
-                        source_ref = source_ref
-                    ),
-                    source       = ExpressionCallEmpty(
+                    variable   = source_variable,
+                    source     = ExpressionCallEmpty(
                         called     = ExpressionAttributeLookup(
                             source         = ExpressionTempVariableRef(
                                 variable   = source_variable,
@@ -470,7 +430,7 @@ exec: arg 1 must be a string, file, or code object""",
                         ),
                         source_ref = source_ref
                     ),
-                    source_ref   = source_ref
+                    source_ref = source_ref
                 )
             ),
             no_branch  = None,

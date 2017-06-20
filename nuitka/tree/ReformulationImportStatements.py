@@ -23,8 +23,6 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTargetVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -247,12 +245,9 @@ def buildImportFromNode(provider, node, source_ref):
 
             statements.append(
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_import_from,
-                        source_ref = source_ref
-                    ),
-                    source       = imported_from_module,
-                    source_ref   = source_ref
+                    variable   = tmp_import_from,
+                    source     = imported_from_module,
+                    source_ref = source_ref
                 )
             )
 
@@ -273,14 +268,11 @@ def buildImportFromNode(provider, node, source_ref):
 
             import_statements.append(
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetVariableRef(
-                        variable_name = mangleName(target_name, provider),
-                        source_ref    = source_ref
-                    ),
-                    source       = makeImportName(
+                    variable_name = mangleName(target_name, provider),
+                    source        = makeImportName(
                         import_name = import_name,
                     ),
-                    source_ref   = source_ref
+                    source_ref    = source_ref
                 )
             )
 
@@ -357,17 +349,14 @@ def buildImportModulesNode(provider, node, source_ref):
 
         import_nodes.append(
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = mangleName(
-                        local_name
-                          if local_name is not None else
-                        module_topname,
-                        provider
-                    ),
-                    source_ref    = source_ref
+                variable_name = mangleName(
+                    local_name
+                      if local_name is not None else
+                    module_topname,
+                    provider
                 ),
-                source       = import_node,
-                source_ref   = source_ref
+                source        = import_node,
+                source_ref    = source_ref
             )
         )
 

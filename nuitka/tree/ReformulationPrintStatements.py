@@ -23,8 +23,6 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -33,6 +31,7 @@ from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
 from nuitka.nodes.ImportNodes import ExpressionImportModuleHard
 from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .Helpers import (
     buildNode,
@@ -55,30 +54,24 @@ def buildPrintNode(provider, node, source_ref):
         )
 
         target_default_statement = StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_target_variable,
-                source_ref = source_ref
-            ),
-            source       = ExpressionImportModuleHard(
+            variable   = tmp_target_variable,
+            source     = ExpressionImportModuleHard(
                 module_name = "sys",
                 import_name = "stdout",
                 source_ref  = source_ref
             ),
-            source_ref   = source_ref
+            source_ref = source_ref
         )
 
         statements = [
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_target_variable,
-                    source_ref = source_ref
-                ),
-                source       = buildNode(
+                variable   = tmp_target_variable,
+                source     = buildNode(
                     provider   = provider,
                     node       = node.dest,
                     source_ref = source_ref
                 ),
-                source_ref   = source_ref
+                source_ref = source_ref
             ),
             StatementConditional(
                 condition  = ExpressionComparisonIs(

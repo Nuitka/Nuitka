@@ -38,7 +38,6 @@ from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode
 )
-from .VariableRefNodes import ExpressionTempVariableRef, ExpressionVariableRef
 
 
 class StatementAssignmentVariable(StatementChildrenHavingBase):
@@ -59,22 +58,34 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
 
     named_children = (
         "source",
-        "variable_ref"
     )
 
     inplace_suspect = None
 
-    def __init__(self, variable_ref, source, source_ref):
-        assert variable_ref is not None, source_ref
+    def __init__(self, source, source_ref, variable_name = None, variable = None,
+                 version = None, variable_ref = None):
         assert source is not None, source_ref
 
-        assert variable_ref.isTargetVariableRef()
+
+        if variable_ref is not None:
+            variable_name = variable_ref.getVariableName()
+            variable = variable_ref.getVariable()
+            version = variable_ref.getVariableVersion()
+        elif variable is not None:
+            if version is None:
+                version = variable.allocateTargetNumber()
+
+        if variable_name is None:
+            variable_name = variable.getName()
+
+        self.variable = variable
+        self.variable_version = version
+        self.variable_name = variable_name
 
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
                 "source"       : source,
-                "variable_ref" : variable_ref
             },
             source_ref = source_ref
         )
@@ -82,23 +93,79 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         self.variable_trace = None
 
     def getDetail(self):
-        variable_ref = self.getTargetVariableRef()
-        variable = variable_ref.getVariable()
-
-        if variable is not None:
-            return "to variable %s" % variable
+        if self.variable is not None:
+            return "to variable %s" % self.variable
         else:
-            return "to variable %s" % self.getTargetVariableRef()
+            return "to variable %s" % self.variable_name
 
-    getTargetVariableRef = StatementChildrenHavingBase.childGetter(
-        "variable_ref"
-    )
+    def getDetails(self):
+        return {
+            "variable"      : self.variable,
+            "variable_name" : self.variable_name
+        }
+
+    def getDetailsForDisplay(self):
+        return {
+            "variable_name" : self.variable_name,
+            "is_temp"       : self.variable.isTempVariable(),
+            "owner"         : self.variable.getOwner().getCodeName(),
+            "version"       : self.variable_version,
+        }
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is StatementAssignmentVariable, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+
+        if args["is_temp"] == "True":
+            variable = owner.createTempVariable(args["variable_name"])
+        else:
+            variable = owner.createProvidedVariable(args["variable_name"])
+
+        version = int(args["version"])
+        variable.version_number = max(variable.version_number, version)
+
+        return cls(
+            variable   = variable,
+            version    = version,
+            source_ref = source_ref,
+            **args
+        )
+
+    def makeClone(self):
+        if self.variable is not None:
+            version = self.variable.allocateTargetNumber()
+        else:
+            version = None
+
+        return StatementAssignmentVariable(
+            source        = self.getAssignSource().makeClone(),
+            variable      = self.variable,
+            variable_name = self.variable_name,
+            version       = version,
+            source_ref    = self.source_ref
+        )
+
     getAssignSource = StatementChildrenHavingBase.childGetter(
         "source"
     )
     setAssignSource = StatementChildrenHavingBase.childSetter(
         "source"
     )
+
+    def getVariableName(self):
+        return self.variable_name
+
+    def getVariable(self):
+        return self.variable
+
+    def setVariable(self, variable):
+        self.variable = variable
+        self.variable_version = variable.allocateTargetNumber()
+
+    def getVariableVersion(self):
+        return self.variable_version
 
     def markAsInplaceSuspect(self):
         self.inplace_suspect = True
@@ -166,8 +233,7 @@ Side effects of assignments promoted to statements."""
             return result, "new_raise", """\
 Assignment raises exception in assigned value, removed assignment."""
 
-        variable_ref = self.getTargetVariableRef()
-        variable = variable_ref.getVariable()
+        variable = self.variable
 
         # Not allowed anymore at this point.
         assert variable is not None
@@ -181,8 +247,8 @@ Assignment raises exception in assigned value, removed assignment."""
         # supposed to be possible to eliminate. If we get that wrong, we are
         # doing it wrong.
         if not variable.isModuleVariable() and \
-             source.isExpressionVariableRef() and \
-             source.getVariable() == variable:
+           source.isExpressionVariableRef() and \
+           source.getVariable() is variable:
 
             # A variable access that has a side effect, must be preserved,
             # so it can e.g. raise an exception, otherwise we can be fully
@@ -237,9 +303,11 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                                         # TODO: We could well decide, if that's even necessary, but for now
                                         # the "StatementDelVariable" is tasked with that.
                                         result = StatementDelVariable(
-                                            variable_ref = self.getTargetVariableRef(),
-                                            tolerant     = True,
-                                            source_ref   = self.getSourceReference()
+                                            variable_name = self.variable_name,
+                                            variable      = self.variable,
+                                            version       = self.variable_version,
+                                            tolerant      = True,
+                                            source_ref    = self.getSourceReference()
                                         )
                                     else:
                                         result = None
@@ -249,7 +317,7 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                                         "new_statements",
                                         "Dropped %s assignment statement to '%s'." % (
                                            "propagated" if propagated else "dead",
-                                           self.getTargetVariableRef().getVariableName()
+                                           self.getVariableName()
                                         )
                                     )
                         else:
@@ -285,9 +353,11 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                                 if not last_trace.getPrevious().isUninitTrace():
                                     # TODO: We could well decide, if that's even necessary.
                                     result = StatementDelVariable(
-                                        variable_ref = self.getTargetVariableRef(),
-                                        tolerant     = True,
-                                        source_ref   = self.getSourceReference()
+                                        variable_name = self.variable_name,
+                                        variable      = self.variable,
+                                        version       = self.variable_version,
+                                        tolerant      = True,
+                                        source_ref    = self.getSourceReference()
                                     )
                                 else:
                                     result = None
@@ -297,7 +367,7 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                                     "new_statements",
                                     "Dropped %s assignment statement to '%s'." % (
                                        "propagated" if propagated else "dead",
-                                       self.getTargetVariableRef().getVariableName()
+                                       self.getVariableName()
                                     )
                                 )
                     else:
@@ -317,7 +387,7 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
             return None
 
 
-class StatementDelVariable(StatementChildrenHavingBase):
+class StatementDelVariable(NodeBase):
     """ Deleting a variable.
 
         All del forms that are not to attributes, slices, subscripts
@@ -334,24 +404,32 @@ class StatementDelVariable(StatementChildrenHavingBase):
     """
     kind = "STATEMENT_DEL_VARIABLE"
 
-    named_children = (
-        "variable_ref",
-    )
+    __slots__ = "variable_name", "variable", "variable_version", "variable_trace", "previous_trace", "tolerant"
 
-    def __init__(self, variable_ref, tolerant, source_ref):
-        assert variable_ref is not None
-        assert variable_ref.isTargetVariableRef()
-
+    def __init__(self, tolerant, source_ref, variable_name = None, variable = None,
+                 version = None, variable_ref = None):
         if type(tolerant) is str:
             tolerant = tolerant == "True"
 
         assert tolerant is True or tolerant is False, repr(tolerant)
 
-        StatementChildrenHavingBase.__init__(
+        if variable_ref is not None:
+            variable_name = variable_ref.getVariableName()
+            variable = variable_ref.getVariable()
+            version = variable_ref.getVariableVersion()
+        elif variable is not None:
+            if version is None:
+                version = variable.allocateTargetNumber()
+
+        if variable_name is None:
+            variable_name = variable.getName()
+
+        self.variable_name = variable_name
+        self.variable = variable
+        self.variable_version = version
+
+        NodeBase.__init__(
             self,
-            values     = {
-                "variable_ref" : variable_ref
-            },
             source_ref = source_ref
         )
 
@@ -361,30 +439,83 @@ class StatementDelVariable(StatementChildrenHavingBase):
         self.tolerant = tolerant
 
     def getDetail(self):
-        variable_ref = self.getTargetVariableRef()
-        variable = variable_ref.getVariable()
-
-        if variable is not None:
-            return "to variable %s" % variable
+        if self.variable is not None:
+            return "to variable %s" % self.variable
         else:
-            return "to variable %s" % self.getTargetVariableRef()
+            return "to variable %s" % self.variable_name
 
     def getDetails(self):
         return {
+            "variable" : self.variable,
+            "variable_name" : self.variable_name,
+            "version" : self.variable_version,
             "tolerant" : self.tolerant
         }
+
+    def getDetailsForDisplay(self):
+        return {
+            "variable_name" : self.variable_name,
+            "is_temp"       : self.variable.isTempVariable(),
+            "owner"         : self.variable.getOwner().getCodeName(),
+            "version"       : self.variable_version,
+        }
+
+    @classmethod
+    def fromXML(cls, provider, source_ref, **args):
+        assert cls is StatementAssignmentVariable, cls
+
+        owner = getOwnerFromCodeName(args["owner"])
+
+        if args["is_temp"] == "True":
+            variable = owner.createTempVariable(args["variable_name"])
+        else:
+            variable = owner.createProvidedVariable(args["variable_name"])
+
+        version = int(args["version"])
+        variable.version_number = max(variable.version_number, version)
+
+        return cls(
+            variable   = variable,
+            version    = version,
+            source_ref = source_ref,
+            **args
+        )
+
+    def makeClone(self):
+        if self.variable is not None:
+            version = self.variable.allocateTargetNumber()
+        else:
+            version = None
+
+        return StatementDelVariable(
+            variable      = self.variable,
+            variable_name = self.variable_name,
+            version       = version,
+            tolerant      = self.tolerant,
+            source_ref    = self.source_ref
+        )
 
     # TODO: Value propagation needs to make a difference based on this.
     def isTolerant(self):
         return self.tolerant
 
-    getTargetVariableRef = StatementChildrenHavingBase.childGetter(
-        "variable_ref"
-    )
+    def getVariableName(self):
+        return self.variable_name
+
+    def getVariable(self):
+        return self.variable
+
+    def setVariable(self, variable):
+        assert self.variable_version is None
+
+        self.variable = variable
+        self.variable_version = variable.allocateTargetNumber()
+
+    def getVariableVersion(self):
+        return self.variable_version
 
     def computeStatement(self, trace_collection):
-        variable_ref = self.getTargetVariableRef()
-        variable = variable_ref.getVariable()
+        variable = self.variable
 
         self.previous_trace = trace_collection.getVariableCurrentTrace(variable)
 
@@ -394,7 +525,7 @@ class StatementDelVariable(StatementChildrenHavingBase):
                 None,
                 "new_statements",
                 "Removed tolerant 'del' statement of '%s' without effect." % (
-                    variable.getName(),
+                    self.variable_name,
                 )
             )
 
@@ -408,7 +539,8 @@ class StatementDelVariable(StatementChildrenHavingBase):
 
         # Record the deletion, needs to start a new version then.
         trace_collection.onVariableDel(
-            variable_ref = variable_ref
+            variable = variable,
+            version  = self.variable_version
         )
 
         trace_collection.onVariableContentEscapes(variable)
@@ -430,7 +562,7 @@ class StatementDelVariable(StatementChildrenHavingBase):
             return False
         else:
             if self.variable_trace is not None:
-                variable = self.getTargetVariableRef().getVariable()
+                variable = self.getVariable()
 
                 # Temporary variables deletions won't raise, just because we
                 # don't create them that way. We can avoid going through SSA in
@@ -540,120 +672,3 @@ class StatementReleaseVariable(NodeBase):
     def mayRaiseException(self, exception_type):
         # By default, __del__ is not allowed to raise an exception.
         return False
-
-
-class ExpressionTargetVariableRef(ExpressionVariableRef):
-    kind = "EXPRESSION_TARGET_VARIABLE_REF"
-
-    __slots__ = "variable_version",
-
-    # TODO: Remove default and correct argument order later.
-    def __init__(self, variable_name, source_ref, variable = None, version = None):
-        ExpressionVariableRef.__init__(self, variable_name, source_ref)
-
-        self.variable_version = version
-
-        # TODO: Remove setVariable, once not needed anymore and in-line to
-        # here.
-        if variable is not None:
-            self.setVariable(variable)
-            assert variable.getName() == variable_name
-
-    def getDetailsForDisplay(self):
-        result = {
-            "variable_name" : self.variable_name,
-            "version"       : self.variable_version,
-        }
-
-        if self.variable is not None:
-            result["owner"] = self.variable.getOwner().getCodeName()
-
-        return result
-
-    @classmethod
-    def fromXML(cls, provider, source_ref, **args):
-        assert cls is ExpressionTargetVariableRef, cls
-
-        owner = getOwnerFromCodeName(args["owner"])
-        assert owner is not None, args["owner"]
-
-        variable = owner.getProvidedVariable(args["variable_name"])
-
-        return cls(
-            variable_name = variable.getName(),
-            variable      = variable,
-            version       = int(args["version"]),
-            source_ref    = source_ref
-        )
-
-    def computeExpression(self, trace_collection):
-        assert False, self.parent
-
-    @staticmethod
-    def isTargetVariableRef():
-        return True
-
-    def getVariableVersion(self):
-        assert self.variable_version is not None, self
-
-        return self.variable_version
-
-    def setVariable(self, variable):
-        ExpressionVariableRef.setVariable(self, variable)
-
-        self.variable_version = variable.allocateTargetNumber()
-        assert self.variable_version is not None
-
-
-class ExpressionTargetTempVariableRef(ExpressionTempVariableRef):
-    kind = "EXPRESSION_TARGET_TEMP_VARIABLE_REF"
-
-    __slots__ = "variable_version",
-
-    def __init__(self, variable, source_ref, version = None):
-        ExpressionTempVariableRef.__init__(self, variable, source_ref)
-
-        if version is None:
-            version = variable.allocateTargetNumber()
-
-        self.variable_version = version
-
-    def getDetailsForDisplay(self):
-        return {
-            "temp_name" : self.variable.getName(),
-            "version"   : self.variable_version,
-            "owner"     : self.variable.getOwner().getCodeName()
-        }
-
-    @classmethod
-    def fromXML(cls, provider, source_ref, **args):
-        assert cls is ExpressionTargetTempVariableRef, cls
-
-        owner = getOwnerFromCodeName(args["owner"])
-        variable = owner.createTempVariable(args["temp_name"])
-        version = int(args["version"])
-
-        variable.version_number = max(variable.version_number, version)
-
-        return cls(
-            variable   = variable,
-            version    = version,
-            source_ref = source_ref
-        )
-
-
-    def computeExpression(self, trace_collection):
-        assert False, self.parent
-
-    @staticmethod
-    def isTargetVariableRef():
-        return True
-
-    def getVariableVersion(self):
-        return self.variable_version
-
-    # Python3 only, it updates temporary variables that are closure variables.
-    def setVariable(self, variable):
-        ExpressionTempVariableRef.setVariable(self, variable)
-
-        self.variable_version = self.variable.allocateTargetNumber()

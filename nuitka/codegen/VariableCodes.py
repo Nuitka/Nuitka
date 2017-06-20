@@ -37,13 +37,10 @@ from .templates.CodeTemplatesVariables import (
 
 
 def generateAssignmentVariableCode(statement, emit, context):
-    variable_ref  = statement.getTargetVariableRef()
-    value         = statement.getAssignSource()
-
     tmp_name = context.allocateTempName("assign_source")
 
     generateExpressionCode(
-        expression = value,
+        expression = statement.getAssignSource(),
         to_name    = tmp_name,
         emit       = emit,
         context    = context
@@ -51,8 +48,8 @@ def generateAssignmentVariableCode(statement, emit, context):
 
     getVariableAssignmentCode(
         tmp_name      = tmp_name,
-        variable      = variable_ref.getVariable(),
-        version       = variable_ref.getVariableVersion(),
+        variable      = statement.getVariable(),
+        version       = statement.getVariableVersion(),
         needs_release = statement.needsReleasePreviousValue(),
         in_place      = statement.inplace_suspect,
         emit          = emit,
@@ -68,9 +65,8 @@ def generateDelVariableCode(statement, emit, context):
         statement.getSourceReference()
     )
 
-
     getVariableDelCode(
-        variable    = statement.getTargetVariableRef().getVariable(),
+        variable    = statement.getVariable(),
         new_version = statement.variable_trace.getVersion(),
         old_version = statement.previous_trace.getVersion(),
         tolerant    = statement.isTolerant(),

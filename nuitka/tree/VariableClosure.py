@@ -85,7 +85,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         if node.qualname_setup is not None:
             if node.isExpressionClassBody():
                 class_assign, qualname_assign = node.qualname_setup
-                class_variable = class_assign.getTargetVariableRef().getVariable()
+                class_variable = class_assign.getVariable()
 
                 if class_variable.isModuleVariable():
                     qualname_node = qualname_assign.getAssignSource()
@@ -99,8 +99,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                     node.qualname_provider = node.getParentModule()
             else:
-                function_variable_ref = node.qualname_setup
-                function_variable = function_variable_ref.getVariable()
+                function_variable = node.qualname_setup.getVariable()
 
                 if function_variable.isModuleVariable():
                     node.qualname_provider = node.getParentModule()
@@ -112,12 +111,9 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             node.qualname_setup = None
 
-    def onEnterNode(self, node):
-        # Mighty complex code with lots of branches and statements, but it
-        # couldn't be less without making it more difficult.
-        # pylint: disable=too-many-branches,too-many-statements
-
-        if node.isExpressionTargetVariableRef():
+    def onLeaveNode(self, node):
+        if node.isStatementAssignmentVariable() or \
+           node.isStatementDelVariable():
             provider = node.getParentVariableProvider()
 
             variable = node.getVariable()
@@ -132,7 +128,13 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 node.setVariable(variable)
 
             variable.addVariableUser(provider)
-        elif node.isExpressionVariableRef():
+
+    def onEnterNode(self, node):
+        # Mighty complex code with lots of branches and statements, but it
+        # couldn't be less without making it more difficult.
+        # pylint: disable=too-many-branches,too-many-statements
+
+        if node.isExpressionVariableRef():
             if node.getVariable() is None:
                 provider = node.getParentVariableProvider()
 
@@ -338,7 +340,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
 
     def onEnterNode(self, node):
         if python_version < 300 and node.isStatementDelVariable():
-            variable = node.getTargetVariableRef().getVariable()
+            variable = node.getVariable()
 
             if not variable.isModuleVariable() and \
                variable.isSharedAmongScopes():

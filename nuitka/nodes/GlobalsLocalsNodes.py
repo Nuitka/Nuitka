@@ -150,9 +150,8 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
                             source_ref    = self.source_ref
                         ),
                         value      = ExpressionVariableRef(
-                            variable_name = variable.getName(),
-                            variable      = variable,
-                            source_ref    = self.source_ref
+                            variable   = variable,
+                            source_ref = self.source_ref
                         ),
                         source_ref = self.source_ref
                     )

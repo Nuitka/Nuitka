@@ -23,8 +23,6 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -45,6 +43,7 @@ from nuitka.nodes.GeneratorNodes import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.PythonVersions import python_version
 
@@ -134,12 +133,9 @@ def buildLambdaNode(provider, node, source_ref):
 
             statements = (
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_return_value,
-                        source_ref = source_ref,
-                    ),
-                    source       = body,
-                    source_ref   = source_ref
+                    variable   = tmp_return_value,
+                    source     = body,
+                    source_ref = source_ref
                 ),
                 StatementConditional(
                     condition  = ExpressionComparisonIsNOT(
