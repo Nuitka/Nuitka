@@ -22,13 +22,22 @@ objects, as well as tracebacks. They might be shared.
 
 """
 
+from nuitka.utils.InstanceCounters import counted_del, counted_init
+
 
 class CodeObjectSpec(object):
-    # TODO: Missing slots, there are quite a few of these.
-    # One attribute for each code object aspect, and even flag,
+    # One attribute for each code object aspect, and even flags,
     # pylint: disable=too-many-arguments,too-many-instance-attributes
+    __slots__ = (
+        "co_name", "co_kind", "co_varnames", "co_argcount",
+        "co_kwonlyargcount", "co_has_starlist", "co_has_stardict",
+        "filename", "line_number", "future_spec", "new_locals",
+        "has_closure", "is_optimized"
+    )
 
-    def __init__(self, co_name, co_kind, co_varnames, co_argcount,
+    @counted_init
+    def __init__(self,
+                 co_name, co_kind, co_varnames, co_argcount,
                  co_kwonlyargcount, co_has_starlist, co_has_stardict,
                  co_filename, co_lineno, future_spec, co_new_locals = None,
                  co_has_closure = None, co_is_optimized = None):
@@ -72,6 +81,8 @@ class CodeObjectSpec(object):
         self.new_locals = co_new_locals
         self.has_closure = co_has_closure
         self.is_optimized = co_is_optimized
+
+    __del__ = counted_del()
 
     def __repr__(self):
         return """\
