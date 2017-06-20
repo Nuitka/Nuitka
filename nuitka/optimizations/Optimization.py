@@ -401,7 +401,7 @@ def optimize():
 
     finished = makeOptimizationPass(False)
 
-    if Options.isExperimental():
+    if Options.isExperimental("check_xml_persistence"):
         new_roots = ModuleRegistry.root_modules.__class__()  # @UndefinedVariable
 
         for module in tuple(ModuleRegistry.getDoneModules()):

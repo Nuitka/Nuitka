@@ -85,8 +85,8 @@ python_debug = getBoolOption("python_debug", False)
 # control level of compatibility to absurd.
 full_compat_mode = getBoolOption("full_compat", False)
 
-# Experimental mode. Do things that are not yet safe to do.
-experimental_mode = getBoolOption("experimental", False)
+# Experimental indications. Do things that are not yet safe to do.
+experimental = ARGUMENTS.get("experimental", "").split(",")
 
 # Tracing mode. Output program progress.
 trace_mode = getBoolOption("trace_mode", False)
@@ -755,9 +755,13 @@ if full_compat_mode:
         CPPDEFINES = ["_NUITKA_FULL_COMPAT"]
     )
 
-if experimental_mode:
+if experimental:
     env.Append(
-        CPPDEFINES = ["_NUITKA_EXPERIMENTAL"]
+        CPPDEFINES = [
+            "_NUITKA_EXPERIMENTAL_" + experiment.upper()
+            for experiment in
+            experimental
+        ]
     )
 
 if profile_mode:

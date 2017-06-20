@@ -757,7 +757,7 @@ error""" % self.getName()
         # TODO: Ought to use values. If they are all constant, how about we
         # assume no cost, pylint: disable=unused-argument
 
-        if not Options.isExperimental():
+        if True or not Options.isExperimental():
             return None
 
         function_body = self.getFunctionRef().getFunctionBody()

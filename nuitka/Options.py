@@ -475,12 +475,13 @@ off."""
 
 debug_group.add_option(
     "--experimental",
-    action  = "store_true",
+    action  = "append",
     dest    = "experimental",
-    default = False,
+    default = [],
     help    = """\
 Use features declared as 'experimental'. May have no effect if no experimental
-features are present in the code. Defaults to off."""
+features are present in the code. Uses secret tags (check source) per
+experimented feature."""
 )
 
 debug_group.add_option(
@@ -917,25 +918,39 @@ def isShowInclusion():
 def isRemoveBuildDir():
     return options.remove_build and not options.generate_cpp_only
 
+
 def getIntendedPythonVersion():
     return options.python_version
+
 
 def getIntendedPythonArch():
     return options.python_arch
 
-def isExperimental():
+
+def isExperimental(indication):
     """ Are experimental features to be enabled."""
 
-    return hasattr(options, "experimental") and options.experimental
+    return hasattr(options, "experimental") and indication in options.experimental
+
+
+def getExperimentalIndications():
+    if hasattr(options, "experimental"):
+        return options.experimental
+    else:
+        return ()
+
 
 def shallExplainImports():
     return options is not None and options.explain_imports
 
+
 def isStandaloneMode():
     return options.is_standalone
 
+
 def getIconPath():
     return options.icon_path
+
 
 def getPythonFlags():
     result = set()
@@ -956,8 +971,10 @@ def getPythonFlags():
 
     return result
 
+
 def shallFreezeAllStdlib():
     return options.freeze_stdlib
+
 
 def getPluginsEnabled():
     if not options:
@@ -965,14 +982,17 @@ def getPluginsEnabled():
 
     return options.plugins_enabled
 
+
 def getPluginsDisabled():
     if not options:
         return ()
 
     return options.plugins_disabled
 
+
 def shallDetectMissingPlugins():
     return options is not None and options.detect_missing_plugins
+
 
 def getPluginOptions(plugin_name):
     # TODO: This should come from command line, pylint: disable=unused-argument

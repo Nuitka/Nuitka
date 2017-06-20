@@ -115,7 +115,7 @@ def createNodeTree(filename):
     # Then optimize the tree and potentially recursed modules.
     Optimization.optimize()
 
-    if Options.isExperimental():
+    if False and Options.isExperimental():
         for module in ModuleRegistry.getRootModules():
             if module.isMainModule():
                 return module
@@ -459,7 +459,7 @@ def runScons(main_module, quiet):
         "unstripped_mode" : asBoolStr(Options.isUnstripped()),
         "module_mode"     : asBoolStr(Options.shallMakeModule()),
         "full_compat"     : asBoolStr(Options.isFullCompat()),
-        "experimental"    : asBoolStr(Options.isExperimental()),
+        "experimental"    : ','.join(Options.getExperimentalIndications()),
         "trace_mode"      : asBoolStr(Options.shallTraceExecution()),
         "python_version"  : python_version_str,
         "target_arch"     : Utils.getArchitecture(),
