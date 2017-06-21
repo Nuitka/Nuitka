@@ -102,7 +102,7 @@ class CodeObjectSpec(object):
             "co_new_locals"     : self.new_locals,
             "co_has_closure"    : self.has_closure,
             "co_is_optimized"   : self.is_optimized,
-            "code_flags"        : ",".join(self.future_spec.asFlags())
+            "code_flags"        : ','.join(self.future_spec.asFlags())
         }
 
     def getCodeObjectKind(self):

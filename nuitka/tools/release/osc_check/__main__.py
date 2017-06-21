@@ -28,10 +28,10 @@ Buildbot on a timer basis.
 from __future__ import print_function
 
 import csv
-import StringIO
 import subprocess
 import sys
 
+from nuitka.__past__ import StringIO
 
 def main():
     print("Querying openSUSE build service status of Nuitka packages.")
@@ -56,7 +56,7 @@ def main():
 
     # print(stdout_osc)
 
-    csvfile = StringIO.StringIO(stdout_osc)
+    csvfile = StringIO(stdout_osc)
     osc_reader = csv.reader(csvfile, delimiter = ';')
 
     osc_reader = iter(osc_reader)

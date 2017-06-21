@@ -54,7 +54,7 @@ import sys
 from logging import info, warning
 
 from nuitka import Options, SourceCodeReferences
-from nuitka.__past__ import long, unicode  # pylint: disable=redefined-builtin
+from nuitka.__past__ import long, unicode  # pylint: disable=redefined-builtin,useless-suppression
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages

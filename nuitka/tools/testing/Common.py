@@ -1096,7 +1096,10 @@ def run_async(coro):
 def async_iterate(g):
     """ Execute async generator until it's done. """
 
-    # Test code, pylint: disable=broad-except,undefined-variable
+    # Test code for Python3, catches all kinds of exceptions.
+    # pylint: disable=broad-except
+
+    # Also Python3 only, pylint: disable=undefined-variable,useless-suppression
 
     res = []
     while True:

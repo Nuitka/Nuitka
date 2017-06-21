@@ -30,7 +30,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
 from nuitka.utils.Shebang import getShebangFromSource, parseShebang
 from nuitka.utils.Utils import getOS
-
+from nuitka.__past__ import unicode # pylint: disable=redefined-builtin,useless-suppression
 from .SyntaxErrors import raiseSyntaxError
 
 

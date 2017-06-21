@@ -97,6 +97,9 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
+# TODO: Consider using ExpressionOutlineNodes for at least some of these
+# or their own helpers.
+
 def orderArgs(*args):
     if python_version >= 350:
         def weight(arg):
@@ -114,6 +117,7 @@ def orderArgs(*args):
         )
 
     return args
+
 
 @once_decorator
 def getCallableNameDescBody():
@@ -325,7 +329,7 @@ def getCallableNameDescBody():
     return result
 
 
-def makeStarListArgumentErrorRaise(called_variable_ref, star_list_variable_ref):
+def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
     return StatementRaiseException(
         exception_type  = ExpressionBuiltinMakeException(
             exception_name = "TypeError",
@@ -352,13 +356,19 @@ def makeStarListArgumentErrorRaise(called_variable_ref, star_list_variable_ref):
                                     source_ref   = internal_source_ref
                                 ),
                                 values     = (
-                                    called_variable_ref,
+                                    ExpressionVariableRef(
+                                        variable   = called_variable,
+                                        source_ref = internal_source_ref
+                                    ),
                                 ),
                                 source_ref = internal_source_ref
                             ),
                             ExpressionAttributeLookup(
                                 source         = ExpressionBuiltinType1(
-                                    value      = star_list_variable_ref.makeClone(),
+                                    value      = ExpressionVariableRef(
+                                        variable   = star_list_variable,
+                                        source_ref = internal_source_ref
+                                    ),
                                     source_ref = internal_source_ref
                                 ),
                                 attribute_name = "__name__",
@@ -414,14 +424,8 @@ def _makeStarListArgumentToTupleStatement(called_variable,
                 source_ref = internal_source_ref
             ),
             no_branch  = makeStarListArgumentErrorRaise(
-                called_variable_ref    = ExpressionVariableRef(
-                    variable   = called_variable,
-                    source_ref = internal_source_ref
-                ),
-                star_list_variable_ref = ExpressionVariableRef(
-                    variable   = star_list_variable,
-                    source_ref = internal_source_ref
-                )
+                called_variable    = called_variable,
+                star_list_variable = star_list_variable,
             ),
             source_ref = internal_source_ref
         )
@@ -440,14 +444,8 @@ def _makeStarListArgumentToTupleStatement(called_variable,
             ),
             exception_name = "TypeError",
             handler_body   = makeStarListArgumentErrorRaise(
-                called_variable_ref    = ExpressionVariableRef(
-                    variable   = called_variable,
-                    source_ref = internal_source_ref
-                ),
-                star_list_variable_ref = ExpressionVariableRef(
-                    variable   = star_list_variable,
-                    source_ref = internal_source_ref
-                )
+                called_variable    = called_variable,
+                star_list_variable = star_list_variable,
             ),
             source_ref     = internal_source_ref
         )
@@ -759,8 +757,7 @@ def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
     )
 
 
-def _makeStarDictArgumentMergeToKwStatement(result, called_variable,
-                                            kw_variable,
+def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable,
                                             star_dict_variable):
     # This is plain terribly complex, pylint: disable=too-many-locals
     temp_scope = result.allocateTempScope("dict")
@@ -1475,6 +1472,7 @@ def getFunctionCallHelperPosKeywordsStarList():
 
     return result
 
+
 @once_decorator
 def getFunctionCallHelperStarDict():
     helper_name = "complex_call_helper_star_dict"
@@ -1580,6 +1578,7 @@ def getFunctionCallHelperStarDict():
     )
 
     return result
+
 
 @once_decorator
 def getFunctionCallHelperPosStarDict():
@@ -1699,6 +1698,7 @@ def getFunctionCallHelperPosStarDict():
     )
 
     return result
+
 
 @once_decorator
 def getFunctionCallHelperKeywordsStarDict():
@@ -1840,6 +1840,7 @@ def getFunctionCallHelperKeywordsStarDict():
     )
 
     return result
+
 
 @once_decorator
 def getFunctionCallHelperPosKeywordsStarDict():
@@ -2121,6 +2122,7 @@ def getFunctionCallHelperStarListStarDict():
 
     return result
 
+
 @once_decorator
 def getFunctionCallHelperPosStarListStarDict():
     helper_name = "complex_call_helper_pos_star_list_star_dict"
@@ -2233,6 +2235,7 @@ def getFunctionCallHelperPosStarListStarDict():
 
     return result
 
+
 @once_decorator
 def getFunctionCallHelperKeywordsStarListStarDict():
     helper_name = "complex_call_helper_keywords_star_list_star_dict"
@@ -2333,6 +2336,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
     )
 
     return result
+
 
 @once_decorator
 def getFunctionCallHelperPosKeywordsStarListStarDict():
@@ -2608,7 +2612,6 @@ def getFunctionCallHelperDictionaryUnpacking():
             source_ref     = internal_source_ref
         ),
     )
-
 
     final = (
         StatementReleaseVariable(
