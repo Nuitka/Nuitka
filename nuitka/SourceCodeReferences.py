@@ -21,9 +21,11 @@ All the information to lookup line and file of a code location, together with
 the future flags in use there.
 """
 
+from nuitka.__past__ import total_ordering
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 
+@total_ordering
 class SourceCodeReference(object):
     __slots__ = ["filename", "line", "column", "internal"]
 
@@ -48,21 +50,57 @@ class SourceCodeReference(object):
     def __repr__(self):
         return "<%s to %s:%s>" % (self.__class__.__name__, self.filename, self.line)
 
-    def __cmp__(self, other):
+    def __lt__(self, other):
+        # Many cases decide early, pylint: disable=too-many-return-statements
         if other is None:
-            return -1
+            return True
+
+        if other is self:
+            return False
 
         assert isinstance(other, SourceCodeReference), other
 
-        result = cmp(self.filename, other.filename)
+        if self.filename < other.filename:
+            return True
+        elif self.filename > other.filename:
+            return False
+        else:
+            if self.line < other.line:
+                return True
+            elif self.line > other.line:
+                return False
+            else:
+                if self.column < other.column:
+                    return True
+                elif self.column > other.column:
+                    return False
+                else:
+                    if self.internal < other.internal:
+                        return True
+                    elif self.internal > other.internal:
+                        return False
+                    else:
+                        return False
 
-        if result == 0:
-            result = cmp(self.line, other.line)
+    def __eq__(self, other):
+        if other is None:
+            return False
 
-        if result == 0:
-            result = cmp(self.internal, other.internal)
+        if other is self:
+            return True
 
-        return result
+        assert isinstance(other, SourceCodeReference), other
+
+        if self.filename != other.filename:
+            return False
+
+        if self.line != other.line:
+            return False
+
+        if self.column != other.column:
+            return False
+
+        return self.internal is other.internal
 
     def _clone(self, line):
         """ Make a copy it itself.

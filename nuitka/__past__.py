@@ -68,9 +68,23 @@ try:
 except ImportError:
     from io import StringIO
 
+try:
+    from functools import total_ordering
+except ImportError:
+    # Lame replacement for functools.total_ordering, which does not exist on
+    # Python2.6, this requires "<" and "=" and adds all other operations.
+    def total_ordering(cls):
+        cls.__ne__ = lambda self, other: not self == other
+        cls.__le__ = lambda self, other: self == other or self < other
+        cls.__gt__ = lambda self, other: self != other and not self < other
+        cls.__ge__ = lambda self, other: self == other and not self < other
+
+        return cls
+
 # For PyLint to be happy.
 assert long
 assert unicode
 assert urlretrieve
 assert StringIO
 assert type(xrange) is type, xrange
+assert total_ordering
