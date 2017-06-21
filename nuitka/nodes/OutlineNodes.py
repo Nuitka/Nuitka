@@ -159,7 +159,6 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
         # collections may tell us something.
         return self, None, None
 
-
     def mayRaiseException(self, exception_type):
         return self.getBody().mayRaiseException(exception_type)
 
