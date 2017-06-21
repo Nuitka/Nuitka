@@ -21,13 +21,13 @@ Inspired/copied from by http://diotavelli.net/PyQtWiki/Python%20syntax%20highlig
 """
 
 from PyQt5.QtCore import \
-    QRegExp  # @UnresolvedImport pylint: disable=import-error,useless-suppression
-from PyQt5.QtGui import QColor  # @UnresolvedImport pylint: disable=import-error,useless-suppression
-from PyQt5.QtGui import QFont  # @UnresolvedImport pylint: disable=import-error,useless-suppression
+    QRegExp  # @UnresolvedImport pylint: disable=I0021,import-error
+from PyQt5.QtGui import QColor  # @UnresolvedImport pylint: disable=I0021,import-error
+from PyQt5.QtGui import QFont  # @UnresolvedImport pylint: disable=I0021,import-error
 from PyQt5.QtGui import \
-    QSyntaxHighlighter  # @UnresolvedImport pylint: disable=import-error,useless-suppression
+    QSyntaxHighlighter  # @UnresolvedImport pylint: disable=I0021,import-error
 from PyQt5.QtGui import \
-    QTextCharFormat  # @UnresolvedImport pylint: disable=import-error,useless-suppression
+    QTextCharFormat  # @UnresolvedImport pylint: disable=I0021,import-error
 
 
 def createTextFormat(color, style = ""):

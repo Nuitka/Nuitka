@@ -264,7 +264,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         return self.future_spec
 
     def asGraph(self, computation_counter):
-        from graphviz import Digraph # @UnresolvedImport pylint: disable=import-error,useless-suppression
+        from graphviz import Digraph # @UnresolvedImport pylint: disable=I0021,import-error
 
         graph = Digraph("cluster_%d" % computation_counter, comment = "Graph for %s" % self.getName())
         graph.body.append("style=filled")

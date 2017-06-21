@@ -26,7 +26,7 @@ import sys
 
 from nuitka import SourceCodeReferences
 
-from PyQt5 import ( # isort:skip pylint: disable=import-error,useless-suppression
+from PyQt5 import ( # isort:skip pylint: disable=I0021,import-error
     QtCore,   # @UnresolvedImport
     QtGui,   # @UnresolvedImport
     uic

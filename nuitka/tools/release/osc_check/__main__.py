@@ -33,6 +33,7 @@ import sys
 
 from nuitka.__past__ import StringIO
 
+
 def main():
     print("Querying openSUSE build service status of Nuitka packages.")
 

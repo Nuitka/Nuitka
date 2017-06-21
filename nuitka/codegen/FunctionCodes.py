@@ -506,6 +506,8 @@ def finalizeFunctionLocalVariables(context):
     for preserver_id in context.getExceptionPreserverCounts():
         function_locals.extend(getExceptionPreserverVariableNames(preserver_id))
 
+    tmp_infos = context.getTempNameInfos()
+
     function_locals += [
         "%s%s%s;" % (
             tmp_type,
@@ -513,7 +515,7 @@ def finalizeFunctionLocalVariables(context):
             tmp_name
         )
         for tmp_name, tmp_type in
-        context.getTempNameInfos()
+        tmp_infos
     ]
 
     function_locals += context.getFrameDeclarations()
@@ -527,7 +529,7 @@ def finalizeFunctionLocalVariables(context):
         function_locals.append("tmp_return_value = NULL;")
     if context.hasTempName("generator_return"):
         function_locals.append("tmp_generator_return = false;")
-    for tmp_name, tmp_type in context.getTempNameInfos():
+    for tmp_name, _tmp_type in tmp_infos:
         if tmp_name.startswith("tmp_outline_return_value_"):
             function_locals.append("%s = NULL;" % tmp_name)
 

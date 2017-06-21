@@ -24,7 +24,7 @@ import pickletools
 from logging import warning
 
 from nuitka import Constants
-from nuitka.__past__ import unicode  # pylint: disable=redefined-builtin
+from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import python_version
 
 # Work around for CPython 3.x removal of "cpickle".

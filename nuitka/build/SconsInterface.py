@@ -91,7 +91,7 @@ def _getPython2ExePathWindows():
     elif os.path.isfile(r"c:\Python26\python.exe"):
         return r"c:\Python26\python.exe"
 
-    # Windows only code, pylint: disable=import-error,undefined-variable,useless-suppression
+    # Windows only code, pylint: disable=I0021,import-error,undefined-variable
     try:
         import _winreg as winreg
     except ImportError:

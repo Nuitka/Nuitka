@@ -68,7 +68,7 @@ def getOwnProcessMemoryUsage():
 
         return counters.PrivateUsage
     else:
-        # Posix only code, pylint: disable=import-error,useless-suppression
+        # Posix only code, pylint: disable=I0021,import-error
         import resource  # @UnresolvedImport
 
         # The value is from "getrusage", which has OS dependent scaling, at least

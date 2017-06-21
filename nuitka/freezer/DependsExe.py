@@ -26,7 +26,7 @@ import sys
 from logging import info
 
 from nuitka import Tracing
-from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     raw_input,
     urlretrieve
 )

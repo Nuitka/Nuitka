@@ -1099,7 +1099,7 @@ def async_iterate(g):
     # Test code for Python3, catches all kinds of exceptions.
     # pylint: disable=broad-except
 
-    # Also Python3 only, pylint: disable=undefined-variable,useless-suppression
+    # Also Python3 only, pylint: disable=I0021,undefined-variable
 
     res = []
     while True:

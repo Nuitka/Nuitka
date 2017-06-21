@@ -26,17 +26,17 @@ be a "in (str, unicode)" rather than making useless version checks.
 """
 
 
-# pylint: disable=invalid-name,redefined-builtin
+# pylint: disable=I0021,invalid-name,redefined-builtin
 
 # Work around for CPython 3.x renaming "long" to "int".
 if str is bytes:
-    long = long  # @ReservedAssignment
+    long = long  # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
     long = int   # @ReservedAssignment
 
 # Work around for CPython 3.x renaming "unicode" to "str".
 if str is bytes:
-    unicode = unicode  # @ReservedAssignment
+    unicode = unicode  # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
     unicode = str      # @ReservedAssignment
 
@@ -52,7 +52,7 @@ else:
     raw_input = raw_input  # @ReservedAssignment
 
 if str is bytes:
-    xrange = xrange # @ReservedAssignment
+    xrange = xrange # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
     xrange = range  # @ReservedAssignment
 

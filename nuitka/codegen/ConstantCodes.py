@@ -35,7 +35,7 @@ import sys
 from logging import warning
 
 from nuitka import Options
-from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     iterItems,
     long,
     unicode,

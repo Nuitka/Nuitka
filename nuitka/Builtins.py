@@ -170,6 +170,8 @@ def _getAnonBuiltins():
     }
 
     if python_version < 300:
+        # There are only there for Python2,
+        # pylint: disable=I0021,no-name-in-module
         from types import ClassType, InstanceType, MethodType
 
         anon_names["classobj"] = ClassType

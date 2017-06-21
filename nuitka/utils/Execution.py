@@ -90,7 +90,7 @@ def getPythonExePathWindows(search, arch):
     # registry at all unless necessary. Any Python2 will do for Scons, so it
     # might be avoided entirely.
 
-    # Windows only code, pylint: disable=import-error,undefined-variable,useless-suppression
+    # Windows only code, pylint: disable=I0021,import-error,undefined-variable
     try:
         import _winreg as winreg
     except ImportError:

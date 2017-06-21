@@ -28,7 +28,7 @@ import math
 import re
 from logging import warning
 
-from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     long,
     unicode,
     xrange

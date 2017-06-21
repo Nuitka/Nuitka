@@ -45,7 +45,7 @@ def startGraph():
 
     if Options.shouldCreateGraph():
         try:
-            from graphviz import Digraph # pylint: disable=import-error,useless-suppression
+            from graphviz import Digraph # pylint: disable=I0021,import-error
             graph = Digraph('G')
         except ImportError:
             warning("Cannot import graphviz module, no graphing capability.")

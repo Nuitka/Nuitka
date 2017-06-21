@@ -24,7 +24,7 @@ import math
 
 from nuitka.PythonVersions import python_version
 
-from .__past__ import (  # pylint: disable=redefined-builtin
+from .__past__ import (  # pylint: disable=I0021,redefined-builtin
     iterItems,
     long,
     unicode,

@@ -96,7 +96,6 @@ from .InternalModule import (
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
-
 # TODO: Consider using ExpressionOutlineNodes for at least some of these
 # or their own helpers.
 

@@ -28,7 +28,10 @@ deeper that what it normally could. The import expression node can recurse.
 import os
 from logging import warning
 
-from nuitka.__past__ import long, unicode  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    long,
+    unicode
+)
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.importing.Importing import (
     findModule,

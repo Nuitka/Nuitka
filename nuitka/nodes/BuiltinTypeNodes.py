@@ -21,6 +21,7 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
+from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
