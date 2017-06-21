@@ -37,7 +37,10 @@ from nuitka.codegen.c_types.CTypePyObjectPtrs import (
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr
 )
+from nuitka.Options import isExperimental
 from nuitka.utils import InstanceCounters
+
+enable_bool_ctype = isExperimental("enable_bool_ctype")
 
 
 class VariableTraceBase(object):
@@ -133,7 +136,16 @@ class VariableTraceBase(object):
             if self.variable.isSharedTechnically():
                 result = CTypeCellObject
             else:
-                result = CTypePyObjectPtr
+                if enable_bool_ctype:
+                    shapes = self.variable.getTypeShapes()
+
+                    if len(shapes) > 1:
+                        return CTypePyObjectPtr
+                    else:
+                        assert shapes, self
+                        return shapes.pop().getCType()
+                else:
+                    return CTypePyObjectPtr
         elif context.isForDirectCall():
             if self.variable.isSharedTechnically():
                 result = CTypeCellObject
