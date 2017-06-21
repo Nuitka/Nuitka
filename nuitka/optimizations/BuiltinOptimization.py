@@ -18,6 +18,8 @@
 """ Optimizations of built-ins to built-in calls.
 
 """
+from __future__ import print_function
+
 import math
 import sys
 
@@ -138,7 +140,7 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
             if given_list_star_arg is not None:
                 arg_list += [ value.getCompileTimeConstant() for value in given_list_star_arg ]
         except Exception as e:
-            print >> sys.stderr, "Fatal error: ",
+            print("Fatal error: ", end = ' ', file = sys.stderr)
             import traceback
             traceback.print_exc()
             sys.exit(repr(e))
