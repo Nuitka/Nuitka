@@ -23,6 +23,7 @@ own anything by themselves. It's just a way of having try/finally for the
 expressions, or multiple returns, without running in a too different context.
 """
 
+from .ExceptionNodes import ExpressionRaiseException
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeBases import ChildrenHavingMixin
 
@@ -129,15 +130,34 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
 
             return_collections = trace_collection.getFunctionReturnCollections()
 
-        trace_collection.mergeMultipleBranches(return_collections)
+        if return_collections:
+            trace_collection.mergeMultipleBranches(return_collections)
 
-        if body.getStatements()[0].isStatementReturn():
+        first_statement = body.getStatements()[0]
+
+        if first_statement.isStatementReturn():
             return (
-                body.getStatements()[0].getExpression(),
+                first_statement.getExpression(),
                 "new_expression",
-                "Outline is now simple expression, use directly."
+                "Outline is now simple return, use directly."
+            )
+
+        if first_statement.isStatementRaiseException():
+            result = ExpressionRaiseException(
+                exception_type = first_statement.getExceptionType(),
+                exception_value = first_statement.getExceptionValue(),
+                source_ref = first_statement.getSourceReference()
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Outline is now exception raise, use directly."
             )
 
         # TODO: Function outline may become too trivial to outline and return
         # collections may tell us something.
         return self, None, None
+
+    def willRaiseException(self, exception_type):
+        return self.getBody().willRaiseException(exception_type)

@@ -113,6 +113,9 @@ class ExpressionGeneratorObjectBody(MarkLocalsDictIndicatorMixin,
         qualname_setup = None
 
     def __init__(self, provider, name, flags, source_ref):
+        while provider.isExpressionOutlineBody():
+            provider = provider.getParentVariableProvider()
+
         ExpressionFunctionBodyBase.__init__(
             self,
             provider    = provider,
