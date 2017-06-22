@@ -80,7 +80,7 @@ if "number" in sys.argv or "numbers" in sys.argv:
     for line in open(log_file):
         if line.startswith("summary:"):
             sizes = subprocess.check_output("size '%s'" % output_binary, shell = True).strip()
-            sizes = sizes.split('\n')[-1].replace('\t', "").split()
+            sizes = sizes.split(b'\n')[-1].replace(b'\t', b"").split()
 
             print("SIZE=%d" % ( int(sizes[0]) + int(sizes[1]) ))
             print("TICKS=%s" % line.split()[1])
