@@ -17,7 +17,8 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-module_value1 = 1000
+module_value1 = module_value2 = module_value3 = module_value4 = 1000
+module_key1 = module_key2 = module_key3 = module_key4 = 1000
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
@@ -25,20 +26,19 @@ def calledRepeatedly():
 
 # construct_begin
     l = {
-        module_value1 : module_value1,
-        module_value1 : module_value1,
-        module_value1 : module_value1,
-        module_value1 : module_value1,
-        module_value1 : module_value1
+        module_key1 : module_value1,
+        module_key2 : module_value2,
+        module_key3 : module_value3,
+        module_key4 : module_value4
     }
 # construct_alternative
     l = 1
 # construct_end
-# construct_end
 
     return l
 
-for x in xrange(50000):
+import itertools
+for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 
 print("OK.")

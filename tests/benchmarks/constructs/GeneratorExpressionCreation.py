@@ -31,7 +31,8 @@ def calledRepeatedly():
 
     return x
 
-for x in xrange(50000):
+import itertools
+for x in itertools.repeat(None, 50000):
     calledRepeatedly()
 
 print("OK.")

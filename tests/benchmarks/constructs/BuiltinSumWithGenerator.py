@@ -33,7 +33,8 @@ def calledRepeatedly():
 
     return y, gen
 
-for x in xrange(500):
+import itertools
+for x in itertools.repeat(None, 500):
     calledRepeatedly()
 
 print("OK.")
