@@ -24,7 +24,9 @@ stuff. It will also frequently add sorting.
 
 import os
 import shutil
+import tempfile
 import time
+from contextlib import contextmanager
 
 from .Utils import getOS
 
@@ -153,3 +155,8 @@ def removeDirectory(path, ignore_errors):
                 )
             else:
                 raise
+
+@contextmanager
+def withTemporaryFilename():
+    with tempfile.NamedTemporaryFile() as temp_file:
+        yield temp_file.name

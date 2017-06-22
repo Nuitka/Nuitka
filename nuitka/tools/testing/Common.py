@@ -29,36 +29,10 @@ import sys
 import tempfile
 from contextlib import contextmanager
 
+from nuitka.Tracing import my_print
+from nuitka.utils.Execution import check_output
 from nuitka.utils.FileOperations import removeDirectory
 
-
-# Make sure we flush after every print, the "-u" option does more than that
-# and this is easy enough.
-def my_print(*args, **kwargs):
-    print(*args, **kwargs)
-
-    sys.stdout.flush()
-
-# TODO: Use nuitka.utils.Execution instead.
-def check_output(*popenargs, **kwargs):
-    if "stdout" in kwargs:
-        raise ValueError("stdout argument not allowed, it will be overridden.")
-
-    process = subprocess.Popen(
-        stdout = subprocess.PIPE,
-        *popenargs,
-        **kwargs
-    )
-    output, _unused_err = process.communicate()
-    retcode = process.poll()
-
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        raise subprocess.CalledProcessError(retcode, cmd, output = output)
-
-    return output
 
 def check_result(*popenargs, **kwargs):
     if "stdout" in kwargs:

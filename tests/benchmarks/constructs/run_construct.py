@@ -42,6 +42,7 @@ from nuitka.tools.testing.Common import (
     convertUsing2to3,
     getTempDir
 )
+from nuitka.tools.Valgrind import runValgrind
 
 from optparse import OptionParser
 
@@ -114,37 +115,6 @@ if options.target_dir:
         test_case,
         os.path.join(options.target_dir, os.path.basename(test_case))
     )
-
-def runValgrind(descr, test_case, args):
-    my_print(descr, file = sys.stderr, end = "... ")
-
-    log_base = test_case[:-3] if test_case.endswith(".py") else test_case
-    log_file = log_base + ".log"
-
-    valgrind_options = "-q --tool=callgrind --callgrind-out-file=%s" % log_file
-
-    command = ["valgrind"] + valgrind_options.split() + list(args)
-
-    process = subprocess.Popen(
-        args   = command,
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE
-    )
-
-    _stdout_valgrind, stderr_valgrind = process.communicate()
-    exit_valgrind = process.returncode
-
-    assert exit_valgrind == 0, stderr_valgrind
-    my_print("OK", file = sys.stderr)
-    try:
-        for line in open(log_file):
-            if line.startswith("summary:"):
-                return int(line.split()[1])
-
-        else:
-            assert False
-    finally:
-        os.unlink(log_file)
 
 
 
@@ -219,6 +189,9 @@ if nuitka:
     ]
     nuitka_call.extend(os.environ.get("NUITKA_EXTRA_OPTIONS", "").split())
 
+
+    # We want to compile under the same filename to minimize differences, and
+    # then copy te resulting files afterwards.
     shutil.copy(test_case_1, os.path.basename(test_case))
 
     subprocess.check_call(nuitka_call)
@@ -283,13 +256,11 @@ if nuitka:
 
     nuitka_1 = runValgrind(
         "Nuitka construct",
-        test_case_1,
         (test_case_1.replace(".py", ".exe"),)
     )
 
     nuitka_2 = runValgrind(
         "Nuitka baseline",
-        test_case_2,
         (test_case_2.replace(".py", ".exe"),)
     )
 
@@ -303,12 +274,10 @@ if nuitka:
 if options.cpython:
     cpython_1 = runValgrind(
         "CPython construct",
-        test_case_1,
         (os.environ["PYTHON"], "-S", test_case_1)
     )
     cpython_2 = runValgrind(
         "CPython baseline",
-        test_case_2,
         (os.environ["PYTHON"], "-S", test_case_2)
     )
 
