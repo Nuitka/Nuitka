@@ -168,6 +168,11 @@ class ExpressionBase(NodeBase):
         # Unknown by default.
         return None
 
+    def extractUnhashableNode(self):
+        # Virtual method, pylint: disable=no-self-use
+        # Not available by default.
+        return None
+
     def onRelease(self, trace_collection):
         # print "onRelease", self
         pass

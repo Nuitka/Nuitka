@@ -584,7 +584,7 @@ def checkRaiseExceptionDictBuildingRange(arg):
 
         return i
 
-print("Check if range raises:")
+print("Check if range as dict key raises:")
 checkRaiseExceptionDictBuildingRange(2)
 
 def checkRaiseExceptionDictBuildingTuple(arg):
@@ -597,7 +597,7 @@ def checkRaiseExceptionDictBuildingTuple(arg):
     else:
         return i
 
-print("Check if mutable tuple raises:")
+print("Check if mutable tuple as dict key raises:")
 checkRaiseExceptionDictBuildingTuple(3)
 
 def checkRaiseExceptionDictBuildingList(arg):
@@ -610,5 +610,5 @@ def checkRaiseExceptionDictBuildingList(arg):
     else:
         return i
 
-print("Check if list raises:")
+print("Check if list as dict key raises:")
 checkRaiseExceptionDictBuildingList(4)

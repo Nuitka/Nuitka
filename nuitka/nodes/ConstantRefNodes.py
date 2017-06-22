@@ -29,6 +29,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
 )
 from nuitka.Constants import (
     getConstantIterationLength,
+    getUnhashableConstant,
     isConstant,
     isHashable,
     isIndexConstant,
@@ -161,6 +162,16 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
 
     def isKnownToBeHashable(self):
         return isHashable(self.constant)
+
+    def extractUnhashableNode(self):
+        value = getUnhashableConstant(self.constant)
+
+        if value is not None:
+            return makeConstantRefNode(
+                constant   = value,
+                source_ref = self.source_ref
+            )
+
 
     def isNumberConstant(self):
         return isNumberConstant(self.constant)

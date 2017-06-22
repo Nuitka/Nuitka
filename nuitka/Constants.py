@@ -226,6 +226,33 @@ def isHashable(constant):
         assert False, constant_type
 
 
+def getUnhashableConstant(constant):
+    # Too many cases and all return, that is how we do it here,
+    # pylint: disable=too-many-return-statements
+
+    constant_type = type(constant)
+
+    if constant_type in (str, unicode, complex, int, long, bool, float,
+                         NoneType, xrange, bytes):
+        return None
+    elif constant_type in (dict, list, set):
+        return constant
+    elif constant_type is tuple:
+        for value in constant:
+            res = getUnhashableConstant(value)
+            if res is not None:
+                return res
+        return None
+    elif constant is Ellipsis:
+        return None
+    elif constant in constant_builtin_types:
+        return None
+    elif constant_type is slice:
+        return None
+    else:
+        assert False, constant_type
+
+
 def isIterableConstant(constant):
     return type(constant) in (
         str, unicode, list, tuple, set, frozenset, dict, xrange, bytes
