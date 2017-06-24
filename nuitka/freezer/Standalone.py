@@ -817,7 +817,7 @@ def detectBinaryDLLs(original_filename, binary_filename, package_name):
         )
     elif Utils.getOS() == "Darwin":
         return _detectBinaryPathDLLsMacOS(
-            binary_filename = binary_filename
+            binary_filename = original_filename
         )
     else:
         # Support your platform above.
