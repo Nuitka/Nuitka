@@ -15,7 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-// This implements the loading of C++ compiled modules and shared library
+// This implements the loading of C compiled modules and shared library
 // extension modules bundled for standalone mode.
 
 // This is achieved mainly by registered a "sys.meta_path" loader, that then
@@ -744,7 +744,12 @@ static PyObject *_path_unfreezer_find_spec( PyObject *self, PyObject *args, PyOb
         return NULL;
     }
 
-    PyObject *result = PyObject_CallFunctionObjArgs( module_spec_class, module_name, metapath_based_loader, NULL );
+    PyObject *result = PyObject_CallFunctionObjArgs(
+            module_spec_class,
+            module_name,
+            metapath_based_loader,
+            NULL
+    );
 
     if (unlikely( result == NULL ))
     {
