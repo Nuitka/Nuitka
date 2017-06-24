@@ -23,6 +23,7 @@
 # This file is used to build an executable or shared library. Nuitka needs no
 # build process for itself, although it can be compiled using the same method.
 
+import hashlib
 import os
 import platform
 import re
@@ -45,6 +46,9 @@ source_dir = ARGUMENTS["source_dir"]
 # should be used.
 nuitka_src = ARGUMENTS["nuitka_src"]
 static_src = os.path.join(source_dir, "static")
+
+# The directory containing Nuitka cache.
+nuitka_cache = ARGUMENTS["nuitka_cache"]
 
 # The name of executable or extension module that we produce.
 result_basepath = ARGUMENTS["result_name"]
@@ -262,10 +266,13 @@ def detectVersion(env, cc):
         return None
     version = None
     #pipe = SCons.Action._subproc(env, SCons.Util.CLVar(cc) + ['-dumpversion'],
-    pipe = SCons.Action._subproc(env, SCons.Util.CLVar(cc) + ['--version'],
-                                 stdin = 'devnull',
-                                 stderr = 'devnull',
-                                 stdout = subprocess.PIPE)
+    pipe = SCons.Action._subproc(
+        env,
+        SCons.Util.CLVar(cc) + ['--version'],
+        stdin = 'devnull',
+        stderr = 'devnull',
+        stdout = subprocess.PIPE
+    )
     # -dumpversion was added in GCC 3.0.  As long as we're supporting
     # GCC versions older than that, we should use --version and a
     # regular expression.
@@ -894,8 +901,9 @@ if not win_target and os.path.islink(os.path.join(python_prefix, ".Python")):
 # Some virtualenv created by "venv" seem to have a different structure, where
 # library and include files are outside of it.
 
-if not win_target and python_version >= "3.3" and \
-     os.path.exists(os.path.join(python_prefix, "bin/activate")):
+if not win_target and \
+   python_version >= "3.3" and \
+   os.path.exists(os.path.join(python_prefix, "bin/activate")):
     python_binary = os.path.join(python_prefix, "bin", "python")
     python_binary = os.path.realpath(python_binary)
 
@@ -957,12 +965,29 @@ env.Append(CPPPATH = [os.path.join(python_prefix, "PC")])
 def getWindowsPythonDLLPath():
     return os.environ["NUITKA_PYTHON_DLL_PATH"]
 
+
 def makeWindowsMingGW64Lib(win_lib_path):
+    python_dll_filename = getWindowsPythonDLLPath()
+    checksum = hashlib.md5(open(python_dll_filename, "rb").read()).hexdigest()
+
     # Create the LIB in the build directory.
-    new_win_lib_path = os.path.join(source_dir, "libs")
+    new_win_lib_path = os.path.join(
+        nuitka_cache,
+        "win_libs",
+         python_version,
+         checksum
+    )
 
     if not os.path.exists(new_win_lib_path):
         os.makedirs(new_win_lib_path)
+
+    lib_filename = os.path.join(
+        new_win_lib_path,
+        "libpython%s.a" % python_abi_version.replace('.', "")
+    )
+
+    if os.path.exists(lib_filename):
+        return new_win_lib_path
 
     gendef_tool = os.path.join(
         os.path.dirname(
@@ -971,7 +996,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
         "gendef"
     )
 
-    command = [gendef_tool, "-", getWindowsPythonDLLPath()]
+    command = [gendef_tool, "-", python_dll_filename]
 
     if show_scons_mode:
         print "Scons: Creating Python library defs with:", command
@@ -1010,10 +1035,6 @@ def makeWindowsMingGW64Lib(win_lib_path):
         new_win_lib_path
     )
 
-    lib_filename = os.path.join(
-        new_win_lib_path,
-        "libpython%s.a" % python_abi_version.replace('.', "")
-    )
 
     dll_tool = os.path.join(
         os.path.dirname(
@@ -1675,6 +1696,8 @@ if uninstalled_python:
             os.path.dirname(result_basepath) or "."
         )
     elif sys.platform == "darwin":
+        # TODO: Move this to where we do it for Linux already.
+
         python_dll_filename = "libpython" + python_abi_version + ".dylib"
 
         result = subprocess.call(

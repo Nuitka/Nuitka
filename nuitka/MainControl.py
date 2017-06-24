@@ -41,6 +41,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
+from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
     deleteFile,
     hasFilenameExtension,
@@ -465,6 +466,7 @@ def runScons(main_module, quiet):
         "target_arch"     : Utils.getArchitecture(),
         "python_prefix"   : sys.prefix,
         "nuitka_src"      : SconsInterface.getSconsDataPath(),
+        "nuitka_cache"    : getCacheDir(),
         "module_count"    : "%d" % (
             1 + \
             len(ModuleRegistry.getDoneUserModules()) + \
