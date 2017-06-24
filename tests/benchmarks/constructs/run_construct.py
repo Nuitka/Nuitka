@@ -235,12 +235,16 @@ if nuitka:
 
     nuitka_1 = runValgrind(
         "Nuitka construct",
-        (test_case_1.replace(".py", ".exe"),)
+        "callgrind",
+        (test_case_1.replace(".py", ".exe"),),
+        include_startup = True
     )
 
     nuitka_2 = runValgrind(
         "Nuitka baseline",
-        (test_case_2.replace(".py", ".exe"),)
+        "callgrind",
+        (test_case_2.replace(".py", ".exe"),),
+        include_startup = True
     )
 
     nuitka_diff = nuitka_1 - nuitka_2
@@ -253,11 +257,15 @@ if nuitka:
 if options.cpython:
     cpython_1 = runValgrind(
         "CPython construct",
-        (os.environ["PYTHON"], "-S", test_case_1)
+        "callgrind",
+        (os.environ["PYTHON"], "-S", test_case_1),
+        include_startup = True
     )
     cpython_2 = runValgrind(
         "CPython baseline",
-        (os.environ["PYTHON"], "-S", test_case_2)
+        "callgrind",
+        (os.environ["PYTHON"], "-S", test_case_2),
+        include_startup = True
     )
 
     cpython_diff = cpython_1 - cpython_2

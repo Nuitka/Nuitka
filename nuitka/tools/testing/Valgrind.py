@@ -21,6 +21,7 @@ We are using it for benchmarking purposes, as it's an analysis tool at the
 same time and gives deterministic results.
 """
 
+import shutil
 import subprocess
 import sys
 
@@ -28,14 +29,39 @@ from nuitka.Tracing import my_print
 from nuitka.utils.FileOperations import withTemporaryFilename
 
 
-def runValgrind(descr, args):
+def runValgrind(descr, tool, args, include_startup, save_logfilename = None):
     if descr:
-        my_print(descr, file = sys.stderr, end = "... ")
+        my_print(descr, tool, file = sys.stderr, end = "... ")
 
-    with withTemporaryFilename() as log_file:
-        valgrind_options = "-q --tool=callgrind --callgrind-out-file=%s" % log_file
+    with withTemporaryFilename() as log_filename:
+        command = [
+            "valgrind",
+            "-q",
+        ]
 
-        command = ["valgrind"] + valgrind_options.split() + list(args)
+        if tool == "callgrind":
+            command += [
+                "--tool=callgrind",
+                "--callgrind-out-file=%s" % log_filename
+            ]
+        elif tool == "massif":
+            command += [
+                "--tool=massif",
+                "--massif-out-file=%s" % log_filename
+            ]
+        else:
+            sys.exit("Error, no support for tool '%s' yet." % tool)
+
+        # Do not count things before main module starts its work.
+        if not include_startup:
+            command += [
+                "--zero-before=init__main__()",
+                "--zero-before=init__main__",
+                "--zero-before=PyInit___main__",
+                "--zero-before=PyInit___main__()"
+            ]
+
+        command.extend(args)
 
         process = subprocess.Popen(
             args   = command,
@@ -47,9 +73,38 @@ def runValgrind(descr, args):
         exit_valgrind = process.returncode
 
         assert exit_valgrind == 0, stderr_valgrind
-        my_print("OK", file = sys.stderr)
-        for line in open(log_file):
-            if line.startswith("summary:"):
+        if descr:
+            my_print("OK", file = sys.stderr)
+
+        if save_logfilename is not None:
+            shutil.copy(log_filename, save_logfilename)
+
+        max_mem = None
+
+        for line in open(log_filename):
+            if tool == "callgrind" and line.startswith("summary:"):
                 return int(line.split()[1])
+            elif tool == "massif" and line.startswith("mem_heap_B="):
+                mem = int(line.split('=')[1])
+
+                if max_mem is None:
+                    max_mem = 0
+
+                max_mem = max(mem, max_mem)
+
+        if tool == "massif" and max_mem is not None:
+            return max_mem
+
 
         sys.exit("Error, didn't parse Valgrind log file successfully.")
+
+
+def getBinarySizes(filename):
+    command = [
+        "size",
+        filename
+    ]
+    sizes = subprocess.check_output(command).strip()
+    sizes = sizes.split(b'\n')[-1].replace(b'\t', b"").split()
+
+    return int(sizes[0]), int(sizes[1])

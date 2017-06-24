@@ -23,7 +23,19 @@ import subprocess
 import sys
 import tempfile
 
+# Find nuitka package relative to us.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..",
+        )
+    )
+)
+
 input_file = sys.argv[1]
+
 nuitka_binary = os.environ.get(
     "NUITKA_BINARY",
     os.path.join(os.path.dirname(__file__), "../bin/nuitka")
@@ -53,7 +65,7 @@ os.system(
         sys.executable,
         nuitka_binary,
         tempdir,
-        "" if ("number" in sys.argv or "numbers" in sys.argv) else "--unstripped",
+        "--unstripped",
         os.environ.get("NUITKA_EXTRA_OPTIONS", ""),
         input_file
     )
@@ -63,48 +75,37 @@ if not os.path.exists(output_binary):
     sys.exit("Seeming failure of Nuitka to compile.")
 
 log_base = basename[:-3] if input_file.endswith(".py") else basename
-log_file = log_base + ".log"
+
+if "number" in sys.argv or "numbers" in sys.argv:
+    log_file = log_base + ".log"
+else:
+    log_file = None
 
 sys.stdout.flush()
 
-valgrind_options = "-q --tool=callgrind --callgrind-out-file=%s --zero-before=init__main__() --zero-before=init__main__ --zero-before=PyInit___main__ --zero-before=PyInit___main__()" % log_file
+from nuitka.tools.testing.Valgrind import getBinarySizes, runValgrind
 
-subprocess.check_call(
-    ["valgrind"] +
-    valgrind_options.split() +
+ticks = runValgrind(
+    None,
+    "callgrind",
     [output_binary],
-    stdout = open(os.devnull, 'w')
+    include_startup = False,
+    save_logfilename = log_file
 )
 
 if "number" in sys.argv or "numbers" in sys.argv:
-    for line in open(log_file):
-        if line.startswith("summary:"):
-            sizes = subprocess.check_output("size '%s'" % output_binary, shell = True).strip()
-            sizes = sizes.split(b'\n')[-1].replace(b'\t', b"").split()
+    sizes = getBinarySizes(output_binary)
 
-            print("SIZE=%d" % ( int(sizes[0]) + int(sizes[1]) ))
-            print("TICKS=%s" % line.split()[1])
-            print("BINARY=%s" % nuitka_binary)
-            break
-    else:
-        assert False
+    print("SIZE=%d" % (sizes[0] + sizes[1]))
+    print("TICKS=%s" % ticks)
+    print("BINARY=%s" % nuitka_binary)
 
-    log_mem = log_base + ".mem"
-    valgrind_options = "-q --tool=massif --massif-out-file=%s" % log_mem
-
-    subprocess.check_call(
-        ["valgrind"] +
-        valgrind_options.split() +
+    max_mem = runValgrind(
+        None,
+        "massif",
         [output_binary],
-        stdout = open(os.devnull, 'w')
+        include_startup = True
     )
-
-    max_mem = 0
-
-    for line in open(log_mem):
-        if line.startswith("mem_heap_B="):
-            mem = int(line.split('=')[1])
-            max_mem = max(mem, max_mem)
 
     print("MEM=%s" % max_mem)
 

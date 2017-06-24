@@ -47,4 +47,4 @@ def generateConstructCases(construct_source_code):
             inside = True
             case = 1
 
-    return "\n".join(case_1), "\n".join(case_2)
+    return '\n'.join(case_1), '\n'.join(case_2)
