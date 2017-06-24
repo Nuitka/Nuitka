@@ -15,6 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Valgrind tool usage.
+
+We are using it for benchmarking purposes, as it's an analysis tool at the
+same time and gives deterministic results.
+"""
+
 import subprocess
 import sys
 
@@ -46,5 +52,4 @@ def runValgrind(descr, args):
             if line.startswith("summary:"):
                 return int(line.split()[1])
 
-        else:
-            assert False
+        sys.exit("Error, didn't parse Valgrind log file successfully.")
