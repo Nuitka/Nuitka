@@ -25,6 +25,8 @@ from __future__ import absolute_import
 import os
 import sys
 
+from .FileOperations import makePath
+
 try:
     import appdirs
 except ImportError:
@@ -39,4 +41,12 @@ except ImportError:
 
 
 def getCacheDir():
-    return appdirs.user_cache_dir("Nuitka", None)
+    result = appdirs.user_cache_dir("Nuitka", None)
+    makePath(result)
+    return result
+
+
+def getAppDir():
+    result = appdirs.user_data_dir("Nuitka", None)
+    makePath(result)
+    return result
