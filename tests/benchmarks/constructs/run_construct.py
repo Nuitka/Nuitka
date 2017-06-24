@@ -42,7 +42,8 @@ from nuitka.tools.testing.Common import (
     convertUsing2to3,
     getTempDir
 )
-from nuitka.tools.Valgrind import runValgrind
+from nuitka.tools.testing.Valgrind import runValgrind
+from nuitka.tools.testing.Constructs import generateConstructCases
 
 from optparse import OptionParser
 
@@ -130,35 +131,13 @@ test_case_2 = os.path.join(
     "Variant2_" + os.path.basename(test_case)
 )
 
-case_1_file = open(test_case_1, 'w')
-case_2_file = open(test_case_2, 'w')
+case_1_source, case_2_source = generateConstructCases(open(test_case).read())
 
-inside = False
-case = 0
+with open(test_case_1, 'w') as case_1_file:
+    case_1_file.write(case_1_source)
 
-for line in open(test_case):
-    if not inside or case == 1:
-        case_1_file.write(line)
-    else:
-        case_1_file.write('\n')
-
-    if "# construct_end" in line:
-        inside = False
-
-    if "# construct_alternative" in line:
-        case = 2
-
-    if not inside or case == 2:
-        case_2_file.write(line)
-    else:
-        case_2_file.write('\n')
-
-    if "# construct_begin" in line:
-        inside = True
-        case = 1
-
-case_1_file.close()
-case_2_file.close()
+with open(test_case_2, 'w') as case_2_file:
+    case_2_file.write(case_2_source)
 
 if needs_2to3:
     test_case_1, needs_delete = convertUsing2to3(test_case_1)
