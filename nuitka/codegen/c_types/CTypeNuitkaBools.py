@@ -21,7 +21,7 @@
 
 from nuitka.codegen.ErrorCodes import (
     getAssertionCode,
-    getErrorFormatExitBoolCode
+    getLocalVariableReferenceErrorCode
 )
 
 from .CTypeBases import CTypeBase
@@ -138,30 +138,12 @@ switch (%(variable_code_name)s)
             )
 
             if variable.isLocalVariable():
-                if variable.getOwner() is context.getOwner():
-                    getErrorFormatExitBoolCode(
-                        condition = "%s == false" % res_name,
-                        exception = "PyExc_UnboundLocalError",
-                        args      = ("""\
-local variable '%s' referenced before assignment""" % (
-                               variable.getName()
-                            ),
-                        ),
-                        emit      = emit,
-                        context   = context
-                    )
-                else:
-                    getErrorFormatExitBoolCode(
-                        condition = "%s == false" % res_name,
-                        exception = "PyExc_NameError",
-                        args      = ("""\
-free variable '%s' referenced before assignment in enclosing scope""" % (
-                                variable.getName()
-                            ),
-                        ),
-                        emit      = emit,
-                        context   = context
-                    )
+                getLocalVariableReferenceErrorCode(
+                    variable  = variable,
+                    condition = "%s == false" % res_name,
+                    emit      = emit,
+                    context   = context
+                )
             else:
                 getAssertionCode(
                     check = "%s != false" % res_name,

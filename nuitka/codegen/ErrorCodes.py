@@ -315,3 +315,54 @@ def getAssertionCode(check, emit):
 
 def getCheckObjectCode(check_name, emit):
     emit("CHECK_OBJECT( %s );" % check_name)
+
+
+def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
+    if variable.getOwner() is not context.getOwner():
+        getErrorFormatExitBoolCode(
+            condition = condition,
+            exception = "PyExc_NameError",
+            args      = (
+                """\
+free variable '%s' referenced before assignment in enclosing scope""",
+                variable.getName()
+            ),
+            emit      = emit,
+            context   = context
+        )
+    else:
+        getErrorFormatExitBoolCode(
+            condition = condition,
+            exception = "PyExc_UnboundLocalError",
+            args      = (
+                """\
+local variable '%s' referenced before assignment""",
+                variable.getName()
+            ),
+            emit      = emit,
+            context   = context
+        )
+
+
+def getNameReferenceErrorCode(variable_name, condition, emit, context):
+    if python_version < 340:
+        owner = context.getOwner()
+
+        if not owner.isCompiledPythonModule() and \
+           not owner.isExpressionClassBody():
+            error_message = "global name '%s' is not defined"
+        else:
+            error_message = "name '%s' is not defined"
+    else:
+        error_message = "name '%s' is not defined"
+
+    getErrorFormatExitBoolCode(
+        condition = condition,
+        exception = "PyExc_NameError",
+        args      = (
+            error_message,
+            variable_name
+        ),
+        emit      = emit,
+        context   = context
+    )
