@@ -34,7 +34,7 @@ from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
 
 
 def generateConditionCode(condition, emit, context):
-    # The complexity is needed to avoid unnecessary complex generated C++
+    # The complexity is needed to avoid unnecessary complex generated C
     # pylint: disable=too-many-locals,too-many-statements
 
     if condition.isExpressionComparison():

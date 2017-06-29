@@ -15,9 +15,9 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" C++ string encoding
+""" C string encoding
 
-This contains the code to create string literals for C++ to represent the given
+This contains the code to create string literals for C to represent the given
 values and little more.
 """
 
@@ -25,7 +25,7 @@ import re
 
 
 def _encodePythonStringToC(value):
-    """ Encode a string, so that it gives a C++ string literal.
+    """ Encode a string, so that it gives a C string literal.
 
         This doesn't handle limits.
     """
@@ -66,11 +66,10 @@ def encodePythonStringToC(value):
 
     """
 
-    # Not all compilers don't allow arbitrary large C++ strings,
-    # therefore split it up into chunks. That changes nothing to
-    # the meanings, but is easier on the parser. Currently only
-    # MSVC is known to have this issue, but the workaround can be
-    # used universally.
+    # Not all compilers allow arbitrary large C strings, therefore split it up
+    # into chunks. That changes nothing to the meanings, but is easier on the
+    # parser. Currently only MSVC is known to have this issue, but the
+    # workaround can be used universally.
 
     result = _encodePythonStringToC(value[:16000 ])
     value = value[16000:]

@@ -374,7 +374,7 @@ outputdir_group.add_option(
     default = "",
     help    = """\
 Specify where intermediate and final output files should be put. DIRECTORY will
-be populated with C++ files, object files, etc. Defaults to current directory.
+be populated with C files, object files, etc. Defaults to current directory.
 """
 )
 
@@ -456,19 +456,19 @@ debug_group.add_option(
     dest    = "recompile_cpp_only",
     default = False,
     help    = """\
-Take existing files and compile them again.Allows compiling edited C++ files
-with the C++ compiler for quick debugging changes to the generated source.
+Take existing files and compile them again. Allows compiling edited C files
+with the C compiler for quick debugging changes to the generated source.
 Defaults to off. Depends on compiling Python source to determine which files it
 should look at."""
 )
 
 debug_group.add_option(
-    "--generate-c++-only",
+    "--generate-c-only",
     action  = "store_true",
-    dest    = "generate_cpp_only",
+    dest    = "generate_c_only",
     default = False,
     help    = """\
-Generate only C++ source code, and do not compile it to binary or module. This
+Generate only C source code, and do not compile it to binary or module. This
 is for debugging and code coverage analysis that doesn't waste CPU. Defaults to
 off."""
 )
@@ -508,7 +508,7 @@ parser.add_option_group(debug_group)
 
 cpp_compiler_group = OptionGroup(
     parser,
-    "Backend C++ compiler choice"
+    "Backend C compiler choice"
 )
 
 
@@ -550,7 +550,7 @@ cpp_compiler_group.add_option(
     metavar = 'N',
     default = Utils.getCoreCount(),
     help    = """\
-Specify the allowed number of parallel C++ compiler jobs. Defaults to the
+Specify the allowed number of parallel C compiler jobs. Defaults to the
 system CPU count.""",
 )
 
@@ -798,7 +798,7 @@ def shallOnlyExecCppCall():
     return options.recompile_cpp_only
 
 def shallNotDoExecCppCall():
-    return options.generate_cpp_only
+    return options.generate_c_only
 
 def shallHaveStatementLines():
     return options.statement_lines
@@ -912,11 +912,13 @@ def isShowProgress():
 def isShowMemory():
     return options is not None and options.show_memory
 
+
 def isShowInclusion():
     return options.show_inclusion
 
+
 def isRemoveBuildDir():
-    return options.remove_build and not options.generate_cpp_only
+    return options.remove_build and not options.generate_c_only
 
 
 def getIntendedPythonVersion():

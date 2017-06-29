@@ -694,7 +694,7 @@ def main():
         in the desired version of Python with desired flags, and we just get
         to execute the task assigned.
 
-        We might be asked to only re-compile generated C++, dump only an XML
+        We might be asked to only re-compile generated C, dump only an XML
         representation of the internal node tree after optimization, etc.
     """
 

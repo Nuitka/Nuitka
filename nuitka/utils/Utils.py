@@ -82,7 +82,7 @@ def encodeNonAscii(var_name):
     """ Encode variable name that is potentially not ASCII to ASCII only.
 
         For Python3, unicode identifiers can be used, but these are not
-        possible in C++03, so we need to replace them.
+        possible in C, so we need to replace them.
     """
     if python_version < 300:
         return var_name
