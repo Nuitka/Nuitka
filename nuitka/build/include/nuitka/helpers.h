@@ -635,48 +635,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyO
         return metaclass;
     }
 }
-#else
-
-NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObject *metaclass_global )
-{
-    CHECK_OBJECT( bases );
-
-    PyObject *metaclass;
-
-    assert( bases != Py_None );
-
-    if ( PyTuple_GET_SIZE( bases ) > 0 )
-    {
-        PyObject *base = PyTuple_GET_ITEM( bases, 0 );
-
-        metaclass = PyObject_GetAttr( base, const_str_plain___class__ );
-
-        if ( metaclass == NULL )
-        {
-            CLEAR_ERROR_OCCURRED();
-
-            metaclass = (PyObject *)Py_TYPE( base );
-            Py_INCREF( metaclass );
-        }
-    }
-    else if ( metaclass_global != NULL )
-    {
-        metaclass = metaclass_global;
-        Py_INCREF( metaclass );
-    }
-    else
-    {
-        // Default to old style class.
-        metaclass = (PyObject *)&PyClass_Type;
-        Py_INCREF( metaclass );
-    }
-
-    // Cannot fail on Python2.
-    CHECK_OBJECT( metaclass );
-
-    return metaclass;
-}
-
 #endif
 
 extern PyObject *const_str_plain___name__;

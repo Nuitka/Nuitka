@@ -30,7 +30,10 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
     ExpressionBuiltinHasattr
 )
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
+from nuitka.nodes.BuiltinRefNodes import (
+    ExpressionBuiltinAnonymousRef,
+    ExpressionBuiltinRef
+)
 from nuitka.nodes.CallNodes import ExpressionCall, ExpressionCallNoKeywords
 from nuitka.nodes.ClassNodes import (
     ExpressionClassBody,
@@ -58,8 +61,10 @@ from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinLocalsUpdated,
     StatementSetLocals
 )
+from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
+from nuitka.nodes.TryNodes import StatementTry
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
@@ -334,7 +339,9 @@ def _buildClassNode3(provider, node, source_ref):
             source     = makeSequenceCreationOrConstant(
                 sequence_kind = "tuple",
                 elements      = buildNodeList(
-                    provider, node.bases, source_ref
+                    provider,
+                    node.bases,
+                    source_ref
                 ),
                 source_ref    = source_ref
             ),
@@ -641,13 +648,123 @@ def _buildClassNode2(provider, node, source_ref):
     tmp_metaclass = provider.allocateTempVariable(temp_scope, "metaclass")
     tmp_class = provider.allocateTempVariable(temp_scope, "class")
 
+    select_metaclass = ExpressionOutlineBody(
+        provider   = provider,
+        name       = "select_metaclass",
+        body       = None,
+        source_ref = source_ref
+    )
+
+    if node.bases:
+        tmp_base = select_metaclass.allocateTempVariable(
+            temp_scope = None,
+            name       = "base"
+        )
+
+        statements = (
+            StatementAssignmentVariable(
+                variable   = tmp_base,
+                source     = ExpressionSubscriptLookup(
+                    subscribed = ExpressionTempVariableRef(
+                        variable   = tmp_bases,
+                        source_ref = source_ref
+                    ),
+                    subscript  = makeConstantRefNode(
+                        constant      = 0,
+                        source_ref    = source_ref,
+                        user_provided = True
+                    ),
+                    source_ref = source_ref,
+                ),
+                source_ref = source_ref
+            ),
+            makeTryFinallyStatement(
+                provider,
+                tried      =             StatementTry(
+                    tried            = makeStatementsSequenceFromStatement(
+                        statement = StatementReturn(
+                            expression = ExpressionAttributeLookup(
+                                source         = ExpressionTempVariableRef(
+                                    variable   = tmp_base,
+                                    source_ref = source_ref
+                                ),
+                                attribute_name = "__class__",
+                                source_ref     = source_ref
+                            ),
+                            source_ref = source_ref
+                        )
+                    ),
+                    except_handler   = makeStatementsSequenceFromStatement(
+                        statement = StatementReturn(
+                            expression = ExpressionBuiltinType1(
+                                value      = ExpressionTempVariableRef(
+                                    variable   = tmp_base,
+                                    source_ref = source_ref
+                                ),
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        )
+                    ),
+                    break_handler    = None,
+                    continue_handler = None,
+                    return_handler   = None,
+                    source_ref       = source_ref
+                ),
+                final      = StatementReleaseVariable(
+                    variable   = tmp_base,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref,
+                public_exc = False
+            ),
+        )
+    else:
+        statements = (
+            StatementTry(
+                tried            = makeStatementsSequenceFromStatement(
+                    statement = StatementReturn(
+                        # TODO: Should avoid checking __builtins__ for this.
+                        expression = ExpressionVariableRef(
+                            variable_name = "__metaclass__",
+                            source_ref    = source_ref
+                        ),
+                        source_ref = source_ref
+                    )
+                ),
+                except_handler   = makeStatementsSequenceFromStatement(
+                    statement = StatementReturn(
+                        expression = ExpressionBuiltinAnonymousRef(
+                            builtin_name = "classobj",
+                            source_ref   = source_ref
+                        ),
+                        source_ref = source_ref
+                    )
+                ),
+                break_handler    = None,
+                continue_handler = None,
+                return_handler   = None,
+                source_ref       = source_ref
+            ),
+        )
+
+    select_metaclass.setBody(
+        makeStatementsSequence(
+            statements = statements,
+            allow_none = False,
+            source_ref = source_ref
+        )
+    )
+
     statements = [
         StatementAssignmentVariable(
             variable   = tmp_bases,
             source     = makeSequenceCreationOrConstant(
                 sequence_kind = "tuple",
                 elements      = buildNodeList(
-                    provider, node.bases, source_ref
+                    provider   = provider,
+                    nodes      = node.bases,
+                    source_ref = source_ref
                 ),
                 source_ref    = source_ref
             ),
@@ -699,14 +816,7 @@ def _buildClassNode2(provider, node, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                expression_no  = ExpressionSelectMetaclass(
-                    metaclass  = None,
-                    bases      = ExpressionTempVariableRef(
-                        variable   = tmp_bases,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
+                expression_no  = select_metaclass,
                 source_ref     = source_ref
             ),
             source_ref = source_ref
