@@ -451,9 +451,9 @@ Defaults to off."""
 )
 
 debug_group.add_option(
-    "--recompile-c++-only", "--recompile-c-only",
+    "--recompile-c-only", "--recompile-c++-only",
     action  = "store_true",
-    dest    = "recompile_cpp_only",
+    dest    = "recompile_c_only",
     default = False,
     help    = """\
 Take existing files and compile them again. Allows compiling edited C files
@@ -506,13 +506,13 @@ parser.add_option(
 
 parser.add_option_group(debug_group)
 
-cpp_compiler_group = OptionGroup(
+c_compiler_group = OptionGroup(
     parser,
     "Backend C compiler choice"
 )
 
 
-cpp_compiler_group.add_option(
+c_compiler_group.add_option(
     "--clang",
     action  = "store_true",
     dest    = "clang",
@@ -522,7 +522,7 @@ Enforce the use of clang (needs clang 3.2 or higher).
 Defaults to off."""
 )
 
-cpp_compiler_group.add_option(
+c_compiler_group.add_option(
     "--mingw",
     action  = "store_true",
     dest    = "mingw",
@@ -532,7 +532,7 @@ Enforce the use of MinGW on Windows.
 Defaults to off."""
 )
 
-cpp_compiler_group.add_option(
+c_compiler_group.add_option(
     "--msvc",
     action  = "store",
     dest    = "msvc",
@@ -543,7 +543,7 @@ are e.g. 9.0, 9.0exp, specify an illegal value for a list of installed
 compilers. Defaults to the most recent version."""
 )
 
-cpp_compiler_group.add_option(
+c_compiler_group.add_option(
     "-j", "--jobs",
     action  = "store",
     dest    = "jobs",
@@ -554,7 +554,7 @@ Specify the allowed number of parallel C compiler jobs. Defaults to the
 system CPU count.""",
 )
 
-cpp_compiler_group.add_option(
+c_compiler_group.add_option(
     "--lto",
     action  = "store_true",
     dest    = "lto",
@@ -564,7 +564,7 @@ Use link time optimizations if available and usable (g++ 4.6 and higher).
 Defaults to off."""
 )
 
-parser.add_option_group(cpp_compiler_group)
+parser.add_option_group(c_compiler_group)
 
 tracing_group = OptionGroup(
     parser,
@@ -794,10 +794,10 @@ def shallDumpBuiltTreeXML():
 def shallDisplayBuiltTree():
     return options.display_tree
 
-def shallOnlyExecCppCall():
-    return options.recompile_cpp_only
+def shallOnlyExecCCompilerCall():
+    return options.recompile_c_only
 
-def shallNotDoExecCppCall():
+def shallNotDoExecCCompilerCall():
     return options.generate_c_only
 
 def shallHaveStatementLines():

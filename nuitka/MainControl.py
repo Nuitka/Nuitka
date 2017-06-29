@@ -83,7 +83,7 @@ def createNodeTree(filename):
     # harm.
     source_dir = getSourceDirectoryPath(main_module)
 
-    if not Options.shallOnlyExecCppCall():
+    if not Options.shallOnlyExecCCompilerCall():
         cleanSourceDirectory(source_dir)
 
     # Prepare the ".dist" directory, throwing away what was there before.
@@ -633,7 +633,7 @@ def executeModule(tree, clean_path):
 def compileTree(main_module):
     source_dir = getSourceDirectoryPath(main_module)
 
-    if not Options.shallOnlyExecCppCall():
+    if not Options.shallOnlyExecCCompilerCall():
         # Now build the target language code for the whole tree.
         makeSourceDirectory(
             main_module = main_module
@@ -673,7 +673,7 @@ def compileTree(main_module):
     if Options.isShowMemory():
         InstanceCounters.printStats()
 
-    if Options.shallNotDoExecCppCall():
+    if Options.shallNotDoExecCCompilerCall():
         return True, {}
 
     # Run the Scons to build things.
@@ -766,7 +766,7 @@ of e.g. '--python-version=%s' option, if that's not the one expected.
         if not result:
             sys.exit(1)
 
-        if Options.shallNotDoExecCppCall():
+        if Options.shallNotDoExecCCompilerCall():
             sys.exit(0)
 
         # Remove the source directory (now build directory too) if asked to.
