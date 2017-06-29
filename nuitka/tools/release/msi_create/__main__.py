@@ -19,11 +19,23 @@
 
 """
 
+import os
+import shutil
+
+from nuitka.tools.Basics import goHome
 from nuitka.tools.release.MSI import createMSIPackage
 
 
 def main():
-    createMSIPackage()
+    goHome()
+
+    msi_filename = createMSIPackage()
+
+    if not os.path.exists("msi"):
+        os.makedirs("msi")
+
+    shutil.move(msi_filename, "msi")
+
 
 if __name__ == "__main__":
     main()
