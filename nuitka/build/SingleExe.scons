@@ -1374,7 +1374,7 @@ def discoverSourceFiles():
     # Scan for Nuitka created source files, and add them too.
     for filename in os.listdir(source_dir):
         # Only C files are of interest here.
-        if not filename.endswith(".c") or \
+        if not filename.endswith((".c", "cpp")) or \
            not filename.startswith(("module.", "__")):
             continue
 
@@ -1386,9 +1386,11 @@ def discoverSourceFiles():
         if c11_mode:
             result.append(filename)
         else:
-            target_file += "pp" # .cpp" suffix then
+            if filename.endswith(".c"):
+                target_file += "pp" # .cpp" suffix then
 
-            os.rename(filename, target_file)
+                os.rename(filename, target_file)
+
             result.append(target_file)
 
     # Main program, unless of course it's a Python module/package we build.
