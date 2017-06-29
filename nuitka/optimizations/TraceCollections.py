@@ -490,7 +490,6 @@ class TraceCollectionBase(CollectionTracingMixin):
             include_closure = False
 
         for variable in self.getActiveVariables():
-
             # TODO: Currently this is a bit difficult to express in a positive
             # way, but we want to have only local variables.
             if not variable.isTempVariable() and \

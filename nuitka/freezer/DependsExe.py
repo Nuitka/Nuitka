@@ -63,7 +63,8 @@ def getDependsExePath():
     makePath(nuitka_depends_dir)
 
     if not os.path.isfile(nuitka_depends_zip) and not os.path.isfile(depends_exe):
-        Tracing.printLine("""\
+        Tracing.printLine(
+            """\
 Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules. Is it OK to download
 and put it in "%s".

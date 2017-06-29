@@ -66,7 +66,6 @@ def main():
         Default is %default."""
     )
 
-
     options, positional_args = parser.parse_args()
 
     if not positional_args:

@@ -689,15 +689,11 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
 
         if call_args is None:
             args_tuple = ()
-        elif call_args.isExpressionConstantRef() or \
-             call_args.isExpressionMakeTuple():
-            args_tuple = call_args.getIterationValues()
         else:
-            # TODO: Can this even happen, i.e. does the above check make
-            # sense.
-            assert False, call_args
+            assert call_args.isExpressionConstantRef() or \
+                   call_args.isExpressionMakeTuple()
 
-            return call_node, None, None
+            args_tuple = call_args.getIterationValues()
 
         function_body = self.getFunctionRef().getFunctionBody()
 

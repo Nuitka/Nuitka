@@ -1214,6 +1214,7 @@ _builtin_white_list = (
     "sorted",
 )
 
+
 def computeBuiltinCall(call_node, called):
     # There is some dispatching for how to output various types of changes,
     # with lots of cases, pylint: disable=too-many-branches
