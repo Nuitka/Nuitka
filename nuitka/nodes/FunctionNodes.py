@@ -755,18 +755,21 @@ error""" % self.getName()
         # TODO: Ought to use values. If they are all constant, how about we
         # assume no cost, pylint: disable=unused-argument
 
-        if True or not Options.isExperimental("function_inlining"):
+        function_body = self.getFunctionRef().getFunctionBody()
+
+        if function_body.isExpressionClassBody():
+            if function_body.getBody().getStatements()[0].isStatementReturn():
+                return 0
+
             return None
 
-        function_body = self.getFunctionRef().getFunctionBody()
+        if True or not Options.isExperimental("function_inlining"):
+            return None
 
         if function_body.isExpressionGeneratorObjectBody():
             # TODO: That's not even allowed, is it?
             assert False
 
-            return None
-
-        if function_body.isExpressionClassBody():
             return None
 
         # TODO: Lying for the demo, this is too limiting, but needs frames to
@@ -932,7 +935,11 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
                 values   = values
             )
 
-            return result, "new_statements", "Function call in-lined."
+            return (
+                result,
+                "new_statements",
+                "Function call to '%s' in-lined." % function_body.getCodeName()
+            )
 
         self.variable_closure_traces = []
 

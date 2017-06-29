@@ -139,7 +139,7 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
             return (
                 first_statement.getExpression(),
                 "new_expression",
-                "Outline is now simple return, use directly."
+                "Outline '%s' is now simple return, use directly." % self.name
             )
 
         if first_statement.isStatementRaiseException():

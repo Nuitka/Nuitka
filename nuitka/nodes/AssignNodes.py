@@ -282,45 +282,39 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
             if last_trace is not None:
                 if variable.isLocalVariable() or variable.isTempVariable():
                     if source.isCompileTimeConstant():
-
                         # Can safely forward propagate only non-mutable constants.
                         if not source.isMutable():
+                            if last_trace.hasDefiniteUsages() and not last_trace.getNameUsageCount():
+                                self.variable_trace.setReplacementNode(
+                                    lambda usage : source.makeClone()
+                                )
 
-                            if variable.isTempVariable() or \
-                               (not provider.isExpressionClassBody() and \
-                                not provider.isUnoptimized()
-                                ):
+                                propagated = True
+                            else:
+                                propagated = False
 
-                                if last_trace.hasDefiniteUsages():
-                                    self.variable_trace.setReplacementNode(
-                                        lambda usage : source.makeClone()
+                            if not last_trace.hasPotentialUsages() and not last_trace.getNameUsageCount():
+                                if not last_trace.getPrevious().isUninitTrace():
+                                    # TODO: We could well decide, if that's even necessary, but for now
+                                    # the "StatementDelVariable" is tasked with that.
+                                    result = StatementDelVariable(
+                                        variable_name = self.variable_name,
+                                        variable      = self.variable,
+                                        version       = self.variable_version,
+                                        tolerant      = True,
+                                        source_ref    = self.getSourceReference()
                                     )
-                                    propagated = True
                                 else:
-                                    propagated = False
+                                    result = None
 
-                                if not last_trace.hasPotentialUsages() and not last_trace.getNameUsageCount():
-                                    if not last_trace.getPrevious().isUninitTrace():
-                                        # TODO: We could well decide, if that's even necessary, but for now
-                                        # the "StatementDelVariable" is tasked with that.
-                                        result = StatementDelVariable(
-                                            variable_name = self.variable_name,
-                                            variable      = self.variable,
-                                            version       = self.variable_version,
-                                            tolerant      = True,
-                                            source_ref    = self.getSourceReference()
-                                        )
-                                    else:
-                                        result = None
-
-                                    return (
-                                        result,
-                                        "new_statements",
-                                        "Dropped %s assignment statement to '%s'." % (
-                                           "propagated" if propagated else "dead",
-                                           self.getVariableName()
-                                        )
+                                return (
+                                    result,
+                                    "new_statements",
+                                    "Dropped %s assignment statement to '%s'." % (
+                                       "propagated" if propagated else "dead",
+                                       self.getVariableName()
                                     )
+                                )
                         else:
                             # Something might be possible still.
 

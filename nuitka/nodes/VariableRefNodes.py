@@ -629,5 +629,20 @@ Replaced read-only module attribute '__package__' with constant value."""
 
         return self, None, None
 
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        trace_collection.onControlFlowEscape(self)
+
+        if not Variables.complete and \
+           self.variable_name in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
+           self.fallback_variable.isModuleVariable():
+            # Just inform the collection that all escaped.
+            trace_collection.onLocalsUsage()
+
+        return call_node, None, None
+
+
     def mayRaiseException(self, exception_type):
         return self.variable_trace is None or not self.variable_trace.mustHaveValue()
