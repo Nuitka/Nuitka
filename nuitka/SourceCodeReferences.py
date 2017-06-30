@@ -27,7 +27,7 @@ from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 @total_ordering
 class SourceCodeReference(object):
-    __slots__ = ["filename", "line", "column", "internal"]
+    __slots__ = ["filename", "line", "column"]
 
     @classmethod
     def fromFilenameAndLine(cls, filename, line):
@@ -45,7 +45,6 @@ class SourceCodeReference(object):
         self.filename = None
         self.line = None
         self.column = None
-        self.internal = False
 
     def __repr__(self):
         return "<%s to %s:%s>" % (self.__class__.__name__, self.filename, self.line)
@@ -75,12 +74,7 @@ class SourceCodeReference(object):
                 elif self.column > other.column:
                     return False
                 else:
-                    if self.internal < other.internal:
-                        return True
-                    elif self.internal > other.internal:
-                        return False
-                    else:
-                        return False
+                    return self.isInternal() < other.isInternal()
 
     def __eq__(self, other):
         if other is None:
@@ -100,20 +94,16 @@ class SourceCodeReference(object):
         if self.column != other.column:
             return False
 
-        return self.internal is other.internal
+        return self.isInternal() is other.isInternal()
 
     def _clone(self, line):
         """ Make a copy it itself.
 
         """
-        result = SourceCodeReference.fromFilenameAndLine(
+        return self.fromFilenameAndLine(
             filename = self.filename,
             line     = line
         )
-
-        result.internal = self.internal
-
-        return result
 
     def atInternal(self):
         """ Make a copy it itself but mark as internal code.
@@ -121,9 +111,8 @@ class SourceCodeReference(object):
             Avoids useless copies, by returning an internal object again if
             it is already internal.
         """
-        if not self.internal:
+        if not self.isInternal():
             result = self._clone(self.line)
-            result.internal = True
 
             return result
         else:
@@ -166,8 +155,23 @@ class SourceCodeReference(object):
     def getAsString(self):
         return "%s:%s" % (self.filename, self.line)
 
-    def isInternal(self):
-        return self.internal
+    @staticmethod
+    def isInternal():
+        return False
+
+
+class SourceCodeReferenceInternal(SourceCodeReference):
+    __slots__ = ()
+
+    __del__ = counted_del()
+
+    @counted_init
+    def __init__(self):
+        SourceCodeReference.__init__(self)
+
+    @staticmethod
+    def isInternal():
+        return True
 
 
 def fromFilename(filename):
