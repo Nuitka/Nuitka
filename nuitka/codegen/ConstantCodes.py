@@ -1090,7 +1090,7 @@ def allocateNestedConstants(module_context):
 
 
 def getConstantsDefinitionCode(context):
-    """ Create the code code "__constants.cpp" file.
+    """ Create the code code "__constants.c" file.
 
         This needs to create code to make all global constants (used in more
         than one module) and create them.

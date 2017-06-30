@@ -337,9 +337,9 @@ def makeSourceDirectory(main_module):
 
     for module in ModuleRegistry.getDoneModules():
         if module.isCompiledPythonModule():
-            cpp_filename = module_filenames[module]
+            c_filename = module_filenames[module]
 
-            prepared_modules[cpp_filename] = CodeGeneration.prepareModuleCode(
+            prepared_modules[c_filename] = CodeGeneration.prepareModuleCode(
                 global_context = global_context,
                 module         = module,
                 module_name    = module.getFullName(),
@@ -347,14 +347,14 @@ def makeSourceDirectory(main_module):
 
             # Main code constants need to be allocated already too.
             if module is main_module and not Options.shallMakeModule():
-                prepared_modules[cpp_filename][1].getConstantCode(0)
+                prepared_modules[c_filename][1].getConstantCode(0)
 
     # Second pass, generate the actual module code into the files.
     for module in ModuleRegistry.getDoneModules():
         if module.isCompiledPythonModule():
-            cpp_filename = module_filenames[module]
+            c_filename = module_filenames[module]
 
-            template_values, module_context = prepared_modules[cpp_filename]
+            template_values, module_context = prepared_modules[c_filename]
 
             source_code = CodeGeneration.generateModuleCode(
                 module_context  = module_context,
@@ -362,7 +362,7 @@ def makeSourceDirectory(main_module):
             )
 
             writeSourceCode(
-                filename    = cpp_filename,
+                filename    = c_filename,
                 source_code = source_code
             )
 
