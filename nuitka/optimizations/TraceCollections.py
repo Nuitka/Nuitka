@@ -391,8 +391,9 @@ class TraceCollectionBase(CollectionTracingMixin):
     @staticmethod
     def mustNotAlias(a, b):
         # TODO: not yet really implemented
-        if a.isExpressionConstantDictRef() and b.isExpressionConstantRef():
-            return True
+        if a.isExpressionConstantRef() and b.isExpressionConstantRef():
+            if a.isMutable() or b.isMutable():
+                return True
 
         return False
 
