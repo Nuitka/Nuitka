@@ -396,6 +396,10 @@ def makeOptimizationPass(initial_pass):
                 finished = False
 
             used_functions = current_module.getUsedFunctions()
+
+            for unused_function in current_module.getUnusedFunctions():
+                unused_function.trace_collection = None
+
             used_functions = tuple(
                 function
                 for function in
