@@ -448,10 +448,10 @@ def buildEllipsisNode(source_ref):
 
 
 def buildStatementLoopContinue(node, source_ref):
-    # Python forbids this, although technically it's probably not much of
-    # an issue.
     source_ref = source_ref.atColumnNumber(node.col_offset)
 
+    # Python forbids this, although technically it's probably not much of
+    # an issue.
     if getBuildContext() == "finally":
         SyntaxErrors.raiseSyntaxError(
             "'continue' not supported inside 'finally' clause",

@@ -546,11 +546,8 @@ class PythonGlobalContext(object):
             if constant is int and python_version >= 300:
                 type_name = "long"
 
-            if constant is str and python_version < 300:
-                type_name = "string"
-
-            if constant is str and python_version > 300:
-                type_name = "unicode"
+            if constant is str:
+                type_name = "string" if python_version < 300 else "unicode"
 
             if type_name != "NoneType":
                 key = "(PyObject *)&Py%s_Type" % type_name.title()
@@ -575,6 +572,7 @@ class PythonGlobalContext(object):
 
     def getConstants(self):
         return self.constants
+
 
 class FrameDeclarationsMixin(object):
     def __init__(self):

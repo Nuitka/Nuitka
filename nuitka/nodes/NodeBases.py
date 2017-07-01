@@ -820,9 +820,6 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
         self.providing[variable.getName()] = variable
 
-    def getProvidedVariables(self):
-        return self.providing.values()
-
     def allocateTempScope(self, name, allow_closure = False):
         self.temp_scopes[name] = self.temp_scopes.get(name, 0) + 1
 

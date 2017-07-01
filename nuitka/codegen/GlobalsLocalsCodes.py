@@ -143,7 +143,7 @@ def getLoadLocalsCode(to_name, variables, provider, mode, emit, context):
 
     # Locals is sorted of course.
     def _sorted(variables):
-        all_variables = list(context.getOwner().getVariables())
+        all_variables = tuple(context.getOwner().getVariables())
 
         return sorted(
             variables,

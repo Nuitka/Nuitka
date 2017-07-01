@@ -408,7 +408,7 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
     def getDetailsForDisplay(self):
         return {
             "temp_name" : self.variable.getName(),
-            "owner" : self.variable.getOwner().getCodeName()
+            "owner"     : self.variable.getOwner().getCodeName()
         }
 
     def getDetails(self):
@@ -496,11 +496,11 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         trace_collection.onVariableContentEscapes(self.variable)
 
     def mayHaveSideEffects(self):
-        # Can't happen
+        # Can't happen with temporary variables.
         return False
 
     def mayRaiseException(self, exception_type):
-        # Can't happen
+        # Can't happen with temporary variables.
         return False
 
     def mayRaiseExceptionImportName(self, exception_type, import_name):
