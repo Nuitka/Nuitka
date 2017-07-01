@@ -30,7 +30,7 @@ from .ErrorCodes import (
 )
 from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .Indentation import indented
-from .LineNumberCodes import getLineNumberUpdateCode
+from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesIterators import (
     template_iterator_check,
@@ -103,7 +103,7 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
                 2
             ),
             "line_number_code"     : indented(
-                getLineNumberUpdateCode(context),
+                getErrorLineNumberUpdateCode(context),
                 2
             ),
             "exception_target"     : context.getExceptionEscape()

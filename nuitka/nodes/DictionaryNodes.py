@@ -44,8 +44,8 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
 
     if python_version < 350:
         named_children = (
-            "key",
-            "value"
+            "value",
+            "key"
         )
     else:
         named_children = (
