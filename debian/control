@@ -28,7 +28,7 @@ Depends: gcc (>= 5.0) | g++ (>= 4.4) | clang (>= 3.0),
          ${misc:Depends},
          ${python:Depends}
 Recommends: python-lxml (>= 2.3),
-            python-qt5,
+            python-pyqt5,
             strace,
             chrpath
 Suggests: ccache
