@@ -798,8 +798,11 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                             source_ref = source_ref
                         )
                         for variable in
-                        outer_body.getTempVariables()
-                    ]   ,
+                        sorted(
+                            outer_body.getTempVariables(),
+                            key = lambda variable: variable.getName()
+                        )
+                    ],
                     source_ref = source_ref,
                     public_exc = False
                 )

@@ -790,11 +790,13 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
             code_prefix = code_prefix
         )
 
+        # TODO: Only Python3 classes need this to be an ordered dict, the order
+        # of it should come from elsewhere though.
         self.providing = OrderedDict()
 
-        self.temp_variables = OrderedDict()
+        self.temp_variables = {}
 
-        self.temp_scopes = OrderedDict()
+        self.temp_scopes = {}
 
         self.preserver_id = 0
 
@@ -879,7 +881,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         return self.temp_variables[full_name]
 
     def getTempVariables(self):
-        return tuple(self.temp_variables.values())
+        return self.temp_variables.values()
 
     def removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]

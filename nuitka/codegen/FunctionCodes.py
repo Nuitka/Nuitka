@@ -471,7 +471,10 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
         user_variables + tuple(
             variable
             for variable in
-            temp_variables
+            sorted(
+                temp_variables,
+                key = lambda variable: variable.getName()
+            )
         )
     ]
 

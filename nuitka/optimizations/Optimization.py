@@ -263,20 +263,27 @@ def optimizeUnusedUserVariables(function_body):
 
 
 def optimizeUnusedTempVariables(provider):
-    changed = False
+    remove = None
 
     for temp_variable in provider.getTempVariables():
-
         variable_traces = provider.trace_collection.getVariableTraces(
             variable = temp_variable
         )
 
         empty = areEmptyTraces(variable_traces)
         if empty:
-            provider.removeTempVariable(temp_variable)
-            changed = True
+            if remove is None:
+                remove = []
 
-    return changed
+            remove.append(temp_variable)
+
+    if remove:
+        for temp_variable in remove:
+            provider.removeTempVariable(temp_variable)
+
+        return True
+    else:
+        return False
 
 
 def optimizeVariables(module):
