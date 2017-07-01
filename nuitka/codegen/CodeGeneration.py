@@ -193,6 +193,7 @@ from .RaisingCodes import generateRaiseCode
 from .ReturnCodes import (
     generateGeneratorReturnCode,
     generateReturnCode,
+    generateReturnConstantCode,
     generateReturnedValueRefCode
 )
 from .SetCodes import (
@@ -648,6 +649,10 @@ setStatementDispatchDict(
         "STATEMENT_RELEASE_VARIABLE"         : generateVariableReleaseCode,
         "STATEMENT_EXPRESSION_ONLY"          : generateExpressionOnlyCode,
         "STATEMENT_RETURN"                   : generateReturnCode,
+        "STATEMENT_RETURN_TRUE"              : generateReturnConstantCode,
+        "STATEMENT_RETURN_FALSE"             : generateReturnConstantCode,
+        "STATEMENT_RETURN_NONE"              : generateReturnConstantCode,
+        "STATEMENT_RETURN_CONSTANT"          : generateReturnConstantCode,
         "STATEMENT_GENERATOR_RETURN"         : generateGeneratorReturnCode,
         "STATEMENT_CONDITIONAL"              : generateBranchCode,
         "STATEMENT_TRY"                      : generateTryCode,

@@ -25,6 +25,7 @@ by a try statement is accessible this way.
 
 from nuitka.PythonVersions import python_version
 
+from .ConstantCodes import getConstantAccess
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
 from .Helpers import generateExpressionCode
 from .LabelCodes import getGotoCode
@@ -54,6 +55,34 @@ def generateReturnCode(statement, emit, context):
             emit(
                 "Py_INCREF( %s );" % return_value_name
             )
+
+    getGotoCode(
+        label = context.getReturnTarget(),
+        emit  = emit
+    )
+
+
+def generateReturnConstantCode(statement, emit, context):
+    getExceptionUnpublishedReleaseCode(emit, context)
+
+    return_value_name = context.getReturnValueName()
+
+    if context.getReturnReleaseMode():
+        emit("Py_DECREF( %s );" % return_value_name)
+
+    getConstantAccess(
+        to_name  = return_value_name,
+        constant = statement.getConstant(),
+        emit     = emit,
+        context  = context
+    )
+
+    if context.needsCleanup(return_value_name):
+        context.removeCleanupTempName(return_value_name)
+    else:
+        emit(
+            "Py_INCREF( %s );" % return_value_name
+        )
 
     getGotoCode(
         label = context.getReturnTarget(),

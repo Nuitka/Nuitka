@@ -20,8 +20,11 @@
 This one exits functions. The only other exit is the default exit of functions with 'None' value, if no return is done.
 """
 
+from abc import abstractmethod
+
 from .ExpressionBases import ExpressionBase
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .NodeMakingHelpers import makeConstantReplacementNode
 
 
 class StatementReturn(StatementChildrenHavingBase):
@@ -69,7 +72,140 @@ Return statement raises in returned expression, removed return."""
 
         trace_collection.onFunctionReturn()
 
+        if expression.isExpressionConstantRef():
+            result = makeStatementReturnConstant(
+                constant   = expression.getCompileTimeConstant(),
+                source_ref = self.source_ref
+            )
+
+            return result, "new_statements", """\
+Return value is always constant."""
+
         return self, None, None
+
+
+class StatementReturnConstantBase(NodeBase):
+    __slots__ = ()
+
+    def __init__(self, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    @staticmethod
+    def isStatementReturn():
+        return True
+
+    def isStatementAborting(self):
+        return True
+
+    def mayRaiseException(self, exception_type):
+        return False
+
+    def computeStatement(self, trace_collection):
+        trace_collection.onFunctionReturn()
+
+        return self, None, None
+
+    @abstractmethod
+    def getConstant(self):
+        """ The returned constant value.
+
+        """
+
+    def getExpression(self):
+        return makeConstantReplacementNode(
+            node     = self,
+            constant = self.getConstant()
+        )
+
+
+class StatementReturnNone(StatementReturnConstantBase):
+    kind = "STATEMENT_RETURN_NONE"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref):
+        StatementReturnConstantBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def getConstant(self):
+        return None
+
+
+class StatementReturnFalse(StatementReturnConstantBase):
+    kind = "STATEMENT_RETURN_FALSE"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref):
+        StatementReturnConstantBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def getConstant(self):
+        return False
+
+
+class StatementReturnTrue(StatementReturnConstantBase):
+    kind = "STATEMENT_RETURN_TRUE"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref):
+        StatementReturnConstantBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def getConstant(self):
+        return True
+
+
+class StatementReturnConstant(StatementReturnConstantBase):
+    kind = "STATEMENT_RETURN_CONSTANT"
+
+    __slots__ = ("constant",)
+
+    def __init__(self, constant, source_ref):
+        StatementReturnConstantBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.constant = constant
+
+    def getConstant(self):
+        return self.constant
+
+    def getDetails(self):
+        return {
+            "constant" : self.constant
+        }
+
+
+def makeStatementReturnConstant(constant, source_ref):
+    if constant is None:
+        return StatementReturnNone(
+            source_ref = source_ref
+        )
+    elif constant is True:
+        return StatementReturnTrue(
+            source_ref = source_ref
+        )
+    elif constant is False:
+        return StatementReturnFalse(
+            source_ref = source_ref
+        )
+    else:
+        return StatementReturnConstant(
+            constant   = constant,
+            source_ref = source_ref
+        )
 
 
 class ExpressionReturnedValueRef(ExpressionBase):

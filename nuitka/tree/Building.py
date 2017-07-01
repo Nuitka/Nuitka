@@ -92,7 +92,11 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationUnary,
     makeBinaryOperationNode
 )
-from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.ReturnNodes import (
+    StatementReturn,
+    StatementReturnNone,
+    makeStatementReturnConstant
+)
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
@@ -504,23 +508,33 @@ def buildReturnNode(provider, node, source_ref):
             )
 
 
-    if expression is None:
-        expression = ExpressionConstantNoneRef(
-            source_ref    = source_ref,
-            user_provided = True
-        )
-
     if provider.isExpressionGeneratorObjectBody() or \
        provider.isExpressionAsyncgenObjectBody():
+        if expression is None:
+            expression = ExpressionConstantNoneRef(
+                source_ref    = source_ref,
+                user_provided = True
+            )
+
         return StatementGeneratorReturn(
             expression = expression,
             source_ref = source_ref
         )
     else:
-        return StatementReturn(
-            expression = expression,
-            source_ref = source_ref
-        )
+        if expression is None:
+            return StatementReturnNone(
+                source_ref = source_ref
+            )
+        elif expression.isExpressionConstantRef():
+            return makeStatementReturnConstant(
+                constant   = expression.getCompileTimeConstant(),
+                source_ref = source_ref
+            )
+        else:
+            return StatementReturn(
+                expression = expression,
+                source_ref = source_ref
+            )
 
 
 def buildExprOnlyNode(provider, node, source_ref):
