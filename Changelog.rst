@@ -15,15 +15,34 @@ Bug Fixes
   had been a regress of 0.5.25, but only happens with custom extension types.
   Fixed in 0.5.26.1 already.
 
-- Standalone: For Linux and BSD extension modules and shared libraries using
-  their own ``$ORIGIN`` to find loaded DLLs resulted in thos not being included
-  in the distribution.
+- Standalone: For Linux, BSD and MacOS extension modules and shared libraries
+  using their own ``$ORIGIN`` to find loaded DLLs resulted in those not being
+  included in the distribution.
+
+- The ``--recompile-c-only`` was only working with C compiler as a backend, but
+  not in the C++ compatibility fallback, where files get renamed. This prevented
+  that edit and test debug approach with at least MSVC.
 
 Optimization
 ------------
 
-- References to known unassigned variables are now statically optimized and
-  warned about if the according option is enabled.
+- References to known unassigned variables are now statically optimized to
+  exception raises and warned about if the according option is enabled.
+
+- Detect unhashable keys in dictionaries are now statically optimized to
+  exception raises and warned about if the according option is enabled.
+
+- Enable forward propagation for classes too, resulting in some classes
+  to create only static dictionaries. Currently this never happens for
+  Python3, but it will, once we can statically optimize ``__prepare__``
+  too.
+
+- Enable inlining of class dictionary creations if they are mere return
+  statements of the created dictionary. Currently this never happens for
+  Python3, see above for why.
+
+- Python2: Selecting the metaclass is now visible in the tree and can be
+  statically optimized.
 
 - For executables, we now also use a freelist for traceback objects, which
   also makes exception cases slightly faster.
@@ -31,6 +50,39 @@ Optimization
 - Remove "pass through" frames for Python2 list contractions, they are no
   longer needed. Minimal gain for generated code, but more leightweight at
   compile time.
+
+- When compiling Windows x64 with MinGW64 a link library needs to be created
+  for linking against the Python DLL. This one is now cached and re-used if
+  already done.
+
+- Use common code for ``NameError`` and ``UnboundLocalError`` exception code
+  raises. In some cases it was creating the full string at compile time, in
+  others at run time. Since the later is more efficient in terms of code size,
+  we now use that everywhere, saving a bit of binary size.
+
+- Make sure to release unused functions from a module. This saves memory and
+  can be decided after a full pass.
+
+- Avoid using ``OrderedDict`` in a couple of places, where they are not needed,
+  but can be replaced with a later sorting, e.g. temporary variables by name,
+  to achieve deterministic output. This saves memory at compile time.
+
+- Add specialized return nodes for the most frequent constant values, which
+  are ``None``, ``True``, and ``False``. Also a general one, for constant value
+  return, which avoids the constant references. This saves quite a bit of
+  memory and makes traversal of the tree a lot faster, due to not having any
+  child nodes for the new forms of return statements.
+
+- Previously the empty dictionary constant reference was specialized to save
+  memory. Now we also specialize empty set, list, and tuple constants to the
+  same end. Also the hack to make ``is`` not say that ``{} is {}`` was made
+  more general, mutable constant references and now known to never alias.
+
+- The source references can be marked internal, which means that they should
+  never be visible to the user, but that was tracked as a flag to each of the
+  many source references attached to each node in the tree. Making a special
+  class for internal references avoids storing this in the object, but instead
+  it's now a class property.
 
 Cleanups
 --------
@@ -45,6 +97,35 @@ Cleanups
 
 - Make sure "mayBeNone" doesn't return "None" which means normally "unclear",
   but "False" instead, since it's always clear for those cases.
+
+- Comparison nodes were using the general comparison node as a base class,
+  but now a proper base class was added instead, allowing for cleaner code.
+
+- Valgrind test runners got changed to using proper tool namespace for their
+  code and share it.
+
+- Made construct case generation code common testing code for re-use in the
+  speedcenter web site. The code also has minor beauty bugs which will then
+  become fixable.
+
+- Use ``appdirs`` package to determine place to store the downloaded copy of
+  ``depends.exe``.
+
+- The code still mentioned C++ in a lot of places, in comments or identifiers,
+  which might be confusing readers of the code.
+
+Tests
+-----
+
+- The test runner for constructs got cleaned up and the constructs now avoid
+  using ``xrange`` so as to not need conversion for Python3 execution as
+  much.
+
+Organizational
+--------------
+
+- Added inline copy of ``appdirs`` package from PyPI.
+
 
 This release is not done yet.
 
