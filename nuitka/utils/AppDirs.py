@@ -17,13 +17,15 @@
 #
 """ Wrapper around appdir from PyPI
 
-We do not assume to be installed and fallback to an inline copy.
+We do not assume to be installed and fallback to an inline copy and if that
+is not installed, we use our own code for best effort.
 """
 
 from __future__ import absolute_import
 
 import os
 import sys
+import tempfile
 
 from .FileOperations import makePath
 
@@ -37,16 +39,37 @@ except ImportError:
         )
     )
 
-    import appdirs
+    # Handle case without inline copy too.
+    try:
+        import appdirs
+    except ImportError:
+        appdirs = None
 
 
 def getCacheDir():
-    result = appdirs.user_cache_dir("Nuitka", None)
+    if appdirs is not None:
+        result = appdirs.user_cache_dir("Nuitka", None)
+    else:
+        result = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
+
+
+    # For people that build with HOME set this, e.g. Debian.
+    if result.startswith("/nonexistent/"):
+        result = os.path.join(tempfile.gettempdir(), "Nuitka")
+
     makePath(result)
     return result
 
 
 def getAppDir():
-    result = appdirs.user_data_dir("Nuitka", None)
+    if appdirs is not None:
+        result = appdirs.user_data_dir("Nuitka", None)
+    else:
+        result = os.path.join(os.path.expanduser("~"), ".config", "Nuitka")
+
+    # For people that build with HOME set this, e.g. Debian.
+    if result.startswith("/nonexistent/"):
+        result = os.path.join(tempfile.gettempdir(), "Nuitka")
+
     makePath(result)
     return result
