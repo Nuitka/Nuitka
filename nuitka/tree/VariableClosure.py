@@ -169,10 +169,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
         elif node.isExpressionTempVariableRef():
             if node.getVariable().getOwner() != node.getParentVariableProvider():
-                node.setVariable(
-                    node.getParentVariableProvider().addClosureVariable(
-                        node.getVariable()
-                    )
+                node.getParentVariableProvider().addClosureVariable(
+                    node.getVariable()
                 )
         elif node.isExpressionGeneratorObjectBody():
             self._handleNonLocal(node)

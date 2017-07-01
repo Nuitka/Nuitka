@@ -520,10 +520,6 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
         # TODO: See through the variable current trace.
         return None
 
-    # Python3 only, it updates temporary variables that are closure variables.
-    def setVariable(self, variable):
-        self.variable = variable
-
 
 class ExpressionLocalsVariableRef(ExpressionBase):
     kind = "EXPRESSION_LOCALS_VARIABLE_REF"
