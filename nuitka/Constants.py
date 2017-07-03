@@ -189,7 +189,7 @@ def isMutable(constant):
     elif constant is Ellipsis:
         return False
     elif constant in constant_builtin_types:
-        return True
+        return False
     else:
         assert False, repr(constant)
 
