@@ -60,9 +60,6 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
         temp_variables    = temp_variables
     )
 
-    # Doesn't apply to coroutines.
-    assert not function_cleanup
-
     function_codes = SourceCodeCollector()
 
     generateStatementSequenceCode(
@@ -77,10 +74,12 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
     if needs_exception_exit:
         generator_exit = template_coroutine_exception_exit % {
             "function_identifier" : function_identifier,
+            "function_cleanup"    : function_cleanup
         }
     else:
         generator_exit = template_coroutine_noexception_exit % {
             "function_identifier" : function_identifier,
+            "function_cleanup"    : function_cleanup
         }
 
     if needs_generator_return:
