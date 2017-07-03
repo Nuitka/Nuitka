@@ -139,15 +139,10 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
         return False
 
-
-    # TODO: Turn this into an indication.
-    def getLocalsMode(self):
-        if python_version >= 300:
-            return "updated"
-        elif self.isEarlyClosure() or self.isUnoptimized():
-            return "updated"
-        else:
-            return "copy"
+    def isLocalsUpdatedMode(self):
+        return python_version >= 300 or \
+               self.isEarlyClosure() or \
+               self.isUnoptimized()
 
     def hasVariableName(self, variable_name):
         return variable_name in self.providing or variable_name in self.temp_variables

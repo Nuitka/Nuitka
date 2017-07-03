@@ -92,10 +92,6 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
 class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
     kind = "EXPRESSION_BUILTIN_LOCALS_UPDATED"
 
-    @staticmethod
-    def getLocalsMode():
-        return "updated"
-
     def needsLocalsDict(self):
         return not self.getParent().isStatementReturn()
 
@@ -115,10 +111,6 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
 
 class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
     kind = "EXPRESSION_BUILTIN_LOCALS_COPY"
-
-    @staticmethod
-    def getLocalsMode():
-        return "copy"
 
     def needsLocalsDict(self):
         return False

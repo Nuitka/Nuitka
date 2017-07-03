@@ -50,7 +50,7 @@ def getCacheDir():
     if appdirs is not None:
         result = appdirs.user_cache_dir("Nuitka", None)
     else:
-        result = os.path.join(os.path.expanduser("~"), ".cache", "Nuitka")
+        result = os.path.join(os.path.expanduser('~'), ".cache", "Nuitka")
 
 
     # For people that build with HOME set this, e.g. Debian.
@@ -65,7 +65,7 @@ def getAppDir():
     if appdirs is not None:
         result = appdirs.user_data_dir("Nuitka", None)
     else:
-        result = os.path.join(os.path.expanduser("~"), ".config", "Nuitka")
+        result = os.path.join(os.path.expanduser('~'), ".config", "Nuitka")
 
     # For people that build with HOME set this, e.g. Debian.
     if result.startswith("/nonexistent/"):

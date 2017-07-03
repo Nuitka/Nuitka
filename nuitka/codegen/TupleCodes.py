@@ -31,6 +31,7 @@ def _areConstants(expressions):
 
         if expression.isMutable():
             return False
+
     return True
 
 
@@ -48,7 +49,9 @@ def getTupleCreationCode(to_name, elements, emit, context):
         getConstantAccess(
             to_name  = to_name,
             constant = tuple(
-                element.getConstant() for element in elements
+                element.getConstant()
+                for element in
+                elements
             ),
             emit     = emit,
             context  = context

@@ -118,6 +118,14 @@ def orderArgs(*args):
     return args
 
 
+def _makeNameAttributeLookup(node, attribute_name = "__name__"):
+    return ExpressionAttributeLookup(
+        source         = node,
+        attribute_name = attribute_name,
+        source_ref     = internal_source_ref
+    )
+
+
 @once_decorator
 def getCallableNameDescBody():
     helper_name = "get_callable_name_desc"
@@ -159,13 +167,6 @@ def getCallableNameDescBody():
         variable_name = "called"
     )
 
-    def makeNameAttributeLookup(node, attribute_name = "__name__"):
-        return ExpressionAttributeLookup(
-            source         = node,
-            attribute_name = attribute_name,
-            source_ref     = internal_source_ref
-        )
-
     functions_case = makeStatementsSequenceFromStatement(
         statement = (
             StatementReturn(
@@ -176,7 +177,7 @@ def getCallableNameDescBody():
                         source_ref    = internal_source_ref,
                         user_provided = True
                     ),
-                    left       = makeNameAttributeLookup(
+                    left       = _makeNameAttributeLookup(
                         ExpressionVariableRef(
                             variable   = called_variable,
                             source_ref = internal_source_ref
@@ -198,7 +199,7 @@ def getCallableNameDescBody():
                 source_ref    = internal_source_ref,
                 user_provided = True
             ),
-            left       = makeNameAttributeLookup(
+            left       = _makeNameAttributeLookup(
                 ExpressionBuiltinType1(
                     value      = ExpressionVariableRef(
                         variable   = called_variable,
@@ -221,8 +222,8 @@ def getCallableNameDescBody():
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                left       = makeNameAttributeLookup(
-                    makeNameAttributeLookup(
+                left       = _makeNameAttributeLookup(
+                    _makeNameAttributeLookup(
                         ExpressionVariableRef(
                             variable   = called_variable,
                             source_ref = internal_source_ref
@@ -260,7 +261,7 @@ def getCallableNameDescBody():
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                left       = makeNameAttributeLookup(
+                left       = _makeNameAttributeLookup(
                     ExpressionVariableRef(
                         variable   = called_variable,
                         source_ref = internal_source_ref
@@ -362,16 +363,14 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
                                 ),
                                 source_ref = internal_source_ref
                             ),
-                            ExpressionAttributeLookup(
-                                source         = ExpressionBuiltinType1(
+                            _makeNameAttributeLookup(
+                                ExpressionBuiltinType1(
                                     value      = ExpressionVariableRef(
                                         variable   = star_list_variable,
                                         source_ref = internal_source_ref
                                     ),
                                     source_ref = internal_source_ref
-                                ),
-                                attribute_name = "__name__",
-                                source_ref     = internal_source_ref
+                                )
                             )
                         ),
                         source_ref = internal_source_ref
@@ -506,16 +505,14 @@ def _makeRaiseExceptionMustBeMapping(called_variable,
                                 ),
                                 source_ref = internal_source_ref
                             ),
-                            ExpressionAttributeLookup(
-                                source         = ExpressionBuiltinType1(
+                            _makeNameAttributeLookup(
+                                ExpressionBuiltinType1(
                                     value      = ExpressionVariableRef(
                                         variable   = star_dict_variable,
                                         source_ref = internal_source_ref
                                     ),
                                     source_ref = internal_source_ref
-                                ),
-                                attribute_name = "__name__",
-                                source_ref     = internal_source_ref
+                                )
                             )
                         ),
                         source_ref = internal_source_ref
@@ -600,13 +597,12 @@ def _makeStarDictArgumentToDictStatement(result, called_variable,
             tried          = StatementAssignmentVariable(
                 variable   = tmp_keys_variable,
                 source     = ExpressionCallEmpty(
-                    called     = ExpressionAttributeLookup(
-                        source         = ExpressionVariableRef(
+                    called     = _makeNameAttributeLookup(
+                        ExpressionVariableRef(
                             variable   = star_dict_variable,
                             source_ref = internal_source_ref
                         ),
-                        attribute_name = "keys",
-                        source_ref     = internal_source_ref
+                        attribute_name = "keys"
                     ),
                     source_ref = internal_source_ref
                 ),
@@ -836,13 +832,12 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable
             tried          = StatementAssignmentVariable(
                 variable   = tmp_keys_variable,
                 source     = ExpressionCallEmpty(
-                    called     = ExpressionAttributeLookup(
-                        source         = ExpressionVariableRef(
+                    called     = _makeNameAttributeLookup(
+                        ExpressionVariableRef(
                             variable   = star_dict_variable,
                             source_ref = internal_source_ref
                         ),
-                        attribute_name = "keys",
-                        source_ref     = internal_source_ref
+                        attribute_name = "keys"
                     ),
                     source_ref = internal_source_ref
                 ),
@@ -983,15 +978,14 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable
             variable   = tmp_iter_variable,
             source     = ExpressionBuiltinIter1(
                 value      = ExpressionCallEmpty(
-                    called     = ExpressionAttributeLookup(
-                        source         = ExpressionVariableRef(
+                    called     = _makeNameAttributeLookup(
+                        ExpressionVariableRef(
                             variable   = star_dict_variable,
                             source_ref = internal_source_ref
                         ),
                         attribute_name = "iteritems"
                                            if python_version < 300 else
-                                         "items",
-                        source_ref     = internal_source_ref
+                                         "items"
                     ),
                     source_ref = internal_source_ref
                 ),
@@ -2549,13 +2543,12 @@ def getFunctionCallHelperDictionaryUnpacking():
                     variable   = tmp_iter2_variable,
                     source     = ExpressionBuiltinIter1(
                         value      = ExpressionCallEmpty(
-                            called     = ExpressionAttributeLookup(
+                            called     = _makeNameAttributeLookup(
                                 ExpressionTempVariableRef(
                                     variable   = tmp_item_variable,
                                     source_ref = internal_source_ref
                                 ),
-                                attribute_name = "keys",
-                                source_ref     = internal_source_ref
+                                attribute_name = "keys"
                             ),
                             source_ref = internal_source_ref
                         ),
@@ -2584,16 +2577,14 @@ def getFunctionCallHelperDictionaryUnpacking():
                             ),
                             right      = ExpressionMakeTuple(
                                 elements   = (
-                                    ExpressionAttributeLookup(
-                                        source         = ExpressionBuiltinType1(
+                                    _makeNameAttributeLookup(
+                                        ExpressionBuiltinType1(
                                             value      = ExpressionTempVariableRef(
                                                 variable   = tmp_item_variable,
                                                 source_ref = internal_source_ref
                                             ),
                                             source_ref = internal_source_ref
-                                        ),
-                                        attribute_name = "__name__",
-                                        source_ref     = internal_source_ref
+                                        )
                                     ),
                                 ),
                                 source_ref = internal_source_ref

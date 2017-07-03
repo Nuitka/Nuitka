@@ -685,6 +685,29 @@ def compileTree(main_module):
     return result, options
 
 
+def handleSyntaxError(e):
+    # Syntax or indentation errors, output them to the user and abort. If
+    # we are not in full compat, and user has not specified the Python
+    # versions he wants, tell him about the potential version problem.
+    error_message = SyntaxErrors.formatOutput(e)
+
+    if not Options.isFullCompat() and \
+       Options.getIntendedPythonVersion() is None:
+        if python_version < 300:
+            suggested_python_version_str = getSupportedPythonVersions()[-1]
+        else:
+            suggested_python_version_str = "2.7"
+
+        error_message += """
+
+Nuitka is very syntax compatible with standard Python. It is currently running
+with Python version '%s', you might want to specify more clearly with the use
+of e.g. '--python-version=%s' option, if that's not the one expected.
+""" % (python_version_str, suggested_python_version_str)
+
+    sys.exit(error_message)
+
+
 data_files = []
 
 def main():
@@ -731,26 +754,7 @@ def main():
             filename = filename
         )
     except (SyntaxError, IndentationError) as e:
-        # Syntax or indentation errors, output them to the user and abort. If
-        # we are not in full compat, and user has not specified the Python
-        # versions he wants, tell him about the potential version problem.
-        error_message = SyntaxErrors.formatOutput(e)
-
-        if not Options.isFullCompat() and \
-           Options.getIntendedPythonVersion() is None:
-            if python_version < 300:
-                suggested_python_version_str = getSupportedPythonVersions()[-1]
-            else:
-                suggested_python_version_str = "2.7"
-
-            error_message += """
-
-Nuitka is very syntax compatible with standard Python. It is currently running
-with Python version '%s', you might want to specify more clearly with the use
-of e.g. '--python-version=%s' option, if that's not the one expected.
-""" % (python_version_str, suggested_python_version_str)
-
-        sys.exit(error_message)
+        handleSyntaxError(e)
 
     if Options.shallDumpBuiltTreeXML():
         for module in ModuleRegistry.getDoneModules():

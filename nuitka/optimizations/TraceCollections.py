@@ -792,7 +792,7 @@ class TraceCollectionFunction(CollectionStartpointMixin,
         TraceCollectionBase.__init__(
             self,
             owner  = function_body,
-            name   = "function_" + str(function_body),
+            name   = "collection_" + function_body.getCodeName(),
             parent = parent
         )
 

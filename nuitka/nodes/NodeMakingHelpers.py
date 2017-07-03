@@ -420,7 +420,7 @@ def makeExpressionBuiltinLocals(provider, source_ref):
     else:
         from .GlobalsLocalsNodes import ExpressionBuiltinLocalsUpdated, ExpressionBuiltinLocalsCopy
 
-        if provider.getLocalsMode() == "updated":
+        if provider.isLocalsUpdatedMode():
             locals_class = ExpressionBuiltinLocalsUpdated
         else:
             locals_class = ExpressionBuiltinLocalsCopy

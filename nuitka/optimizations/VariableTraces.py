@@ -368,9 +368,7 @@ class VariableTraceAssign(VariableTraceBase):
         )
 
     def dump(self):
-        debug("Trace of %s %d:",
-            self.variable,
-            self.version)
+        debug("Trace of %s %d:", self.variable, self.version)
         debug("  Starts assigned")
 
         if self.usage_count:
@@ -435,11 +433,7 @@ class VariableTraceMerge(VariableTraceBase):
         return True
 
     def dump(self):
-        debug(
-            "Trace of %s %d:",
-            self.variable,
-            self.version
-        )
+        debug("Trace of %s %d:", self.variable, self.version)
 
         debug(
             "  Merge of %s",

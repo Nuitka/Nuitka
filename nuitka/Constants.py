@@ -102,8 +102,8 @@ def compareConstants(a, b):
     # constants are built in the same way, therefore above checks.
     return a == b
 
-# These built-in type references are kind of constant too. TODO: The list is
-# totally not complete.
+# These built-in type references are kind of constant too. The list should be
+# complete.
 constant_builtin_types = (
     int,
     str,

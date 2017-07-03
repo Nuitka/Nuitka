@@ -351,14 +351,11 @@ def buildStatementsNode(provider, nodes, source_ref):
     # e.g. a global node generates not really a statement, or pass statements.
     if not statements:
         return None
-
     else:
-        result = StatementsSequence(
+        return StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
-
-    return result
 
 
 def buildFrameNode(provider, nodes, code_object, source_ref):

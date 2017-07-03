@@ -42,7 +42,7 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
         to_name   = to_name,
         variables = expression.getVariableVersions(),
         provider  = provider,
-        mode      = expression.getLocalsMode(),
+        updated   = expression.isExpressionBuiltinLocalsUpdated(),
         emit      = emit,
         context   = context
     )
@@ -139,7 +139,7 @@ def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
         )
 
 
-def getLoadLocalsCode(to_name, variables, provider, mode, emit, context):
+def getLoadLocalsCode(to_name, variables, provider, updated, emit, context):
 
     # Locals is sorted of course.
     def _sorted(variables):
@@ -165,20 +165,7 @@ def getLoadLocalsCode(to_name, variables, provider, mode, emit, context):
 
         is_dict = True
         initial = True
-    elif mode == "copy":
-        emit(
-            "%s = PyDict_Copy( locals_dict );" % (
-                to_name,
-            )
-        )
-        context.addCleanupTempName(to_name)
-
-        is_dict = True
-        initial = False
-
-
-
-    elif mode == "updated":
+    elif updated:
         emit(
             """\
 %s = locals_dict;
@@ -192,7 +179,15 @@ Py_INCREF( locals_dict );""" % (
                   not context.getFunction().isExpressionClassBody()
         initial = False
     else:
-        assert False, mode
+        emit(
+            "%s = PyDict_Copy( locals_dict );" % (
+                to_name,
+            )
+        )
+        context.addCleanupTempName(to_name)
+
+        is_dict = True
+        initial = False
 
     for local_var, version in _sorted(variables):
         _getVariableDictUpdateCode(
