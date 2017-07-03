@@ -311,6 +311,8 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             source_ref = source_ref
         )
 
+    for variable in creator_function_body.getVariables():
+        function_body.getVariableForReference(variable.getName())
 
     decorators = buildNodeList(
         provider   = provider,
