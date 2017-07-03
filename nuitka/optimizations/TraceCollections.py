@@ -512,15 +512,6 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         return result
 
-    def onVariableRelease(self, variable):
-        current = self.getVariableCurrentTrace(variable)
-
-        # Annotate that releases to the trace, it may be important knowledge.
-        current.addRelease()
-
-        return current
-
-
     def onVariableContentEscapes(self, variable):
         self.getVariableCurrentTrace(variable).onValueEscape()
 

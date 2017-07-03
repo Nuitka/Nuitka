@@ -637,9 +637,7 @@ class StatementReleaseVariable(NodeBase):
         self.variable = variable
 
     def computeStatement(self, trace_collection):
-        self.variable_trace = trace_collection.onVariableRelease(
-            variable = self.variable
-        )
+        self.variable_trace = trace_collection.getVariableCurrentTrace(self.variable)
 
         if self.variable_trace.isUninitTrace():
             return (

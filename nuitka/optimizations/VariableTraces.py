@@ -47,9 +47,8 @@ class VariableTraceBase(object):
     # We are going to have many instance attributes, pylint: disable=too-many-instance-attributes
 
     __slots__ = (
-        "owner", "variable", "version", "usage_count",
-        "has_potential_usages", "has_releases", "name_usages",
-        "closure_usages", "is_escaped", "previous"
+        "owner", "variable", "version", "usage_count", "has_potential_usages",
+        "name_usages", "closure_usages", "is_escaped", "previous"
     )
 
     @InstanceCounters.counted_init
@@ -63,9 +62,6 @@ class VariableTraceBase(object):
 
         # Potential usages indicator that an assignment value may be used.
         self.has_potential_usages = False
-
-        # If False, this indicates the trace has no explicit releases.
-        self.has_releases = False
 
         # If 0, this indicates, the variable name needs to be assigned as name.
         self.name_usages = 0
@@ -98,9 +94,6 @@ class VariableTraceBase(object):
 
     def addPotentialUsage(self):
         self.has_potential_usages = True
-
-    def addRelease(self):
-        self.has_releases = True
 
     def addNameUsage(self):
         self.usage_count += 1
@@ -241,9 +234,6 @@ class VariableTraceUninit(VariableTraceBase):
         if self.is_escaped:
             debug("  -> value escapes")
 
-        if self.has_releases:
-            debug("   -> has released")
-
 
 class VariableTraceInit(VariableTraceBase):
     __slots__ = ()
@@ -276,9 +266,6 @@ class VariableTraceInit(VariableTraceBase):
 
         if self.is_escaped:
             debug("  -> value escapes")
-
-        if self.has_releases:
-            debug("   -> has released")
 
     @staticmethod
     def isInitTrace():
@@ -314,9 +301,6 @@ class VariableTraceUnknown(VariableTraceBase):
 
         if self.is_escaped:
             debug("  -> value escapes")
-
-        if self.has_releases:
-            debug("   -> has released")
 
     @staticmethod
     def isUnknownTrace():
@@ -376,9 +360,6 @@ class VariableTraceAssign(VariableTraceBase):
 
         if self.is_escaped:
             debug("  -> value escapes")
-
-        if self.has_releases:
-            debug("   -> has released")
 
     @staticmethod
     def isAssignTrace():
