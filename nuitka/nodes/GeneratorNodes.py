@@ -32,7 +32,7 @@ from .IndicatorMixins import (
     MarkUnoptimizedFunctionIndicatorMixin
 )
 from .NodeBases import ChildrenHavingMixin
-from .ReturnNodes import StatementReturn
+from .ReturnNodes import StatementReturn, StatementReturnNone
 
 
 class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
@@ -163,3 +163,53 @@ class StatementGeneratorReturn(StatementReturn):
             expression = expression,
             source_ref = source_ref
         )
+
+    def computeStatement(self, trace_collection):
+        trace_collection.onExpression(self.getExpression())
+        expression = self.getExpression()
+
+        if expression.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        if expression.willRaiseException(BaseException):
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
+
+            result = makeStatementExpressionOnlyReplacementNode(
+                expression = expression,
+                node       = self
+            )
+
+            return result, "new_raise", """\
+Return statement raises in returned expression, removed return."""
+
+        trace_collection.onFunctionReturn()
+
+        if expression.isExpressionConstantNoneRef():
+            result = StatementGeneratorReturnNone(
+                source_ref = self.source_ref
+            )
+
+            return result, "new_statements", """\
+Generator return value is always None."""
+
+        return self, None, None
+
+    @staticmethod
+    def isStatementGeneratorReturn():
+        return True
+
+
+class StatementGeneratorReturnNone(StatementReturnNone):
+    kind = "STATEMENT_GENERATOR_RETURN_NONE"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref):
+        StatementReturnNone.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    @staticmethod
+    def isStatementGeneratorReturn():
+        return True

@@ -191,7 +191,8 @@ from .OperationCodes import (
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
 from .RaisingCodes import generateRaiseCode
 from .ReturnCodes import (
-    generateGeneratorReturnCode,
+    generateGeneratorReturnNoneCode,
+    generateGeneratorReturnValueCode,
     generateReturnCode,
     generateReturnConstantCode,
     generateReturnedValueRefCode
@@ -653,7 +654,8 @@ setStatementDispatchDict(
         "STATEMENT_RETURN_FALSE"             : generateReturnConstantCode,
         "STATEMENT_RETURN_NONE"              : generateReturnConstantCode,
         "STATEMENT_RETURN_CONSTANT"          : generateReturnConstantCode,
-        "STATEMENT_GENERATOR_RETURN"         : generateGeneratorReturnCode,
+        "STATEMENT_GENERATOR_RETURN"         : generateGeneratorReturnValueCode,
+        "STATEMENT_GENERATOR_RETURN_NONE"    : generateGeneratorReturnNoneCode,
         "STATEMENT_CONDITIONAL"              : generateBranchCode,
         "STATEMENT_TRY"                      : generateTryCode,
         "STATEMENT_PRINT_VALUE"              : generatePrintValueCode,

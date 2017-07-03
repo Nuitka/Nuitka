@@ -38,10 +38,7 @@ from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ConstantRefNodes import (
-    ExpressionConstantNoneRef,
-    makeConstantRefNode
-)
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
@@ -56,10 +53,10 @@ from nuitka.nodes.FunctionNodes import (
 from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
     ExpressionMakeGeneratorObject,
-    StatementGeneratorReturn
+    StatementGeneratorReturnNone
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
-from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
@@ -81,15 +78,8 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 
 
-def _insertFinalReturnStatement(function_statements_body, return_class,
+def _insertFinalReturnStatement(function_statements_body, return_statement,
                                 source_ref):
-    return_statement = return_class(
-        expression = ExpressionConstantNoneRef(
-            source_ref = source_ref
-        ),
-        source_ref = source_ref
-    )
-
     if function_statements_body is None:
         function_statements_body = makeStatementsSequenceFromStatement(
             statement = return_statement
@@ -189,7 +179,9 @@ def buildFunctionNode(provider, node, source_ref):
         # TODO: Generators might have to raise GeneratorExit instead.
         function_statements_body = _insertFinalReturnStatement(
             function_statements_body = function_statements_body,
-            return_class             = StatementReturn,
+            return_statement         = StatementReturnNone(
+                source_ref = source_ref
+            ),
             source_ref               = source_ref
         )
 
@@ -335,7 +327,9 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_statements_body = _insertFinalReturnStatement(
         function_statements_body = function_statements_body,
-        return_class             = StatementGeneratorReturn,
+        return_statement         = StatementGeneratorReturnNone(
+            source_ref = source_ref
+        ),
         source_ref               = source_ref
     )
 
@@ -468,7 +462,6 @@ def buildParameterAnnotations(provider, node, source_ref):
     # Build annotations. We are hiding here, that it is a Python3 only feature.
     if python_version < 300:
         return None
-
 
     # Starting with Python 3.4, the names of parameters are mangled in
     # annotations as well.
