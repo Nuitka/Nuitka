@@ -134,7 +134,7 @@ def getBuiltinTypeNames():
     result = []
 
     for builtin_name in builtin_names:
-        if isinstance(__builtins__[builtin_name],type):
+        if isinstance(__builtins__[builtin_name], type):
             result.append(builtin_name)
 
     return tuple(sorted(result))

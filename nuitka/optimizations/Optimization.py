@@ -195,14 +195,6 @@ def areEmptyTraces(variable_traces):
                 # them as well.
                 empty = False
                 break
-        elif variable_trace.isEscaped():
-            assert False, variable_trace
-
-            # If the value is escape, we still need to keep it for that
-            # escape opportunity. This is only while that is not seen
-            # as a definite usage.
-            empty = False
-            break
         else:
             assert False, variable_trace
 

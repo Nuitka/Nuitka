@@ -82,8 +82,6 @@ def getExecutablePath(filename):
 def getPythonExePathWindows(search, arch):
     """ Find Python on Windows.
 
-    First try a few guesses, the look into registry for user or system wide
-    installations of Python2. Both Python 2.6 and 2.7 will do.
     """
 
     # Shortcuts for the default installation directories, to avoid going to

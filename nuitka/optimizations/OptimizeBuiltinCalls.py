@@ -347,12 +347,14 @@ def dict_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_dict_spec
     )
 
+
 def chr_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinChr,
         builtin_spec  = BuiltinOptimization.builtin_chr_spec
     )
+
 
 def ord_extractor(node):
     def makeOrd0(source_ref):
@@ -370,12 +372,14 @@ def ord_extractor(node):
         empty_special_class = makeOrd0
     )
 
+
 def bin_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinBin,
         builtin_spec  = BuiltinOptimization.builtin_bin_spec
     )
+
 
 def oct_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
@@ -384,6 +388,7 @@ def oct_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_oct_spec
     )
 
+
 def hex_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
@@ -391,12 +396,14 @@ def hex_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_hex_spec
     )
 
+
 def id_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinId,
         builtin_spec  = BuiltinOptimization.builtin_id_spec
     )
+
 
 def repr_extractor(node):
     def makeReprOperator(operand, source_ref):
@@ -508,12 +515,14 @@ def len_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_len_spec
     )
 
+
 def tuple_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinTuple,
         builtin_spec  = BuiltinOptimization.builtin_tuple_spec
     )
+
 
 def list_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
@@ -522,12 +531,14 @@ def list_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_list_spec
     )
 
+
 def set_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinSet,
         builtin_spec  = BuiltinOptimization.builtin_set_spec
     )
+
 
 def float_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
@@ -536,12 +547,14 @@ def float_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_float_spec
     )
 
+
 def complex_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinComplex,
         builtin_spec  = BuiltinOptimization.builtin_complex_spec
     )
+
 
 def str_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
@@ -568,6 +581,7 @@ def bool_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_bool_spec
     )
 
+
 def int_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
@@ -585,12 +599,14 @@ if python_version < 300:
             builtin_spec  = BuiltinOptimization.builtin_long_spec
         )
 
+
 def globals_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinGlobals,
         builtin_spec  = BuiltinOptimization.builtin_globals_spec
     )
+
 
 def locals_extractor(node):
     # Note: Locals on the module level is really globals.
@@ -686,6 +702,7 @@ if python_version < 300:
             builtin_class = wrapExpressionBuiltinExecfileCreation,
             builtin_spec  = BuiltinOptimization.builtin_execfile_spec
         )
+
 
 def eval_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
@@ -865,6 +882,7 @@ def eval_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_eval_spec
     )
 
+
 if python_version >= 300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExec
 
@@ -926,6 +944,7 @@ if python_version >= 300:
             builtin_class = wrapExpressionBuiltinExecCreation,
             builtin_spec  = BuiltinOptimization.builtin_eval_spec
         )
+
 
 def compile_extractor(node):
     def wrapExpressionBuiltinCompileCreation(source_code, filename, mode, flags,
@@ -1062,6 +1081,7 @@ def hasattr_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_hasattr_spec
     )
 
+
 def getattr_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
@@ -1069,12 +1089,14 @@ def getattr_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_getattr_spec
     )
 
+
 def setattr_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinSetattr,
         builtin_spec  = BuiltinOptimization.builtin_setattr_spec
     )
+
 
 def isinstance_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
