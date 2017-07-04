@@ -771,6 +771,9 @@ def main():
             sys.exit(1)
 
         if Options.shallNotDoExecCCompilerCall():
+            if Options.isShowMemory():
+                MemoryUsage.showMemoryTrace()
+
             sys.exit(0)
 
         # Remove the source directory (now build directory too) if asked to.

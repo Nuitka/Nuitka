@@ -19,6 +19,8 @@
 
 """
 
+from nuitka.Tracing import printLine
+
 from .Utils import getOS
 
 
@@ -114,3 +116,28 @@ class MemoryWatch(object):
 
     def asStr(self):
         return getHumanReadableProcessMemoryUsage(self.stop - self.start)
+
+
+def startMemoryTracing():
+    try:
+        import tracemalloc  # @UnresolvedImport
+    except ImportError:
+        pass
+    else:
+        tracemalloc.start()
+
+
+def showMemoryTrace():
+    try:
+        import tracemalloc  # @UnresolvedImport
+    except ImportError:
+        pass
+    else:
+        snapshot = tracemalloc.take_snapshot()
+        stats = snapshot.statistics("lineno")
+
+        printLine("Top 50 memory allocations:")
+        for count, stat in enumerate(stats):
+            if count == 50:
+                break
+            printLine(stat)

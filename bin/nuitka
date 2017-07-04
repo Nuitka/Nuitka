@@ -173,6 +173,10 @@ if needs_reexec:
 
     Execution.callExec(args)
 
+if Options.isShowMemory():
+    from nuitka.utils import MemoryUsage
+    MemoryUsage.startMemoryTracing()
+
 # Inform the user about potential issues.
 if current_version not in Options.getSupportedPythonVersions():
 
@@ -205,3 +209,6 @@ if "NUITKA_PTH_IMPORTED" in os.environ:
 # Now the main program.
 from nuitka import MainControl  # isort:skip
 MainControl.main()
+
+if Options.isShowMemory():
+    MemoryUsage.showMemoryTrace()
