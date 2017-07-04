@@ -451,7 +451,19 @@ class ExpressionBase(NodeBase):
         return not_node, None, None
 
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
+
+        shape = self.getTypeShape()
+
+        assert shape is not None, self
+
+        if shape.hasShapeSlotContains() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template      = "argument of type '%s' object is not iterable",
+                operation     = "in",
+                original_node = in_node,
+                value_node    = self
+            )
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(in_node)
