@@ -106,6 +106,9 @@ def _getBuiltinNames():
     names.remove("__name__")
     names.remove("__package__")
 
+    if "__loader__" in names:
+        names.remove("__loader__")
+
     warnings = []
 
     for builtin_name in names:
