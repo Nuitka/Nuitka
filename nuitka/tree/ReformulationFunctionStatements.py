@@ -35,7 +35,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     StatementSpecialUnpackCheck
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
+from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -78,8 +78,7 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 
 
-def _insertFinalReturnStatement(function_statements_body, return_statement,
-                                source_ref):
+def _insertFinalReturnStatement(function_statements_body, return_statement):
     if function_statements_body is None:
         function_statements_body = makeStatementsSequenceFromStatement(
             statement = return_statement
@@ -181,8 +180,7 @@ def buildFunctionNode(provider, node, source_ref):
             function_statements_body = function_statements_body,
             return_statement         = StatementReturnNone(
                 source_ref = source_ref
-            ),
-            source_ref               = source_ref
+            )
         )
 
     if function_statements_body.isStatementsFrame():
@@ -221,7 +219,7 @@ def buildFunctionNode(provider, node, source_ref):
                 break
         else:
             decorators.append(
-                ExpressionBuiltinRef(
+                makeExpressionBuiltinRef(
                     builtin_name = "staticmethod",
                     source_ref   = source_ref
                 )
@@ -237,7 +235,7 @@ def buildFunctionNode(provider, node, source_ref):
                 break
         else:
             decorators.append(
-                ExpressionBuiltinRef(
+                makeExpressionBuiltinRef(
                     builtin_name = "classmethod",
                     source_ref   = source_ref
                 )
@@ -329,8 +327,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         function_statements_body = function_statements_body,
         return_statement         = StatementGeneratorReturnNone(
             source_ref = source_ref
-        ),
-        source_ref               = source_ref
+        )
     )
 
     if function_statements_body.isStatementsFrame():

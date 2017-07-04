@@ -24,7 +24,6 @@ import sys
 
 from nuitka import Options
 from nuitka.__past__ import iterItems
-from nuitka.Constants import constant_builtin_types
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
@@ -530,8 +529,9 @@ class PythonGlobalContext(object):
         self.needs_exception_variables = False
 
     def getConstantCode(self, constant):
-        # Use in user code, or for constants building code itself
-
+        # Use in user code, or for constants building code itself, many
+        # constant types get special code immediately.
+        # pylint: disable=too-many-branches
         if constant is None:
             key = "Py_None"
         elif constant is True:
@@ -540,19 +540,38 @@ class PythonGlobalContext(object):
             key = "Py_False"
         elif constant is Ellipsis:
             key = "Py_Ellipsis"
-        elif constant in constant_builtin_types:
-            type_name = constant.__name__
+        elif type(constant) is type:
+            # TODO: Maybe make this a mapping in nuitka.Builtins
 
-            if constant is int and python_version >= 300:
-                type_name = "long"
-
-            if constant is str:
-                type_name = "string" if python_version < 300 else "unicode"
-
-            if type_name != "NoneType":
-                key = "(PyObject *)&Py%s_Type" % type_name.title()
-            else:
+            if constant is None:
                 key = "(PyObject *)Py_TYPE( Py_None )"
+            elif constant is object:
+                key = "(PyObject *)&PyBaseObject_Type"
+            elif constant is staticmethod:
+                key = "(PyObject *)&PyStaticMethod_Type"
+            elif constant is classmethod:
+                key = "(PyObject *)&PyClassMethod_Type"
+            elif constant is bytearray:
+                key = "(PyObject *)&PyByteArray_Type"
+            elif constant is enumerate:
+                key = "(PyObject *)&PyEnum_Type"
+            elif constant is frozenset:
+                key = "(PyObject *)&PyFrozenSet_Type"
+            elif python_version >= 270 and constant is memoryview:
+                key = "(PyObject *)&PyMemoryView_Type"
+            elif python_version < 300 and constant is basestring:
+                key = "(PyObject *)&PyBaseString_Type"
+            elif python_version < 300 and constant is xrange:
+                key = "(PyObject *)&PyRange_Type"
+            else:
+                type_name = constant.__name__
+
+                if constant is int and python_version >= 300:
+                    type_name = "long"
+                elif constant is str:
+                    type_name = "string" if python_version < 300 else "unicode"
+
+                key = "(PyObject *)&Py%s_Type" % type_name.title()
         else:
             key = "const_" + namifyConstant(constant)
 

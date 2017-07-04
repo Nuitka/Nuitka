@@ -188,9 +188,9 @@ Module variable '%s' found to be built-in exception reference.""" % (
                 )
             elif self.variable_name in Builtins.builtin_names and \
                  self.variable_name != "pow":
-                from .BuiltinRefNodes import ExpressionBuiltinRef
+                from .BuiltinRefNodes import makeExpressionBuiltinRef
 
-                new_node = ExpressionBuiltinRef(
+                new_node = makeExpressionBuiltinRef(
                     builtin_name = self.variable_name,
                     source_ref   = self.getSourceReference()
                 )
@@ -576,9 +576,9 @@ Module variable '%s' found to be built-in exception reference.""" % (
                 )
             elif self.variable_name in Builtins.builtin_names and \
                  self.variable_name != "pow":
-                from .BuiltinRefNodes import ExpressionBuiltinRef
+                from .BuiltinRefNodes import makeExpressionBuiltinRef
 
-                new_node = ExpressionBuiltinRef(
+                new_node = makeExpressionBuiltinRef(
                     builtin_name = self.variable_name,
                     source_ref   = self.getSourceReference()
                 )

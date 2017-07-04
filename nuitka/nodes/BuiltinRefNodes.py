@@ -29,7 +29,8 @@ from nuitka.Builtins import (
     builtin_anon_names,
     builtin_exception_names,
     builtin_exception_values,
-    builtin_names
+    builtin_names,
+    builtin_type_names
 )
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
@@ -77,13 +78,40 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
         )
 
 
+def makeExpressionBuiltinRef(builtin_name, source_ref):
+    assert builtin_name in builtin_names, builtin_name
+
+    quick_names = {
+        "None"      : None,
+        "True"      : True,
+        "False"     : False,
+        "__debug__" : __debug__,
+        "Ellipsis"  : Ellipsis,
+    }
+
+    if builtin_name in quick_names:
+        return makeConstantRefNode(
+            constant   = quick_names[builtin_name],
+            source_ref = source_ref
+        )
+    elif builtin_name in builtin_type_names:
+        return makeConstantRefNode(
+            constant   = __builtins__[builtin_name],
+            source_ref = source_ref
+        )
+    else:
+        return ExpressionBuiltinRef(
+            builtin_name = builtin_name,
+            source_ref   = source_ref
+        )
+
+
 class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     kind = "EXPRESSION_BUILTIN_REF"
 
     __slots__ = ()
 
     def __init__(self, builtin_name, source_ref):
-        assert builtin_name in builtin_names, builtin_name
 
         ExpressionBuiltinRefBase.__init__(
             self,
@@ -95,28 +123,9 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
         return True
 
     def getCompileTimeConstant(self):
-        return __builtins__[ self.builtin_name ]
+        return __builtins__[self.builtin_name]
 
     def computeExpressionRaw(self, trace_collection):
-        # TODO: We really should solve this in a factory function and
-        # not reconsider it each time.
-        quick_names = {
-            "None"      : None,
-            "True"      : True,
-            "False"     : False,
-            "__debug__" : __debug__,
-            "Ellipsis"  : Ellipsis,
-        }
-
-        if self.builtin_name in quick_names:
-            new_node = makeConstantRefNode(
-                constant   = quick_names[self.builtin_name],
-                source_ref = self.getSourceReference()
-            )
-
-            return new_node, "new_constant", """\
-Built-in constant '%s' resolved.""" % self.builtin_name
-
         return self, None, None
 
     def computeExpressionCall(self, call_node, call_args, call_kw,
@@ -128,8 +137,8 @@ Built-in constant '%s' resolved.""" % self.builtin_name
         trace_collection.onExceptionRaiseExit(BaseException)
 
         new_node, tags, message = computeBuiltinCall(
-            call_node = call_node,
-            called    = self
+            builtin_name = self.builtin_name,
+            call_node    = call_node
         )
 
         if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
@@ -144,20 +153,6 @@ Built-in constant '%s' resolved.""" % self.builtin_name
     def isKnownToBeIterable(self, count):
         # TODO: Why yes, some may be, could be told here.
         return None
-
-
-class ExpressionBuiltinOriginalRef(ExpressionBuiltinRef):
-    kind = "EXPRESSION_BUILTIN_ORIGINAL_REF"
-
-    def isCompileTimeConstant(self):
-        # TODO: Actually the base class should not be constant and this
-        # one should be.
-        return False
-
-    def computeExpressionRaw(self, trace_collection):
-
-        # Needs whole program analysis, we don't really know much about it.
-        return self, None, None
 
 
 class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):

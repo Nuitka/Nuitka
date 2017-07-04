@@ -786,6 +786,21 @@ class ExpressionConstantTypeRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return ShapeTypeType
 
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              trace_collection):
+        from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        new_node, tags, message = computeBuiltinCall(
+            builtin_name = self.constant.__name__,
+            call_node    = call_node
+        )
+
+        return new_node, tags, message
+
 
 the_empty_dict = {}
 

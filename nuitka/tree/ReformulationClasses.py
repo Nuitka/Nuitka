@@ -32,7 +32,7 @@ from nuitka.nodes.AttributeNodes import (
 )
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
-    ExpressionBuiltinRef
+    makeExpressionBuiltinRef
 )
 from nuitka.nodes.CallNodes import ExpressionCall, ExpressionCallNoKeywords
 from nuitka.nodes.ClassNodes import (
@@ -401,7 +401,7 @@ def _buildClassNode3(provider, node, source_ref):
                             variable   = tmp_bases,
                             source_ref = source_ref
                         ),
-                        expression_no  = ExpressionBuiltinRef(
+                        expression_no  = makeExpressionBuiltinRef(
                             builtin_name = "type",
                             source_ref   = source_ref
                         ),

@@ -32,7 +32,7 @@ from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
-    ExpressionBuiltinRef
+    makeExpressionBuiltinRef
 )
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import (
@@ -457,7 +457,7 @@ def _makeStarListArgumentToTupleStatement(called_variable,
                 ),
                 source_ref = internal_source_ref
             ),
-            right      = ExpressionBuiltinRef(
+            right      = makeExpressionBuiltinRef(
                 builtin_name = "tuple",
                 source_ref   = internal_source_ref
             ),
@@ -659,7 +659,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable,
                 ),
                 source_ref = internal_source_ref
             ),
-            right      = ExpressionBuiltinRef(
+            right      = makeExpressionBuiltinRef(
                 builtin_name = "dict",
                 source_ref   = internal_source_ref
             ),
@@ -1021,7 +1021,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable
                 ),
                 source_ref = internal_source_ref
             ),
-            right      = ExpressionBuiltinRef(
+            right      = makeExpressionBuiltinRef(
                 builtin_name = "dict",
                 source_ref   = internal_source_ref
             ),

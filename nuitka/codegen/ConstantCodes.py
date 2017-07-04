@@ -41,11 +41,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     unicode,
     xrange
 )
-from nuitka.Constants import (
-    constant_builtin_types,
-    getConstantWeight,
-    isMutable
-)
+from nuitka.Constants import getConstantWeight, isMutable
 from nuitka.PythonVersions import python_version
 
 from .BlobCodes import StreamData
@@ -302,8 +298,6 @@ def _addConstantInitCode(context, emit, check, constant_type, constant_value,
         constants belong into the same scope.
     """
 
-    if constant_value in constant_builtin_types:
-        return
     if constant_value is None:
         return
     if constant_value is False:
@@ -311,6 +305,8 @@ def _addConstantInitCode(context, emit, check, constant_type, constant_value,
     if constant_value is True:
         return
     if constant_value is Ellipsis:
+        return
+    if type(constant_value) is type:
         return
 
     # Do not repeat ourselves.
@@ -867,8 +863,6 @@ def getConstantsDeclCode(context):
 
     for constant_identifier, constant_value in sorted_constants:
         # Need not declare built-in types.
-        if constant_value in constant_builtin_types:
-            continue
         if constant_value is None:
             continue
         if constant_value is False:
@@ -876,6 +870,8 @@ def getConstantsDeclCode(context):
         if constant_value is True:
             continue
         if constant_value is Ellipsis:
+            continue
+        if type(constant_value) is type:
             continue
 
         if context.getConstantUseCount(constant_identifier) != 1:

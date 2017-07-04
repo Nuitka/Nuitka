@@ -68,8 +68,7 @@ from nuitka.nodes.BuiltinRangeNodes import (
 )
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
-    ExpressionBuiltinOriginalRef,
-    ExpressionBuiltinRef
+    makeExpressionBuiltinRef
 )
 from nuitka.nodes.BuiltinSumNodes import (
     ExpressionBuiltinSum1,
@@ -130,7 +129,6 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
-from nuitka.Options import isDebug, shallMakeModule
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Helpers import (
     makeSequenceCreationOrConstant,
@@ -746,7 +744,7 @@ def eval_extractor(node):
                         ),
                         source_ref = source_ref
                     ),
-                    right      = ExpressionBuiltinRef(
+                    right      = makeExpressionBuiltinRef(
                         builtin_name = "bytes",
                         source_ref   = source_ref
                     ),
@@ -791,7 +789,7 @@ def eval_extractor(node):
 
         if python_version >= 270:
             acceptable_builtin_types.append(
-                ExpressionBuiltinRef(
+                makeExpressionBuiltinRef(
                     builtin_name = "memoryview",
                     source_ref   = source_ref,
                 )
@@ -1215,12 +1213,9 @@ _builtin_white_list = (
 )
 
 
-def computeBuiltinCall(call_node, called):
+def computeBuiltinCall(builtin_name, call_node):
     # There is some dispatching for how to output various types of changes,
-    # with lots of cases, pylint: disable=too-many-branches
-
-    builtin_name = called.getBuiltinName()
-
+    # with lots of cases.
     if builtin_name in _dispatch_dict:
         new_node = _dispatch_dict[builtin_name](call_node)
 
@@ -1274,40 +1269,11 @@ Replaced call to built-in '%s' with outlined call.""" % builtin_name
 
             assert False, (builtin_name, "->", inspect_node)
 
-        # TODO: One day, this should be enabled by default and call either the
-        # original built-in or the optimized above one. That should be done,
-        # once we can eliminate the condition for most cases.
-        if False and isDebug() and not shallMakeModule() and builtin_name:
-            source_ref = called.getSourceReference()
-
-            new_node = ExpressionConditional(
-                condition      = ExpressionComparisonIs(
-                    left       = ExpressionBuiltinRef(
-                        builtin_name = builtin_name,
-                        source_ref   = source_ref
-                    ),
-                    right      = ExpressionBuiltinOriginalRef(
-                        builtin_name = builtin_name,
-                        source_ref   = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
-                expression_yes = new_node,
-                expression_no  = makeRaiseExceptionReplacementExpression(
-                    exception_type  = "RuntimeError",
-                    exception_value = "Built-in '%s' cannot be replaced." % (
-                        builtin_name
-                    ),
-                    expression      = call_node
-                ),
-                source_ref     = source_ref
-            )
-
         assert tags != ""
 
         return new_node, tags, message
     else:
-        if False and isDebug() and builtin_name not in _builtin_white_list:
+        if False and builtin_name not in _builtin_white_list:
             warning(
                 "Not handling built-in '%s', consider support." % builtin_name
             )

@@ -172,9 +172,9 @@ def makeCompileTimeConstantReplacementNode(value, node):
         )
     elif type(value) is type:
         if value.__name__ in builtin_names:
-            from .BuiltinRefNodes import ExpressionBuiltinRef
+            from .BuiltinRefNodes import makeExpressionBuiltinRef
 
-            return ExpressionBuiltinRef(
+            return makeExpressionBuiltinRef(
                 builtin_name = value.__name__,
                 source_ref   = node.getSourceReference()
             )

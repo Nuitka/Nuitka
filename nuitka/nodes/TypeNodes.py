@@ -28,7 +28,7 @@ from nuitka.Builtins import builtin_names
 
 from .BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
-    ExpressionBuiltinRef
+    makeExpressionBuiltinRef
 )
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
@@ -49,7 +49,7 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
 
 
             if type_name in builtin_names:
-                new_node = ExpressionBuiltinRef(
+                new_node = makeExpressionBuiltinRef(
                     builtin_name = type_name,
                     source_ref   = self.getSourceReference()
                 )
