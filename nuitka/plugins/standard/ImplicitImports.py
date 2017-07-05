@@ -32,6 +32,13 @@ from nuitka.utils.Utils import getOS
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
+    def isRequiredImplicitImport(self, full_name):
+        if full_name == "_tkinter":
+            return False
+
+        return True
+
+
     def getImplicitImports(self, full_name):
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
         # TODO: Move this out to some kind of configuration format.

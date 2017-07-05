@@ -85,12 +85,15 @@ class NuitkaPluginBase(object):
             )
 
             if module_filename is None:
-                sys.exit(
-                    "Error, implicit module '%s' expected by '%s' not found." % (
-                        full_name,
-                        module.getFullName()
+                if self.isRequiredImplicitImport(full_name):
+                    sys.exit(
+                        "Error, implicit module '%s' expected by '%s' not found." % (
+                            full_name,
+                            module.getFullName()
+                        )
                     )
-                )
+                else:
+                    continue
             elif os.path.isdir(module_filename):
                 module_kind = "py"
             elif module_filename.endswith(".py"):
@@ -118,6 +121,15 @@ class NuitkaPluginBase(object):
                     reason          = reason,
                     signal_change   = signal_change
                 )
+
+    def isRequiredImplicitImport(self, full_name):
+        """ By default, if given as an implicit import, require it.
+
+        """
+
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
 
     def getImplicitImports(self, full_name):
         # Virtual method, pylint: disable=no-self-use,unused-argument
