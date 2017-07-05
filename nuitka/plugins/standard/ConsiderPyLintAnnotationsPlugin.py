@@ -35,6 +35,7 @@ to grow both.
 
 import re
 
+from nuitka.__past__ import intern
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 
@@ -48,7 +49,7 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
         annotations = {}
 
         for count, line in enumerate(source_code.split('\n')):
-            match = re.search(r"#.*pylint:\s*disable=\s*([\w,]+)", line)
+            match = re.search(r"#.*pylint:\s*disable=\s*([\w,-]+)", line)
 
             if match:
                 comment_only = line[:line.find('#')-1].strip() == ""
@@ -58,7 +59,7 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
                     pass
                 else:
                     annotations[count+1] = set(
-                        match.strip()
+                        intern(match.strip())
                         for match in
                         match.group(1).split(',')
                     )
@@ -75,7 +76,7 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
 
         line_annotations = annotations.get(source_ref.getLineNumber(), ())
 
-        if "F0401" in line_annotations:
+        if "F0401" in line_annotations or "import-error" in line_annotations:
             return True
 
         return False

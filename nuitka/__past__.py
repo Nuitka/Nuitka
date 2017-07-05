@@ -25,6 +25,7 @@ be a "in (str, unicode)" rather than making useless version checks.
 
 """
 
+import sys
 
 # pylint: disable=I0021,invalid-name,redefined-builtin
 
@@ -81,6 +82,11 @@ except ImportError:
 
         return cls
 
+if str is bytes:
+    intern = intern      # @ReservedAssignment
+else:
+    intern = sys.intern  # @ReservedAssignment @UndefinedVariable
+
 # For PyLint to be happy.
 assert long
 assert unicode
@@ -88,3 +94,4 @@ assert urlretrieve
 assert StringIO
 assert type(xrange) is type, xrange
 assert total_ordering
+assert intern
