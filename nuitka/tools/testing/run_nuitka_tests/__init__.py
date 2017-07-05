@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
@@ -16,30 +15,4 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-""" Main front-end to the tests of Nuitka.
-
-Has many options, read --help output.
-"""
-
-import os
-import sys
-
-# Unchanged, running from checkout, use the parent directory, the nuitka
-# package ought be there.
-sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-        )
-    )
-)
-sys.path.insert(
-    1,
-    "/usr/share/nuitka"
-)
-
-from nuitka.tools.testing.run_nuitka_tests.__main__ import main # isort:skip
-main()
+""" Dummy file to make this directory a package. """
