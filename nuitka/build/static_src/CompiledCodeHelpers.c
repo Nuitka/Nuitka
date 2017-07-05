@@ -414,7 +414,7 @@ PyObject *BUILTIN_HASH( PyObject *value )
 #endif
 }
 
-PyObject *BUILTIN_BYTEARRAY( PyObject *value )
+PyObject *BUILTIN_BYTEARRAY1( PyObject *value )
 {
     PyObject *result = PyByteArray_FromObject( value );
 
@@ -424,6 +424,39 @@ PyObject *BUILTIN_BYTEARRAY( PyObject *value )
     }
 
     return result;
+}
+
+NUITKA_DEFINE_BUILTIN( bytearray )
+
+PyObject *BUILTIN_BYTEARRAY3( PyObject *string, PyObject *encoding, PyObject *errors )
+{
+    CHECK_OBJECT( string );
+    CHECK_OBJECT( encoding );
+
+    NUITKA_ASSIGN_BUILTIN( bytearray );
+
+    if ( errors == NULL )
+    {
+        PyObject *args[] = { string, encoding };
+
+        PyObject *result = CALL_FUNCTION_WITH_ARGS2(
+            NUITKA_ACCESS_BUILTIN( bytearray ),
+            args
+        );
+
+        return result;
+    }
+    else
+    {
+        PyObject *args[] = { string, encoding, errors };
+
+        PyObject *result = CALL_FUNCTION_WITH_ARGS3(
+            NUITKA_ACCESS_BUILTIN( bytearray ),
+            args
+        );
+
+        return result;
+    }
 }
 
 
@@ -1947,6 +1980,17 @@ PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size )
     return result;
 }
 #endif
+
+PyObject *UNSTREAM_BYTEARRAY( unsigned char const *buffer, Py_ssize_t size )
+{
+    PyObject *result = PyByteArray_FromStringAndSize( (char const  *)buffer, size );
+    assert( !ERROR_OCCURRED() );
+    CHECK_OBJECT( result );
+
+    assert( PyByteArray_GET_SIZE( result ) == size );
+    return result;
+}
+
 
 
 #if PYTHON_VERSION < 300
@@ -5064,6 +5108,11 @@ PyObject *DEEP_COPY( PyObject *value )
         Py_INCREF( value );
         return value;
     }
+    else if ( PyByteArray_Check( value ) )
+    {
+        // TODO: Could make an exception for zero size.
+        return PyByteArray_FromObject( value );
+    }
     else
     {
         PyErr_Format(
@@ -5270,6 +5319,19 @@ Py_hash_t DEEP_HASH( PyObject *value )
         return result;
     }
 #endif
+    else if ( PyByteArray_Check( value ) )
+    {
+        Py_hash_t result = DEEP_HASH_INIT( value );
+
+        Py_ssize_t size = PyByteArray_Size( value );
+        assert( size >= 0 );
+
+        char *s = PyByteArray_AsString( value );
+
+        DEEP_HASH_BLOB( &result, s, size );
+
+        return result;
+    }
     else if ( value == Py_None || value == Py_Ellipsis )
     {
         return DEEP_HASH_INIT( value );

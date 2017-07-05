@@ -76,7 +76,8 @@ from nuitka.nodes.BuiltinSumNodes import (
 )
 from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinBool,
-    ExpressionBuiltinBytearray,
+    ExpressionBuiltinBytearray1,
+    ExpressionBuiltinBytearray3,
     ExpressionBuiltinComplex,
     ExpressionBuiltinFloat,
     ExpressionBuiltinInt,
@@ -1105,11 +1106,34 @@ def isinstance_extractor(node):
         builtin_spec  = BuiltinOptimization.builtin_isinstance_spec
     )
 
+
 def bytearray_extractor(node):
+    def makeBytearray0(source_ref):
+        return makeConstantRefNode(
+            constant   = bytearray(),
+            source_ref = source_ref,
+        )
+
+    def selectNextBuiltinClass(string, encoding, errors, source_ref):
+        if encoding is None:
+            return ExpressionBuiltinBytearray1(
+                value      = string,
+                source_ref = source_ref
+            )
+        else:
+            return ExpressionBuiltinBytearray3(
+                string     = string,
+                encoding   = encoding,
+                errors     = errors,
+                source_ref = source_ref
+            )
+
+
     return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinBytearray,
-        builtin_spec  = BuiltinOptimization.builtin_bytearray_spec
+        node                = node,
+        builtin_class       = selectNextBuiltinClass,
+        builtin_spec        = BuiltinOptimization.builtin_bytearray_spec,
+        empty_special_class = makeBytearray0
     )
 
 
@@ -1192,8 +1216,7 @@ _dispatch_dict = {
     "getattr"    : getattr_extractor,
     "setattr"    : setattr_extractor,
     "isinstance" : isinstance_extractor,
-    # TODO: Disabled for now, not handling all cases.
-    # "bytearray"  : bytearray_extractor,
+    "bytearray"  : bytearray_extractor,
     "slice"      : slice_extractor,
     "hash"       : hash_extractor,
     "format"     : format_extractor,
@@ -1287,6 +1310,10 @@ Replaced call to built-in '%s' with call.""" % (
             tags = "new_expression"
             message = """\
 Replaced call to built-in '%s' with outlined call.""" % builtin_name
+        elif inspect_node.isExpressionConstantRef():
+            tags = "new_expression"
+            message = """\
+Replaced call to built-in '%s' with constant value.""" % builtin_name
         else:
 
             assert False, (builtin_name, "->", inspect_node)

@@ -436,6 +436,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 #include "nuitka/helper/slices.h"
 #include "nuitka/helper/rangeobjects.h"
 #include "nuitka/helper/lists.h"
+#include "nuitka/helper/bytearrays.h"
 
 #include "nuitka/builtins.h"
 
@@ -501,7 +502,8 @@ extern PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObjec
 extern PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value );
 
 // For built-in bytearray() functionality.
-extern PyObject *BUILTIN_BYTEARRAY( PyObject *value );
+extern PyObject *BUILTIN_BYTEARRAY1( PyObject *value );
+extern PyObject *BUILTIN_BYTEARRAY3( PyObject *string, PyObject *encoding, PyObject *errors );
 
 // For built-in hash() functionality.
 extern PyObject *BUILTIN_HASH( PyObject *value );
@@ -543,6 +545,7 @@ extern PyObject *UNSTREAM_UNICODE( unsigned char const *buffer, Py_ssize_t size 
 extern PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size );
 #endif
 extern PyObject *UNSTREAM_FLOAT( unsigned char const *buffer );
+extern PyObject *UNSTREAM_BYTEARRAY( unsigned char const *buffer, Py_ssize_t size );
 
 // Performance enhancements to Python types.
 extern void enhancePythonTypes( void );

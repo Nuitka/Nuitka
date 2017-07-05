@@ -158,7 +158,7 @@ def isConstant(constant):
 
         return True
     elif constant_type in (str, unicode, complex, int, long, bool, float,
-                           NoneType, range, bytes, set, xrange):
+                           NoneType, range, bytes, set, xrange, bytearray):
         return True
     elif constant in (Ellipsis, NoneType):
         return True
@@ -182,7 +182,7 @@ def isMutable(constant):
     if constant_type in (str, unicode, complex, int, long, bool, float,
                          NoneType, range, bytes, slice, xrange):
         return False
-    elif constant_type in (dict, list, set):
+    elif constant_type in (dict, list, set, bytearray):
         return True
     elif constant_type is tuple:
         for value in constant:
@@ -213,7 +213,7 @@ def isHashable(constant):
     if constant_type in (str, unicode, complex, int, long, bool, float,
                          NoneType, xrange, bytes):
         return True
-    elif constant_type in (dict, list, set, slice):
+    elif constant_type in (dict, list, set, slice, bytearray):
         return False
     elif constant_type is tuple:
         for value in constant:

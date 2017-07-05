@@ -156,6 +156,8 @@ def namifyConstant(constant):
                 warning("Couldn't namify '%r'" % value)
 
                 return "list_" + _digest(repr(constant))
+    elif type(constant) is bytearray:
+        return "bytearray_" + _digest(repr(constant))
     elif type(constant) is xrange:
         return "xrange_%s" % (
             str(constant)[7 if str is bytes else 6:-1].replace(' ', "").replace(',', '_').replace('-', "neg")

@@ -46,6 +46,7 @@ from .NodeMakingHelpers import (
 )
 from .shapes.BuiltinTypeShapes import (
     ShapeTypeBool,
+    ShapeTypeBytearray,
     ShapeTypeBytes,
     ShapeTypeDict,
     ShapeTypeEllipsisType,
@@ -294,6 +295,12 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
 
     def getIntegerValue(self):
         if self.isNumberConstant():
+            return int(self.constant)
+        else:
+            return None
+
+    def getIndexValue(self):
+        if self.isIndexConstant():
             return int(self.constant)
         else:
             return None
@@ -685,6 +692,25 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
         return ShapeTypeBytes
 
 
+class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
+    kind = "EXPRESSION_CONSTANT_BYTEARRAY_REF"
+
+    def __init__(self, source_ref, constant, user_provided = False):
+        ExpressionConstantRefBase.__init__(
+            self,
+            constant      = constant,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    @staticmethod
+    def isExpressionConstantBytearrayRef():
+        return True
+
+    def getTypeShape(self):
+        return ShapeTypeBytearray
+
+
 class ExpressionConstantFloatRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_FLOAT_REF"
 
@@ -954,6 +980,12 @@ def makeConstantRefNode(constant, source_ref, user_provided = False):
             )
         elif constant_type is xrange:
             return ExpressionConstantXrangeRef(
+                source_ref    = source_ref,
+                constant      = constant,
+                user_provided = user_provided
+            )
+        elif constant_type is bytearray:
+            return ExpressionConstantBytearrayRef(
                 source_ref    = source_ref,
                 constant      = constant,
                 user_provided = user_provided

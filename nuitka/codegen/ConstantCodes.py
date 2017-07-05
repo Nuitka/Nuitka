@@ -808,6 +808,15 @@ CHECK_OBJECT( const_int_pos_1 );
 
         return
 
+    if constant_type is bytearray:
+        emit(
+            "%s = UNSTREAM_BYTEARRAY( %s );" % (
+                constant_identifier,
+                stream_data.getStreamDataCode(bytes(constant_value))
+            )
+        )
+
+        return
 
     # TODO: Ranges could very well be created for Python3. And "frozenset" and
     # set, are to be examined.
@@ -946,6 +955,9 @@ def getConstantAccess(to_name, constant, emit, context):
             code = context.getConstantCode(constant)
 
             ref_count = 0
+    elif type(constant) is bytearray:
+        code = "BYTEARRAY_COPY( %s )"  % context.getConstantCode(constant)
+        ref_count = 1
     else:
         code = context.getConstantCode(
             constant = constant

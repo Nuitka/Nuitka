@@ -403,6 +403,7 @@ def _getConstantDefaultPopulation():
         "sum",
         "format",
         "__import__",
+        "bytearray",
 
         # Arguments of __import__ built-in used in helper code.
         "name",

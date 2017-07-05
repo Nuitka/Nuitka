@@ -275,9 +275,34 @@ builtin_setattr_spec = BuiltinParameterSpecNoKeywords("setattr", ("object", "nam
 
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords("isinstance", ("instance", "classes"), 0)
 
-builtin_bytearray_spec = BuiltinParameterSpecNoKeywords("bytearray", ("iterable_of_ints",), 1)
+class BuiltinBytearraySpec(BuiltinParameterSpecNoKeywords):
+    def __init__(self, *args):
+        BuiltinParameterSpecNoKeywords.__init__(self, *args)
 
-# Beware: One argument defines stop, not start.
+    def isCompileTimeComputable(self, values):
+        # For bytearrays, we need to avoid the case of large bytearray
+        # construction from an integer at compile time.
+
+        result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
+            self,
+            values = values
+        )
+
+        if result and len(values) == 1:
+            arg = values[0]
+
+            index_value = values[0].getIndexValue()
+
+            if index_value is None:
+                return result
+
+            return index_value < 256
+        else:
+            return result
+
+builtin_bytearray_spec = BuiltinBytearraySpec("bytearray", ("string", "encoding", "errors"), 2)
+
+# Beware: One argument version defines "stop", not "start".
 builtin_slice_spec = BuiltinParameterSpecNoKeywords("slice", ("start", "stop", "step"), 2)
 
 builtin_hash_spec = BuiltinParameterSpecNoKeywords("hash", ("object",), 0)

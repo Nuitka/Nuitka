@@ -497,6 +497,46 @@ else:
     ShapeTypeBytesIterator = ShapeTypeStrIterator
 
 
+class ShapeTypeBytearray(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "bytearray"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return True
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return True
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def getShapeIter():
+        return ShapeTypeBytearrayIterator
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
+
+
+class ShapeTypeBytearrayIterator(ShapeIterator):
+    @staticmethod
+    def getTypeName():
+        return "bytearray_iterator"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+
 class ShapeTypeEllipsisType(ShapeBase):
     @staticmethod
     def getTypeName():

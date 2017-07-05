@@ -333,15 +333,32 @@ def generateBuiltinHexCode(to_name, expression, emit, context):
     )
 
 
-def generateBuiltinBytearrayCode(to_name, expression, emit, context):
+def generateBuiltinBytearray1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name    = to_name,
-        capi       = "BUILTIN_BYTEARRAY",
+        capi       = "BUILTIN_BYTEARRAY1",
         arg_desc   = (
             ("bytearray_arg", expression.getValue()),
         ),
         may_raise  = expression.mayRaiseException(BaseException),
         source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinBytearray3Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_BYTEARRAY3",
+        arg_desc   = (
+            ("bytearray_string", expression.getStringArg()),
+            ("bytearray_encoding", expression.getEncoding()),
+            ("bytearray_errors", expression.getErrors()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        none_null  = True,
         emit       = emit,
         context    = context
     )
