@@ -1255,6 +1255,32 @@ _builtin_white_list = (
     # TODO: This could, and should be supported, as we could e.g. lower
     # types easily for it.
     "sorted",
+
+    # TODO: These could easily be supported of course.
+    "staticmethod",
+    "classmethod",
+
+    # TODO: This would be very worthwhile, as it could easily optimize
+    # its iteration away.
+    "zip",
+
+    # TODO: This would be most preciouse due to the type hint it gives
+    "enumerate",
+
+    # TODO: Also worthwhile for known values.
+    "reversed",
+
+    # TODO: Not as important, but ought to be easy to add.
+    "divmod",
+
+    # TODO: The handling of 'open' built-in for Python3 is not yet correct,
+    # it should have high priority to complete that as "open" is very crucial
+    # for plugin hacks.
+    "open",
+
+    # TODO: Not sure what this really is about.
+    "memoryview",
+
 )
 
 
@@ -1264,11 +1290,8 @@ def computeBuiltinCall(builtin_name, call_node):
     if builtin_name in _dispatch_dict:
         new_node = _dispatch_dict[builtin_name](call_node)
 
-        # Lets just have this contract to return "None" when no change is meant
-        # to be done.
-        assert new_node is not call_node
-        if new_node is None:
-            return call_node, None, None
+        assert new_node is not call_node, builtin_name
+        assert new_node is not None, builtin_name
 
         # For traces, we are going to ignore side effects, and output traces
         # only based on the basis of it.
