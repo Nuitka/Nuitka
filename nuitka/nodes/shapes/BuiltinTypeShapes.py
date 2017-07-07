@@ -687,3 +687,29 @@ class ShapeTypeModule(ShapeBase):
 
 class ShapeTypeBuiltinModule(ShapeTypeModule):
     pass
+
+
+class ShapeTypeFile(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "file"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return True
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return True
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return True

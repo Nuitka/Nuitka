@@ -137,54 +137,108 @@ PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
     return result;
 }
 
+static PyObject *CALL_BUILTIN_KW_ARGS( PyObject *callable, PyObject **args, char const **arg_names, int max_args )
+{
+    int i = 0;
+
+    while( i < max_args )
+    {
+        if ( args[i] == NULL ) break;
+
+        i++;
+    }
+
+    int usable_args = i;
+
+    PyObject *kw_dict = NULL;
+
+    while( i < max_args )
+    {
+        if ( args[i] != NULL )
+        {
+            if ( kw_dict == NULL )
+            {
+                kw_dict = PyDict_New();
+            }
+
+            int res = PyDict_SetItemString( kw_dict, arg_names[i], args[i] );
+            assert( res == 0 );
+        }
+
+        i++;
+    }
+
+    PyObject *args_tuple = PyTuple_New( usable_args );
+    for (i = 0; i < usable_args; i++)
+    {
+        PyTuple_SET_ITEM( args_tuple, i, args[i] );
+
+        Py_INCREF( args[i] );
+    }
+
+    PyObject *result = CALL_FUNCTION( callable, args_tuple, kw_dict );
+    Py_XDECREF( kw_dict );
+    Py_DECREF( args_tuple );
+
+    return result;
+}
+
 NUITKA_DEFINE_BUILTIN( open );
 
+#if PYTHON_VERSION < 300
 PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering )
 {
     NUITKA_ASSIGN_BUILTIN( open );
 
-    if (unlikely( file_name == NULL ))
+    PyObject *args[] =
     {
-        /* Should have been optimized away already. */
-        return CALL_FUNCTION_NO_ARGS(
-            NUITKA_ACCESS_BUILTIN( open )
-        );
-    }
-    else if ( mode == NULL )
-    {
-        PyObject *args[] = {
-            file_name
-        };
-        return CALL_FUNCTION_WITH_ARGS1(
-            NUITKA_ACCESS_BUILTIN( open ),
-            args
-        );
+        file_name,
+        mode,
+        buffering
+    };
 
-    }
-    else if ( buffering == NULL )
-    {
-        PyObject *args[] = {
-            file_name,
-            mode
-        };
-        return CALL_FUNCTION_WITH_ARGS2(
-            NUITKA_ACCESS_BUILTIN( open ),
-            args
-        );
-    }
-    else
-    {
-        PyObject *args[] = {
-            file_name,
-            mode,
-            buffering
-        };
-        return CALL_FUNCTION_WITH_ARGS3(
-            NUITKA_ACCESS_BUILTIN( open ),
-            args
-        );
-    }
+    char const *arg_names[] = {
+        "file_name",
+        "mode",
+        "buffering"
+    };
+
+    return CALL_BUILTIN_KW_ARGS( NUITKA_ACCESS_BUILTIN( open ), args, arg_names, 3 );
 }
+#else
+PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering,
+                        PyObject *encoding, PyObject *errors, PyObject *newline,
+                        PyObject *closefd, PyObject *opener)
+{
+    NUITKA_ASSIGN_BUILTIN( open );
+
+    PyObject *args[] =
+    {
+        file_name,
+        mode,
+        buffering,
+        encoding,
+        errors,
+        newline,
+        closefd,
+        opener
+    };
+
+    char const *arg_names[] = {
+        "file_name",
+        "mode",
+        "buffering",
+        "encoding",
+        "errors",
+        "newline",
+        "closefd",
+        "opener"
+    };
+
+    return CALL_BUILTIN_KW_ARGS( NUITKA_ACCESS_BUILTIN( open ), args, arg_names, 8 );
+}
+
+#endif
 
 PyObject *STRING_FROM_CHAR( unsigned char c )
 {

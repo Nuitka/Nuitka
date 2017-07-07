@@ -1220,6 +1220,7 @@ _dispatch_dict = {
     "slice"      : slice_extractor,
     "hash"       : hash_extractor,
     "format"     : format_extractor,
+    "open"       : open_extractor
 }
 
 if python_version < 300:
@@ -1230,9 +1231,6 @@ if python_version < 300:
 
     _dispatch_dict["xrange"] = xrange_extractor
     _dispatch_dict["range"] = range_extractor
-
-    # The handling of 'open' built-in for Python3 is not yet correct.
-    _dispatch_dict["open"] = open_extractor
 else:
     # The Python3 range is really an xrange, use that.
     _dispatch_dict["range"] = xrange_extractor
@@ -1272,11 +1270,6 @@ _builtin_white_list = (
 
     # TODO: Not as important, but ought to be easy to add.
     "divmod",
-
-    # TODO: The handling of 'open' built-in for Python3 is not yet correct,
-    # it should have high priority to complete that as "open" is very crucial
-    # for plugin hacks.
-    "open",
 
     # TODO: Not sure what this really is about.
     "memoryview",

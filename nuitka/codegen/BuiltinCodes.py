@@ -21,6 +21,7 @@ This is code generation for built-in references, and some built-ins like range,
 bin, etc.
 """
 from nuitka import Builtins
+from nuitka.PythonVersions import python_version
 
 from .ErrorCodes import getAssertionCode, getErrorExitCode, getReleaseCodes
 from .Helpers import generateChildExpressionsCode
@@ -109,14 +110,25 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
 
 
 def generateBuiltinOpenCode(to_name, expression, emit, context):
+    arg_desc = (
+        ("open_filename", expression.getFilename()),
+        ("open_mode", expression.getMode()),
+        ("open_buffering", expression.getBuffering())
+    )
+
+    if python_version >= 300:
+        arg_desc += (
+            ("open_encoding", expression.getEncoding()),
+            ("open_errors", expression.getErrors()),
+            ("open_newline", expression.getNewline()),
+            ("open_closefd", expression.getCloseFd()),
+            ("open_opener", expression.getOpener())
+        )
+
     generateCAPIObjectCode(
         to_name    = to_name,
         capi       = "BUILTIN_OPEN",
-        arg_desc   = (
-            ("open_filename", expression.getFilename()),
-            ("open_mode", expression.getMode()),
-            ("open_buffering", expression.getBuffering()),
-        ),
+        arg_desc   = arg_desc,
         may_raise  = expression.mayRaiseException(BaseException),
         none_null  = True,
         source_ref = expression.getCompatibleSourceReference(),

@@ -46,6 +46,8 @@ class BuiltinParameterSpec(ParameterSpec):
 
         self.builtin = __builtins__[name]
 
+        assert default_count <= len(arg_names)
+
     def __repr__(self):
         return "<BuiltinParameterSpec %s>" % self.name
 
@@ -224,7 +226,14 @@ builtin_list_spec = BuiltinParameterSpec("list", ("sequence",), 1)
 builtin_set_spec = BuiltinParameterSpecNoKeywords("set", ("iterable",), 1)
 
 builtin_import_spec = BuiltinParameterSpec("__import__", ("name", "globals", "locals", "fromlist", "level"), 4)
-builtin_open_spec = BuiltinParameterSpec("open", ("name", "mode", "buffering"), 3)
+
+if python_version < 300:
+    builtin_open_spec = BuiltinParameterSpec("open", ("name", "mode", "buffering"), 3)
+else:
+    builtin_open_spec = BuiltinParameterSpec("open", ("name", "mode", "buffering",
+                                                      "encoding", "errors", "newline",
+                                                      "closefd", "opener"), 7)
+
 builtin_chr_spec = BuiltinParameterSpecNoKeywords("chr", ('i',), 0)
 builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ('c',), 0)
 builtin_bin_spec = BuiltinParameterSpecNoKeywords("bin", ("number",), 0)

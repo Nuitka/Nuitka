@@ -453,7 +453,11 @@ extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObj
 
 
 // For quicker built-in open() functionality.
+#if PYTHON_VERSION < 300
 extern PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering );
+#else
+extern PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering, PyObject *encoding, PyObject *errors, PyObject *newline, PyObject *closefd, PyObject *opener );
+#endif
 
 // For quicker built-in chr() functionality.
 extern PyObject *BUILTIN_CHR( PyObject *value );
