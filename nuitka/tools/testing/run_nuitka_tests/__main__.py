@@ -35,6 +35,8 @@ from nuitka.utils.Execution import getExecutablePath, getPythonExePathWindows
 
 
 def main():
+    # There are freaking many options to honor, pylint: disable=too-many-branches
+
     # Lets honor this Debian option here.
     if "nocheck" in os.environ.get("DEB_BUILD_OPTIONS", "").split():
         print("Skipped all tests as per DEB_BUILD_OPTIONS environment.")
@@ -655,7 +657,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
             if coverage_dir is None:
                 return
 
-            assert 0 == subprocess.call(
+            assert subprocess.call(
                 (
                     "C:\\MinGW\\msys\\1.0\\bin\\scp.exe"
                        if os.name == "nt" else
@@ -666,7 +668,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
                         target
                     )
                 )
-            )
+            ) == 0
 
         if os.name == "nt":
             suffix = "win"
