@@ -713,3 +713,55 @@ class ShapeTypeFile(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return True
+
+
+class ShapeTypeStaticmethod(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "staticmethod"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return False
+
+
+class ShapeTypeClassmethod(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "classmethod"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return False

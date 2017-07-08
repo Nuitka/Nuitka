@@ -374,3 +374,31 @@ def generateBuiltinBytearray3Code(to_name, expression, emit, context):
         emit       = emit,
         context    = context
     )
+
+
+def generateBuiltinStaticmethodCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_STATICMETHOD",
+        arg_desc   = (
+            ("staticmethod_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinClassmethodCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_CLASSMETHOD",
+        arg_desc   = (
+            ("classmethod_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )

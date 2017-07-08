@@ -320,6 +320,8 @@ builtin_format_spec = BuiltinParameterSpecNoKeywords("format", ("value", "format
 
 builtin_sum_spec = BuiltinParameterSpecNoKeywords("sum", ("sequence", "start"), 1)
 
+builtin_staticmethod_spec = BuiltinParameterSpecNoKeywords("staticmethod", ("function",), 0)
+builtin_classmethod_spec = BuiltinParameterSpecNoKeywords("classmethod", ("function",), 0)
 
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def __init__(self, *args):

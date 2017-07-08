@@ -404,6 +404,8 @@ def _getConstantDefaultPopulation():
         "format",
         "__import__",
         "bytearray",
+        "staticmethod",
+        "classmethod",
 
         # Arguments of __import__ built-in used in helper code.
         "name",

@@ -38,6 +38,10 @@ from nuitka.nodes.BuiltinDecodingNodes import (
     ExpressionBuiltinChr,
     ExpressionBuiltinOrd
 )
+from nuitka.nodes.BuiltinDecoratorNodes import (
+    ExpressionBuiltinClassmethod,
+    ExpressionBuiltinStaticmethod
+)
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
@@ -1176,45 +1180,81 @@ def format_extractor(node):
     )
 
 
+def staticmethod_extractor(node):
+    def makeStaticmethod0(source_ref):
+        # pylint: disable=unused-argument
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError("staticmethod expected 1 arguments, got 0")
+        )
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node                = node,
+        builtin_class       = ExpressionBuiltinStaticmethod,
+        builtin_spec        = BuiltinOptimization.builtin_staticmethod_spec,
+        empty_special_class = makeStaticmethod0
+    )
+
+
+def classmethod_extractor(node):
+    def makeStaticmethod0(source_ref):
+        # pylint: disable=unused-argument
+
+        return makeRaiseExceptionReplacementExpressionFromInstance(
+            expression = node,
+            exception  = TypeError("classmethod expected 1 arguments, got 0")
+        )
+
+    return BuiltinOptimization.extractBuiltinArgs(
+        node                = node,
+        builtin_class       = ExpressionBuiltinClassmethod,
+        builtin_spec        = BuiltinOptimization.builtin_classmethod_spec,
+        empty_special_class = makeStaticmethod0
+    )
+
+
 _dispatch_dict = {
-    "compile"    : compile_extractor,
-    "globals"    : globals_extractor,
-    "locals"     : locals_extractor,
-    "eval"       : eval_extractor,
-    "dir"        : dir_extractor,
-    "vars"       : vars_extractor,
-    "__import__" : import_extractor,
-    "chr"        : chr_extractor,
-    "ord"        : ord_extractor,
-    "bin"        : bin_extractor,
-    "oct"        : oct_extractor,
-    "hex"        : hex_extractor,
-    "id"         : id_extractor,
-    "type"       : type_extractor,
-    "iter"       : iter_extractor,
-    "next"       : next_extractor,
-    "sum"        : sum_extractor,
-    "tuple"      : tuple_extractor,
-    "list"       : list_extractor,
-    "dict"       : dict_extractor,
-    "set"        : set_extractor,
-    "float"      : float_extractor,
-    "complex"    : complex_extractor,
-    "str"        : str_extractor,
-    "bool"       : bool_extractor,
-    "int"        : int_extractor,
-    "repr"       : repr_extractor,
-    "len"        : len_extractor,
-    "super"      : super_extractor,
-    "hasattr"    : hasattr_extractor,
-    "getattr"    : getattr_extractor,
-    "setattr"    : setattr_extractor,
-    "isinstance" : isinstance_extractor,
-    "bytearray"  : bytearray_extractor,
-    "slice"      : slice_extractor,
-    "hash"       : hash_extractor,
-    "format"     : format_extractor,
-    "open"       : open_extractor
+    "compile"      : compile_extractor,
+    "globals"      : globals_extractor,
+    "locals"       : locals_extractor,
+    "eval"         : eval_extractor,
+    "dir"          : dir_extractor,
+    "vars"         : vars_extractor,
+    "__import__"   : import_extractor,
+    "chr"          : chr_extractor,
+    "ord"          : ord_extractor,
+    "bin"          : bin_extractor,
+    "oct"          : oct_extractor,
+    "hex"          : hex_extractor,
+    "id"           : id_extractor,
+    "type"         : type_extractor,
+    "iter"         : iter_extractor,
+    "next"         : next_extractor,
+    "sum"          : sum_extractor,
+    "tuple"        : tuple_extractor,
+    "list"         : list_extractor,
+    "dict"         : dict_extractor,
+    "set"          : set_extractor,
+    "float"        : float_extractor,
+    "complex"      : complex_extractor,
+    "str"          : str_extractor,
+    "bool"         : bool_extractor,
+    "int"          : int_extractor,
+    "repr"         : repr_extractor,
+    "len"          : len_extractor,
+    "super"        : super_extractor,
+    "hasattr"      : hasattr_extractor,
+    "getattr"      : getattr_extractor,
+    "setattr"      : setattr_extractor,
+    "isinstance"   : isinstance_extractor,
+    "bytearray"    : bytearray_extractor,
+    "slice"        : slice_extractor,
+    "hash"         : hash_extractor,
+    "format"       : format_extractor,
+    "open"         : open_extractor,
+    "staticmethod" : staticmethod_extractor,
+    "classmethod"  : classmethod_extractor,
 }
 
 if python_version < 300:
@@ -1247,10 +1287,6 @@ _builtin_white_list = (
     # TODO: This could, and should be supported, as we could e.g. lower
     # types easily for it.
     "sorted",
-
-    # TODO: These could easily be supported of course.
-    "staticmethod",
-    "classmethod",
 
     # TODO: This would be very worthwhile, as it could easily optimize
     # its iteration away.

@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Builtin ord/chr nodes
+""" Built-in ord/chr nodes
 
 These are good for optimizations, as they give a very well known result. In the case of
 'chr', it's one of 256 strings, and in case of 'ord' it's one of 256 numbers, so these can

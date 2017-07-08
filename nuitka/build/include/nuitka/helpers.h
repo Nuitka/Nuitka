@@ -524,6 +524,12 @@ extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
 // For built-in format() functionality.
 extern PyObject *BUILTIN_FORMAT( PyObject *value, PyObject *format_spec );
 
+// For built-in staticmethod() functionality.
+extern PyObject *BUILTIN_STATICMETHOD( PyObject *function );
+
+// For built-in classmethod() functionality.
+extern PyObject *BUILTIN_CLASSMETHOD( PyObject *function );
+
 #include "nuitka/importing.h"
 
 // For the constant loading:
