@@ -59,7 +59,7 @@ from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableRef
+    ExpressionVariableNameRef
 )
 from nuitka.PythonVersions import python_version
 
@@ -214,7 +214,7 @@ def buildFunctionNode(provider, node, source_ref):
        provider.isExpressionClassBody():
 
         for decorator in decorators:
-            if decorator.isExpressionVariableRef() and \
+            if decorator.isExpressionVariableNameRef() and \
                decorator.getVariableName() == "staticmethod":
                 break
         else:
@@ -230,7 +230,7 @@ def buildFunctionNode(provider, node, source_ref):
        provider.isExpressionClassBody():
 
         for decorator in decorators:
-            if decorator.isExpressionVariableRef() and \
+            if decorator.isExpressionVariableNameRef() and \
                decorator.getVariableName() == "classmethod":
                 break
         else:
@@ -722,7 +722,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
 
         for arg_name in parameters.getParameterNames():
             if arg_name.startswith('.'):
-                source = ExpressionVariableRef(
+                source = ExpressionVariableNameRef(
                     variable_name = arg_name,
                     source_ref    = source_ref
                 )
@@ -732,7 +732,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                 )
             else:
                 values.append(
-                    ExpressionVariableRef(
+                    ExpressionVariableNameRef(
                         variable_name = arg_name,
                         source_ref    = source_ref
                     )

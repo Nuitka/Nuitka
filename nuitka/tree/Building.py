@@ -99,7 +99,7 @@ from nuitka.nodes.ReturnNodes import (
 )
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
-from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
+from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
@@ -179,7 +179,7 @@ from .VariableClosure import completeVariableClosures
 
 
 def buildVariableReferenceNode(provider, node, source_ref):
-    return ExpressionVariableRef(
+    return ExpressionVariableNameRef(
         variable_name = mangleName(node.id, provider),
         source_ref    = source_ref
     )

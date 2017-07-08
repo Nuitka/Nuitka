@@ -68,6 +68,7 @@ from nuitka.nodes.TryNodes import StatementTry
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
+    ExpressionVariableNameRef,
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
@@ -725,7 +726,7 @@ def _buildClassNode2(provider, node, source_ref):
                 tried            = makeStatementsSequenceFromStatement(
                     statement = StatementReturn(
                         # TODO: Should avoid checking __builtins__ for this.
-                        expression = ExpressionVariableRef(
+                        expression = ExpressionVariableNameRef(
                             variable_name = "__metaclass__",
                             source_ref    = source_ref
                         ),

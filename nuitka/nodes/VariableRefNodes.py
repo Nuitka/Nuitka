@@ -38,6 +38,35 @@ from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 from .shapes.StandardShapes import ShapeUnknown
 
 
+class ExpressionVariableNameRef(ExpressionBase):
+    """ These are used before the actual variable object is known from VariableClosure.
+
+    """
+
+    kind = "EXPRESSION_VARIABLE_NAME_REF"
+
+    __slots__ = "variable_name",
+
+    def __init__(self, variable_name, source_ref):
+        ExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.variable_name = variable_name
+
+    def getDetails(self):
+        return {
+            "variable_name" : self.variable_name
+        }
+
+    def getVariableName(self):
+        return self.variable_name
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
+
+
 class ExpressionVariableRefBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
@@ -65,14 +94,10 @@ class ExpressionVariableRefBase(ExpressionBase):
 class ExpressionVariableRef(ExpressionVariableRefBase):
     kind = "EXPRESSION_VARIABLE_REF"
 
-    __slots__ = "variable_name",
+    __slots__ = ()
 
-    def __init__(self, source_ref, variable_name = None, variable = None):
-        assert variable_name is not None or variable is not None
-        assert variable_name is None or variable is None
-
-        if variable is not None and variable_name is None:
-            variable_name = variable.getName()
+    def __init__(self, variable, source_ref):
+        assert variable is not None
 
         ExpressionVariableRefBase.__init__(
             self,
@@ -80,28 +105,16 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             source_ref = source_ref
         )
 
-        self.variable_name = variable_name
-
     def getDetails(self):
-        if self.variable is None:
-            return {
-                "variable_name" : self.variable_name
-            }
-        else:
-            return {
-                "variable"      : self.variable
-            }
+        return {
+            "variable"      : self.variable
+        }
 
     def getDetailsForDisplay(self):
-        if self.variable is None:
-            return {
-                "variable_name" : self.variable_name
-            }
-        else:
-            return {
-                "variable_name" : self.variable_name,
-                "owner"         : self.variable.getOwner().getCodeName()
-            }
+        return {
+            "variable_name" : self.variable.getName(),
+            "owner"         : self.variable.getOwner().getCodeName()
+        }
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
@@ -171,36 +184,38 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
                 BaseException
             )
 
-        if variable.isModuleVariable() \
-            and variable.hasDefiniteWrites() is False:
-            if self.variable_name in Builtins.builtin_exception_names:
+        if variable.isModuleVariable() and \
+           variable.hasDefiniteWrites() is False:
+            variable_name = self.variable.getName()
+
+            if variable_name in Builtins.builtin_exception_names:
                 from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
                 new_node = ExpressionBuiltinExceptionRef(
-                    exception_name = self.variable_name,
+                    exception_name = self.variable.getName(),
                     source_ref     = self.getSourceReference()
                 )
 
                 change_tags = "new_builtin_ref"
                 change_desc = """\
 Module variable '%s' found to be built-in exception reference.""" % (
-                    self.variable_name
+                    variable_name
                 )
-            elif self.variable_name in Builtins.builtin_names and \
-                 self.variable_name != "pow":
+            elif variable_name in Builtins.builtin_names and \
+                 variable_name != "pow":
                 from .BuiltinRefNodes import makeExpressionBuiltinRef
 
                 new_node = makeExpressionBuiltinRef(
-                    builtin_name = self.variable_name,
+                    builtin_name = variable_name,
                     source_ref   = self.getSourceReference()
                 )
 
                 change_tags = "new_builtin_ref"
                 change_desc = """\
 Module variable '%s' found to be built-in reference.""" % (
-                    self.variable_name
+                    variable_name
                 )
-            elif self.variable_name == "__name__":
+            elif variable_name == "__name__":
                 new_node = makeConstantRefNode(
                     constant   = variable.getOwner().getParentModule().\
                                    getFullName(),
@@ -210,7 +225,7 @@ Module variable '%s' found to be built-in reference.""" % (
                 change_tags = "new_constant"
                 change_desc = """\
 Replaced read-only module attribute '__name__' with constant value."""
-            elif self.variable_name == "__package__":
+            elif variable_name == "__package__":
                 new_node = makeConstantRefNode(
                     constant   = variable.getOwner().getPackage(),
                     source_ref = self.getSourceReference()
@@ -234,14 +249,16 @@ Replaced read-only module attribute '__package__' with constant value."""
         if self.variable_trace.mustNotHaveValue():
             assert self.variable.isLocalVariable(), self.variable
 
+            variable_name = self.variable.getName()
+
             result = makeRaiseExceptionReplacementExpression(
                 expression      = self,
                 exception_type  = "UnboundLocalError",
                 exception_value = """\
-local variable '%s' referenced before assignment""" % self.variable_name
+local variable '%s' referenced before assignment""" % variable_name
             )
 
-            return result, "new_raise", "Variable access of not initialized variable '%s'" % self.variable_name
+            return result, "new_raise", "Variable access of not initialized variable '%s'" % variable_name
 
         return self, None, None
 
@@ -253,7 +270,7 @@ local variable '%s' referenced before assignment""" % self.variable_name
         trace_collection.onControlFlowEscape(self)
 
         if not Variables.complete and \
-           self.variable_name in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
+           self.variable.getName() in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
            self.variable.isModuleVariable():
             # Just inform the collection that all escaped.
             trace_collection.onLocalsUsage()

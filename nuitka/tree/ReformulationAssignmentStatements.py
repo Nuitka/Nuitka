@@ -56,6 +56,7 @@ from nuitka.nodes.SubscriptNodes import (
 )
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
+    ExpressionVariableNameRef,
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
@@ -572,9 +573,8 @@ def buildAnnAssignNode(provider, node, source_ref):
             statements.append(
                 StatementAssignmentSubscript(
                     expression = ExpressionVariableRef(
-                        variable_name = "__annotations__",
-                        variable      = provider.getVariableForAssignment("__annotations__"),
-                        source_ref    = source_ref
+                        variable   = provider.getVariableForAssignment("__annotations__"),
+                        source_ref = source_ref
                     ),
                     subscript  = makeConstantRefNode(
                         constant   = variable_name,
@@ -696,7 +696,7 @@ def _buildInplaceAssignVariableNode(variable_name, operator, expression,
                                     source_ref):
     inplace_node = makeExpressionOperationBinaryInplace(
         operator   = operator,
-        left       = ExpressionVariableRef(
+        left       = ExpressionVariableNameRef(
             variable_name = variable_name,
             source_ref    = source_ref
         ),

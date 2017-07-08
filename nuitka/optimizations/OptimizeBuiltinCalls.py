@@ -128,6 +128,7 @@ from nuitka.nodes.TypeNodes import (
 )
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
+    ExpressionVariableNameRef,
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
@@ -994,15 +995,12 @@ def super_extractor(node):
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):
         if type_arg is None and python_version >= 300:
             type_arg = ExpressionVariableRef(
-                variable_name = "__class__",
-                source_ref    = source_ref
-            )
-
-            # Ought to be already closure taken.
-            type_arg.setVariable(
-                provider.getVariableForReference(
+                # Ought to be already closure taken due to "super" flag in
+                # tree building.
+                variable   = provider.getVariableForReference(
                     variable_name = "__class__"
-                )
+                ),
+                source_ref = source_ref
             )
 
             # If we already have this as a local variable, then use that
@@ -1034,14 +1032,10 @@ def super_extractor(node):
                     par1_name = parameter_provider.getParameters().getArgumentNames()[0]
 
                     object_arg = ExpressionVariableRef(
-                        variable_name = par1_name,
-                        source_ref    = source_ref
-                    )
-
-                    object_arg.setVariable(
-                        provider.getVariableForReference(
+                        variable   =  provider.getVariableForReference(
                             variable_name = par1_name
-                        )
+                        ),
+                        source_ref = source_ref
                     )
 
                     if not object_arg.getVariable().isParameterVariable():
