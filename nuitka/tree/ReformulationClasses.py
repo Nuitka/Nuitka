@@ -24,6 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
+    StatementAssignmentVariableName,
     StatementReleaseVariable
 )
 from nuitka.nodes.AttributeNodes import (
@@ -171,7 +172,7 @@ def _buildClassNode3(provider, node, source_ref):
             ),
             source_ref = source_ref
         ),
-        StatementAssignmentVariable(
+        StatementAssignmentVariableName(
             variable_name = "__module__",
             source        = makeConstantRefNode(
                 constant      = provider.getParentModule().getFullName(),
@@ -184,7 +185,7 @@ def _buildClassNode3(provider, node, source_ref):
 
     if class_doc is not None:
         statements.append(
-            StatementAssignmentVariable(
+            StatementAssignmentVariableName(
                 variable_name = "__doc__",
                 source        = makeConstantRefNode(
                     constant      = class_doc,
@@ -215,9 +216,8 @@ def _buildClassNode3(provider, node, source_ref):
             )
 
         statements.append(
-            StatementAssignmentVariable(
-                variable_name = "__qualname__",
-                variable      = qualname_variable,
+            StatementAssignmentVariableName(
+                variable_name = qualname_variable.getName(),
                 source        = qualname_ref,
                 source_ref    = source_ref
             )
@@ -229,7 +229,7 @@ def _buildClassNode3(provider, node, source_ref):
     if python_version >= 360 and \
        class_creation_function.needsAnnotationsDictionary():
         statements.append(
-            StatementAssignmentVariable(
+            StatementAssignmentVariableName(
                 variable_name = "__annotations__",
                 source        = makeConstantRefNode(
                     constant      = {},
@@ -243,7 +243,7 @@ def _buildClassNode3(provider, node, source_ref):
     statements.append(body)
 
     statements += [
-        StatementAssignmentVariable(
+        StatementAssignmentVariableName(
             variable_name = "__class__",
             source        = ExpressionCall(
                 called     = ExpressionTempVariableRef(
@@ -517,16 +517,14 @@ def _buildClassNode3(provider, node, source_ref):
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_name = node.name,
-            source        = decorated_body,
-            source_ref    = source_ref
+            variable   = provider.getVariableForAssignment(node.name),
+            source     = decorated_body,
+            source_ref = source_ref
         ),
     )
 
     if python_version >= 340:
-        class_assign = statements[-1]
-
-        class_creation_function.qualname_setup = class_assign, qualname_assign
+        class_creation_function.qualname_setup = node.name, qualname_assign
 
     final = (
         StatementReleaseVariable(
@@ -597,7 +595,7 @@ def _buildClassNode2(provider, node, source_ref):
     # returns its locals and cannot have other return statements contained, and
     # starts out with a variables "__module__" and potentially "__doc__" set.
     statements = [
-        StatementAssignmentVariable(
+        StatementAssignmentVariableName(
             variable_name = "__module__",
             source        = makeConstantRefNode(
                 constant      = provider.getParentModule().getFullName(),
@@ -610,7 +608,7 @@ def _buildClassNode2(provider, node, source_ref):
 
     if class_doc is not None:
         statements.append(
-            StatementAssignmentVariable(
+            StatementAssignmentVariableName(
                 variable_name = "__doc__",
                 source        = makeConstantRefNode(
                     constant      = class_doc,
@@ -879,7 +877,7 @@ def _buildClassNode2(provider, node, source_ref):
         )
 
     statements.append(
-        StatementAssignmentVariable(
+        StatementAssignmentVariableName(
             variable_name = node.name,
             source        = ExpressionTempVariableRef(
                 variable   = tmp_class,

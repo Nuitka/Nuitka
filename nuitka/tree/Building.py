@@ -61,7 +61,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
@@ -779,7 +779,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
 
         statements.append(
-            StatementAssignmentVariable(
+            StatementAssignmentVariableName(
                 variable_name = "__doc__",
                 source        = makeConstantRefNode(
                     constant      = doc,
@@ -791,7 +791,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         )
 
         statements.append(
-            StatementAssignmentVariable(
+            StatementAssignmentVariableName(
                 variable_name = "__file__",
                 source        = ExpressionModuleFileAttributeRef(
                     source_ref = internal_source_ref,
@@ -808,7 +808,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     if python_version >= 300:
         statements.append(
-            StatementAssignmentVariable(
+            StatementAssignmentVariableName(
                 variable_name = "__cached__",
                 source        = ExpressionConstantNoneRef(
                     source_ref    = internal_source_ref,
@@ -822,7 +822,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if python_version >= 330:
         # For Python3.3, it's set for both packages and non-packages.
         statements.append(
-            StatementAssignmentVariable(
+            StatementAssignmentVariableName(
                 variable_name = "__package__",
                 source        = makeConstantRefNode(
                     constant      = provider.getFullName()
@@ -841,7 +841,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if needs__initializing__:
         # Set "__initializing__" at the beginning to True
         statements.append(
-            StatementAssignmentVariable(
+            StatementAssignmentVariableName(
                 variable_name = "__initializing__",
                 source        = makeConstantRefNode(
                     constant      = True,
@@ -855,7 +855,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if provider.needsAnnotationsDictionary():
         # Set "__annotations__" on module level to {}
         statements.append(
-            StatementAssignmentVariable(
+            StatementAssignmentVariableName(
                 variable_name = "__annotations__",
                 source        = makeConstantRefNode(
                     constant      = {},
@@ -876,7 +876,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if needs__initializing__:
         # Set "__initializing__" at the end to False
         statements.append(
-            StatementAssignmentVariable(
+            StatementAssignmentVariableName(
                 variable_name = "__initializing__",
                 source        = makeConstantRefNode(
                     constant      = False,

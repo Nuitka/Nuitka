@@ -24,6 +24,10 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
 from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
 from nuitka.nodes.VariableRefNodes import (
@@ -87,8 +91,11 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     def _handleQualnameSetup(node):
         if node.qualname_setup is not None:
             if node.isExpressionClassBody():
-                class_assign, qualname_assign = node.qualname_setup
-                class_variable = class_assign.getVariable()
+                class_variable_name, qualname_assign = node.qualname_setup
+
+                class_variable = node.getParentVariableProvider().getVariableForAssignment(
+                    class_variable_name
+                )
 
                 if class_variable.isModuleVariable():
                     qualname_node = qualname_assign.getAssignSource()
@@ -102,7 +109,9 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                     node.qualname_provider = node.getParentModule()
             else:
-                function_variable = node.qualname_setup.getVariable()
+                function_variable = node.getParentVariableProvider().getVariableForAssignment(
+                    node.qualname_setup
+                )
 
                 if function_variable.isModuleVariable():
                     node.qualname_provider = node.getParentModule()
@@ -115,20 +124,36 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             node.qualname_setup = None
 
     def onLeaveNode(self, node):
-        if node.isStatementAssignmentVariable() or \
-           node.isStatementDelVariable():
+        if node.isStatementAssignmentVariableName():
             provider = node.getParentVariableProvider()
 
-            variable = node.getVariable()
-
-            if variable is None:
+            variable = provider.getVariableForAssignment(
                 variable_name = node.getVariableName()
+            )
 
-                variable = provider.getVariableForAssignment(
-                    variable_name = variable_name
+            node.replaceWith(
+                StatementAssignmentVariable(
+                    variable   = variable,
+                    source     = node.subnode_source,
+                    source_ref = node.source_ref
                 )
+            )
 
-                node.setVariable(variable)
+            variable.addVariableUser(provider)
+        elif node.isStatementDelVariableName():
+            provider = node.getParentVariableProvider()
+
+            variable = provider.getVariableForAssignment(
+                variable_name = node.getVariableName()
+            )
+
+            node.replaceWith(
+                StatementDelVariable(
+                    variable   = variable,
+                    tolerant   = node.tolerant,
+                    source_ref = node.source_ref
+                )
+            )
 
             variable.addVariableUser(provider)
 

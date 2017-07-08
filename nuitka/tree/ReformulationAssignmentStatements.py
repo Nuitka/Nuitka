@@ -24,7 +24,9 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
+    StatementAssignmentVariableName,
     StatementDelVariable,
+    StatementDelVariableName,
     StatementReleaseVariable
 )
 from nuitka.nodes.AttributeNodes import (
@@ -124,7 +126,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
     # dealt with, pylint: disable=too-many-branches,too-many-locals
 
     if kind == "Name":
-        return StatementAssignmentVariable(
+        return StatementAssignmentVariableName(
             variable_name = detail,
             source        = source,
             source_ref    = source_ref
@@ -597,7 +599,7 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
         # Note: Name_Exception is a "del" for exception handlers that doesn't
         # insist on the variable being defined, user code may do it too, and
         # that will be fine, so make that tolerant.
-        return StatementDelVariable(
+        return StatementDelVariableName(
             variable_name = detail,
             tolerant      = kind == "Name_Exception",
             source_ref    = source_ref
@@ -707,7 +709,7 @@ def _buildInplaceAssignVariableNode(variable_name, operator, expression,
     inplace_node.markAsInplaceSuspect()
 
     return (
-        StatementAssignmentVariable(
+        StatementAssignmentVariableName(
             variable_name = variable_name,
             source        = inplace_node,
             source_ref    = source_ref

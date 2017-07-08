@@ -23,7 +23,7 @@ Namespace packages of Python3.3
 import os
 
 from nuitka import Options
-from nuitka.nodes.AssignNodes import StatementAssignmentVariable
+from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -88,7 +88,7 @@ def createPathAssignment(source_ref):
             source_ref = source_ref
         )
 
-    return  StatementAssignmentVariable(
+    return StatementAssignmentVariableName(
         variable_name = "__path__",
         source        = path_value,
         source_ref    = source_ref
@@ -96,7 +96,7 @@ def createPathAssignment(source_ref):
 
 
 def createPython3NamespacePath(package_name, module_relpath, source_ref):
-    return StatementAssignmentVariable(
+    return StatementAssignmentVariableName(
         variable_name = "__path__",
         source        = ExpressionCallNoKeywords(
             called     = ExpressionImportName(

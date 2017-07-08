@@ -40,6 +40,79 @@ from .NodeMakingHelpers import (
 )
 
 
+class StatementAssignmentVariableName(StatementChildrenHavingBase):
+    """ Precursor of StatementAssignmentVariable used during tree building phase
+
+    """
+
+    kind = "STATEMENT_ASSIGNMENT_VARIABLE_NAME"
+
+    named_children = (
+        "source",
+    )
+
+    def __init__(self, source, variable_name, source_ref):
+        assert source is not None, source_ref
+
+        StatementChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "source"       : source,
+            },
+            source_ref = source_ref
+        )
+
+        self.variable_name = variable_name
+
+    def getDetails(self):
+        return {
+            "variable_name" : self.variable_name
+        }
+
+    def getVariableName(self):
+        return self.variable_name
+
+    def computeStatement(self, trace_collection):
+        # Only for abc, pylint: disable=no-self-use
+        assert False
+
+    getAssignSource = StatementChildrenHavingBase.childGetter(
+        "source"
+    )
+
+
+class StatementDelVariableName(NodeBase):
+    """ Precursor of StatementDelVariable used during tree building phase
+
+    """
+
+    kind = "STATEMENT_DEL_VARIABLE_NAME"
+
+    __slots__ = "variable_name", "tolerant"
+
+    def __init__(self, variable_name, tolerant, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.variable_name = variable_name
+        self.tolerant = tolerant
+
+    def getDetails(self):
+        return {
+            "variable_name" : self.variable_name,
+            "tolerant" : self.tolerant
+        }
+
+    def getVariableName(self):
+        return self.variable_name
+
+    def computeStatement(self, trace_collection):
+        # Only for abc, pylint: disable=no-self-use
+        assert False
+
+
 class StatementAssignmentVariable(StatementChildrenHavingBase):
     """ Assignment to a variable from an expression.
 
@@ -62,25 +135,15 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
 
     inplace_suspect = None
 
-    def __init__(self, source, source_ref, variable_name = None, variable = None,
-                 version = None, variable_ref = None):
+    def __init__(self, source, variable, source_ref, version = None):
         assert source is not None, source_ref
 
-
-        if variable_ref is not None:
-            variable_name = variable_ref.getVariableName()
-            variable = variable_ref.getVariable()
-            version = variable_ref.getVariableVersion()
-        elif variable is not None:
+        if variable is not None:
             if version is None:
                 version = variable.allocateTargetNumber()
 
-        if variable_name is None:
-            variable_name = variable.getName()
-
         self.variable = variable
         self.variable_version = version
-        self.variable_name = variable_name
 
         StatementChildrenHavingBase.__init__(
             self,
@@ -101,12 +164,11 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
     def getDetails(self):
         return {
             "variable"      : self.variable,
-            "variable_name" : self.variable_name
         }
 
     def getDetailsForDisplay(self):
         return {
-            "variable_name" : self.variable_name,
+            "variable_name" : self.getVariableName(),
             "is_temp"       : self.variable.isTempVariable(),
             "owner"         : self.variable.getOwner().getCodeName(),
         }
@@ -141,11 +203,10 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
             version = None
 
         return StatementAssignmentVariable(
-            source        = self.getAssignSource().makeClone(),
-            variable      = self.variable,
-            variable_name = self.variable_name,
-            version       = version,
-            source_ref    = self.source_ref
+            source     = self.getAssignSource().makeClone(),
+            variable   = self.variable,
+            version    = version,
+            source_ref = self.source_ref
         )
 
     getAssignSource = StatementChildrenHavingBase.childGetter(
@@ -156,7 +217,7 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
     )
 
     def getVariableName(self):
-        return self.variable_name
+        return self.variable.getName()
 
     def getVariable(self):
         return self.variable
@@ -299,11 +360,10 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                                     # TODO: We could well decide, if that's even necessary, but for now
                                     # the "StatementDelVariable" is tasked with that.
                                     result = StatementDelVariable(
-                                        variable_name = self.variable_name,
-                                        variable      = self.variable,
-                                        version       = self.variable_version,
-                                        tolerant      = True,
-                                        source_ref    = self.getSourceReference()
+                                        variable   = self.variable,
+                                        version    = self.variable_version,
+                                        tolerant   = True,
+                                        source_ref = self.getSourceReference()
                                     )
                                 else:
                                     result = None
@@ -349,11 +409,10 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                             if not last_trace.getPrevious().isUninitTrace():
                                 # TODO: We could well decide, if that's even necessary.
                                 result = StatementDelVariable(
-                                    variable_name = self.variable_name,
-                                    variable      = self.variable,
-                                    version       = self.variable_version,
-                                    tolerant      = True,
-                                    source_ref    = self.getSourceReference()
+                                    variable   = self.variable,
+                                    version    = self.variable_version,
+                                    tolerant   = True,
+                                    source_ref = self.getSourceReference()
                                 )
                             else:
                                 result = None
@@ -400,27 +459,18 @@ class StatementDelVariable(NodeBase):
     """
     kind = "STATEMENT_DEL_VARIABLE"
 
-    __slots__ = "variable_name", "variable", "variable_version", "variable_trace", "previous_trace", "tolerant"
+    __slots__ = "variable", "variable_version", "variable_trace", "previous_trace", "tolerant"
 
-    def __init__(self, tolerant, source_ref, variable_name = None, variable = None,
-                 version = None, variable_ref = None):
+    def __init__(self, tolerant, source_ref, variable, version = None):
         if type(tolerant) is str:
             tolerant = tolerant == "True"
 
         assert tolerant is True or tolerant is False, repr(tolerant)
 
-        if variable_ref is not None:
-            variable_name = variable_ref.getVariableName()
-            variable = variable_ref.getVariable()
-            version = variable_ref.getVariableVersion()
-        elif variable is not None:
+        if variable is not None:
             if version is None:
                 version = variable.allocateTargetNumber()
 
-        if variable_name is None:
-            variable_name = variable.getName()
-
-        self.variable_name = variable_name
         self.variable = variable
         self.variable_version = version
 
@@ -449,7 +499,7 @@ class StatementDelVariable(NodeBase):
 
     def getDetailsForDisplay(self):
         return {
-            "variable_name" : self.variable_name,
+            "variable_name" : self.getVariableName(),
             "is_temp"       : self.variable.isTempVariable(),
             "owner"         : self.variable.getOwner().getCodeName(),
             "tolerant"      : self.tolerant
@@ -485,11 +535,10 @@ class StatementDelVariable(NodeBase):
             version = None
 
         return StatementDelVariable(
-            variable      = self.variable,
-            variable_name = self.variable_name,
-            version       = version,
-            tolerant      = self.tolerant,
-            source_ref    = self.source_ref
+            variable   = self.variable,
+            version    = version,
+            tolerant   = self.tolerant,
+            source_ref = self.source_ref
         )
 
     # TODO: Value propagation needs to make a difference based on this.
@@ -497,7 +546,7 @@ class StatementDelVariable(NodeBase):
         return self.tolerant
 
     def getVariableName(self):
-        return self.variable_name
+        return self.variable.getName()
 
     def getVariable(self):
         return self.variable
@@ -522,7 +571,7 @@ class StatementDelVariable(NodeBase):
                 None,
                 "new_statements",
                 "Removed tolerant 'del' statement of '%s' without effect." % (
-                    self.variable_name,
+                    self.getVariableName(),
                 )
             )
 

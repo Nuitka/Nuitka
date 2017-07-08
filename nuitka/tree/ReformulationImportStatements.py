@@ -24,6 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
+    StatementAssignmentVariableName,
     StatementReleaseVariable
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -267,7 +268,7 @@ def buildImportFromNode(provider, node, source_ref):
             first = False
 
             import_statements.append(
-                StatementAssignmentVariable(
+                StatementAssignmentVariableName(
                     variable_name = mangleName(target_name, provider),
                     source        = makeImportName(
                         import_name = import_name,
@@ -348,7 +349,7 @@ def buildImportModulesNode(provider, node, source_ref):
         # module.
 
         import_nodes.append(
-            StatementAssignmentVariable(
+            StatementAssignmentVariableName(
                 variable_name = mangleName(
                     local_name
                       if local_name is not None else

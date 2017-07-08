@@ -24,6 +24,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
+    StatementAssignmentVariableName,
     StatementReleaseVariable
 )
 from nuitka.nodes.AsyncgenNodes import (
@@ -252,14 +253,14 @@ def buildFunctionNode(provider, node, source_ref):
             source_ref = decorator.getSourceReference()
         )
 
-    result = StatementAssignmentVariable(
+    result = StatementAssignmentVariableName(
         variable_name = mangleName(node.name, provider),
         source        = decorated_function,
         source_ref    = source_ref
     )
 
     if python_version >= 340:
-        function_body.qualname_setup = result
+        function_body.qualname_setup = result.getVariableName()
 
     return result
 
@@ -401,13 +402,13 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         )
 
 
-    result = StatementAssignmentVariable(
+    result = StatementAssignmentVariableName(
         variable_name = mangleName(node.name, provider),
         source        = decorated_function,
         source_ref    = source_ref
     )
 
-    function_body.qualname_setup = result
+    function_body.qualname_setup = result.getVariableName()
 
     # Share the non-local declarations. TODO: This may also apply to generators
     # and async generators.

@@ -132,7 +132,6 @@ from nuitka.nodes.TypeNodes import (
 )
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableNameRef,
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
