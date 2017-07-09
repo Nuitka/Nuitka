@@ -21,6 +21,20 @@ from __future__ import print_function
 
 import os, sys, subprocess, tempfile, shutil
 
+# Find nuitka package relative to us.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..",
+            ".."
+        )
+    )
+)
+
+from nuitka.tools.testing.Common import check_output
+
 # Go its own directory, to have it easy with path knowledge.
 nuitka1 = sys.argv[1]
 nuitka2 = sys.argv[2]
@@ -32,21 +46,6 @@ if start_at:
     active = False
 else:
     active = True
-
-def check_output(*popenargs, **kwargs):
-    from subprocess import Popen, PIPE, CalledProcessError
-
-    if "stdout" in kwargs:
-        raise ValueError("stdout argument not allowed, it will be overridden.")
-    process = Popen(stdout = PIPE, *popenargs, **kwargs)
-    output, unused_err = process.communicate()
-    retcode = process.poll()
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        raise CalledProcessError(retcode, cmd, output = output)
-    return output
 
 my_dir = os.path.dirname(os.path.abspath(__file__))
 

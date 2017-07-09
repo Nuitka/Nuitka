@@ -31,7 +31,11 @@ import tempfile
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
-from nuitka.utils.Execution import getExecutablePath, getPythonExePathWindows
+from nuitka.utils.Execution import (
+    check_output,
+    getExecutablePath,
+    getPythonExePathWindows
+)
 
 
 def main():
@@ -681,7 +685,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
 
             data_file.write("NUITKA_SOURCE_DIR='%s'\n" % source_dir)
 
-            nuitka_id = subprocess.check_output(
+            nuitka_id = check_output(
                 "cd '%s'; git rev-parse HEAD" % source_dir,
                 shell = True
             )

@@ -37,7 +37,8 @@ from nuitka.tools.testing.Common import (
     setup,
     my_print,
     createSearchMode,
-    compileLibraryTest
+    compileLibraryTest,
+    check_output
 )
 
 setup(needs_io_encoding = True)
@@ -102,7 +103,7 @@ def action(stage_dir, root, path):
     command.append(filename)
 
     try:
-        output = subprocess.check_output(command).splitlines()
+        output = check_output(command).splitlines()
         assert output[-1] == "OK", output
     except Exception as e:
         print(e)

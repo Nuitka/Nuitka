@@ -20,7 +20,6 @@
 #
 
 import os
-import subprocess
 import sys
 
 # The test runner needs "lxml" itself.
@@ -184,7 +183,7 @@ for filename in sorted(os.listdir('.')):
 
             # Coverage modules hates Nuitka to re-execute, and so we must avoid
             # that.
-            python_path = subprocess.check_output(
+            python_path = check_output(
                 [
                     os.environ["PYTHON"],
                     "-c"

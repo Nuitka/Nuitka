@@ -31,6 +31,8 @@ import sys
 import tempfile
 import time
 
+from nuitka.utils.Execution import check_output
+
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
 thread_re                    = re.compile(r"Thread 0x[0-9a-fA-F]+")
@@ -452,7 +454,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
     if coverage_mode:
         # Coverage modules hates Nuitka to re-execute, and so we must avoid
         # that.
-        python_path = subprocess.check_output(
+        python_path = check_output(
             [
                 os.environ["PYTHON"],
                 "-c"

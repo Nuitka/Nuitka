@@ -22,43 +22,34 @@ import shutil
 import subprocess
 import sys
 
+# Unchanged, running from checkout, use the parent directory, the nuitka
+# package ought be there.
+sys.path.insert(
+    0,
+    os.path.normpath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+        )
+    )
+)
 
-def checkAtHome():
-    assert os.path.isfile("setup.py")
-
-    if os.path.isdir(".git"):
-        git_dir = ".git"
-    else:
-        git_dir = open(".git")
-
-        with open(".git") as f:
-            line = f.readline().strip()
-
-            assert line.startswith("gitdir:")
-
-            git_dir = line[ 8:]
-
-    git_description_filename = os.path.join(git_dir, "description")
-
-    assert open(git_description_filename).read().strip() == "Nuitka Staging"
+from nuitka.tools.release.Release import checkAtHome, checkBranchName
+from nuitka.utils.Execution import check_output
 
 checkAtHome()
 
-nuitka_version = subprocess.check_output(
+nuitka_version = check_output(
     "./bin/nuitka --version", shell = True
 ).strip()
 
-branch_name = subprocess.check_output(
-    "git symbolic-ref --short HEAD".split()
-).strip()
+branch_name = checkBranchName()
 
 if branch_name == "factory":
     for remote in "origin", "github":
         assert 0 == os.system("git push --recurse-submodules=no -f %s factory" % remote)
 
     sys.exit(0)
-
-assert branch_name in (b"master", b"develop", b"release/" + nuitka_version, b"hotfix/" +nuitka_version), branch_name
 
 assert 0 == os.system("rsync -rvlpt --exclude=deb_dist dist/ root@nuitka.net:/var/www/releases/")
 

@@ -26,6 +26,7 @@ import subprocess
 import sys
 
 from nuitka.Tracing import my_print
+from nuitka.utils.Execution import check_output
 from nuitka.utils.FileOperations import withTemporaryFilename
 
 
@@ -104,7 +105,7 @@ def getBinarySizes(filename):
         "size",
         filename
     ]
-    sizes = subprocess.check_output(command).strip()
+    sizes = check_output(command).strip()
     sizes = sizes.split(b'\n')[-1].replace(b'\t', b"").split()
 
     return int(sizes[0]), int(sizes[1])

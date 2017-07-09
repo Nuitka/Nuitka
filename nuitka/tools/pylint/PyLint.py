@@ -52,7 +52,7 @@ def checkVersion():
         sys.exit("Error, pylint is not installed.")
 
     if pylint_version is None:
-        pylint_version = subprocess.check_output(
+        pylint_version = Execution.check_output(
             [sys.executable, getPylintBinaryPath(), "--version"],
             stderr = open(os.devnull, 'w')
         )

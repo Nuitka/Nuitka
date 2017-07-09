@@ -40,7 +40,8 @@ from nuitka.tools.testing.Common import (
     my_print,
     setup,
     convertUsing2to3,
-    getTempDir
+    getTempDir,
+    check_output
 )
 from nuitka.tools.testing.Valgrind import runValgrind
 from nuitka.tools.testing.Constructs import generateConstructCases
@@ -146,7 +147,7 @@ if needs_2to3:
 os.environ["PYTHONHASHSEED"] = '0'
 
 if nuitka:
-    nuitka_id = subprocess.check_output(
+    nuitka_id = check_output(
         "cd %s; git rev-parse HEAD" % os.path.dirname(nuitka),
         shell = True
     )
