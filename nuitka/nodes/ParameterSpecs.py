@@ -47,6 +47,13 @@ class ParameterSpec(object):
     # These got many attributes, in part duplicating name and instance of
     # variables, pylint: disable=too-many-instance-attributes
 
+    __slots__ = (
+        "name", "owner", "normal_args", "normal_variables",
+        "list_star_arg", "dict_star_arg", "list_star_variable",
+        "dict_star_variable", "default_count", "kw_only_args",
+        "kw_only_variables"
+    )
+
     def __init__(self, ps_name, ps_normal_args, ps_kw_only_args, ps_list_star_arg,
                  ps_dict_star_arg, ps_default_count):
         if type(ps_normal_args) is str:
