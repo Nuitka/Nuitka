@@ -429,6 +429,11 @@ def _getConstantDefaultPopulation():
             "file"
         )
 
+        # For Python3 bytes built-in.
+        result += (
+            "bytes",
+        )
+
     if python_version >= 330:
         # Modules have that attribute starting with 3.3
         result.append(

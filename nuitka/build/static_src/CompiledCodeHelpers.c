@@ -260,6 +260,33 @@ PyObject *BUILTIN_CLASSMETHOD( PyObject *value )
     return CALL_FUNCTION_WITH_ARGS1( NUITKA_ACCESS_BUILTIN( classmethod ), args );
 }
 
+#if PYTHON_VERSION >= 300
+
+NUITKA_DEFINE_BUILTIN( bytes );
+
+PyObject *BUILTIN_BYTES3( PyObject *value, PyObject *encoding, PyObject *errors )
+{
+    NUITKA_ASSIGN_BUILTIN( bytes );
+
+    PyObject *args[] =
+    {
+        value,
+        encoding,
+        errors
+    };
+
+    char const *arg_names[] = {
+        "value",
+        "encoding",
+        "errors"
+    };
+
+    return CALL_BUILTIN_KW_ARGS( NUITKA_ACCESS_BUILTIN( bytes ), args, arg_names, 3 );
+}
+#endif
+
+
+
 PyObject *STRING_FROM_CHAR( unsigned char c )
 {
     // TODO: A switch statement might be faster, because no object needs to be

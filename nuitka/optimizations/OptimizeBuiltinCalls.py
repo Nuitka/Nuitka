@@ -578,6 +578,16 @@ if python_version < 300:
             builtin_spec  = BuiltinOptimization.builtin_unicode_spec
         )
 
+else:
+    from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBytes
+
+    def bytes_extractor(node):
+        return BuiltinOptimization.extractBuiltinArgs(
+            node          = node,
+            builtin_class = ExpressionBuiltinBytes,
+            builtin_spec  = BuiltinOptimization.builtin_bytes_spec
+        )
+
 
 def bool_extractor(node):
     return BuiltinOptimization.extractBuiltinArgs(
@@ -1261,14 +1271,17 @@ if python_version < 300:
     _dispatch_dict["long"] = long_extractor
     _dispatch_dict["unicode"] = unicode_extractor
     _dispatch_dict["execfile"] = execfile_extractor
-
     _dispatch_dict["xrange"] = xrange_extractor
+
     _dispatch_dict["range"] = range_extractor
 else:
+    # This one is not in Python2:
+    _dispatch_dict["bytes"] = bytes_extractor
+    _dispatch_dict["ascii"] = ascii_extractor
+    _dispatch_dict["exec"] = exec_extractor
+
     # The Python3 range is really an xrange, use that.
     _dispatch_dict["range"] = xrange_extractor
-    _dispatch_dict["exec"] = exec_extractor
-    _dispatch_dict["ascii"] = ascii_extractor
 
 def check():
     from nuitka.Builtins import builtin_names
@@ -1303,6 +1316,9 @@ _builtin_white_list = (
     # TODO: Not sure what this really is about.
     "memoryview",
 
+    # TODO: This is missing for Python3, and not understood as str for
+    # Python2, really important.
+    "bytes",
 )
 
 

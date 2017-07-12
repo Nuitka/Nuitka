@@ -288,9 +288,6 @@ builtin_setattr_spec = BuiltinParameterSpecNoKeywords("setattr", ("object", "nam
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords("isinstance", ("instance", "classes"), 0)
 
 class BuiltinBytearraySpec(BuiltinParameterSpecNoKeywords):
-    def __init__(self, *args):
-        BuiltinParameterSpecNoKeywords.__init__(self, *args)
-
     def isCompileTimeComputable(self, values):
         # For bytearrays, we need to avoid the case of large bytearray
         # construction from an integer at compile time.
@@ -301,8 +298,6 @@ class BuiltinBytearraySpec(BuiltinParameterSpecNoKeywords):
         )
 
         if result and len(values) == 1:
-            arg = values[0]
-
             index_value = values[0].getIndexValue()
 
             if index_value is None:
@@ -313,6 +308,10 @@ class BuiltinBytearraySpec(BuiltinParameterSpecNoKeywords):
             return result
 
 builtin_bytearray_spec = BuiltinBytearraySpec("bytearray", ("string", "encoding", "errors"), 2)
+
+if python_version >= 300:
+    builtin_bytes_spec = BuiltinBytearraySpec("bytes", ("string", "encoding", "errors"), 3)
+
 
 # Beware: One argument version defines "stop", not "start".
 builtin_slice_spec = BuiltinParameterSpecNoKeywords("slice", ("start", "stop", "step"), 2)
@@ -326,10 +325,22 @@ builtin_sum_spec = BuiltinParameterSpecNoKeywords("sum", ("sequence", "start"), 
 builtin_staticmethod_spec = BuiltinParameterSpecNoKeywords("staticmethod", ("function",), 0)
 builtin_classmethod_spec = BuiltinParameterSpecNoKeywords("classmethod", ("function",), 0)
 
-class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
-    def __init__(self, *args):
-        BuiltinParameterSpecNoKeywords.__init__(self, *args)
+if python_version < 300:
+    builtin_sorted_spec = BuiltinParameterSpecNoKeywords("sorted", ("iterable", "cmp", "key", "reverse"), 2)
+else:
+    builtin_sorted_spec = BuiltinParameterSpecNoKeywords("sorted", ("iterable", "key", "reverse"), 2)
 
+builtin_reversed_spec = BuiltinParameterSpecNoKeywords("reversed", ("object",), 0)
+
+builtin_reversed_spec = BuiltinParameterSpecNoKeywords("reversed", ("object",), 0)
+
+if python_version < 300:
+    builtin_enumerate_spec = BuiltinParameterSpec("enumerate", ("sequence",), 0)
+else:
+    builtin_enumerate_spec = BuiltinParameterSpec("enumerate", ("iterable",), 0)
+
+
+class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
     def isCompileTimeComputable(self, values):
         # For ranges, we need have many cases that can prevent the ability
         # to pre-compute, pylint: disable=too-many-branches,too-many-return-statements

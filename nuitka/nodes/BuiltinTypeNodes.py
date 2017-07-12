@@ -38,6 +38,7 @@ from .NodeMakingHelpers import (
 from .shapes.BuiltinTypeShapes import (
     ShapeTypeBool,
     ShapeTypeBytearray,
+    ShapeTypeBytes,
     ShapeTypeIntOrLong,
     ShapeTypeLong,
     ShapeTypeStr,
@@ -322,6 +323,14 @@ else:
 
         def getTypeShape(self):
             return ShapeTypeStr
+
+    class ExpressionBuiltinBytes(ExpressionBuiltinUnicodeBase):
+        kind = "EXPRESSION_BUILTIN_BYTES"
+
+        builtin_spec = BuiltinOptimization.builtin_bytes_spec
+
+        def getTypeShape(self):
+            return ShapeTypeBytes
 
 
 class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):
