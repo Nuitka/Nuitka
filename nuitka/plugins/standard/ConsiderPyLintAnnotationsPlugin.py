@@ -35,7 +35,7 @@ to grow both.
 
 import re
 
-from nuitka.__past__ import intern  # pylint: disable=redefined-builtin
+from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 

@@ -60,7 +60,7 @@ def generateBuiltinUnicodeCode(to_name, expression, emit, context):
             source_ref = expression.getCompatibleSourceReference(),
             none_null  = True,
             emit       = emit,
-            context    = context,
+            context    = context
         )
 
 

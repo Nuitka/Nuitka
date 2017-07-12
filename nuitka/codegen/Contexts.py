@@ -562,9 +562,9 @@ class PythonGlobalContext(object):
                 key = "(PyObject *)&PyFrozenSet_Type"
             elif python_version >= 270 and constant is memoryview:
                 key = "(PyObject *)&PyMemoryView_Type"
-            elif python_version < 300 and constant is basestring:
+            elif python_version < 300 and constant is basestring: # pylint: disable=I0021,undefined-variable
                 key = "(PyObject *)&PyBaseString_Type"
-            elif python_version < 300 and constant is xrange:
+            elif python_version < 300 and constant is xrange: # pylint: disable=I0021,undefined-variable
                 key = "(PyObject *)&PyRange_Type"
             else:
                 type_name = constant.__name__

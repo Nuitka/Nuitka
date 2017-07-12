@@ -83,7 +83,7 @@ except ImportError:
         return cls
 
 if str is bytes:
-    intern = intern      # @ReservedAssignment
+    intern = intern      # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
     intern = sys.intern  # @ReservedAssignment @UndefinedVariable
 
