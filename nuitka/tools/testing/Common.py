@@ -204,6 +204,13 @@ def convertUsing2to3(path, force = False):
             stderr = devnull
         )
 
+    with open(new_path) as result_file:
+        data = result_file.read()
+
+    with open(new_path, "w") as result_file:
+        result_file.write("__file__ = %r\n" % os.path.abspath(path))
+        result_file.write(data)
+
     return new_path, True
 
 
@@ -833,10 +840,12 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
     gc.enable()
     return result
 
+
 def checkDebugPython():
     if not hasattr(sys, "gettotalrefcount"):
         my_print("Warning, using non-debug Python makes this test ineffective.")
         sys.gettotalrefcount = lambda : 0
+
 
 @contextmanager
 def withPythonPathChange(python_path):
@@ -1066,6 +1075,7 @@ def run_async(coro):
             result = ex.args[0] if ex.args else None
             break
     return values, result
+
 
 def async_iterate(g):
     """ Execute async generator until it's done. """
