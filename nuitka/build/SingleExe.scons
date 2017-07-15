@@ -1125,7 +1125,8 @@ nuitka_include = os.path.join(
 env.Append(
     CPPPATH = [
         source_dir,
-        nuitka_include
+        nuitka_include,
+        os.path.join(nuitka_src, "static_src")
     ]
 )
 

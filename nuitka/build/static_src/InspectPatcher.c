@@ -290,7 +290,9 @@ static PyObject *_builtin_isinstance_replacement( PyObject *self, PyObject *args
         return NULL;
     }
 
-    return PyBool_FromLong( res );
+    PyObject *result = BOOL_FROM( res != 0 );
+    Py_INCREF( result );
+    return result;
 }
 
 static PyMethodDef _method_def_builtin_isinstance_replacement =

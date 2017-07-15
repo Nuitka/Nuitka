@@ -907,6 +907,10 @@ def simpleFunction110():
 
     open("me", buffering = True)
 
+u = u'__name__'
+
+def simpleFunction111():
+    return getattr(simpleFunction111, u)
 
 ####################################
 
