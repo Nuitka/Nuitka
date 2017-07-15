@@ -242,7 +242,7 @@ def _detectImports(command, user_provided, technical):
 
     try:
         if python_version >= 300:
-            command = command.encode("ascii")
+            command = command.encode("utf8")
         os.write(tmp_file, command)
         os.close(tmp_file)
 
