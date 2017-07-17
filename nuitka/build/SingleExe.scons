@@ -258,6 +258,13 @@ blacklisted_tools = (
     "cvs"
 )
 
+if win_target:
+    blacklisted_tools += (
+        "as",
+        "gas",
+        "nasm",
+    )
+
 # From gcc.py of Scons
 def detectVersion(env, cc):
     """Return the version of the GNU compiler, or None if it is not a GNU compiler."""
