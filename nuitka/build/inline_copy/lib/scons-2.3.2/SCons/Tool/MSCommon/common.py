@@ -185,10 +185,11 @@ def get_output(vcbat, args = None, env = None):
 #     debug('get_output():stderr:%s'%stderr)
 
     if stderr:
-        # TODO: find something better to do with stderr;
-        # this at least prevents errors from getting swallowed.
-        import sys
-        sys.stderr.write(stderr)
+        if "wmic" not in stderr:
+            # TODO: find something better to do with stderr;
+            # this at least prevents errors from getting swallowed.
+            import sys
+            sys.stderr.write(stderr)
     if popen.wait() != 0:
         raise IOError(stderr.decode("mbcs"))
 

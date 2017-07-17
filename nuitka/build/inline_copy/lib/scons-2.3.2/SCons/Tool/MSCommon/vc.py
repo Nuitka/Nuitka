@@ -134,9 +134,13 @@ def get_host_target(env):
 
 # If you update this, update SupportedVSList in Tool/MSCommon/vs.py, and the
 # MSVC_VERSION documentation in Tool/msvc.xml.
-_VCVER = ["14.0", "14.0Exp", "12.0", "12.0Exp", "11.0", "11.0Exp", "10.0", "10.0Exp", "9.0", "9.0Exp","8.0", "8.0Exp","7.1", "7.0", "6.0"]
+_VCVER = ["15.0", "14.0", "14.0Exp", "12.0", "12.0Exp", "11.0", "11.0Exp", "10.0", "10.0Exp", "9.0", "9.0Exp","8.0", "8.0Exp","7.1", "7.0", "6.0"]
 
 _VCVER_TO_PRODUCT_DIR = {
+        '15.0' : [
+            r'Microsoft\VisualStudio\SxS\VS7\15.0'],
+        '14.0' : [
+            r'Microsoft\VisualStudio\14.0\Setup\VC\ProductDir'],
         '14.0' : [
             r'Microsoft\VisualStudio\14.0\Setup\VC\ProductDir'],
         '12.0' : [
@@ -230,6 +234,10 @@ def find_vc_pdir(msvc_version):
             debug('find_vc_dir(): no VC registry key %s' % repr(key))
         else:
             debug('find_vc_dir(): found VC in registry: %s' % comps)
+
+            if msvc_version == "15.0":
+                comps = os.path.join(comps, "VC")
+
             if os.path.exists(comps):
                 return comps
             else:
@@ -258,6 +266,9 @@ def find_batch_file(env,msvc_version,host_arch,target_arch):
     elif vernum < 7:
         pdir = os.path.join(pdir, "Bin")
         batfilename = os.path.join(pdir, "vcvars32.bat")
+    elif vernum >= 15:
+        pdir = os.path.join(pdir, "Auxiliary", "Build")
+        batfilename = os.path.join(pdir, "vcvarsall.bat")
     else: # >= 8
         batfilename = os.path.join(pdir, "vcvarsall.bat")
 
