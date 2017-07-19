@@ -51,6 +51,7 @@ from .shapes.BuiltinTypeShapes import (
     ShapeTypeDict,
     ShapeTypeEllipsisType,
     ShapeTypeFloat,
+    ShapeTypeFrozenset,
     ShapeTypeInt,
     ShapeTypeList,
     ShapeTypeLong,
@@ -589,6 +590,46 @@ class ExpressionConstantSetEmptyRef(ExpressionConstantSetRef):
         return {}
 
 
+class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
+    kind = "EXPRESSION_CONSTANT_FROZENSET_REF"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref, constant, user_provided = False):
+        ExpressionConstantRefBase.__init__(
+            self,
+            constant      = constant,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    @staticmethod
+    def isExpressionConstantFrozensetRef():
+        return True
+
+    def getTypeShape(self):
+        return ShapeTypeFrozenset
+
+
+the_empty_frozenset = frozenset()
+
+class ExpressionConstantFrozensetEmptyRef(ExpressionConstantFrozensetRef):
+    kind = "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref, user_provided = False):
+        ExpressionConstantFrozensetRef.__init__(
+            self,
+            constant      = the_empty_frozenset,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    def getDetails(self):
+        return {}
+
+
 class ExpressionConstantIntRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_INT_REF"
 
@@ -957,6 +998,18 @@ def makeConstantRefNode(constant, source_ref, user_provided = False):
                 )
             else:
                 return ExpressionConstantSetEmptyRef(
+                    source_ref    = source_ref,
+                    user_provided = user_provided
+                )
+        elif constant_type is frozenset:
+            if constant:
+                return ExpressionConstantFrozensetRef(
+                    source_ref    = source_ref,
+                    constant      = constant,
+                    user_provided = user_provided
+                )
+            else:
+                return ExpressionConstantFrozensetEmptyRef(
                     source_ref    = source_ref,
                     user_provided = user_provided
                 )

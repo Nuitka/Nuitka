@@ -650,7 +650,7 @@ CHECK_OBJECT( const_int_pos_1 );
 
         return
 
-    if constant_type is set:
+    if constant_type is set or constant_type is frozenset:
         # Not all sets can or should be marshaled. For small ones,
         # or ones with strange values, like "{type}", we have to do it.
         if attemptToMarshal(constant_identifier, constant_value, emit):
@@ -658,7 +658,10 @@ CHECK_OBJECT( const_int_pos_1 );
 
         # TODO: Hinting size is really not possible?
         emit(
-            "%s = PySet_New( NULL );" % constant_identifier
+            "%s = %s( NULL );" % (
+                constant_identifier,
+                "PySet_New" if constant_type is set else "PyFrozenSet_New"
+            )
         )
 
         for element_value in constant_value:

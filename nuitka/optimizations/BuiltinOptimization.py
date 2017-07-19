@@ -227,6 +227,7 @@ builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), 0)
 builtin_tuple_spec = BuiltinParameterSpec("tuple", ("sequence",), 1)
 builtin_list_spec = BuiltinParameterSpec("list", ("sequence",), 1)
 builtin_set_spec = BuiltinParameterSpecNoKeywords("set", ("iterable",), 1)
+builtin_frozenset_spec = BuiltinParameterSpecNoKeywords("frozenset", ("iterable",), 1)
 
 builtin_import_spec = BuiltinParameterSpec("__import__", ("name", "globals", "locals", "fromlist", "level"), 4)
 

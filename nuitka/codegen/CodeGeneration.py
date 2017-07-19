@@ -201,6 +201,7 @@ from .ReturnCodes import (
     generateReturnedValueRefCode
 )
 from .SetCodes import (
+    generateBuiltinFrozensetCode,
     generateBuiltinSetCode,
     generateSetCreationCode,
     generateSetLiteralCreationCode,
@@ -535,6 +536,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_TUPLE"                  : generateBuiltinTupleCode,
         "EXPRESSION_BUILTIN_LIST"                   : generateBuiltinListCode,
         "EXPRESSION_BUILTIN_SET"                    : generateBuiltinSetCode,
+        "EXPRESSION_BUILTIN_FROZENSET"              : generateBuiltinFrozensetCode,
         "EXPRESSION_BUILTIN_DICT"                   : generateBuiltinDictCode,
         "EXPRESSION_BUILTIN_LOCALS_UPDATED"         : generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_LOCALS_COPY"            : generateBuiltinLocalsCode,
@@ -585,6 +587,8 @@ setExpressionDispatchDict(
         "EXPRESSION_CONSTANT_LIST_EMPTY_REF"        : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_REF"               : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_EMPTY_REF"         : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_FROZENSET_REF"         : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF"   : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SLICE_REF"             : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_XRANGE_REF"            : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_REF"              : generateConstantReferenceCode,

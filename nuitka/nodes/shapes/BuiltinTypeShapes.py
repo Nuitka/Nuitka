@@ -305,6 +305,36 @@ class ShapeTypeSetIterator(ShapeIterator):
         return False
 
 
+class ShapeTypeFrozenset(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "frozenset"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return True
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return True
+
+    @staticmethod
+    def getShapeIter():
+        return ShapeTypeSetIterator
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
+
+
 class ShapeTypeDict(ShapeBase):
     @staticmethod
     def getTypeName():

@@ -84,6 +84,7 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinBytearray3,
     ExpressionBuiltinComplex,
     ExpressionBuiltinFloat,
+    ExpressionBuiltinFrozenset,
     ExpressionBuiltinInt,
     ExpressionBuiltinList,
     ExpressionBuiltinSet,
@@ -543,6 +544,14 @@ def set_extractor(node):
         node          = node,
         builtin_class = ExpressionBuiltinSet,
         builtin_spec  = BuiltinOptimization.builtin_set_spec
+    )
+
+
+def frozenset_extractor(node):
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = ExpressionBuiltinFrozenset,
+        builtin_spec  = BuiltinOptimization.builtin_frozenset_spec
     )
 
 
@@ -1254,6 +1263,7 @@ _dispatch_dict = {
     "list"         : list_extractor,
     "dict"         : dict_extractor,
     "set"          : set_extractor,
+    "frozenset"    : frozenset_extractor,
     "float"        : float_extractor,
     "complex"      : complex_extractor,
     "str"          : str_extractor,

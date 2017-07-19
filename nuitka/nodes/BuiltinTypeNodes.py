@@ -112,6 +112,12 @@ class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
     builtin_spec = BuiltinOptimization.builtin_set_spec
 
 
+class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
+    kind = "EXPRESSION_BUILTIN_FROZENSET"
+
+    builtin_spec = BuiltinOptimization.builtin_frozenset_spec
+
+
 class ExpressionBuiltinFloat(ExpressionBuiltinTypeBase):
     kind = "EXPRESSION_BUILTIN_FLOAT"
 

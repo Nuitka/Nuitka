@@ -158,7 +158,8 @@ def isConstant(constant):
 
         return True
     elif constant_type in (str, unicode, complex, int, long, bool, float,
-                           NoneType, range, bytes, set, xrange, bytearray):
+                           NoneType, range, bytes, set, frozenset, xrange,
+                           bytearray):
         return True
     elif constant in (Ellipsis, NoneType):
         return True
@@ -189,6 +190,11 @@ def isMutable(constant):
             if isMutable(value):
                 return True
         return False
+    elif constant_type is frozenset:
+        for value in constant:
+            if isMutable(value):
+                return True
+        return False
     elif constant_type is type:
         return False
     elif constant is Ellipsis:
@@ -207,6 +213,7 @@ def isHashable(constant):
         mutable, and still not hashable: slices.
     """
     # Many cases and all return, that is how we do it here,
+    # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
 
@@ -216,6 +223,11 @@ def isHashable(constant):
     elif constant_type in (dict, list, set, slice, bytearray):
         return False
     elif constant_type is tuple:
+        for value in constant:
+            if not isHashable(value):
+                return False
+        return True
+    elif constant_type is frozenset:
         for value in constant:
             if not isHashable(value):
                 return False
