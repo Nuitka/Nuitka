@@ -41,13 +41,12 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     unicode,
     xrange
 )
-from nuitka.Constants import getConstantWeight, isMutable
+from nuitka.Constants import compareConstants, getConstantWeight, isMutable
 from nuitka.PythonVersions import python_version
 
 from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
 from .Indentation import indented
-from .Pickling import getStreamedConstant
 from .templates.CodeTemplatesConstants import template_constants_reading
 
 
@@ -115,29 +114,6 @@ def _isAttributeName(value):
     # TODO: The exception is to make sure we intern the ".0" argument name
     # used for generator expressions, iterator value.
     return _match_attribute_names.match(value) or value == ".0"
-
-
-
-def _getUnstreamCode2(constant_value):
-    saved = getStreamedConstant(
-        constant_value = constant_value
-    )
-    assert type(saved) is bytes
-
-    return stream_data.getStreamDataCode(saved)
-
-
-def _getUnstreamCode(constant_value, constant_identifier):
-    """ Get code to assign given constant value to an identifier from a stream.
-
-        This uses pickle, and usage should be minimized.
-    """
-
-    return "%s = UNSTREAM_CONSTANT( %s );" % (
-        constant_identifier,
-        _getUnstreamCode2(constant_value)
-    )
-
 
 sizeof_long = ctypes.sizeof(ctypes.c_long)
 
@@ -258,8 +234,29 @@ def isMarshalConstant(constant_value):
     marshal_value = marshal.dumps(constant_value)
     restored = marshal.loads(marshal_value)
 
-    # TODO: Potentially warn about these, where that is not the case.
-    return constant_value == restored
+    r = compareConstants(constant_value, restored)
+    if not r:
+        pass
+        # TODO: Potentially warn about these, where that is not the case.
+
+    return r
+
+
+def getMarshalCode(constant_identifier, constant_value, emit):
+    """ Force the marshal of a value.
+
+    """
+    marshal_value = marshal.dumps(constant_value)
+    restored = marshal.loads(marshal_value)
+
+    assert compareConstants(constant_value, restored)
+
+    emit(
+        "%s = PyMarshal_ReadObjectFromString( (char *)%s );" % (
+            constant_identifier,
+            stream_data.getStreamDataCode(marshal_value)
+        )
+    )
 
 
 def attemptToMarshal(constant_identifier, constant_value, emit):
@@ -276,7 +273,7 @@ def attemptToMarshal(constant_identifier, constant_value, emit):
 
     # TODO: The check in isMarshalConstant is currently preventing this from
     # happening.
-    if constant_value != restored:
+    if not compareConstants(constant_value, restored):
         warning("Problem with marshal of constant %r", constant_value)
 
         return False
@@ -399,10 +396,13 @@ CHECK_OBJECT( const_int_pos_1 );
 
             return
         else:
-            # Note, other longs cannot be handled like that yet. We might create
-            # code that does it better in the future, abusing e.g. internal
-            # representation of "long" integer values.
-            pass
+            getMarshalCode(
+                constant_identifier = constant_identifier,
+                constant_value      = constant_value,
+                emit                = emit
+            )
+
+            return
     elif constant_type is int:
         if constant_value >= min_signed_long:
             emit(
@@ -432,12 +432,6 @@ CHECK_OBJECT( const_int_pos_1 );
             return
 
     if constant_type is unicode:
-        # Attempting to marshal is OK, but esp. Python2 cannot do it for all
-        # "unicode" values.
-
-        if attemptToMarshal(constant_identifier, constant_value, emit):
-            return
-
         try:
             encoded = constant_value.encode("utf-8")
 
@@ -459,8 +453,14 @@ CHECK_OBJECT( const_int_pos_1 );
 
             return
         except UnicodeEncodeError:
-            # So fall back to below code, which will unstream it then.
-            pass
+            getMarshalCode(
+                constant_identifier = constant_identifier,
+                constant_value      = constant_value,
+                emit                = emit
+            )
+
+            return
+
     elif constant_type is str:
         # Python3: Strings that can be encoded as UTF-8 are done more or less
         # directly. When they cannot be expressed as UTF-8, that is rare not we
@@ -821,16 +821,11 @@ CHECK_OBJECT( const_int_pos_1 );
 
         return
 
-    # TODO: Ranges could very well be created for Python3. And "frozenset" and
-    # set, are to be examined.
-
-    if constant_type in (frozenset, complex, unicode, long, xrange):
-        # Lets attempt marshal these.
-        if attemptToMarshal(constant_identifier, constant_value, emit):
-            return
-
-        emit(
-            _getUnstreamCode(constant_value, constant_identifier)
+    if constant_type is complex:
+        getMarshalCode(
+            constant_identifier = constant_identifier,
+            constant_value      = constant_value,
+            emit                = emit
         )
 
         return

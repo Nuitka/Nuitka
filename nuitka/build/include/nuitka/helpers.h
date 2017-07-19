@@ -554,7 +554,6 @@ extern void checkGlobalConstants( void );
 #include "nuitka/constants_blob.h"
 
 extern void UNSTREAM_INIT( void );
-extern PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool intern );
 extern PyObject *UNSTREAM_CHAR( unsigned char value, bool intern );
 #if PYTHON_VERSION < 300
