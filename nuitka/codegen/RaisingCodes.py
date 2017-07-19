@@ -353,6 +353,9 @@ def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
         "RAISE_EXCEPTION_WITH_TRACEBACK( &exception_type, &exception_value, &exception_tb);"
     )
 
+    # If anything is wrong, that will be used.
+    emitErrorLineNumberUpdateCode(emit, context)
+
     emit(
         getFrameVariableTypeDescriptionCode(context)
     )
