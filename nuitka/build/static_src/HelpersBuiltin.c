@@ -15,13 +15,14 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-/* For calling built-ins, calls it and uses keyword dictionary if necessary.
-
-   This helper simplifies calling built-ins with optional arguments that can
-   be given as keyword arguments. We basically re-construct the minimal call
-   using keywords here. This obviously is for inefficient calls to the original
-   built-in and should be avoided.
-*/
+/** For calling built-ins, calls it and uses keyword dictionary if necessary.
+ *
+ * This helper simplifies calling built-ins with optional arguments that can
+ * be given as keyword arguments. We basically re-construct the minimal call
+ * using keywords here. This obviously is for inefficient calls to the original
+ * built-in and should be avoided.
+ *
+ **/
 
 static PyObject *CALL_BUILTIN_KW_ARGS( PyObject *callable, PyObject **args, char const **arg_names, int max_args )
 {
@@ -74,9 +75,9 @@ static PyObject *CALL_BUILTIN_KW_ARGS( PyObject *callable, PyObject **args, char
 }
 
 
-/* The "compile" built-in.
-
-*/
+/** The "compile" built-in.
+ *
+ */
 
 NUITKA_DEFINE_BUILTIN( compile )
 
@@ -138,9 +139,9 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
     return result;
 }
 
-/* The "eval" implementation, used for "exec" too.
-
-*/
+/**
+ *  The "eval" implementation, used for "exec" too.
+ */
 
 
 PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
@@ -190,10 +191,12 @@ PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
     return result;
 }
 
-/* The "open" built-in.
-
-   Different for Python2 and Python3, the later has more arguments.
-*/
+/** The "open" built-in.
+ *
+ * Different for Python2 and Python3, the later has more arguments and
+ * both accept keyword arguments.
+ *
+ **/
 
 
 NUITKA_DEFINE_BUILTIN( open );
@@ -253,9 +256,9 @@ PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering
 
 #endif
 
-/* The "staticmethod" built-in.
-
-*/
+/** The "staticmethod" built-in.
+ *
+ **/
 
 
 NUITKA_DEFINE_BUILTIN(staticmethod)
@@ -268,9 +271,9 @@ PyObject *BUILTIN_STATICMETHOD( PyObject *value )
     return CALL_FUNCTION_WITH_ARGS1( NUITKA_ACCESS_BUILTIN( staticmethod ), args );
 }
 
-/* The "classmethod" built-in.
-
-*/
+/** The "classmethod" built-in.
+ *
+ **/
 
 NUITKA_DEFINE_BUILTIN(classmethod)
 
@@ -284,12 +287,13 @@ PyObject *BUILTIN_CLASSMETHOD( PyObject *value )
 
 #if PYTHON_VERSION >= 300
 
-/* The "bytes" built-in.
-
-   Only for Python3. There is not BYTES_BUILTIN1 yet, this only delegates to
-   the actual built-in which is wasteful. TODO: Have dedicated implementation
-   for this.
-*/
+/** The "bytes" built-in.
+ *
+ * Only for Python3. There is not BYTES_BUILTIN1 yet, this only delegates to
+ * the actual built-in which is wasteful. TODO: Have dedicated implementation
+ * for this.
+ *
+ **/
 
 NUITKA_DEFINE_BUILTIN( bytes );
 
@@ -314,13 +318,13 @@ PyObject *BUILTIN_BYTES3( PyObject *value, PyObject *encoding, PyObject *errors 
 }
 #endif
 
-/* The "bin" built-in.
-
-*/
+/** The "bin" built-in.
+ *
+ **/
 
 PyObject *BUILTIN_BIN( PyObject *value )
 {
-    // Note: I don't really know why ord and hex don't use this as well.
+    // Note: I don't really know why "oct" and "hex" don't use this as well.
     PyObject *result = PyNumber_ToBase( value, 2 );
 
     if ( unlikely( result == NULL ))
@@ -331,9 +335,9 @@ PyObject *BUILTIN_BIN( PyObject *value )
     return result;
 }
 
-/* The "oct" built-in.
-
-*/
+/** The "oct" built-in.
+ *
+ **/
 
 PyObject *BUILTIN_OCT( PyObject *value )
 {
@@ -378,9 +382,9 @@ PyObject *BUILTIN_OCT( PyObject *value )
 #endif
 }
 
-/* The "hex" built-in.
-
-*/
+/** The "hex" built-in.
+ *
+ **/
 
 PyObject *BUILTIN_HEX( PyObject *value )
 {
@@ -425,9 +429,9 @@ PyObject *BUILTIN_HEX( PyObject *value )
 #endif
 }
 
-/* The "hash" built-in.
-
-*/
+/** The "hash" built-in.
+ *
+ **/
 
 PyObject *BUILTIN_HASH( PyObject *value )
 {
@@ -445,12 +449,13 @@ PyObject *BUILTIN_HASH( PyObject *value )
 #endif
 }
 
-/* The "bytearray" built-in.
-
-   These should be more in-lined maybe, as a lot of checks are not necessary
-   and the error checking for the 3 arguments variant may even not be enough,
-   as it could be keyword arguments.
-*/
+/** The "bytearray" built-in.
+ *
+ * These should be more in-lined maybe, as a lot of checks are not necessary
+ * and the error checking for the 3 arguments variant may even not be enough,
+ * as it could be keyword arguments.
+ *
+ **/
 
 PyObject *BUILTIN_BYTEARRAY1( PyObject *value )
 {
@@ -497,13 +502,14 @@ PyObject *BUILTIN_BYTEARRAY3( PyObject *string, PyObject *encoding, PyObject *er
     }
 }
 
-/* The "iter" built-in.
-
-   This comes in two flavors, with one or two arguments. The second one
-   creates a calliterobject that is private to CPython. We define it here
-   for ourselves. The one argument version is in headers for in-lining of
-   the code.
-*/
+/** The "iter" built-in.
+ *
+ * This comes in two flavors, with one or two arguments. The second one
+ * creates a "calliterobject" that is private to CPython. We define it here
+ * for ourselves. The one argument version is in headers for in-lining of
+ * the code.
+ *
+ **/
 
 
 // From CPython:
@@ -533,11 +539,12 @@ PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
     return (PyObject *)result;
 }
 
-/* The "type" built-in.
-
-   This comes in two flavors, one being the detection of a values type,
-   and 3 argument variant creates a new type.
-*/
+/** The "type" built-in.
+ *
+ * This comes in two flavors, one being the detection of a values type,
+ * and 3 argument variant creates a new type.
+ *
+ **/
 
 PyObject *BUILTIN_TYPE1( PyObject *arg )
 {
@@ -606,10 +613,11 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
     return result;
 }
 
-/* The "super" built-in.
-
-   This uses a private structure "superobject" that we declare here too.
-*/
+/** The "super" built-in.
+ *
+ * This uses a private structure "superobject" that we declare here too.
+ *
+ **/
 
 typedef struct {
     PyObject_HEAD
@@ -698,9 +706,9 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
     return (PyObject *)result;
 }
 
-/* The "callable" built-in.
-
-*/
+/** The "callable" built-in.
+ *
+ **/
 
 PyObject *BUILTIN_CALLABLE( PyObject *value )
 {
@@ -710,9 +718,11 @@ PyObject *BUILTIN_CALLABLE( PyObject *value )
     return result;
 }
 
-/* The "getattr" built-in with default value. We might want to split it
-   off for a variant without default value.
-*/
+/* The "getattr" built-in with default value.
+ *
+ * We might want to split it off for a variant without default value.
+ *
+ **/
 
 PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *default_value )
 {
@@ -762,8 +772,9 @@ PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *defa
     }
 }
 
-/* The "setattr" built-in.
-*/
+/** The "setattr" built-in.
+ *
+ **/
 
 PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value )
 {

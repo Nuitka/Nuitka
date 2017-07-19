@@ -207,7 +207,7 @@ def convertUsing2to3(path, force = False):
     with open(new_path) as result_file:
         data = result_file.read()
 
-    with open(new_path, "w") as result_file:
+    with open(new_path, 'w') as result_file:
         result_file.write("__file__ = %r\n" % os.path.abspath(path))
         result_file.write(data)
 
@@ -396,7 +396,7 @@ def getArchitecture():
         else:
             return "x86"
     else:
-        return os.uname()[4]
+        return os.uname()[4]  # @UndefinedVariable
 
 
 def getDependsExePath():
