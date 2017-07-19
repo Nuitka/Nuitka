@@ -555,6 +555,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
             os.path.join(output_dir, exe_filename)
         ]
 
+        pdb_filename = exe_filename[:-4] + ".pdb"
+
     if trace_command:
         my_print("CPython command:", *cpython_cmd)
 
@@ -746,6 +748,8 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
 
                     assert not os.path.exists(nuitka_cmd2[0]+".away")
 
+                    if os.path.exists(pdb_filename):
+                        os.unlink(pdb_filename)
                 else:
                     os.unlink(nuitka_cmd2[0])
         else:
