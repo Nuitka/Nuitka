@@ -102,6 +102,8 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
         helper = "BINARY_OPERATION_MUL"
     elif operator == "Mod":
         helper = "BINARY_OPERATION_REMAINDER"
+    elif operator == "Divmod":
+        helper = "BUILTIN_DIVMOD"
     elif len(arg_names) == 2:
         helper = "BINARY_OPERATION"
         prefix_args = (

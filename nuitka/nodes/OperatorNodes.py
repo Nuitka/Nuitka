@@ -26,6 +26,7 @@ import math
 from nuitka import PythonOperators
 
 from .ExpressionBases import ExpressionChildrenHavingBase
+from .shapes.BuiltinTypeShapes import ShapeTypeTuple
 from .shapes.StandardShapes import (
     ShapeLargeConstantValuePredictable,
     ShapeUnknown,
@@ -197,6 +198,7 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinary):
 
         return self, None, None
 
+
 class ExpressionOperationBinaryMult(ExpressionOperationBinary):
     kind = "EXPRESSION_OPERATION_BINARY_MULT"
 
@@ -335,6 +337,26 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinary):
                 return self.getLeft().extractSideEffects() + self.getRight().extractSideEffects()
 
         return ExpressionOperationBinary.extractSideEffects(self)
+
+
+class ExpressionOperationBinaryDivmod(ExpressionOperationBinary):
+    kind = "EXPRESSION_OPERATION_BINARY_DIVMOD"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionOperationBinary.__init__(
+            self,
+            operator   = "Divmod",
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+        self.shape = None
+
+
+    # TODO: Value shape is two elemented tuple of int or float both.
+    def getTypeShape(self):
+        return ShapeTypeTuple
 
 
 def makeBinaryOperationNode(operator, left, right, source_ref):

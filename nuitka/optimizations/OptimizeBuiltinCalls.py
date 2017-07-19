@@ -118,6 +118,7 @@ from nuitka.nodes.NodeMakingHelpers import (
     wrapExpressionWithSideEffects
 )
 from nuitka.nodes.OperatorNodes import (
+    ExpressionOperationBinaryDivmod,
     ExpressionOperationNOT,
     ExpressionOperationUnary
 )
@@ -1223,6 +1224,14 @@ def classmethod_extractor(node):
     )
 
 
+def divmod_extractor(node):
+    return BuiltinOptimization.extractBuiltinArgs(
+        node          = node,
+        builtin_class = ExpressionOperationBinaryDivmod,
+        builtin_spec  = BuiltinOptimization.builtin_divmod_spec,
+    )
+
+
 _dispatch_dict = {
     "compile"      : compile_extractor,
     "globals"      : globals_extractor,
@@ -1264,6 +1273,7 @@ _dispatch_dict = {
     "open"         : open_extractor,
     "staticmethod" : staticmethod_extractor,
     "classmethod"  : classmethod_extractor,
+    "divmod"       : divmod_extractor
 }
 
 if python_version < 300:
@@ -1304,22 +1314,74 @@ _builtin_white_list = (
     # its iteration away.
     "zip",
 
-    # TODO: This would be most preciouse due to the type hint it gives
+    # TODO: This would be most precious due to the type hint it gives
     "enumerate",
 
     # TODO: Also worthwhile for known values.
     "reversed",
 
-    # TODO: Not as important, but ought to be easy to add.
-    "divmod",
-
     # TODO: Not sure what this really is about.
     "memoryview",
-
-    # TODO: This is missing for Python3, and not understood as str for
-    # Python2, really important.
-    "bytes",
 )
+
+
+def _describeNewNode(builtin_name, inspect_node):
+    """ Describe the change for better understanding.
+
+    """
+
+    if inspect_node.isExpressionSideEffects():
+        inspect_node = inspect_node.getExpression()
+
+    if inspect_node.isExpressionBuiltinImport():
+        tags    = "new_import"
+        message = """\
+Replaced dynamic "__import__" call with static built-in call."""
+    elif inspect_node.isExpressionBuiltin() or \
+         inspect_node.isStatementExec():
+        tags = "new_builtin"
+        message = "Replaced call to built-in '%s' with built-in call '%s'." % (
+            builtin_name,
+            inspect_node.kind,
+        )
+    elif inspect_node.isExpressionRaiseException():
+        tags = "new_raise"
+        message = """\
+Replaced call to built-in '%s' with exception raise.""" % (
+            builtin_name,
+        )
+    elif inspect_node.isExpressionOperationBinary():
+        tags = "new_expression"
+        message = """\
+Replaced call to built-in '%s' with binary operation '%s'.""" % (
+            builtin_name,
+            inspect_node.getOperator()
+        )
+    elif inspect_node.isExpressionOperationUnary():
+        tags = "new_expression"
+        message = """\
+Replaced call to built-in '%s' with unary operation '%s'.""" % (
+            builtin_name,
+            inspect_node.getOperator()
+        )
+    elif inspect_node.isExpressionCall():
+        tags = "new_expression"
+        message = """\
+Replaced call to built-in '%s' with call.""" % (
+            builtin_name,
+        )
+    elif inspect_node.isExpressionOutlineBody():
+        tags = "new_expression"
+        message = """\
+Replaced call to built-in '%s' with outlined call.""" % builtin_name
+    elif inspect_node.isExpressionConstantRef():
+        tags = "new_expression"
+        message = """\
+Replaced call to built-in '%s' with constant value.""" % builtin_name
+    else:
+        assert False, (builtin_name, "->", inspect_node)
+
+    return tags, message
 
 
 def computeBuiltinCall(builtin_name, call_node):
@@ -1333,53 +1395,7 @@ def computeBuiltinCall(builtin_name, call_node):
 
         # For traces, we are going to ignore side effects, and output traces
         # only based on the basis of it.
-        inspect_node = new_node
-        if inspect_node.isExpressionSideEffects():
-            inspect_node = inspect_node.getExpression()
-
-        if inspect_node.isExpressionBuiltinImport():
-            tags    = "new_import"
-            message = """\
-Replaced dynamic "__import__" call with static built-in call."""
-        elif inspect_node.isExpressionBuiltin() or \
-             inspect_node.isStatementExec():
-            tags = "new_builtin"
-            message = "Replaced call to built-in '%s' with built-in call '%s'." % (
-                builtin_name,
-                inspect_node.kind,
-            )
-        elif inspect_node.isExpressionRaiseException():
-            tags = "new_raise"
-            message = """\
-Replaced call to built-in '%s' with exception raise.""" % (
-                builtin_name,
-            )
-        elif inspect_node.isExpressionOperationUnary():
-            tags = "new_expression"
-            message = """\
-Replaced call to built-in '%s' with unary operation '%s'.""" % (
-                builtin_name,
-                inspect_node.getOperator()
-            )
-        elif inspect_node.isExpressionCall():
-            tags = "new_expression"
-            message = """\
-Replaced call to built-in '%s' with call.""" % (
-                builtin_name,
-            )
-        elif inspect_node.isExpressionOutlineBody():
-            tags = "new_expression"
-            message = """\
-Replaced call to built-in '%s' with outlined call.""" % builtin_name
-        elif inspect_node.isExpressionConstantRef():
-            tags = "new_expression"
-            message = """\
-Replaced call to built-in '%s' with constant value.""" % builtin_name
-        else:
-
-            assert False, (builtin_name, "->", inspect_node)
-
-        assert tags != ""
+        tags, message = _describeNewNode(builtin_name, new_node)
 
         return new_node, tags, message
     else:

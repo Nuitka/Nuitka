@@ -535,6 +535,9 @@ extern PyObject *BUILTIN_STATICMETHOD( PyObject *function );
 // For built-in classmethod() functionality.
 extern PyObject *BUILTIN_CLASSMETHOD( PyObject *function );
 
+// For built-in divmod() functionality.
+extern PyObject *BUILTIN_DIVMOD( PyObject *operand1, PyObject *operand2 );
+
 #include "nuitka/importing.h"
 
 // For the constant loading:

@@ -408,6 +408,10 @@ builtin_range_spec = BuiltinRangeSpec("range", ("start", "stop", "step"), 2)
 if python_version >= 300:
     builtin_ascii_spec = BuiltinParameterSpecNoKeywords("ascii", ("object",), 0)
 
+
+builtin_divmod_spec = BuiltinParameterSpecNoKeywords("divmod", ("left", "right"), 0)
+
+
 def extractBuiltinArgs(node, builtin_spec, builtin_class,
                        empty_special_class = None):
     try:

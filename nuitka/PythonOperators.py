@@ -39,6 +39,7 @@ binary_operator_functions = {
     "BitAnd"    : operator.and_,
     "BitOr"     : operator.or_,
     "BitXor"    : operator.xor,
+    "Divmod"    : divmod,
     "IAdd"      : operator.iadd,
     "ISub"      : operator.isub,
     "IPow"      : operator.ipow,
