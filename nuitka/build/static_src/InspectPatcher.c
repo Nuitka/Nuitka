@@ -392,6 +392,7 @@ static int free_list_tracebacks_count = 0;
 PyTracebackObject *MAKE_TRACEBACK( struct Nuitka_FrameObject *frame, int lineno )
 {
     CHECK_OBJECT( frame );
+    assert( lineno != 0 );
 
     PyTracebackObject *result;
 

@@ -198,9 +198,10 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
 
 def getErrorVariableDeclarations():
     return (
-        "PyObject *exception_type = NULL, *exception_value = NULL;",
+        "PyObject *exception_type = NULL;",
+        "PyObject *exception_value = NULL;",
         "PyTracebackObject *exception_tb = NULL;",
-        "NUITKA_MAY_BE_UNUSED int exception_lineno = -1;"
+        "NUITKA_MAY_BE_UNUSED int exception_lineno = 0;"
     )
 
 def getExceptionKeeperVariableNames(keeper_index):
@@ -228,7 +229,7 @@ def getExceptionKeeperVariableNames(keeper_index):
         ),
         "NUITKA_MAY_BE_UNUSED int exception_keeper_lineno_%d%s;" % (
             keeper_index,
-            " = -1" if debug else ""
+            " = 0" if debug else ""
         )
     )
 
