@@ -215,7 +215,7 @@ def _detectImports(command, user_provided, technical):
 
     # Print statements for stuff to show, the modules loaded.
     if python_version >= 300:
-        command += '\nimport sys\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + ' \
+        command += '\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + ' \
                    'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and ' \
                    'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it
 
@@ -235,7 +235,7 @@ def _detectImports(command, user_provided, technical):
 
     # Make sure the right import path (the one Nuitka binary is running with)
     # is used.
-    command = ("import sys; sys.path = %s;" % repr(reduced_path)) + command
+    command = ("import sys; sys.path = %s; sys.real_prefix = sys.prefix;" % repr(reduced_path)) + command
 
     import tempfile
     tmp_file, tmp_filename = tempfile.mkstemp()
