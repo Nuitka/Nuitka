@@ -1,13 +1,10 @@
 Nuitka Release 0.5.27 (Draft)
 =============================
 
-This release consolidates the previous release.
+This release comes a lot of bug fixes and improvements.
 
 Bug Fixes
 ---------
-
-- Python3.5: For ``async def`` functions parameter variables could fail to
-  properly work with in-place assignments to them. Fixed in 0.5.26.4 already.
 
 - Fix, need to add recursed modules immediately to the working set, or else
   they might first be processed in second pass, where global names that are
@@ -18,19 +15,47 @@ Bug Fixes
   had been a regress of 0.5.25, but only happens with custom extension types.
   Fixed in 0.5.26.1 already.
 
+- Python3.5: For ``async def`` functions parameter variables could fail to
+  properly work with in-place assignments to them. Fixed in 0.5.26.4 already.
+
+- Compatability: Decorators that overload type checks didn't pass the checks
+  for compiled types. Now ``isinstance`` and as a result ``inspect`` module
+  work fine for them.
+
+- Compatiblity: Fix, imports from ``__init__`` were crashing the compiler. You
+  are not supposed to do them, because they duplicate the package code, but
+  they work.
+
+- Compatiblity: Fix, the ``super`` built-in on module level was crashing the
+  compiler.
+
 - Standalone: For Linux, BSD and MacOS extension modules and shared libraries
   using their own ``$ORIGIN`` to find loaded DLLs resulted in those not being
   included in the distribution.
+
+- Standalone: Added more missing implicit dependencies.
+
+- Standalone: Fix, implicit imports now also can be optional, as e.g. ``_tkinter``
+  if not installed. Only include those if available.
 
 - The ``--recompile-c-only`` was only working with C compiler as a backend, but
   not in the C++ compatibility fallback, where files get renamed. This prevented
   that edit and test debug approach with at least MSVC.
 
-- Fix, implicit imports now also can be optional, as e.g. ``_tkinter`` if not
-  installed. Only include those if available.
-
 - Plugins: The PyLint plug-in didn't consider the symbolic name ``import-error``
   but only the code ``F0401``.
+
+- Implicit exception raises in conditional expressions would crash the compiler.
+
+New Features
+------------
+
+- Added support for Visual Studio 2017. `Issue#368
+  <http://bugs.nuitka.net/issue368>`__.
+
+- Added option ``--python2-for-scons`` to specify the Python2 execute to
+  use for calling Scons. This should allow using AnaConda Python for that
+  task.
 
 Optimization
 ------------
@@ -38,8 +63,8 @@ Optimization
 - References to known unassigned variables are now statically optimized to
   exception raises and warned about if the according option is enabled.
 
-- Detect unhashable keys in dictionaries are now statically optimized to
-  exception raises and warned about if the according option is enabled.
+- Unhashable keys in dictionaries are now statically optimized to exception
+  raises and warned about if the according option is enabled.
 
 - Enable forward propagation for classes too, resulting in some classes
   to create only static dictionaries. Currently this never happens for
@@ -115,6 +140,11 @@ Optimization
 - Added optimization for ``bytearray`` built-in and constant values. These
   mutable constants can now be compile time computed as well.
 
+- Added optimization for ``frozenset`` built-in and constant values. These
+  mutable constants can now be compile time computed as well.
+
+- Added optimization for ``divmod`` built-in.
+
 - Treat all built-in constant types, e.g. ``type`` itself as a constant. So
   far we did this only for constant values types, but of course this applies
   to all types, giving slightly more compact code for their uses.
@@ -127,6 +157,13 @@ Optimization
   an updated locals dict, and if it doesn't, don't use that. This gives more
   efficient code for Python2 classes, and ``exec`` using functions in Python2.
 
+- Build all constant values without use of the ``pickle`` module which has a
+  lot more overhead than ``marshal``, instead use that for too large ``long``
+  values, non-UTF8 ``unicode`` values, ``nan`` float, etc.
+
+- Detect the linker arch for all Linux platforms using ``objdump`` instead
+  of only a hand few hard coded ones.
+
 Cleanups
 --------
 
@@ -135,11 +172,11 @@ Cleanups
 - Use functions not vulenerable for buffer overflow. This is generally good
   and avoids warnings given on OpenBSD during linking.
 
-- Variable closure of classes is different from all functions, don't handle
+- Variable closure for classes is different from all functions, don't handle
   the difference in the base class, but for class nodes only.
 
-- Make sure "mayBeNone" doesn't return "None" which means normally "unclear",
-  but "False" instead, since it's always clear for those cases.
+- Make sure ``mayBeNon`` doesn't return ``None`` which means normally "unclear",
+  but ``False`` instead, since it's always clear for those cases.
 
 - Comparison nodes were using the general comparison node as a base class,
   but now a proper base class was added instead, allowing for cleaner code.
@@ -172,17 +209,18 @@ Cleanups
 Tests
 -----
 
-- The test runner for constructs got cleaned up and the constructs now avoid
-  using ``xrange`` so as to not need conversion for Python3 execution as
+- The test runner for construct tests got cleaned up and the constructs now
+  avoid using ``xrange`` so as to not need conversion for Python3 execution as
   much.
 
-- The main test runner got cleaned up and uses common code.
+- The main test runner got cleaned up and uses common code making it more
+  versatile and robust.
 
 - Do not run test in debugger if CPython also segfaulted executing the test,
-  then it's not a Nuitka issue.
+  then it's not a Nuitka issue, so we can ignore that.
 
-- Improve the way the Python to execute the tests is found in the main test
-  runner, prefer the running interpreter, then PATH and registry on Windows,
+- Improve the way the Python to test with is found in the main test runner,
+  prefer the running interpreter, then ``PATH`` and registry on Windows,
   this will find the interesting version more often.
 
 - Added support for "Landscape.io" to ignore the inline copies of code, they
@@ -220,7 +258,17 @@ Organizational
 Summary
 -------
 
-This release is not done yet.
+This release improves many areas. The variable closure taking is now fully
+transparent due to different node types, the memory usage dropped again,
+a few obvious missing static optimizations were added, and many built-ins
+were completed.
+
+This release again improves the scalability of Nuitka, which again uses
+less memory than before, although not an as big jump as before.
+
+This does not extend or use special C code generation for ``bool`` or any
+type yet, which still needs design decisions to proceed and will come
+in a later release.
 
 
 Nuitka Release 0.5.26
