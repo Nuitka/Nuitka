@@ -60,7 +60,7 @@ def main():
         dest    = "todos",
         default = False,
         help    = """\
-        Default is %default."""
+Show TODO items. Default is %default."""
     )
 
     parser.add_option(
@@ -69,7 +69,17 @@ def main():
         dest    = "verbose",
         default = False,
         help    = """\
-        Default is %default."""
+Be version in output. Default is %default."""
+    )
+
+
+    parser.add_option(
+        "--one-by-one",
+        action  = "store_true",
+        dest    = "one_by_one",
+        default = False,
+        help    = """\
+Check files one by one. Default is %default."""
     )
 
     options, positional_args = parser.parse_args()
@@ -86,7 +96,7 @@ def main():
     )
 
     filenames = list(scanTargets(positional_args, blacklist))
-    PyLint.executePyLint(filenames, options.todos, options.verbose)
+    PyLint.executePyLint(filenames, options.todos, options.verbose, options.one_by_one)
 
     if not filenames:
         sys.exit("No files found.")

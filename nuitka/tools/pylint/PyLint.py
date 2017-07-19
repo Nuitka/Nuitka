@@ -141,44 +141,21 @@ def getOptions():
 --max-bool-expr=10\
 """.split('\n')
 
-
-
     if pylint_version >= b"1.7":
         default_pylint_options += """\
---score=no\
-    """.split('\n')
+--score=no
+--ignored-argument-names=trace_collection
+--disable=no-else-return\
+""".split('\n')
 
     return default_pylint_options
 
 our_exit_code = 0
 
-def executePyLint(filenames, show_todos, verbose):
-    if verbose:
-        print("Checking", filenames, "...")
-
-    pylint_options = getOptions()
-    if not show_todos:
-        pylint_options.append("--notes=")
-
+def _executePylint(filenames, pylint_options, extra_options):
     # This is kind of a singleton module, pylint: disable=global-statement
     global our_exit_code
 
-    def hasPyLintBugTrigger(filename):
-        if pylint_version < b"1.7":
-            return False
-
-        return os.path.basename(filename) in "ReformulationContractionExpressions.py"
-
-    filenames = [
-        filename
-        for filename in
-        filenames
-        if not hasPyLintBugTrigger(filename)
-    ]
-
-    extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()
-    if "" in extra_options:
-        extra_options.remove("")
     command = [sys.executable, getPylintBinaryPath()] + pylint_options + extra_options + filenames
 
     process = subprocess.Popen(
@@ -232,3 +209,39 @@ def executePyLint(filenames, show_todos, verbose):
             our_exit_code = 1
 
     sys.stdout.flush()
+
+
+def executePyLint(filenames, show_todos, verbose, one_by_one):
+    if verbose:
+        print("Checking", filenames, "...")
+
+    pylint_options = getOptions()
+    if not show_todos:
+        pylint_options.append("--notes=")
+
+    def hasPyLintBugTrigger(filename):
+        if pylint_version < b"1.7":
+            return False
+
+        return os.path.basename(filename) in (
+            "ReformulationContractionExpressions.py",
+            "Helpers.py"
+        )
+
+    filenames = [
+        filename
+        for filename in
+        filenames
+        if not hasPyLintBugTrigger(filename)
+    ]
+
+    extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()
+    if "" in extra_options:
+        extra_options.remove("")
+
+    if one_by_one:
+        for filename in filenames:
+            print("Checking", filename, ':')
+            _executePylint([filename], pylint_options, extra_options)
+    else:
+        _executePylint(filenames, pylint_options, extra_options)

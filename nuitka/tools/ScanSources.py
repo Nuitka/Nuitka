@@ -65,6 +65,8 @@ def addFromDirectory(path, blacklist):
 
 def scanTargets(positional_args, blacklist = ()):
     for positional_arg in positional_args:
+        positional_arg = os.path.normpath(positional_arg)
+
         if os.path.isdir(positional_arg):
             for value in addFromDirectory(positional_arg, blacklist):
                 yield value
