@@ -1227,17 +1227,34 @@ if gcc_mode and sys.platform != "darwin" and not win_target:
 
 def getLinkerArch():
     if "linux" in sys.platform:
-        if target_arch == "x86_64":
-            return "elf64-x86-64"
-        elif target_arch == "armv5tel":
-            # Debian arch "armel"
-            return "elf32-littlearm"
-        elif target_arch == "armv7l":
-            # Debian arch "armhf"
-            return "elf32-littlearm"
-        else:
-            # TODO: Detect from objdump mayhaps.
+        python_exe = os.environ["NUITKA_PYTHON_EXE_PATH"]
+        assert os.path.exists(python_exe), python_exe
+
+        command = ["objdump", "-f", python_exe]
+
+        if show_scons_mode:
+            print "Scons: Detecting Linux target arch with :", command
+
+        try:
+            proc = subprocess.Popen(
+                command,
+                stdin       = subprocess.PIPE,
+                stdout      = subprocess.PIPE,
+                stderr      = subprocess.PIPE,
+                shell       = False
+            )
+        except OSError:
             return None
+
+        data, _err = proc.communicate()
+        rv = proc.wait()
+
+        if rv != 0:
+            return None
+
+        for line in data.splitlines():
+            if " file format " in line:
+                return line.split(" file format ")[-1]
     else:
         # TODO: Missing for MacOS, FreeBSD, other Linux
         return None

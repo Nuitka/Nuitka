@@ -157,7 +157,7 @@ def _setupSconsEnvironment():
     the "SCONS_LIB_DIR" environment variable "NUITKA_SCONS". And for the
     target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
     Python DLL lives, in case it needs to be copied, and then the
-    "NUITKA_PYTHON_EXE_PATH" to find the Python installation itself.
+    "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
     """
 
     if Utils.getOS() == "Windows":
@@ -172,7 +172,8 @@ def _setupSconsEnvironment():
         # via environment variable
         os.environ["NUITKA_PYTHON_DLL_PATH"] = getTargetPythonDLLPath()
 
-        os.environ["NUITKA_PYTHON_EXE_PATH"] = sys.executable
+    os.environ["NUITKA_PYTHON_EXE_PATH"] = sys.executable
+
     # Remove environment variables that can only harm if we have to switch
     # major Python versions, these cannot help Python2 to execute scons, this
     # is a bit of noise, but helpful.
