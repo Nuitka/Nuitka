@@ -158,6 +158,11 @@ PyObject *DEEP_COPY( PyObject *value )
         // Sets cannot contain unhashable types, so they must be immutable.
         return PySet_New( value );
     }
+    else if ( PyFrozenSet_Check( value ) )
+    {
+        // Sets cannot contain unhashable types, so they must be immutable.
+        return PyFrozenSet_New( value );
+    }
     else if (
 #if PYTHON_VERSION < 300
         PyString_Check( value )  ||
@@ -286,7 +291,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
 
         return result;
     }
-    else if ( PySet_Check( value ) )
+    else if ( PySet_Check( value ) || PyFrozenSet_Check( value ) )
     {
         Py_hash_t result = DEEP_HASH_INIT( value );
 

@@ -957,19 +957,20 @@ def getIconPath():
 def getPythonFlags():
     result = set()
 
-    for part in options.python_flags:
-        if part in ("-S", "nosite", "no_site"):
-            result.add("no_site")
-        elif part in ("static_hashes", "norandomization", "no_randomization"):
-            result.add("no_randomization")
-        elif part in ("-v", "trace_imports", "trace_import"):
-            result.add("trace_imports")
-        elif part in ("no_warnings", "nowarnings"):
-            result.add("no_warnings")
-        elif part in ("-O", "no_asserts", "noasserts"):
-            result.add("no_asserts")
-        else:
-            logging.warning("Unsupported flag '%s'.", part)
+    for parts in options.python_flags:
+        for part in parts.split(","):
+            if part in ("-S", "nosite", "no_site"):
+                result.add("no_site")
+            elif part in ("static_hashes", "norandomization", "no_randomization"):
+                result.add("no_randomization")
+            elif part in ("-v", "trace_imports", "trace_import"):
+                result.add("trace_imports")
+            elif part in ("no_warnings", "nowarnings"):
+                result.add("no_warnings")
+            elif part in ("-O", "no_asserts", "noasserts"):
+                result.add("no_asserts")
+            else:
+                logging.warning("Unsupported flag '%s'.", part)
 
     return result
 
