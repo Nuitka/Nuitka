@@ -1052,8 +1052,8 @@ def compileLibraryTest(search_mode, stage_dir, decide, action):
     for path in paths:
         my_print(path)
 
-
     for path in paths:
+        print("Checking path:", path)
         compileLibraryPath(
             search_mode = search_mode,
             path        = path,
