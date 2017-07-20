@@ -279,7 +279,7 @@ def makeSourceDirectory(main_module):
     # The global context used to generate code.
     global_context = CodeGeneration.makeGlobalContext()
 
-    assert main_module in ModuleRegistry.getDoneModules()
+    # assert main_module in ModuleRegistry.getDoneModules()
 
     # We might have chosen to include it as bytecode, and only compiled it for
     # fun, and to find its imports. In this case, now we just can drop it. Or
