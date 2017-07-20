@@ -1288,9 +1288,16 @@ bool PRINT_NEW_LINE( void )
 
 bool PRINT_ITEM( PyObject *object )
 {
-    PyObject *target = GET_STDOUT();
+    if ( object == NULL )
+    {
+        return PRINT_NULL();
+    }
+    else
+    {
+        PyObject *target = GET_STDOUT();
 
-    return target != NULL && PRINT_ITEM_TO( target, object );
+        return target != NULL && PRINT_ITEM_TO( target, object );
+    }
 }
 
 #if PYTHON_VERSION < 300
