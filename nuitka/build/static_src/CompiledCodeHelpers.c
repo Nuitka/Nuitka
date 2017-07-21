@@ -1735,14 +1735,14 @@ bool setCommandLineParameters( int argc, argv_type_t argv, bool initial )
 
 PyObject *original_isinstance = NULL;
 
-// Note: Installed and used by "InspectPatcher".
+// Note: Installed and used by "InspectPatcher" as "instance" too.
 int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
 {
     CHECK_OBJECT( original_isinstance );
     CHECK_OBJECT( inst );
     CHECK_OBJECT( cls );
 
-    // Quick path.
+    // Quick paths
     if ( Py_TYPE( inst ) == (PyTypeObject *)cls )
     {
         return true;
@@ -1771,6 +1771,13 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
 
 #if PYTHON_VERSION >= 350
     if ( cls == (PyObject *)&PyCoro_Type && Nuitka_Coroutine_Check( inst ) )
+    {
+        return true;
+    }
+#endif
+
+#if PYTHON_VERSION >= 360
+    if ( cls == (PyObject *)&PyAsyncGen_Type && Nuitka_Asyncgen_Check( inst ) )
     {
         return true;
     }
@@ -1813,8 +1820,53 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
             return -1;
         }
 
-        int res = PyObject_IsTrue( result );
+        int res = CHECK_IF_TRUE( result );
         Py_DECREF( result );
+
+        if ( res == 0 )
+        {
+            if ( cls == (PyObject *)&PyFunction_Type )
+            {
+                args[1] = (PyObject *)&Nuitka_Function_Type;
+            }
+            else if ( cls == (PyObject *)&PyMethod_Type )
+            {
+                args[1] = (PyObject *)&Nuitka_Method_Type;
+            }
+            else if ( cls == (PyObject *)&PyFrame_Type )
+            {
+                args[1] =  (PyObject *)&Nuitka_Frame_Type;
+            }
+#if PYTHON_VERSION >= 350
+            else if ( cls == (PyObject *)&PyCoro_Type )
+            {
+                args[1] =  (PyObject *)&Nuitka_Coroutine_Type;
+            }
+#endif
+#if PYTHON_VERSION >= 360
+            else if ( cls == (PyObject *)&PyAsyncGen_Type )
+            {
+                args[1] =  (PyObject *)&Nuitka_Asyncgen_Type;
+            }
+#endif
+            else
+            {
+                return 0;
+            }
+
+            result = CALL_FUNCTION_WITH_ARGS2(
+                original_isinstance,
+                args
+            );
+
+            if ( result == NULL )
+            {
+                return -1;
+            }
+
+            res = CHECK_IF_TRUE( result );
+            Py_DECREF( result );
+        }
 
         return res;
     }
