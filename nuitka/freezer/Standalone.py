@@ -470,12 +470,6 @@ def detectEarlyImports():
     if python_version >= 300:
         import_code += "import inspect;"
 
-    # We might need the pickle module when creating global constants.
-    if python_version >= 300:
-        import_code += "import pickle;"
-    else:
-        import_code += "import cPickle;"
-
     result = _detectImports(
         command       = import_code,
         user_provided = False,
