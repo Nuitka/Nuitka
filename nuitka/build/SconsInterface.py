@@ -121,6 +121,11 @@ def _getPython2ExePath():
 
     Scons needs it as it doesn't support Python3.
     """
+    python_exe = Options.getPython2PathForScons()
+
+    if python_exe is not None:
+        return python_exe
+
     if python_version < 300:
         return sys.executable
     elif Utils.getOS() == "Windows":
@@ -132,7 +137,12 @@ def _getPython2ExePath():
             sys.exit("""\
 Error, while Nuitka is fully Python3 compatible, it needs to find a
 Python2 executable under C:\\Python26 or C:\\Python27 to execute
-scons which is not yet Python3 compatible.""")
+Scons utility which is used to build the C files to binary, and which
+is not yet Python3 compatible.
+
+You may provide it using option "--python2-for-scons=path_to_python.exe"
+in case it is not visible in registry, e.g. uninstalled AnaConda Python.
+""")
 
     candidate = Execution.getExecutablePath("python2.7")
     if candidate is None:

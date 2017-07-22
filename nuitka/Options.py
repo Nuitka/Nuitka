@@ -138,6 +138,16 @@ Python executable. Currently supported: "-S" (alias "nosite"),
 Python runtime warnings), "-O" (alias "noasserts"). Default empty."""
 )
 
+parser.add_option(
+    "--python2-for-scons",
+    action  = "store",
+    dest    = "python2_scons",
+    default = None,
+    help    = """\
+If using Python3, provide the path of a Python2 binary to use. For Python2
+defaults to what you run Nuitka with, otherwise searches on Windows in the
+registry or non-Windows in PATH."""
+)
 
 parser.add_option(
     "--warn-implicit-exceptions",
@@ -779,6 +789,11 @@ Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" %
                 no_case_module
             )
 
+    scons_python = getPython2PathForScons()
+
+    if scons_python is not None and not os.path.exists(scons_python):
+        sys.exit("Error, no such Python2 binary '%s'." % scons_python)
+
 def shallTraceExecution():
     return options.trace_execution
 
@@ -958,7 +973,7 @@ def getPythonFlags():
     result = set()
 
     for parts in options.python_flags:
-        for part in parts.split(","):
+        for part in parts.split(','):
             if part in ("-S", "nosite", "no_site"):
                 result.add("no_site")
             elif part in ("static_hashes", "norandomization", "no_randomization"):
@@ -1000,3 +1015,7 @@ def shallDetectMissingPlugins():
 def getPluginOptions(plugin_name):
     # TODO: This should come from command line, pylint: disable=unused-argument
     return {}
+
+
+def getPython2PathForScons():
+    return options.python2_scons
