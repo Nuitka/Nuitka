@@ -40,102 +40,120 @@ def logRecursion(*args):
         debug(*args)
 
 
-def recurseTo(module_package, module_filename, module_relpath, module_kind,
-             reason):
+def _recurseTo(module_package, module_filename, module_relpath, module_kind,
+              reason):
     from nuitka.tree import Building
     from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
 
-    if not ImportCache.isImportedModuleByPath(module_relpath):
-        module, source_ref, source_filename = Building.decideModuleTree(
-            filename = module_filename,
-            package  = module_package,
-            is_top   = False,
-            is_main  = False,
-            is_shlib = module_kind == "shlib"
+    module, source_ref, source_filename = Building.decideModuleTree(
+        filename = module_filename,
+        package  = module_package,
+        is_top   = False,
+        is_main  = False,
+        is_shlib = module_kind == "shlib"
+    )
+
+    # Check if the module name is known. In order to avoid duplicates,
+    # learn the new filename, and continue build if its not.
+    if not ImportCache.isImportedModuleByName(module.getFullName()):
+        logRecursion(
+            "Recurse to import '%s' from '%s'. (%s)",
+            module.getFullName(),
+            module_relpath,
+            reason
         )
 
-        # Check if the module name is known. In order to avoid duplicates,
-        # learn the new filename, and continue build if its not.
-        if not ImportCache.isImportedModuleByName(module.getFullName()):
-            logRecursion(
-                "Recurse to import '%s' from '%s'. (%s)",
-                module.getFullName(),
-                module_relpath,
-                reason
-            )
+        if module_kind == "py" and source_filename is not None:
+            try:
+                source_code = readSourceCodeFromFilename(
+                    module_name     = module.getFullName(),
+                    source_filename = source_filename
+                )
 
-            if module_kind == "py" and source_filename is not None:
-                try:
-                    source_code = readSourceCodeFromFilename(
-                        module_name     = module.getFullName(),
-                        source_filename = source_filename
-                    )
+                Building.createModuleTree(
+                    module      = module,
+                    source_ref  = source_ref,
+                    source_code = source_code,
+                    is_main     = False
+                )
+            except (SyntaxError, IndentationError) as e:
+                if module_filename not in Importing.warned_about:
+                    Importing.warned_about.add(module_filename)
 
-                    Building.createModuleTree(
-                        module      = module,
-                        source_ref  = source_ref,
-                        source_code = source_code,
-                        is_main     = False
-                    )
-                except (SyntaxError, IndentationError) as e:
-                    if module_filename not in Importing.warned_about:
-                        Importing.warned_about.add(module_filename)
-
-                        warning(
-                            """\
+                    warning(
+                        """\
 Cannot recurse to import module '%s' (%s) because of '%s'""",
-                            module_relpath,
-                            module_filename,
-                            e.__class__.__name__
-                        )
+                        module_relpath,
+                        module_filename,
+                        e.__class__.__name__
+                    )
 
-                    return None, False
-                except Building.CodeTooComplexCode:
-                    if module_filename not in Importing.warned_about:
-                        Importing.warned_about.add(module_filename)
+                return None, False
+            except Building.CodeTooComplexCode:
+                if module_filename not in Importing.warned_about:
+                    Importing.warned_about.add(module_filename)
 
-                        warning(
-                            """\
+                    warning(
+                        """\
 Cannot recurse to import module '%s' (%s) because code is too complex.""",
-                            module_relpath,
-                            module_filename,
+                        module_relpath,
+                        module_filename,
+                    )
+
+                    if Options.isStandaloneMode():
+                        module = makeUncompiledPythonModule(
+                            module_name   = module.getFullName(),
+                            filename      = module_filename,
+                            bytecode      = marshal.dumps(
+                                compile(
+                                    source_code,
+                                    module_filename,
+                                    "exec"
+                                )
+                            ),
+                            is_package    = module.isCompiledPythonPackage(),
+                            user_provided = True,
+                            technical     = False
                         )
 
-                        if Options.isStandaloneMode():
-                            module = makeUncompiledPythonModule(
-                                module_name   = module.getFullName(),
-                                filename      = module_filename,
-                                bytecode      = marshal.dumps(
-                                    compile(
-                                        source_code,
-                                        module_filename,
-                                        "exec"
-                                    )
-                                ),
-                                is_package    = module.isCompiledPythonPackage(),
-                                user_provided = True,
-                                technical     = False
-                            )
+                        ModuleRegistry.addUncompiledModule(module)
 
-                            ModuleRegistry.addUncompiledModule(module)
+                return None, False
 
-                    return None, False
+        ImportCache.addImportedModule(module)
 
-            ImportCache.addImportedModule(module)
-
-            is_added = True
-        else:
-            module = ImportCache.getImportedModuleByName(
-                module.getFullName()
-            )
-
-            is_added = False
-
-        assert not module_relpath.endswith("/__init__.py"), module
-
-        return module, is_added
+        is_added = True
     else:
-        return ImportCache.getImportedModuleByPath(module_relpath), False
+        module = ImportCache.getImportedModuleByName(
+            module.getFullName()
+        )
+
+        is_added = False
+
+    return module, is_added
+
+
+def recurseTo(module_package, module_filename, module_relpath, module_kind,
+              reason):
+    if ImportCache.isImportedModuleByPath(module_relpath):
+        module = ImportCache.getImportedModuleByPath(module_relpath)
+
+        if module.getCompileTimeFilename().endswith("__init__.py") and \
+           module.getPackage() != module_package:
+            module = None
+    else:
+        module = None
+
+    if module is None:
+        return _recurseTo(
+            module_package  = module_package,
+            module_filename = module_filename,
+            module_relpath  = module_relpath,
+            module_kind     = module_kind,
+            reason          = reason
+        )
+    else:
+        return module, False
 
 
 def decideRecursion(module_filename, module_name, module_package, module_kind):
