@@ -186,6 +186,8 @@ def decideMarshal(constant_value):
         them.
     """
 
+    # Many cases to deal with, pylint: disable=too-many-return-statements
+
     constant_type = type(constant_value)
 
     if constant_type is type:
@@ -204,6 +206,8 @@ def decideMarshal(constant_value):
             if not decideMarshal(element_value):
                 return False
     elif constant_type is xrange:
+        return False
+    elif constant_type is slice:
         return False
 
     return True
