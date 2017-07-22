@@ -89,7 +89,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
         # Special things, "has_super" indicates presence of "super" in variable
         # usage, which modifies some behaviors.
-        self.flags = flags
+        self.flags = flags or None
 
         # Hack: This allows some APIs to work although this is not yet
         # officially a child yet. Important during building.
@@ -124,7 +124,11 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         return None
 
     def hasFlag(self, flag):
-        return flag in self.flags
+        return self.flags is not None and flag in self.flags
+
+    def discardFlag(self, flag):
+        if self.flags is not None:
+            self.flags.discard(flag)
 
     @staticmethod
     def isEarlyClosure():

@@ -1017,6 +1017,13 @@ def super_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
     def wrapSuperBuiltin(type_arg, object_arg, source_ref):
         if type_arg is None and python_version >= 300:
+            if provider.isCompiledPythonModule():
+                return makeRaiseExceptionReplacementExpression(
+                    expression      = node,
+                    exception_type  = "RuntimeError",
+                    exception_value = "super(): no arguments",
+                )
+
             type_arg = ExpressionVariableRef(
                 # Ought to be already closure taken due to "super" flag in
                 # tree building.
@@ -1083,7 +1090,9 @@ def super_extractor(node):
         )
 
     provider = node.getParentVariableProvider()
-    provider.flags.discard("has_super")
+
+    if not provider.isCompiledPythonModule():
+        provider.discardFlag("has_super")
 
     return BuiltinOptimization.extractBuiltinArgs(
         node          = node,
