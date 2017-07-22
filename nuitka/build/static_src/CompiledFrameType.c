@@ -64,19 +64,24 @@ static int Nuitka_Frame_set_exc_traceback( struct Nuitka_FrameObject *frame, PyO
 
 static PyObject *Nuitka_Frame_get_exc_type( struct Nuitka_FrameObject *frame )
 {
+    PyObject *result;
+
     if ( frame->m_frame.f_exc_type != NULL )
     {
-        return INCREASE_REFCOUNT( frame->m_frame.f_exc_type );
+        result = frame->m_frame.f_exc_type;
     }
     else
     {
-        return INCREASE_REFCOUNT( Py_None );
+        result = Py_None;
     }
+
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Frame_set_exc_type( struct Nuitka_FrameObject *frame, PyObject *exception_type )
 {
-    Py_XDECREF( frame->m_frame.f_exc_type );
+    PyObject *old = frame->m_frame.f_exc_type;
 
     if ( exception_type == Py_None )
     {
@@ -86,24 +91,31 @@ static int Nuitka_Frame_set_exc_type( struct Nuitka_FrameObject *frame, PyObject
     frame->m_frame.f_exc_type = exception_type;
     Py_XINCREF( frame->m_frame.f_exc_type );
 
+    Py_XDECREF( old );
+
     return 0;
 }
 
 static PyObject *Nuitka_Frame_get_exc_value( struct Nuitka_FrameObject *frame )
 {
+    PyObject *result;
+
     if ( frame->m_frame.f_exc_value != NULL )
     {
-        return INCREASE_REFCOUNT( frame->m_frame.f_exc_value );
+        result = frame->m_frame.f_exc_value;
     }
     else
     {
-        return INCREASE_REFCOUNT( Py_None );
+        result = Py_None;
     }
+
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Frame_set_exc_value( struct Nuitka_FrameObject *frame, PyObject *exception_value )
 {
-    Py_XDECREF( frame->m_frame.f_exc_value );
+    PyObject *old = frame->m_frame.f_exc_value;
 
     if ( exception_value == Py_None )
     {
@@ -112,13 +124,15 @@ static int Nuitka_Frame_set_exc_value( struct Nuitka_FrameObject *frame, PyObjec
 
     frame->m_frame.f_exc_value = exception_value;
     Py_XINCREF( exception_value );
+    Py_XDECREF( old );
 
     return 0;
 }
 
 static PyObject *Nuitka_Frame_get_restricted( struct Nuitka_FrameObject *frame, void *closure )
 {
-    return INCREASE_REFCOUNT( Py_False );
+    Py_INCREF( Py_False );
+    return Py_False;
 }
 
 #endif
@@ -170,6 +184,27 @@ static PyObject *Nuitka_Frame_getlocals( struct Nuitka_FrameObject *frame, void 
                     t += sizeof(void *);
                     break;
                 }
+                case NUITKA_TYPE_DESCRIPTION_BOOL:
+                {
+                    int value = *(int *)t;
+                    t += sizeof(int);
+                    switch ((nuitka_bool)value)
+                    {
+                        case NUITKA_BOOL_TRUE:
+                        {
+                            PyDict_SetItem( result, *varnames, Py_True);
+                            break;
+                        }
+                        case NUITKA_BOOL_FALSE:
+                        {
+                            PyDict_SetItem( result, *varnames, Py_False);
+                            break;
+                        }
+                        default:
+                            break;
+                    }
+                    break;
+                }
                 default:
                     assert(false);
 
@@ -190,7 +225,9 @@ static PyObject *Nuitka_Frame_getlineno( PyFrameObject *frame, void *closure )
 
 static PyObject *Nuitka_Frame_gettrace( PyFrameObject *frame, void *closure )
 {
-    return INCREASE_REFCOUNT( frame->f_trace );
+    PyObject *result = frame->f_trace;
+    Py_INCREF( result );
+    return result;
 }
 
 static int Nuitka_Frame_settrace( PyFrameObject *frame, PyObject* v, void *closure )
@@ -264,6 +301,12 @@ static void Nuitka_Frame_tp_clear( struct Nuitka_FrameObject *frame )
                 case NUITKA_TYPE_DESCRIPTION_NULL:
                 {
                     t += sizeof(void *);
+
+                    break;
+                }
+                case NUITKA_TYPE_DESCRIPTION_BOOL:
+                {
+                    t += sizeof(int);
 
                     break;
                 }
@@ -490,19 +533,22 @@ static struct Nuitka_FrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *modu
     frame->f_exc_value = NULL;
     frame->f_exc_traceback = NULL;
 
-    frame->f_builtins = INCREASE_REFCOUNT( (PyObject *)dict_builtin );
+    Py_INCREF( dict_builtin );
+    frame->f_builtins = (PyObject *)dict_builtin;
 
     frame->f_back = NULL;
 
-    frame->f_globals = INCREASE_REFCOUNT( globals );
+    Py_INCREF( globals );
+    frame->f_globals = globals;
 
     if (likely( (code->co_flags & CO_OPTIMIZED ) == CO_OPTIMIZED ))
     {
         frame->f_locals = NULL;
     }
-    else if (is_module)
+    else if ( is_module )
     {
-        frame->f_locals = INCREASE_REFCOUNT( globals );
+        Py_INCREF( globals );
+        frame->f_locals = globals;
     }
     else
     {
@@ -653,7 +699,7 @@ void Nuitka_Frame_AttachLocals( struct Nuitka_FrameObject *frame, char const *ty
                 struct Nuitka_CellObject *value = va_arg( ap, struct Nuitka_CellObject * );
                 CHECK_OBJECT( value );
 
-                memcpy( t, &value, sizeof(value));
+                memcpy( t, &value, sizeof(value) );
                 Py_INCREF( value );
                 t += sizeof(value);
 
@@ -662,6 +708,13 @@ void Nuitka_Frame_AttachLocals( struct Nuitka_FrameObject *frame, char const *ty
             case NUITKA_TYPE_DESCRIPTION_NULL:
             {
                 void *value = va_arg( ap, struct Nuitka_CellObject * );
+                t += sizeof(value);
+                break;
+            }
+            case NUITKA_TYPE_DESCRIPTION_BOOL:
+            {
+                int value = va_arg( ap, int );
+                memcpy( t, &value, sizeof(int) );
                 t += sizeof(value);
                 break;
             }

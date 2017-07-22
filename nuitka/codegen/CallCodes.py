@@ -223,7 +223,7 @@ def _generateCallCodeKwOnly(to_name, expression, call_kw, called_name,
         expression.getCompatibleSourceReference()
     )
 
-    getCallCodeKeywordArgs(
+    _getCallCodeKeywordArgs(
         to_name      = to_name,
         called_name  = called_name,
         call_kw_name = call_kw_name,
@@ -602,7 +602,7 @@ def getCallCodePosArgs(to_name, called_name, args_name, needs_check, emit,
     context.addCleanupTempName(to_name)
 
 
-def getCallCodeKeywordArgs(to_name, called_name, call_kw_name, emit, context):
+def _getCallCodeKeywordArgs(to_name, called_name, call_kw_name, emit, context):
     emitLineNumberUpdateCode(emit, context)
 
     emit(

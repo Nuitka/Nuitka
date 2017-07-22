@@ -22,9 +22,10 @@ This contains tools to compare, classify and test constants.
 
 import math
 
+from nuitka.Builtins import builtin_type_names
 from nuitka.PythonVersions import python_version
 
-from .__past__ import (  # pylint: disable=redefined-builtin
+from .__past__ import (  # pylint: disable=I0021,redefined-builtin
     iterItems,
     long,
     unicode,
@@ -102,8 +103,8 @@ def compareConstants(a, b):
     # constants are built in the same way, therefore above checks.
     return a == b
 
-# These built-in type references are kind of constant too. TODO: The list is
-# totally not complete.
+# These built-in type references are kind of constant too. The list should be
+# complete.
 constant_builtin_types = (
     int,
     str,
@@ -157,12 +158,13 @@ def isConstant(constant):
 
         return True
     elif constant_type in (str, unicode, complex, int, long, bool, float,
-                           NoneType, range, bytes, set, xrange):
+                           NoneType, range, bytes, set, frozenset, xrange,
+                           bytearray):
         return True
     elif constant in (Ellipsis, NoneType):
         return True
     elif constant_type is type:
-        return constant in constant_builtin_types
+        return constant.__name__ in builtin_type_names
     else:
         return False
 
@@ -173,23 +175,32 @@ def isMutable(constant):
         That means a user of a reference to it, can modify it. Strings are
         a prime example of mutable, dictionaries are mutable.
     """
+    # Many cases and all return, that is how we do it here,
+    # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
 
     if constant_type in (str, unicode, complex, int, long, bool, float,
                          NoneType, range, bytes, slice, xrange):
         return False
-    elif constant_type in (dict, list, set):
+    elif constant_type in (dict, list, set, bytearray):
         return True
     elif constant_type is tuple:
         for value in constant:
             if isMutable(value):
                 return True
         return False
+    elif constant_type is frozenset:
+        for value in constant:
+            if isMutable(value):
+                return True
+        return False
+    elif constant_type is type:
+        return False
     elif constant is Ellipsis:
         return False
-    elif constant in constant_builtin_types:
-        return True
+    elif constant is None:
+        return False
     else:
         assert False, repr(constant)
 
@@ -201,7 +212,7 @@ def isHashable(constant):
         keys. This is distinct from mutable, there is one types that is not
         mutable, and still not hashable: slices.
     """
-    # Too many cases and all return, that is how we do it here,
+    # Many cases and all return, that is how we do it here,
     # pylint: disable=too-many-return-statements
 
     constant_type = type(constant)
@@ -209,19 +220,49 @@ def isHashable(constant):
     if constant_type in (str, unicode, complex, int, long, bool, float,
                          NoneType, xrange, bytes):
         return True
-    elif constant_type in (dict, list, set):
+    elif constant_type in (dict, list, set, slice, bytearray):
         return False
     elif constant_type is tuple:
         for value in constant:
             if not isHashable(value):
                 return False
         return True
+    elif constant_type is frozenset:
+        for value in constant:
+            if not isHashable(value):
+                return False
+        return True
     elif constant is Ellipsis:
         return True
-    elif constant in constant_builtin_types:
+    elif constant_type is type:
         return True
+    else:
+        assert False, constant_type
+
+
+def getUnhashableConstant(constant):
+    # Too many cases and all return, that is how we do it here,
+    # pylint: disable=too-many-return-statements
+
+    constant_type = type(constant)
+
+    if constant_type in (str, unicode, complex, int, long, bool, float,
+                         NoneType, xrange, bytes):
+        return None
+    elif constant_type in (dict, list, set):
+        return constant
+    elif constant_type is tuple:
+        for value in constant:
+            res = getUnhashableConstant(value)
+            if res is not None:
+                return res
+        return None
+    elif constant is Ellipsis:
+        return None
+    elif constant in constant_builtin_types:
+        return None
     elif constant_type is slice:
-        return False
+        return None
     else:
         assert False, constant_type
 

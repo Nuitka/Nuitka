@@ -36,7 +36,13 @@ from nuitka.nodes.DictionaryNodes import (
     ExpressionMakeDict
 )
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
-from nuitka.nodes.FrameNodes import StatementsFrame
+from nuitka.nodes.FrameNodes import (
+    StatementsFrameAsyncgen,
+    StatementsFrameCoroutine,
+    StatementsFrameFunction,
+    StatementsFrameGenerator,
+    StatementsFrameModule
+)
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
@@ -313,9 +319,8 @@ def makeModuleFrame(module, statements, source_ref):
     else:
         code_name = module.getName()
 
-    return StatementsFrame(
+    return StatementsFrameModule(
         statements  = statements,
-        guard_mode  = "once",
         code_object = CodeObjectSpec(
             co_name           = code_name,
             co_kind           = "Module",
@@ -324,6 +329,9 @@ def makeModuleFrame(module, statements, source_ref):
             co_kwonlyargcount = 0,
             co_has_starlist   = False,
             co_has_stardict   = False,
+            co_filename       = module.getRunTimeFilename(),
+            co_lineno         = source_ref.getLineNumber(),
+            future_spec       = module.getFutureSpec()
         ),
         source_ref  = source_ref
     )
@@ -343,14 +351,11 @@ def buildStatementsNode(provider, nodes, source_ref):
     # e.g. a global node generates not really a statement, or pass statements.
     if not statements:
         return None
-
     else:
-        result = StatementsSequence(
+        return StatementsSequence(
             statements = statements,
             source_ref = source_ref
         )
-
-    return result
 
 
 def buildFrameNode(provider, nodes, code_object, source_ref):
@@ -370,30 +375,26 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
 
     if provider.isExpressionFunctionBody() or \
        provider.isExpressionClassBody():
-        result = StatementsFrame(
+        result = StatementsFrameFunction(
             statements  = statements,
-            guard_mode  = "full",
             code_object = code_object,
             source_ref  = source_ref
         )
     elif provider.isExpressionGeneratorObjectBody():
-        result = StatementsFrame(
+        result = StatementsFrameGenerator(
             statements  = statements,
-            guard_mode  = "generator",
             code_object = code_object,
             source_ref  = source_ref
         )
     elif provider.isExpressionCoroutineObjectBody():
-        result = StatementsFrame(
+        result = StatementsFrameCoroutine(
             statements  = statements,
-            guard_mode  = "generator",
             code_object = code_object,
             source_ref  = source_ref
         )
     elif provider.isExpressionAsyncgenObjectBody():
-        result = StatementsFrame(
+        result = StatementsFrameAsyncgen(
             statements  = statements,
-            guard_mode  = "generator",
             code_object = code_object,
             source_ref  = source_ref
         )

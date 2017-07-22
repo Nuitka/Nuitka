@@ -27,6 +27,7 @@ from nuitka import Constants
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
+from .AttributeNodes import ExpressionAttributeLookup
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeBases import (
     SideEffectsFromChildrenMixin,
@@ -34,8 +35,11 @@ from .NodeBases import (
 )
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
-    makeStatementOnlyNodesFromExpressions
+    makeRaiseExceptionExpressionFromTemplate,
+    makeStatementOnlyNodesFromExpressions,
+    wrapExpressionWithSideEffects
 )
+from .TypeNodes import ExpressionBuiltinType1
 
 
 class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
@@ -52,7 +56,6 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
             "key",
             "value"
         )
-
 
     def __init__(self, key, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -116,17 +119,56 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
     def computeExpression(self, trace_collection):
         pairs = self.getPairs()
 
+        is_constant = True
+
         for pair in pairs:
             key = pair.getKey()
 
-            # TODO: Mutable key should cause an exception raise to be produced.
-            if not key.isExpressionConstantRef() or not key.isKnownToBeHashable():
-                return self, None, None
+            if key.isKnownToBeHashable() is False:
+                side_effects = []
 
-            value = pair.getValue()
+                for pair2 in pairs:
+                    side_effects.extend(pair2.extractSideEffects())
 
-            if not value.isExpressionConstantRef():
-                return self, None, None
+                    if pair2 is pair:
+                        break
+
+                result = makeRaiseExceptionExpressionFromTemplate(
+                    exception_type = "TypeError",
+                    template       = "unhashable type: '%s'",
+                    template_args  = ExpressionAttributeLookup(
+                        source         = ExpressionBuiltinType1(
+                            value      = key.extractUnhashableNode(),
+                            source_ref = key.source_ref
+                        ),
+                        attribute_name = "__name__",
+                        source_ref     = key.source_ref
+                    ),
+                    source_ref     = key.source_ref
+                )
+                result = wrapExpressionWithSideEffects(
+                    side_effects = side_effects,
+                    old_node     = key,
+                    new_node     = result
+                )
+
+                return (
+                    result,
+                    "new_raise",
+                    "Dictionary key is known to not be hashable."
+                )
+
+            if is_constant:
+                if not key.isExpressionConstantRef():
+                    is_constant = False
+                else:
+                    value = pair.getValue()
+
+                    if not value.isExpressionConstantRef():
+                        is_constant = False
+
+        if not is_constant:
+            return self, None, None
 
         constant_value = Constants.createConstantDict(
             keys   = [

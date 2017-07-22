@@ -17,14 +17,44 @@
 #
 """ Reformulation of while loop statements.
 
-Consult the developer manual for information. TODO: Add ability to sync
-source code comments with developer manual sections.
+Loops in Nuitka have no condition attached anymore, so while loops are
+re-formulated like this:
+
+.. code-block:: python
+
+    while condition:
+        something()
+
+.. code-block:: python
+
+    while 1:
+        if not condition:
+            break
+
+        something()
+
+This is to totally remove the specialization of loops, with the condition moved
+to the loop body in an initial conditional statement, which contains a ``break``
+statement.
+
+That achieves, that only ``break`` statements exit the loop, and allow for
+optimization to remove always true loop conditions, without concerning code
+generation about it, and to detect such a situation, consider e.g. endless
+loops.
+
+.. note::
+
+   Loop analysis (not yet done) can then work on a reduced problem (which
+   ``break`` statements are executed under what conditions) and is then
+   automatically very general.
+
+   The fact that the loop body may not be entered at all, is still optimized,
+   but also in the general sense. Explicit breaks at the loop start and loop
+   conditions are the same.
 
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -34,6 +64,7 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .Helpers import (
     buildNode,
@@ -68,15 +99,12 @@ def buildWhileLoopNode(provider, node, source_ref):
 
         statements = (
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_break_indicator,
-                    source_ref = source_ref
-                ),
-                source       = makeConstantRefNode(
+                variable   = tmp_break_indicator,
+                source     = makeConstantRefNode(
                     constant   = True,
                     source_ref = source_ref
                 ),
-                source_ref   = source_ref
+                source_ref = source_ref
             ),
             StatementLoopBreak(
                 source_ref = source_ref
@@ -129,15 +157,12 @@ def buildWhileLoopNode(provider, node, source_ref):
     else:
         statements = (
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_break_indicator,
-                    source_ref = source_ref
-                ),
-                source       = makeConstantRefNode(
+                variable   = tmp_break_indicator,
+                source     = makeConstantRefNode(
                     constant   = False,
                     source_ref = source_ref
                 ),
-                source_ref   = source_ref
+                source_ref = source_ref
             ),
             loop_statement,
             StatementConditional(

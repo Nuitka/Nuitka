@@ -27,7 +27,6 @@ language syntax.
 """
 
 from nuitka.__past__ import iterItems
-from nuitka.PythonVersions import python_version
 
 from . import Contexts, Emission
 from .AsyncgenCodes import (
@@ -49,7 +48,9 @@ from .BuiltinCodes import (
     generateBuiltinAnonymousRefCode,
     generateBuiltinBinCode,
     generateBuiltinBoolCode,
-    generateBuiltinBytearrayCode,
+    generateBuiltinBytearray1Code,
+    generateBuiltinBytearray3Code,
+    generateBuiltinClassmethodCode,
     generateBuiltinComplexCode,
     generateBuiltinFloatCode,
     generateBuiltinHexCode,
@@ -59,6 +60,7 @@ from .BuiltinCodes import (
     generateBuiltinRange2Code,
     generateBuiltinRange3Code,
     generateBuiltinRefCode,
+    generateBuiltinStaticmethodCode,
     generateBuiltinSum1Code,
     generateBuiltinSum2Code,
     generateBuiltinType1Code,
@@ -190,13 +192,16 @@ from .OperationCodes import (
     generateOperationUnaryCode
 )
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
-from .RaisingCodes import generateRaiseCode
+from .RaisingCodes import generateRaiseCode, generateRaiseExpressionCode
 from .ReturnCodes import (
-    generateGeneratorReturnCode,
+    generateGeneratorReturnNoneCode,
+    generateGeneratorReturnValueCode,
     generateReturnCode,
+    generateReturnConstantCode,
     generateReturnedValueRefCode
 )
 from .SetCodes import (
+    generateBuiltinFrozensetCode,
     generateBuiltinSetCode,
     generateSetCreationCode,
     generateSetLiteralCreationCode,
@@ -211,6 +216,7 @@ from .SliceCodes import (
 )
 from .StringCodes import (
     generateBuiltinAsciiCode,
+    generateBuiltinBytesCode,
     generateBuiltinChrCode,
     generateBuiltinFormatCode,
     generateBuiltinOrdCode,
@@ -512,13 +518,15 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_TYPE3"                  : generateBuiltinType3Code,
         "EXPRESSION_BUILTIN_IMPORT"                 : generateBuiltinImportCode,
         "EXPRESSION_BUILTIN_BOOL"                   : generateBuiltinBoolCode,
-        "EXPRESSION_BUILTIN_BYTEARRAY"              : generateBuiltinBytearrayCode,
+        "EXPRESSION_BUILTIN_BYTEARRAY1"             : generateBuiltinBytearray1Code,
+        "EXPRESSION_BUILTIN_BYTEARRAY3"             : generateBuiltinBytearray3Code,
         "EXPRESSION_BUILTIN_INT"                    : generateBuiltinIntCode,
         "EXPRESSION_BUILTIN_LONG"                   : generateBuiltinLongCode,
         "EXPRESSION_BUILTIN_FLOAT"                  : generateBuiltinFloatCode,
         "EXPRESSION_BUILTIN_COMPLEX"                : generateBuiltinComplexCode,
         "EXPRESSION_BUILTIN_LEN"                    : generateBuiltinLenCode,
         "EXPRESSION_BUILTIN_STR"                    : generateBuiltinStrCode,
+        "EXPRESSION_BUILTIN_BYTES"                  : generateBuiltinBytesCode,
         "EXPRESSION_BUILTIN_UNICODE"                : generateBuiltinUnicodeCode,
         "EXPRESSION_BUILTIN_CHR"                    : generateBuiltinChrCode,
         "EXPRESSION_BUILTIN_ORD"                    : generateBuiltinOrdCode,
@@ -528,8 +536,10 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_TUPLE"                  : generateBuiltinTupleCode,
         "EXPRESSION_BUILTIN_LIST"                   : generateBuiltinListCode,
         "EXPRESSION_BUILTIN_SET"                    : generateBuiltinSetCode,
+        "EXPRESSION_BUILTIN_FROZENSET"              : generateBuiltinFrozensetCode,
         "EXPRESSION_BUILTIN_DICT"                   : generateBuiltinDictCode,
-        "EXPRESSION_BUILTIN_LOCALS"                 : generateBuiltinLocalsCode,
+        "EXPRESSION_BUILTIN_LOCALS_UPDATED"         : generateBuiltinLocalsCode,
+        "EXPRESSION_BUILTIN_LOCALS_COPY"            : generateBuiltinLocalsCode,
         "EXPRESSION_BUILTIN_GLOBALS"                : generateBuiltinGlobalsCode,
         "EXPRESSION_BUILTIN_SUPER"                  : generateBuiltinSuperCode,
         "EXPRESSION_BUILTIN_ISINSTANCE"             : generateBuiltinIsinstanceCode,
@@ -539,6 +549,8 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_GETATTR"                : generateBuiltinGetattrCode,
         "EXPRESSION_BUILTIN_SETATTR"                : generateBuiltinSetattrCode,
         "EXPRESSION_BUILTIN_OPEN"                   : generateBuiltinOpenCode,
+        "EXPRESSION_BUILTIN_STATICMETHOD"           : generateBuiltinStaticmethodCode,
+        "EXPRESSION_BUILTIN_CLASSMETHOD"            : generateBuiltinClassmethodCode,
         "EXPRESSION_BUILTIN_RANGE1"                 : generateBuiltinRange1Code,
         "EXPRESSION_BUILTIN_RANGE2"                 : generateBuiltinRange2Code,
         "EXPRESSION_BUILTIN_RANGE3"                 : generateBuiltinRange3Code,
@@ -570,11 +582,17 @@ setExpressionDispatchDict(
         "EXPRESSION_CONSTANT_DICT_REF"              : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_DICT_EMPTY_REF"        : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TUPLE_REF"             : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_TUPLE_EMPTY_REF"       : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_LIST_REF"              : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_LIST_EMPTY_REF"        : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SET_REF"               : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_SET_EMPTY_REF"         : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_FROZENSET_REF"         : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF"   : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_SLICE_REF"             : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_XRANGE_REF"            : generateConstantReferenceCode,
         "EXPRESSION_CONSTANT_TYPE_REF"              : generateConstantReferenceCode,
+        "EXPRESSION_CONSTANT_BYTEARRAY_REF"         : generateConstantReferenceCode,
         "EXPRESSION_CONDITIONAL"                    : generateConditionalCode,
         "EXPRESSION_CONDITIONAL_OR"                 : generateConditionalAndOrCode,
         "EXPRESSION_CONDITIONAL_AND"                : generateConditionalAndOrCode,
@@ -605,6 +623,7 @@ setExpressionDispatchDict(
         "EXPRESSION_OPERATION_BINARY"               : generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_ADD"           : generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_MULT"          : generateOperationBinaryCode,
+        "EXPRESSION_OPERATION_BINARY_DIVMOD"        : generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_INPLACE"       : generateOperationBinaryCode,
         "EXPRESSION_OPERATION_UNARY"                : generateOperationUnaryCode,
         "EXPRESSION_OPERATION_NOT"                  : generateOperationUnaryCode,
@@ -626,7 +645,9 @@ setExpressionDispatchDict(
         "EXPRESSION_STRING_CONCATENATION"           : generateStringContenationCode,
         "EXPRESSION_BUILTIN_FORMAT"                 : generateBuiltinFormatCode,
         "EXPRESSION_BUILTIN_ASCII"                  : generateBuiltinAsciiCode,
-        "EXPRESSION_LOCALS_VARIABLE_REF"            : generateLocalsDictVariableRefCode
+        "EXPRESSION_LOCALS_VARIABLE_REF"            : generateLocalsDictVariableRefCode,
+        "EXPRESSION_RAISE_EXCEPTION"                : generateRaiseExpressionCode,
+
     }
 )
 
@@ -645,7 +666,12 @@ setStatementDispatchDict(
         "STATEMENT_RELEASE_VARIABLE"         : generateVariableReleaseCode,
         "STATEMENT_EXPRESSION_ONLY"          : generateExpressionOnlyCode,
         "STATEMENT_RETURN"                   : generateReturnCode,
-        "STATEMENT_GENERATOR_RETURN"         : generateGeneratorReturnCode,
+        "STATEMENT_RETURN_TRUE"              : generateReturnConstantCode,
+        "STATEMENT_RETURN_FALSE"             : generateReturnConstantCode,
+        "STATEMENT_RETURN_NONE"              : generateReturnConstantCode,
+        "STATEMENT_RETURN_CONSTANT"          : generateReturnConstantCode,
+        "STATEMENT_GENERATOR_RETURN"         : generateGeneratorReturnValueCode,
+        "STATEMENT_GENERATOR_RETURN_NONE"    : generateGeneratorReturnNoneCode,
         "STATEMENT_CONDITIONAL"              : generateBranchCode,
         "STATEMENT_TRY"                      : generateTryCode,
         "STATEMENT_PRINT_VALUE"              : generatePrintValueCode,

@@ -23,9 +23,8 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTargetVariableRef,
     StatementAssignmentVariable,
+    StatementAssignmentVariableName,
     StatementReleaseVariable
 )
 from nuitka.nodes.AsyncgenNodes import (
@@ -37,13 +36,10 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     StatementSpecialUnpackCheck
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
-from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinRef
+from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinRef
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ConstantRefNodes import (
-    ExpressionConstantNoneRef,
-    makeConstantRefNode
-)
+from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
@@ -58,13 +54,13 @@ from nuitka.nodes.FunctionNodes import (
 from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
     ExpressionMakeGeneratorObject,
-    StatementGeneratorReturn
+    StatementGeneratorReturnNone
 )
 from nuitka.nodes.ParameterSpecs import ParameterSpec
-from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableRef
+    ExpressionVariableNameRef
 )
 from nuitka.PythonVersions import python_version
 
@@ -83,15 +79,7 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 
 
-def _insertFinalReturnStatement(function_statements_body, return_class,
-                                source_ref):
-    return_statement = return_class(
-        expression = ExpressionConstantNoneRef(
-            source_ref = source_ref
-        ),
-        source_ref = source_ref
-    )
-
+def _insertFinalReturnStatement(function_statements_body, return_statement):
     if function_statements_body is None:
         function_statements_body = makeStatementsSequenceFromStatement(
             statement = return_statement
@@ -137,6 +125,7 @@ def buildFunctionNode(provider, node, source_ref):
             flags      = flags,
             source_ref = source_ref
         )
+        code_body.qualname_provider = provider
 
         for variable in function_body.getVariables():
             code_body.getVariableForReference(variable.getName())
@@ -190,8 +179,9 @@ def buildFunctionNode(provider, node, source_ref):
         # TODO: Generators might have to raise GeneratorExit instead.
         function_statements_body = _insertFinalReturnStatement(
             function_statements_body = function_statements_body,
-            return_class             = StatementReturn,
-            source_ref               = source_ref
+            return_statement         = StatementReturnNone(
+                source_ref = source_ref
+            )
         )
 
     if function_statements_body.isStatementsFrame():
@@ -225,12 +215,12 @@ def buildFunctionNode(provider, node, source_ref):
        provider.isExpressionClassBody():
 
         for decorator in decorators:
-            if decorator.isExpressionVariableRef() and \
+            if decorator.isExpressionVariableNameRef() and \
                decorator.getVariableName() == "staticmethod":
                 break
         else:
             decorators.append(
-                ExpressionBuiltinRef(
+                makeExpressionBuiltinRef(
                     builtin_name = "staticmethod",
                     source_ref   = source_ref
                 )
@@ -241,12 +231,12 @@ def buildFunctionNode(provider, node, source_ref):
        provider.isExpressionClassBody():
 
         for decorator in decorators:
-            if decorator.isExpressionVariableRef() and \
+            if decorator.isExpressionVariableNameRef() and \
                decorator.getVariableName() == "classmethod":
                 break
         else:
             decorators.append(
-                ExpressionBuiltinRef(
+                makeExpressionBuiltinRef(
                     builtin_name = "classmethod",
                     source_ref   = source_ref
                 )
@@ -263,17 +253,14 @@ def buildFunctionNode(provider, node, source_ref):
             source_ref = decorator.getSourceReference()
         )
 
-    result = StatementAssignmentVariable(
-        variable_ref = ExpressionTargetVariableRef(
-            variable_name = mangleName(node.name, provider),
-            source_ref    = source_ref
-        ),
-        source       = decorated_function,
-        source_ref   = source_ref
+    result = StatementAssignmentVariableName(
+        variable_name = mangleName(node.name, provider),
+        source        = decorated_function,
+        source_ref    = source_ref
     )
 
     if python_version >= 340:
-        function_body.qualname_setup = result.getTargetVariableRef()
+        function_body.qualname_setup = result.getVariableName()
 
     return result
 
@@ -339,8 +326,9 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     function_statements_body = _insertFinalReturnStatement(
         function_statements_body = function_statements_body,
-        return_class             = StatementGeneratorReturn,
-        source_ref               = source_ref
+        return_statement         = StatementGeneratorReturnNone(
+            source_ref = source_ref
+        )
     )
 
     if function_statements_body.isStatementsFrame():
@@ -414,16 +402,13 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         )
 
 
-    result = StatementAssignmentVariable(
-        variable_ref = ExpressionTargetVariableRef(
-            variable_name = mangleName(node.name, provider),
-            source_ref    = source_ref
-        ),
-        source       = decorated_function,
-        source_ref   = source_ref
+    result = StatementAssignmentVariableName(
+        variable_name = mangleName(node.name, provider),
+        source        = decorated_function,
+        source_ref    = source_ref
     )
 
-    function_body.qualname_setup = result.getTargetVariableRef()
+    function_body.qualname_setup = result.getVariableName()
 
     # Share the non-local declarations. TODO: This may also apply to generators
     # and async generators.
@@ -475,7 +460,6 @@ def buildParameterAnnotations(provider, node, source_ref):
     # Build annotations. We are hiding here, that it is a Python3 only feature.
     if python_version < 300:
         return None
-
 
     # Starting with Python 3.4, the names of parameters are mangled in
     # annotations as well.
@@ -624,6 +608,8 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
             source_ref.atColumnNumber(node.col_offset),
         )
 
+    parent_module = provider.getParentModule()
+
     code_object = CodeObjectSpec(
         co_name           = name,
         co_kind           = function_kind,
@@ -631,7 +617,10 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
         co_argcount       = parameters.getArgumentCount(),
         co_kwonlyargcount = parameters.getKwOnlyParameterCount(),
         co_has_starlist   = parameters.getStarListArgumentName() is not None,
-        co_has_stardict   = parameters.getStarDictArgumentName() is not None
+        co_has_stardict   = parameters.getStarDictArgumentName() is not None,
+        co_filename       = parent_module.getRunTimeFilename(),
+        co_lineno         = source_ref.getLineNumber(),
+        future_spec       = parent_module.getFutureSpec()
     )
 
     outer_body = ExpressionFunctionBody(
@@ -662,15 +651,12 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
 
             statements.append(
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = iter_var,
-                        source_ref = source_ref
-                    ),
-                    source       = ExpressionBuiltinIter1(
+                    variable   = iter_var,
+                    source     = ExpressionBuiltinIter1(
                         value      = source,
                         source_ref = source_ref
                     ),
-                    source_ref   = source_ref
+                    source_ref = source_ref
                 )
             )
 
@@ -682,11 +668,8 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
 
                     statements.append(
                         StatementAssignmentVariable(
-                            variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = arg_var,
-                                source_ref = source_ref
-                            ),
-                            source       = ExpressionSpecialUnpack(
+                            variable   = arg_var,
+                            source     = ExpressionSpecialUnpack(
                                 value      = ExpressionTempVariableRef(
                                     variable   = iter_var,
                                     source_ref = source_ref
@@ -695,7 +678,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                                 expected   = len(arg_names),
                                 source_ref = source_ref
                             ),
-                            source_ref   = source_ref
+                            source_ref = source_ref
                         )
                     )
 
@@ -740,7 +723,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
 
         for arg_name in parameters.getParameterNames():
             if arg_name.startswith('.'):
-                source = ExpressionVariableRef(
+                source = ExpressionVariableNameRef(
                     variable_name = arg_name,
                     source_ref    = source_ref
                 )
@@ -750,7 +733,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                 )
             else:
                 values.append(
-                    ExpressionVariableRef(
+                    ExpressionVariableNameRef(
                         variable_name = arg_name,
                         source_ref    = source_ref
                     )
@@ -808,8 +791,11 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                             source_ref = source_ref
                         )
                         for variable in
-                        outer_body.getTempVariables()
-                    ]   ,
+                        sorted(
+                            outer_body.getTempVariables(),
+                            key = lambda variable: variable.getName()
+                        )
+                    ],
                     source_ref = source_ref,
                     public_exc = False
                 )

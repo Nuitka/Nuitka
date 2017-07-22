@@ -29,11 +29,11 @@ from abc import ABCMeta
 from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.containers.odict import OrderedDict
-from nuitka.nodes.FutureSpecs import fromFlags
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
+from .FutureSpecs import fromFlags
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 
@@ -127,17 +127,7 @@ class NodeBase(NodeMetaClassBase):
     __del__ = counted_del()
 
     def __repr__(self):
-        # This is to avoid crashes, because of bugs in detail.
-        # pylint: disable=broad-except
-        try:
-            detail = self.getDetail()
-        except Exception as e:
-            detail = "detail raises exception %s" % e
-
-        if not detail:
-            return "<Node %s>" % (self.getDescription())
-        else:
-            return "<Node %s %s>" % (self.getDescription(), detail)
+        return "<Node %s>" % (self.getDescription())
 
     def getDescription(self):
         """ Description of the node, intended for use in __repr__ and
@@ -394,6 +384,10 @@ class NodeBase(NodeMetaClassBase):
             visitable.dump(level + 1)
 
         Tracing.printSeparator(level)
+
+    @staticmethod
+    def isStatementsFrame():
+        return False
 
     @staticmethod
     def isCompiledPythonModule():
@@ -796,11 +790,13 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
             code_prefix = code_prefix
         )
 
+        # TODO: Only Python3 classes need this to be an ordered dict, the order
+        # of it should come from elsewhere though.
         self.providing = OrderedDict()
 
-        self.temp_variables = OrderedDict()
+        self.temp_variables = {}
 
-        self.temp_scopes = OrderedDict()
+        self.temp_scopes = {}
 
         self.preserver_id = 0
 
@@ -825,9 +821,6 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         assert variable is not None
 
         self.providing[variable.getName()] = variable
-
-    def getProvidedVariables(self):
-        return self.providing.values()
 
     def allocateTempScope(self, name, allow_closure = False):
         self.temp_scopes[name] = self.temp_scopes.get(name, 0) + 1
@@ -888,7 +881,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         return self.temp_variables[full_name]
 
     def getTempVariables(self):
-        return tuple(self.temp_variables.values())
+        return self.temp_variables.values()
 
     def removeTempVariable(self, variable):
         del self.temp_variables[variable.getName()]
@@ -903,11 +896,10 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 class ClosureTakerMixin(object):
     """ Mixin for nodes that accept variables from closure givers. """
 
-    def __init__(self, provider, early_closure):
+    def __init__(self, provider):
         assert provider.isParentVariableProvider(), provider
 
         self.provider = provider
-        self.early_closure = early_closure
 
         self.taken = set()
 
@@ -956,19 +948,6 @@ class ClosureTakerMixin(object):
                 return variable
 
         return None
-
-    def isEarlyClosure(self):
-        """ Early closure taking means immediate binding of references.
-
-        Normally it's good to lookup name references immediately, but not for
-        functions. In case of a function body it is not allowed to do that,
-        because a later assignment needs to be queried first. Nodes need to
-        indicate via this if they would like to resolve references at the same
-        time as assignments.
-        """
-
-        return self.early_closure
-
 
 
 class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
@@ -1085,10 +1064,6 @@ def extractKindAndArgsFromXML(xml, source_ref):
         source_ref = source_ref.atLineNumber(int(args["line"]))
         del args["line"]
 
-    if "code_flags" in args:
-        source_ref.future_spec = fromFlags(args["code_flags"])
-        del args["code_flags"]
-
     node_class = getNodeClassFromName(kind)
 
     return kind, node_class, args, source_ref
@@ -1104,8 +1079,13 @@ def fromXML(provider, xml, source_ref = None):
         # global stream     instead. For now, this will do. pylint: disable=eval-used
         args["constant"] = eval(args["constant"])
 
-    if kind in ("ExpressionFunctionBody", "PythonMainModule"):
+    if kind in ("ExpressionFunctionBody", "PythonMainModule",
+                "PythonCompiledModule", "PythonCompiledPackage",
+                "PythonInternalModule"):
         delayed = node_class.named_children
+
+        if "code_flags" in args:
+            args["future_spec"] = fromFlags(args["code_flags"])
     else:
         delayed = ()
 

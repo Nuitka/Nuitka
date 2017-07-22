@@ -23,8 +23,7 @@
 from nuitka.codegen.ErrorCodes import (
     getAssertionCode,
     getCheckObjectCode,
-    getErrorFormatExitBoolCode,
-    getErrorFormatExitCode
+    getLocalVariableReferenceErrorCode
 )
 from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_del_local_intolerant,
@@ -99,30 +98,12 @@ class CPythonPyObjectPtrBase(CTypeBase):
         )
 
         if needs_check:
-            if variable.getOwner() is not context.getOwner():
-                getErrorFormatExitCode(
-                    check_name = to_name,
-                    exception  = "PyExc_NameError",
-                    args       = (
-                        """\
-free variable '%s' referenced before assignment in enclosing scope""",
-                        variable.getName()
-                    ),
-                    emit       = emit,
-                    context    = context
-                )
-            else:
-                getErrorFormatExitCode(
-                    check_name = to_name,
-                    exception  = "PyExc_UnboundLocalError",
-                    args       = (
-                        """\
-local variable '%s' referenced before assignment""",
-                        variable.getName()
-                    ),
-                    emit       = emit,
-                    context    = context
-                )
+            getLocalVariableReferenceErrorCode(
+                variable  = variable,
+                condition = "%s == NULL" % to_name,
+                emit      = emit,
+                context   = context
+            )
         else:
             getCheckObjectCode(
                 check_name = to_name,
@@ -163,7 +144,14 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def getLocalVariableObjectAccessCode(cls, variable_code_name):
+        """ Code to access value as object.
+
+        """
         return variable_code_name
+
+    @classmethod
+    def getLocalVariableInitTestCode(cls, variable_code_name):
+        return "%s != NULL" % variable_code_name
 
     @classmethod
     def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):
@@ -200,30 +188,12 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
             )
 
             if variable.isLocalVariable():
-                if variable.getOwner() is context.getOwner():
-                    getErrorFormatExitBoolCode(
-                        condition = "%s == false" % res_name,
-                        exception = "PyExc_UnboundLocalError",
-                        args      = ("""\
-local variable '%s' referenced before assignment""" % (
-                               variable.getName()
-                            ),
-                        ),
-                        emit      = emit,
-                        context   = context
-                    )
-                else:
-                    getErrorFormatExitBoolCode(
-                        condition = "%s == false" % res_name,
-                        exception = "PyExc_NameError",
-                        args      = ("""\
-free variable '%s' referenced before assignment in enclosing scope""" % (
-                                variable.getName()
-                            ),
-                        ),
-                        emit      = emit,
-                        context   = context
-                    )
+                getLocalVariableReferenceErrorCode(
+                    variable  = variable,
+                    condition = "%s == false" % res_name,
+                    emit      = emit,
+                    context   = context
+                )
             else:
                 getAssertionCode(
                     check = "%s != false" % res_name,
@@ -246,6 +216,9 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     def getLocalVariableObjectAccessCode(cls, variable_code_name):
         return '*' + variable_code_name
 
+    @classmethod
+    def getLocalVariableInitTestCode(cls, variable_code_name):
+        return "*%s != NULL" % variable_code_name
 
 
 class CTypeCellObject(CTypeBase):
@@ -314,30 +287,12 @@ class CTypeCellObject(CTypeBase):
         )
 
         if needs_check:
-            if variable.getOwner() is not context.getOwner():
-                getErrorFormatExitCode(
-                    check_name = to_name,
-                    exception  = "PyExc_NameError",
-                    args       = (
-                        """\
-free variable '%s' referenced before assignment in enclosing scope""",
-                        variable.getName()
-                    ),
-                    emit       = emit,
-                    context    = context
-                )
-            else:
-                getErrorFormatExitCode(
-                    check_name = to_name,
-                    exception  = "PyExc_UnboundLocalError",
-                    args       = (
-                        """\
-local variable '%s' referenced before assignment""",
-                        variable.getName()
-                    ),
-                    emit       = emit,
-                    context    = context
-                )
+            getLocalVariableReferenceErrorCode(
+                variable  = variable,
+                condition = "%s == NULL" % to_name,
+                emit      = emit,
+                context   = context
+            )
         else:
             getCheckObjectCode(
                 check_name = to_name,
@@ -356,6 +311,9 @@ local variable '%s' referenced before assignment""",
     def getLocalVariableObjectAccessCode(cls,variable_code_name):
         return variable_code_name + "->ob_ref"
 
+    @classmethod
+    def getLocalVariableInitTestCode(cls, variable_code_name):
+        return "%s->ob_ref != NULL" % variable_code_name
 
     @classmethod
     def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,
@@ -382,32 +340,14 @@ local variable '%s' referenced before assignment""",
                 }
             )
 
-            if variable.isLocalVariable():
-                if variable.getOwner() is context.getOwner():
-                    getErrorFormatExitBoolCode(
-                        condition = "%s == false" % res_name,
-                        exception = "PyExc_UnboundLocalError",
-                        args      = ("""\
-local variable '%s' referenced before assignment""" % (
-                               variable.getName()
-                            ),
-                        ),
-                        emit      = emit,
-                        context   = context
-                    )
-                else:
-                    getErrorFormatExitBoolCode(
-                        condition = "%s == false" % res_name,
-                        exception = "PyExc_NameError",
-                        args      = ("""\
-free variable '%s' referenced before assignment in enclosing scope""" % (
-                                variable.getName()
-                            ),
-                        ),
-                        emit      = emit,
-                        context   = context
-                    )
 
+            if variable.isLocalVariable():
+                getLocalVariableReferenceErrorCode(
+                    variable  = variable,
+                    condition = "%s == false" % res_name,
+                    emit      = emit,
+                    context   = context
+                )
             else:
                 getAssertionCode(
                     check = "%s != false" % res_name,

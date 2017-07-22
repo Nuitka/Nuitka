@@ -26,11 +26,12 @@ import sys
 from logging import info
 
 from nuitka import Tracing
-from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     raw_input,
     urlretrieve
 )
 from nuitka.utils import Utils
+from nuitka.utils.AppDirs import getAppDir
 from nuitka.utils.FileOperations import deleteFile, makePath
 
 
@@ -45,48 +46,56 @@ def getDependsExePath():
     else:
         depends_url = "http://dependencywalker.com/depends22_x64.zip"
 
-    if "APPDATA" not in os.environ:
-        sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
+    nuitka_app_dir = getAppDir()
 
-    nuitka_app_dir = os.path.join(os.environ["APPDATA"], "nuitka")
-    if not os.path.isdir(nuitka_app_dir):
-        makePath(nuitka_app_dir)
-
-    nuitka_depends_zip = os.path.join(
+    nuitka_depends_dir = os.path.join(
         nuitka_app_dir,
+        Utils.getArchitecture()
+    )
+    nuitka_depends_zip = os.path.join(
+        nuitka_depends_dir,
         os.path.basename(depends_url)
     )
+    depends_exe = os.path.join(
+        nuitka_depends_dir,
+        "depends.exe"
+    )
+    makePath(nuitka_depends_dir)
 
-    if not os.path.isfile(nuitka_depends_zip):
-        Tracing.printLine("""\
+    if not os.path.isfile(nuitka_depends_zip) and not os.path.isfile(depends_exe):
+        Tracing.printLine(
+            """\
 Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules. Is it OK to download
-and put it in APPDATA (no installer needed, cached, one time question).""")
+and put it in "%s".
+No installer needed, cached, one time question.
 
-        reply = raw_input("Proceed and download? [Yes]/No ")
+Proceed and download? [Yes]/No """ % (
+                nuitka_app_dir
+            )
+        )
+        Tracing.flushStdout()
+
+        reply = raw_input()
 
         if reply.lower() in ("no", 'n'):
             sys.exit("Nuitka does not work in --standalone on Windows without.")
 
         info("Downloading '%s'" % depends_url)
 
-        urlretrieve(
-            depends_url,
-            nuitka_depends_zip
-        )
-
-    nuitka_depends_dir = os.path.join(
-        nuitka_app_dir,
-        Utils.getArchitecture()
-    )
-
-    if not os.path.isdir(nuitka_depends_dir):
-        os.makedirs(nuitka_depends_dir)
-
-    depends_exe = os.path.join(
-        nuitka_depends_dir,
-        "depends.exe"
-    )
+        try:
+            urlretrieve(
+                depends_url,
+                nuitka_depends_zip
+            )
+        except Exception: # Any kind of error, pylint: disable=broad-except
+            sys.exit(
+                """Failed to download '%s'.\
+Contents should manually be extracted to '%s'.""" % (
+                    depends_url,
+                    nuitka_depends_dir
+                )
+            )
 
     if not os.path.isfile(depends_exe):
         info("Extracting to '%s'" % depends_exe)

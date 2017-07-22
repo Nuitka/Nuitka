@@ -25,18 +25,19 @@ be a "in (str, unicode)" rather than making useless version checks.
 
 """
 
+import sys
 
-# pylint: disable=invalid-name,redefined-builtin
+# pylint: disable=I0021,invalid-name,redefined-builtin
 
 # Work around for CPython 3.x renaming "long" to "int".
 if str is bytes:
-    long = long  # @ReservedAssignment
+    long = long  # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
     long = int   # @ReservedAssignment
 
 # Work around for CPython 3.x renaming "unicode" to "str".
 if str is bytes:
-    unicode = unicode  # @ReservedAssignment
+    unicode = unicode  # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
     unicode = str      # @ReservedAssignment
 
@@ -52,7 +53,7 @@ else:
     raw_input = raw_input  # @ReservedAssignment
 
 if str is bytes:
-    xrange = xrange # @ReservedAssignment
+    xrange = xrange # @ReservedAssignment pylint: disable=I0021,undefined-variable
 else:
     xrange = range  # @ReservedAssignment
 
@@ -68,9 +69,29 @@ try:
 except ImportError:
     from io import StringIO
 
+try:
+    from functools import total_ordering
+except ImportError:
+    # Lame replacement for functools.total_ordering, which does not exist on
+    # Python2.6, this requires "<" and "=" and adds all other operations.
+    def total_ordering(cls):
+        cls.__ne__ = lambda self, other: not self == other
+        cls.__le__ = lambda self, other: self == other or self < other
+        cls.__gt__ = lambda self, other: self != other and not self < other
+        cls.__ge__ = lambda self, other: self == other and not self < other
+
+        return cls
+
+if str is bytes:
+    intern = intern      # @ReservedAssignment pylint: disable=I0021,undefined-variable
+else:
+    intern = sys.intern  # @ReservedAssignment @UndefinedVariable
+
 # For PyLint to be happy.
 assert long
 assert unicode
 assert urlretrieve
 assert StringIO
 assert type(xrange) is type, xrange
+assert total_ordering
+assert intern

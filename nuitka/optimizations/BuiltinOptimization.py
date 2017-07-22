@@ -18,6 +18,8 @@
 """ Optimizations of built-ins to built-in calls.
 
 """
+from __future__ import print_function
+
 import math
 import sys
 
@@ -30,6 +32,8 @@ from nuitka.PythonVersions import python_version
 
 
 class BuiltinParameterSpec(ParameterSpec):
+    __slots__ = "builtin",
+
     def __init__(self, name, arg_names, default_count, list_star_arg = None,
                   dict_star_arg = None):
         ParameterSpec.__init__(
@@ -43,6 +47,8 @@ class BuiltinParameterSpec(ParameterSpec):
         )
 
         self.builtin = __builtins__[name]
+
+        assert default_count <= len(arg_names)
 
     def __repr__(self):
         return "<BuiltinParameterSpec %s>" % self.name
@@ -107,6 +113,7 @@ class BuiltinParameterSpec(ParameterSpec):
 
 
 class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
+    __slots__ = ()
 
     def allowsKeywords(self):
         return False
@@ -138,7 +145,7 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
             if given_list_star_arg is not None:
                 arg_list += [ value.getCompileTimeConstant() for value in given_list_star_arg ]
         except Exception as e:
-            print >> sys.stderr, "Fatal error: ",
+            print("Fatal error: ", end = ' ', file = sys.stderr)
             import traceback
             traceback.print_exc()
             sys.exit(repr(e))
@@ -220,9 +227,17 @@ builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), 0)
 builtin_tuple_spec = BuiltinParameterSpec("tuple", ("sequence",), 1)
 builtin_list_spec = BuiltinParameterSpec("list", ("sequence",), 1)
 builtin_set_spec = BuiltinParameterSpecNoKeywords("set", ("iterable",), 1)
+builtin_frozenset_spec = BuiltinParameterSpecNoKeywords("frozenset", ("iterable",), 1)
 
 builtin_import_spec = BuiltinParameterSpec("__import__", ("name", "globals", "locals", "fromlist", "level"), 4)
-builtin_open_spec = BuiltinParameterSpec("open", ("name", "mode", "buffering"), 3)
+
+if python_version < 300:
+    builtin_open_spec = BuiltinParameterSpec("open", ("name", "mode", "buffering"), 3)
+else:
+    builtin_open_spec = BuiltinParameterSpec("open", ("name", "mode", "buffering",
+                                                      "encoding", "errors", "newline",
+                                                      "closefd", "opener"), 7)
+
 builtin_chr_spec = BuiltinParameterSpecNoKeywords("chr", ('i',), 0)
 builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ('c',), 0)
 builtin_bin_spec = BuiltinParameterSpecNoKeywords("bin", ("number",), 0)
@@ -273,9 +288,33 @@ builtin_setattr_spec = BuiltinParameterSpecNoKeywords("setattr", ("object", "nam
 
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords("isinstance", ("instance", "classes"), 0)
 
-builtin_bytearray_spec = BuiltinParameterSpecNoKeywords("bytearray", ("iterable_of_ints",), 1)
+class BuiltinBytearraySpec(BuiltinParameterSpecNoKeywords):
+    def isCompileTimeComputable(self, values):
+        # For bytearrays, we need to avoid the case of large bytearray
+        # construction from an integer at compile time.
 
-# Beware: One argument defines stop, not start.
+        result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
+            self,
+            values = values
+        )
+
+        if result and len(values) == 1:
+            index_value = values[0].getIndexValue()
+
+            if index_value is None:
+                return result
+
+            return index_value < 256
+        else:
+            return result
+
+builtin_bytearray_spec = BuiltinBytearraySpec("bytearray", ("string", "encoding", "errors"), 2)
+
+if python_version >= 300:
+    builtin_bytes_spec = BuiltinBytearraySpec("bytes", ("string", "encoding", "errors"), 3)
+
+
+# Beware: One argument version defines "stop", not "start".
 builtin_slice_spec = BuiltinParameterSpecNoKeywords("slice", ("start", "stop", "step"), 2)
 
 builtin_hash_spec = BuiltinParameterSpecNoKeywords("hash", ("object",), 0)
@@ -284,11 +323,25 @@ builtin_format_spec = BuiltinParameterSpecNoKeywords("format", ("value", "format
 
 builtin_sum_spec = BuiltinParameterSpecNoKeywords("sum", ("sequence", "start"), 1)
 
+builtin_staticmethod_spec = BuiltinParameterSpecNoKeywords("staticmethod", ("function",), 0)
+builtin_classmethod_spec = BuiltinParameterSpecNoKeywords("classmethod", ("function",), 0)
+
+if python_version < 300:
+    builtin_sorted_spec = BuiltinParameterSpecNoKeywords("sorted", ("iterable", "cmp", "key", "reverse"), 2)
+else:
+    builtin_sorted_spec = BuiltinParameterSpecNoKeywords("sorted", ("iterable", "key", "reverse"), 2)
+
+builtin_reversed_spec = BuiltinParameterSpecNoKeywords("reversed", ("object",), 0)
+
+builtin_reversed_spec = BuiltinParameterSpecNoKeywords("reversed", ("object",), 0)
+
+if python_version < 300:
+    builtin_enumerate_spec = BuiltinParameterSpec("enumerate", ("sequence",), 0)
+else:
+    builtin_enumerate_spec = BuiltinParameterSpec("enumerate", ("iterable",), 0)
+
 
 class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
-    def __init__(self, *args):
-        BuiltinParameterSpecNoKeywords.__init__(self, *args)
-
     def isCompileTimeComputable(self, values):
         # For ranges, we need have many cases that can prevent the ability
         # to pre-compute, pylint: disable=too-many-branches,too-many-return-statements
@@ -355,6 +408,10 @@ builtin_range_spec = BuiltinRangeSpec("range", ("start", "stop", "step"), 2)
 
 if python_version >= 300:
     builtin_ascii_spec = BuiltinParameterSpecNoKeywords("ascii", ("object",), 0)
+
+
+builtin_divmod_spec = BuiltinParameterSpecNoKeywords("divmod", ("left", "right"), 0)
+
 
 def extractBuiltinArgs(node, builtin_spec, builtin_class,
                        empty_special_class = None):

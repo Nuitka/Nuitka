@@ -391,8 +391,9 @@ class TraceCollectionBase(CollectionTracingMixin):
     @staticmethod
     def mustNotAlias(a, b):
         # TODO: not yet really implemented
-        if a.isExpressionConstantDictRef() and b.isExpressionConstantRef():
-            return True
+        if a.isExpressionConstantRef() and b.isExpressionConstantRef():
+            if a.isMutable() or b.isMutable():
+                return True
 
         return False
 
@@ -433,11 +434,10 @@ class TraceCollectionBase(CollectionTracingMixin):
         return self.parent.addVariableMergeMultipleTrace(variable, traces)
 
     def onVariableSet(self, assign_node):
-        variable_ref = assign_node.getTargetVariableRef()
+        version = assign_node.getVariableVersion()
+        variable = assign_node.getVariable()
 
-        version = variable_ref.getVariableVersion()
-        variable = variable_ref.getVariable()
-
+        # TODO: The variable, version and assign_node are redundant to pass.
         variable_trace = VariableTraceAssign(
             owner       = self.owner,
             assign_node = assign_node,
@@ -459,12 +459,9 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         return variable_trace
 
-    def onVariableDel(self, variable_ref):
+    def onVariableDel(self, variable, version):
         # Add a new trace, allocating a new version for the variable, and
         # remember the delete of the current
-        variable = variable_ref.getVariable()
-        version = variable_ref.getVariableVersion()
-
         old_trace = self.getVariableCurrentTrace(variable)
 
         variable_trace = VariableTraceUninit(
@@ -494,7 +491,6 @@ class TraceCollectionBase(CollectionTracingMixin):
             include_closure = False
 
         for variable in self.getActiveVariables():
-
             # TODO: Currently this is a bit difficult to express in a positive
             # way, but we want to have only local variables.
             if not variable.isTempVariable() and \
@@ -515,15 +511,6 @@ class TraceCollectionBase(CollectionTracingMixin):
                 )
 
         return result
-
-    def onVariableRelease(self, variable):
-        current = self.getVariableCurrentTrace(variable)
-
-        # Annotate that releases to the trace, it may be important knowledge.
-        current.addRelease()
-
-        return current
-
 
     def onVariableContentEscapes(self, variable):
         self.getVariableCurrentTrace(variable).onValueEscape()
@@ -796,7 +783,7 @@ class TraceCollectionFunction(CollectionStartpointMixin,
         TraceCollectionBase.__init__(
             self,
             owner  = function_body,
-            name   = "function_" + str(function_body),
+            name   = "collection_" + function_body.getCodeName(),
             parent = parent
         )
 

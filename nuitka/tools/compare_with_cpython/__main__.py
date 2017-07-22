@@ -31,6 +31,8 @@ import sys
 import tempfile
 import time
 
+from nuitka.utils.Execution import check_output
+
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
 thread_re                    = re.compile(r"Thread 0x[0-9a-fA-F]+")
@@ -452,7 +454,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
     if coverage_mode:
         # Coverage modules hates Nuitka to re-execute, and so we must avoid
         # that.
-        python_path = subprocess.check_output(
+        python_path = check_output(
             [
                 os.environ["PYTHON"],
                 "-c"
@@ -552,6 +554,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
         nuitka_cmd2 = [
             os.path.join(output_dir, exe_filename)
         ]
+
+        pdb_filename = exe_filename[:-4] + ".pdb"
 
     if trace_command:
         my_print("CPython command:", *cpython_cmd)
@@ -695,7 +699,7 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
 
         # In case of segfault, also output the call stack by entering debugger
         # without stdin forwarded.
-        if exit_nuitka == -11 and sys.platform != "nt":
+        if exit_code_return and exit_nuitka == -11 and sys.platform != "nt":
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
 
             process = subprocess.Popen(
@@ -744,6 +748,8 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
 
                     assert not os.path.exists(nuitka_cmd2[0]+".away")
 
+                    if os.path.exists(pdb_filename):
+                        os.unlink(pdb_filename)
                 else:
                     os.unlink(nuitka_cmd2[0])
         else:

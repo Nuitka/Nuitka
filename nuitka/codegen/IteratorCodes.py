@@ -184,6 +184,10 @@ def generateUnpackCheckCode(statement, emit, context):
     release_code = getErrorExitReleaseCode(context)
     var_description_code = getFrameVariableTypeDescriptionCode(context)
 
+    old_source_ref = context.setCurrentSourceCodeReference(
+        statement.getSourceReference()
+    )
+
     emit(
         template_iterator_check % {
             "iterator_name"          : iterator_name,
@@ -191,9 +195,11 @@ def generateUnpackCheckCode(statement, emit, context):
             "count"                  : statement.getCount(),
             "exception_exit"         : context.getExceptionEscape(),
             "release_temps_1"        : indented(release_code, 3),
+            "line_number_code_1"     : indented(getErrorLineNumberUpdateCode(context),3),
             "var_description_code_1" : indented(var_description_code, 3),
             "release_temps_2"        : indented(release_code),
             "var_description_code_2" : indented(var_description_code),
+            "line_number_code_2"     : indented(getErrorLineNumberUpdateCode(context)),
         }
     )
 
@@ -201,6 +207,10 @@ def generateUnpackCheckCode(statement, emit, context):
         release_name = iterator_name,
         emit         = emit,
         context      = context
+    )
+
+    context.setCurrentSourceCodeReference(
+        old_source_ref
     )
 
 

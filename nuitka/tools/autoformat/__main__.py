@@ -43,7 +43,7 @@ sys.path.insert(
 
 from nuitka.tools.Basics import goHome # isort:skip
 from nuitka.tools.ScanSources import scanTargets # isort:skip
-from nuitka.tools.autoformat.Autoformat import autoformat # isort:skip
+from .Autoformat import autoformat # isort:skip
 
 def main():
     parser = OptionParser()
@@ -65,7 +65,6 @@ def main():
         help    = """\
         Default is %default."""
     )
-
 
     options, positional_args = parser.parse_args()
 

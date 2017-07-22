@@ -204,7 +204,6 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
     )
 
 
-
 def getReRaiseExceptionCode(emit, context):
     keeper_variables = context.getExceptionKeeperVariables()
 
@@ -352,6 +351,9 @@ def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
     emit(
         "RAISE_EXCEPTION_WITH_TRACEBACK( &exception_type, &exception_value, &exception_tb);"
     )
+
+    # If anything is wrong, that will be used.
+    emitErrorLineNumberUpdateCode(emit, context)
 
     emit(
         getFrameVariableTypeDescriptionCode(context)

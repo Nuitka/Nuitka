@@ -139,31 +139,18 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
             generateKeyCode(dict_key_name, pair)
             generateValueCode(dict_value_name, pair)
 
-        if pair.getKey().isKnownToBeHashable():
-            emit(
-                "PyDict_SetItem( %s, %s, %s );" % (
-                    to_name,
-                    dict_key_name,
-                    dict_value_name
-                )
-            )
-        else:
-            res_name = context.getIntResName()
+        needs_check = not pair.getKey().isKnownToBeHashable()
 
-            emit(
-                "%s = PyDict_SetItem( %s, %s, %s );" % (
-                    res_name,
-                    to_name,
-                    dict_key_name,
-                    dict_value_name
-                )
-            )
+        res_name = context.getIntResName()
 
-            getErrorExitBoolCode(
-                condition = "%s != 0" % res_name,
-                emit      = emit,
-                context   = context
+        emit(
+            "%s = PyDict_SetItem( %s, %s, %s );" % (
+                res_name,
+                to_name,
+                dict_key_name,
+                dict_value_name
             )
+        )
 
         if context.needsCleanup(dict_value_name):
             emit("Py_DECREF( %s );" % dict_value_name)
@@ -172,6 +159,14 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
         if context.needsCleanup(dict_key_name):
             emit("Py_DECREF( %s );" % dict_key_name)
             context.removeCleanupTempName(dict_key_name)
+
+        getErrorExitBoolCode(
+            condition   = "%s != 0" % res_name,
+            needs_check = needs_check,
+            emit        = emit,
+            context     = context
+        )
+
 
 
 def generateDictOperationUpdateCode(statement, emit, context):
@@ -209,7 +204,7 @@ def generateDictOperationUpdateCode(statement, emit, context):
     )
 
     getErrorExitBoolCode(
-        condition   = "%s == -1" % res_name,
+        condition   = "%s != 0" % res_name,
         needs_check = statement.mayRaiseException(BaseException),
         emit        = emit,
         context     = context

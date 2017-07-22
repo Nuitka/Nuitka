@@ -46,6 +46,10 @@ class ShapeTypeNoneType(ShapeBase):
     def hasShapeSlotNext():
         return False
 
+    @staticmethod
+    def hasShapeSlotContains():
+        return False
+
 
 class ShapeTypeBool(ShapeBase):
     @staticmethod
@@ -73,6 +77,10 @@ class ShapeTypeBool(ShapeBase):
     def hasShapeSlotNext():
         return False
 
+    @staticmethod
+    def hasShapeSlotContains():
+        return False
+
 
 class ShapeTypeInt(ShapeBase):
     @staticmethod
@@ -93,6 +101,10 @@ class ShapeTypeInt(ShapeBase):
 
     @staticmethod
     def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotContains():
         return False
 
 
@@ -117,6 +129,11 @@ class ShapeTypeLong(ShapeBase):
     def hasShapeSlotNext():
         return False
 
+    @staticmethod
+    def hasShapeSlotContains():
+        return False
+
+
 if python_version < 300:
     class ShapeTypeIntOrLong(ShapeBase):
         @staticmethod
@@ -133,6 +150,10 @@ if python_version < 300:
 
         @staticmethod
         def hasShapeSlotNext():
+            return False
+
+        @staticmethod
+        def hasShapeSlotContains():
             return False
 else:
     ShapeTypeIntOrLong = ShapeTypeInt
@@ -157,6 +178,10 @@ class ShapeTypeFloat(ShapeBase):
 
     @staticmethod
     def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotContains():
         return False
 
 
@@ -184,6 +209,10 @@ class ShapeTypeTuple(ShapeBase):
     @staticmethod
     def getShapeIter():
         return ShapeTypeTupleIterator
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
 
 
 class ShapeTypeTupleIterator(ShapeIterator):
@@ -221,6 +250,10 @@ class ShapeTypeList(ShapeBase):
     def getShapeIter():
         return ShapeTypeListIterator
 
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
+
 
 class ShapeTypeListIterator(ShapeIterator):
     @staticmethod
@@ -257,6 +290,10 @@ class ShapeTypeSet(ShapeBase):
     def getShapeIter():
         return ShapeTypeSetIterator
 
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
+
 
 class ShapeTypeSetIterator(ShapeIterator):
     @staticmethod
@@ -266,6 +303,36 @@ class ShapeTypeSetIterator(ShapeIterator):
     @staticmethod
     def hasShapeSlotLen():
         return False
+
+
+class ShapeTypeFrozenset(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "frozenset"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return True
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return True
+
+    @staticmethod
+    def getShapeIter():
+        return ShapeTypeSetIterator
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
 
 
 class ShapeTypeDict(ShapeBase):
@@ -292,6 +359,10 @@ class ShapeTypeDict(ShapeBase):
     @staticmethod
     def getShapeIter():
         return ShapeTypeDictIterator
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
 
 
 class ShapeTypeDictIterator(ShapeIterator):
@@ -328,6 +399,10 @@ class ShapeTypeStr(ShapeBase):
     @staticmethod
     def getShapeIter():
         return ShapeTypeStrIterator
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
 
 
 class ShapeTypeStrIterator(ShapeIterator):
@@ -366,6 +441,10 @@ if python_version < 300:
         def getShapeIter():
             return ShapeTypeUnicodeIterator
 
+        @staticmethod
+        def hasShapeSlotContains():
+            return True
+
     class ShapeTypeUnicodeIterator(ShapeIterator):
         @staticmethod
         def getTypeName():
@@ -395,6 +474,10 @@ if python_version < 300:
         @staticmethod
         def hasShapeSlotNext():
             return False
+
+        @staticmethod
+        def hasShapeSlotContains():
+            return True
 else:
     ShapeTypeStrOrUnicode = ShapeTypeStr
 
@@ -425,6 +508,10 @@ if python_version >= 300:
         def getShapeIter():
             return ShapeTypeBytesIterator
 
+        @staticmethod
+        def hasShapeSlotContains():
+            return True
+
 
     class ShapeTypeBytesIterator(ShapeIterator):
         @staticmethod
@@ -438,6 +525,46 @@ if python_version >= 300:
 else:
     ShapeTypeBytes = ShapeTypeStr
     ShapeTypeBytesIterator = ShapeTypeStrIterator
+
+
+class ShapeTypeBytearray(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "bytearray"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return True
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return True
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def getShapeIter():
+        return ShapeTypeBytearrayIterator
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
+
+
+class ShapeTypeBytearrayIterator(ShapeIterator):
+    @staticmethod
+    def getTypeName():
+        return "bytearray_iterator"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
 
 
 class ShapeTypeEllipsisType(ShapeBase):
@@ -461,6 +588,10 @@ class ShapeTypeEllipsisType(ShapeBase):
     def hasShapeSlotNext():
         return False
 
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
+
 
 class ShapeTypeSlice(ShapeBase):
     @staticmethod
@@ -481,6 +612,10 @@ class ShapeTypeSlice(ShapeBase):
 
     @staticmethod
     def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotContains():
         return False
 
 
@@ -508,6 +643,10 @@ class ShapeTypeXrange(ShapeBase):
     @staticmethod
     def getShapeIter():
         return ShapeTypeXrangeIterator
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
 
 
 class ShapeTypeXrangeIterator(ShapeIterator):
@@ -541,6 +680,10 @@ class ShapeTypeType(ShapeBase):
     def hasShapeSlotNext():
         return False
 
+    @staticmethod
+    def hasShapeSlotContains():
+        return False
+
 
 class ShapeTypeModule(ShapeBase):
     @staticmethod
@@ -567,6 +710,88 @@ class ShapeTypeModule(ShapeBase):
     def hasShapeSlotNext():
         return False
 
+    @staticmethod
+    def hasShapeSlotContains():
+        return False
+
 
 class ShapeTypeBuiltinModule(ShapeTypeModule):
     pass
+
+
+class ShapeTypeFile(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "file"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return True
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return True
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return True
+
+
+class ShapeTypeStaticmethod(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "staticmethod"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return False
+
+
+class ShapeTypeClassmethod(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "classmethod"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return False

@@ -32,6 +32,13 @@ from nuitka.utils.Utils import getOS
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
+    def isRequiredImplicitImport(self, full_name):
+        if full_name == "_tkinter":
+            return False
+
+        return True
+
+
     def getImplicitImports(self, full_name):
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
         # TODO: Move this out to some kind of configuration format.
@@ -46,14 +53,20 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             child = elements[1] if len(elements) > 1 else None
 
             if child in ("QtGui", "QtAssistant", "QtDBus", "QtDeclarative",
-                         "QtDesigner", "QtHelp", "QtNetwork", "QtScript",
-                         "QtScriptTools", "QtSvg", "QtTest", "QtWebKit",
-                         "QtXml", "QtXmlPatterns", "QtPrintSupport",
-                         "QtWebKitWidgets"):
+                         "QtSql", "QtDesigner", "QtHelp", "QtNetwork",
+                         "QtScript", "QtQml", "QtScriptTools", "QtSvg",
+                         "QtTest", "QtWebKit", "QtOpenGL", "QtXml",
+                         "QtXmlPatterns", "QtPrintSupport", "QtNfc",
+                         "QtWebKitWidgets", "QtBluetooth", "QtMultimediaWidgets",
+                         "QtQuick", "QtWebChannel", "QtWebSockets", "QtX11Extras",
+                         "_QOpenGLFunctions_2_0", "_QOpenGLFunctions_2_1",
+                         "_QOpenGLFunctions_4_1_Core"):
                 yield elements[0] + ".QtCore"
 
-            if child in ("QtDeclarative", "QtWebKit", "QtXmlPatterns",
-                         "QtPrintSupport", "QtWebKitWidgets"):
+            if child in ("QtDeclarative", "QtWebKit", "QtXmlPatterns", "QtQml",
+                         "QtPrintSupport", "QtWebKitWidgets", "QtMultimedia",
+                         "QtMultimediaWidgets", "QtQuick", "QtQuickWidgets",
+                         "QtWebSockets"):
                 yield elements[0] + ".QtNetwork"
 
             if child == "QtScriptTools":
@@ -61,12 +74,16 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
             if child in ("QtWidgets", "QtDeclarative", "QtDesigner", "QtHelp",
                          "QtScriptTools", "QtSvg", "QtTest", "QtWebKit",
-                         "QtPrintSupport", "QtWebKitWidgets"):
+                         "QtPrintSupport", "QtWebKitWidgets", "QtMultimedia",
+                         "QtMultimediaWidgets", "QtOpenGL", "QtQuick",
+                         "QtQuickWidgets", "QtSql", "_QOpenGLFunctions_2_0",
+                         "_QOpenGLFunctions_2_1", "_QOpenGLFunctions_4_1_Core"):
                 yield elements[0] + ".QtGui"
 
             if full_name in ("PyQt5.QtDesigner", "PyQt5.QtHelp", "PyQt5.QtTest",
-                             "PyQt5.QtPrintSupport", "PyQt5.QtSvg",
-                             "PyQt5.QtWebKitWidgets"):
+                             "PyQt5.QtPrintSupport", "PyQt5.QtSvg", "PyQt5.QtOpenGL",
+                             "PyQt5.QtWebKitWidgets", "PyQt5.QtMultimediaWidgets",
+                             "PyQt5.QtQuickWidgets", "PyQt5.QtSql"):
                 yield "PyQt5.QtWidgets"
 
             if full_name in ("PyQt5.QtPrintSupport",):
@@ -75,6 +92,15 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             if full_name in ("PyQt5.QtWebKitWidgets",):
                 yield "PyQt5.QtWebKit"
                 yield "PyQt5.QtPrintSupport"
+
+            if full_name in ("PyQt5.QtMultimediaWidgets",):
+                yield "PyQt5.QtMultimedia"
+
+            if full_name in ("PyQt5.QtQuick", "PyQt5.QtQuickWidgets"):
+                yield "PyQt5.QtQml"
+
+            if full_name == "PyQt5.QtQuickWidgets":
+                yield "PyQt5.QtQuick"
 
         elif full_name == "PySide.QtDeclarative":
             yield "PySide.QtGui"
@@ -107,6 +133,17 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "cairo"
             yield "gio"
             yield "atk"
+        elif full_name == "atk":
+            yield "gobject"
+        elif full_name == "gtkunixprint":
+            yield "gobject"
+            yield "cairo"
+            yield "gtk"
+        elif full_name == "pango":
+            yield "gobject"
+        elif full_name == "pangocairo":
+            yield "pango"
+            yield "cairo"
         elif full_name == "reportlab.rl_config":
             yield "reportlab.rl_settings"
         elif full_name == "ctypes":
@@ -135,6 +172,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "yaml"
         elif full_name == "apt_inst":
             yield "apt_pkg"
+        elif full_name == "PIL._imagingtk":
+            yield "PIL._tkinter_finder"
 
     module_aliases = {
         "requests.packages.urllib3" : "urllib3",
@@ -174,7 +213,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             shutil.copy(uuid_dll_path, dist_dir)
 
             return (
-                (None, dist_dll_path, None),
+                (uuid_dll_path, dist_dll_path, None),
             )
 
         return ()

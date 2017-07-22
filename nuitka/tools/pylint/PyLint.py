@@ -28,15 +28,32 @@ import os
 import subprocess
 import sys
 
+from nuitka.utils import Execution
+
+pylint_binary = None
+
+def getPylintBinaryPath():
+    # pylint: disable=global-statement
+    global pylint_binary
+
+    if pylint_binary is None:
+        pylint_binary = Execution.getExecutablePath("pylint")
+
+    return pylint_binary
+
+
 pylint_version = None
 
 def checkVersion():
     # pylint: disable=global-statement
     global pylint_version
 
+    if getPylintBinaryPath() is None:
+        sys.exit("Error, pylint is not installed.")
+
     if pylint_version is None:
-        pylint_version = subprocess.check_output(
-            ["pylint", "--version"],
+        pylint_version = Execution.check_output(
+            [sys.executable, getPylintBinaryPath(), "--version"],
             stderr = open(os.devnull, 'w')
         )
 
@@ -101,7 +118,7 @@ def getOptions():
 
     default_pylint_options = """\
 --rcfile=/dev/null
---disable=I0011,I0012,no-init,C0326,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code
+--disable=I0011,I0012,no-init,C0326,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
@@ -124,45 +141,22 @@ def getOptions():
 --max-bool-expr=10\
 """.split('\n')
 
-
-
     if pylint_version >= b"1.7":
         default_pylint_options += """\
---score=no\
-    """.split('\n')
+--score=no
+--ignored-argument-names=trace_collection
+--disable=no-else-return\
+""".split('\n')
 
     return default_pylint_options
 
 our_exit_code = 0
 
-def executePyLint(filenames, show_todos, verbose):
-    if verbose:
-        print("Checking", filenames, "...")
-
-    pylint_options = getOptions()
-    if not show_todos:
-        pylint_options.append("--notes=")
-
+def _executePylint(filenames, pylint_options, extra_options):
     # This is kind of a singleton module, pylint: disable=global-statement
     global our_exit_code
 
-    def hasPyLintBugTrigger(filename):
-        if pylint_version < "1.7":
-            return False
-
-        return os.path.basename(filename) in "ReformulationContractionExpressions.py"
-
-    filenames = [
-        filename
-        for filename in
-        filenames
-        if not hasPyLintBugTrigger(filename)
-    ]
-
-    extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()
-    if "" in extra_options:
-        extra_options.remove("")
-    command = ["pylint"] + pylint_options + extra_options + filenames
+    command = [sys.executable, getPylintBinaryPath()] + pylint_options + extra_options + filenames
 
     process = subprocess.Popen(
         args   = command,
@@ -177,7 +171,7 @@ def executePyLint(filenames, show_todos, verbose):
     assert not stderr, stderr
 
     if stdout:
-        stdout = stdout.replace("\r\n", '\n')
+        stdout = stdout.replace(b"\r\n", b'\n')
 
         # Remove hard to disable error line given under Windows.
         lines = stdout.split(b"\n")
@@ -215,3 +209,39 @@ def executePyLint(filenames, show_todos, verbose):
             our_exit_code = 1
 
     sys.stdout.flush()
+
+
+def executePyLint(filenames, show_todos, verbose, one_by_one):
+    if verbose:
+        print("Checking", filenames, "...")
+
+    pylint_options = getOptions()
+    if not show_todos:
+        pylint_options.append("--notes=")
+
+    def hasPyLintBugTrigger(filename):
+        if pylint_version < b"1.7":
+            return False
+
+        return os.path.basename(filename) in (
+            "ReformulationContractionExpressions.py",
+            "Helpers.py"
+        )
+
+    filenames = [
+        filename
+        for filename in
+        filenames
+        if not hasPyLintBugTrigger(filename)
+    ]
+
+    extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()
+    if "" in extra_options:
+        extra_options.remove("")
+
+    if one_by_one:
+        for filename in filenames:
+            print("Checking", filename, ':')
+            _executePylint([filename], pylint_options, extra_options)
+    else:
+        _executePylint(filenames, pylint_options, extra_options)

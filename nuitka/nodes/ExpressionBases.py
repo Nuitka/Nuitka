@@ -168,6 +168,11 @@ class ExpressionBase(NodeBase):
         # Unknown by default.
         return None
 
+    def extractUnhashableNode(self):
+        # Virtual method, pylint: disable=no-self-use
+        # Not available by default.
+        return None
+
     def onRelease(self, trace_collection):
         # print "onRelease", self
         pass
@@ -446,7 +451,19 @@ class ExpressionBase(NodeBase):
         return not_node, None, None
 
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
+        # Virtual method, pylint: disable=unused-argument
+
+        shape = self.getTypeShape()
+
+        assert shape is not None, self
+
+        if shape.hasShapeSlotContains() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template      = "argument of type '%s' object is not iterable",
+                operation     = "in",
+                original_node = in_node,
+                value_node    = self
+            )
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(in_node)
@@ -648,7 +665,9 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         return False
 
     def mayBeNone(self):
-        return self.getCompileTimeConstant() is None
+        # Only the "None" compile time constant is going to allow that, and
+        # it overload this again.
+        return False
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
         return trace_collection.getCompileTimeComputationResult(

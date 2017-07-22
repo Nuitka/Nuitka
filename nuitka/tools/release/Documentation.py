@@ -64,7 +64,7 @@ def makeLogoImages():
 
 
 def checkRstLint(document):
-    import restructuredtext_lint
+    import restructuredtext_lint  # @UnresolvedImport pylint:disable=I0021,import-error
 
     lint_results = restructuredtext_lint.lint(open(document).read(), document)
 

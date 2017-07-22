@@ -24,7 +24,7 @@ if ( %(keeper_tb)s == NULL )
 {
     %(keeper_tb)s = %(tb_making)s;
 }
-else if ( %(keeper_lineno)s != -1 )
+else if ( %(keeper_lineno)s != 0 )
 {
     %(keeper_tb)s = ADD_TRACEBACK( %(keeper_tb)s, %(frame_identifier)s, %(keeper_lineno)s );
 }

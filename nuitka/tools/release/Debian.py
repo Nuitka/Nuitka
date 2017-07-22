@@ -31,10 +31,10 @@ def updateDebianChangelog(old_version, new_version):
 
     if "rc" in new_version:
         if "rc1" in new_version:
-            os.system('debchange -R "New upstream pre-release."') == 0
-            os.system('debchange --newversion=%s ""'  % debian_version) == 0
+            assert os.system('debchange -R "New upstream pre-release."') == 0
+            assert os.system('debchange --newversion=%s ""'  % debian_version) == 0
         else:
-            os.system('debchange --newversion=%s ""'  % debian_version) == 0
+            assert os.system('debchange --newversion=%s ""'  % debian_version) == 0
 
         changelog = open("Changelog.rst").read()
         if "(Draft)" not in changelog.splitlines()[0]:

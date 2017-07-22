@@ -30,18 +30,18 @@ classes.
 """
 
 from nuitka import Options, Variables
-from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.FutureSpecs import fromFlags
 from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Extractions import updateVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
+from .CodeObjectSpecs import CodeObjectSpec
 from .ExpressionBases import (
     CompileTimeConstantExpressionBase,
     ExpressionBase,
     ExpressionChildrenHavingBase
 )
+from .FutureSpecs import fromFlags
 from .IndicatorMixins import (
     MarkLocalsDictIndicatorMixin,
     MarkUnoptimizedFunctionIndicatorMixin
@@ -66,7 +66,7 @@ class MaybeLocalVariableUsage(Exception):
 class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
                                  ExpressionChildrenHavingBase):
 
-    def __init__(self, provider, name, code_prefix, is_class, flags, source_ref,
+    def __init__(self, provider, name, code_prefix, flags, source_ref,
                  body = None):
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -78,8 +78,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
         ClosureTakerMixin.__init__(
             self,
-            provider      = provider,
-            early_closure = is_class
+            provider = provider
         )
 
         ClosureGiverNodeMixin.__init__(
@@ -90,7 +89,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
         # Special things, "has_super" indicates presence of "super" in variable
         # usage, which modifies some behaviors.
-        self.flags = flags
+        self.flags = flags or None
 
         # Hack: This allows some APIs to work although this is not yet
         # officially a child yet. Important during building.
@@ -125,15 +124,29 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         return None
 
     def hasFlag(self, flag):
-        return flag in self.flags
+        return self.flags is not None and flag in self.flags
 
-    def getLocalsMode(self):
-        if python_version >= 300:
-            return "updated"
-        elif self.isEarlyClosure() or self.isUnoptimized():
-            return "updated"
-        else:
-            return "copy"
+    def discardFlag(self, flag):
+        if self.flags is not None:
+            self.flags.discard(flag)
+
+    @staticmethod
+    def isEarlyClosure():
+        """ Early closure taking means immediate binding of references.
+
+        Normally it's good to lookup name references immediately, but not for
+        functions. In case of a function body it is not allowed to do that,
+        because a later assignment needs to be queried first. Nodes need to
+        indicate via this if they would like to resolve references at the same
+        time as assignments.
+        """
+
+        return False
+
+    def isLocalsUpdatedMode(self):
+        return python_version >= 300 or \
+               self.isEarlyClosure() or \
+               self.isUnoptimized()
 
     def hasVariableName(self, variable_name):
         return variable_name in self.providing or variable_name in self.temp_variables
@@ -143,16 +156,24 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
     def getLocalVariables(self):
         return [
-            variable for
-            variable in
+            variable
+            for variable in
+            self.providing.values()
+            if variable.isLocalVariable()
+        ]
+
+    def getLocalVariableNames(self):
+        return [
+            variable.getName()
+            for variable in
             self.providing.values()
             if variable.isLocalVariable()
         ]
 
     def getUserLocalVariables(self):
         return tuple(
-            variable for
-            variable in
+            variable
+            for variable in
             self.providing.values()
             if variable.isLocalVariable() and not variable.isParameterVariable()
             if variable.getOwner() is self
@@ -338,7 +359,6 @@ class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
             provider    = provider,
             name        = name,
             code_prefix = "function",
-            is_class    = False,
             flags       = flags,
             body        = body,
             source_ref  = source_ref
@@ -556,17 +576,19 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
-        code_object_specs = {}
+        code_object_args = {}
         other_args = {}
 
         for key, value in args.items():
             if key.startswith("co_"):
-                code_object_specs[key] = value
+                code_object_args[key] = value
+            elif key == "code_flags":
+                code_object_args["future_spec"] = fromFlags(args["code_flags"])
             else:
                 other_args[key] = value
 
-        if code_object_specs:
-            code_object = CodeObjectSpec(**code_object_specs)
+        if code_object_args:
+            code_object = CodeObjectSpec(**code_object_args)
         else:
             code_object = None
 
@@ -666,15 +688,11 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
 
         if call_args is None:
             args_tuple = ()
-        elif call_args.isExpressionConstantRef() or \
-             call_args.isExpressionMakeTuple():
-            args_tuple = call_args.getIterationValues()
         else:
-            # TODO: Can this even happen, i.e. does the above check make
-            # sense.
-            assert False, call_args
+            assert call_args.isExpressionConstantRef() or \
+                   call_args.isExpressionMakeTuple()
 
-            return call_node, None, None
+            args_tuple = call_args.getIterationValues()
 
         function_body = self.getFunctionRef().getFunctionBody()
 
@@ -736,18 +754,21 @@ error""" % self.getName()
         # TODO: Ought to use values. If they are all constant, how about we
         # assume no cost, pylint: disable=unused-argument
 
-        if not Options.isExperimental():
+        function_body = self.getFunctionRef().getFunctionBody()
+
+        if function_body.isExpressionClassBody():
+            if function_body.getBody().getStatements()[0].isStatementReturn():
+                return 0
+
             return None
 
-        function_body = self.getFunctionRef().getFunctionBody()
+        if True or not Options.isExperimental("function_inlining"):
+            return None
 
         if function_body.isExpressionGeneratorObjectBody():
             # TODO: That's not even allowed, is it?
             assert False
 
-            return None
-
-        if function_body.isExpressionClassBody():
             return None
 
         # TODO: Lying for the demo, this is too limiting, but needs frames to
@@ -913,7 +934,11 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
                 values   = values
             )
 
-            return result, "new_statements", "Function call in-lined."
+            return (
+                result,
+                "new_statements",
+                "Function call to '%s' in-lined." % function_body.getCodeName()
+            )
 
         self.variable_closure_traces = []
 

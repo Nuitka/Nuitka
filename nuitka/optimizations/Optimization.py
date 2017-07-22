@@ -195,14 +195,6 @@ def areEmptyTraces(variable_traces):
                 # them as well.
                 empty = False
                 break
-        elif variable_trace.isEscaped():
-            assert False, variable_trace
-
-            # If the value is escape, we still need to keep it for that
-            # escape opportunity. This is only while that is not seen
-            # as a definite usage.
-            empty = False
-            break
         else:
             assert False, variable_trace
 
@@ -263,47 +255,53 @@ def optimizeUnusedUserVariables(function_body):
 
 
 def optimizeUnusedTempVariables(provider):
-    changed = False
+    remove = None
 
     for temp_variable in provider.getTempVariables():
-
         variable_traces = provider.trace_collection.getVariableTraces(
             variable = temp_variable
         )
 
         empty = areEmptyTraces(variable_traces)
         if empty:
-            provider.removeTempVariable(temp_variable)
-            changed = True
+            if remove is None:
+                remove = []
 
-    return changed
+            remove.append(temp_variable)
+
+    if remove:
+        for temp_variable in remove:
+            provider.removeTempVariable(temp_variable)
+
+        return True
+    else:
+        return False
 
 
 def optimizeVariables(module):
     changed = False
 
-    if module.isCompiledPythonModule():
-        try:
-            if Variables.complete:
-                try:
-                    for function_body in module.getUsedFunctions():
-                        if optimizeUnusedUserVariables(function_body):
-                            changed = True
+    try:
+        if Variables.complete:
+            try:
+                for function_body in module.getUsedFunctions():
+                    if optimizeUnusedUserVariables(function_body):
+                        changed = True
 
-                        if optimizeUnusedClosureVariables(function_body):
-                            changed = True
+                    if optimizeUnusedClosureVariables(function_body):
+                        changed = True
 
-                        if optimizeUnusedTempVariables(function_body):
-                            changed = True
-                except Exception:
-                    print("Problem with", function_body)
-                    raise
+                    if optimizeUnusedTempVariables(function_body):
+                        changed = True
+            except Exception:
+                print("Problem with", function_body)
+                raise
 
-            if optimizeUnusedTempVariables(module):
-                changed = True
-        except Exception:
-            print("Problem with", module)
-            raise
+        if optimizeUnusedTempVariables(module):
+            changed = True
+    except Exception:
+        print("Problem with", module)
+        raise
 
     return changed
 
@@ -341,6 +339,8 @@ def makeOptimizationPass(initial_pass):
     """ Make a single pass for optimization, indication potential completion.
 
     """
+    # Controls complex optimization, pylint: disable=too-many-branches
+
     finished = True
 
     ModuleRegistry.startTraversal()
@@ -383,10 +383,62 @@ def makeOptimizationPass(initial_pass):
                 function.trace_collection = None
 
     for current_module in ModuleRegistry.getDoneModules():
-        if optimizeVariables(current_module):
-            finished = False
+        if current_module.isCompiledPythonModule():
+            if optimizeVariables(current_module):
+                finished = False
+
+            used_functions = current_module.getUsedFunctions()
+
+            for unused_function in current_module.getUnusedFunctions():
+                unused_function.trace_collection = None
+
+            used_functions = tuple(
+                function
+                for function in
+                current_module.getFunctions()
+                if function in used_functions
+            )
+
+            current_module.setFunctions(used_functions)
 
     return finished
+
+
+def _checkXMLPersistence():
+    new_roots = ModuleRegistry.root_modules.__class__()  # @UndefinedVariable
+
+    for module in tuple(ModuleRegistry.getDoneModules()):
+        ModuleRegistry.root_modules.remove(module)
+
+        if module.isPythonShlibModule():
+            continue
+
+        text = module.asXmlText()
+        open("out.xml", 'w').write(text)
+        restored = restoreFromXML(text)
+        retext = restored.asXmlText()
+        open("out2.xml", 'w').write(retext)
+
+        assert module.getOutputFilename() == restored.getOutputFilename(), \
+           (module.getOutputFilename(),restored.getOutputFilename())
+
+        # The variable versions give diffs.
+        if True: # To manually enable, pylint: disable=W0125
+            import difflib
+            diff = difflib.unified_diff(
+                text.splitlines(),
+                retext.splitlines(),
+                "xml orig",
+                "xml reloaded"
+            )
+            for line in diff:
+                printLine(line)
+
+        new_roots.add(restored)
+
+    ModuleRegistry.root_modules = new_roots
+    ModuleRegistry.startTraversal()
+
 
 
 def optimize():
@@ -401,40 +453,8 @@ def optimize():
 
     finished = makeOptimizationPass(False)
 
-    if Options.isExperimental():
-        new_roots = ModuleRegistry.root_modules.__class__()  # @UndefinedVariable
-
-        for module in tuple(ModuleRegistry.getDoneModules()):
-            ModuleRegistry.root_modules.remove(module)
-
-            if module.isPythonShlibModule():
-                continue
-
-            text = module.asXmlText()
-            open("out.xml", 'w').write(text)
-            restored = restoreFromXML(text)
-            retext = restored.asXmlText()
-            open("out2.xml", 'w').write(retext)
-
-            assert module.getOutputFilename() == restored.getOutputFilename(), \
-               (module.getOutputFilename(),restored.getOutputFilename())
-
-            # The variable versions give diffs.
-            if False: # To manually enable, pylint: disable=W0125
-                import difflib
-                diff = difflib.unified_diff(
-                    text.splitlines(),
-                    retext.splitlines(),
-                    "xml orig",
-                    "xml reloaded"
-                )
-                for line in diff:
-                    printLine(line)
-
-            new_roots.add(restored)
-
-        ModuleRegistry.root_modules = new_roots
-        ModuleRegistry.startTraversal()
+    if Options.isExperimental("check_xml_persistence"):
+        _checkXMLPersistence()
 
     # Demote to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.

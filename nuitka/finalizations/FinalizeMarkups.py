@@ -65,28 +65,6 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
         # Also all self specific things have been done on the outside,
         # pylint: disable=no-self-use
-
-        # Find nodes with only compile time constant children, these are
-        # missing some obvious optimization potentially.
-        if False: # For searching only, pylint: disable=W0125
-            if not node.isStatementReturn() and \
-               not node.isExpressionYield() and \
-               not node.isStatementRaiseException() and \
-               not node.isExpressionCall() and \
-               not node.isExpressionBuiltinIter1():
-
-                children = node.getVisitableNodes()
-
-                if children:
-                    for child in children:
-                        if child.isStatement() or child.isStatementsSequence():
-                            break
-
-                        if not child.isCompileTimeConstant():
-                            break
-                    else:
-                        assert False, (node, node.parent, children)
-
         if node.isExpressionFunctionBody():
             if node.isUnoptimized():
                 node.markAsLocalsDict()
@@ -96,6 +74,9 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
             if not provider.isCompiledPythonModule():
                 provider.markAsLocalsDict()
+
+            if node.isStatementSetLocals():
+                provider.markAsForeignLocalsDict()
 
         if node.isStatementReturn() or node.isStatementGeneratorReturn():
             search = node
@@ -147,7 +128,7 @@ of '--recurse-directory'.""" % (
                 node_module.addCrossUsedFunction(function_body)
 
         if node.isStatementAssignmentVariable():
-            target_var = node.getTargetVariableRef().getVariable()
+            target_var = node.getVariable()
             assign_source = node.getAssignSource()
 
             if assign_source.isExpressionOperationBinary():

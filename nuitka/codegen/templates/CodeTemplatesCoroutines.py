@@ -44,6 +44,7 @@ template_coroutine_exception_exit = """\
     NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
 
     function_exception_exit:
+%(function_cleanup)s\
     assert( exception_type );
     RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
     coroutine->m_yielded = NULL;
@@ -54,6 +55,7 @@ template_coroutine_noexception_exit = """\
     // Return statement must be present.
     NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
 
+%(function_cleanup)s\
     coroutine->m_yielded = NULL;
     return;
 """

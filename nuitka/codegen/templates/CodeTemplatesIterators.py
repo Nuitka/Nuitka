@@ -41,6 +41,7 @@ if (likely( %(attempt_name)s == NULL ))
             FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 %(release_temps_1)s
 %(var_description_code_1)s
+%(line_number_code_1)s
             goto %(exception_exit)s;
         }
     }
@@ -58,6 +59,7 @@ else
     FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 %(release_temps_2)s
 %(var_description_code_2)s
+%(line_number_code_2)s
     goto %(exception_exit)s;
 }"""
 

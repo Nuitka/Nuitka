@@ -37,8 +37,9 @@ from nuitka.tools.testing.Common import (
     setup,
     my_print,
     createSearchMode,
-    compileLibraryTest
-, checkCompilesWithCPython)
+    compileLibraryTest,
+    checkCompilesNotWithCPython
+)
 
 setup(needs_io_encoding = True)
 search_mode = createSearchMode()
@@ -108,12 +109,11 @@ def action(stage_dir, root, path):
             )
         )
 
-
+from nuitka.PythonVersions import python_version
 
 compileLibraryTest(
     search_mode = search_mode,
-    stage_dir   = os.path.join(tmp_dir, "compile_library"),
+    stage_dir   = os.path.join(tmp_dir, "compile_library_%s" % python_version ),
     decide      = decide,
     action      = action
 )
-

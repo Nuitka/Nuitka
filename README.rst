@@ -19,8 +19,8 @@ requirements, credits, etc.
 
 Nuitka is **the** Python compiler. It is a seamless replacement or extension
 to the Python interpreter and compiles **every** construct that CPython 2.6,
-2.7, 3.2, 3.3, 3.4, and 3.5 have. It then executes uncompiled code, and compiled
-code together in an extremely compatible manner.
+2.7, 3.2, 3.3, 3.4, 3.5, and 3.6 have. It then executes uncompiled code, and
+compiled code together in an extremely compatible manner.
 
 You can use all Python library modules or and all extension modules freely. It
 translates the Python into a C level program that then uses "libpython" to
@@ -36,30 +36,32 @@ Usage
 Requirements
 ------------
 
-- C++ Compiler: You need a compiler with support for C11 or alternatively
+- C Compiler: You need a compiler with support for C11 or alternatively
   for C++03 [#]_
 
   Currently this means, you need to use either of these compilers:
 
-  * GNU gcc compiler of at least version 5.1, or g++ compiler of at least
-    version 4.4
+  * `The ``gcc`` compiler of at least version 5.1, or the ``g++`` compiler of
+    at least version 4.4 as an alternative.
 
-  * The clang compiler on MacOS X or FreeBSD, based on LLVM version 3.2
+  * The ``clang`` compiler on MacOS X or FreeBSD, based on LLVM version 3.2
     or higher.
 
   * The MinGW64 [#]_ C11 compiler on Windows, ideally the one based on gcc
-    5.1 or higher. Or the C++ compiler of at least version 4.4.
+    5.1 or higher. Or the C++ compiler of at least version 4.4 as an
+    alternative.
 
-  * Visual Studio 2015 or higher on Windows [#]_
+  * Visual Studio 2017 or higher on Windows [#]_, older versions may work,
+    but are not officially supported.
 
-- Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4, 3.5 (yes, but read below)
+- Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4, 3.5, 3.6 (yes, but read below)
 
   .. admonition:: Python3, yes but Python2 *compile time* dependency
 
      For Python3 you *need* a Python2, but only during the compile time
      only, and that is for Scons (which orchestrates the C compilation), and
      is not yet ported. So for Python 3.x, there is currently a requirement to
-     also have a Python 2.x installed.
+     also have a Python 2.x installed in order to compile, not to run a binary.
 
      Nuitka itself is fully Python3 compatible except for Scons.
 
@@ -74,7 +76,7 @@ Requirements
      that and yes, they are still Linux binaries. The suffix is just to be sure
      that the original script name and the binary name do not collide.
 
-  .. admonition:: It has to be CPython, maybe WinPython or AnaConda
+  .. admonition:: It has to be CPython or AnaConda
 
      You need the standard Python implementation, called "CPython", to execute
      Nuitka, because it is closely tied to using it.
@@ -96,7 +98,7 @@ Requirements
   and known to be good. Feedback is welcome. Generally the architectures that
   Debian supports can be considered good and tested too.
 
-.. [#] Support for this C11 is given with gcc 5 or higheror clang. The MSVC
+.. [#] Support for this C11 is given with gcc 5 or higher or clang. The MSVC
        compiler doesn't do it yet. But as a workaround, the C++03 language
        standard is very overlapping with C11 and is used instead where the
        C compiler is too old. Nuitka used to require a C++ compiler in
@@ -881,6 +883,18 @@ Projects used by Nuitka
   Thanks for creating an easy to deploy and use continuous integration framework
   that also runs on Windows and is written and configured in Python code. This
   allows to run the Nuitka tests long before release time.
+
+* The `Redbaron project <https://github.com/PyCQA/redbaron>`__
+
+  Thanks for creating a white space preserving and easy to use toolwork for
+  refactoring Python. This has allows us to automatically format my Python
+  code according to preferences and make global changes easily.
+
+* The `isort project <http://http://timothycrosley.github.io/isort/>`__
+
+  Thanks for making nice import ordering so easy. This makes it so easy to let
+  your IDE do it and clean up afterwards.
+
 
 Updates for this Manual
 =======================

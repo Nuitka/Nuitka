@@ -33,8 +33,8 @@ class VariableWriteExtractor(VisitorNoopMixin):
         self.written_to = set()
 
     def onEnterNode(self, node):
-        if node.isExpressionTargetVariableRef() or \
-           node.isExpressionTargetTempVariableRef():
+        if node.isStatementAssignmentVariable() or \
+           node.isStatementDelVariable():
             self.written_to.add(node.getVariable())
 
     def getResult(self):
@@ -54,10 +54,8 @@ class VariableUsageUpdater(VisitorNoopMixin):
         self.new_variable = new_variable
 
     def onEnterNode(self, node):
-        if node.isExpressionTargetVariableRef() or \
-           node.isExpressionTargetTempVariableRef() or \
-           node.isExpressionVariableRef() or \
-           node.isExpressionTempVariableRef() or \
+        if node.isStatementAssignmentVariable() or \
+           node.isStatementDelVariable() or \
            node.isStatementReleaseVariable():
             if node.getVariable() is self.old_variable:
                 node.setVariable(self.new_variable)

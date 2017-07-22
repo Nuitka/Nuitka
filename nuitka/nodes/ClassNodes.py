@@ -57,7 +57,6 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
             self,
             provider    = provider,
             name        = name,
-            is_class    = True,
             code_prefix = "class",
             flags       = flags,
             source_ref  = source_ref
@@ -68,8 +67,6 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
         MarkLocalsDictIndicatorMixin.__init__(self)
 
         self.doc = doc
-
-        assert self.isEarlyClosure()
 
         self.has_annotations = False
 
@@ -109,6 +106,10 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
 
     def getDoc(self):
         return self.doc
+
+    @staticmethod
+    def isEarlyClosure():
+        return True
 
     def getVariableForClosure(self, variable_name):
         # print( "getVariableForClosure", self, variable_name )

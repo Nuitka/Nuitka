@@ -106,6 +106,9 @@ def _getBuiltinNames():
     names.remove("__name__")
     names.remove("__package__")
 
+    if "__loader__" in names:
+        names.remove("__loader__")
+
     warnings = []
 
     for builtin_name in names:
@@ -131,7 +134,7 @@ def getBuiltinTypeNames():
     result = []
 
     for builtin_name in builtin_names:
-        if isinstance(__builtins__[builtin_name],type):
+        if isinstance(__builtins__[builtin_name], type):
             result.append(builtin_name)
 
     return tuple(sorted(result))
@@ -170,6 +173,8 @@ def _getAnonBuiltins():
     }
 
     if python_version < 300:
+        # There are only there for Python2,
+        # pylint: disable=I0021,no-name-in-module
         from types import ClassType, InstanceType, MethodType
 
         anon_names["classobj"] = ClassType

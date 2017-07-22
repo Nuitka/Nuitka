@@ -22,11 +22,7 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
-    StatementAssignmentVariable
-)
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
@@ -37,6 +33,7 @@ from nuitka.nodes.FunctionNodes import (
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
 from .ComplexCallHelperFunctions import (
@@ -149,12 +146,9 @@ def buildCallNode(provider, node, source_ref):
             outline_body.setBody(
                 makeStatementsSequenceFromStatements(
                     StatementAssignmentVariable(
-                        variable_ref = ExpressionTargetTempVariableRef(
-                            variable   = tmp_called,
-                            source_ref = source_ref
-                        ),
-                        source       = called,
-                        source_ref   = source_ref
+                        variable   = tmp_called,
+                        source     = called,
+                        source_ref = source_ref
                     ),
                     StatementReturn(
                         expression = _makeCallNode(

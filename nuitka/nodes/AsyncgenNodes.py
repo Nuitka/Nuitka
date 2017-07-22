@@ -117,7 +117,6 @@ class ExpressionAsyncgenObjectBody(MarkLocalsDictIndicatorMixin,
             provider    = provider,
             name        = name,
             code_prefix = "asyncgen",
-            is_class    = False,
             flags       = flags,
             source_ref  = source_ref
         )
@@ -128,9 +127,6 @@ class ExpressionAsyncgenObjectBody(MarkLocalsDictIndicatorMixin,
 
     def getFunctionName(self):
         return self.name
-
-    def getFunctionQualname(self):
-        return self.getParentVariableProvider().getFunctionQualname()
 
     def markAsNeedsGeneratorReturnHandling(self, value):
         self.needs_generator_return_exit = max(

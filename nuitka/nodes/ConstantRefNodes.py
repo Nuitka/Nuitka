@@ -21,7 +21,7 @@
 
 from logging import warning
 
-from nuitka.__past__ import (  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     iterItems,
     long,
     unicode,
@@ -29,6 +29,7 @@ from nuitka.__past__ import (  # pylint: disable=redefined-builtin
 )
 from nuitka.Constants import (
     getConstantIterationLength,
+    getUnhashableConstant,
     isConstant,
     isHashable,
     isIndexConstant,
@@ -45,10 +46,12 @@ from .NodeMakingHelpers import (
 )
 from .shapes.BuiltinTypeShapes import (
     ShapeTypeBool,
+    ShapeTypeBytearray,
     ShapeTypeBytes,
     ShapeTypeDict,
     ShapeTypeEllipsisType,
     ShapeTypeFloat,
+    ShapeTypeFrozenset,
     ShapeTypeInt,
     ShapeTypeList,
     ShapeTypeLong,
@@ -161,6 +164,16 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
 
     def isKnownToBeHashable(self):
         return isHashable(self.constant)
+
+    def extractUnhashableNode(self):
+        value = getUnhashableConstant(self.constant)
+
+        if value is not None:
+            return makeConstantRefNode(
+                constant   = value,
+                source_ref = self.source_ref
+            )
+
 
     def isNumberConstant(self):
         return isNumberConstant(self.constant)
@@ -287,6 +300,12 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
         else:
             return None
 
+    def getIndexValue(self):
+        if self.isIndexConstant():
+            return int(self.constant)
+        else:
+            return None
+
     def getStringValue(self):
         if self.isStringConstant():
             return self.constant
@@ -364,6 +383,9 @@ class ExpressionConstantNoneRef(ExpressionConstantRefBase):
 
     def getTypeShape(self):
         return ShapeTypeNoneType
+
+    def mayBeNone(self):
+        return True
 
 
 class ExpressionConstantTrueRef(ExpressionConstantRefBase):
@@ -469,6 +491,25 @@ class ExpressionConstantTupleRef(ExpressionConstantRefBase):
         return ShapeTypeTuple
 
 
+the_empty_tuple = ()
+
+class ExpressionConstantTupleEmptyRef(ExpressionConstantTupleRef):
+    kind = "EXPRESSION_CONSTANT_TUPLE_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref, user_provided = False):
+        ExpressionConstantTupleRef.__init__(
+            self,
+            constant      = the_empty_tuple,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    def getDetails(self):
+        return {}
+
+
 class ExpressionConstantListRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_LIST_REF"
 
@@ -490,6 +531,25 @@ class ExpressionConstantListRef(ExpressionConstantRefBase):
         return ShapeTypeList
 
 
+the_empty_list = []
+
+class ExpressionConstantListEmptyRef(ExpressionConstantListRef):
+    kind = "EXPRESSION_CONSTANT_LIST_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref, user_provided = False):
+        ExpressionConstantListRef.__init__(
+            self,
+            constant      = the_empty_list,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    def getDetails(self):
+        return {}
+
+
 class ExpressionConstantSetRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_SET_REF"
 
@@ -509,6 +569,65 @@ class ExpressionConstantSetRef(ExpressionConstantRefBase):
 
     def getTypeShape(self):
         return ShapeTypeSet
+
+
+the_empty_set = set()
+
+class ExpressionConstantSetEmptyRef(ExpressionConstantSetRef):
+    kind = "EXPRESSION_CONSTANT_SET_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref, user_provided = False):
+        ExpressionConstantSetRef.__init__(
+            self,
+            constant      = the_empty_set,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    def getDetails(self):
+        return {}
+
+
+class ExpressionConstantFrozensetRef(ExpressionConstantRefBase):
+    kind = "EXPRESSION_CONSTANT_FROZENSET_REF"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref, constant, user_provided = False):
+        ExpressionConstantRefBase.__init__(
+            self,
+            constant      = constant,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    @staticmethod
+    def isExpressionConstantFrozensetRef():
+        return True
+
+    def getTypeShape(self):
+        return ShapeTypeFrozenset
+
+
+the_empty_frozenset = frozenset()
+
+class ExpressionConstantFrozensetEmptyRef(ExpressionConstantFrozensetRef):
+    kind = "EXPRESSION_CONSTANT_FROZENSET_EMPTY_REF"
+
+    __slots__ = ()
+
+    def __init__(self, source_ref, user_provided = False):
+        ExpressionConstantFrozensetRef.__init__(
+            self,
+            constant      = the_empty_frozenset,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    def getDetails(self):
+        return {}
 
 
 class ExpressionConstantIntRef(ExpressionConstantRefBase):
@@ -614,6 +733,25 @@ class ExpressionConstantBytesRef(ExpressionConstantRefBase):
         return ShapeTypeBytes
 
 
+class ExpressionConstantBytearrayRef(ExpressionConstantRefBase):
+    kind = "EXPRESSION_CONSTANT_BYTEARRAY_REF"
+
+    def __init__(self, source_ref, constant, user_provided = False):
+        ExpressionConstantRefBase.__init__(
+            self,
+            constant      = constant,
+            user_provided = user_provided,
+            source_ref    = source_ref
+        )
+
+    @staticmethod
+    def isExpressionConstantBytearrayRef():
+        return True
+
+    def getTypeShape(self):
+        return ShapeTypeBytearray
+
+
 class ExpressionConstantFloatRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_FLOAT_REF"
 
@@ -715,6 +853,21 @@ class ExpressionConstantTypeRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return ShapeTypeType
 
+    def computeExpressionCall(self, call_node, call_args, call_kw,
+                              trace_collection):
+        from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
+
+        # Anything may happen. On next pass, if replaced, we might be better
+        # but not now.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        new_node, tags, message = computeBuiltinCall(
+            builtin_name = self.constant.__name__,
+            call_node    = call_node
+        )
+
+        return new_node, tags, message
+
 
 the_empty_dict = {}
 
@@ -813,23 +966,53 @@ def makeConstantRefNode(constant, source_ref, user_provided = False):
                     user_provided = user_provided
                 )
         elif constant_type is tuple:
-            return ExpressionConstantTupleRef(
-                source_ref    = source_ref,
-                constant      = constant,
-                user_provided = user_provided
-            )
+            if constant:
+                return ExpressionConstantTupleRef(
+                    source_ref    = source_ref,
+                    constant      = constant,
+                    user_provided = user_provided
+                )
+            else:
+                return ExpressionConstantTupleEmptyRef(
+                    source_ref    = source_ref,
+                    user_provided = user_provided
+                )
         elif constant_type is list:
-            return ExpressionConstantListRef(
-                source_ref    = source_ref,
-                constant      = constant,
-                user_provided = user_provided
-            )
+            if constant:
+                return ExpressionConstantListRef(
+                    source_ref    = source_ref,
+                    constant      = constant,
+                    user_provided = user_provided
+                )
+            else:
+                return ExpressionConstantListEmptyRef(
+                    source_ref    = source_ref,
+                    user_provided = user_provided
+                )
         elif constant_type is set:
-            return ExpressionConstantSetRef(
-                source_ref    = source_ref,
-                constant      = constant,
-                user_provided = user_provided
-            )
+            if constant:
+                return ExpressionConstantSetRef(
+                    source_ref    = source_ref,
+                    constant      = constant,
+                    user_provided = user_provided
+                )
+            else:
+                return ExpressionConstantSetEmptyRef(
+                    source_ref    = source_ref,
+                    user_provided = user_provided
+                )
+        elif constant_type is frozenset:
+            if constant:
+                return ExpressionConstantFrozensetRef(
+                    source_ref    = source_ref,
+                    constant      = constant,
+                    user_provided = user_provided
+                )
+            else:
+                return ExpressionConstantFrozensetEmptyRef(
+                    source_ref    = source_ref,
+                    user_provided = user_provided
+                )
         elif constant_type is complex:
             return ExpressionConstantComplexRef(
                 source_ref    = source_ref,
@@ -850,6 +1033,12 @@ def makeConstantRefNode(constant, source_ref, user_provided = False):
             )
         elif constant_type is xrange:
             return ExpressionConstantXrangeRef(
+                source_ref    = source_ref,
+                constant      = constant,
+                user_provided = user_provided
+            )
+        elif constant_type is bytearray:
+            return ExpressionConstantBytearrayRef(
                 source_ref    = source_ref,
                 constant      = constant,
                 user_provided = user_provided

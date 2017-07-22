@@ -50,7 +50,7 @@ def main():
                     item = getattr(sys.modules[import_from], import_value)
 
                     # Should potentially be derived from quoting line.
-                    indentation = "  "
+                    indentation = ' ' * line.find("Quoting")
 
                     # Empty line to separate
                     print()

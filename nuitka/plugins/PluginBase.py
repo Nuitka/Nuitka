@@ -85,12 +85,15 @@ class NuitkaPluginBase(object):
             )
 
             if module_filename is None:
-                sys.exit(
-                    "Error, implicit module '%s' expected by '%s' not found." % (
-                        full_name,
-                        module.getFullName()
+                if self.isRequiredImplicitImport(full_name):
+                    sys.exit(
+                        "Error, implicit module '%s' expected by '%s' not found." % (
+                            full_name,
+                            module.getFullName()
+                        )
                     )
-                )
+                else:
+                    continue
             elif os.path.isdir(module_filename):
                 module_kind = "py"
             elif module_filename.endswith(".py"):
@@ -119,6 +122,15 @@ class NuitkaPluginBase(object):
                     signal_change   = signal_change
                 )
 
+    def isRequiredImplicitImport(self, full_name):
+        """ By default, if given as an implicit import, require it.
+
+        """
+
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
+
     def getImplicitImports(self, full_name):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
@@ -145,7 +157,7 @@ class NuitkaPluginBase(object):
     def _createTriggerLoadedModule(module, trigger_name, code):
         from nuitka.tree.Building import createModuleTree
         from nuitka.nodes.ModuleNodes import CompiledPythonModule
-        from nuitka.plugins.Plugins import Plugins
+        from .Plugins import Plugins
 
         module_name = module.getName() + trigger_name
         source_ref = fromFilename(module.getCompileTimeFilename() + trigger_name)
@@ -156,6 +168,7 @@ class NuitkaPluginBase(object):
             name         = module_name,
             package_name = module.getPackage(),
             mode         = mode,
+            future_spec  = None,
             source_ref   = source_ref
         )
 

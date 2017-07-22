@@ -37,16 +37,18 @@ from nuitka.codegen.c_types.CTypePyObjectPtrs import (
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr
 )
+from nuitka.Options import isExperimental
 from nuitka.utils import InstanceCounters
+
+enable_bool_ctype = isExperimental("enable_bool_ctype")
 
 
 class VariableTraceBase(object):
     # We are going to have many instance attributes, pylint: disable=too-many-instance-attributes
 
     __slots__ = (
-        "owner", "variable", "version", "usage_count",
-        "has_potential_usages", "has_releases", "has_name_usages",
-        "closure_usages", "is_escaped", "previous"
+        "owner", "variable", "version", "usage_count", "has_potential_usages",
+        "name_usages", "closure_usages", "is_escaped", "previous"
     )
 
     @InstanceCounters.counted_init
@@ -61,11 +63,8 @@ class VariableTraceBase(object):
         # Potential usages indicator that an assignment value may be used.
         self.has_potential_usages = False
 
-        # If False, this indicates the trace has no explicit releases.
-        self.has_releases = False
-
-        # If False, this indicates, the variable name needs to be assigned.
-        self.has_name_usages = False
+        # If 0, this indicates, the variable name needs to be assigned as name.
+        self.name_usages = 0
 
         self.closure_usages = False
 
@@ -96,12 +95,9 @@ class VariableTraceBase(object):
     def addPotentialUsage(self):
         self.has_potential_usages = True
 
-    def addRelease(self):
-        self.has_releases = True
-
     def addNameUsage(self):
         self.usage_count += 1
-        self.has_name_usages = True
+        self.name_usages += 1
 
     def onValueEscape(self):
         self.is_escaped = True
@@ -118,8 +114,8 @@ class VariableTraceBase(object):
     def hasPotentialUsages(self):
         return self.has_potential_usages
 
-    def hasNameUsages(self):
-        return self.has_name_usages
+    def getNameUsageCount(self):
+        return self.name_usages
 
     def getPrevious(self):
         return self.previous
@@ -133,15 +129,18 @@ class VariableTraceBase(object):
             if self.variable.isSharedTechnically():
                 result = CTypeCellObject
             else:
-                result = CTypePyObjectPtr
+                if enable_bool_ctype:
+                    shapes = self.variable.getTypeShapes()
+
+                    if len(shapes) > 1:
+                        return CTypePyObjectPtr
+                    else:
+                        assert shapes, self
+                        return shapes.pop().getCType()
+                else:
+                    return CTypePyObjectPtr
         elif context.isForDirectCall():
-            if user.isExpressionGeneratorObjectBody():
-                result = CTypeCellObject
-            elif user.isExpressionCoroutineObjectBody():
-                result = CTypeCellObject
-            elif user.isExpressionAsyncgenObjectBody():
-                result = CTypeCellObject
-            elif self.variable.isSharedTechnically():
+            if self.variable.isSharedTechnically():
                 result = CTypeCellObject
             else:
                 result = CTypePyObjectPtrPtr
@@ -235,9 +234,6 @@ class VariableTraceUninit(VariableTraceBase):
         if self.is_escaped:
             debug("  -> value escapes")
 
-        if self.has_releases:
-            debug("   -> has released")
-
 
 class VariableTraceInit(VariableTraceBase):
     __slots__ = ()
@@ -270,9 +266,6 @@ class VariableTraceInit(VariableTraceBase):
 
         if self.is_escaped:
             debug("  -> value escapes")
-
-        if self.has_releases:
-            debug("   -> has released")
 
     @staticmethod
     def isInitTrace():
@@ -308,9 +301,6 @@ class VariableTraceUnknown(VariableTraceBase):
 
         if self.is_escaped:
             debug("  -> value escapes")
-
-        if self.has_releases:
-            debug("   -> has released")
 
     @staticmethod
     def isUnknownTrace():
@@ -362,9 +352,7 @@ class VariableTraceAssign(VariableTraceBase):
         )
 
     def dump(self):
-        debug("Trace of %s %d:",
-            self.variable,
-            self.version)
+        debug("Trace of %s %d:", self.variable, self.version)
         debug("  Starts assigned")
 
         if self.usage_count:
@@ -372,9 +360,6 @@ class VariableTraceAssign(VariableTraceBase):
 
         if self.is_escaped:
             debug("  -> value escapes")
-
-        if self.has_releases:
-            debug("   -> has released")
 
     @staticmethod
     def isAssignTrace():
@@ -429,11 +414,7 @@ class VariableTraceMerge(VariableTraceBase):
         return True
 
     def dump(self):
-        debug(
-            "Trace of %s %d:",
-            self.variable,
-            self.version
-        )
+        debug("Trace of %s %d:", self.variable, self.version)
 
         debug(
             "  Merge of %s",
@@ -532,11 +513,11 @@ class VariableTraceLoopMerge(VariableTraceBase):
 
         return self.has_potential_usages
 
-    def hasNameUsages(self):
+    def getNameUsageCount(self):
         if not self.loop_finished:
-            return True
+            return 10000
 
-        return self.has_name_usages
+        return self.name_usages
 
     def getPrevious(self):
         assert self.loop_finished

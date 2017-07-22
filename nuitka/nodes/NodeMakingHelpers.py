@@ -172,9 +172,9 @@ def makeCompileTimeConstantReplacementNode(value, node):
         )
     elif type(value) is type:
         if value.__name__ in builtin_names:
-            from .BuiltinRefNodes import ExpressionBuiltinRef
+            from .BuiltinRefNodes import makeExpressionBuiltinRef
 
-            return ExpressionBuiltinRef(
+            return makeExpressionBuiltinRef(
                 builtin_name = value.__name__,
                 source_ref   = node.getSourceReference()
             )
@@ -182,6 +182,7 @@ def makeCompileTimeConstantReplacementNode(value, node):
             return node
     else:
         return node
+
 
 def getComputationResult(node, computation, description):
     """ With a computation function, execute it and return constant result or
@@ -404,25 +405,26 @@ def makeVariableRefNode(variable, source_ref):
         from .VariableRefNodes import ExpressionVariableRef
 
         return ExpressionVariableRef(
-            variable_name = variable.getName(),
-            variable      = variable,
-            source_ref    = source_ref
-        )
-
-
-def makeVariableTargetRefNode(variable, source_ref):
-    if variable.isTempVariable():
-        from .AssignNodes import ExpressionTargetTempVariableRef
-
-        return ExpressionTargetTempVariableRef(
             variable   = variable,
             source_ref = source_ref
         )
-    else:
-        from .AssignNodes import ExpressionTargetVariableRef
 
-        return ExpressionTargetVariableRef(
-            variable_name = variable.getName(),
-            variable      = variable,
-            source_ref    = source_ref
+
+def makeExpressionBuiltinLocals(provider, source_ref):
+    if provider.isCompiledPythonModule():
+        from .GlobalsLocalsNodes import ExpressionBuiltinGlobals
+
+        return ExpressionBuiltinGlobals(
+            source_ref = source_ref
+        )
+    else:
+        from .GlobalsLocalsNodes import ExpressionBuiltinLocalsUpdated, ExpressionBuiltinLocalsCopy
+
+        if provider.isLocalsUpdatedMode():
+            locals_class = ExpressionBuiltinLocalsUpdated
+        else:
+            locals_class = ExpressionBuiltinLocalsCopy
+
+        return locals_class(
+            source_ref = source_ref
         )

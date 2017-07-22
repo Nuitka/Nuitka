@@ -34,11 +34,14 @@ import sys
 def printIndented(level, *what):
     print("    " * level, *what)
 
+
 def printSeparator(level = 0):
     print("    " * level, '*' * 10)
 
+
 def printLine(*what):
     print(*what)
+
 
 def printError(message):
     print(
@@ -46,5 +49,17 @@ def printError(message):
         file = sys.stderr
     )
 
+
 def flushStdout():
     sys.stdout.flush()
+
+
+def my_print(*args, **kwargs):
+    """ Make sure we flush after every print.
+
+    Not even the "-u" option does more than that and this is easy enough.
+    """
+
+    print(*args, **kwargs)
+
+    flushStdout()

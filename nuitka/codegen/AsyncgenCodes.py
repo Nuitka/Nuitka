@@ -54,9 +54,6 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
         temp_variables    = temp_variables
     )
 
-    # Doesn't apply to asyncgens.
-    assert not function_cleanup
-
     function_codes = SourceCodeCollector()
 
     generateStatementSequenceCode(
@@ -71,10 +68,12 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
     if needs_exception_exit:
         generator_exit = template_asyncgen_exception_exit % {
             "function_identifier" : function_identifier,
+            "function_cleanup"    : function_cleanup
         }
     else:
         generator_exit = template_asyncgen_noexception_exit % {
             "function_identifier" : function_identifier,
+            "function_cleanup"    : function_cleanup
         }
 
     if needs_generator_return:
@@ -91,18 +90,6 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
 def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
     asyncgen_object_body = expression.getAsyncgenRef().getFunctionBody()
 
-    parent_module = asyncgen_object_body.getParentModule()
-
-    code_identifier = context.getCodeObjectHandle(
-        code_object  = expression.getCodeObject(),
-        filename     = parent_module.getRunTimeFilename(),
-        line_number  = asyncgen_object_body.getSourceReference().getLineNumber(),
-        is_optimized = True,
-        new_locals   = not asyncgen_object_body.needsLocalsDict(),
-        has_closure  = len(asyncgen_object_body.getParentVariableProvider().getClosureVariables()) > 0,
-        future_flags = parent_module.getFutureSpec().asFlags()
-    )
-
     closure_variables = expression.getClosureVariableVersions()
 
     closure_copy = getClosureCopyCode(
@@ -117,7 +104,9 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
             "closure_copy"        : indented(closure_copy, 0, True),
             "asyncgen_identifier" : asyncgen_object_body.getCodeName(),
             "to_name"             : to_name,
-            "code_identifier"     : code_identifier,
+            "code_identifier"     : context.getCodeObjectHandle(
+                code_object = expression.getCodeObject(),
+            ),
             "closure_count"       : len(closure_variables)
         }
     )

@@ -23,10 +23,7 @@ Namespace packages of Python3.3
 import os
 
 from nuitka import Options
-from nuitka.nodes.AssignNodes import (
-    ExpressionTargetVariableRef,
-    StatementAssignmentVariable
-)
+from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -91,23 +88,17 @@ def createPathAssignment(source_ref):
             source_ref = source_ref
         )
 
-    return  StatementAssignmentVariable(
-        variable_ref = ExpressionTargetVariableRef(
-            variable_name = "__path__",
-            source_ref    = source_ref
-        ),
-        source       = path_value,
-        source_ref   = source_ref
+    return StatementAssignmentVariableName(
+        variable_name = "__path__",
+        source        = path_value,
+        source_ref    = source_ref
     )
 
 
 def createPython3NamespacePath(package_name, module_relpath, source_ref):
-    return StatementAssignmentVariable(
-        variable_ref = ExpressionTargetVariableRef(
-            variable_name = "__path__",
-            source_ref    = source_ref
-        ),
-        source       = ExpressionCallNoKeywords(
+    return StatementAssignmentVariableName(
+        variable_name = "__path__",
+        source        = ExpressionCallNoKeywords(
             called     = ExpressionImportName(
                 module      = makeAbsoluteImportNode(
                     module_name = "_frozen_importlib"
@@ -128,7 +119,7 @@ def createPython3NamespacePath(package_name, module_relpath, source_ref):
             ),
             source_ref =  source_ref
         ),
-        source_ref   = source_ref
+        source_ref    = source_ref
     )
 
 
@@ -146,10 +137,9 @@ def createNamespacePackage(package_name, module_relpath):
         name         = parts[-1],
         mode         = "compiled",
         package_name = package_package_name,
+        future_spec  = FutureSpec(),
         source_ref   = source_ref,
     )
-
-    package.future_spec = FutureSpec()
 
     if python_version >= 300:
         statement = createPython3NamespacePath(

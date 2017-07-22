@@ -198,9 +198,10 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
 
 def getErrorVariableDeclarations():
     return (
-        "PyObject *exception_type = NULL, *exception_value = NULL;",
+        "PyObject *exception_type = NULL;",
+        "PyObject *exception_value = NULL;",
         "PyTracebackObject *exception_tb = NULL;",
-        "NUITKA_MAY_BE_UNUSED int exception_lineno = -1;"
+        "NUITKA_MAY_BE_UNUSED int exception_lineno = 0;"
     )
 
 def getExceptionKeeperVariableNames(keeper_index):
@@ -228,7 +229,7 @@ def getExceptionKeeperVariableNames(keeper_index):
         ),
         "NUITKA_MAY_BE_UNUSED int exception_keeper_lineno_%d%s;" % (
             keeper_index,
-            " = -1" if debug else ""
+            " = 0" if debug else ""
         )
     )
 
@@ -315,3 +316,54 @@ def getAssertionCode(check, emit):
 
 def getCheckObjectCode(check_name, emit):
     emit("CHECK_OBJECT( %s );" % check_name)
+
+
+def getLocalVariableReferenceErrorCode(variable, condition, emit, context):
+    if variable.getOwner() is not context.getOwner():
+        getErrorFormatExitBoolCode(
+            condition = condition,
+            exception = "PyExc_NameError",
+            args      = (
+                """\
+free variable '%s' referenced before assignment in enclosing scope""",
+                variable.getName()
+            ),
+            emit      = emit,
+            context   = context
+        )
+    else:
+        getErrorFormatExitBoolCode(
+            condition = condition,
+            exception = "PyExc_UnboundLocalError",
+            args      = (
+                """\
+local variable '%s' referenced before assignment""",
+                variable.getName()
+            ),
+            emit      = emit,
+            context   = context
+        )
+
+
+def getNameReferenceErrorCode(variable_name, condition, emit, context):
+    if python_version < 340:
+        owner = context.getOwner()
+
+        if not owner.isCompiledPythonModule() and \
+           not owner.isExpressionClassBody():
+            error_message = "global name '%s' is not defined"
+        else:
+            error_message = "name '%s' is not defined"
+    else:
+        error_message = "name '%s' is not defined"
+
+    getErrorFormatExitBoolCode(
+        condition = condition,
+        exception = "PyExc_NameError",
+        args      = (
+            error_message,
+            variable_name
+        ),
+        emit      = emit,
+        context   = context
+    )

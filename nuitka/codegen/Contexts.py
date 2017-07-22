@@ -24,8 +24,8 @@ import sys
 
 from nuitka import Options
 from nuitka.__past__ import iterItems
-from nuitka.Constants import constant_builtin_types
 from nuitka.PythonVersions import python_version
+from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .Namify import namifyConstant
 
@@ -265,6 +265,7 @@ class TempMixin(object):
         assert not self.cleanup_names[-1]
         del self.cleanup_names[-1]
 
+
 class CodeObjectsMixin(object):
     def __init__(self):
         # Code objects needed made unique by a key.
@@ -273,24 +274,21 @@ class CodeObjectsMixin(object):
     def getCodeObjects(self):
         return sorted(iterItems(self.code_objects))
 
-    def getCodeObjectHandle(self, code_object, filename, line_number,
-                            is_optimized, new_locals, has_closure,
-                            future_flags):
-
+    def getCodeObjectHandle(self, code_object):
         key = (
-            filename,
+            code_object.getFilename(),
             code_object.getCodeObjectName(),
-            line_number,
+            code_object.getLineNumber(),
             code_object.getVarNames(),
             code_object.getArgumentCount(),
             code_object.getKwOnlyParameterCount(),
             code_object.getCodeObjectKind(),
-            is_optimized,
-            new_locals,
+            code_object.getFlagIsOptimizedValue(),
+            code_object.getFlagNewLocalsValue(),
             code_object.hasStarListArg(),
             code_object.hasStarDictArg(),
-            has_closure,
-            future_flags
+            code_object.getFlagHasClosureValue(),
+            code_object.getFutureSpec().asFlags()
         )
 
         if key not in self.code_objects:
@@ -315,11 +313,11 @@ class CodeObjectsMixin(object):
 
 
 class PythonContextBase(object):
+    @counted_init
     def __init__(self):
         self.source_ref = None
 
-    def isCompiledPythonModule(self):
-        return False
+    __del__ = counted_del()
 
 
 class PythonChildContextBase(PythonContextBase):
@@ -405,6 +403,9 @@ def _getConstantDefaultPopulation():
         "sum",
         "format",
         "__import__",
+        "bytearray",
+        "staticmethod",
+        "classmethod",
 
         # Arguments of __import__ built-in used in helper code.
         "name",
@@ -426,6 +427,11 @@ def _getConstantDefaultPopulation():
             "print",
             "end",
             "file"
+        )
+
+        # For Python3 bytes built-in.
+        result += (
+            "bytes",
         )
 
     if python_version >= 330:
@@ -531,8 +537,9 @@ class PythonGlobalContext(object):
         self.needs_exception_variables = False
 
     def getConstantCode(self, constant):
-        # Use in user code, or for constants building code itself
-
+        # Use in user code, or for constants building code itself, many
+        # constant types get special code immediately.
+        # pylint: disable=too-many-branches
         if constant is None:
             key = "Py_None"
         elif constant is True:
@@ -541,22 +548,38 @@ class PythonGlobalContext(object):
             key = "Py_False"
         elif constant is Ellipsis:
             key = "Py_Ellipsis"
-        elif constant in constant_builtin_types:
-            type_name = constant.__name__
+        elif type(constant) is type:
+            # TODO: Maybe make this a mapping in nuitka.Builtins
 
-            if constant is int and python_version >= 300:
-                type_name = "long"
-
-            if constant is str and python_version < 300:
-                type_name = "string"
-
-            if constant is str and python_version > 300:
-                type_name = "unicode"
-
-            if type_name != "NoneType":
-                key = "(PyObject *)&Py%s_Type" % type_name.title()
-            else:
+            if constant is None:
                 key = "(PyObject *)Py_TYPE( Py_None )"
+            elif constant is object:
+                key = "(PyObject *)&PyBaseObject_Type"
+            elif constant is staticmethod:
+                key = "(PyObject *)&PyStaticMethod_Type"
+            elif constant is classmethod:
+                key = "(PyObject *)&PyClassMethod_Type"
+            elif constant is bytearray:
+                key = "(PyObject *)&PyByteArray_Type"
+            elif constant is enumerate:
+                key = "(PyObject *)&PyEnum_Type"
+            elif constant is frozenset:
+                key = "(PyObject *)&PyFrozenSet_Type"
+            elif python_version >= 270 and constant is memoryview:
+                key = "(PyObject *)&PyMemoryView_Type"
+            elif python_version < 300 and constant is basestring: # pylint: disable=I0021,undefined-variable
+                key = "(PyObject *)&PyBaseString_Type"
+            elif python_version < 300 and constant is xrange: # pylint: disable=I0021,undefined-variable
+                key = "(PyObject *)&PyRange_Type"
+            else:
+                type_name = constant.__name__
+
+                if constant is int and python_version >= 300:
+                    type_name = "long"
+                elif constant is str:
+                    type_name = "string" if python_version < 300 else "unicode"
+
+                key = "(PyObject *)&Py%s_Type" % type_name.title()
         else:
             key = "const_" + namifyConstant(constant)
 
@@ -576,6 +599,7 @@ class PythonGlobalContext(object):
 
     def getConstants(self):
         return self.constants
+
 
 class FrameDeclarationsMixin(object):
     def __init__(self):
@@ -639,8 +663,16 @@ class FrameDeclarationsMixin(object):
         return result
 
     def getFrameVariableCodeNames(self):
+        def casted(var_name):
+            variable_desc = self.variable_types.get(var_name, ("NULL", 'N'))
+
+            if variable_desc[1] in ('b',):
+                return "(int)" + variable_desc[0]
+            else:
+                return variable_desc[0]
+
         return ", ".join(
-            self.variable_types.get(var_name, ("NULL", 'N'))[0]
+            casted(var_name)
             for var_name in
             self.frame_variables_stack[-1]
         )
@@ -850,8 +882,8 @@ class PythonFunctionContext(FrameDeclarationsMixin, PythonChildContextBase, Temp
         # TODO: Determine this at compile time for enhanced optimizations.
         return True
 
-    def getCodeObjectHandle(self, **kw):
-        return self.parent.getCodeObjectHandle(**kw)
+    def getCodeObjectHandle(self, code_object):
+        return self.parent.getCodeObjectHandle(code_object)
 
 
 class PythonFunctionDirectContext(PythonFunctionContext):

@@ -19,16 +19,13 @@
 
 """
 
-from nuitka.nodes.DictionaryNodes import (
-    ExpressionKeyValuePair,
-    ExpressionMakeDict
-)
-from nuitka.nodes.NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
 
 from .BuiltinIteratorNodes import ExpressionBuiltinIter1
 from .ConstantRefNodes import makeConstantRefNode
+from .DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
 from .ExpressionBases import ExpressionChildrenHavingBase
+from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
 
 class ExpressionBuiltinDict(ExpressionChildrenHavingBase):

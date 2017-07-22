@@ -165,8 +165,11 @@ def autoformat(filename, abort = False):
                         return "  not-an-iterable"
                     elif pylint_token == "E1128":
                         return "assignment-from-none"
-                    elif pylint_token == "I0021":
-                        return "useless-suppression"
+# Save line length for this until isort is better at long lines.
+                    elif pylint_token == "useless-suppression":
+                        return "I0021"
+#                     elif pylint_token == "I0021":
+#                        return "useless-suppression"
                     elif pylint_token == "R0911":
                         return "too-many-return-statements"
                     elif pylint_token == "R0201":

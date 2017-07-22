@@ -17,7 +17,7 @@
 #
 """ Blob codes for storing binary data semi-efficiently.
 
-This module offers means to store and encode binary blobs in C++ semi
+This module offers means to store and encode binary blobs in C semi
 efficiently. The "StreamData" class is used in two places, for constants
 and for freezing of bytecode.
 """

@@ -290,7 +290,9 @@ static PyObject *_builtin_isinstance_replacement( PyObject *self, PyObject *args
         return NULL;
     }
 
-    return PyBool_FromLong( res );
+    PyObject *result = BOOL_FROM( res != 0 );
+    Py_INCREF( result );
+    return result;
 }
 
 static PyMethodDef _method_def_builtin_isinstance_replacement =
@@ -377,4 +379,62 @@ void patchTypeComparison()
         original_PyType_tp_richcompare = PyType_Type.tp_richcompare;
         PyType_Type.tp_richcompare = Nuitka_type_tp_richcompare;
     }
+}
+
+#include "nuitka/freelists.h"
+
+#define MAX_TRACEBACK_FREE_LIST_COUNT 1000
+static PyTracebackObject *free_list_tracebacks = NULL;
+static int free_list_tracebacks_count = 0;
+
+// Create a traceback for a given frame, using a freelist hacked into the
+// existing type.
+PyTracebackObject *MAKE_TRACEBACK( struct Nuitka_FrameObject *frame, int lineno )
+{
+    CHECK_OBJECT( frame );
+    assert( lineno != 0 );
+
+    PyTracebackObject *result;
+
+    allocateFromFreeListFixed(
+        free_list_tracebacks,
+        PyTracebackObject,
+        PyTraceBack_Type
+    );
+
+    result->tb_next = NULL;
+    result->tb_frame = (PyFrameObject *)frame;
+    Py_INCREF( frame );
+
+    result->tb_lasti = 0;
+    result->tb_lineno = lineno;
+
+    Nuitka_GC_Track( result );
+
+    return result;
+}
+
+static void Nuitka_tb_dealloc( PyTracebackObject *tb )
+{
+    Nuitka_GC_UnTrack( tb );
+
+    // TODO: This seems to clash with our free list implementation.
+    // Py_TRASHCAN_SAFE_BEGIN( tb )
+
+    Py_XDECREF( tb->tb_next );
+    Py_XDECREF( tb->tb_frame );
+
+    releaseToFreeList(
+        free_list_tracebacks,
+        tb,
+        MAX_TRACEBACK_FREE_LIST_COUNT
+    );
+
+    // Py_TRASHCAN_SAFE_END( tb )
+}
+
+
+void patchTracebackDealloc( void )
+{
+    PyTraceBack_Type.tp_dealloc = (destructor)Nuitka_tb_dealloc;
 }

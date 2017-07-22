@@ -225,7 +225,7 @@ extern void Nuitka_Frame_ReleaseLocals( struct Nuitka_FrameObject *frame );
 #define NUITKA_TYPE_DESCRIPTION_CELL 'c'
 #define NUITKA_TYPE_DESCRIPTION_OBJECT 'o'
 #define NUITKA_TYPE_DESCRIPTION_OBJECT_PTR 'O'
-
+#define NUITKA_TYPE_DESCRIPTION_BOOL 'b'
 
 
 #endif

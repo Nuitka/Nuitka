@@ -24,8 +24,6 @@ source code comments with developer manual sections.
 
 from nuitka import Options
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -51,6 +49,7 @@ from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
     StatementsSequence
 )
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
 from .Helpers import (
@@ -200,12 +199,9 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
     statements = [
         # First assign the with context to a temporary variable.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_source_variable,
-                source_ref = source_ref
-            ),
-            source       = with_source,
-            source_ref   = source_ref
+            variable   = tmp_source_variable,
+            source     = with_source,
+            source_ref = source_ref
         )
     ]
 
@@ -213,11 +209,8 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
         # Next, assign "__enter__" and "__exit__" attributes to temporary
         # variables.
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_exit_variable,
-                source_ref = source_ref
-            ),
-            source       = attribute_lookup_class(
+            variable   = tmp_exit_variable,
+            source     = attribute_lookup_class(
                 source         = ExpressionTempVariableRef(
                     variable   = tmp_source_variable,
                     source_ref = source_ref
@@ -225,15 +218,12 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                 attribute_name = "__exit__" if sync else "__aexit__",
                 source_ref     = source_ref
             ),
-            source_ref   = source_ref
+            source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_enter_variable,
-                source_ref = source_ref
-            ),
-            source       = enter_value,
-            source_ref   = source_ref
+            variable   = tmp_enter_variable,
+            source     = enter_value,
+            source_ref = source_ref
         )
     ]
 
@@ -244,15 +234,12 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
 
     statements.append(
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_indicator_variable,
-                source_ref = source_ref
-            ),
-            source       = makeConstantRefNode(
+            variable   = tmp_indicator_variable,
+            source     = makeConstantRefNode(
                 constant   = True,
                 source_ref = source_ref
             ),
-            source_ref   = source_ref
+            source_ref = source_ref
         )
     )
 
@@ -268,15 +255,12 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                         # Prevents final block from calling __exit__ as
                         # well.
                         StatementAssignmentVariable(
-                            variable_ref = ExpressionTargetTempVariableRef(
-                                variable   = tmp_indicator_variable,
-                                source_ref = source_ref
-                            ),
-                            source       = makeConstantRefNode(
+                            variable   = tmp_indicator_variable,
+                            source     = makeConstantRefNode(
                                 constant   = False,
                                 source_ref = source_ref
                             ),
-                            source_ref   = source_ref
+                            source_ref = source_ref
                         ),
                         makeConditionalStatement(
                             condition  = exit_value_exception,

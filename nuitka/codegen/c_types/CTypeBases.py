@@ -25,6 +25,7 @@ type_indicators = {
     "PyObject *" : 'o',
     "PyObject **" : 'O',
     "struct Nuitka_CellObject *" : 'c',
+    "nuitka_bool" : 'b'
 }
 
 class CTypeBase(object):
@@ -34,6 +35,14 @@ class CTypeBase(object):
     @classmethod
     def getTypeIndicator(cls):
         return type_indicators[cls.c_type]
+
+
+    @classmethod
+    def getInitValue(cls, init_from):
+        """ Convert to init value for the type. """
+
+        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        assert False, cls.c_type
 
     @classmethod
     def getVariableInitCode(cls, variable_code_name, init_from):
@@ -47,13 +56,14 @@ class CTypeBase(object):
         )
 
     @classmethod
-    def getLocalVariableObjectAccessCode(cls,variable_code_name):
-        """ Get code to access as object.
+    def getLocalVariableInitTestCode(cls, variable_code_name):
+        """ Get code to test for uninitialized.
 
         """
 
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
+
 
     @classmethod
     def getLocalVariableAssignCode(cls, variable_code_name, needs_release,

@@ -43,7 +43,7 @@ import sys
 from logging import warning
 
 from nuitka import Options
-from nuitka.containers import oset
+from nuitka.containers.oset import OrderedSet
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import listDir
@@ -310,7 +310,7 @@ def _findModuleInPath2(module_name, search_path):
 
     # We may have to decide between package and module, therefore build
     # a list of candidates.
-    candidates = oset.OrderedSet()
+    candidates = OrderedSet()
 
     considered = set()
 

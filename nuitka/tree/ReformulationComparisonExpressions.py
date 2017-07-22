@@ -23,8 +23,6 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -33,6 +31,7 @@ from nuitka.nodes.NodeMakingHelpers import makeComparisonNode
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .Helpers import buildNode, getKind, makeStatementsSequenceFromStatement
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
@@ -100,12 +99,9 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
 
     def makeTempAssignment(count, value):
         return StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = variables[count],
-                source_ref = source_ref
-            ),
-            source       = value,
-            source_ref   = source_ref,
+            variable   = variables[count],
+            source     = value,
+            source_ref = source_ref,
         )
 
     def makeReleaseStatement(count):
@@ -116,17 +112,14 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
 
     def makeValueComparisonReturn(left, right, comparator):
         yield StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_variable,
-                source_ref = source_ref
-            ),
-            source       = makeComparisonNode(
+            variable   = tmp_variable,
+            source     = makeComparisonNode(
                 left       = left,
                 right      = right,
                 comparator = comparator,
                 source_ref = source_ref
             ),
-            source_ref   = source_ref,
+            source_ref = source_ref,
         )
 
         yield StatementConditional(

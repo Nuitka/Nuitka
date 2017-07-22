@@ -19,14 +19,8 @@
 
 """
 
-from nuitka.PythonVersions import python_version
-
 from .Emission import SourceCodeCollector
-from .ErrorCodes import (
-    getCheckObjectCode,
-    getErrorFormatExitBoolCode,
-    getErrorFormatExitCode
-)
+from .ErrorCodes import getCheckObjectCode, getNameReferenceErrorCode
 from .Helpers import generateExpressionCode
 from .Indentation import indented
 from .templates.CodeTemplatesVariables import (
@@ -37,13 +31,10 @@ from .templates.CodeTemplatesVariables import (
 
 
 def generateAssignmentVariableCode(statement, emit, context):
-    variable_ref  = statement.getTargetVariableRef()
-    value         = statement.getAssignSource()
-
     tmp_name = context.allocateTempName("assign_source")
 
     generateExpressionCode(
-        expression = value,
+        expression = statement.getAssignSource(),
         to_name    = tmp_name,
         emit       = emit,
         context    = context
@@ -51,8 +42,8 @@ def generateAssignmentVariableCode(statement, emit, context):
 
     getVariableAssignmentCode(
         tmp_name      = tmp_name,
-        variable      = variable_ref.getVariable(),
-        version       = variable_ref.getVariableVersion(),
+        variable      = statement.getVariable(),
+        version       = statement.getVariableVersion(),
         needs_release = statement.needsReleasePreviousValue(),
         in_place      = statement.inplace_suspect,
         emit          = emit,
@@ -68,9 +59,8 @@ def generateDelVariableCode(statement, emit, context):
         statement.getSourceReference()
     )
 
-
     getVariableDelCode(
-        variable    = statement.getTargetVariableRef().getVariable(),
+        variable    = statement.getVariable(),
         new_version = statement.variable_trace.getVersion(),
         old_version = statement.previous_trace.getVersion(),
         tolerant    = statement.isTolerant(),
@@ -255,23 +245,11 @@ def _generateModuleVariableAccessCode(to_name, variable_name, needs_check,
         }
     )
     if needs_check:
-
-        if python_version < 340 and \
-           not context.isCompiledPythonModule() and \
-           not context.getOwner().isExpressionClassBody():
-            error_message = "global name '%s' is not defined"
-        else:
-            error_message = "name '%s' is not defined"
-
-        getErrorFormatExitCode(
-            check_name = to_name,
-            exception  = "PyExc_NameError",
-            args       = (
-                error_message,
-                variable_name
-            ),
-            emit       = emit,
-            context    = context
+        getNameReferenceErrorCode(
+            variable_name = variable_name,
+            condition     = "%s == NULL" % to_name,
+            emit          = emit,
+            context       = context
         )
     else:
         getCheckObjectCode(to_name, emit)
@@ -345,17 +323,11 @@ def getVariableDelCode(variable, old_version, new_version, tolerant,
 
         # TODO: Apply needs_check for module variables too.
         if check:
-            getErrorFormatExitBoolCode(
-                condition = "%s == -1" % res_name,
-                exception = "PyExc_NameError",
-                args      = (
-                    "%sname '%s' is not defined" % (
-                        "global " if not context.isCompiledPythonModule() else "",
-                        variable.getName()
-                    ),
-                ),
-                emit      = emit,
-                context   = context
+            getNameReferenceErrorCode(
+                variable_name = variable.getName(),
+                condition     = "%s == -1" % res_name,
+                emit          = emit,
+                context       = context
             )
     elif variable.isLocalVariable():
         variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, old_version)

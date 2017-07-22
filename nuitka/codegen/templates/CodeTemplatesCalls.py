@@ -281,7 +281,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
             return NULL;
 #endif
         }
-        else
+        else if ( flags & METH_VARARGS )
         {
             PyCFunction method = PyCFunction_GET_FUNCTION( called );
             PyObject *self = PyCFunction_GET_SELF( called );
@@ -289,8 +289,6 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
             PyObject *pos_args = MAKE_TUPLE( args, %(args_count)d );
 
             PyObject *result;
-
-            assert( flags && METH_VARARGS );
 
             // Recursion guard is not strictly necessary, as we already have
             // one on our way to here.
@@ -302,7 +300,7 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
 #endif
 
 #if PYTHON_VERSION < 360
-            if ( flags && METH_KEYWORDS )
+            if ( flags & METH_KEYWORDS )
             {
                 result = (*(PyCFunctionWithKeywords)method)( self, pos_args, NULL );
             }
@@ -331,8 +329,8 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
 
             if ( result != NULL )
             {
-            // Some buggy C functions do set an error, but do not indicate it
-            // and Nuitka inner workings can get upset/confused from it.
+                // Some buggy C functions do set an error, but do not indicate it
+                // and Nuitka inner workings can get upset/confused from it.
                 DROP_ERROR_OCCURRED();
 
                 Py_DECREF( pos_args );

@@ -231,3 +231,17 @@ def generateBuiltinSetCode(to_name, expression, emit, context):
         emit       = emit,
         context    = context
     )
+
+
+def generateBuiltinFrozensetCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "PyFrozenSet_New",
+        arg_desc   = (
+            ("frozenset_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )

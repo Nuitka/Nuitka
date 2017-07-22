@@ -82,15 +82,13 @@ def getExecutablePath(filename):
 def getPythonExePathWindows(search, arch):
     """ Find Python on Windows.
 
-    First try a few guesses, the look into registry for user or system wide
-    installations of Python2. Both Python 2.6 and 2.7 will do.
     """
 
     # Shortcuts for the default installation directories, to avoid going to
     # registry at all unless necessary. Any Python2 will do for Scons, so it
     # might be avoided entirely.
 
-    # Windows only code, pylint: disable=import-error,undefined-variable,useless-suppression
+    # Windows only code, pylint: disable=I0021,import-error,undefined-variable
     try:
         import _winreg as winreg
     except ImportError:

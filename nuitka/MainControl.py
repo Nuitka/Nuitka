@@ -41,6 +41,7 @@ from nuitka.PythonVersions import (
 )
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
+from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import (
     deleteFile,
     hasFilenameExtension,
@@ -82,7 +83,7 @@ def createNodeTree(filename):
     # harm.
     source_dir = getSourceDirectoryPath(main_module)
 
-    if not Options.shallOnlyExecCppCall():
+    if not Options.shallOnlyExecCCompilerCall():
         cleanSourceDirectory(source_dir)
 
     # Prepare the ".dist" directory, throwing away what was there before.
@@ -115,7 +116,7 @@ def createNodeTree(filename):
     # Then optimize the tree and potentially recursed modules.
     Optimization.optimize()
 
-    if Options.isExperimental():
+    if Options.isExperimental("check_xml_persistence"):
         for module in ModuleRegistry.getRootModules():
             if module.isMainModule():
                 return module
@@ -278,7 +279,7 @@ def makeSourceDirectory(main_module):
     # The global context used to generate code.
     global_context = CodeGeneration.makeGlobalContext()
 
-    assert main_module in ModuleRegistry.getDoneModules()
+    # assert main_module in ModuleRegistry.getDoneModules()
 
     # We might have chosen to include it as bytecode, and only compiled it for
     # fun, and to find its imports. In this case, now we just can drop it. Or
@@ -336,9 +337,9 @@ def makeSourceDirectory(main_module):
 
     for module in ModuleRegistry.getDoneModules():
         if module.isCompiledPythonModule():
-            cpp_filename = module_filenames[module]
+            c_filename = module_filenames[module]
 
-            prepared_modules[cpp_filename] = CodeGeneration.prepareModuleCode(
+            prepared_modules[c_filename] = CodeGeneration.prepareModuleCode(
                 global_context = global_context,
                 module         = module,
                 module_name    = module.getFullName(),
@@ -346,14 +347,14 @@ def makeSourceDirectory(main_module):
 
             # Main code constants need to be allocated already too.
             if module is main_module and not Options.shallMakeModule():
-                prepared_modules[cpp_filename][1].getConstantCode(0)
+                prepared_modules[c_filename][1].getConstantCode(0)
 
     # Second pass, generate the actual module code into the files.
     for module in ModuleRegistry.getDoneModules():
         if module.isCompiledPythonModule():
-            cpp_filename = module_filenames[module]
+            c_filename = module_filenames[module]
 
-            template_values, module_context = prepared_modules[cpp_filename]
+            template_values, module_context = prepared_modules[c_filename]
 
             source_code = CodeGeneration.generateModuleCode(
                 module_context  = module_context,
@@ -361,7 +362,7 @@ def makeSourceDirectory(main_module):
             )
 
             writeSourceCode(
-                filename    = cpp_filename,
+                filename    = c_filename,
                 source_code = source_code
             )
 
@@ -389,7 +390,11 @@ def makeSourceDirectory(main_module):
             )
 
             standalone_entry_points.append(
-                (os.path.dirname(module.getFilename()), target_filename, module.getPackage())
+                (
+                    module.getFilename(),
+                    target_filename,
+                    module.getPackage()
+                )
             )
         elif module.isUncompiledPythonModule():
             pass
@@ -455,12 +460,13 @@ def runScons(main_module, quiet):
         "unstripped_mode" : asBoolStr(Options.isUnstripped()),
         "module_mode"     : asBoolStr(Options.shallMakeModule()),
         "full_compat"     : asBoolStr(Options.isFullCompat()),
-        "experimental"    : asBoolStr(Options.isExperimental()),
+        "experimental"    : ','.join(Options.getExperimentalIndications()),
         "trace_mode"      : asBoolStr(Options.shallTraceExecution()),
         "python_version"  : python_version_str,
         "target_arch"     : Utils.getArchitecture(),
         "python_prefix"   : sys.prefix,
         "nuitka_src"      : SconsInterface.getSconsDataPath(),
+        "nuitka_cache"    : getCacheDir(),
         "module_count"    : "%d" % (
             1 + \
             len(ModuleRegistry.getDoneUserModules()) + \
@@ -627,7 +633,7 @@ def executeModule(tree, clean_path):
 def compileTree(main_module):
     source_dir = getSourceDirectoryPath(main_module)
 
-    if not Options.shallOnlyExecCppCall():
+    if not Options.shallOnlyExecCCompilerCall():
         # Now build the target language code for the whole tree.
         makeSourceDirectory(
             main_module = main_module
@@ -667,7 +673,7 @@ def compileTree(main_module):
     if Options.isShowMemory():
         InstanceCounters.printStats()
 
-    if Options.shallNotDoExecCppCall():
+    if Options.shallNotDoExecCCompilerCall():
         return True, {}
 
     # Run the Scons to build things.
@@ -679,6 +685,29 @@ def compileTree(main_module):
     return result, options
 
 
+def handleSyntaxError(e):
+    # Syntax or indentation errors, output them to the user and abort. If
+    # we are not in full compat, and user has not specified the Python
+    # versions he wants, tell him about the potential version problem.
+    error_message = SyntaxErrors.formatOutput(e)
+
+    if not Options.isFullCompat() and \
+       Options.getIntendedPythonVersion() is None:
+        if python_version < 300:
+            suggested_python_version_str = getSupportedPythonVersions()[-1]
+        else:
+            suggested_python_version_str = "2.7"
+
+        error_message += """
+
+Nuitka is very syntax compatible with standard Python. It is currently running
+with Python version '%s', you might want to specify more clearly with the use
+of e.g. '--python-version=%s' option, if that's not the one expected.
+""" % (python_version_str, suggested_python_version_str)
+
+    sys.exit(error_message)
+
+
 data_files = []
 
 def main():
@@ -688,7 +717,7 @@ def main():
         in the desired version of Python with desired flags, and we just get
         to execute the task assigned.
 
-        We might be asked to only re-compile generated C++, dump only an XML
+        We might be asked to only re-compile generated C, dump only an XML
         representation of the internal node tree after optimization, etc.
     """
 
@@ -725,26 +754,7 @@ def main():
             filename = filename
         )
     except (SyntaxError, IndentationError) as e:
-        # Syntax or indentation errors, output them to the user and abort. If
-        # we are not in full compat, and user has not specified the Python
-        # versions he wants, tell him about the potential version problem.
-        error_message = SyntaxErrors.formatOutput(e)
-
-        if not Options.isFullCompat() and \
-           Options.getIntendedPythonVersion() is None:
-            if python_version < 300:
-                suggested_python_version_str = getSupportedPythonVersions()[-1]
-            else:
-                suggested_python_version_str = "2.7"
-
-            error_message += """
-
-Nuitka is very syntax compatible with standard Python. It is currently running
-with Python version '%s', you might want to specify more clearly with the use
-of e.g. '--python-version=%s' option, if that's not the one expected.
-""" % (python_version_str, suggested_python_version_str)
-
-        sys.exit(error_message)
+        handleSyntaxError(e)
 
     if Options.shallDumpBuiltTreeXML():
         for module in ModuleRegistry.getDoneModules():
@@ -760,7 +770,10 @@ of e.g. '--python-version=%s' option, if that's not the one expected.
         if not result:
             sys.exit(1)
 
-        if Options.shallNotDoExecCppCall():
+        if Options.shallNotDoExecCCompilerCall():
+            if Options.isShowMemory():
+                MemoryUsage.showMemoryTrace()
+
             sys.exit(0)
 
         # Remove the source directory (now build directory too) if asked to.
@@ -775,7 +788,7 @@ of e.g. '--python-version=%s' option, if that's not the one expected.
 
             standalone_entry_points.insert(
                 0,
-                (None, binary_filename, None)
+                (binary_filename, binary_filename, None)
             )
 
             dist_dir = getStandaloneDirectoryPath(main_module)

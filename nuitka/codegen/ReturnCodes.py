@@ -25,6 +25,7 @@ by a try statement is accessible this way.
 
 from nuitka.PythonVersions import python_version
 
+from .ConstantCodes import getConstantAccess
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
 from .Helpers import generateExpressionCode
 from .LabelCodes import getGotoCode
@@ -61,6 +62,34 @@ def generateReturnCode(statement, emit, context):
     )
 
 
+def generateReturnConstantCode(statement, emit, context):
+    getExceptionUnpublishedReleaseCode(emit, context)
+
+    return_value_name = context.getReturnValueName()
+
+    if context.getReturnReleaseMode():
+        emit("Py_DECREF( %s );" % return_value_name)
+
+    getConstantAccess(
+        to_name  = return_value_name,
+        constant = statement.getConstant(),
+        emit     = emit,
+        context  = context
+    )
+
+    if context.needsCleanup(return_value_name):
+        context.removeCleanupTempName(return_value_name)
+    else:
+        emit(
+            "Py_INCREF( %s );" % return_value_name
+        )
+
+    getGotoCode(
+        label = context.getReturnTarget(),
+        emit  = emit
+    )
+
+
 def generateReturnedValueRefCode(to_name, expression, emit, context):
     # We don't need the expression, pylint: disable=unused-argument
 
@@ -74,7 +103,7 @@ def generateReturnedValueRefCode(to_name, expression, emit, context):
     )
 
 
-def generateGeneratorReturnCode(statement, emit, context):
+def generateGeneratorReturnValueCode(statement, emit, context):
     if context.getOwner().isExpressionAsyncgenObjectBody():
         pass
     elif python_version >= 330:
@@ -90,6 +119,42 @@ def generateGeneratorReturnCode(statement, emit, context):
             expression = expression,
             emit       = emit,
             context    = context
+        )
+
+        if context.needsCleanup(return_value_name):
+            context.removeCleanupTempName(return_value_name)
+        else:
+            emit(
+                "Py_INCREF( %s );" % return_value_name
+            )
+    elif statement.getParentVariableProvider().needsGeneratorReturnHandling():
+        return_value_name = context.getGeneratorReturnValueName()
+
+        generator_return_name = context.allocateTempName(
+            "generator_return",
+            "bool",
+            unique = True
+        )
+
+        emit("%s = true;" % generator_return_name)
+
+    getGotoCode(context.getReturnTarget(), emit)
+
+
+def generateGeneratorReturnNoneCode(statement, emit, context):
+    if context.getOwner().isExpressionAsyncgenObjectBody():
+        pass
+    elif python_version >= 330:
+        return_value_name = context.getGeneratorReturnValueName()
+
+        if context.getReturnReleaseMode():
+            emit("Py_DECREF( %s );" % return_value_name)
+
+        getConstantAccess(
+            to_name  = return_value_name,
+            constant = None,
+            emit     = emit,
+            context  = context
         )
 
         if context.needsCleanup(return_value_name):

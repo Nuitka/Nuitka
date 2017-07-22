@@ -12,6 +12,8 @@ Build-Depends: debhelper (>= 9),
                scons (>= 2.0.0),
                python3-all-dev (>= 3.2) | base-files (<< 6.1),
                python3-all-dbg (>= 3.2) | base-files (<< 6.1),
+               python-appdirs  | base-files (<< 7.2),
+               python3-appdirs | base-files (<< 7.2),
                strace,
                chrpath
 Vcs-Git: http://git.nuitka.net/Nuitka.git
@@ -24,6 +26,8 @@ Package: nuitka
 Architecture: all
 Depends: gcc (>= 5.0) | g++ (>= 4.4) | clang (>= 3.0),
          scons (>= 2.0.0),
+         python-appdirs  | base-files (<< 7.2),
+         python3-appdirs | base-files (<< 7.2),
          python-dev (>= 2.6.6-2),
          ${misc:Depends},
          ${python:Depends}

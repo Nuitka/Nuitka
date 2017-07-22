@@ -29,36 +29,18 @@ import sys
 import tempfile
 from contextlib import contextmanager
 
-from nuitka.utils.FileOperations import removeDirectory
+from nuitka.Tracing import my_print
+from nuitka.utils.AppDirs import getCacheDir
+from nuitka.utils.Execution import check_output
+from nuitka.utils.FileOperations import makePath, removeDirectory
 
+from .SearchModes import (
+    SearchModeBase,
+    SearchModeByPattern,
+    SearchModeCoverage,
+    SearchModeResume
+)
 
-# Make sure we flush after every print, the "-u" option does more than that
-# and this is easy enough.
-def my_print(*args, **kwargs):
-    print(*args, **kwargs)
-
-    sys.stdout.flush()
-
-# TODO: Use nuitka.utils.Execution instead.
-def check_output(*popenargs, **kwargs):
-    if "stdout" in kwargs:
-        raise ValueError("stdout argument not allowed, it will be overridden.")
-
-    process = subprocess.Popen(
-        stdout = subprocess.PIPE,
-        *popenargs,
-        **kwargs
-    )
-    output, _unused_err = process.communicate()
-    retcode = process.poll()
-
-    if retcode:
-        cmd = kwargs.get("args")
-        if cmd is None:
-            cmd = popenargs[0]
-        raise subprocess.CalledProcessError(retcode, cmd, output = output)
-
-    return output
 
 def check_result(*popenargs, **kwargs):
     if "stdout" in kwargs:
@@ -230,6 +212,13 @@ def convertUsing2to3(path, force = False):
             stderr = devnull
         )
 
+    with open(new_path) as result_file:
+        data = result_file.read()
+
+    with open(new_path, 'w') as result_file:
+        result_file.write("__file__ = %r\n" % os.path.abspath(path))
+        result_file.write(data)
+
     return new_path, True
 
 
@@ -356,6 +345,7 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
         sys.stderr.write("Interrupted, with CTRL-C\n")
         sys.exit(2)
 
+
 def checkCompilesNotWithCPython(dirname, filename, search_mode):
     if dirname is None:
         path = filename
@@ -364,7 +354,7 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
 
     command = [
         sys.executable,
-        "-mcompile",
+        "-mcompileall",
         path
     ]
 
@@ -414,7 +404,7 @@ def getArchitecture():
         else:
             return "x86"
     else:
-        return os.uname()[4]
+        return os.uname()[4]  # @UndefinedVariable
 
 
 def getDependsExePath():
@@ -713,90 +703,23 @@ def checkReferenceCount(checked_function, max_rounds = 10):
     return result
 
 
+
 def createSearchMode():
     search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
+    resume_mode = len(sys.argv) > 1 and sys.argv[1] == "resume"
     start_at = sys.argv[2] if len(sys.argv) > 2 else None
     coverage_mode = len(sys.argv) > 1 and sys.argv[1] == "coverage"
 
-    class SearchModeBase(object):
-        def __init__(self):
-            self.may_fail = []
-
-        def consider(self, dirname, filename):
-            # Virtual method, pylint: disable=no-self-use,unused-argument
-            return True
-
-        def finish(self):
-            pass
-
-        def abortOnFinding(self, dirname, filename):
-            for candidate in self.may_fail:
-                if self._match(dirname, filename, candidate):
-                    return False
-
-            return True
-
-        def getExtraFlags(self, dirname, filename):
-            # Virtual method, pylint: disable=no-self-use,unused-argument
-            return []
-
-        def mayFailFor(self, *names):
-            self.may_fail += names
-
-        @classmethod
-        def _match(cls, dirname, filename, candidate):
-            parts = [dirname, filename]
-
-            while None in parts:
-                parts.remove(None)
-            assert parts
-
-            path = os.path.join(*parts)
-
-            return candidate in (
-                dirname,
-                filename,
-                filename.replace(".py", ""),
-                filename.split('.')[0],
-                path,
-                path.replace(".py", ""),
-
-            )
-
-        def isCoverage(self):
-            # Virtual method, pylint: disable=no-self-use
-            return False
 
     if coverage_mode:
-        class SearchModeCoverage(SearchModeBase):
-            def getExtraFlags(self, dirname, filename):
-                return ["coverage"]
-
-            def isCoverage(self):
-                return True
 
         return SearchModeCoverage()
+    elif resume_mode:
+        return SearchModeResume(
+            sys.modules["__main__"].__file__
+        )
     elif search_mode and start_at:
         start_at = start_at.replace('/', os.path.sep)
-
-        class SearchModeByPattern(SearchModeBase):
-            def __init__(self):
-                SearchModeBase.__init__(self)
-
-                self.active = False
-
-            def consider(self, dirname, filename):
-                if self.active:
-                    return True
-
-                self.active = self._match(dirname, filename, start_at)
-                return self.active
-
-            def finish(self):
-                if not self.active:
-                    sys.exit("Error, became never active.")
-
-
         return SearchModeByPattern()
     else:
         class SearchModeImmediate(SearchModeBase):
@@ -858,10 +781,12 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
     gc.enable()
     return result
 
+
 def checkDebugPython():
     if not hasattr(sys, "gettotalrefcount"):
         my_print("Warning, using non-debug Python makes this test ineffective.")
         sys.gettotalrefcount = lambda : 0
+
 
 @contextmanager
 def withPythonPathChange(python_path):
@@ -1051,6 +976,9 @@ def compileLibraryPath(search_mode, path, stage_dir, decide, action):
 
 
 def compileLibraryTest(search_mode, stage_dir, decide, action):
+    if not os.path.exists(stage_dir):
+        os.makedirs(stage_dir)
+
     my_dirname = os.path.join(os.path.dirname(__file__), "../../..")
     my_dirname = os.path.normpath(my_dirname)
 
@@ -1065,8 +993,8 @@ def compileLibraryTest(search_mode, stage_dir, decide, action):
     for path in paths:
         my_print(path)
 
-
     for path in paths:
+        print("Checking path:", path)
         compileLibraryPath(
             search_mode = search_mode,
             path        = path,
@@ -1089,10 +1017,14 @@ def run_async(coro):
             break
     return values, result
 
+
 def async_iterate(g):
     """ Execute async generator until it's done. """
 
-    # Test code, pylint: disable=broad-except,undefined-variable
+    # Test code for Python3, catches all kinds of exceptions.
+    # pylint: disable=broad-except
+
+    # Also Python3 only, pylint: disable=I0021,undefined-variable
 
     res = []
     while True:
@@ -1111,3 +1043,11 @@ def async_iterate(g):
             res.append(str(type(ex)))
 
     return res
+
+
+def getTestingCacheDir():
+    cache_dir = getCacheDir()
+
+    result = os.path.join(cache_dir, "tests_state")
+    makePath(result)
+    return result

@@ -54,14 +54,14 @@ import sys
 from logging import info, warning
 
 from nuitka import Options, SourceCodeReferences
-from nuitka.__past__ import long, unicode  # pylint: disable=redefined-builtin
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    long,
+    unicode
+)
 from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
-from nuitka.nodes.AssignNodes import (
-    ExpressionTargetVariableRef,
-    StatementAssignmentVariable
-)
+from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
@@ -92,14 +92,17 @@ from nuitka.nodes.OperatorNodes import (
     ExpressionOperationUnary,
     makeBinaryOperationNode
 )
-from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.ReturnNodes import (
+    StatementReturn,
+    StatementReturnNone,
+    makeStatementReturnConstant
+)
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
-from nuitka.nodes.VariableRefNodes import ExpressionVariableRef
+from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
-from nuitka.tree.ReformulationImportStatements import getFutureSpec
 from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
 
@@ -151,6 +154,7 @@ from .ReformulationImportStatements import (
     buildImportFromNode,
     buildImportModulesNode,
     checkFutureImportsOnlyAtStart,
+    getFutureSpec,
     popFutureSpec,
     pushFutureSpec
 )
@@ -175,7 +179,7 @@ from .VariableClosure import completeVariableClosures
 
 
 def buildVariableReferenceNode(provider, node, source_ref):
-    return ExpressionVariableRef(
+    return ExpressionVariableNameRef(
         variable_name = mangleName(node.id, provider),
         source_ref    = source_ref
     )
@@ -448,10 +452,10 @@ def buildEllipsisNode(source_ref):
 
 
 def buildStatementLoopContinue(node, source_ref):
-    # Python forbids this, although technically it's probably not much of
-    # an issue.
     source_ref = source_ref.atColumnNumber(node.col_offset)
 
+    # Python forbids this, although technically it's probably not much of
+    # an issue.
     if getBuildContext() == "finally":
         SyntaxErrors.raiseSyntaxError(
             "'continue' not supported inside 'finally' clause",
@@ -504,23 +508,33 @@ def buildReturnNode(provider, node, source_ref):
             )
 
 
-    if expression is None:
-        expression = ExpressionConstantNoneRef(
-            source_ref    = source_ref,
-            user_provided = True
-        )
-
     if provider.isExpressionGeneratorObjectBody() or \
        provider.isExpressionAsyncgenObjectBody():
+        if expression is None:
+            expression = ExpressionConstantNoneRef(
+                source_ref    = source_ref,
+                user_provided = True
+            )
+
         return StatementGeneratorReturn(
             expression = expression,
             source_ref = source_ref
         )
     else:
-        return StatementReturn(
-            expression = expression,
-            source_ref = source_ref
-        )
+        if expression is None:
+            return StatementReturnNone(
+                source_ref = source_ref
+            )
+        elif expression.isExpressionConstantRef():
+            return makeStatementReturnConstant(
+                constant   = expression.getCompileTimeConstant(),
+                source_ref = source_ref
+            )
+        else:
+            return StatementReturn(
+                expression = expression,
+                source_ref = source_ref
+            )
 
 
 def buildExprOnlyNode(provider, node, source_ref):
@@ -714,6 +728,8 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     # differences for module default variables. pylint: disable=too-many-branches
 
     pushFutureSpec()
+    if is_module:
+        provider.future_spec = getFutureSpec()
 
     body = parseSourceCodeToAst(
         source_code = source_code,
@@ -763,30 +779,24 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
 
         statements.append(
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__doc__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = makeConstantRefNode(
+            StatementAssignmentVariableName(
+                variable_name = "__doc__",
+                source        = makeConstantRefNode(
                     constant      = doc,
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
         statements.append(
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__file__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = ExpressionModuleFileAttributeRef(
+            StatementAssignmentVariableName(
+                variable_name = "__file__",
+                source        = ExpressionModuleFileAttributeRef(
                     source_ref = internal_source_ref,
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
@@ -798,16 +808,13 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
     if python_version >= 300:
         statements.append(
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__cached__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = ExpressionConstantNoneRef(
+            StatementAssignmentVariableName(
+                variable_name = "__cached__",
+                source        = ExpressionConstantNoneRef(
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
@@ -815,19 +822,16 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if python_version >= 330:
         # For Python3.3, it's set for both packages and non-packages.
         statements.append(
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__package__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = makeConstantRefNode(
+            StatementAssignmentVariableName(
+                variable_name = "__package__",
+                source        = makeConstantRefNode(
                     constant      = provider.getFullName()
                                       if provider.isCompiledPythonPackage() else
                                     provider.getPackage(),
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
@@ -837,34 +841,28 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if needs__initializing__:
         # Set "__initializing__" at the beginning to True
         statements.append(
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__initializing__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = makeConstantRefNode(
+            StatementAssignmentVariableName(
+                variable_name = "__initializing__",
+                source        = makeConstantRefNode(
                     constant      = True,
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
     if provider.needsAnnotationsDictionary():
         # Set "__annotations__" on module level to {}
         statements.append(
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__annotations__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = makeConstantRefNode(
+            StatementAssignmentVariableName(
+                variable_name = "__annotations__",
+                source        = makeConstantRefNode(
                     constant      = {},
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
@@ -878,17 +876,14 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if needs__initializing__:
         # Set "__initializing__" at the end to False
         statements.append(
-            StatementAssignmentVariable(
-                variable_ref = ExpressionTargetVariableRef(
-                    variable_name = "__initializing__",
-                    source_ref    = internal_source_ref
-                ),
-                source       = makeConstantRefNode(
+            StatementAssignmentVariableName(
+                variable_name = "__initializing__",
+                source        = makeConstantRefNode(
                     constant      = False,
                     source_ref    = internal_source_ref,
                     user_provided = True
                 ),
-                source_ref   = internal_source_ref
+                source_ref    = internal_source_ref
             )
         )
 
@@ -900,7 +895,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             source_ref = source_ref
         )
 
-        provider.future_spec = popFutureSpec()
+        popFutureSpec()
 
         return result
     else:
@@ -966,9 +961,10 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             )
         elif is_main:
             result = PythonMainModule(
-                main_added = main_added,
-                mode       = Plugins.decideCompilation("__main__", source_ref),
-                source_ref = source_ref
+                main_added  = main_added,
+                mode        = Plugins.decideCompilation("__main__", source_ref),
+                future_spec = None,
+                source_ref  = source_ref
             )
         else:
             if package is not None:
@@ -980,6 +976,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 name         = module_name,
                 package_name = package,
                 mode         = Plugins.decideCompilation(full_name, source_ref),
+                future_spec  = None,
                 source_ref   = source_ref
             )
 
@@ -1011,6 +1008,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
                 name         = package_name,
                 package_name = package,
                 mode         = Plugins.decideCompilation(full_name, source_ref),
+                future_spec  = None,
                 source_ref   = source_ref
             )
 

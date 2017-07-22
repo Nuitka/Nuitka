@@ -54,6 +54,10 @@ class ShapeUnknown(ShapeBase):
     def hasShapeSlotNext():
         return None
 
+    @staticmethod
+    def hasShapeSlotContains():
+        return None
+
 
 class ValueShapeBase(object):
     __slots__ = ()
@@ -120,3 +124,7 @@ class ShapeIterator(ShapeBase):
     @staticmethod
     def getShapeIter():
         return ShapeIterator
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return True

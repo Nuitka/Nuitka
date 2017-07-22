@@ -91,7 +91,7 @@ def _getPython2ExePathWindows():
     elif os.path.isfile(r"c:\Python26\python.exe"):
         return r"c:\Python26\python.exe"
 
-    # Windows only code, pylint: disable=import-error,undefined-variable,useless-suppression
+    # Windows only code, pylint: disable=I0021,import-error,undefined-variable
     try:
         import _winreg as winreg
     except ImportError:
@@ -121,6 +121,11 @@ def _getPython2ExePath():
 
     Scons needs it as it doesn't support Python3.
     """
+    python_exe = Options.getPython2PathForScons()
+
+    if python_exe is not None:
+        return python_exe
+
     if python_version < 300:
         return sys.executable
     elif Utils.getOS() == "Windows":
@@ -132,7 +137,12 @@ def _getPython2ExePath():
             sys.exit("""\
 Error, while Nuitka is fully Python3 compatible, it needs to find a
 Python2 executable under C:\\Python26 or C:\\Python27 to execute
-scons which is not yet Python3 compatible.""")
+Scons utility which is used to build the C files to binary, and which
+is not yet Python3 compatible.
+
+You may provide it using option "--python2-for-scons=path_to_python.exe"
+in case it is not visible in registry, e.g. uninstalled AnaConda Python.
+""")
 
     candidate = Execution.getExecutablePath("python2.7")
     if candidate is None:
@@ -157,7 +167,7 @@ def _setupSconsEnvironment():
     the "SCONS_LIB_DIR" environment variable "NUITKA_SCONS". And for the
     target Python we provide "NUITKA_PYTHON_DLL_PATH" to see where the
     Python DLL lives, in case it needs to be copied, and then the
-    "NUITKA_PYTHON_EXE_PATH" to find the Python installation itself.
+    "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
     """
 
     if Utils.getOS() == "Windows":
@@ -172,7 +182,8 @@ def _setupSconsEnvironment():
         # via environment variable
         os.environ["NUITKA_PYTHON_DLL_PATH"] = getTargetPythonDLLPath()
 
-        os.environ["NUITKA_PYTHON_EXE_PATH"] = sys.executable
+    os.environ["NUITKA_PYTHON_EXE_PATH"] = sys.executable
+
     # Remove environment variables that can only harm if we have to switch
     # major Python versions, these cannot help Python2 to execute scons, this
     # is a bit of noise, but helpful.

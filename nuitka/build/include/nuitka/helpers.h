@@ -44,8 +44,6 @@ typedef struct {
 // Most fundamental, because we use it for debugging in everything else.
 #include "nuitka/helper/printing.h"
 
-static PyObject *INCREASE_REFCOUNT( PyObject *object );
-
 // Helper to check that an object is valid and has positive reference count.
 #define CHECK_OBJECT( value ) ( assert( value != NULL ), assert( Py_REFCNT( value ) > 0 ) );
 
@@ -55,16 +53,6 @@ static PyObject *INCREASE_REFCOUNT( PyObject *object );
 // For use with "--trace-execution", code can make outputs. Otherwise they
 // are just like comments.
 #include "nuitka/tracing.h"
-
-// Helper functions for reference count handling in the fly.
-NUITKA_MAY_BE_UNUSED static PyObject *INCREASE_REFCOUNT( PyObject *object )
-{
-    CHECK_OBJECT( object );
-
-    Py_INCREF( object );
-
-    return object;
-}
 
 // For checking values if they changed or not.
 #ifndef __NUITKA_NO_ASSERT__
@@ -422,24 +410,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *MAKE_STATIC_METHOD( PyObject *method )
-{
-    CHECK_OBJECT( method );
-
-    PyObject *attempt = PyStaticMethod_New( method );
-
-    if ( attempt )
-    {
-        return attempt;
-    }
-    else
-    {
-        CLEAR_ERROR_OCCURRED();
-
-        return method;
-    }
-}
-
 
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 {
@@ -466,6 +436,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 #include "nuitka/helper/slices.h"
 #include "nuitka/helper/rangeobjects.h"
 #include "nuitka/helper/lists.h"
+#include "nuitka/helper/bytearrays.h"
 
 #include "nuitka/builtins.h"
 
@@ -482,7 +453,11 @@ extern PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObj
 
 
 // For quicker built-in open() functionality.
+#if PYTHON_VERSION < 300
 extern PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering );
+#else
+extern PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering, PyObject *encoding, PyObject *errors, PyObject *newline, PyObject *closefd, PyObject *opener );
+#endif
 
 // For quicker built-in chr() functionality.
 extern PyObject *BUILTIN_CHR( PyObject *value );
@@ -531,14 +506,20 @@ extern PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObjec
 extern PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value );
 
 // For built-in bytearray() functionality.
-extern PyObject *BUILTIN_BYTEARRAY( PyObject *value );
+extern PyObject *BUILTIN_BYTEARRAY1( PyObject *value );
+extern PyObject *BUILTIN_BYTEARRAY3( PyObject *string, PyObject *encoding, PyObject *errors );
 
 // For built-in hash() functionality.
 extern PyObject *BUILTIN_HASH( PyObject *value );
 
+// For built-in sum() functionality.
 extern PyObject *BUILTIN_SUM1( PyObject *sequence );
 extern PyObject *BUILTIN_SUM2( PyObject *sequence, PyObject *start );
 
+// For built-in bytes() functionality.
+#if PYTHON_VERSION >= 300
+extern PyObject *BUILTIN_BYTES3( PyObject *value, PyObject *encoding, PyObject *errors );
+#endif
 
 extern PyObject *const_str_plain___builtins__;
 
@@ -547,6 +528,15 @@ extern PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals 
 
 // For built-in format() functionality.
 extern PyObject *BUILTIN_FORMAT( PyObject *value, PyObject *format_spec );
+
+// For built-in staticmethod() functionality.
+extern PyObject *BUILTIN_STATICMETHOD( PyObject *function );
+
+// For built-in classmethod() functionality.
+extern PyObject *BUILTIN_CLASSMETHOD( PyObject *function );
+
+// For built-in divmod() functionality.
+extern PyObject *BUILTIN_DIVMOD( PyObject *operand1, PyObject *operand2 );
 
 #include "nuitka/importing.h"
 
@@ -564,7 +554,6 @@ extern void checkGlobalConstants( void );
 #include "nuitka/constants_blob.h"
 
 extern void UNSTREAM_INIT( void );
-extern PyObject *UNSTREAM_CONSTANT( unsigned char const *buffer, Py_ssize_t size );
 extern PyObject *UNSTREAM_STRING( unsigned char const *buffer, Py_ssize_t size, bool intern );
 extern PyObject *UNSTREAM_CHAR( unsigned char value, bool intern );
 #if PYTHON_VERSION < 300
@@ -573,6 +562,7 @@ extern PyObject *UNSTREAM_UNICODE( unsigned char const *buffer, Py_ssize_t size 
 extern PyObject *UNSTREAM_BYTES( unsigned char const *buffer, Py_ssize_t size );
 #endif
 extern PyObject *UNSTREAM_FLOAT( unsigned char const *buffer );
+extern PyObject *UNSTREAM_BYTEARRAY( unsigned char const *buffer, Py_ssize_t size );
 
 // Performance enhancements to Python types.
 extern void enhancePythonTypes( void );
@@ -601,6 +591,10 @@ extern void patchInspectModule( void );
 // Replace type comparison with one that accepts compiled types too, will work
 // for "==" and "!=", but not for "is" checks.
 extern void patchTypeComparison( void );
+
+// Patch the CPython type for tracebacks and make it use a freelist mechanism
+// to be slightly faster for exception control flows.
+extern void patchTracebackDealloc( void );
 
 #if PYTHON_VERSION < 300
 // Initialize value for "tp_compare" default.
@@ -661,48 +655,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyO
         return metaclass;
     }
 }
-#else
-
-NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *bases, PyObject *metaclass_global )
-{
-    CHECK_OBJECT( bases );
-
-    PyObject *metaclass;
-
-    assert( bases != Py_None );
-
-    if ( PyTuple_GET_SIZE( bases ) > 0 )
-    {
-        PyObject *base = PyTuple_GET_ITEM( bases, 0 );
-
-        metaclass = PyObject_GetAttr( base, const_str_plain___class__ );
-
-        if ( metaclass == NULL )
-        {
-            CLEAR_ERROR_OCCURRED();
-
-            metaclass = (PyObject *)Py_TYPE( base );
-            Py_INCREF( metaclass );
-        }
-    }
-    else if ( metaclass_global != NULL )
-    {
-        metaclass = metaclass_global;
-        Py_INCREF( metaclass );
-    }
-    else
-    {
-        // Default to old style class.
-        metaclass = (PyObject *)&PyClass_Type;
-        Py_INCREF( metaclass );
-    }
-
-    // Cannot fail on Python2.
-    CHECK_OBJECT( metaclass );
-
-    return metaclass;
-}
-
 #endif
 
 extern PyObject *const_str_plain___name__;

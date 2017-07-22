@@ -1631,6 +1631,10 @@ This is roughly equivalent to the following code:
 While Loops
 +++++++++++
 
+Quoting the ``nuitka.tree.ReformulationWhileLoopStatements`` documentation:
+
+Reformulation of while loop statements.
+
 Loops in Nuitka have no condition attached anymore, so while loops are
 re-formulated like this:
 
@@ -1665,6 +1669,8 @@ loops.
    The fact that the loop body may not be entered at all, is still optimized,
    but also in the general sense. Explicit breaks at the loop start and loop
    conditions are the same.
+
+End quoting the ``nuitka.tree.ReformulationWhileLoopStatements`` documentation:
 
 
 Exception Handlers

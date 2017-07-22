@@ -24,9 +24,16 @@ Only after this is executed, variable reference nodes can be considered
 complete.
 """
 
+from nuitka.nodes.AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable
+)
 from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.NodeMakingHelpers import makeConstantReplacementNode
-from nuitka.nodes.VariableRefNodes import ExpressionLocalsVariableRef
+from nuitka.nodes.VariableRefNodes import (
+    ExpressionLocalsVariableRef,
+    ExpressionVariableRef
+)
 from nuitka.PythonVersions import (
     getErrorMessageExecWithNestedFunction,
     python_version
@@ -84,8 +91,11 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
     def _handleQualnameSetup(node):
         if node.qualname_setup is not None:
             if node.isExpressionClassBody():
-                class_assign, qualname_assign = node.qualname_setup
-                class_variable = class_assign.getTargetVariableRef().getVariable()
+                class_variable_name, qualname_assign = node.qualname_setup
+
+                class_variable = node.getParentVariableProvider().getVariableForAssignment(
+                    class_variable_name
+                )
 
                 if class_variable.isModuleVariable():
                     qualname_node = qualname_assign.getAssignSource()
@@ -99,8 +109,9 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                     node.qualname_provider = node.getParentModule()
             else:
-                function_variable_ref = node.qualname_setup
-                function_variable = function_variable_ref.getVariable()
+                function_variable = node.getParentVariableProvider().getVariableForAssignment(
+                    node.qualname_setup
+                )
 
                 if function_variable.isModuleVariable():
                     node.qualname_provider = node.getParentModule()
@@ -112,65 +123,90 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
             node.qualname_setup = None
 
+    def onLeaveNode(self, node):
+        if node.isStatementAssignmentVariableName():
+            provider = node.getParentVariableProvider()
+
+            variable = provider.getVariableForAssignment(
+                variable_name = node.getVariableName()
+            )
+
+            node.replaceWith(
+                StatementAssignmentVariable(
+                    variable   = variable,
+                    source     = node.subnode_source,
+                    source_ref = node.source_ref
+                )
+            )
+
+            variable.addVariableUser(provider)
+        elif node.isStatementDelVariableName():
+            provider = node.getParentVariableProvider()
+
+            variable = provider.getVariableForAssignment(
+                variable_name = node.getVariableName()
+            )
+
+            node.replaceWith(
+                StatementDelVariable(
+                    variable   = variable,
+                    tolerant   = node.tolerant,
+                    source_ref = node.source_ref
+                )
+            )
+
+            variable.addVariableUser(provider)
+
     def onEnterNode(self, node):
         # Mighty complex code with lots of branches and statements, but it
         # couldn't be less without making it more difficult.
-        # pylint: disable=R0912,R0915
+        # pylint: disable=too-many-branches,too-many-statements
 
-        if node.isExpressionTargetVariableRef():
+        if node.isExpressionVariableNameRef():
             provider = node.getParentVariableProvider()
 
-            variable = node.getVariable()
-
-            if variable is None:
-                variable_name = node.getVariableName()
-
-                variable = provider.getVariableForAssignment(
-                    variable_name = variable_name
+            if provider.isEarlyClosure():
+                variable = provider.getVariableForReference(
+                    variable_name = node.getVariableName()
                 )
 
-                node.setVariable(variable)
+                # Python3.4 version respects closure variables taken can be
+                # overridden by writes to locals. It should be done for
+                # globals too, on all versions, but for Python2 the locals
+                # dictionary is avoided unless "exec" appears, so it's not
+                # done.
+                if variable.getOwner() is not provider:
+                    if python_version >= 340 or \
+                       (python_version >= 300 and \
+                        variable.isModuleVariable()):
+                        node.replaceWith(
+                            ExpressionLocalsVariableRef(
+                                variable_name     = node.getVariableName(),
+                                fallback_variable = variable,
+                                source_ref        = node.getSourceReference()
+                            )
+                        )
 
-            variable.addVariableUser(provider)
-        elif node.isExpressionVariableRef():
-            if node.getVariable() is None:
-                provider = node.getParentVariableProvider()
-
-                if provider.isEarlyClosure():
-                    variable = provider.getVariableForReference(
-                        variable_name = node.getVariableName()
+                    else:
+                        node.replaceWith(
+                            ExpressionVariableRef(
+                                variable   = variable,
+                                source_ref = node.source_ref
+                            )
+                        )
+                else:
+                    node.replaceWith(
+                        ExpressionVariableRef(
+                            variable   = variable,
+                            source_ref = node.source_ref
+                        )
                     )
 
-                    # Python3.4 version respects closure variables taken can be
-                    # overridden by writes to locals. It should be done for
-                    # globals too, on all versions, but for Python2 the locals
-                    # dictionary is avoided unless "exec" appears, so it's not
-                    # done.
-                    if variable.getOwner() is not provider:
-                        if python_version >= 340 or \
-                           (python_version >= 300 and \
-                            variable.isModuleVariable()):
-                            node.replaceWith(
-                                ExpressionLocalsVariableRef(
-                                    variable_name = node.getVariableName(),
-                                    fallback_variable = variable,
-                                    source_ref    = node.getSourceReference()
-                                )
-                            )
-
-                        else:
-                            node.setVariable(variable)
-                    else:
-                        node.setVariable(variable)
-
-                    variable.addVariableUser(provider)
-
+                variable.addVariableUser(provider)
         elif node.isExpressionTempVariableRef():
             if node.getVariable().getOwner() != node.getParentVariableProvider():
-                node.setVariable(
-                    node.getParentVariableProvider().addClosureVariable(
-                        node.getVariable()
-                    )
+                node.getParentVariableProvider().addClosureVariable(
+                    node.getVariable()
                 )
         elif node.isExpressionGeneratorObjectBody():
             self._handleNonLocal(node)
@@ -277,10 +313,6 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
             variable_name = variable_name
         )
 
-        node.setVariable(
-            variable
-        )
-
         # Need to catch functions with "exec" and closure variables not allowed.
         if python_version < 300 and \
            not was_taken and \
@@ -299,28 +331,58 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                     display_line = False # Wrong line anyway
                 )
 
+        return variable
 
     def onEnterNode(self, node):
-        if node.isExpressionVariableRef():
+        if node.isExpressionVariableNameRef():
+            provider = node.getParentVariableProvider()
+
+            try:
+                variable = self._attachVariable(node, provider)
+            except MaybeLocalVariableUsage:
+                variable_name = node.getVariableName()
+
+                node.replaceWith(
+                    ExpressionLocalsVariableRef(
+                        variable_name     = variable_name,
+                        fallback_variable = node.getParentModule().getVariableForReference(variable_name),
+                        source_ref        = node.getSourceReference()
+                    )
+                )
+            else:
+                node.replaceWith(
+                    ExpressionVariableRef(
+                        variable   = variable,
+                        source_ref = node.source_ref
+                    )
+                )
+
+                variable.addVariableUser(provider)
+
+        elif node.isExpressionVariableRef():
             provider = node.getParentVariableProvider()
 
             variable = node.getVariable()
 
             if variable is None:
                 try:
-                    self._attachVariable(node, provider)
+                    variable = self._attachVariable(node, provider)
                 except MaybeLocalVariableUsage:
                     variable_name = node.getVariableName()
 
                     node.replaceWith(
                         ExpressionLocalsVariableRef(
-                            variable_name = variable_name,
+                            variable_name     = variable_name,
                             fallback_variable = node.getParentModule().getVariableForReference(variable_name),
-                            source_ref = node.getSourceReference()
+                            source_ref        = node.getSourceReference()
                         )
                     )
                 else:
-                    node.getVariable().addVariableUser(provider)
+                    node.setVariable(
+                        variable
+                    )
+
+                    variable.addVariableUser(provider)
             else:
                 variable.addVariableUser(provider)
 
@@ -338,7 +400,7 @@ class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):
 
     def onEnterNode(self, node):
         if python_version < 300 and node.isStatementDelVariable():
-            variable = node.getTargetVariableRef().getVariable()
+            variable = node.getVariable()
 
             if not variable.isModuleVariable() and \
                variable.isSharedAmongScopes():

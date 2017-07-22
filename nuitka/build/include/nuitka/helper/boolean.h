@@ -18,6 +18,7 @@
 #ifndef __NUITKA_HELPER_BOOLEAN_H__
 #define __NUITKA_HELPER_BOOLEAN_H__
 
+// The slot in Python3 got renamed, compensate it like this.
 #if PYTHON_VERSION >= 300
 #define nb_nonzero nb_bool
 #endif
@@ -97,5 +98,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNARY_NOT( PyObject *object )
 }
 
 #undef nb_nonzero
+
+typedef enum
+{
+    NUITKA_BOOL_FALSE = 0,
+    NUITKA_BOOL_TRUE = 1,
+    NUITKA_BOOL_UNASSIGNED = 2,
+} nuitka_bool;
 
 #endif

@@ -27,7 +27,8 @@ import subprocess
 import sys
 
 from nuitka.PythonVersions import getSupportedPythonVersions
-from nuitka.tools.release.Release import checkBranchName
+
+from .Release import checkBranchName
 
 
 def makeMsiCompatibleFilename(filename):

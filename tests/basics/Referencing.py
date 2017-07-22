@@ -899,6 +899,19 @@ def simpleFunction109():
     # Call a PyCFunction that looks like a method call.
     sys.exc_info()
 
+def simpleFunction110():
+    def my_open(*args, **kwargs):
+        return(args, kwargs)
+
+    __builtins__.open = my_open
+
+    open("me", buffering = True)
+
+u = u'__name__'
+
+def simpleFunction111():
+    return getattr(simpleFunction111, u)
+
 ####################################
 
 

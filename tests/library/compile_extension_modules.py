@@ -19,7 +19,7 @@
 #     limitations under the License.
 #
 
-import os, sys, tempfile, subprocess, shutil
+import os, sys, tempfile, shutil
 
 # Find nuitka package relative to us.
 sys.path.insert(
@@ -37,7 +37,8 @@ from nuitka.tools.testing.Common import (
     setup,
     my_print,
     createSearchMode,
-    compileLibraryTest
+    compileLibraryTest,
+    check_output
 )
 
 setup(needs_io_encoding = True)
@@ -82,7 +83,8 @@ def action(stage_dir, root, path):
         "--run",
         "--output-dir",
         stage_dir,
-        "--remove-output"
+        "--remove-output",
+        "--plugin-enable=pylint-warnings"
     ]
 
     filename = os.path.join(stage_dir, "importer.py")
@@ -102,12 +104,12 @@ def action(stage_dir, root, path):
     command.append(filename)
 
     try:
-        output = subprocess.check_output(command).splitlines()
-        assert output[-1] == "OK", output
-    except Exception as e:
-        print(e)
-        sys.exit(1)
+        output = check_output(command).splitlines()
+    except Exception:
+        raise
     else:
+        if output[-1] != b"OK":
+            sys.exit("FAIL")
         my_print("OK")
 
         shutil.rmtree(filename[:-3] + ".dist")
@@ -120,3 +122,4 @@ compileLibraryTest(
     action      = action
 )
 
+my_print("FINISHED, all extension modules compiled.")

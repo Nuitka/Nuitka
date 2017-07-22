@@ -23,7 +23,8 @@ module_value2 = "2000"
 import sys
 loop_count = 50000 if len(sys.argv) < 2 else int(sys.argv[1])
 
-for x in xrange(loop_count):
+import itertools
+for x in itertools.repeat(None, loop_count):
 # construct_begin
     module_value1 == module_value2
 # construct_alternative

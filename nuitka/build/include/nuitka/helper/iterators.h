@@ -20,7 +20,7 @@
 
 #if PYTHON_VERSION >= 270
 // Initialize value for "tp_iternext" to compare with, needed by HAS_ITERNEXT
-// which emulates PyCheck_Iter but bug free.
+// which emulates "PyCheck_Iter" but is bug free.
 extern iternextfunc default_iternext;
 extern void _initSlotIternext( void );
 #endif

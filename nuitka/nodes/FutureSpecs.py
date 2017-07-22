@@ -43,6 +43,9 @@ class FutureSpec(object):
 
     __del__ = counted_del()
 
+    def __repr__(self):
+        return "<FutureSpec %s>" % ','.join(self.asFlags())
+
     def clone(self):
         result = FutureSpec()
 
@@ -136,5 +139,8 @@ def fromFlags(flags):
 
     if "CO_FUTURE_GENERATOR_STOP" in flags:
         result.enableGeneratorStop()
+
+    # Check if we are going to give similar results than what we got.
+    assert tuple(result.asFlags()) == tuple(flags), (result, result.asFlags(), flags)
 
     return result

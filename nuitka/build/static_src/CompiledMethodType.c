@@ -24,7 +24,9 @@
 
 static PyObject *Nuitka_Method_get__doc__( struct Nuitka_MethodObject *method, void *closure )
 {
-    return INCREASE_REFCOUNT( method->m_function->m_doc );
+    PyObject *result = method->m_function->m_doc;
+    Py_INCREF( result );
+    return result;
 }
 
 static PyGetSetDef Nuitka_Method_getsets[] =
@@ -132,16 +134,19 @@ static char const *GET_CLASS_NAME( PyObject *klass )
     }
 }
 
+extern PyObject *const_str_plain___class__;
+
 static char const *GET_INSTANCE_CLASS_NAME( PyObject *instance )
 {
-    // TODO: We have a constant for that already.
-    PyObject *klass = PyObject_GetAttrString( instance, "__class__" );
+    PyObject *klass = PyObject_GetAttr( instance, const_str_plain___class__ );
 
     // Fallback to type as this cannot fail.
     if ( klass == NULL )
     {
         CLEAR_ERROR_OCCURRED();
-        klass = INCREASE_REFCOUNT( (PyObject *)Py_TYPE( instance ) );
+
+        klass = (PyObject *)Py_TYPE( instance );
+        Py_INCREF( klass );
     }
 
     char const *result = GET_CLASS_NAME( klass );
@@ -276,7 +281,8 @@ static PyObject *Nuitka_Method_tp_descr_get( struct Nuitka_MethodObject *method,
     // Don't rebind already bound methods.
     if ( method->m_object != NULL )
     {
-        return INCREASE_REFCOUNT( (PyObject *)method );
+        Py_INCREF( method );
+        return (PyObject *)method;
     }
 
     if ( method->m_class != NULL && klass != NULL )
@@ -290,7 +296,8 @@ static PyObject *Nuitka_Method_tp_descr_get( struct Nuitka_MethodObject *method,
         }
         else if ( result == 0 )
         {
-            return INCREASE_REFCOUNT( (PyObject *)method );
+            Py_INCREF( method );
+            return (PyObject *)method;
         }
     }
 
@@ -318,7 +325,8 @@ static PyObject *Nuitka_Method_tp_getattro( struct Nuitka_MethodObject *method, 
         }
         else
         {
-            return INCREASE_REFCOUNT( descr );
+            Py_INCREF( descr );
+            return descr;
         }
     }
 
@@ -440,28 +448,29 @@ static PyObject *Nuitka_Method_tp_richcompare( struct Nuitka_MethodObject *a, st
 {
     if ( op != Py_EQ && op != Py_NE )
     {
-        return INCREASE_REFCOUNT( Py_NotImplemented );
+        Py_INCREF( Py_NotImplemented );
+        return Py_NotImplemented;
     }
-
 
     if ( Nuitka_Method_Check( (PyObject *)a ) == false || Nuitka_Method_Check( (PyObject *)b ) == false )
     {
-        return INCREASE_REFCOUNT( Py_NotImplemented );
+        Py_INCREF( Py_NotImplemented );
+        return Py_NotImplemented;
     }
 
-    bool result = a->m_function->m_counter == b->m_function->m_counter;
+    bool b_res = a->m_function->m_counter == b->m_function->m_counter;
 
     // If the underlying function objects are the same, check the objects, which
     // may be NULL in case of unbound methods, which would be the same again.
-    if ( result )
+    if ( b_res )
     {
         if ( a->m_object == NULL )
         {
-            result = b->m_object == NULL;
+            b_res = b->m_object == NULL;
         }
         else if ( b->m_object == NULL )
         {
-            result = 0;
+            b_res = false;
         }
         else
         {
@@ -471,18 +480,23 @@ static PyObject *Nuitka_Method_tp_richcompare( struct Nuitka_MethodObject *a, st
                 Py_EQ
             );
 
-            result = res != 0;
+            b_res = res != 0;
         }
     }
 
+    PyObject *result;
+
     if ( op == Py_EQ )
     {
-        return INCREASE_REFCOUNT( BOOL_FROM( result ) );
+        result = BOOL_FROM( b_res );
     }
     else
     {
-        return INCREASE_REFCOUNT( BOOL_FROM( !result ) );
+        result = BOOL_FROM( !b_res );
     }
+
+    Py_INCREF( result );
+    return result;
 }
 
 
@@ -661,7 +675,8 @@ PyObject *Nuitka_Method_New( struct Nuitka_FunctionObject *function, PyObject *o
         return NULL;
     }
 
-    result->m_function = (struct Nuitka_FunctionObject *)INCREASE_REFCOUNT( (PyObject *)function );
+    Py_INCREF( function );
+    result->m_function = function;
 
     result->m_object = object;
     Py_XINCREF( object );

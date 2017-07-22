@@ -29,9 +29,7 @@ from .NodeMakingHelpers import (
 )
 
 
-class ExpressionComparison(ExpressionChildrenHavingBase):
-    kind = "EXPRESSION_COMPARISON"
-
+class ExpressionComparisonBase(ExpressionChildrenHavingBase):
     named_children = (
         "left",
         "right"
@@ -73,6 +71,10 @@ class ExpressionComparison(ExpressionChildrenHavingBase):
         return {
             "comparator" : self.comparator
         }
+
+    @staticmethod
+    def isExpressionComparison():
+        return True
 
     def getSimulator(self):
         return PythonOperators.all_comparison_functions[self.comparator]
@@ -124,9 +126,22 @@ Replaced negated comparison with inverse comparison."""
         return not_node, None, None
 
 
-class ExpressionComparisonIsIsNotBase(ExpressionComparison):
+class ExpressionComparison(ExpressionComparisonBase):
+    kind = "EXPRESSION_COMPARISON"
+
     def __init__(self, left, right, comparator, source_ref):
-        ExpressionComparison.__init__(
+        ExpressionComparisonBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            comparator = comparator,
+            source_ref = source_ref
+        )
+
+
+class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
+    def __init__(self, left, right, comparator, source_ref):
+        ExpressionComparisonBase.__init__(
             self,
             left       = left,
             right      = right,
@@ -140,10 +155,6 @@ class ExpressionComparisonIsIsNotBase(ExpressionComparison):
 
     def getDetails(self):
         return {}
-
-    def isExpressionComparison(self):
-        # Virtual method, pylint: disable=no-self-use
-        return True
 
     def mayRaiseException(self, exception_type):
         return self.getLeft().mayRaiseException(exception_type) or \
@@ -187,11 +198,11 @@ Determined values to alias and therefore result of %s comparison.""" % (
                 )
 
             return result, "new_constant", """\
-Determined values to not alias and therefore result of %s comparison.""" % (
+Determined values to not alias and therefore result of '%s' comparison.""" % (
                 self.comparator
             )
 
-        return ExpressionComparison.computeExpression(
+        return ExpressionComparisonBase.computeExpression(
             self,
             trace_collection = trace_collection
         )
@@ -238,11 +249,11 @@ class ExpressionComparisonIsNOT(ExpressionComparisonIsIsNotBase):
     )
 
 
-class ExpressionComparisonExceptionMatch(ExpressionComparison):
+class ExpressionComparisonExceptionMatch(ExpressionComparisonBase):
     kind = "EXPRESSION_COMPARISON_EXCEPTION_MATCH"
 
     def __init__(self, left, right, source_ref):
-        ExpressionComparison.__init__(
+        ExpressionComparisonBase.__init__(
             self,
             left       = left,
             right      = right,
@@ -253,19 +264,15 @@ class ExpressionComparisonExceptionMatch(ExpressionComparison):
     def getDetails(self):
         return {}
 
-    def isExpressionComparison(self):
-        # Virtual method, pylint: disable=no-self-use
-        return True
-
     def getSimulator(self):
         assert False
 
         return PythonOperators.all_comparison_functions[self.comparator]
 
 
-class ExpressionComparisonInNotInBase(ExpressionComparison):
+class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
     def __init__(self, left, right, comparator, source_ref):
-        ExpressionComparison.__init__(
+        ExpressionComparisonBase.__init__(
             self,
             left       = left,
             right      = right,
@@ -277,10 +284,6 @@ class ExpressionComparisonInNotInBase(ExpressionComparison):
 
     def getDetails(self):
         return {}
-
-    def isExpressionComparison(self):
-        # Virtual method, pylint: disable=no-self-use
-        return True
 
     def mayRaiseException(self, exception_type):
         left = self.getLeft()

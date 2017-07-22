@@ -23,7 +23,10 @@ module_value2 = "2000"
 import sys
 loop_count = 50000 if len(sys.argv) < 2 else int(sys.argv[1])
 
-for x in xrange(loop_count):
+x = 0
+import itertools
+for _x in itertools.repeat(None, loop_count):
+    x += 1
     y = x % 2 == 0
 
 # construct_begin

@@ -21,13 +21,13 @@ All the information to lookup line and file of a code location, together with
 the future flags in use there.
 """
 
+from nuitka.__past__ import total_ordering
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 
+@total_ordering
 class SourceCodeReference(object):
-    # TODO: Measure the access speed impact of slots. The memory savings is
-    # not worth it (only a few percent).
-    __slots__ = ["filename", "line", "column", "internal"]
+    __slots__ = ["filename", "line", "column"]
 
     @classmethod
     def fromFilenameAndLine(cls, filename, line):
@@ -45,39 +45,65 @@ class SourceCodeReference(object):
         self.filename = None
         self.line = None
         self.column = None
-        self.internal = False
 
     def __repr__(self):
         return "<%s to %s:%s>" % (self.__class__.__name__, self.filename, self.line)
 
-    def __cmp__(self, other):
+    def __lt__(self, other):
+        # Many cases decide early, pylint: disable=too-many-return-statements
         if other is None:
-            return -1
+            return True
+
+        if other is self:
+            return False
 
         assert isinstance(other, SourceCodeReference), other
 
-        result = cmp(self.filename, other.filename)
+        if self.filename < other.filename:
+            return True
+        elif self.filename > other.filename:
+            return False
+        else:
+            if self.line < other.line:
+                return True
+            elif self.line > other.line:
+                return False
+            else:
+                if self.column < other.column:
+                    return True
+                elif self.column > other.column:
+                    return False
+                else:
+                    return self.isInternal() < other.isInternal()
 
-        if result == 0:
-            result = cmp(self.line, other.line)
+    def __eq__(self, other):
+        if other is None:
+            return False
 
-        if result == 0:
-            result = cmp(self.internal, other.internal)
+        if other is self:
+            return True
 
-        return result
+        assert isinstance(other, SourceCodeReference), other
+
+        if self.filename != other.filename:
+            return False
+
+        if self.line != other.line:
+            return False
+
+        if self.column != other.column:
+            return False
+
+        return self.isInternal() is other.isInternal()
 
     def _clone(self, line):
         """ Make a copy it itself.
 
         """
-        result = SourceCodeReference.fromFilenameAndLine(
+        return self.fromFilenameAndLine(
             filename = self.filename,
             line     = line
         )
-
-        result.internal = self.internal
-
-        return result
 
     def atInternal(self):
         """ Make a copy it itself but mark as internal code.
@@ -85,9 +111,8 @@ class SourceCodeReference(object):
             Avoids useless copies, by returning an internal object again if
             it is already internal.
         """
-        if not self.internal:
+        if not self.isInternal():
             result = self._clone(self.line)
-            result.internal = True
 
             return result
         else:
@@ -130,8 +155,23 @@ class SourceCodeReference(object):
     def getAsString(self):
         return "%s:%s" % (self.filename, self.line)
 
-    def isInternal(self):
-        return self.internal
+    @staticmethod
+    def isInternal():
+        return False
+
+
+class SourceCodeReferenceInternal(SourceCodeReference):
+    __slots__ = ()
+
+    __del__ = counted_del()
+
+    @counted_init
+    def __init__(self):
+        SourceCodeReference.__init__(self)
+
+    @staticmethod
+    def isInternal():
+        return True
 
 
 def fromFilename(filename):

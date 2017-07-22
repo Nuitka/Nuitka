@@ -19,8 +19,6 @@
 
 """
 
-from nuitka.codegen.PythonAPICodes import getReferenceExportCode
-
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode, getReleaseCode
 from .FunctionCodes import (
@@ -34,6 +32,7 @@ from .Helpers import (
 )
 from .Indentation import indented
 from .LineNumberCodes import emitLineNumberUpdateCode
+from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesCoroutines import (
     template_coroutine_exception_exit,
     template_coroutine_noexception_exit,
@@ -61,9 +60,6 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
         temp_variables    = temp_variables
     )
 
-    # Doesn't apply to coroutines.
-    assert not function_cleanup
-
     function_codes = SourceCodeCollector()
 
     generateStatementSequenceCode(
@@ -78,10 +74,12 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
     if needs_exception_exit:
         generator_exit = template_coroutine_exception_exit % {
             "function_identifier" : function_identifier,
+            "function_cleanup"    : function_cleanup
         }
     else:
         generator_exit = template_coroutine_noexception_exit % {
             "function_identifier" : function_identifier,
+            "function_cleanup"    : function_cleanup
         }
 
     if needs_generator_return:
@@ -98,18 +96,6 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
 def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
     coroutine_object_body = expression.getCoroutineRef().getFunctionBody()
 
-    parent_module = coroutine_object_body.getParentModule()
-
-    code_identifier = context.getCodeObjectHandle(
-        code_object  = expression.getCodeObject(),
-        filename     = parent_module.getRunTimeFilename(),
-        line_number  = coroutine_object_body.getSourceReference().getLineNumber(),
-        is_optimized = True,
-        new_locals   = not coroutine_object_body.needsLocalsDict(),
-        has_closure  = len(coroutine_object_body.getParentVariableProvider().getClosureVariables()) > 0,
-        future_flags = parent_module.getFutureSpec().asFlags()
-    )
-
     closure_variables = expression.getClosureVariableVersions()
 
     closure_copy = getClosureCopyCode(
@@ -124,7 +110,9 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
             "closure_copy"         : indented(closure_copy, 0, True),
             "coroutine_identifier" : coroutine_object_body.getCodeName(),
             "to_name"              : to_name,
-            "code_identifier"      : code_identifier,
+            "code_identifier"      : context.getCodeObjectHandle(
+                code_object = expression.getCodeObject(),
+            ),
             "closure_count"        : len(closure_variables)
         }
     )

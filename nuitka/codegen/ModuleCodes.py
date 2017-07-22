@@ -69,6 +69,8 @@ def getModuleValues(context, module_name, module_identifier, codes,
     for preserver_id in context.getExceptionPreserverCounts():
         local_var_inits.extend(getExceptionPreserverVariableNames(preserver_id))
 
+    tmp_infos = context.getTempNameInfos()
+
     local_var_inits += [
         "%s%s%s;" % (
             tmp_type,
@@ -76,9 +78,10 @@ def getModuleValues(context, module_name, module_identifier, codes,
             tmp_name
         )
         for tmp_name, tmp_type in
-        context.getTempNameInfos()
+        tmp_infos
     ]
-    for tmp_name, tmp_type in context.getTempNameInfos():
+
+    for tmp_name, _tmp_type in tmp_infos:
         if tmp_name.startswith("tmp_outline_return_value_"):
             local_var_inits.append("%s = NULL;" % tmp_name)
 

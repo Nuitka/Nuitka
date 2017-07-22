@@ -21,24 +21,28 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.shapes.BuiltinTypeShapes import (
-    ShapeTypeBool,
-    ShapeTypeIntOrLong,
-    ShapeTypeLong,
-    ShapeTypeStr,
-    ShapeTypeUnicode
-)
+from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
+    ExpressionChildrenHavingBase,
     ExpressionSpecBasedComputationBase
 )
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     wrapExpressionWithNodeSideEffects
+)
+from .shapes.BuiltinTypeShapes import (
+    ShapeTypeBool,
+    ShapeTypeBytearray,
+    ShapeTypeBytes,
+    ShapeTypeIntOrLong,
+    ShapeTypeLong,
+    ShapeTypeStr,
+    ShapeTypeUnicode
 )
 
 
@@ -106,6 +110,12 @@ class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_SET"
 
     builtin_spec = BuiltinOptimization.builtin_set_spec
+
+
+class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
+    kind = "EXPRESSION_BUILTIN_FROZENSET"
+
+    builtin_spec = BuiltinOptimization.builtin_frozenset_spec
 
 
 class ExpressionBuiltinFloat(ExpressionBuiltinTypeBase):
@@ -320,29 +330,61 @@ else:
         def getTypeShape(self):
             return ShapeTypeStr
 
+    class ExpressionBuiltinBytes(ExpressionBuiltinUnicodeBase):
+        kind = "EXPRESSION_BUILTIN_BYTES"
 
-class ExpressionBuiltinBytearray(ExpressionBuiltinTypeBase):
-    kind = "EXPRESSION_BUILTIN_BYTEARRAY"
+        builtin_spec = BuiltinOptimization.builtin_bytes_spec
+
+        def getTypeShape(self):
+            return ShapeTypeBytes
+
+
+class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):
+    kind = "EXPRESSION_BUILTIN_BYTEARRAY1"
 
     builtin_spec = BuiltinOptimization.builtin_bytearray_spec
 
     def __init__(self, value, source_ref):
-        if value is None:
-            value = makeConstantRefNode(
-                constant   = b"",
-                source_ref = source_ref
-            )
-
         ExpressionBuiltinTypeBase.__init__(
             self,
             value      = value,
             source_ref = source_ref
         )
 
+    def getTypeShape(self):
+        return ShapeTypeBytearray
+
+
+class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_BUILTIN_BYTEARRAY3"
+
+    named_children = ("string", "encoding", "errors")
+
+    builtin_spec = BuiltinOptimization.builtin_bytearray_spec
+
+    def __init__(self, string, encoding, errors, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "string"   : string,
+                "encoding" : encoding,
+                "errors"   : errors
+
+            },
+            source_ref = source_ref
+        )
+
+    getStringArg = ExpressionChildrenHavingBase.childGetter("string")
+    getEncoding = ExpressionChildrenHavingBase.childGetter("encoding")
+    getErrors = ExpressionChildrenHavingBase.childGetter("errors")
+
     def computeExpression(self, trace_collection):
-        # TODO: Quite impossible as this has a variable result, but we could
-        # look at the arguments at least.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
+
+    def getTypeShape(self):
+        return ShapeTypeBytearray
 
 
 class ExpressionBuiltinComplex(ExpressionSpecBasedComputationBase):

@@ -112,6 +112,7 @@ defaultKeepsIdentity()
 # Dictionary creation from call arguments.
 def dd(**d):
     return d
+
 def f():
     def one():
         print("one")
@@ -124,15 +125,12 @@ def f():
     a = dd(qual = 1, storage = 2, type = 3, function = 4)
     print("f immutable", displayDict(a))
 
-    # TODO: This exposes a bug in how the star dict argument should populate the
-    # dictionary first instead of last, and the called arguments might have to
-    # come from pairs so hashing does not reorder.
-    # x = { "p" : 7 }
-    # a = dd(qual=[], storage=[], type=[], function=[],**x)
-    # print "f ext mutable", a
-    # x = { "p" : 8 }
-    # a = dd(qual=1, storage=2, type=3, function=4,**x)
-    # print "f ext immutable", a
+    x = { "p" : 7 }
+    a = dd(qual=[], storage=[], type=[], function=[],**x)
+    print("f ext mutable", displayDict(a))
+    x = { "p" : 8 }
+    a = dd(qual=1, storage=2, type=3, function=4,**x)
+    print("f ext immutable", displayDict(a))
 f()
 
 # Dictionary creation one after another

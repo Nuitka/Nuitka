@@ -19,13 +19,9 @@
 
 """
 
-from nuitka.codegen.c_types.CTypePyObjectPtrs import (
-    CTypeCellObject,
-    CTypePyObjectPtrPtr
-)
-from nuitka.codegen.PythonAPICodes import getReferenceExportCode
 from nuitka.PythonVersions import python_version
 
+from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitCode,
@@ -263,23 +259,13 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
 
     # Creation code needs to be done only once.
     if not context.hasHelperCode(function_identifier):
-        parent_module = function_body.getParentModule()
-
-        code_identifier = context.getCodeObjectHandle(
-            code_object  = code_object,
-            filename     = parent_module.getRunTimeFilename(),
-            line_number  = function_body.getSourceReference().getLineNumber(),
-            is_optimized = not function_body.needsLocalsDict(),
-            new_locals   = True,
-            has_closure  = function_body.getClosureVariables() != (),
-            future_flags = parent_module.getFutureSpec().asFlags()
-        )
-
         maker_code = getFunctionMakerCode(
             function_name       = function_body.getFunctionName(),
             function_qualname   = function_body.getFunctionQualname(),
             function_identifier = function_identifier,
-            code_identifier     = code_identifier,
+            code_identifier     = context.getCodeObjectHandle(
+                code_object = code_object,
+            ),
             closure_variables   = function_body.getClosureVariables(),
             defaults_name       = defaults_name,
             kw_defaults_name    = kw_defaults_name,
@@ -485,7 +471,10 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
         user_variables + tuple(
             variable
             for variable in
-            temp_variables
+            sorted(
+                temp_variables,
+                key = lambda variable: variable.getName()
+            )
         )
     ]
 
@@ -520,6 +509,8 @@ def finalizeFunctionLocalVariables(context):
     for preserver_id in context.getExceptionPreserverCounts():
         function_locals.extend(getExceptionPreserverVariableNames(preserver_id))
 
+    tmp_infos = context.getTempNameInfos()
+
     function_locals += [
         "%s%s%s;" % (
             tmp_type,
@@ -527,7 +518,7 @@ def finalizeFunctionLocalVariables(context):
             tmp_name
         )
         for tmp_name, tmp_type in
-        context.getTempNameInfos()
+        tmp_infos
     ]
 
     function_locals += context.getFrameDeclarations()
@@ -541,7 +532,7 @@ def finalizeFunctionLocalVariables(context):
         function_locals.append("tmp_return_value = NULL;")
     if context.hasTempName("generator_return"):
         function_locals.append("tmp_generator_return = false;")
-    for tmp_name, tmp_type in context.getTempNameInfos():
+    for tmp_name, _tmp_type in tmp_infos:
         if tmp_name.startswith("tmp_outline_return_value_"):
             function_locals.append("%s = NULL;" % tmp_name)
 

@@ -215,7 +215,7 @@ def _detectImports(command, user_provided, technical):
 
     # Print statements for stuff to show, the modules loaded.
     if python_version >= 300:
-        command += '\nimport sys\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + ' \
+        command += '\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + ' \
                    'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and ' \
                    'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it
 
@@ -235,14 +235,14 @@ def _detectImports(command, user_provided, technical):
 
     # Make sure the right import path (the one Nuitka binary is running with)
     # is used.
-    command = ("import sys; sys.path = %s;" % repr(reduced_path)) + command
+    command = ("import sys; sys.path = %s; sys.real_prefix = sys.prefix;" % repr(reduced_path)) + command
 
     import tempfile
     tmp_file, tmp_filename = tempfile.mkstemp()
 
     try:
         if python_version >= 300:
-            command = command.encode("ascii")
+            command = command.encode("utf8")
         os.write(tmp_file, command)
         os.close(tmp_file)
 
@@ -470,12 +470,6 @@ def detectEarlyImports():
     if python_version >= 300:
         import_code += "import inspect;"
 
-    # We might need the pickle module when creating global constants.
-    if python_version >= 300:
-        import_code += "import pickle;"
-    else:
-        import_code += "import cPickle;"
-
     result = _detectImports(
         command       = import_code,
         user_provided = False,
@@ -518,7 +512,7 @@ def detectEarlyImports():
 
 _detected_python_rpath = None
 
-def _detectBinaryPathDLLsLinuxBSD(binary_filename):
+def _detectBinaryPathDLLsLinuxBSD(dll_filename):
     # Ask "ldd" about the libraries being used by the created binary, these
     # are the ones that interest us.
     result = set()
@@ -540,7 +534,7 @@ def _detectBinaryPathDLLsLinuxBSD(binary_filename):
         process = subprocess.Popen(
             args   = [
                 "ldd",
-                binary_filename
+                dll_filename
             ],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE
@@ -797,7 +791,7 @@ SxS
     return result
 
 
-def detectBinaryDLLs(original_dir, binary_filename, package_name):
+def detectBinaryDLLs(original_filename, binary_filename, package_name):
     """ Detect the DLLs used by a binary.
 
         Using "ldd" (Linux), "depends.exe" (Windows), or "otool" (MacOS) the list
@@ -807,17 +801,17 @@ def detectBinaryDLLs(original_dir, binary_filename, package_name):
 
     if Utils.getOS() in ("Linux", "NetBSD", "FreeBSD"):
         return _detectBinaryPathDLLsLinuxBSD(
-            binary_filename = binary_filename
+            dll_filename = original_filename
         )
     elif Utils.getOS() == "Windows":
         return _detectBinaryPathDLLsWindows(
-            original_dir    = original_dir,
+            original_dir    = os.path.dirname(original_filename),
             binary_filename = binary_filename,
             package_name    = package_name
         )
     elif Utils.getOS() == "Darwin":
         return _detectBinaryPathDLLsMacOS(
-            binary_filename = binary_filename
+            binary_filename = original_filename
         )
     else:
         # Support your platform above.
@@ -827,11 +821,11 @@ def detectBinaryDLLs(original_dir, binary_filename, package_name):
 def detectUsedDLLs(standalone_entry_points):
     result = OrderedDict()
 
-    for original_dir, binary_filename, package_name in standalone_entry_points:
+    for original_filename, binary_filename, package_name in standalone_entry_points:
         used_dlls = detectBinaryDLLs(
-            original_dir    = original_dir,
-            binary_filename = binary_filename,
-            package_name    = package_name
+            original_filename = original_filename,
+            binary_filename   = binary_filename,
+            package_name      = package_name
         )
 
         for dll_filename in used_dlls:

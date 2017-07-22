@@ -221,6 +221,15 @@ typedef long Py_hash_t;
 #define Nuitka_GC_UnTrack _PyObject_GC_UNTRACK
 #endif
 
+#if _NUITKA_EXPERIMENTAL_FAST_THREAD_GET && PYTHON_VERSION >= 300
+// We are careful, access without locking under the assumption that we hold
+// the GIL over uses of this or the same thread continues to execute code of
+// ours.
+#undef PyThreadState_GET
+extern PyThreadState *_PyThreadState_Current;
+# define PyThreadState_GET() (_PyThreadState_Current)
+#endif
+
 #include "nuitka/helpers.h"
 
 #include "nuitka/compiled_frame.h"

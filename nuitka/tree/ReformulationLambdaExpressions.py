@@ -23,15 +23,16 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
-from nuitka.nodes.FrameNodes import StatementsFrame
+from nuitka.nodes.FrameNodes import (
+    StatementsFrameFunction,
+    StatementsFrameGenerator
+)
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCreation,
     ExpressionFunctionRef
@@ -42,6 +43,7 @@ from nuitka.nodes.GeneratorNodes import (
 )
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.PythonVersions import python_version
 
@@ -62,7 +64,7 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildLambdaNode(provider, node, source_ref):
-    # Many details to deal with
+    # Many details to deal with, pylint: disable=too-many-locals
 
     assert getKind(node) == "Lambda"
 
@@ -89,6 +91,7 @@ def buildLambdaNode(provider, node, source_ref):
             flags      = set(),
             source_ref = source_ref
         )
+        code_body.qualname_provider = provider
 
     if function_kind == "Generator":
         function_body.setBody(
@@ -130,12 +133,9 @@ def buildLambdaNode(provider, node, source_ref):
 
             statements = (
                 StatementAssignmentVariable(
-                    variable_ref = ExpressionTargetTempVariableRef(
-                        variable   = tmp_return_value,
-                        source_ref = source_ref,
-                    ),
-                    source       = body,
-                    source_ref   = source_ref
+                    variable   = tmp_return_value,
+                    source     = body,
+                    source_ref = source_ref
                 ),
                 StatementConditional(
                     condition  = ExpressionComparisonIsNOT(
@@ -184,12 +184,16 @@ def buildLambdaNode(provider, node, source_ref):
             source_ref = source_ref
         )
 
-    body = StatementsFrame(
+    if function_kind == "Generator":
+        frame_class = StatementsFrameGenerator
+    else:
+        frame_class = StatementsFrameFunction
+
+    body = frame_class(
         statements  = mergeStatements(
             (body,)
         ),
         code_object = code_object,
-        guard_mode  = "generator" if function_kind == "Generator" else "full",
         source_ref  = body.getSourceReference()
     )
 

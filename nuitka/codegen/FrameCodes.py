@@ -67,39 +67,38 @@ def getFrameLocalsStorageSize(type_descriptions):
 def generateStatementsFrameCode(statement_sequence, emit, context):
     # This is a wrapper that provides also handling of frames, which got a
     # lot of variants and details, therefore lots of branches.
-    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals
 
     context.pushCleanupScope()
 
-    provider = statement_sequence.getParentVariableProvider()
     guard_mode = statement_sequence.getGuardMode()
+
+    code_object = statement_sequence.getCodeObject()
+    code_identifier = context.getCodeObjectHandle(
+        code_object = code_object
+    )
 
     parent_exception_exit = context.getExceptionEscape()
 
     # Allow stacking of frame handles.
     old_frame_handle = context.getFrameHandle()
 
-    if guard_mode != "pass_through":
-        if provider.isExpressionGeneratorObjectBody():
-            context.setFrameHandle("generator->m_frame")
-        elif provider.isExpressionCoroutineObjectBody():
-            context.setFrameHandle("coroutine->m_frame")
-        elif provider.isExpressionAsyncgenObjectBody():
-            context.setFrameHandle("asyncgen->m_frame")
-        elif provider.isCompiledPythonModule():
-            context.setFrameHandle("frame_module")
-        else:
-            context.setFrameHandle("frame_function")
-
-        context.setExceptionEscape(
-            context.allocateLabel("frame_exception_exit")
-        )
+    if statement_sequence.hasStructureMember():
+        frame_identifier = "%s->m_frame" % context.getContextObjectName()
     else:
-        context.setFrameHandle("((struct Nuitka_FrameObject *)PyThreadState_GET()->frame)")
+        frame_identifier = code_identifier.replace("codeobj_", "frame_")
+
+    context.setFrameHandle(
+        frame_identifier
+    )
+
+    context.setExceptionEscape(
+        context.allocateLabel("frame_exception_exit")
+    )
 
     needs_preserve = statement_sequence.needsFrameExceptionPreserving()
 
-    if statement_sequence.mayReturn() and guard_mode != "pass_through":
+    if statement_sequence.mayReturn():
         parent_return_exit = context.getReturnTarget()
 
         context.setReturnTarget(
@@ -108,15 +107,12 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     else:
         parent_return_exit = None
 
-    if guard_mode != "pass_through":
-        pushed_frame_variables = statement_sequence.mayRaiseException(BaseException)
+    pushed_frame_variables = statement_sequence.mayRaiseException(BaseException)
 
-        if pushed_frame_variables:
-            context.pushFrameVariables(
-                statement_sequence.getCodeObject().getVarNames()
-            )
-    else:
-        pushed_frame_variables = None
+    if pushed_frame_variables:
+        context.pushFrameVariables(
+            code_object.getVarNames()
+        )
 
     # Now generate the statements code into a local buffer, to we can wrap
     # the frame stuff around it.
@@ -141,18 +137,11 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     type_descriptions = context.getFrameVariableTypeDescriptions()
 
     if guard_mode == "generator":
-        # Only these two use this.
-        assert provider.isExpressionGeneratorObjectBody() or \
-               provider.isExpressionCoroutineObjectBody() or \
-               provider.isExpressionAsyncgenObjectBody()
-
         # TODO: This case should care about "needs_preserve", as for
         # Python3 it is actually not a stub of empty code.
 
         getFrameGuardLightCode(
-            code_identifier       = statement_sequence.getCodeObjectHandle(
-                context = context
-            ),
+            code_identifier       = code_identifier,
             type_descriptions     = type_descriptions,
             codes                 = local_emit.codes,
             parent_exception_exit = parent_exception_exit,
@@ -162,19 +151,10 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
             emit                  = emit,
             context               = context
         )
-    elif guard_mode == "pass_through":
-        # This case does not care about "needs_preserve", as for that kind
-        # of frame, it is an empty code stub anyway.
-        local_emit.emitTo(emit)
     elif guard_mode == "full":
-        assert provider.isExpressionFunctionBody() or \
-               provider.isExpressionClassBody()
-
         getFrameGuardHeavyCode(
             frame_identifier      = context.getFrameHandle(),
-            code_identifier       = statement_sequence.getCodeObjectHandle(
-                context
-            ),
+            code_identifier       = code_identifier,
             type_descriptions     = type_descriptions,
             parent_exception_exit = parent_exception_exit,
             parent_return_exit    = parent_return_exit,
@@ -188,9 +168,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     elif guard_mode == "once":
         getFrameGuardOnceCode(
             frame_identifier      = context.getFrameHandle(),
-            code_identifier       = statement_sequence.getCodeObjectHandle(
-                context = context
-            ),
+            code_identifier       = code_identifier,
             parent_exception_exit = parent_exception_exit,
             parent_return_exit    = parent_return_exit,
             frame_exception_exit  = frame_exception_exit,
@@ -223,6 +201,8 @@ def getTypeSizeOf(type_indicator):
         return "sizeof(struct Nuitka_CellObject *)"
     elif type_indicator == 'N':
         return "sizeof(void *)"
+    elif type_indicator == 'b':
+        return "sizeof(nuitka_bool)"
     else:
         assert False, type_indicator
 
@@ -246,8 +226,6 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
             "frame_identifier" : frame_identifier,
         }
     )
-
-
 
     emit(
         template_frame_guard_full_block % {

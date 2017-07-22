@@ -206,6 +206,53 @@ setup(
     name         = project_name,
     license      = "Apache License, Version 2.0",
     version      = version,
+    classifiers  = [
+        # Nuitka is mature even
+        "5 - Production/Stable",
+
+        # Indicate who Nuitka is for
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+
+        # Nuitka is a compiler and a build tool as such.
+        "Topic :: Software Development :: Compilers",
+        "Topic :: Software Development :: Build Tools",
+
+        # Is has a weak subset of PyLint, but aims for more long term
+        "Topic :: Software Development :: Quality Assurance",
+
+        # Nuitka standalone mode aims at distribution
+        "Topic :: System :: Software Distribution",
+
+        # Python2 supported versions.
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+
+        # Python3 supported versions.
+        "Programming Language :: Python :: 3.2",
+        "Programming Language :: Python :: 3.3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+
+        # We depend on CPython.
+        "Programming Language :: Python :: Implementation :: CPython",
+
+        # We generate C intermediate code and implement part of the
+        # run time environment in C. Actually C11.
+        "Programming Language :: C",
+
+        # Supported OSes are many
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: POSIX :: BSD :: FreeBSD",
+        "Operating System :: POSIX :: BSD :: NetBSD",
+        "Operating System :: POSIX :: BSD :: OpenBSD",
+        "Operating System :: Microsoft :: Windows",
+
+        # License
+        "License :: OSI Approved :: Apache Software License",
+
+    ],
     packages     = findNuitkaPackages(),
     scripts      = scripts,
     cmdclass     = cmdclass,

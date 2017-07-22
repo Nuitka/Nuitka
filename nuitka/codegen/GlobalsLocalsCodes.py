@@ -20,7 +20,6 @@
 This also includes writing back to locals for exec statements.
 """
 
-from nuitka.codegen.VariableCodes import getLocalVariableCodeType
 from nuitka.PythonVersions import python_version
 
 from .ErrorCodes import getErrorExitBoolCode
@@ -33,7 +32,7 @@ from .templates.CodeTemplatesVariables import (
     template_update_locals_dict_value,
     template_update_locals_mapping_value
 )
-from .VariableCodes import getVariableAssignmentCode
+from .VariableCodes import getLocalVariableCodeType
 
 
 def generateBuiltinLocalsCode(to_name, expression, emit, context):
@@ -43,7 +42,7 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
         to_name   = to_name,
         variables = expression.getVariableVersions(),
         provider  = provider,
-        mode      = provider.getLocalsMode(),
+        updated   = expression.isExpressionBuiltinLocalsUpdated(),
         emit      = emit,
         context   = context
     )
@@ -94,6 +93,7 @@ def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
 
     variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
 
+    test_code = variable_c_type.getLocalVariableInitTestCode(variable_code_name)
     access_code = variable_c_type.getLocalVariableObjectAccessCode(variable_code_name)
 
     if is_dict:
@@ -108,7 +108,8 @@ def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
                 "var_name"    : context.getConstantCode(
                     constant = variable.getName()
                 ),
-                "access_code" : access_code,
+                "test_code"   : test_code,
+                "access_code" : access_code
             }
         )
     else:
@@ -125,6 +126,7 @@ def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
                 "var_name"     : context.getConstantCode(
                     constant = variable.getName()
                 ),
+                "test_code"    : test_code,
                 "access_code"  : access_code,
                 "tmp_name"     : res_name
             }
@@ -137,82 +139,66 @@ def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
         )
 
 
-def getLoadLocalsCode(to_name, variables, provider, mode, emit, context):
+def getLoadLocalsCode(to_name, variables, provider, updated, emit, context):
 
+    # Locals is sorted of course.
     def _sorted(variables):
-        all_variables = list(context.getOwner().getVariables())
+        all_variables = tuple(context.getOwner().getVariables())
 
         return sorted(
             variables,
-            key = lambda variable_desc: (
-                all_variables.index(variable_desc[0]),
-                variable_desc[1]
-            )
+            key = lambda variable_desc: all_variables.index(variable_desc[0]),
         )
 
-    if provider.isCompiledPythonModule():
-        # Optimization will have made this "globals".
-        assert False, provider
-    elif not context.hasLocalsDict():
+    # Optimization will have made this "globals", and it wouldn't be
+    # about local variables at all.
+    assert not provider.isCompiledPythonModule(), provider
 
-        # TODO: Use DictCodes ?
+    if not context.hasLocalsDict():
+        # Need to create the dictionary first.
         emit(
             "%s = PyDict_New();" % (
                 to_name,
             )
         )
-
         context.addCleanupTempName(to_name)
 
-        for variable, version in _sorted(variables):
-            _getVariableDictUpdateCode(
-                target_name = to_name,
-                variable    = variable,
-                version     = version,
-                is_dict     = True,
-                initial     = True,
-                emit        = emit,
-                context     = context
-            )
-    else:
-        if mode == "copy":
-            emit(
-                "%s = PyDict_Copy( locals_dict );" % (
-                    to_name,
-                )
-            )
-
-            context.addCleanupTempName(to_name)
-        elif mode == "updated":
-            emit(
-                """\
+        is_dict = True
+        initial = True
+    elif updated:
+        emit(
+            """\
 %s = locals_dict;
 Py_INCREF( locals_dict );""" % (
-                    to_name
-                )
+                to_name
             )
+        )
+        context.addCleanupTempName(to_name)
 
-            variables = [
-                (variable, variable_version)
-                for variable, variable_version in
-                variables
-            ]
+        is_dict = python_version < 300 or \
+                  not context.getFunction().isExpressionClassBody()
+        initial = False
+    else:
+        emit(
+            "%s = PyDict_Copy( locals_dict );" % (
+                to_name,
+            )
+        )
+        context.addCleanupTempName(to_name)
 
-            for local_var, version in _sorted(variables):
-                _getVariableDictUpdateCode(
-                    target_name = to_name,
-                    variable    = local_var,
-                    version     = version,
-                    is_dict     = python_version < 300 or \
-                                  not context.getFunction().isExpressionClassBody(),
-                    initial     = False,
-                    emit        = emit,
-                    context     = context
-                )
+        is_dict = True
+        initial = False
 
-            context.addCleanupTempName(to_name)
-        else:
-            assert False
+    for local_var, version in _sorted(variables):
+        _getVariableDictUpdateCode(
+            target_name = to_name,
+            variable    = local_var,
+            version     = version,
+            is_dict     = is_dict,
+            initial     = initial,
+            emit        = emit,
+            context     = context
+        )
 
 
 def generateSetLocalsCode(statement, emit, context):
@@ -242,51 +228,6 @@ locals_dict = %s;""" % (
 
     if ref_count:
         context.removeCleanupTempName(new_locals_name)
-
-
-def getStoreLocalsCode(locals_name, variables, provider, emit, context):
-    assert not provider.isCompiledPythonModule()
-
-    for variable, version in variables:
-        if not variable.isModuleVariable():
-            key_name = context.getConstantCode(
-                constant = variable.getName()
-            )
-
-            value_name = context.allocateTempName("locals_value", unique = True)
-
-            # This should really be a template.
-            emit(
-               "%s = PyObject_GetItem( %s, %s );" % (
-                   value_name,
-                   locals_name,
-                   key_name,
-                )
-            )
-
-            getErrorExitBoolCode(
-                condition = """\
-%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_KeyError )""" % value_name,
-                emit      = emit,
-                context   = context
-            )
-
-            emit("CLEAR_ERROR_OCCURRED();")
-            emit("if ( %s != NULL )" % value_name)
-            emit('{')
-
-            context.addCleanupTempName(value_name)
-            getVariableAssignmentCode(
-                variable      = variable,
-                version       = version,
-                tmp_name      = value_name,
-                needs_release = None, # TODO: Could be known maybe.
-                in_place      = False,
-                emit          = emit,
-                context       = context
-            )
-
-            emit('}')
 
 
 def generateBuiltinDir1Code(to_name, expression, emit, context):

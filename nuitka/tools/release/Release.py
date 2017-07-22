@@ -20,8 +20,8 @@
 """
 
 import os
-import subprocess
 
+from nuitka.utils.Execution import check_output
 from nuitka.Version import getNuitkaVersion
 
 
@@ -45,13 +45,18 @@ def checkAtHome():
     assert open(git_description_filename).read().strip() == "Nuitka Staging"
 
 
-def checkBranchName():
-    branch_name = subprocess.check_output(
+def getBranchName():
+    branch_name = check_output(
         "git symbolic-ref --short HEAD".split()
     ).strip()
 
     if str is not bytes:
         branch_name = branch_name.decode()
+
+    return branch_name
+
+def checkBranchName():
+    branch_name = getBranchName()
 
     nuitka_version = getNuitkaVersion()
 
@@ -64,6 +69,7 @@ def checkBranchName():
     ), branch_name
 
     return branch_name
+
 
 def getBranchCategory(branch_name):
     """ There are 3 categories of releases. Map branch name on them.

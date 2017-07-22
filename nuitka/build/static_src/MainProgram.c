@@ -392,6 +392,9 @@ int main( int argc, char **argv )
     NUITKA_PRINT_TRACE("main(): Calling patchTypeComparison().");
     patchTypeComparison();
 
+    NUITKA_PRINT_TRACE("main(): Calling patchTracebackDealloc().");
+    patchTracebackDealloc();
+
     /* Allow to override the ticker value, to remove checks for threads in
      * CPython core from impact on benchmarks. */
     char const *ticker_value = getenv( "NUITKA_TICKER" );
@@ -470,7 +473,7 @@ int main( int argc, char **argv )
         NUITKA_PRINT_TRACE("main(): Calling __main__.");
 
         /* Execute the "__main__" module. */
-        PyDict_DelItemString(PySys_GetObject((char *)"modules"), "__main__");
+        PyDict_DelItem(PySys_GetObject((char *)"modules"), const_str_plain___main__);
         IMPORT_EMBEDDED_MODULE(const_str_plain___main__, "__main__");
     }
 

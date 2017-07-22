@@ -15,7 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
-// This implements the loading of C++ compiled modules and shared library
+// This implements the loading of C compiled modules and shared library
 // extension modules bundled for standalone mode.
 
 // This is achieved mainly by registered a "sys.meta_path" loader, that then
@@ -106,7 +106,9 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
             {
                 PySys_WriteStderr( "import %s # claimed responsibility (compiled)\n", name );
             }
-            return INCREASE_REFCOUNT( metapath_based_loader );
+
+            Py_INCREF( metapath_based_loader );
+            return metapath_based_loader;
         }
 
         current++;
@@ -119,7 +121,8 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
             PySys_WriteStderr( "import %s # claimed responsibility (frozen)\n", name );
         }
 
-        return INCREASE_REFCOUNT( metapath_based_loader );
+        Py_INCREF( metapath_based_loader );
+        return metapath_based_loader;
     }
 
     if ( Py_VerboseFlag )
@@ -127,7 +130,8 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
         PySys_WriteStderr( "import %s # denied responsibility\n", name );
     }
 
-    return INCREASE_REFCOUNT( Py_None );
+    Py_INCREF( Py_None );
+    return Py_None;
 }
 
 #ifdef _NUITKA_STANDALONE
@@ -141,6 +145,10 @@ typedef PyObject * (*entrypoint_t)( void );
 #ifndef _WIN32
 // Shared libraries loading.
 #include <dlfcn.h>
+#endif
+
+#if PYTHON_VERSION >= 350
+static PyObject *createModuleSpec( PyObject *module_name );
 #endif
 
 PyObject *callIntoShlibModule( const char *full_name, const char *filename )
@@ -253,14 +261,64 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     {
         PyErr_Format(
             PyExc_SystemError,
-            "dynamic module not initialized properly"
+            "dynamic module '%s' not initialized properly",
+            full_name
         );
 
         return NULL;
     }
 
 #if PYTHON_VERSION >= 300
-    struct PyModuleDef *def = PyModule_GetDef( module );
+#if PYTHON_VERSION >= 350
+    PyModuleDef *def;
+
+    if ( Py_TYPE( module ) == &PyModuleDef_Type )
+    {
+        def = (PyModuleDef *)module;
+
+        PyObject *spec = createModuleSpec( PyUnicode_FromString( full_name ) );
+        module = PyModule_FromDefAndSpec( def, spec );
+        Py_DECREF( spec );
+
+        if (unlikely( module == NULL ))
+        {
+            PyErr_Format(
+                PyExc_SystemError,
+                "dynamic module '%s' not initialized properly from def",
+                full_name
+            );
+
+            return NULL;
+        }
+
+        assert( PyModule_Check( module ));
+
+        int res = PyModule_ExecDef( module, def );
+
+        if (unlikely( res == -1 ))
+        {
+            return NULL;
+        }
+
+        PyDict_SetItemString(
+            PyImport_GetModuleDict(),
+            full_name,
+            module
+        );
+
+        return module;
+    }
+    else
+    {
+        def = PyModule_GetDef( module );
+    }
+
+    if (likely( def != NULL ))
+    {
+        def->m_base.m_init = entrypoint;
+    }
+#else
+    PyModuleDef *def = PyModule_GetDef( module );
 
     if (unlikely( def == NULL ))
     {
@@ -274,6 +332,8 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     }
 
     def->m_base.m_init = entrypoint;
+#endif
+
 #endif
 
     // Set filename attribute
@@ -351,8 +411,8 @@ static void loadTriggeredModule( char const *name, char const *trigger_name )
 {
     char trigger_module_name[2048];
 
-    strcpy( trigger_module_name, name );
-    strcat( trigger_module_name, trigger_name);
+    strncpy( trigger_module_name, name, sizeof(trigger_module_name)-1 );
+    strncat( trigger_module_name, trigger_name, sizeof(trigger_module_name)-1 );
 
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( trigger_module_name );
 
@@ -470,12 +530,12 @@ static PyObject *loadModule( PyObject *module_name, struct Nuitka_MetaPathBasedL
             Py_DECREF( module_path_entry_base );
 
             char sep_str[2] = { SEP, 0 };
-            strcat( buffer, sep_str );
-            strcat( buffer, "__init__.py" );
+            strncat( buffer, sep_str, sizeof(buffer)-1 );
+            strncat( buffer, "__init__.py", sizeof(buffer)-1 );
         }
         else
         {
-            strcat( buffer, ".py" );
+            strncat( buffer, ".py", sizeof(buffer)-1 );
         }
 
 #if PYTHON_VERSION < 300
@@ -506,8 +566,11 @@ static PyObject *loadModule( PyObject *module_name, struct Nuitka_MetaPathBasedL
         Py_DECREF( module_path );
 
 #if PYTHON_VERSION >= 330
-        res = PyObject_SetAttr( module, const_str_plain___loader__, metapath_based_loader );
-        if (unlikely( res != 0 )) return NULL;
+        if ( module != NULL )
+        {
+            res = PyObject_SetAttr( module, const_str_plain___loader__, metapath_based_loader );
+            if (unlikely( res != 0 )) return NULL;
+        }
 #endif
     }
     else
@@ -584,7 +647,8 @@ PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, char const *name )
         return result;
     }
 
-    return INCREASE_REFCOUNT( Py_None );
+    Py_INCREF( Py_None );
+    return Py_None;
 }
 
 static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, PyObject *kwds )
@@ -643,16 +707,20 @@ static PyObject *_path_unfreezer_is_package( PyObject *self, PyObject *args, PyO
 
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
 
+    PyObject *result;
+
     if ( entry )
     {
-        PyObject *result = BOOL_FROM( ( entry->flags & NUITKA_PACKAGE_FLAG ) != 0 );
-        return INCREASE_REFCOUNT( result );
+        result = BOOL_FROM( ( entry->flags & NUITKA_PACKAGE_FLAG ) != 0 );
     }
     else
     {
         // TODO: Maybe needs to be an exception.
-        return INCREASE_REFCOUNT( Py_None );
+        result = Py_None;
     }
+
+    Py_INCREF( result );
+    return result;
 }
 
 #if PYTHON_VERSION >= 340
@@ -686,6 +754,53 @@ static char *_kwlist2[] = {
     NULL
 };
 
+static PyObject *createModuleSpec( PyObject *module_name )
+{
+    assert( module_name );
+    assert( Nuitka_String_Check( module_name ) );
+
+    char *name = Nuitka_String_AsString( module_name );
+
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
+
+    if ( entry == NULL )
+    {
+        Py_INCREF( Py_None );
+        return Py_None;
+    }
+
+    static PyObject *importlib = NULL;
+    if ( importlib == NULL )
+    {
+        importlib = PyImport_ImportModule( "importlib._bootstrap" );
+    }
+
+    if (unlikely( importlib == NULL ))
+    {
+        return NULL;
+    }
+
+    static PyObject *module_spec_class = NULL;
+    if ( module_spec_class == NULL )
+    {
+        module_spec_class = PyObject_GetAttrString( importlib, "ModuleSpec" );
+    }
+
+    if (unlikely( module_spec_class == NULL ))
+    {
+        return NULL;
+    }
+
+    PyObject *result = PyObject_CallFunctionObjArgs(
+        module_spec_class,
+        module_name,
+        metapath_based_loader,
+        NULL
+    );
+
+    return result;
+}
+
 static PyObject *_path_unfreezer_find_spec( PyObject *self, PyObject *args, PyObject *kwds )
 {
     PyObject *module_name;
@@ -707,44 +822,7 @@ static PyObject *_path_unfreezer_find_spec( PyObject *self, PyObject *args, PyOb
         return NULL;
     }
 
-    assert( module_name );
-    assert( Nuitka_String_Check( module_name ) );
-
-    char *name = Nuitka_String_AsString( module_name );
-
-    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
-
-    if ( entry == NULL )
-    {
-        return INCREASE_REFCOUNT( Py_None );
-    }
-
-    PyObject *importlib = PyImport_ImportModule( "importlib._bootstrap" );
-
-    if (unlikely( importlib == NULL ))
-    {
-        return NULL;
-    }
-
-    PyObject *module_spec_class = PyObject_GetAttrString( importlib, "ModuleSpec" );
-
-    if (unlikely( module_spec_class == NULL ))
-    {
-        Py_DECREF( importlib );
-        return NULL;
-    }
-
-    PyObject *result = PyObject_CallFunctionObjArgs( module_spec_class, module_name, metapath_based_loader, NULL );
-
-    if (unlikely( result == NULL ))
-    {
-        Py_DECREF( importlib );
-        Py_DECREF( module_spec_class );
-
-        return NULL;
-    }
-
-    return result;
+    return createModuleSpec( module_name );
 }
 
 #endif

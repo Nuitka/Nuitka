@@ -21,16 +21,16 @@
 
 from __future__ import print_function
 
-import os
 import sys
 from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
 from nuitka.tools.release.Debian import updateDebianChangelog
+from nuitka.tools.release.Release import checkBranchName, getBranchName
 
 
 def getBumpedVersion(mode, old_version):
-    if mode.startswith("pre"):
+    if mode == "prerelease":
         if "rc" in old_version:
             parts = old_version.split("rc")
 
@@ -79,9 +79,9 @@ def main():
         "--mode",
         action  = "store",
         dest    = "mode",
-        default = "release",
+        default = None,
         help    = """\
-The mode of update, prerelease, hotfix, or final."""
+The mode of update, prerelease, hotfix, release, auto (default auto determines from branch)."""
     )
 
     options, positional_args = parser.parse_args()
@@ -100,9 +100,21 @@ The mode of update, prerelease, hotfix, or final."""
 
     old_version = version_line[8:].rstrip()
 
-    new_version = getBumpedVersion(options.mode, old_version)
+    mode = options.mode
+    branch_name = getBranchName()
 
-    print("Bumping", old_version, "->", new_version)
+    if mode is None:
+        if branch_name.startswith("hotfix/"):
+            mode = "hotfix"
+        elif branch_name == "master" or branch_name.startswith("release/"):
+            mode = "release"
+        elif branch_name == "develop":
+            mode = "prerelease"
+        else:
+            sys.exit("Error, cannot detect mode from branch name '%s'." % branch_name)
+
+    new_version = getBumpedVersion(mode, old_version)
+    print("Bumped", mode, old_version, "->", new_version)
 
     with open("nuitka/Version.py", 'w') as options_file:
         for line in option_lines:

@@ -20,9 +20,69 @@
 from nuitka import Options
 from nuitka.PythonVersions import python_version
 
-from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
-from .GlobalsLocalsCodes import getStoreLocalsCode
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getErrorExitCode,
+    getReleaseCode,
+    getReleaseCodes
+)
 from .Helpers import generateExpressionCode
+from .VariableCodes import getVariableAssignmentCode
+
+
+def getStoreLocalsCode(locals_name, variables, is_foreign, emit, context):
+    for variable, version in variables:
+        if not variable.isModuleVariable():
+            key_name = context.getConstantCode(
+                constant = variable.getName()
+            )
+
+            value_name = context.allocateTempName("locals_value", unique = True)
+
+            if is_foreign:
+                emit(
+                   "%s = PyObject_GetItem( %s, %s );" % (
+                       value_name,
+                       locals_name,
+                       key_name,
+                    )
+                )
+
+                getErrorExitBoolCode(
+                    condition = """\
+    %s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_KeyError )""" % value_name,
+                    emit      = emit,
+                    context   = context
+                )
+
+                emit("CLEAR_ERROR_OCCURRED();")
+
+                context.addCleanupTempName(value_name)
+            else:
+                emit(
+                    "%s = PyDict_GetItem( %s, %s );" % (
+                       value_name,
+                       locals_name,
+                       key_name,
+                    )
+                )
+
+            emit("if ( %s != NULL )" % value_name)
+            emit('{')
+
+            getVariableAssignmentCode(
+                variable      = variable,
+                version       = version,
+                tmp_name      = value_name,
+                needs_release = None, # TODO: Could be known maybe.
+                in_place      = False,
+                emit          = emit,
+                context       = context
+            )
+
+            emit('}')
+
+
 
 
 def generateBuiltinCompileCode(to_name, expression, emit, context):
@@ -192,9 +252,9 @@ def generateExecCode(statement, emit, context):
     globals_arg = statement.getGlobals()
     locals_arg = statement.getLocals()
 
-    source_name = context.allocateTempName("eval_source")
-    globals_name = context.allocateTempName("eval_globals")
-    locals_name = context.allocateTempName("eval_locals")
+    source_name = context.allocateTempName("exec_source")
+    globals_name = context.allocateTempName("exec_globals")
+    locals_name = context.allocateTempName("exec_locals")
 
     generateExpressionCode(
         to_name    = source_name,
@@ -356,7 +416,7 @@ def generateExecfileCode(to_name, expression, emit, context):
 
 def generateLocalsDictSyncCode(statement, emit, context):
     locals_arg = statement.getLocals()
-    locals_name = context.allocateTempName("eval_locals")
+    locals_name = context.allocateTempName("sync_locals")
 
     generateExpressionCode(
         to_name    = locals_name,
@@ -373,8 +433,8 @@ def generateLocalsDictSyncCode(statement, emit, context):
 
     getStoreLocalsCode(
         locals_name = locals_name,
-        provider    = provider,
         variables   = statement.previous_traces,
+        is_foreign  = provider.hasForeignLocalsDict(),
         emit        = emit,
         context     = context
     )

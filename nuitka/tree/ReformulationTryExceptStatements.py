@@ -23,8 +23,6 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.AssignNodes import (
-    ExpressionTargetTempVariableRef,
-    ExpressionTempVariableRef,
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
@@ -46,6 +44,7 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.TryNodes import StatementTry
+from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
 from .Helpers import (
@@ -82,15 +81,12 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
     statements = mergeStatements(
         (
             StatementAssignmentVariable(
-                variable_ref = ExpressionTargetTempVariableRef(
-                    variable   = tmp_handler_indicator_variable,
-                    source_ref = source_ref.atInternal()
-                ),
-                source       = makeConstantRefNode(
+                variable   = tmp_handler_indicator_variable,
+                source     = makeConstantRefNode(
                     constant   = False,
                     source_ref = source_ref
                 ),
-                source_ref   = no_raise.getSourceReference().atInternal()
+                source_ref = no_raise.getSourceReference().atInternal()
             ),
             handling
         ),
@@ -136,15 +132,12 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
 
     return makeStatementsSequenceFromStatements(
         StatementAssignmentVariable(
-            variable_ref = ExpressionTargetTempVariableRef(
-                variable   = tmp_handler_indicator_variable,
-                source_ref = source_ref.atInternal()
-            ),
-            source       = makeConstantRefNode(
+            variable   = tmp_handler_indicator_variable,
+            source     = makeConstantRefNode(
                 constant   = True,
                 source_ref = source_ref
             ),
-            source_ref   = source_ref.atInternal()
+            source_ref = source_ref.atInternal()
         ),
         makeTryFinallyStatement(
             provider   = provider,
@@ -335,7 +328,6 @@ def buildTryExceptionNode(provider, node, source_ref):
                         source_ref = source_ref
                     ),
                     final      = buildDeleteStatementFromDecoded(
-                        node       = node, # Won't be used.
                         kind       = kind,
                         detail     = detail,
                         source_ref = source_ref
