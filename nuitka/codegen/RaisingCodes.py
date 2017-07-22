@@ -204,7 +204,6 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
     )
 
 
-
 def getReRaiseExceptionCode(emit, context):
     keeper_variables = context.getExceptionKeeperVariables()
 

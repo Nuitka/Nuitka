@@ -192,7 +192,7 @@ from .OperationCodes import (
     generateOperationUnaryCode
 )
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
-from .RaisingCodes import generateRaiseCode
+from .RaisingCodes import generateRaiseCode, generateRaiseExpressionCode
 from .ReturnCodes import (
     generateGeneratorReturnNoneCode,
     generateGeneratorReturnValueCode,
@@ -645,7 +645,9 @@ setExpressionDispatchDict(
         "EXPRESSION_STRING_CONCATENATION"           : generateStringContenationCode,
         "EXPRESSION_BUILTIN_FORMAT"                 : generateBuiltinFormatCode,
         "EXPRESSION_BUILTIN_ASCII"                  : generateBuiltinAsciiCode,
-        "EXPRESSION_LOCALS_VARIABLE_REF"            : generateLocalsDictVariableRefCode
+        "EXPRESSION_LOCALS_VARIABLE_REF"            : generateLocalsDictVariableRefCode,
+        "EXPRESSION_RAISE_EXCEPTION"                : generateRaiseExpressionCode,
+
     }
 )
 
