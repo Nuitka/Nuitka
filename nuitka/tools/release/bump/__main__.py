@@ -26,7 +26,7 @@ from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
 from nuitka.tools.release.Debian import updateDebianChangelog
-from nuitka.tools.release.Release import checkBranchName
+from nuitka.tools.release.Release import checkBranchName, getBranchName
 
 
 def getBumpedVersion(mode, old_version):
@@ -101,12 +101,12 @@ The mode of update, prerelease, hotfix, release, auto (default auto determines f
     old_version = version_line[8:].rstrip()
 
     mode = options.mode
-    branch_name = checkBranchName()
+    branch_name = getBranchName()
 
     if mode is None:
         if branch_name.startswith("hotfix/"):
             mode = "hotfix"
-        elif branch_name == "master":
+        elif branch_name == "master" or branch_name.startswith("release/"):
             mode = "release"
         elif branch_name == "develop":
             mode = "prerelease"
