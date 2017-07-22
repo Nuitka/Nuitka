@@ -1,5 +1,5 @@
-Nuitka Release 0.5.27 (Draft)
-=============================
+Nuitka Release 0.5.27
+=====================
 
 This release comes a lot of bug fixes and improvements.
 
