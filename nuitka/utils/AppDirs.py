@@ -52,7 +52,6 @@ def getCacheDir():
     else:
         result = os.path.join(os.path.expanduser('~'), ".cache", "Nuitka")
 
-
     # For people that build with HOME set this, e.g. Debian.
     if result.startswith("/nonexistent/"):
         result = os.path.join(tempfile.gettempdir(), "Nuitka")

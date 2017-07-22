@@ -30,8 +30,16 @@ import tempfile
 from contextlib import contextmanager
 
 from nuitka.Tracing import my_print
+from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import check_output
-from nuitka.utils.FileOperations import removeDirectory
+from nuitka.utils.FileOperations import makePath, removeDirectory
+
+from .SearchModes import (
+    SearchModeBase,
+    SearchModeByPattern,
+    SearchModeCoverage,
+    SearchModeResume
+)
 
 
 def check_result(*popenargs, **kwargs):
@@ -695,90 +703,23 @@ def checkReferenceCount(checked_function, max_rounds = 10):
     return result
 
 
+
 def createSearchMode():
     search_mode = len(sys.argv) > 1 and sys.argv[1] == "search"
+    resume_mode = len(sys.argv) > 1 and sys.argv[1] == "resume"
     start_at = sys.argv[2] if len(sys.argv) > 2 else None
     coverage_mode = len(sys.argv) > 1 and sys.argv[1] == "coverage"
 
-    class SearchModeBase(object):
-        def __init__(self):
-            self.may_fail = []
-
-        def consider(self, dirname, filename):
-            # Virtual method, pylint: disable=no-self-use,unused-argument
-            return True
-
-        def finish(self):
-            pass
-
-        def abortOnFinding(self, dirname, filename):
-            for candidate in self.may_fail:
-                if self._match(dirname, filename, candidate):
-                    return False
-
-            return True
-
-        def getExtraFlags(self, dirname, filename):
-            # Virtual method, pylint: disable=no-self-use,unused-argument
-            return []
-
-        def mayFailFor(self, *names):
-            self.may_fail += names
-
-        @classmethod
-        def _match(cls, dirname, filename, candidate):
-            parts = [dirname, filename]
-
-            while None in parts:
-                parts.remove(None)
-            assert parts
-
-            path = os.path.join(*parts)
-
-            return candidate in (
-                dirname,
-                filename,
-                filename.replace(".py", ""),
-                filename.split('.')[0],
-                path,
-                path.replace(".py", ""),
-
-            )
-
-        def isCoverage(self):
-            # Virtual method, pylint: disable=no-self-use
-            return False
 
     if coverage_mode:
-        class SearchModeCoverage(SearchModeBase):
-            def getExtraFlags(self, dirname, filename):
-                return ["coverage"]
-
-            def isCoverage(self):
-                return True
 
         return SearchModeCoverage()
+    elif resume_mode:
+        return SearchModeResume(
+            sys.modules["__main__"].__file__
+        )
     elif search_mode and start_at:
         start_at = start_at.replace('/', os.path.sep)
-
-        class SearchModeByPattern(SearchModeBase):
-            def __init__(self):
-                SearchModeBase.__init__(self)
-
-                self.active = False
-
-            def consider(self, dirname, filename):
-                if self.active:
-                    return True
-
-                self.active = self._match(dirname, filename, start_at)
-                return self.active
-
-            def finish(self):
-                if not self.active:
-                    sys.exit("Error, became never active.")
-
-
         return SearchModeByPattern()
     else:
         class SearchModeImmediate(SearchModeBase):
@@ -1102,3 +1043,11 @@ def async_iterate(g):
             res.append(str(type(ex)))
 
     return res
+
+
+def getTestingCacheDir():
+    cache_dir = getCacheDir()
+
+    result = os.path.join(cache_dir, "tests_state")
+    makePath(result)
+    return result
