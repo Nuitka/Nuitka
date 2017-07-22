@@ -45,13 +45,18 @@ def checkAtHome():
     assert open(git_description_filename).read().strip() == "Nuitka Staging"
 
 
-def checkBranchName():
+def getBranchName():
     branch_name = check_output(
         "git symbolic-ref --short HEAD".split()
     ).strip()
 
     if str is not bytes:
         branch_name = branch_name.decode()
+
+    return branch_name
+
+def checkBranchName():
+    branch_name = getBranchName()
 
     nuitka_version = getNuitkaVersion()
 
