@@ -94,7 +94,7 @@ static PyObject *Nuitka_Asyncgen_get_code( struct Nuitka_AsyncgenObject *asyncge
     return (PyObject *)asyncgen->m_code_object;
 }
 
-static int Nuitka_Asyncgen_set_code( struct Nuitka_AsyncgenObject *coroutine, PyObject *value )
+static int Nuitka_Asyncgen_set_code( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
 {
     PyErr_Format( PyExc_RuntimeError, "ag_code is not writable in Nuitka" );
     return -1;
@@ -1860,6 +1860,148 @@ PyObject *ASYNCGEN_AWAIT_IN_HANDLER( struct Nuitka_AsyncgenObject *asyncgen, PyO
     return retval;
 }
 
+extern PyObject *Nuitka_AIterWrapper_New( PyObject *aiter );
+
+PyObject *ASYNCGEN_ASYNC_MAKE_ITERATOR( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
+{
+#if _DEBUG_COROUTINE
+    PRINT_STRING("AITER entry:");
+
+    PRINT_ITEM( value );
+    PRINT_NEW_LINE();
+#endif
+
+    unaryfunc getter = NULL;
+
+    if ( Py_TYPE( value )->tp_as_async )
+    {
+        getter = Py_TYPE( value )->tp_as_async->am_aiter;
+    }
+
+    if (unlikely( getter == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async for' requires an object with __aiter__ method, got %s",
+            Py_TYPE( value )->tp_name
+        );
+
+        return NULL;
+    }
+
+    PyObject *iter = (*getter)( value );
+
+    if (unlikely( iter == NULL ))
+    {
+        return NULL;
+    }
+
+    /* Starting with Python 3.5.2 it is acceptable to return an async iterator
+     * directly, instead of an awaitable.
+     */
+    if ( Py_TYPE( iter )->tp_as_async != NULL &&
+         Py_TYPE( iter )->tp_as_async->am_anext != NULL)
+    {
+
+        PyObject *wrapper = Nuitka_AIterWrapper_New( iter );
+        Py_DECREF( iter );
+
+        iter = wrapper;
+    }
+
+    PyObject *awaitable_iter = PyCoro_GetAwaitableIter( iter );
+
+    if (unlikely( awaitable_iter == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async for' received an invalid object from __aiter__: %s",
+            Py_TYPE( iter )->tp_name
+        );
+
+        Py_DECREF( iter );
+
+        return NULL;
+    }
+
+    Py_DECREF( iter );
+
+    PyObject *retval = yieldFromAsyncgen( asyncgen, awaitable_iter );
+
+    Py_DECREF( awaitable_iter );
+
+#if _DEBUG_COROUTINE
+    PRINT_STRING("AITER exit");
+    PRINT_ITEM( retval );
+    PRINT_NEW_LINE();
+#endif
+
+    return retval;
+}
+
+PyObject *ASYNCGEN_ASYNC_ITERATOR_NEXT( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
+{
+#if _DEBUG_COROUTINE
+    PRINT_STRING("ANEXT entry:");
+
+    PRINT_ITEM( value );
+    PRINT_NEW_LINE();
+#endif
+
+    unaryfunc getter = NULL;
+
+    if ( Py_TYPE( value )->tp_as_async )
+    {
+        getter = Py_TYPE( value )->tp_as_async->am_anext;
+    }
+
+    if (unlikely( getter == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async for' requires an iterator with __anext__ method, got %s",
+            Py_TYPE( value )->tp_name
+        );
+
+        return NULL;
+    }
+
+    PyObject *next_value = (*getter)( value );
+
+    if (unlikely( next_value == NULL ))
+    {
+        return NULL;
+    }
+
+    PyObject *awaitable_iter = PyCoro_GetAwaitableIter( next_value );
+
+    if (unlikely( awaitable_iter == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async for' received an invalid object from __anext__: %s",
+            Py_TYPE( next_value )->tp_name
+        );
+
+        Py_DECREF( next_value );
+
+        return NULL;
+    }
+
+    Py_DECREF( next_value );
+
+    PyObject *retval = yieldFromAsyncgen( asyncgen, awaitable_iter );
+
+    Py_DECREF( awaitable_iter );
+
+#if _DEBUG_COROUTINE
+PRINT_STRING("ANEXT exit");
+PRINT_ITEM( retval );
+PRINT_NEW_LINE();
+#endif
+
+    return retval;
+}
 
 void _initCompiledAsyncgenTypes( void )
 {

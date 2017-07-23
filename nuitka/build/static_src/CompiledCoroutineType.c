@@ -1520,7 +1520,7 @@ PyObject *Nuitka_AIterWrapper_New( PyObject *aiter )
 
 #endif
 
-PyObject *MAKE_ASYNC_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
+PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
 {
 #if _DEBUG_COROUTINE
     PRINT_STRING("AITER entry:");
@@ -1599,7 +1599,7 @@ PyObject *MAKE_ASYNC_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObjec
     return retval;
 }
 
-PyObject *ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
+PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
 {
 #if _DEBUG_COROUTINE
     PRINT_STRING("ANEXT entry:");

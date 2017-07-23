@@ -175,8 +175,10 @@ def generateAsyncIterCode(to_name, expression, emit, context):
     )
 
     emit(
-        "%s = MAKE_ASYNC_ITERATOR( coroutine, %s );" % (
+        "%s = %s_ASYNC_MAKE_ITERATOR( %s, %s );" % (
             to_name,
+            context.getContextObjectName().upper(),
+            context.getContextObjectName(),
             value_name
         )
     )
@@ -204,8 +206,10 @@ def generateAsyncNextCode(to_name, expression, emit, context):
     )
 
     emit(
-        "%s = ASYNC_ITERATOR_NEXT( coroutine, %s );" % (
+        "%s = %s_ASYNC_ITERATOR_NEXT( %s, %s );" % (
             to_name,
+            context.getContextObjectName().upper(),
+            context.getContextObjectName(),
             value_name,
         )
     )
