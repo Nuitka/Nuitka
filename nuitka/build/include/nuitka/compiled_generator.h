@@ -57,9 +57,6 @@ struct Nuitka_GeneratorObject {
     PyObject *m_yieldfrom;
 #endif
 
-    Fiber m_yielder_context;
-    Fiber m_caller_context;
-
     // Weak references are supported for generator objects in CPython.
     PyObject *m_weakrefs;
 
@@ -67,7 +64,6 @@ struct Nuitka_GeneratorObject {
 
     void *m_code;
 
-    PyObject *m_yielded;
     PyObject *m_exception_type, *m_exception_value;
     PyTracebackObject *m_exception_tb;
 
@@ -76,6 +72,16 @@ struct Nuitka_GeneratorObject {
 
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
+
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    int m_yield_return_index;
+#else
+    Fiber m_yielder_context;
+    Fiber m_caller_context;
+
+    // The yielded value, NULL is case of exception.
+    PyObject *m_yielded;
+#endif
 
     /* Closure variables given, if any, we reference cells here. The last
      * part is dynamically allocated, the array size differs per generator.
@@ -86,7 +92,11 @@ struct Nuitka_GeneratorObject {
 
 extern PyTypeObject Nuitka_Generator_Type;
 
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+typedef PyObject *(*generator_code)( struct Nuitka_GeneratorObject *, PyObject * );
+#else
 typedef void (*generator_code)( struct Nuitka_GeneratorObject * );
+#endif
 
 #if PYTHON_VERSION < 350
 extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject *name, PyCodeObject *code_object, Py_ssize_t closure_given );
@@ -106,6 +116,7 @@ static inline PyObject *Nuitka_Generator_GetName( PyObject *object )
     return ((struct Nuitka_GeneratorObject *)object)->m_name;
 }
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 
 static inline PyObject *GENERATOR_YIELD( struct Nuitka_GeneratorObject *generator, PyObject *value )
 {
@@ -220,6 +231,8 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
 #if PYTHON_VERSION >= 330
 extern PyObject *GENERATOR_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject *target );
 extern PyObject *GENERATOR_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *target );
+#endif
+
 #endif
 
 #endif

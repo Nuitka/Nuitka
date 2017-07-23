@@ -20,6 +20,8 @@
 The normal "yield", and the Python 3.3 or higher "yield from" variant.
 """
 
+from nuitka import Options
+
 from .ErrorCodes import getErrorExitCode, getReleaseCode
 from .Helpers import generateChildExpressionsCode
 from .PythonAPICodes import getReferenceExportCode
@@ -38,17 +40,38 @@ def generateYieldCode(to_name, expression, emit, context):
     # This will produce GENERATOR_YIELD, COROUTINE_YIELD or ASYNCGEN_YIELD.
     getReferenceExportCode(value_name, emit, context)
 
-    emit(
-        "%s = %s_%s( %s, %s );" % (
-            to_name,
-            context.getContextObjectName().upper(),
-            "YIELD"
-              if not preserve_exception else
-            "YIELD_IN_HANDLER",
-            context.getContextObjectName(),
-            value_name
+    if Options.isExperimental("generator_goto"):
+        yield_return_label = context.allocateLabel("yield_return")
+        yield_return_index = yield_return_label.split('_')[-1]
+
+
+        emit(
+            """
+%(context_object_name)s->m_yield_return_index = %(yield_return_index)s;
+return %(yielded_value)s;
+%(yield_return_label)s:
+%(to_name)s = yield_return_value;
+""" % {
+                "context_object_name" : context.getContextObjectName(),
+                "yield_return_index"  : yield_return_index,
+                "yielded_value"       : value_name,
+                "yield_return_label"  : yield_return_label,
+                "to_name"             : to_name
+    }
         )
-    )
+
+    else:
+        emit(
+            "%s = %s_%s( %s, %s );" % (
+                to_name,
+                context.getContextObjectName().upper(),
+                "YIELD"
+                  if not preserve_exception else
+                "YIELD_IN_HANDLER",
+                context.getContextObjectName(),
+                value_name
+            )
+        )
 
     if context.needsCleanup(value_name):
         context.removeCleanupTempName(value_name)

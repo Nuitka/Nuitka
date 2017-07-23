@@ -197,6 +197,9 @@ class TempMixin(object):
             number = result
         )
 
+    def getLabelCount(self, label):
+        return self.labels.get(label, 0)
+
     def needsExceptionVariables(self):
         return self.needs_exception_variables
 

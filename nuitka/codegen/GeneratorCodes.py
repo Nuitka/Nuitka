@@ -19,6 +19,7 @@
 
 """
 
+from nuitka import Options
 from nuitka.PythonVersions import python_version
 
 from .Emission import SourceCodeCollector
@@ -49,6 +50,8 @@ def getGeneratorObjectDeclCode(function_identifier):
 def getGeneratorObjectCode(context, function_identifier, closure_variables,
                            user_variables, temp_variables, needs_exception_exit,
                            needs_generator_return):
+    # Due to the current experimental code, pylint: disable=too-many-locals
+
     function_locals, function_cleanup = setupFunctionLocalVariables(
         context           = context,
         parameters        = None,
@@ -80,10 +83,57 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
     if needs_generator_return:
         generator_exit += template_generator_return_exit % {}
 
+    function_dispatch = [
+        "case %(index)d: goto yield_return_%(index)d;" % {
+            "index" : yield_index
+        }
+        for yield_index in
+        range(context.getLabelCount("yield_return"), 0, -1)
+    ]
+
+    if function_dispatch:
+        function_dispatch.insert(0, "switch(generator->m_yield_return_index) {")
+        function_dispatch.append('}')
+
+    local_type_decl = []
+    local_type_init = []
+    local_reals = []
+
+    for decl in function_locals:
+        if decl.startswith("NUITKA_MAY_BE_UNUSED "):
+            decl = decl[21:]
+
+        if decl.startswith("static"):
+            local_reals.append(decl)
+            continue
+
+        if decl in ("char const *type_description;", "PyObject *tmp_unused;"):
+            local_reals.append(decl)
+            continue
+
+        parts = decl.split('=')
+
+        if len(parts) == 1:
+            local_type_decl.append(decl)
+        else:
+            type_decl = parts[0].strip()
+            var_name = type_decl.split('*')[-1]
+            var_name = var_name.split(' ')[-1]
+
+            local_type_decl.append(type_decl)
+            local_type_init.append(
+                "local_variables->" + var_name + " =" + parts[1]
+            )
+
+    if Options.isExperimental("generator_goto"):
+        function_locals = local_reals + local_type_init
+
     return template_genfunc_yielder_body_template % {
         "function_identifier" : function_identifier,
         "function_body"       : indented(function_codes.codes),
+        "function_local_types" : indented(local_type_decl),
         "function_var_inits"  : indented(function_locals),
+        "function_dispatch"   : indented(function_dispatch),
         "generator_exit"      : generator_exit
     }
 

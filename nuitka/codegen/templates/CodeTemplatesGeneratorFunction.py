@@ -20,17 +20,34 @@
 """
 
 template_genfunc_yielder_decl_template = """\
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+static PyObject *%(function_identifier)s_context( struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value );
+#else
 static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *generator );
+#endif
 """
 
 template_genfunc_yielder_body_template = """
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+struct %(function_identifier)s_locals {
+%(function_local_types)s
+};
+#endif
+
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+static PyObject *%(function_identifier)s_context( struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value )
+#else
 static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *generator )
+#endif
 {
     CHECK_OBJECT( (PyObject *)generator );
     assert( Nuitka_Generator_Check( (PyObject *)generator ) );
 
     // Local variable initialization
 %(function_var_inits)s
+
+    // Dispatch to yield based on return label index:
+%(function_dispatch)s
 
     // Actual function code.
 %(function_body)s
@@ -41,22 +58,37 @@ static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *gene
 
 template_generator_exception_exit = """\
 %(function_cleanup)s\
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    return NULL;
+#else
     generator->m_yielded = NULL;
     return;
+#endif
 
     function_exception_exit:
 %(function_cleanup)s\
     assert( exception_type );
     RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    return NULL;
+#else
     generator->m_yielded = NULL;
-    return;"""
+    return;
+#endif
+"""
 
 template_generator_noexception_exit = """\
     // Return statement need not be present.
 %(function_cleanup)s\
 
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    return NULL;
+#else
     generator->m_yielded = NULL;
-    return;"""
+    return;
+#endif
+"""
 
 template_generator_return_exit = """\
     // The above won't return, but we need to make it clear to the compiler
@@ -78,8 +110,13 @@ template_generator_return_exit = """\
         Py_DECREF( tmp_return_value );
     }
 #endif
+
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    return NULL;
+#else
     generator->m_yielded = NULL;
     return;
+#endif
 """
 
 template_generator_making = """\

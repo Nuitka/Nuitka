@@ -60,6 +60,7 @@ static void Nuitka_Generator_release_closure( struct Nuitka_GeneratorObject *gen
     generator->m_closure_given = 0;
 }
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 // For the generator object fiber entry point, we may need to follow what
 // "makecontext" will support and that is only a list of integers, but we will need
 // to push a pointer through it, and so it's two of them, which might be fully
@@ -85,6 +86,8 @@ static void Nuitka_Generator_entry_point( struct Nuitka_GeneratorObject *generat
 
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
 }
+#endif
+
 
 static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generator, PyObject *value )
 {
@@ -115,6 +118,8 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
 
         if ( generator->m_status == status_Unused )
         {
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
             // Prepare the generator context to run.
             int res = prepareFiber( &generator->m_yielder_context, (void *)Nuitka_Generator_entry_point, (uintptr_t)generator );
 
@@ -123,11 +128,10 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
                 PyErr_Format( PyExc_MemoryError, "generator cannot be allocated" );
                 return NULL;
             }
+#endif
 
             generator->m_status = status_Running;
         }
-
-        generator->m_yielded = value;
 
         // Put the generator back on the frame stack.
         PyFrameObject *return_frame = thread_state->frame;
@@ -156,7 +160,14 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
         // Continue the yielder function while preventing recursion.
         generator->m_running = true;
 
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
+        PyObject *yielded = ((generator_code)generator->m_code)( generator, value );
+#else
+        generator->m_yielded = value;
         swapFiber( &generator->m_caller_context, &generator->m_yielder_context );
+        PyObject *yielded = generator->m_yielded;
+#endif
 
         generator->m_running = false;
 
@@ -173,7 +184,7 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
 
         thread_state->frame = return_frame;
 
-        if ( generator->m_yielded == NULL )
+        if ( yielded == NULL )
         {
             generator->m_status = status_Finished;
 
@@ -296,7 +307,7 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
             }
 #endif
 
-            return generator->m_yielded;
+            return yielded;
         }
     }
     else
@@ -618,7 +629,9 @@ static void Nuitka_Generator_tp_dealloc( struct Nuitka_GeneratorObject *generato
     assert( Py_REFCNT( generator ) == 1 );
     Py_REFCNT( generator ) = 0;
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     releaseFiber( &generator->m_yielder_context );
+#endif
 
     // Now it is safe to release references and memory for it.
     Nuitka_GC_UnTrack( generator );
@@ -905,12 +918,18 @@ PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject 
     result->m_exception_value = NULL;
     result->m_exception_tb = NULL;
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     result->m_yielded = NULL;
+#else
+    result->m_yield_return_index = 0;
+#endif
 
     result->m_frame = NULL;
     result->m_code_object = code_object;
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     initFiber( &result->m_yielder_context );
+#endif
 
     Nuitka_GC_Track( result );
     return (PyObject *)result;
