@@ -720,7 +720,7 @@ def createSearchMode():
         )
     elif search_mode and start_at:
         start_at = start_at.replace('/', os.path.sep)
-        return SearchModeByPattern()
+        return SearchModeByPattern(start_at)
     else:
         class SearchModeImmediate(SearchModeBase):
             def abortOnFinding(self, dirname, filename):
