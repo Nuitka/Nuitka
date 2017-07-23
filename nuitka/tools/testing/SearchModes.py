@@ -15,6 +15,11 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+""" Search modes for Nuitka's test runner.
+
+The test runner can handle found errors, skip tests, etc. with search
+modes, which are implemented here.
+"""
 
 import hashlib
 import os

@@ -108,11 +108,11 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "name"        : name,
-                "globals"     : globals_arg,
-                "locals"      : locals_arg,
-                "fromlist"    : fromlist,
-                "level"       : level
+                "name"     : name,
+                "globals"  : globals_arg,
+                "locals"   : locals_arg,
+                "fromlist" : fromlist,
+                "level"    : level
             },
             source_ref = source_ref
         )

@@ -26,7 +26,7 @@ from optparse import OptionParser
 
 from nuitka.tools.Basics import goHome
 from nuitka.tools.release.Debian import updateDebianChangelog
-from nuitka.tools.release.Release import checkBranchName, getBranchName
+from nuitka.tools.release.Release import getBranchName
 
 
 def getBumpedVersion(mode, old_version):

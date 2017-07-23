@@ -697,7 +697,7 @@ positional_args = None
 extra_args = []
 
 def parseArgs():
-    # many cases, pylint: disable=global-statement,too-many-branches
+    # many cases, pylint: disable=global-statement,too-many-branches,too-many-statements
     global options, positional_args, extra_args
 
     # First, isolate the first non-option arguments.

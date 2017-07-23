@@ -181,7 +181,7 @@ Cleanups
 - Variable closure for classes is different from all functions, don't handle
   the difference in the base class, but for class nodes only.
 
-- Make sure ``mayBeNon`` doesn't return ``None`` which means normally "unclear",
+- Make sure ``mayBeNone`` doesn't return ``None`` which means normally "unclear",
   but ``False`` instead, since it's always clear for those cases.
 
 - Comparison nodes were using the general comparison node as a base class,

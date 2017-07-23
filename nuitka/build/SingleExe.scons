@@ -775,6 +775,7 @@ if experimental:
             "_NUITKA_EXPERIMENTAL_" + experiment.upper()
             for experiment in
             experimental
+            if experiment
         ]
     )
 

@@ -190,8 +190,9 @@ def findModule(importing, module_name, parent_package, level, warn):
         The package name can be None of course. Level is the same
         as with "__import__" built-in. Warnings are optional.
 
-        Returns a triple of package name the module is in, module name
-        and filename of it, which can be a directory.
+        Returns a triple of package name the module is in, filename of
+        it, which can be a directory for packages, and the location
+        method.
     """
 
     # We have many branches here, because there are a lot of cases to try.
