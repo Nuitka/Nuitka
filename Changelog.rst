@@ -3,6 +3,26 @@ Nuitka Release 0.5.28 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Python3.6: Fix, ``async for`` was not yet implemented for async generators.
+  Fixed in 0.5.27.1 already.
+
+- Fix, functions with keyword arguments where the value was determined to be
+  a static raise could crash the compiler. Fixed in 0.5.27.1 already.
+
+Tests
+-----
+
+- The search mode with pattern, was not working anymore. Fixed in 0.5.27.1
+  already.
+
+Summary
+-------
+
+This release is not done yet.
+
 
 Nuitka Release 0.5.27
 =====================
