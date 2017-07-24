@@ -265,18 +265,22 @@ def convertNoneConstantToNone(node):
     else:
         return node
 
+
 def wrapExpressionWithSideEffects(side_effects, old_node, new_node):
     assert new_node.isExpression()
 
     from .SideEffectNodes import ExpressionSideEffects
 
     if side_effects:
-        side_effects = [
-            side_effect
-            for side_effect in
-            side_effects
-            if side_effect.mayHaveSideEffects()
-        ]
+        side_effects = sum(
+            (
+                side_effect.extractSideEffects()
+                for side_effect in
+                side_effects
+                if side_effect.mayHaveSideEffects()
+            ),
+            ()
+        )
 
         if side_effects:
             new_node = ExpressionSideEffects(
