@@ -1521,22 +1521,39 @@ Error, call to 'mt.exe' (%s) to extract manifest failed (error code %d.)""" % (
                         )
                     )
             else:
+                command = (
+                    "windres.exe",
+                    "--input", python_exe,
+                    "--output", manifest_filename,
+                    "--output-format", "rc"
+                )
+
                 try:
-                    result = subprocess.call(
-                        (
-                            "windres.exe",
-                            "--input", python_exe,
-                            "--output", manifest_filename,
-                            "--output-format", "rc"
-                        ),
-                        stdout = subprocess.PIPE
+                    proc = subprocess.Popen(
+                        command,
+                        stdin       = subprocess.PIPE,
+                        stdout      = subprocess.PIPE,
+                        stderr      = subprocess.PIPE,
+                        shell       = False
                     )
                 except WindowsError:
                     sys.exit("Error, cannot find 'windres.exe' but it is required.")
 
+                _stdout, stderr = proc.communicate()
+                result = proc.wait()
 
                 if result != 0:
-                    sys.exit("Error, call to 'windres.exe' to extract manifest failed.")
+                    sys.exit("""\
+Error, call to 'windres.exe' to extract manifest failed with the following
+error:
+
+%s
+
+In case of "File format not recognized" you are most likely using the
+64 bits version of Python and the 32 bits version of MinGW64. There is
+also a 64 bits version, download and use that one instead.
+""" % stderr
+                )
 
                 # Need to reduce to what we use, and remove the quoting of the
                 # actual manifest. We created a full "rc" file, but that we do
