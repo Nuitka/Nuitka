@@ -23,8 +23,8 @@ Exceptions from other operations are consider ErrorCodes domain.
 
 from nuitka.Options import isDebug
 
+from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import getFrameVariableTypeDescriptionCode
-from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .LabelCodes import getGotoCode
 from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .PythonAPICodes import getReferenceExportCode

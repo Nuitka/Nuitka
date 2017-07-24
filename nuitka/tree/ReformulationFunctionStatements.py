@@ -64,7 +64,9 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.PythonVersions import python_version
 
-from .Helpers import (
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .SyntaxErrors import raiseSyntaxError
+from .TreeHelpers import (
     buildFrameNode,
     buildNode,
     buildNodeList,
@@ -75,8 +77,6 @@ from .Helpers import (
     makeStatementsSequenceFromStatement,
     mangleName
 )
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
-from .SyntaxErrors import raiseSyntaxError
 
 
 def _insertFinalReturnStatement(function_statements_body, return_statement):

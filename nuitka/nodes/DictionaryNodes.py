@@ -28,6 +28,7 @@ from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
 from .AttributeNodes import ExpressionAttributeLookup
+from .BuiltinHashNodes import ExpressionBuiltinHash
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeBases import (
     SideEffectsFromChildrenMixin,
@@ -95,6 +96,22 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
         return key.mayRaiseException(exception_type) or \
                key.isKnownToBeHashable() is not True or \
                self.getValue().mayRaiseException(exception_type)
+
+    def extractSideEffects(self):
+        if self.subnode_key.isKnownToBeHashable() is True:
+            key_part = self.subnode_key.extractSideEffects()
+        else:
+            key_part = (
+                ExpressionBuiltinHash(
+                    value      = self.subnode_key,
+                    source_ref = self.subnode_key.source_ref
+                ),
+            )
+
+        if python_version < 350:
+            return self.subnode_value.extractSideEffects() + key_part
+        else:
+            return key_part + self.subnode_value.extractSideEffects()
 
 
 class ExpressionMakeDict(SideEffectsFromChildrenMixin,

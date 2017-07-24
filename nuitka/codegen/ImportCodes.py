@@ -20,13 +20,13 @@
 That is import as expression, and star import.
 """
 
+from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
     getReleaseCode,
     getReleaseCodes
 )
-from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 

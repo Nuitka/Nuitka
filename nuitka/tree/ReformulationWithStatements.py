@@ -52,7 +52,12 @@ from nuitka.nodes.StatementNodes import (
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
-from .Helpers import (
+from .ReformulationAssignmentStatements import buildAssignmentStatements
+from .ReformulationTryExceptStatements import (
+    makeTryExceptSingleHandlerNodeWithPublish
+)
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
     getKind,
@@ -61,11 +66,6 @@ from .Helpers import (
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
 )
-from .ReformulationAssignmentStatements import buildAssignmentStatements
-from .ReformulationTryExceptStatements import (
-    makeTryExceptSingleHandlerNodeWithPublish
-)
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,

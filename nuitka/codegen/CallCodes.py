@@ -23,9 +23,9 @@ able to execute them without creating the argument dictionary at all.
 
 """
 
+from .CodeHelpers import generateChildExpressionCode, generateExpressionCode
 from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
-from .Helpers import generateChildExpressionCode, generateExpressionCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesCalls import (
     template_call_function_with_args_decl,

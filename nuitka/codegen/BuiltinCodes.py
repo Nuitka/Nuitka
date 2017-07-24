@@ -23,8 +23,8 @@ bin, etc.
 from nuitka import Builtins
 from nuitka.PythonVersions import python_version
 
+from .CodeHelpers import generateChildExpressionsCode
 from .ErrorCodes import getAssertionCode, getErrorExitCode, getReleaseCodes
-from .Helpers import generateChildExpressionsCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
 

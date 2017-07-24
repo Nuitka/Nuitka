@@ -26,16 +26,16 @@ from nuitka import Options
 from nuitka.Constants import isNumberConstant
 from nuitka.PythonVersions import python_version
 
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    generateExpressionCode,
+    generateExpressionsCode
+)
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
     getReleaseCode,
     getReleaseCodes
-)
-from .Helpers import (
-    generateChildExpressionsCode,
-    generateExpressionCode,
-    generateExpressionsCode
 )
 from .IndexCodes import (
     getIndexCode,

@@ -47,7 +47,14 @@ from nuitka.nodes.TryNodes import StatementTry
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
-from .Helpers import (
+from .ReformulationAssignmentStatements import (
+    buildAssignmentStatements,
+    buildDeleteStatementFromDecoded,
+    decodeAssignTarget
+)
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .SyntaxErrors import raiseSyntaxError
+from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
     makeReraiseExceptionStatement,
@@ -56,13 +63,6 @@ from .Helpers import (
     makeStatementsSequenceFromStatements,
     mergeStatements
 )
-from .ReformulationAssignmentStatements import (
-    buildAssignmentStatements,
-    buildDeleteStatementFromDecoded,
-    decodeAssignTarget
-)
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
-from .SyntaxErrors import raiseSyntaxError
 
 
 def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,

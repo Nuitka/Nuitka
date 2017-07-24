@@ -23,8 +23,8 @@ of the metaclass remains as specific.
 
 from nuitka.PythonVersions import python_version
 
+from .CodeHelpers import generateChildExpressionsCode
 from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
-from .Helpers import generateChildExpressionsCode
 from .PythonAPICodes import generateCAPIObjectCode0
 
 

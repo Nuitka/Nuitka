@@ -34,8 +34,8 @@ from nuitka.nodes.SliceNodes import (
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.PythonVersions import python_version
 
-from .Helpers import buildNode, getKind
 from .ReformulationAssignmentStatements import buildExtSliceNode
+from .TreeHelpers import buildNode, getKind
 
 
 def buildSubscriptNode(provider, node, source_ref):

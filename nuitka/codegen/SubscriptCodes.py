@@ -24,12 +24,12 @@ much faster than general subscript lookups.
 from nuitka import Options
 from nuitka.Constants import isIndexConstant
 
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
-from .Helpers import (
+from .CodeHelpers import (
     generateChildExpressionsCode,
     generateExpressionCode,
     generateExpressionsCode
 )
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
 
 
 def generateAssignmentSubscriptCode(statement, emit, context):

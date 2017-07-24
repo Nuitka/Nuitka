@@ -22,8 +22,8 @@ This also includes writing back to locals for exec statements.
 
 from nuitka.PythonVersions import python_version
 
+from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode
-from .Helpers import generateExpressionCode
 from .ModuleCodes import getModuleAccessCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesVariables import (

@@ -20,7 +20,7 @@
 Does all the Python parsing and puts it into a tree structure for use in later
 stages of the compilation process.
 
-In the "nuitka.tree.Helpers" module, the dispatching is happening. One function
+In the "nuitka.tree.TreeHelpers" module, the dispatching is happening. One function
 deals with every node kind as found in the AST. The parsing is centered around
 the module "ast" output.
 
@@ -107,22 +107,6 @@ from nuitka.utils import MemoryUsage
 from nuitka.utils.FileOperations import splitPath
 
 from . import SyntaxErrors
-from .Helpers import (
-    buildNode,
-    buildNodeList,
-    buildStatementsNode,
-    extractDocFromBody,
-    getBuildContext,
-    getKind,
-    makeAbsoluteImportNode,
-    makeModuleFrame,
-    makeStatementsSequence,
-    makeStatementsSequenceFromStatement,
-    mangleName,
-    mergeStatements,
-    parseSourceCodeToAst,
-    setBuildingDispatchers
-)
 from .ReformulationAssertStatements import buildAssertNode
 from .ReformulationAssignmentStatements import (
     buildAnnAssignNode,
@@ -174,6 +158,22 @@ from .ReformulationYieldExpressions import buildYieldFromNode, buildYieldNode
 from .SourceReading import (
     checkPythonVersionFromCode,
     readSourceCodeFromFilename
+)
+from .TreeHelpers import (
+    buildNode,
+    buildNodeList,
+    buildStatementsNode,
+    extractDocFromBody,
+    getBuildContext,
+    getKind,
+    makeAbsoluteImportNode,
+    makeModuleFrame,
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement,
+    mangleName,
+    mergeStatements,
+    parseSourceCodeToAst,
+    setBuildingDispatchers
 )
 from .VariableClosure import completeVariableClosures
 

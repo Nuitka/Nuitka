@@ -66,7 +66,8 @@ from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
-from .Helpers import (
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
     makeStatementsSequence,
@@ -74,7 +75,6 @@ from .Helpers import (
     popBuildContext,
     pushBuildContext
 )
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildWhileLoopNode(provider, node, source_ref):

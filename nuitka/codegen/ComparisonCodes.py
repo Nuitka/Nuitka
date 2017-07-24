@@ -22,13 +22,13 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 """
 
 from . import OperatorCodes
+from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
     getReleaseCode,
     getReleaseCodes
 )
-from .Helpers import generateExpressionCode
 from .LabelCodes import getBranchingCode
 
 

@@ -24,9 +24,9 @@ structure used, where exception handling and everything is made explicit.
 
 from nuitka import Options
 
+from .CodeHelpers import generateExpressionCode, generateStatementSequenceCode
 from .ErrorCodes import getMustNotGetHereCode
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
-from .Helpers import generateExpressionCode, generateStatementSequenceCode
 from .IteratorCodes import getBuiltinLoopBreakNextCode
 from .LabelCodes import getGotoCode, getLabelCode
 from .VariableCodes import getVariableAssignmentCode

@@ -23,8 +23,8 @@ happening in the C helper functions.
 
 """
 
+from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCode, getReleaseCodes
-from .Helpers import generateExpressionCode
 
 
 def generatePrintValueCode(statement, emit, context):

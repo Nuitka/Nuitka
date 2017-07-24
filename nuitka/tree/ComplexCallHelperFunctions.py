@@ -83,11 +83,6 @@ from nuitka.PythonVersions import (
     python_version
 )
 
-from .Helpers import (
-    makeConditionalStatement,
-    makeStatementsSequenceFromStatement,
-    makeStatementsSequenceFromStatements
-)
 from .InternalModule import (
     getInternalModule,
     internal_source_ref,
@@ -95,6 +90,11 @@ from .InternalModule import (
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .TreeHelpers import (
+    makeConditionalStatement,
+    makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements
+)
 
 # TODO: Consider using ExpressionOutlineNodes for at least some of these
 # or their own helpers.

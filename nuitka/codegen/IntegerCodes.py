@@ -21,8 +21,8 @@
 
 from nuitka.PythonVersions import python_version
 
+from .CodeHelpers import generateChildExpressionsCode
 from .ErrorCodes import getErrorExitCode, getReleaseCodes
-from .Helpers import generateChildExpressionsCode
 from .PythonAPICodes import generateCAPIObjectCode
 
 

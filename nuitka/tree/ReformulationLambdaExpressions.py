@@ -47,7 +47,13 @@ from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.PythonVersions import python_version
 
-from .Helpers import (
+from .ReformulationFunctionStatements import (
+    buildFunctionWithParsing,
+    buildParameterAnnotations,
+    buildParameterKwDefaults
+)
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .TreeHelpers import (
     buildNode,
     buildNodeList,
     detectFunctionBodyKind,
@@ -55,12 +61,6 @@ from .Helpers import (
     makeStatementsSequenceFromStatement,
     mergeStatements
 )
-from .ReformulationFunctionStatements import (
-    buildFunctionWithParsing,
-    buildParameterAnnotations,
-    buildParameterKwDefaults
-)
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildLambdaNode(provider, node, source_ref):

@@ -19,6 +19,10 @@
 
 """
 
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    generateStatementSequenceCode
+)
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode, getReleaseCode
 from .FunctionCodes import (
@@ -26,10 +30,6 @@ from .FunctionCodes import (
     setupFunctionLocalVariables
 )
 from .GeneratorCodes import getClosureCopyCode
-from .Helpers import (
-    generateChildExpressionsCode,
-    generateStatementSequenceCode
-)
 from .Indentation import indented
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .PythonAPICodes import getReferenceExportCode

@@ -23,8 +23,8 @@ in-place assignments, which have other operation variants.
 """
 
 from . import OperatorCodes
+from .CodeHelpers import generateChildExpressionsCode
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
-from .Helpers import generateChildExpressionsCode
 
 
 def generateOperationBinaryCode(to_name, expression, emit, context):

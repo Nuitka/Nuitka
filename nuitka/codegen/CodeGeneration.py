@@ -75,6 +75,11 @@ from .ClassCodes import (
     generateBuiltinSuperCode,
     generateSelectMetaclassCode
 )
+from .CodeHelpers import (
+    generateStatementSequenceCode,
+    setExpressionDispatchDict,
+    setStatementDispatchDict
+)
 from .ComparisonCodes import generateComparisonExpressionCode
 from .ConditionalCodes import (
     generateConditionalAndOrCode,
@@ -146,11 +151,6 @@ from .GlobalsLocalsCodes import (
     generateBuiltinLocalsCode,
     generateBuiltinVarsCode,
     generateSetLocalsCode
-)
-from .Helpers import (
-    generateStatementSequenceCode,
-    setExpressionDispatchDict,
-    setStatementDispatchDict
 )
 from .IdCodes import generateBuiltinHashCode, generateBuiltinIdCode
 from .ImportCodes import (

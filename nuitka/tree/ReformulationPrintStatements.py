@@ -33,13 +33,13 @@ from nuitka.nodes.ImportNodes import ExpressionImportModuleHard
 from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
-from .Helpers import (
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .TreeHelpers import (
     buildNode,
     buildNodeList,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements
 )
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def buildPrintNode(provider, node, source_ref):

@@ -19,8 +19,8 @@
 
 """
 
+from .CodeHelpers import generateExpressionCode
 from .ConstantCodes import getConstantAccess
-from .Helpers import generateExpressionCode
 from .PythonAPICodes import generateCAPIObjectCode
 
 

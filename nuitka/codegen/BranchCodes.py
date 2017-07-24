@@ -19,8 +19,8 @@
 
 """
 
+from .CodeHelpers import generateStatementSequenceCode
 from .ConditionalCodes import generateConditionCode
-from .Helpers import generateStatementSequenceCode
 from .LabelCodes import getGotoCode, getLabelCode
 
 

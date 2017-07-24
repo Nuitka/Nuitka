@@ -22,8 +22,8 @@ only statement.
 
 """
 
+from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getReleaseCode
-from .Helpers import generateExpressionCode
 
 
 def generateExpressionOnlyCode(statement, emit, context):

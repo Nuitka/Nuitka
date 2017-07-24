@@ -24,7 +24,7 @@ from the in-lined function.
 from nuitka.nodes.AssignNodes import StatementAssignmentVariable
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.tree.Extractions import updateVariableUsage
-from nuitka.tree.Helpers import makeStatementsSequence
+from nuitka.tree.TreeHelpers import makeStatementsSequence
 
 
 def convertFunctionCallToOutline(provider, function_ref, values):

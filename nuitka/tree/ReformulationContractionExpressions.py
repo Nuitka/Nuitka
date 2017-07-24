@@ -63,7 +63,11 @@ from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.nodes.YieldNodes import ExpressionYield
 from nuitka.PythonVersions import python_version
 
-from .Helpers import (
+from .ReformulationAssignmentStatements import buildAssignmentStatements
+from .ReformulationBooleanExpressions import buildAndNode
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .TreeHelpers import (
     buildNode,
     buildNodeList,
     getKind,
@@ -71,10 +75,6 @@ from .Helpers import (
     makeStatementsSequenceFromStatements,
     mergeStatements
 )
-from .ReformulationAssignmentStatements import buildAssignmentStatements
-from .ReformulationBooleanExpressions import buildAndNode
-from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def _buildPython2ListContraction(provider, node, source_ref):

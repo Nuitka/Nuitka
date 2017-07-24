@@ -74,7 +74,8 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.PythonVersions import python_version
 
-from .Helpers import (
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .TreeHelpers import (
     buildFrameNode,
     buildNode,
     buildNodeList,
@@ -85,7 +86,6 @@ from .Helpers import (
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
 )
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def _buildClassNode3(provider, node, source_ref):

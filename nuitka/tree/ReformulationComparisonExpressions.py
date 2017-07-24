@@ -33,8 +33,12 @@ from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
-from .Helpers import buildNode, getKind, makeStatementsSequenceFromStatement
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .TreeHelpers import (
+    buildNode,
+    getKind,
+    makeStatementsSequenceFromStatement
+)
 
 
 def buildComparisonNode(provider, node, source_ref):

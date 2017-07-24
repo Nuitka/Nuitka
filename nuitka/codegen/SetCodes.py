@@ -23,8 +23,8 @@ added later on.
 
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
+from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
-from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .PythonAPICodes import generateCAPIObjectCode
 
 

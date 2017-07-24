@@ -51,7 +51,9 @@ from .ComplexCallHelperFunctions import (
     getFunctionCallHelperStarList,
     getFunctionCallHelperStarListStarDict
 )
-from .Helpers import (
+from .ReformulationDictionaryCreation import buildDictionaryUnpackingArgs
+from .ReformulationSequenceCreation import buildListUnpacking
+from .TreeHelpers import (
     buildNode,
     buildNodeList,
     getKind,
@@ -59,8 +61,6 @@ from .Helpers import (
     makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatements
 )
-from .ReformulationDictionaryCreation import buildDictionaryUnpackingArgs
-from .ReformulationSequenceCreation import buildListUnpacking
 
 
 def buildCallNode(provider, node, source_ref):

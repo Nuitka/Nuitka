@@ -22,13 +22,13 @@ Next variants and unpacking with related checks.
 
 from nuitka.PythonVersions import python_version
 
+from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import (
     getErrorExitCode,
     getErrorExitReleaseCode,
     getFrameVariableTypeDescriptionCode,
     getReleaseCode
 )
-from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .Indentation import indented
 from .LineNumberCodes import getErrorLineNumberUpdateCode
 from .PythonAPICodes import generateCAPIObjectCode

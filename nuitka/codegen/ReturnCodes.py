@@ -25,9 +25,9 @@ by a try statement is accessible this way.
 
 from nuitka.PythonVersions import python_version
 
+from .CodeHelpers import generateExpressionCode
 from .ConstantCodes import getConstantAccess
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
-from .Helpers import generateExpressionCode
 from .LabelCodes import getGotoCode
 
 

@@ -20,13 +20,13 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
+from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
     getReleaseCode,
     getReleaseCodes
 )
-from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .PythonAPICodes import generateCAPIObjectCode
 
 

@@ -23,13 +23,13 @@ Branches, conditions, truth checks.
 from nuitka import Options
 
 from .AttributeCodes import getAttributeCheckBoolCode
+from .CodeHelpers import generateExpressionCode
 from .ComparisonCodes import (
     getBuiltinIsinstanceBoolCode,
     getComparisonExpressionBoolCode
 )
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCode
-from .Helpers import generateExpressionCode
 from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
 
 

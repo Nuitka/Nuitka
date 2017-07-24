@@ -43,7 +43,7 @@ from nuitka.nodes.ModuleNodes import (
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 
-from .Helpers import (
+from .TreeHelpers import (
     makeAbsoluteImportNode,
     makeStatementsSequenceFromStatement
 )

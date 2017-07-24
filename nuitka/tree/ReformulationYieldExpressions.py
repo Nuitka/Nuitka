@@ -28,8 +28,8 @@ from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
 from nuitka.nodes.YieldNodes import ExpressionYield, ExpressionYieldFrom
 from nuitka.PythonVersions import python_version
 
-from .Helpers import buildNode
 from .SyntaxErrors import raiseSyntaxError
+from .TreeHelpers import buildNode
 
 
 def _checkInsideGenerator(provider, node, source_ref):

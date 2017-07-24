@@ -48,14 +48,14 @@ from nuitka.nodes.NodeMakingHelpers import makeExpressionBuiltinLocals
 from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
-from .Helpers import (
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .TreeHelpers import (
     buildNode,
     getKind,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements
 )
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,

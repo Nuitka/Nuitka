@@ -19,13 +19,13 @@
 
 """
 
+from .CodeHelpers import generateStatementSequenceCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
     setupFunctionLocalVariables
 )
 from .GeneratorCodes import getClosureCopyCode
-from .Helpers import generateStatementSequenceCode
 from .Indentation import indented
 from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_exception_exit,

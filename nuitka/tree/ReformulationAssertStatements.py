@@ -30,7 +30,7 @@ from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.Options import getPythonFlags
 from nuitka.PythonVersions import python_version
 
-from .Helpers import buildNode
+from .TreeHelpers import buildNode
 
 
 def buildAssertNode(provider, node, source_ref):

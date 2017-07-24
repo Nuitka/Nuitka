@@ -25,9 +25,9 @@ certain conditions.
 See Developer Manual for how the CPython loops are mapped to these nodes.
 """
 
+from .CodeHelpers import generateStatementSequenceCode
 from .ErrorCodes import getErrorExitBoolCode
 from .ExceptionCodes import getExceptionUnpublishedReleaseCode
-from .Helpers import generateStatementSequenceCode
 from .LabelCodes import getGotoCode, getLabelCode
 
 

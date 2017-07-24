@@ -28,7 +28,7 @@ from nuitka.nodes.ConditionalNodes import (
 )
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 
-from .Helpers import buildNode, buildNodeList, getKind
+from .TreeHelpers import buildNode, buildNodeList, getKind
 
 
 def buildBoolOpNode(provider, node, source_ref):

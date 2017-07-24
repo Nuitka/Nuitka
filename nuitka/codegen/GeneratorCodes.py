@@ -22,12 +22,12 @@
 from nuitka import Options
 from nuitka.PythonVersions import python_version
 
+from .CodeHelpers import generateStatementSequenceCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
     setupFunctionLocalVariables
 )
-from .Helpers import generateStatementSequenceCode
 from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesGeneratorFunction import (

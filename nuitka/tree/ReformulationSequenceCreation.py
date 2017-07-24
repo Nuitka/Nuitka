@@ -58,14 +58,6 @@ from nuitka.nodes.VariableRefNodes import (
 from nuitka.PythonVersions import python_version
 
 from . import SyntaxErrors
-from .Helpers import (
-    buildNode,
-    buildNodeList,
-    getKind,
-    makeSequenceCreationOrConstant,
-    makeStatementsSequenceFromStatement,
-    makeStatementsSequenceFromStatements
-)
 from .InternalModule import (
     getInternalModule,
     internal_source_ref,
@@ -73,6 +65,14 @@ from .InternalModule import (
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .TreeHelpers import (
+    buildNode,
+    buildNodeList,
+    getKind,
+    makeSequenceCreationOrConstant,
+    makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements
+)
 
 
 def buildSequenceCreationNode(provider, node, source_ref):

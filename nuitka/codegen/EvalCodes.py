@@ -20,13 +20,13 @@
 from nuitka import Options
 from nuitka.PythonVersions import python_version
 
+from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
     getReleaseCode,
     getReleaseCodes
 )
-from .Helpers import generateExpressionCode
 from .VariableCodes import getVariableAssignmentCode
 
 

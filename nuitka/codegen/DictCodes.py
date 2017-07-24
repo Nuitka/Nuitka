@@ -22,8 +22,8 @@
 from nuitka import Options
 from nuitka.PythonVersions import python_version
 
+from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
-from .Helpers import generateChildExpressionsCode, generateExpressionCode
 
 
 def generateBuiltinDictCode(to_name, expression, emit, context):

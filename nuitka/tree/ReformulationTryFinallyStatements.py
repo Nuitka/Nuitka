@@ -37,7 +37,7 @@ from nuitka.nodes.TryNodes import StatementTry
 from nuitka.Options import isDebug
 from nuitka.PythonVersions import python_version
 
-from .Helpers import (
+from .TreeHelpers import (
     buildStatementsNode,
     getStatementsAppended,
     getStatementsPrepended,

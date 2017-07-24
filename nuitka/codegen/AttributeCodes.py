@@ -22,13 +22,13 @@ Attribute lookup, setting.
 
 from nuitka import Options
 
+from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
     getReleaseCode,
     getReleaseCodes
 )
-from .Helpers import generateChildExpressionsCode, generateExpressionCode
 from .LabelCodes import getBranchingCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 

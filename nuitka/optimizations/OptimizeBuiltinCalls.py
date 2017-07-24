@@ -137,14 +137,14 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
-from nuitka.tree.Helpers import (
-    makeSequenceCreationOrConstant,
-    makeStatementsSequence,
-    makeStatementsSequenceFromStatement
-)
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyStatement
+)
+from nuitka.tree.TreeHelpers import (
+    makeSequenceCreationOrConstant,
+    makeStatementsSequence,
+    makeStatementsSequenceFromStatement
 )
 
 from . import BuiltinOptimization

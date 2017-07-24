@@ -19,9 +19,9 @@
 
 """
 
+from .CodeHelpers import generateExpressionCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getCheckObjectCode, getNameReferenceErrorCode
-from .Helpers import generateExpressionCode
 from .Indentation import indented
 from .templates.CodeTemplatesVariables import (
     template_del_global_unclear,

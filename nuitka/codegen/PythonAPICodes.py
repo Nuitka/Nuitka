@@ -20,8 +20,8 @@
 This is generic stuff.
 """
 
+from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getErrorExitCode, getReleaseCodes
-from .Helpers import generateExpressionCode
 
 
 def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, may_raise, ref_count,

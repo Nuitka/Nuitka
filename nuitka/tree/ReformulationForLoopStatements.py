@@ -39,7 +39,10 @@ from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
-from .Helpers import (
+from .ReformulationAssignmentStatements import buildAssignmentStatements
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
     makeStatementsSequence,
@@ -47,9 +50,6 @@ from .Helpers import (
     popBuildContext,
     pushBuildContext
 )
-from .ReformulationAssignmentStatements import buildAssignmentStatements
-from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 
 
 def _buildForLoopNode(provider, node, sync, source_ref):

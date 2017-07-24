@@ -22,6 +22,7 @@
 from nuitka.PythonVersions import python_version
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
+from .CodeHelpers import generateExpressionCode, generateStatementSequenceCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitCode,
@@ -31,7 +32,6 @@ from .ErrorCodes import (
     getMustNotGetHereCode,
     getReleaseCode
 )
-from .Helpers import generateExpressionCode, generateStatementSequenceCode
 from .Indentation import indented
 from .LabelCodes import getLabelCode
 from .ModuleCodes import getModuleAccessCode

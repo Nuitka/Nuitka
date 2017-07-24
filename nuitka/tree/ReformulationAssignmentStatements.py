@@ -63,7 +63,10 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.PythonVersions import python_version
 
-from .Helpers import (
+from .ReformulationImportStatements import getFutureSpec
+from .ReformulationTryFinallyStatements import makeTryFinallyStatement
+from .SyntaxErrors import raiseSyntaxError
+from .TreeHelpers import (
     buildNode,
     getKind,
     makeConstantRefNode,
@@ -74,9 +77,6 @@ from .Helpers import (
     makeStatementsSequenceOrStatement,
     mangleName
 )
-from .ReformulationImportStatements import getFutureSpec
-from .ReformulationTryFinallyStatements import makeTryFinallyStatement
-from .SyntaxErrors import raiseSyntaxError
 
 
 def buildExtSliceNode(provider, node, source_ref):

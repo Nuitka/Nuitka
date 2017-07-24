@@ -41,9 +41,9 @@ from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 from nuitka.PythonVersions import python_version
 
-from .Helpers import makeStatementsSequenceOrStatement, mangleName
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
+from .TreeHelpers import makeStatementsSequenceOrStatement, mangleName
 
 # For checking afterwards, if __future__ imports really were at the beginning
 # of the file.

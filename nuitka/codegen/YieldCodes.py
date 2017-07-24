@@ -22,8 +22,8 @@ The normal "yield", and the Python 3.3 or higher "yield from" variant.
 
 from nuitka import Options
 
+from .CodeHelpers import generateChildExpressionsCode
 from .ErrorCodes import getErrorExitCode, getReleaseCode
-from .Helpers import generateChildExpressionsCode
 from .PythonAPICodes import getReferenceExportCode
 
 

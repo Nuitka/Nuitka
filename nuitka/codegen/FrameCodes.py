@@ -24,8 +24,8 @@ of frames for different uses.
 from nuitka.PythonVersions import python_version
 
 from . import Emission
+from .CodeHelpers import _generateStatementSequenceCode
 from .ExceptionCodes import getTracebackMakingIdentifier
-from .Helpers import _generateStatementSequenceCode
 from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesFrames import (
