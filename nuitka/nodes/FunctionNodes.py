@@ -599,45 +599,6 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         )
 
     def computeExpression(self, trace_collection):
-        defaults = self.getDefaults()
-
-        side_effects = []
-
-        for default in defaults:
-            if default.willRaiseException(BaseException):
-                result = wrapExpressionWithSideEffects(
-                    side_effects = side_effects,
-                    old_node     = self,
-                    new_node     = default
-                )
-
-                return result, "new_raise", "Default value contains raise."
-
-        kw_defaults = self.getKwDefaults()
-
-        if kw_defaults is not None:
-            if kw_defaults.willRaiseException(BaseException):
-                result = wrapExpressionWithSideEffects(
-                    side_effects = side_effects,
-                    old_node     = self,
-                    new_node     = kw_defaults
-                )
-
-                return result, "new_raise", "Keyword default values contain raise."
-
-            side_effects.append(kw_defaults)
-
-        annotations = self.getAnnotations()
-
-        if annotations is not None and annotations.willRaiseException(BaseException):
-            result = wrapExpressionWithSideEffects(
-                side_effects = side_effects,
-                old_node     = self,
-                new_node     = annotations
-            )
-
-            return result, "new_raise", "Annotation values contain raise."
-
         self.variable_closure_traces = []
 
         for closure_variable in self.getFunctionRef().getFunctionBody().getClosureVariables():
