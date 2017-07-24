@@ -50,7 +50,7 @@ from nuitka.utils.FileOperations import (
     removeDirectory
 )
 
-from . import ModuleRegistry, Options, Tracing, TreeXML
+from . import ModuleRegistry, Options, TreeXML
 from .build import SconsInterface
 from .codegen import CodeGeneration, ConstantCodes
 from .finalizations import Finalization
@@ -664,7 +664,7 @@ def compileTree(main_module):
             sys.exit("Error, no previous build directory exists.")
 
     if Options.isShowProgress() or Options.isShowMemory():
-        Tracing.printLine(
+        info(
             "Total memory usage before running scons: {memory}:".format(
                 memory = MemoryUsage.getHumanReadableProcessMemoryUsage()
             )

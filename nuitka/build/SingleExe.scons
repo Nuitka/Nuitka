@@ -730,7 +730,7 @@ if mingw_mode:
 if debug_mode:
 
     if gcc_mode:
-        # Allow g++/clang to point out all kinds of inconsistency to us by
+        # Allow gcc/clang to point out all kinds of inconsistency to us by
         # raising an error.
         env.Append(
             CCFLAGS = [
@@ -1205,7 +1205,9 @@ else:
 
 # MinGW for 64 bits needs this due to CPython bugs.
 if win_target and target_arch == "x86_64" and gcc_mode:
-    env.Append(CPPDEFINES = ["MS_WIN64"])
+    env.Append(
+        CPPDEFINES = ["MS_WIN64"]
+    )
 
 # Set load libpython from binary directory default
 if gcc_mode and sys.platform != "darwin" and not win_target:

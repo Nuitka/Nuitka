@@ -129,12 +129,12 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
         function_locals = local_reals + local_type_init
 
     return template_genfunc_yielder_body_template % {
-        "function_identifier" : function_identifier,
-        "function_body"       : indented(function_codes.codes),
+        "function_identifier"  : function_identifier,
+        "function_body"        : indented(function_codes.codes),
         "function_local_types" : indented(local_type_decl),
-        "function_var_inits"  : indented(function_locals),
-        "function_dispatch"   : indented(function_dispatch),
-        "generator_exit"      : generator_exit
+        "function_var_inits"   : indented(function_locals),
+        "function_dispatch"    : indented(function_dispatch),
+        "generator_exit"       : generator_exit
     }
 
 
