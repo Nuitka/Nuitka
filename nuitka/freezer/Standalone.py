@@ -52,6 +52,7 @@ from nuitka.utils.FileOperations import (
     getSubDirectories,
     listDir
 )
+from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import getDependsExePath
 
@@ -804,11 +805,12 @@ def detectBinaryDLLs(original_filename, binary_filename, package_name):
             dll_filename = original_filename
         )
     elif Utils.getOS() == "Windows":
-        return _detectBinaryPathDLLsWindows(
-            original_dir    = os.path.dirname(original_filename),
-            binary_filename = binary_filename,
-            package_name    = package_name
-        )
+        with TimerReport("Running depends.exe for %s took %%.2f seconds" % binary_filename):
+            return _detectBinaryPathDLLsWindows(
+                original_dir    = os.path.dirname(original_filename),
+                binary_filename = binary_filename,
+                package_name    = package_name
+            )
     elif Utils.getOS() == "Darwin":
         return _detectBinaryPathDLLsMacOS(
             binary_filename = original_filename
