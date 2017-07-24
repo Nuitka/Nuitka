@@ -108,14 +108,20 @@ class SearchModeResume(SearchModeBase):
         SearchModeBase.__init__(self)
 
         tests_path = os.path.normcase(os.path.abspath(tests_path))
+        version = sys.version
+
         if str is not bytes:
             tests_path = tests_path.encode("utf8")
+            version = version.encode("utf8")
+
+        case_hash = hashlib.md5(tests_path)
+        case_hash.update(version)
 
         from .Common import getTestingCacheDir
 
         cache_filename = os.path.join(
             getTestingCacheDir(),
-            hashlib.md5(tests_path).hexdigest()
+            case_hash.hexdigest()
         )
 
         self.cache_filename = cache_filename
