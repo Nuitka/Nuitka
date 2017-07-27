@@ -29,6 +29,7 @@ recursive-include tests/basics *.py
 recursive-include tests/syntax *.py
 recursive-include tests/packages *.py
 recursive-include tests/programs *.py
+include tests/programs/pkgutil_usage/package/DATA_FILE.txt
 recursive-include tests/optimizations *.py
 recursive-include tests/standalone *.py
 recursive-include tests/reflected *.py

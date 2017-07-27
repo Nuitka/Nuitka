@@ -415,7 +415,11 @@ def _getConstantDefaultPopulation():
         "globals",
         "locals",
         "fromlist",
-        "level"
+        "level",
+
+        # Meta path based loader.
+        "read",
+        "rb"
     ]
 
     if python_version >= 300:

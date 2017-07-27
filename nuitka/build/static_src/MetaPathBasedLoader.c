@@ -134,6 +134,55 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
     return Py_None;
 }
 
+static char *_kwlist_get_data[] = {
+    (char *)"filename",
+    NULL
+};
+
+extern PyObject *const_str_plain_read, *const_str_plain_rb;
+
+static PyObject *_path_unfreezer_get_data( PyObject *self, PyObject *args, PyObject *kwds )
+{
+    PyObject *filename;
+
+    int res = PyArg_ParseTupleAndKeywords(
+        args,
+        kwds,
+        "O:get_data",
+        _kwlist_get_data,
+        &filename
+    );
+
+    if (unlikely( res == 0 ))
+    {
+        return NULL;
+    }
+
+#if PYTHON_VERSION < 300
+    PyObject *data_file = BUILTIN_OPEN( filename, const_str_plain_rb, NULL );
+#else
+    PyObject *data_file = BUILTIN_OPEN( filename, const_str_plain_rb, NULL, NULL, NULL, NULL, NULL, NULL );
+#endif
+    if (unlikely( data_file == NULL ))
+    {
+        // TODO: Issue a runtime warning maybe.
+        return NULL;
+    }
+
+    PyObject *read_method = PyObject_GetAttr( data_file, const_str_plain_read );
+    Py_DECREF( data_file );
+
+    if (unlikely( read_method == NULL ))
+    {
+        return NULL;
+    }
+
+    PyObject *result = CALL_FUNCTION_NO_ARGS( read_method );
+    Py_DECREF( read_method );
+    return result;
+}
+
+
 #ifdef _NUITKA_STANDALONE
 
 #if PYTHON_VERSION < 300
@@ -827,6 +876,13 @@ static PyObject *_path_unfreezer_find_spec( PyObject *self, PyObject *args, PyOb
 
 #endif
 
+static PyMethodDef _method_def_loader_get_data =
+{
+    "get_data",
+    (PyCFunction)_path_unfreezer_get_data,
+    METH_VARARGS | METH_KEYWORDS,
+    NULL
+};
 
 static PyMethodDef _method_def_loader_find_module =
 {
@@ -887,6 +943,13 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
     // the module, and "load_module" that does the actual thing.
     PyObject *method_dict = PyDict_New();
     CHECK_OBJECT( method_dict );
+
+    PyObject *loader_get_data = PyCFunction_New(
+        &_method_def_loader_get_data,
+        NULL
+    );
+    CHECK_OBJECT( loader_get_data );
+    PyDict_SetItemString( method_dict, "get_data", loader_get_data );
 
     PyObject *loader_find_module = PyCFunction_New(
         &_method_def_loader_find_module,
