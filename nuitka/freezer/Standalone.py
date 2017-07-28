@@ -583,7 +583,7 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
     return result
 
 
-def _detectBinaryPathDLLsMacOS(binary_filename):
+def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
     result = set()
 
     process = subprocess.Popen(
@@ -612,6 +612,9 @@ def _detectBinaryPathDLLsMacOS(binary_filename):
         if not stop:
             if python_version >= 300:
                 filename = filename.decode("utf-8")
+
+                if filename.startswith("@rpath/"):
+                    filename = os.path.join(original_dir, filename[7:])
 
             # print "adding", filename
             result.add(filename)
@@ -813,6 +816,7 @@ def detectBinaryDLLs(original_filename, binary_filename, package_name):
             )
     elif Utils.getOS() == "Darwin":
         return _detectBinaryPathDLLsMacOS(
+            original_dir    = os.path.dirname(original_filename),
             binary_filename = original_filename
         )
     else:
