@@ -214,11 +214,6 @@ def optimizeUnusedClosureVariables(function_body):
 
         variable_name = closure_variable.getName()
 
-        # These will be used in code generation for "super" maybe.
-        if function_body.hasFlag("has_super") and \
-           variable_name == "__class__":
-            continue
-
         variable_traces = function_body.trace_collection.getVariableTraces(
             variable = closure_variable
         )

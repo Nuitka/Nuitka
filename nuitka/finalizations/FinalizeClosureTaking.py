@@ -32,9 +32,6 @@ from .FinalizeBase import FinalizationVisitorBase
 class FinalizeClassClosure(FinalizationVisitorBase):
     def onEnterNode(self, function_body):
         for closure_variable in function_body.getClosureVariables():
-            if closure_variable.getName() not in ("__class__", "self"):
-                continue
-
             variable_traces = function_body.trace_collection.getVariableTraces(
                 variable = closure_variable
             )
