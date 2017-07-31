@@ -358,6 +358,8 @@ def _checkPluginPath(plugin_filename, module_package):
 
 
 def checkPluginPath(plugin_filename, module_package):
+    plugin_filename = os.path.normpath(plugin_filename)
+
     debug(
         "Checking top level plug-in path %s %s",
         plugin_filename,
