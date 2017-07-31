@@ -30,7 +30,7 @@ from nuitka.importing.Importing import (
     getModuleNameAndKindFromFilename
 )
 from nuitka.importing.Recursion import decideRecursion, recurseTo
-from nuitka.ModuleRegistry import getOwnerFromCodeName
+from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference, fromFilename
@@ -96,7 +96,10 @@ class PythonModuleBase(NodeBase):
         result = []
 
         if self.package_name is not None and self.package is None:
-            package_package, package_filename, _finding = findModule(
+            self.package = getModuleByName(self.package_name)
+
+        if self.package_name is not None and self.package is None:
+            package_package, package_filename, finding = findModule(
                 importing      = self,
                 module_name    = self.package_name,
                 parent_package = None,
@@ -112,7 +115,7 @@ class PythonModuleBase(NodeBase):
             if self.package_name == "uniconvertor.app.modules":
                 return []
 
-            assert package_filename is not None, self.package_name
+            assert package_filename is not None, (self.package_name, finding)
 
             _package_name, package_kind = getModuleNameAndKindFromFilename(package_filename)
             # assert _package_name == self.package_name, (package_filename, _package_name, self.package_name)
@@ -460,7 +463,7 @@ class CompiledPythonPackage(CompiledPythonModule):
     kind = "COMPILED_PYTHON_PACKAGE"
 
     def __init__(self, name, package_name, mode, future_spec, source_ref):
-        assert name
+        assert name, source_ref
 
         CompiledPythonModule.__init__(
             self,

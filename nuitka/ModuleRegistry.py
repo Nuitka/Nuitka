@@ -218,3 +218,19 @@ def getOwnerFromCodeName(code_name):
         return module.getFunctionFromCodeName(code_name)
     else:
         return getModuleFromCodeName(code_name)
+
+
+def getModuleByName(module_name):
+    for module in active_modules:
+        if module.getFullName() == module_name:
+            return module
+
+    for module in done_modules:
+        if module.getFullName() == module_name:
+            return module
+
+    for module in uncompiled_modules:
+        if module.getFullName() == module_name:
+            return module
+
+    return None
