@@ -44,6 +44,7 @@ from logging import warning
 
 from nuitka import Options
 from nuitka.containers.oset import OrderedSet
+from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.utils.FileOperations import listDir
@@ -129,12 +130,19 @@ def getModuleNameAndKindFromFilename(module_filename):
     return module_name, module_kind
 
 
+def isWhiteListedImport(node):
+    module = node.getParentModule()
+
+    return StandardLibrary.isStandardLibraryPath(module.getFilename())
+
+
 def warnAbout(importing, module_name, parent_package, level):
     # This probably should not be dealt with here.
     if module_name == "":
         return
 
-    if not isWhiteListedNotExistingModule(module_name):
+    if not isWhiteListedImport(importing) and \
+       not isWhiteListedNotExistingModule(module_name):
         key = module_name, parent_package, level
 
         if key not in warned_about:

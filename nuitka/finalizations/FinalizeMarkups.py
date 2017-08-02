@@ -34,17 +34,12 @@ are in another context.
 from logging import warning
 
 from nuitka import Options, Tracing
-from nuitka.importing import StandardLibrary
+from nuitka.importing.Importing import isWhiteListedImport
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 
 from .FinalizeBase import FinalizationVisitorBase
 
-
-def isWhiteListedImport(node):
-    module = node.getParentModule()
-
-    return StandardLibrary.isStandardLibraryPath(module.getFilename())
 
 class FinalizeMarkups(FinalizationVisitorBase):
     def onEnterNode(self, node):

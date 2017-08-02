@@ -276,11 +276,24 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # psutils
         "_psutil_windows",
+
+        # nose
+        "unittest2", "IronPython", "clr", "compiler.consts", "new",
+
+        # pkg_resources
+        "pkg_resources.extern",
+
+        # appdirs
+        "com.sun", "win32com"
     )
 
 
 def isWhiteListedNotExistingModule(module_name):
-    result = module_name in getModuleWhiteList()
+    result = False
+    for white_listed in getModuleWhiteList():
+        if module_name == white_listed or module_name.startswith(white_listed + '.'):
+            result = True
+            break
 
     if not result and module_name in sys.builtin_module_names:
         warning("""\
