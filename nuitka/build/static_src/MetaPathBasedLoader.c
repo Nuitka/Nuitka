@@ -36,6 +36,8 @@
 #include "nuitka/prelude.h"
 #include "nuitka/unfreezing.h"
 
+extern char *getDirname( char *path );
+
 // For Python3.3, the loader is a module attribute, so we need to make it
 // accessible from this variable.
 #if PYTHON_VERSION < 330
@@ -43,13 +45,24 @@ static
 #endif
 PyObject *metapath_based_loader = NULL;
 
-static struct Nuitka_MetaPathBasedLoaderEntry *loader_entries = NULL;
+#ifdef _NUITKA_EXE
+static inline bool isVerbose( void )
+{
+    return Py_VerboseFlag;
+}
+#elif _NUITKA_SYSFLAG_VERBOSE
+static inline bool isVerbose( void )
+{
+    return true;
+}
+#else
+static inline bool isVerbose( void )
+{
+    return false;
+}
+#endif
 
-static char *_kwlist[] = {
-    (char *)"fullname",
-    (char *)"unused",
-    NULL
-};
+static struct Nuitka_MetaPathBasedLoaderEntry *loader_entries = NULL;
 
 static bool hasFrozenModule( char const *name )
 {
@@ -69,6 +82,157 @@ static bool hasFrozenModule( char const *name )
     return true;
 }
 
+static char *copyModulenameAsPath( char *buffer, char const *module_name )
+{
+    while( *module_name )
+    {
+        if ( *module_name == '.' )
+        {
+            *buffer++ = SEP;
+            module_name++;
+        }
+        else
+        {
+            *buffer++ = *module_name++;
+        }
+    }
+
+    *buffer = 0;
+
+    return buffer;
+}
+
+extern PyObject *const_str_plain___path__;
+extern PyObject *const_str_plain___file__;
+extern PyObject *const_str_plain___loader__;
+
+static PyObject *loadModuleFromCodeObject( PyCodeObject *code_object, char const *filename, char const *name, bool is_package )
+{
+    assert( code_object != NULL );
+
+    PyObject *modules = PyImport_GetModuleDict();
+    PyObject *module;
+
+    assert( PyDict_GetItemString( modules, name ) == NULL );
+
+    module = PyModule_New( name );
+    assert( module != NULL );
+
+    int res = PyDict_SetItemString( modules, name, module );
+    assert( res == 0 );
+
+    char buffer[ MAXPATHLEN+1 ];
+
+    PyObject *module_path_entry = NULL;
+
+    if ( filename != NULL )
+    {
+        if ( is_package )
+        {
+            strncpy( buffer, filename, sizeof(buffer)-1 );
+            char const *path = getDirname( buffer );
+
+#if PYTHON_VERSION < 300
+            PyObject *module_path_entry_base = PyString_FromString( path );
+#else
+            PyObject *module_path_entry_base = PyUnicode_FromString( path );
+#endif
+            module_path_entry = MAKE_RELATIVE_PATH( module_path_entry_base );
+            Py_DECREF( module_path_entry_base );
+        }
+    }
+    else if ( is_package )
+    {
+        copyModulenameAsPath( buffer, name );
+#if PYTHON_VERSION < 300
+        PyObject *module_path_entry_base = PyString_FromString( buffer );
+#else
+        PyObject *module_path_entry_base = PyUnicode_FromString( buffer );
+#endif
+        module_path_entry = MAKE_RELATIVE_PATH( module_path_entry_base );
+        Py_DECREF( module_path_entry_base );
+
+        char sep_str[2] = { SEP, 0 };
+        strncat( buffer, sep_str, sizeof(buffer)-1 );
+        strncat( buffer, "__init__.py", sizeof(buffer)-1 );
+
+        filename = buffer;
+    }
+    else
+    {
+        copyModulenameAsPath( buffer, name );
+        strncat( buffer, ".py", sizeof(buffer)-1 );
+
+        filename = buffer;
+    }
+
+#if PYTHON_VERSION < 300
+    PyObject *module_path_name = PyString_FromString( filename );
+#else
+    PyObject *module_path_name = PyUnicode_FromString( filename );
+#endif
+
+    PyObject *module_path = MAKE_RELATIVE_PATH( module_path_name );
+    Py_DECREF( module_path_name );
+
+    if ( is_package )
+    {
+        /* Set __path__ properly, unlike frozen module importer does. */
+        PyObject *path_list = PyList_New(1);
+        if (unlikely( path_list == NULL )) return NULL;
+
+        res = PyList_SetItem( path_list, 0, module_path_entry );
+        if (unlikely( res != 0 )) return NULL;
+        Py_INCREF( module_path_entry );
+
+        res = PyObject_SetAttr( module, const_str_plain___path__, path_list );
+        if (unlikely( res != 0 )) return NULL;
+
+        Py_DECREF( path_list );
+    }
+
+    module = PyImport_ExecCodeModuleEx(
+        (char *)name,
+        (PyObject *)code_object,
+        Nuitka_String_AsString( module_path )
+    );
+
+    Py_DECREF( module_path );
+
+#if PYTHON_VERSION >= 330
+    if ( module != NULL )
+    {
+        res = PyObject_SetAttr( module, const_str_plain___loader__, metapath_based_loader );
+        if (unlikely( res != 0 )) return NULL;
+    }
+#endif
+
+    return module;
+}
+
+static struct Nuitka_MetaPathBasedLoaderEntry *findEntry( char const *name )
+{
+    struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
+    assert( current );
+
+    while ( current->name != NULL )
+    {
+        if ( strcmp( name, current->name ) == 0 )
+        {
+            return current;
+        }
+
+        current++;
+    }
+
+    return NULL;
+}
+
+static char *_kwlist[] = {
+    (char *)"fullname",
+    (char *)"unused",
+    NULL
+};
 
 static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, PyObject *kwds )
 {
@@ -91,32 +255,30 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
 
     char const *name = Nuitka_String_AsString( module_name );
 
-    if ( Py_VerboseFlag )
+    if ( isVerbose() )
     {
         PySys_WriteStderr( "import %s # considering responsibility\n", name );
     }
 
-    struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
+    struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
 
-    while ( current->name != NULL )
+    if ( entry )
     {
-        if ( strcmp( name, current->name ) == 0 )
+        if ( isVerbose() )
         {
-            if ( Py_VerboseFlag )
-            {
-                PySys_WriteStderr( "import %s # claimed responsibility (compiled)\n", name );
-            }
-
-            Py_INCREF( metapath_based_loader );
-            return metapath_based_loader;
+            PySys_WriteStderr(
+                "import %s # claimed responsibility (compiled)\n",
+                name
+            );
         }
 
-        current++;
+        Py_INCREF( metapath_based_loader );
+        return metapath_based_loader;
     }
 
     if ( hasFrozenModule( name ) )
     {
-        if ( Py_VerboseFlag )
+        if ( isVerbose() )
         {
             PySys_WriteStderr( "import %s # claimed responsibility (frozen)\n", name );
         }
@@ -125,7 +287,7 @@ static PyObject *_path_unfreezer_find_module( PyObject *self, PyObject *args, Py
         return metapath_based_loader;
     }
 
-    if ( Py_VerboseFlag )
+    if ( isVerbose() )
     {
         PySys_WriteStderr( "import %s # denied responsibility\n", name );
     }
@@ -231,7 +393,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
 #ifdef _WIN32
     unsigned int old_mode = SetErrorMode( SEM_FAILCRITICALERRORS );
 
-    if ( Py_VerboseFlag )
+    if ( isVerbose() )
     {
         PySys_WriteStderr(
             "import %s # LoadLibraryEx(\"%s\");\n",
@@ -254,7 +416,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
 #else
     int dlopenflags = PyThreadState_GET()->interp->dlopenflags;
 
-    if ( Py_VerboseFlag )
+    if ( isVerbose() )
     {
         PySys_WriteStderr(
             "import %s # dlopen(\"%s\", %x);\n",
@@ -437,24 +599,6 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
 #endif
 
 
-static struct Nuitka_MetaPathBasedLoaderEntry *findEntry( char const *name )
-{
-    struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
-
-    assert( current );
-
-    while ( current->name != NULL )
-    {
-        if ( strcmp( name, current->name ) == 0 )
-        {
-            return current;
-        }
-
-        current++;
-    }
-
-    return NULL;
-}
 
 static void loadTriggeredModule( char const *name, char const *trigger_name )
 {
@@ -467,7 +611,7 @@ static void loadTriggeredModule( char const *name, char const *trigger_name )
 
     if ( entry != NULL )
     {
-        if ( Py_VerboseFlag )
+        if ( isVerbose() )
         {
             PySys_WriteStderr( "Loading %s\n", trigger_module_name );
         }
@@ -482,29 +626,6 @@ static void loadTriggeredModule( char const *name, char const *trigger_name )
     }
 }
 
-static char *copyModulenameAsPath( char *buffer, char const *module_name )
-{
-    while( *module_name )
-    {
-        if ( *module_name == '.' )
-        {
-            *buffer++ = SEP;
-            module_name++;
-        }
-        else
-        {
-            *buffer++ = *module_name++;
-        }
-    }
-
-    *buffer = 0;
-
-    return buffer;
-}
-
-extern PyObject *const_str_plain___path__;
-extern PyObject *const_str_plain___file__;
-extern PyObject *const_str_plain___loader__;
 
 static PyObject *loadModule( PyObject *module_name, struct Nuitka_MetaPathBasedLoaderEntry *entry )
 {
@@ -540,87 +661,24 @@ static PyObject *loadModule( PyObject *module_name, struct Nuitka_MetaPathBasedL
 #endif
     if ( ( entry->flags & NUITKA_BYTECODE_FLAG ) != 0 )
     {
-        PyObject *code_object = PyMarshal_ReadObjectFromString(
+        PyCodeObject *code_object = (PyCodeObject *)PyMarshal_ReadObjectFromString(
             (char *)&constant_bin[ entry->bytecode_start ],
             entry->bytecode_size
         );
 
-        if ( code_object == NULL)
+        // TODO: Probably a bit harsh reaction.
+        if (unlikely( code_object == NULL ))
         {
             PyErr_Print();
             abort();
         }
-        assert (code_object != NULL);
 
-        PyObject *modules = PyImport_GetModuleDict();
-        PyObject *module;
-
-        assert( PyDict_GetItemString( modules, entry->name ) == NULL );
-
-        module = PyModule_New( entry->name );
-        assert( module != NULL );
-
-        int res = PyDict_SetItemString( modules, entry->name, module );
-        assert( res == 0 );
-
-        char buffer[ 1024 ];
-        copyModulenameAsPath( buffer, entry->name );
-
-        PyObject *module_path_entry = NULL;
-
-        if ( ( entry->flags & NUITKA_PACKAGE_FLAG ) != 0 )
-        {
-#if PYTHON_VERSION < 300
-            PyObject *module_path_entry_base = PyString_FromString( buffer );
-#else
-            PyObject *module_path_entry_base = PyUnicode_FromString( buffer );
-#endif
-            module_path_entry = MAKE_RELATIVE_PATH( module_path_entry_base );
-            Py_DECREF( module_path_entry_base );
-
-            char sep_str[2] = { SEP, 0 };
-            strncat( buffer, sep_str, sizeof(buffer)-1 );
-            strncat( buffer, "__init__.py", sizeof(buffer)-1 );
-        }
-        else
-        {
-            strncat( buffer, ".py", sizeof(buffer)-1 );
-        }
-
-#if PYTHON_VERSION < 300
-        PyObject *module_path_name = PyString_FromString( buffer );
-#else
-        PyObject *module_path_name = PyUnicode_FromString( buffer );
-#endif
-        PyObject *module_path = MAKE_RELATIVE_PATH( module_path_name );
-        Py_DECREF( module_path_name );
-
-        if ( ( entry->flags & NUITKA_PACKAGE_FLAG ) != 0 )
-        {
-            /* Set __path__ properly, unlike frozen module importer does. */
-            PyObject *path_list = PyList_New(1);
-            if (unlikely( path_list == NULL )) return NULL;
-
-            res = PyList_SetItem( path_list, 0, module_path_entry );
-            if (unlikely( res != 0 )) return NULL;
-
-            res = PyObject_SetAttr( module, const_str_plain___path__, path_list );
-            if (unlikely( res != 0 )) return NULL;
-
-            Py_DECREF( path_list );
-            // Py_DECREF( module_path_entry );
-        }
-
-        module = PyImport_ExecCodeModuleEx( (char *)entry->name, code_object, Nuitka_String_AsString_Unchecked( module_path ) );
-        Py_DECREF( module_path );
-
-#if PYTHON_VERSION >= 330
-        if ( module != NULL )
-        {
-            res = PyObject_SetAttr( module, const_str_plain___loader__, metapath_based_loader );
-            if (unlikely( res != 0 )) return NULL;
-        }
-#endif
+        return loadModuleFromCodeObject(
+            code_object,
+            NULL,
+            entry->name,
+            ( entry->flags & NUITKA_PACKAGE_FLAG ) != 0
+        );
     }
     else
     {
@@ -634,7 +692,7 @@ static PyObject *loadModule( PyObject *module_name, struct Nuitka_MetaPathBasedL
         return NULL;
     }
 
-    if ( Py_VerboseFlag )
+    if ( isVerbose() )
     {
         PySys_WriteStderr( "Loaded %s\n", entry->name );
     }
@@ -724,7 +782,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
 
     char *const name = Nuitka_String_AsString( module_name );
 
-    if ( Py_VerboseFlag )
+    if ( isVerbose() )
     {
         PySys_WriteStderr( "Loading %s\n", name );
     }
@@ -1007,9 +1065,9 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
 
     CHECK_OBJECT( metapath_based_loader );
 
-    if ( Py_VerboseFlag )
+    if ( isVerbose() )
     {
-        PySys_WriteStderr( "setup nuitka compiled module/bytecode/shlib importer\n" );
+        PySys_WriteStderr( "Setup nuitka compiled module/bytecode/shlib importer.\n" );
     }
 
     // Register it as a meta path loader.

@@ -26,17 +26,19 @@
 #define NUITKA_PACKAGE_FLAG 2
 #define NUITKA_BYTECODE_FLAG 4
 
+#if PYTHON_VERSION < 300
+typedef void (*module_initfunc)( void );
+#else
+typedef PyObject * (*module_initfunc)( void );
+#endif
+
 struct Nuitka_MetaPathBasedLoaderEntry
 {
     /* Full module name, including package name. */
-    char *name;
+    char const *name;
 
     /* Entry function if compiled module, otherwise NULL. */
-#if PYTHON_VERSION < 300
-    void (*python_initfunc)( void );
-#else
-    PyObject * (*python_initfunc)( void );
-#endif
+    module_initfunc python_initfunc;
 
     /* For bytecode modules, start and size inside the constants blob. */
     int bytecode_start;

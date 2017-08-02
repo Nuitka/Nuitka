@@ -50,7 +50,7 @@ from .TreeHelpers import (
 from .VariableClosure import completeVariableClosures
 
 
-def createPathAssignment(source_ref):
+def createPathAssignment(package, source_ref):
     if Options.getFileReferenceMode() == "original":
         path_value = makeConstantRefNode(
             constant      = [
@@ -62,29 +62,79 @@ def createPathAssignment(source_ref):
             user_provided = True
         )
     else:
-        path_value = ExpressionMakeList(
-            elements   = (
-                ExpressionCallNoKeywords(
-                    called     = ExpressionAttributeLookup(
-                        source         = ExpressionImportModuleHard(
-                            module_name = "os",
-                            import_name = "path",
-                            source_ref  = source_ref
-                        ),
-                        attribute_name = "dirname",
-                        source_ref     = source_ref
+        elements = [
+            ExpressionCallNoKeywords(
+                called     = ExpressionAttributeLookup(
+                    source         = ExpressionImportModuleHard(
+                        module_name = "os",
+                        import_name = "path",
+                        source_ref  = source_ref
                     ),
-                    args       = ExpressionMakeTuple(
-                        elements   = (
-                            ExpressionModuleFileAttributeRef(
-                                source_ref = source_ref,
-                            ),
+                    attribute_name = "dirname",
+                    source_ref     = source_ref
+                ),
+                args       = ExpressionMakeTuple(
+                    elements   = (
+                        ExpressionModuleFileAttributeRef(
+                            source_ref = source_ref,
                         ),
-                        source_ref = source_ref,
                     ),
                     source_ref = source_ref,
                 ),
-            ),
+                source_ref = source_ref,
+            )
+        ]
+
+        def makeCall(module_name, import_name, attribute_name, *args):
+            return ExpressionCallNoKeywords(
+                called     = ExpressionAttributeLookup(
+                    source         = ExpressionImportModuleHard(
+                        module_name = module_name,
+                        import_name = import_name,
+                        source_ref  = source_ref
+                    ),
+                    attribute_name = attribute_name,
+                    source_ref     = source_ref
+                ),
+                args       = ExpressionMakeTuple(
+                    elements   = args,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+
+        if package.canHaveExternalImports():
+            parts = package.getFullName().split('.')
+
+            for count in range(len(parts)):
+                path_part = makeCall(
+                    "os", "environ", "get",
+                        makeConstantRefNode(
+                            constant   = "NUITKA_PACKAGE_%s" % '_'.join(
+                                parts[:count+1]
+                            ),
+                            source_ref = source_ref,
+                        ),
+                        makeConstantRefNode(
+                            constant   = "/notexist",
+                            source_ref = source_ref,
+                        )
+                )
+
+                if parts[count+1:]:
+                    path_part = makeCall(
+                        "os", "path", "join",
+                        path_part,
+                        makeConstantRefNode(
+                            constant   = os.path.join(*parts[count+1:]),
+                            source_ref = source_ref,
+                        )
+                    )
+
+                elements.append(path_part)
+
+        path_value = ExpressionMakeList(
+            elements   = elements,
             source_ref = source_ref
         )
 
@@ -148,7 +198,7 @@ def createNamespacePackage(package_name, module_relpath):
             source_ref     = source_ref
         )
     else:
-        statement = createPathAssignment(source_ref)
+        statement = createPathAssignment(package, source_ref)
 
     package.setBody(
         makeStatementsSequenceFromStatement(

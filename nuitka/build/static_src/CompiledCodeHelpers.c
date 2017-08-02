@@ -28,6 +28,7 @@
 
 #include "nuitka/prelude.h"
 
+#include "HelpersPathTools.c"
 #include "HelpersBuiltin.c"
 #include "HelpersStrings.c"
 

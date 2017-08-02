@@ -477,6 +477,9 @@ class CompiledPythonPackage(CompiledPythonModule):
     def getOutputFilename(self):
         return os.path.dirname(self.getFilename())
 
+    def canHaveExternalImports(self):
+        return True
+
 
 def makeUncompiledPythonModule(module_name, filename, bytecode, is_package,
                                user_provided, technical):

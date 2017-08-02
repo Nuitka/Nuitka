@@ -803,7 +803,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         if provider.isCompiledPythonPackage():
             # This assigns "__path__" value.
             statements.append(
-                createPathAssignment(internal_source_ref)
+                createPathAssignment(provider, internal_source_ref)
             )
 
     if python_version >= 300:
