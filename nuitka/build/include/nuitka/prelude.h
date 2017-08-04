@@ -39,12 +39,21 @@
 #define initstate system_initstate
 #endif
 
-/* Include the Python C-API header files. */
+/* Include the relevant Python C-API header files. */
 #include "Python.h"
 #include "methodobject.h"
 #include "frameobject.h"
 #include "pydebug.h"
 #include "marshal.h"
+
+/* The bool type. From Python2 header or self defined for Python3. */
+#if PYTHON_VERSION < 300
+#include "asdl.h"
+#else
+#ifndef __cplusplus
+typedef enum {false, true} bool;
+#endif
+#endif
 
 /* See above. */
 #if PYTHON_VERSION < 300
@@ -61,13 +70,6 @@
  */
 #ifdef _MSC_VER
 #include <malloc.h>
-#endif
-
-/* C bool type */
-#ifndef __cplusplus
-typedef int bool;
-#define true 1
-#define false 0
 #endif
 
 /* An idea I first saw used with Cython, hint the compiler about branches
