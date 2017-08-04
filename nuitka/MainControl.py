@@ -272,7 +272,7 @@ def makeSourceDirectory(main_module):
 
     """
     # We deal with a lot of details here, but rather one by one, and split makes
-    # no sense, pylint: disable=too-many-branches,too-many-locals
+    # no sense, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     assert main_module.isCompiledPythonModule()
 
@@ -308,6 +308,9 @@ def makeSourceDirectory(main_module):
     # Lets check if the recurse-to modules are actually present, and warn the
     # user if one of those was not found.
     for any_case_module in Options.getShallFollowModules():
+        if '*' in any_case_module or '{' in any_case_module:
+            continue
+
         for module in ModuleRegistry.getDoneUserModules():
             if module.getFullName() == any_case_module:
                 break
@@ -757,11 +760,14 @@ def main():
         handleSyntaxError(e)
 
     if Options.shallDumpBuiltTreeXML():
+        # XML only.
         for module in ModuleRegistry.getDoneModules():
             dumpTreeXML(module)
     elif Options.shallDisplayBuiltTree():
+        # GUI only.
         displayTree(main_module)
     else:
+        # Make the actual compilation.
         result, options = compileTree(
             main_module = main_module
         )

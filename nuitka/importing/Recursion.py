@@ -31,6 +31,7 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.FileOperations import listDir, relpath
+import fnmatch
 
 
 def logRecursion(*args):
@@ -38,6 +39,20 @@ def logRecursion(*args):
         info(*args)
     else:
         debug(*args)
+
+
+def matchesModuleNameToPatterns(module_name, patterns):
+    for pattern in patterns:
+        if module_name == pattern:
+            return True, "is exact match of %r" % pattern
+        elif module_name.startswith(pattern):
+            return True, "is package content of %r" % pattern
+        elif fnmatch.fnmatch(module_name, pattern):
+            return True, "matches pattern %r" % pattern
+        elif fnmatch.fnmatch(module_name, pattern + ".*"):
+            return True, "is package content of match to pattern %r" % pattern
+
+    return False, None
 
 
 def _recurseTo(module_package, module_filename, module_relpath, module_kind,
@@ -177,35 +192,27 @@ def decideRecursion(module_filename, module_name, module_package, module_kind):
     else:
         full_name = module_package + '.' + module_name
 
-    no_case_modules = Options.getShallFollowInNoCase()
+    no_case, reason = matchesModuleNameToPatterns(
+        module_name = full_name,
+        patterns    = Options.getShallFollowInNoCase()
+    )
 
-    for no_case_module in no_case_modules:
-        if full_name == no_case_module:
-            return (
-                False,
-                "Module listed explicitly to not recurse to."
-            )
+    if no_case:
+        return (
+            False,
+            "Module %s instructed by user to not recurse to." % reason
+        )
 
-        if full_name.startswith(no_case_module + '.'):
-            return (
-                False,
-                "Module in package listed explicitly to not recurse to."
-            )
+    any_case, reason = matchesModuleNameToPatterns(
+        module_name = full_name,
+        patterns    = Options.getShallFollowModules()
+    )
 
-    any_case_modules = Options.getShallFollowModules()
-
-    for any_case_module in any_case_modules:
-        if full_name == any_case_module:
-            return (
-                True,
-                "Module listed explicitly to recurse to."
-            )
-
-        if full_name.startswith(any_case_module + '.'):
-            return (
-                True,
-                "Module in package listed explicitly to recurse to."
-            )
+    if any_case:
+        return (
+            True,
+            "Module %s instructed by user to recurse to." % reason
+        )
 
     if Options.shallFollowNoImports():
         return (

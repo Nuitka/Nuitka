@@ -831,6 +831,9 @@ def getFileReferenceMode():
 def shallMakeModule():
     return not options.executable
 
+def isAllowedToReexecute():
+    return options.allow_reexecute
+
 def shallFollowStandardLibrary():
     return options.recurse_stdlib
 
@@ -840,14 +843,14 @@ def shallFollowNoImports():
 def shallFollowAllImports():
     return options.recurse_all
 
-def getShallFollowModules():
-    return sum([ x.split(',') for x in options.recurse_modules ], [])
-
-def isAllowedToReexecute():
-    return options.allow_reexecute
+def _splitShellPattern(value):
+    return value.split(',') if '{' not in value else [value]
 
 def getShallFollowInNoCase():
-    return sum([ x.split(',') for x in options.recurse_not_modules ], [])
+    return sum([ _splitShellPattern(x) for x in options.recurse_not_modules ], [])
+
+def getShallFollowModules():
+    return sum([ _splitShellPattern(x) for x in options.recurse_modules ], [])
 
 def getShallFollowExtra():
     return sum([ x.split(',') for x in options.recurse_extra ], [])
@@ -918,11 +921,14 @@ def getMsvcVersion():
 def shallDisableConsoleWindow():
     return options.win_disable_console
 
+
 def isFullCompat():
     return not options.improved
 
+
 def isShowProgress():
     return options.show_progress
+
 
 def isShowMemory():
     return options is not None and options.show_memory
