@@ -19,6 +19,7 @@
 
 """
 
+import fnmatch
 import glob
 import marshal
 import os
@@ -31,7 +32,6 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils.FileOperations import listDir, relpath
-import fnmatch
 
 
 def logRecursion(*args):
@@ -171,9 +171,10 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
         return module, False
 
 
-def decideRecursion(module_filename, module_name, module_package, module_kind):
+def decideRecursion(module_filename, module_name, module_package, module_kind,
+                    extra_recursion = False):
     # Many branches, which make decisions immediately, by returning
-    # pylint: disable=too-many-branches,too-many-return-statements
+    # pylint: disable=too-many-return-statements
     Plugins.onModuleEncounter(
         module_filename,
         module_name,
@@ -235,10 +236,16 @@ def decideRecursion(module_filename, module_name, module_package, module_kind):
         )
 
     # Means, we were not given instructions how to handle things.
-    return (
-        None,
-        "Default behavior, not recursing without request."
-    )
+    if extra_recursion:
+        return (
+            True,
+            "Lives in plug-in directory."
+        )
+    else:
+        return (
+            None,
+            "Default behavior, not recursing without request."
+        )
 
 
 def considerFilename(module_filename):
@@ -281,11 +288,12 @@ def _checkPluginPath(plugin_filename, module_package):
     module_name, module_kind = Importing.getModuleNameAndKindFromFilename(plugin_filename)
 
     if module_kind is not None:
-        decision, _reason = decideRecursion(
+        decision, reason = decideRecursion(
             module_filename = plugin_filename,
             module_name     = module_name,
             module_package  = module_package,
-            module_kind     = module_kind
+            module_kind     = module_kind,
+            extra_recursion = True
         )
 
         if decision:
@@ -296,7 +304,7 @@ def _checkPluginPath(plugin_filename, module_package):
                 module_relpath  = module_relpath,
                 module_package  = module_package,
                 module_kind     = "py",
-                reason          = "Lives in plug-in directory."
+                reason          = reason
             )
 
             if module:
@@ -310,8 +318,9 @@ def _checkPluginPath(plugin_filename, module_package):
 
                     if not isSameModulePath(module.getFilename(), plugin_filename):
                         warning(
-                            "Duplicate ignored '%s'.",
-                            plugin_filename
+                            "Duplicate '%s' of '%s' ignored .",
+                            plugin_filename,
+                            module.getFilename()
                         )
 
                         return
