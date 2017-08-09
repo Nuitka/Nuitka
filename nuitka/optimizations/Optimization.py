@@ -145,7 +145,10 @@ def optimizeShlibModule(module):
     # Pick up parent package if any.
     _attemptRecursion(module)
 
-    Plugins.considerImplicitImports(module, signal_change = signalChange)
+    Plugins.considerImplicitImports(
+        module,
+        signal_change = signalChange
+    )
 
 
 def optimizeModule(module):

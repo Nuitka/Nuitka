@@ -55,7 +55,8 @@ class NuitkaPluginPmw(NuitkaPluginBase):
             pmw_path = self.locateModule(
                 importing      = None,
                 module_name    = "Pmw",
-                module_package = None
+                module_package = None,
+                warn           = True
             )
 
             return self._packagePmw(pmw_path)

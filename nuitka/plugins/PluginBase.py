@@ -74,18 +74,21 @@ class NuitkaPluginBase(object):
             calls, as the "signal_change" part of this API is not to be cared
             about. Most prominently "getImplicitImports()".
         """
-        for full_name in self.getImplicitImports(module.getFullName()):
+        for full_name in self.getImplicitImports(module):
             module_name = full_name.split('.')[-1]
             module_package = '.'.join(full_name.split('.')[:-1]) or None
+
+            required = self.isRequiredImplicitImport(module, full_name)
 
             module_filename = self.locateModule(
                 importing      = module,
                 module_name    = module_name,
                 module_package = module_package,
+                warn           = required
             )
 
             if module_filename is None:
-                if self.isRequiredImplicitImport(full_name):
+                if required:
                     sys.exit(
                         "Error, implicit module '%s' expected by '%s' not found." % (
                             full_name,
@@ -122,7 +125,7 @@ class NuitkaPluginBase(object):
                     signal_change   = signal_change
                 )
 
-    def isRequiredImplicitImport(self, full_name):
+    def isRequiredImplicitImport(self, module, full_name):
         """ By default, if given as an implicit import, require it.
 
         """
@@ -131,7 +134,7 @@ class NuitkaPluginBase(object):
 
         return True
 
-    def getImplicitImports(self, full_name):
+    def getImplicitImports(self, module):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
@@ -237,7 +240,7 @@ class NuitkaPluginBase(object):
         pass
 
     @staticmethod
-    def locateModule(importing, module_name, module_package):
+    def locateModule(importing, module_name, module_package, warn):
         from nuitka.importing import Importing
 
         _module_package, module_filename, _finding = Importing.findModule(
@@ -245,7 +248,7 @@ class NuitkaPluginBase(object):
             module_name    = module_name,
             parent_package = module_package,
             level          = -1,
-            warn           = True
+            warn           = warn
         )
 
         return module_filename

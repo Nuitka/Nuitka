@@ -32,15 +32,25 @@ from nuitka.utils.Utils import getOS
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
-    def isRequiredImplicitImport(self, full_name):
+    def isRequiredImplicitImport(self, module, full_name):
         if full_name == "_tkinter":
             return False
+
+        if module.isPythonShlibModule():
+            if full_name in module.getUsedModules():
+                return False
 
         return True
 
 
-    def getImplicitImports(self, full_name):
+    def getImplicitImports(self, module):
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
+        full_name = module.getFullName()
+
+        if module.isPythonShlibModule():
+            for used_module in module.getUsedModules():
+                yield used_module
+
         # TODO: Move this out to some kind of configuration format.
         elements = full_name.split('.')
 

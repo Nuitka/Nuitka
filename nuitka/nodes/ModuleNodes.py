@@ -128,7 +128,7 @@ class PythonModuleBase(NodeBase):
             )
 
             if decision is not None:
-                imported_module, is_added = recurseTo(
+                self.package, is_added = recurseTo(
                     module_package  = package_package,
                     module_filename = package_filename,
                     module_relpath  = relpath(package_filename),
@@ -136,10 +136,8 @@ class PythonModuleBase(NodeBase):
                     reason          = "Containing package of recursed module '%s'." % self.getFullName(),
                 )
 
-                self.package = imported_module
-
                 if is_added:
-                    result.append(imported_module)
+                    result.append(self.package)
 
         if self.package:
             from nuitka.ModuleRegistry import addUsedModule
@@ -477,7 +475,8 @@ class CompiledPythonPackage(CompiledPythonModule):
     def getOutputFilename(self):
         return os.path.dirname(self.getFilename())
 
-    def canHaveExternalImports(self):
+    @staticmethod
+    def canHaveExternalImports():
         return True
 
 
@@ -690,6 +689,8 @@ class PythonInternalModule(CompiledPythonModule):
 class PythonShlibModule(PythonModuleBase):
     kind = "PYTHON_SHLIB_MODULE"
 
+    __slots__ = "used_modules",
+
     avoid_duplicates = set()
 
     def __init__(self, name, package_name, source_ref):
@@ -711,6 +712,8 @@ class PythonShlibModule(PythonModuleBase):
         assert self.getFullName() not in self.avoid_duplicates, self.getFullName()
         self.avoid_duplicates.add(self.getFullName())
 
+        self.used_modules = None
+
     def getDetails(self):
         return {
             "name"         : self.name,
@@ -722,6 +725,72 @@ class PythonShlibModule(PythonModuleBase):
 
     def startTraversal(self):
         pass
+
+    def getPyIFilename(self):
+        """ Get Python type description filename. """
+
+        path = self.getFilename()
+        filename = os.path.basename(path)
+        dirname = os.path.dirname(path)
+
+        return os.path.join(dirname, filename.split('.')[0]) + ".pyi"
+
+    def _readPyPIFile(self):
+        """ Read the .pyi file if present and scan for dependencies. """
+
+        if self.used_modules is None:
+            pyi_filename = self.getPyIFilename()
+
+            if os.path.exists(pyi_filename):
+                pyi_deps = OrderedSet()
+
+                for line in open(pyi_filename):
+                    line = line.strip()
+
+                    if line.startswith("import "):
+                        imported = line[7:]
+
+                        pyi_deps.add(imported)
+                    elif line.startswith("from "):
+                        parts = line.split(None, 3)
+                        assert parts[0] == "from"
+                        assert parts[2] == "import"
+
+                        if parts[1] == "typing":
+                            continue
+
+                        pyi_deps.add(parts[1])
+
+                        imported = parts[3]
+                        if imported.startswith('('):
+                            # No multiline imports please
+                            assert imported.endswith(')')
+                            imported = imported[1:-1]
+
+                            assert imported
+
+                        if imported == '*':
+                            continue
+
+                        for name in imported.split(','):
+                            name = name.strip()
+
+                            pyi_deps.add(parts[1] + '.' + name)
+
+                if "typing" in pyi_deps:
+                    pyi_deps.discard("typing")
+
+                self.used_modules = tuple(pyi_deps)
+            else:
+                self.used_modules = ()
+
+    def getUsedModules(self):
+        self._readPyPIFile()
+
+        return self.used_modules
+
+    def getParentModule(self):
+        return self
 
 
 class ExpressionModuleFileAttributeRef(ExpressionBase):
