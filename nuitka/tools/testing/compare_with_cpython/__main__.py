@@ -416,6 +416,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
                         "..",
                         "..",
                         "..",
+                        "..",
                         "bin",
                         "nuitka"
                     )

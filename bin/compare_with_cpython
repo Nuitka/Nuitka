@@ -40,5 +40,5 @@ sys.path.insert(
     "/usr/share/nuitka"
 )
 
-from nuitka.tools.compare_with_cpython.__main__ import main # isort:skip
+from nuitka.tools.testing.compare_with_cpython.__main__ import main # isort:skip
 main()
