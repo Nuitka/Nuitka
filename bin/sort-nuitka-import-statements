@@ -36,5 +36,5 @@ sys.path.insert(
     )
 )
 
-from nuitka.tools.isort.__main__ import main # isort:skip
+from nuitka.tools.quality.isort.__main__ import main # isort:skip
 main()

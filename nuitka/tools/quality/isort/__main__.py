@@ -17,13 +17,15 @@
 #     limitations under the License.
 #
 
-""" Main program for autoformat tool.
+""" Sort import statements using isort for Nuitka source.
 
 """
 
 from __future__ import print_function
 
 import os
+import re
+import subprocess
 import sys
 from optparse import OptionParser
 
@@ -41,11 +43,16 @@ sys.path.insert(
     )
 )
 
-from nuitka.tools.Basics import goHome # isort:skip
-from nuitka.tools.ScanSources import scanTargets # isort:skip
-from .Autoformat import autoformat # isort:skip
+from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH # isort:skip
+from nuitka.tools.quality.ScanSources import scanTargets # isort:skip
+
 
 def main():
+    goHome()
+
+    # So isort finds nuitka package.
+    addPYTHONPATH(os.getcwd())
+
     parser = OptionParser()
 
     parser.add_option(
@@ -57,36 +64,41 @@ def main():
         Default is %default."""
     )
 
-    parser.add_option(
-        "--abort-on-parsing-error",
-        action  = "store_true",
-        dest    = "abort",
-        default = False,
-        help    = """\
-        Default is %default."""
-    )
-
-    options, positional_args = parser.parse_args()
+    _options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["bin", "nuitka"]
+        positional_args = ["bin", "nuitka", "tests/reflected/compile_itself.py"]
 
-    print("Working on:", positional_args)
-
-    positional_args = [
-        os.path.abspath(positional_arg)
-        for positional_arg in positional_args
-    ]
-    goHome()
-
-    found = False
+    target_files = []
     for filename in scanTargets(positional_args):
-        autoformat(filename, abort = options.abort)
-        found = True
 
-    if not found:
-        sys.exit("No files found.")
+        package_name = os.path.dirname(filename)
+        if package_name.startswith("nuitka" + os.path.sep):
+            package_name = package_name.replace(os.path.sep, '.')
 
+            source_code = open(filename).read()
+            updated_code = re.sub(r"from %s import" % package_name, "from . import", source_code)
+            updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
+
+            if source_code != updated_code:
+                with open(filename, 'w') as out_file:
+                    out_file.write(updated_code)
+
+
+        target_files.append(filename)
+
+    target_files.append("nuitka/build/SingleExe.scons")
+
+    setupPATH()
+    subprocess.check_call(
+        [
+            "isort",
+            "-ot",
+            "-m3",
+            "-ns",
+            "__init__.py"
+        ] + target_files
+    )
 
 if __name__ == "__main__":
     main()

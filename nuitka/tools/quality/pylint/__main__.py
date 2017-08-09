@@ -17,15 +17,13 @@
 #     limitations under the License.
 #
 
-""" Sort import statements using isort for Nuitka source.
+""" Main program for PyLint checker tool.
 
 """
 
 from __future__ import print_function
 
 import os
-import re
-import subprocess
 import sys
 from optparse import OptionParser
 
@@ -44,16 +42,26 @@ sys.path.insert(
 )
 
 from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH # isort:skip
-from nuitka.tools.ScanSources import scanTargets # isort:skip
-
+from nuitka.tools.quality.ScanSources import scanTargets # isort:skip
+from nuitka.tools.quality.pylint import PyLint # isort:skip
 
 def main():
     goHome()
 
-    # So isort finds nuitka package.
+    # So PyLint finds nuitka package.
     addPYTHONPATH(os.getcwd())
+    setupPATH()
 
     parser = OptionParser()
+
+    parser.add_option(
+        "--show-todos", "--todos",
+        action  = "store_true",
+        dest    = "todos",
+        default = False,
+        help    = """\
+Show TODO items. Default is %default."""
+    )
 
     parser.add_option(
         "--verbose",
@@ -61,44 +69,39 @@ def main():
         dest    = "verbose",
         default = False,
         help    = """\
-        Default is %default."""
+Be version in output. Default is %default."""
     )
 
-    _options, positional_args = parser.parse_args()
+
+    parser.add_option(
+        "--one-by-one",
+        action  = "store_true",
+        dest    = "one_by_one",
+        default = False,
+        help    = """\
+Check files one by one. Default is %default."""
+    )
+
+    options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["bin", "nuitka", "tests/reflected/compile_itself.py"]
+        positional_args = ["bin", "nuitka"]
 
-    target_files = []
-    for filename in scanTargets(positional_args):
+    print("Working on:", positional_args)
 
-        package_name = os.path.dirname(filename)
-        if package_name.startswith("nuitka" + os.path.sep):
-            package_name = package_name.replace(os.path.sep, '.')
-
-            source_code = open(filename).read()
-            updated_code = re.sub(r"from %s import" % package_name, "from . import", source_code)
-            updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
-
-            if source_code != updated_code:
-                with open(filename, 'w') as out_file:
-                    out_file.write(updated_code)
-
-
-        target_files.append(filename)
-
-    target_files.append("nuitka/build/SingleExe.scons")
-
-    setupPATH()
-    subprocess.check_call(
-        [
-            "isort",
-            "-ot",
-            "-m3",
-            "-ns",
-            "__init__.py"
-        ] + target_files
+    blacklist = (
+        "oset.py",
+        "odict.py",
+        "SyntaxHighlighting.py",
     )
+
+    filenames = list(scanTargets(positional_args, blacklist))
+    PyLint.executePyLint(filenames, options.todos, options.verbose, options.one_by_one)
+
+    if not filenames:
+        sys.exit("No files found.")
+
+    sys.exit(PyLint.our_exit_code)
 
 if __name__ == "__main__":
     main()

@@ -36,5 +36,5 @@ sys.path.insert(
     )
 )
 
-from nuitka.tools.pylint.__main__ import main # isort:skip
+from nuitka.tools.quality.pylint.__main__ import main # isort:skip
 main()

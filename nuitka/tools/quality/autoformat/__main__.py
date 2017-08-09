@@ -17,7 +17,7 @@
 #     limitations under the License.
 #
 
-""" Main program for PyLint checker tool.
+""" Main program for autoformat tool.
 
 """
 
@@ -41,27 +41,12 @@ sys.path.insert(
     )
 )
 
-from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH # isort:skip
-from nuitka.tools.ScanSources import scanTargets # isort:skip
-from nuitka.tools.pylint import PyLint # isort:skip
+from nuitka.tools.Basics import goHome # isort:skip
+from nuitka.tools.quality.ScanSources import scanTargets # isort:skip
+from .Autoformat import autoformat # isort:skip
 
 def main():
-    goHome()
-
-    # So PyLint finds nuitka package.
-    addPYTHONPATH(os.getcwd())
-    setupPATH()
-
     parser = OptionParser()
-
-    parser.add_option(
-        "--show-todos", "--todos",
-        action  = "store_true",
-        dest    = "todos",
-        default = False,
-        help    = """\
-Show TODO items. Default is %default."""
-    )
 
     parser.add_option(
         "--verbose",
@@ -69,17 +54,16 @@ Show TODO items. Default is %default."""
         dest    = "verbose",
         default = False,
         help    = """\
-Be version in output. Default is %default."""
+        Default is %default."""
     )
 
-
     parser.add_option(
-        "--one-by-one",
+        "--abort-on-parsing-error",
         action  = "store_true",
-        dest    = "one_by_one",
+        dest    = "abort",
         default = False,
         help    = """\
-Check files one by one. Default is %default."""
+        Default is %default."""
     )
 
     options, positional_args = parser.parse_args()
@@ -89,19 +73,20 @@ Check files one by one. Default is %default."""
 
     print("Working on:", positional_args)
 
-    blacklist = (
-        "oset.py",
-        "odict.py",
-        "SyntaxHighlighting.py",
-    )
+    positional_args = [
+        os.path.abspath(positional_arg)
+        for positional_arg in positional_args
+    ]
+    goHome()
 
-    filenames = list(scanTargets(positional_args, blacklist))
-    PyLint.executePyLint(filenames, options.todos, options.verbose, options.one_by_one)
+    found = False
+    for filename in scanTargets(positional_args):
+        autoformat(filename, abort = options.abort)
+        found = True
 
-    if not filenames:
+    if not found:
         sys.exit("No files found.")
 
-    sys.exit(PyLint.our_exit_code)
 
 if __name__ == "__main__":
     main()
