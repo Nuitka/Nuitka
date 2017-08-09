@@ -68,14 +68,22 @@ if os.name == "nt" and "bdist_msi" in sys.argv:
 def findNuitkaPackages():
     result = []
 
-    for root, _dirnames, filenames in os.walk("nuitka"):
+    for root, dirnames, filenames in os.walk("nuitka"):
         # Ignore the inline copy of scons, these are not packages of Nuitka.
         if "scons-" in root:
             continue
 
-        # Packages must contain "__init__.py" or they are merely directories.
+        # Packages must contain "__init__.py" or they are merely directories
+        # in Nuitka as we are Python2 compatible.
         if "__init__.py" not in filenames:
             continue
+
+        # The "release" namespace is code used to release, but not itself for
+        # release, same goes for "qualit"y.
+        if "release" in dirnames:
+            dirnames.remove("release")
+        if "quality" in dirnames:
+            dirnames.remove("quality")
 
         result.append(
             root.replace(os.path.sep,'.')
