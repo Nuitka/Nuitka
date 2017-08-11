@@ -314,10 +314,13 @@ def buildNodeList(provider, nodes, source_ref, allow_none = False):
 def makeModuleFrame(module, statements, source_ref):
     assert module.isCompiledPythonModule()
 
-    if module.isMainModule():
+    if Options.isFullCompat():
         code_name = "<module>"
     else:
-        code_name = module.getName()
+        if module.isMainModule():
+            code_name = "<module>"
+        else:
+            code_name = "<module %s>" % module.getName()
 
     return StatementsFrameModule(
         statements  = statements,
