@@ -260,7 +260,7 @@ def _detectImports(command, user_provided, technical):
     if process.returncode != 0:
         warning("There is a problem with detecting imports, CPython said:")
         for line in stderr.split(b"\n"):
-            Tracing.printLine(line)
+            Tracing.printError(line)
         sys.exit("Error, please report the issue with above output.")
 
     result = []
@@ -485,12 +485,52 @@ def detectEarlyImports():
             for module_name in scanStandardLibraryPath(stdlib_dir):
                 stdlib_modules.add(module_name)
 
-        import_code = "imports = " + repr(sorted(stdlib_modules)) + '\n'\
-                      "for imp in imports:\n" \
-                      "    try:\n" \
-                      "        __import__(imp)\n" \
-                      "    except (ImportError, SyntaxError):\n" \
-                      "        pass\n"
+        # Put here ones that should be imported first.
+        first_ones = (
+            "Tkinter",
+        )
+
+        # We have to fight zombie modules in this, some things, e.g. Tkinter
+        # on newer Python 2.7, comes back after failure without a second error
+        # being raised, leading to other issues. So we fight it after each
+        # module that was tried, and prevent re-try by adding a meta path
+        # based loader that will never load it again, and remove it from the
+        # "sys.modules" over and over, once it sneaks back. The root cause is
+        # that extension modules sometimes only raise an error when first
+        # imported, not the second time around.
+        # Otherwise this just makes imports of everything so we can see where
+        # it comes from and what it requires.
+
+        import_code = """
+imports = %r
+
+failed = set()
+
+class ImportBlocker(object):
+    def find_module(self, fullname, path = None):
+        if fullname in failed:
+            return self
+
+        return None
+
+    def load_module(self, name):
+        raise ImportError("%%s has failed before" %% name)
+
+sys.meta_path.insert(0, ImportBlocker())
+
+for imp in imports:
+    try:
+        __import__(imp)
+    except (ImportError, SyntaxError):
+        failed.add(imp)
+
+    for fail in failed:
+        if fail in sys.modules:
+            del sys.modules[fail]
+""" % sorted(
+    stdlib_modules,
+    key = lambda name: (name not in first_ones, name)
+)
 
         early_names = [
             module.getFullName()
