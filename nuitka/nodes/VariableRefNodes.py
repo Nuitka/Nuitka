@@ -225,15 +225,6 @@ Module variable '%s' found to be built-in reference.""" % (
                 change_tags = "new_constant"
                 change_desc = """\
 Replaced read-only module attribute '__name__' with constant value."""
-            elif variable_name == "__package__":
-                new_node = makeConstantRefNode(
-                    constant   = variable.getOwner().getPackage(),
-                    source_ref = self.getSourceReference()
-                )
-
-                change_tags = "new_constant"
-                change_desc = """\
-Replaced read-only module attribute '__package__' with constant value."""
             else:
                 self.variable_trace.addUsage()
 

@@ -818,22 +818,29 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
         )
 
-
-    if python_version >= 330:
-        # For Python3.3, it's set for both packages and non-packages.
-        statements.append(
-            StatementAssignmentVariableName(
-                variable_name = "__package__",
-                source        = makeConstantRefNode(
-                    constant      = provider.getFullName()
-                                      if provider.isCompiledPythonPackage() else
-                                    provider.getPackage(),
-                    source_ref    = internal_source_ref,
-                    user_provided = True
-                ),
-                source_ref    = internal_source_ref
-            )
+    # The "__package__" attribute is set to proper value for 3.3 or higher even
+    # for normal modules, previously for packages only.
+    statements.append(
+        StatementAssignmentVariableName(
+            variable_name = "__package__",
+            source        = makeConstantRefNode(
+                constant      = (
+                                  provider.getPackage()
+                                    if python_version < 330 else
+                                  provider.getFullName()
+                                )
+                                  if provider.isCompiledPythonPackage() else
+                                (
+                                    provider.getPackage()
+                                      if python_version >= 330 else
+                                    None
+                                ),
+                source_ref    = internal_source_ref,
+                user_provided = True
+            ),
+            source_ref    = internal_source_ref
         )
+    )
 
     needs__initializing__ = not provider.isMainModule() and \
       (python_version >= 330 and python_version < 340)

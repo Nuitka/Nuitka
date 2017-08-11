@@ -16,4 +16,4 @@
 #     limitations under the License.
 #
 
-print( "Imported PackageLocal" )
+print( "Imported PackageLocal", __name__, "in", __package__ )

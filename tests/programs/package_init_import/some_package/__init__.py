@@ -16,6 +16,8 @@
 #     limitations under the License.
 #
 
+print("This is some_package", __name__, "in", __package__)
+
 try:
     import PackageLocal
 except ImportError:
