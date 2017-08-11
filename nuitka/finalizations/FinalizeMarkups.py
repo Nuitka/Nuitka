@@ -34,11 +34,17 @@ are in another context.
 from logging import warning
 
 from nuitka import Options, Tracing
+from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.importing.Importing import isWhiteListedImport
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 
 from .FinalizeBase import FinalizationVisitorBase
+
+imported_names = set()
+
+def getImportedNames():
+    return imported_names
 
 
 class FinalizeMarkups(FinalizationVisitorBase):
@@ -102,6 +108,17 @@ of '--recurse-directory'.""" % (
                     node.getSourceReference().getAsString()
                 )
             )
+
+        if node.isExpressionBuiltinImport() and \
+           node.recurse_attempted:
+            module_name = node.getImportName()
+
+            if module_name.isCompileTimeConstant():
+                imported_module_name = module_name.getCompileTimeConstant()
+
+                if type(imported_module_name) in (str, unicode):
+                    if imported_module_name:
+                        imported_names.add(imported_module_name)
 
         if node.isExpressionFunctionCreation():
             if not node.getParent().isExpressionFunctionCall() or \

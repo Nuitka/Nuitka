@@ -16,6 +16,7 @@
 #     limitations under the License.
 #
 """ Options module """
+
 import logging
 import os
 import sys
@@ -373,7 +374,7 @@ parser.add_option_group(codegen_group)
 
 outputdir_group = OptionGroup(
     parser,
-    "Output directory choices"
+    "Output choices"
 )
 
 outputdir_group.add_option(
@@ -383,8 +384,9 @@ outputdir_group.add_option(
     metavar = "DIRECTORY",
     default = "",
     help    = """\
-Specify where intermediate and final output files should be put. DIRECTORY will
-be populated with C files, object files, etc. Defaults to current directory.
+Specify where intermediate and final output files should be put. The DIRECTORY
+will be populated with C files, object files, etc.
+Defaults to current directory.
 """
 )
 
@@ -397,6 +399,18 @@ outputdir_group.add_option(
 Removes the build directory after producing the module or exe file.
 Defaults to off."""
 )
+
+outputdir_group.add_option(
+    "--no-pyi-file",
+    action  = "store_false",
+    dest    = "pyi_file",
+    default = True,
+    help    = """\
+Do not create a ".pyi" file for extension modules created by Nuitka.
+Defaults to off."""
+)
+
+
 
 parser.add_option_group(outputdir_group)
 
@@ -794,29 +808,38 @@ Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" %
     if scons_python is not None and not os.path.exists(scons_python):
         sys.exit("Error, no such Python2 binary '%s'." % scons_python)
 
+
 def shallTraceExecution():
     return options.trace_execution
+
 
 def shallExecuteImmediately():
     return options.immediate_execution
 
+
 def shallRunInDebugger():
     return options.debugger
+
 
 def shallDumpBuiltTreeXML():
     return options.dump_xml
 
+
 def shallDisplayBuiltTree():
     return options.display_tree
+
 
 def shallOnlyExecCCompilerCall():
     return options.recompile_c_only
 
+
 def shallNotDoExecCCompilerCall():
     return options.generate_c_only
 
+
 def shallHaveStatementLines():
     return options.statement_lines
+
 
 def getFileReferenceMode():
     if options.file_reference_mode is None:
@@ -828,56 +851,78 @@ def getFileReferenceMode():
 
     return value
 
+
 def shallMakeModule():
     return not options.executable
+
+
+def shallCreatePyiFile():
+    return options.pyi_file
+
 
 def isAllowedToReexecute():
     return options.allow_reexecute
 
+
 def shallFollowStandardLibrary():
     return options.recurse_stdlib
+
 
 def shallFollowNoImports():
     return options.recurse_none
 
+
 def shallFollowAllImports():
     return options.recurse_all
+
 
 def _splitShellPattern(value):
     return value.split(',') if '{' not in value else [value]
 
+
 def getShallFollowInNoCase():
     return sum([ _splitShellPattern(x) for x in options.recurse_not_modules ], [])
+
 
 def getShallFollowModules():
     return sum([ _splitShellPattern(x) for x in options.recurse_modules ], [])
 
+
 def getShallFollowExtra():
     return sum([ x.split(',') for x in options.recurse_extra ], [])
+
 
 def getShallFollowExtraFilePatterns():
     return sum([ x.split(',') for x in options.recurse_extra_files ], [])
 
+
 def shallWarnImplicitRaises():
     return options.warn_implicit_exceptions
+
 
 def shallWarnUnusualCode():
     return options.warn_unusual_code
 
+
 def isDebug():
     return options is not None and (options.debug or options.debugger)
+
 
 def isPythonDebug():
     return options.python_debug or sys.flags.debug
 
+
 def isUnstripped():
     return options.unstripped or options.profile
+
 
 def isProfile():
     return options.profile
 
+
 def shouldCreateGraph():
     return options.graph
+
 
 def getOutputPath(path):
     if options.output_dir:
@@ -885,38 +930,50 @@ def getOutputPath(path):
     else:
         return path
 
+
 def getOutputDir():
     return options.output_dir if options.output_dir else '.'
+
 
 def getPositionalArgs():
     return tuple(positional_args)
 
+
 def getMainArgs():
     return tuple(extra_args)
+
 
 def shallOptimizeStringExec():
     return False
 
+
 def shallClearPythonPathEnvironment():
     return not options.keep_pythonpath
+
 
 def isShowScons():
     return options.show_scons
 
+
 def getJobLimit():
     return int(options.jobs)
+
 
 def isLto():
     return options.lto
 
+
 def isClang():
     return options.clang
+
 
 def isMingw():
     return options.mingw
 
+
 def getMsvcVersion():
     return options.msvc
+
 
 def shallDisableConsoleWindow():
     return options.win_disable_console

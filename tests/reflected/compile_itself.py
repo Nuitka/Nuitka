@@ -171,6 +171,7 @@ def executePASS1():
                     "--recurse-none",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % target_dir,
+                    "--no-pyi-file",
                     path
                 ]
                 command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
@@ -393,6 +394,7 @@ def executePASS5():
         sys.exit(result)
 
     os.unlink(os.path.join(tmp_dir, "nuitka.so"))
+    os.unlink(os.path.join(tmp_dir, "nuitka.pyi"))
     shutil.rmtree(os.path.join(tmp_dir, "nuitka.build"))
 
 cross_compilation = False
