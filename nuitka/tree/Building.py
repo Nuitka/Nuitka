@@ -806,6 +806,17 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 createPathAssignment(provider, internal_source_ref)
             )
 
+    if python_version >= 330:
+        statements.append(
+            StatementAssignmentVariableName(
+                variable_name = "__loader__",
+                source        = ExpressionModuleLoaderRef(
+                    source_ref    = internal_source_ref,
+                ),
+                source_ref    = internal_source_ref
+            )
+        )
+
     if python_version >= 300:
         statements.append(
             StatementAssignmentVariableName(

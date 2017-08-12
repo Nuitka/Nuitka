@@ -184,6 +184,7 @@ from .LoopCodes import (
 )
 from .ModuleCodes import (
     generateModuleFileAttributeCode,
+    generateModuleLoaderRefCode,
     getModuleCode,
     getModuleValues
 )
@@ -612,6 +613,7 @@ setExpressionDispatchDict(
         "EXPRESSION_LIST_OPERATION_EXTEND"          : generateListOperationExtendCode,
         "EXPRESSION_LIST_OPERATION_POP"             : generateListOperationPopCode,
         "EXPRESSION_MODULE_FILE_ATTRIBUTE_REF"      : generateModuleFileAttributeCode,
+        "EXPRESSION_MODULE_LOADER_REF"              : generateModuleLoaderRefCode,
         "EXPRESSION_MAKE_GENERATOR_OBJECT"          : generateMakeGeneratorObjectCode,
         "EXPRESSION_MAKE_COROUTINE_OBJECT"          : generateMakeCoroutineObjectCode,
         "EXPRESSION_MAKE_ASYNCGEN_OBJECT"           : generateMakeAsyncgenObjectCode,

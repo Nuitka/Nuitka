@@ -93,7 +93,8 @@ def isConstantExpression(expression):
 
     return kind.startswith("Constant") or \
            kind in ("ImportModuleHard",
-                    "ModuleFileAttributeRef")
+                    "ModuleFileAttributeRef",
+                    "ModuleLoaderRef")
 
 def checkSequence(statements):
     for statement in statements:

@@ -199,14 +199,6 @@ static PyObject *loadModuleFromCodeObject( PyCodeObject *code_object, char const
 
     Py_DECREF( module_path );
 
-#if PYTHON_VERSION >= 330
-    if ( module != NULL )
-    {
-        res = PyObject_SetAttr( module, const_str_plain___loader__, metapath_based_loader );
-        if (unlikely( res != 0 )) return NULL;
-    }
-#endif
-
     return module;
 }
 

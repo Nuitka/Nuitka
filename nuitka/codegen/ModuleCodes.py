@@ -169,3 +169,14 @@ def generateModuleFileAttributeCode(to_name, expression, emit, context):
     )
 
     context.markAsNeedsModuleFilenameObject()
+
+
+def generateModuleLoaderRefCode(to_name, expression, emit, context):
+    # The expression doesn't really matter, but it is part of the API for
+    # the expression registry, pylint: disable=unused-argument
+
+    emit(
+        "%s = metapath_based_loader;" % (
+            to_name,
+        )
+    )

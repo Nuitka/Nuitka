@@ -823,3 +823,19 @@ class ExpressionModuleFileAttributeRef(ExpressionBase):
 
     def getRunTimeFilename(self):
         return self.getParentModule().getRunTimeFilename()
+
+
+class ExpressionModuleLoaderRef(ExpressionBase):
+    kind = "EXPRESSION_MODULE_LOADER_REF"
+
+    def __init__(self, source_ref):
+        ExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+    def mayRaiseException(self, exception_type):
+        return False
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
