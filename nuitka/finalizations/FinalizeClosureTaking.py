@@ -38,4 +38,7 @@ class FinalizeClassClosure(FinalizationVisitorBase):
 
             empty = areEmptyTraces(variable_traces)
             if empty:
+                # This never happens anymore, right?
+                assert False
+
                 function_body.removeClosureVariable(closure_variable)

@@ -23,6 +23,7 @@ import ast
 from logging import warning
 
 from nuitka import Constants, Options, Tracing
+from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -591,6 +592,63 @@ def makeDictCreationOrConstant(keys, values, source_ref):
     return result
 
 
+# TODO: Use this one more often where possible.
+def makeDictCreationOrConstant2(keys, values, source_ref):
+    # Create dictionary node. Tries to avoid it for constant values that are not
+    # mutable. Keys are strings.
+
+    assert len(keys) == len(values)
+    for value in values:
+        if not value.isExpressionConstantRef():
+            constant = False
+            break
+    else:
+        constant = True
+
+    # Note: This would happen in optimization instead, but lets just do it
+    # immediately to save some time.
+    if constant:
+        # Unless told otherwise, create the dictionary in its full size, so
+        # that no growing occurs and the constant becomes as similar as possible
+        # before being marshaled.
+        result = makeConstantRefNode(
+            constant      = Constants.createConstantDict(
+                keys   = keys,
+                values = [
+                    value.getConstant()
+                    for value in
+                    values
+                ]
+            ),
+            user_provided = True,
+            source_ref    = source_ref
+        )
+    else:
+        result = ExpressionMakeDict(
+            pairs      = [
+                ExpressionKeyValuePair(
+                    key        = makeConstantRefNode(
+                        constant      = key,
+                        source_ref    = value.getSourceReference(),
+                        user_provided = True
+                    ),
+                    value      = value,
+                    source_ref = value.getSourceReference()
+                )
+                for key, value in
+                zip(keys, values)
+            ],
+            source_ref = source_ref
+        )
+
+    if values:
+        result.setCompatibleSourceReference(
+            source_ref = values[-1].getCompatibleSourceReference()
+        )
+
+    return result
+
+
 def getStatementsAppended(statement_sequence, statements):
     return makeStatementsSequence(
         statements = (statement_sequence, statements),
@@ -674,6 +732,35 @@ def makeConditionalStatement(condition, yes_branch, no_branch, source_ref):
         condition  = condition,
         yes_branch = yes_branch,
         no_branch  = no_branch,
+        source_ref = source_ref
+    )
+
+
+def makeCallNode(called, *args, **kwargs):
+    source_ref = args[-1]
+
+    if len(args) > 1:
+        args = makeSequenceCreationOrConstant(
+            sequence_kind = "tuple",
+            elements      = args[:-1],
+            source_ref    = source_ref
+        )
+    else:
+        args = None
+
+    if kwargs:
+        kwargs = makeDictCreationOrConstant2(
+            keys       = tuple(kwargs.keys()),
+            values     = tuple(kwargs.values()),
+            source_ref = source_ref
+        )
+    else:
+        kwargs = None
+
+    return makeExpressionCall(
+        called     = called,
+        args       = args,
+        kw         = kwargs,
         source_ref = source_ref
     )
 

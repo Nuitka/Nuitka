@@ -133,6 +133,13 @@ def checkSequence(statements):
             continue
 
         if kind == "AssignmentVariable":
+            variable_name = statement.attrib["variable_name"]
+
+            # Ignore "__spec__" assignment for Python3.4, it is not going
+            # to be static.
+            if variable_name == "__spec__":
+                continue
+
             assign_source, = getRole(statement, "source")
 
             if getKind(assign_source) == "FunctionCreation":

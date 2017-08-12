@@ -144,12 +144,12 @@ def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
                 import_name
             )
         )
-    elif module_name in ("os", "__future__"):
+    elif module_name in ("os", "__future__", "importlib._bootstrap"):
         emit(
-             """%s = PyObject_GetAttrString(PyImport_ImportModule("%s"), "%s");""" % (
+             """%s = PyObject_GetAttr( PyImport_ImportModule("%s"), %s );""" % (
                 to_name,
                 module_name,
-                import_name
+                context.getConstantCode(import_name)
             )
         )
     else:

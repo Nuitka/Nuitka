@@ -80,11 +80,13 @@ from nuitka.nodes.ConstantRefNodes import (
 from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
+from nuitka.nodes.ImportNodes import ExpressionImportModuleHard
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
     CompiledPythonPackage,
     ExpressionModuleFileAttributeRef,
+    ExpressionModuleLoaderRef,
     PythonMainModule,
     PythonShlibModule
 )
@@ -167,6 +169,7 @@ from .TreeHelpers import (
     getBuildContext,
     getKind,
     makeAbsoluteImportNode,
+    makeCallNode,
     makeModuleFrame,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -813,6 +816,38 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 source        = ExpressionModuleLoaderRef(
                     source_ref    = internal_source_ref,
                 ),
+                source_ref    = internal_source_ref
+            )
+        )
+
+    if python_version >= 340:
+        if provider.isMainModule():
+            spec_value = makeConstantRefNode(
+                constant   = None,
+                source_ref = internal_source_ref
+            )
+        else:
+            spec_value = makeCallNode(
+                ExpressionImportModuleHard(
+                    module_name = "importlib._bootstrap",
+                    import_name = "ModuleSpec",
+                    source_ref    = internal_source_ref,
+                ),
+                makeConstantRefNode(
+                    constant = provider.getFullName(),
+                    source_ref = internal_source_ref,
+                    user_provided = True
+                ),
+                ExpressionModuleLoaderRef(
+                    source_ref    = internal_source_ref,
+                ),
+                internal_source_ref
+            )
+
+        statements.append(
+            StatementAssignmentVariableName(
+                variable_name = "__spec__",
+                source        = spec_value,
                 source_ref    = internal_source_ref
             )
         )
