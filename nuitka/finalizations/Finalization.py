@@ -30,5 +30,3 @@ from .FinalizeMarkups import FinalizeMarkups
 def prepareCodeGeneration(tree):
     visitor = FinalizeMarkups()
     Operations.visitTree(tree, visitor)
-    for function in tree.getUsedFunctions():
-        Operations.visitTree(function, visitor)
