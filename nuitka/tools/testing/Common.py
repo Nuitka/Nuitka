@@ -276,6 +276,24 @@ def decideFilenameVersionSkip(filename):
     return True
 
 
+def _removeCPythonTestSuiteDir():
+    # Cleanup, some tests apparently forget that.
+    try:
+        if os.path.isdir("@test"):
+            removeDirectory("@test", ignore_errors = False)
+        elif os.path.isfile("@test"):
+            os.unlink("@test")
+    except OSError:
+        # TODO: Move this into removeDirectory maybe. Doing an external
+        # call as last resort could be a good idea.
+
+        # This seems to work for broken "lnk" files.
+        if os.name == "nt":
+            os.system("rmdir /S /Q @test")
+
+        if os.path.exists("@test"):
+            raise
+
 def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
     """ Call the comparison tool. For a given directory filename.
 
@@ -308,6 +326,9 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
 
     command += search_mode.getExtraFlags(dirname, filename)
 
+    # Cleanup before and after test stage directory.
+    _removeCPythonTestSuiteDir()
+
     try:
         result = subprocess.call(
             command
@@ -315,22 +336,8 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
     except KeyboardInterrupt:
         result = 2
 
-    # Cleanup, some tests apparently forget that.
-    try:
-        if os.path.isdir("@test"):
-            removeDirectory("@test", ignore_errors = False)
-        elif os.path.isfile("@test"):
-            os.unlink("@test")
-    except OSError:
-        # TODO: Move this into removeDirectory maybe. Doing an external
-        # call as last resort could be a good idea.
-
-        # This seems to work for broken "lnk" files.
-        if os.name == "nt":
-            os.system("rmdir /S /Q @test")
-
-        if os.path.exists("@test"):
-            raise
+    # Cleanup before and after test stage directory.
+    _removeCPythonTestSuiteDir()
 
     if result != 0 and \
        result != 2 and \
