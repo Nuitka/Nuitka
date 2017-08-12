@@ -12,11 +12,101 @@ Bug Fixes
 - Fix, functions with keyword arguments where the value was determined to be
   a static raise could crash the compiler. Fixed in 0.5.27.1 already.
 
+- Detect using MinGW64 32 bits C compiler being used with 64 bits Python
+  with better error message.
+
+- Fix, when extracting side effects of a static raise, extract them more
+  recursively to catch expressions that themselves have no code generation
+  being used. This fixes at least static raises in keyword arguments of a
+  function call.
+
+- Compatibility: Added support for proper operation of ```pkgutil.get_data``
+  by implementing ``get_data`` in our meta path based loader.
+
+- Compatibility: Added ``__spec__`` module attribute was previously missing,
+  present on Python3.4 and higher.
+
+- Compatibility: Made ``__loader__`` module attribute set when the module is
+  loading already.
+
+- Standalone: Resolve the ``@rpath`` from ``otool`` output manually which
+  should make more things work correctly.
+
+- Fix, nested functions calling ``super`` could crash the compiler.
+
+- Fix, could not use ``--recurse-directory`` with arguments that had a
+  trailing slash.
+
+- Fix, using ``--recurse-directory`` on packages that are not in the search
+  crashed the compiler.
+
+New Features
+------------
+
+- Experimental support for building platform dependent wheel distribution.
+
+  .. code-block:: sh
+
+     python setup.py --command-packages=nuitka.distutils clean -a bdist_nuitka
+
+- Experimental support for running tests against compiled installation with
+  ``nose`` and ``py.test``.
+
+- When specifiying what to recurse to, now patterns can be used, e.g. like
+  this ``--recurse-not-to=*.tests`` which will skip all tests in submodules
+  from compilation.
+
+- By setting ``NUITKA_PACKAGE_packagename=/some/path`` the ``__path__`` of
+  packages can be extended automatically in order to allow and load uncompiled
+  sources from another location. This can be e.g. a ``tests`` sub-package or
+  other plug-ins.
+
+- By default when creating a module, now also a ``module.pyi`` file is created
+  that contains all imported modules. This should be deployed alongside the
+  extension module, so that standalone mode creation can benefit from knowing
+  the dependencies of compiled code.
+
+Cleanups
+--------
+
+- Rename tree and codegen ``Helper`` modules to unique names, easier to work
+  with.
+
+- Share code to not warn for standard library paths with more warnings.
+
+- Use the ``bool`` enum definition of Python2 which is more elegant than ours.
+
+- Move quality tools, autoformat, isort, etc. to the ``nuitka.tools.quality``
+  namespace.
+
+- Move output comparison tool to the ``nuitka.tools.testing`` namespace.
+
 Tests
 -----
 
 - The search mode with pattern, was not working anymore. Fixed in 0.5.27.1
   already.
+
+- Resume hash values now consider the Python version too.
+
+- Added test that covers using test runners like ``nose`` and ``py.test`` with
+  Nuitka compiled extension modules.
+
+Organizational
+--------------
+
+- Made recursion the default for ``--recurse-directory`` with packages. Before
+  you also had to tell it to recurse into that package or else it would only
+  include the top level package, but nothing below.
+
+- Updated the man pages, removing mentions of C++ and using the currently
+  recommended options.
+
+- Updated help output which still said that standalone mode implies recursion
+  into standard library, which is no longer true.
+
+- Added option to disable the output of ``.pyi`` file when creating an extension
+  module.
 
 Summary
 -------
