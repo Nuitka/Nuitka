@@ -24,7 +24,7 @@ import shutil
 import subprocess
 import sys
 
-import wheel.bdist_wheel
+import wheel.bdist_wheel  # @UnresolvedImport
 
 
 # Class name enforced by distutils, must match the command name.

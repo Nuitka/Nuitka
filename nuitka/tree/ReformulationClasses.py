@@ -35,7 +35,7 @@ from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
     makeExpressionBuiltinRef
 )
-from nuitka.nodes.CallNodes import ExpressionCall, ExpressionCallNoKeywords
+from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
     ExpressionClassBody,
     ExpressionSelectMetaclass
@@ -81,7 +81,7 @@ from .TreeHelpers import (
     buildNodeList,
     extractDocFromBody,
     getKind,
-    makeDictCreationOrConstant,
+    makeDictCreationOrConstant2,
     makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
@@ -245,7 +245,7 @@ def _buildClassNode3(provider, node, source_ref):
     statements += [
         StatementAssignmentVariableName(
             variable_name = "__class__",
-            source        = ExpressionCall(
+            source        = makeExpressionCall(
                 called     = ExpressionTempVariableRef(
                     variable   = tmp_metaclass,
                     source_ref = source_ref
@@ -323,7 +323,7 @@ def _buildClassNode3(provider, node, source_ref):
             reversed(node.decorator_list),
             source_ref
         ):
-        decorated_body = ExpressionCallNoKeywords(
+        decorated_body = makeExpressionCall(
             called     = decorator,
             args       = ExpressionMakeTuple(
                 elements   = (
@@ -331,6 +331,7 @@ def _buildClassNode3(provider, node, source_ref):
                 ),
                 source_ref = source_ref
             ),
+            kw         = None,
             source_ref = decorator.getSourceReference()
         )
 
@@ -350,13 +351,9 @@ def _buildClassNode3(provider, node, source_ref):
         ),
         StatementAssignmentVariable(
             variable   = tmp_class_decl_dict,
-            source     = makeDictCreationOrConstant(
+            source     = makeDictCreationOrConstant2(
                 keys       = [
-                    makeConstantRefNode(
-                        constant      = keyword.arg,
-                        source_ref    = source_ref,
-                        user_provided = True
-                    )
+                    keyword.arg
                     for keyword in
                     node.keywords
                 ],
@@ -483,7 +480,7 @@ def _buildClassNode3(provider, node, source_ref):
                     source_ref    = source_ref,
                     user_provided = True
                 ),
-                expression_yes = ExpressionCall(
+                expression_yes = makeExpressionCall(
                     called     = ExpressionAttributeLookup(
                         source         = ExpressionTempVariableRef(
                             variable   = tmp_metaclass,
@@ -822,7 +819,7 @@ def _buildClassNode2(provider, node, source_ref):
         ),
         StatementAssignmentVariable(
             variable   = tmp_class,
-            source     = ExpressionCallNoKeywords(
+            source     = makeExpressionCall(
                 called     = ExpressionTempVariableRef(
                     variable   = tmp_metaclass,
                     source_ref = source_ref
@@ -845,6 +842,7 @@ def _buildClassNode2(provider, node, source_ref):
                     ),
                     source_ref = source_ref
                 ),
+                kw         = None,
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -859,7 +857,7 @@ def _buildClassNode2(provider, node, source_ref):
         statements.append(
             StatementAssignmentVariable(
                 variable   = tmp_class,
-                source     = ExpressionCallNoKeywords(
+                source     = makeExpressionCall(
                     called     = decorator,
                     args       = ExpressionMakeTuple(
                         elements   = (
@@ -870,6 +868,7 @@ def _buildClassNode2(provider, node, source_ref):
                         ),
                         source_ref = source_ref
                     ),
+                    kw         = None,
                     source_ref = decorator.getSourceReference()
                 ),
                 source_ref = decorator.getSourceReference()

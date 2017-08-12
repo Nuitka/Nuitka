@@ -37,10 +37,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinRef
-from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import (
     ExpressionCoroutineObjectBody,
     ExpressionMakeCoroutineObject
@@ -73,7 +70,8 @@ from .TreeHelpers import (
     detectFunctionBodyKind,
     extractDocFromBody,
     getKind,
-    makeDictCreationOrConstant,
+    makeCallNode,
+    makeDictCreationOrConstant2,
     makeStatementsSequenceFromStatement,
     mangleName
 )
@@ -244,13 +242,10 @@ def buildFunctionNode(provider, node, source_ref):
 
     decorated_function = function_creation
     for decorator in decorators:
-        decorated_function = ExpressionCallNoKeywords(
-            called     = decorator,
-            args       = ExpressionMakeTuple(
-                elements   = (decorated_function,),
-                source_ref = source_ref
-            ),
-            source_ref = decorator.getSourceReference()
+        decorated_function = makeCallNode(
+            decorator,
+            decorated_function,
+            decorator.getSourceReference()
         )
 
     result = StatementAssignmentVariableName(
@@ -392,15 +387,11 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     decorated_function = function_creation
     for decorator in decorators:
-        decorated_function = ExpressionCallNoKeywords(
-            called     = decorator,
-            args       = ExpressionMakeTuple(
-                elements   = (decorated_function,),
-                source_ref = source_ref
-            ),
-            source_ref = decorator.getSourceReference()
+        decorated_function = makeCallNode(
+            decorator,
+            decorated_function,
+            decorator.getSourceReference()
         )
-
 
     result = StatementAssignmentVariableName(
         variable_name = mangleName(node.name, provider),
@@ -431,17 +422,12 @@ def buildParameterKwDefaults(provider, node, function_body, source_ref):
             for kw_only_name, kw_default in \
               zip(kw_only_names, node.args.kw_defaults):
                 if kw_default is not None:
-                    keys.append(
-                        makeConstantRefNode(
-                            constant   = kw_only_name,
-                            source_ref = source_ref
-                        )
-                    )
+                    keys.append(kw_only_name)
                     values.append(
                         buildNode(provider, kw_default, source_ref)
                     )
 
-            kw_defaults = makeDictCreationOrConstant(
+            kw_defaults = makeDictCreationOrConstant2(
                 keys       = keys,
                 values     = values,
                 source_ref = source_ref
@@ -472,13 +458,7 @@ def buildParameterAnnotations(provider, node, source_ref):
     values = []
 
     def addAnnotation(key, value):
-        keys.append(
-            makeConstantRefNode(
-                constant      = mangle(key),
-                source_ref    = source_ref,
-                user_provided = True
-            )
-        )
+        keys.append(mangle(key))
         values.append(value)
 
     def extractArg(arg):
@@ -534,7 +514,7 @@ def buildParameterAnnotations(provider, node, source_ref):
         )
 
     if keys:
-        return makeDictCreationOrConstant(
+        return makeDictCreationOrConstant2(
             keys       = keys,
             values     = values,
             source_ref = source_ref

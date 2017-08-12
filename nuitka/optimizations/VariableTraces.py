@@ -486,7 +486,7 @@ class VariableTraceLoopMerge(VariableTraceBase):
         all of the variable versions at loop continue times.
     """
 
-    __slots__ = "loop_finished",
+    __slots__ = ("loop_finished",)
 
     def __init__(self, variable, version, previous):
         VariableTraceBase.__init__(

@@ -35,12 +35,7 @@ from nuitka.nodes.BuiltinRefNodes import (
     makeExpressionBuiltinRef
 )
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
-from nuitka.nodes.CallNodes import (
-    ExpressionCall,
-    ExpressionCallEmpty,
-    ExpressionCallKeywordsOnly,
-    ExpressionCallNoKeywords
-)
+from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonIn,
     ExpressionComparisonIsNOT
@@ -91,6 +86,7 @@ from .InternalModule import (
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
+    makeCallNode,
     makeConditionalStatement,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements
@@ -596,15 +592,15 @@ def _makeStarDictArgumentToDictStatement(result, called_variable,
         makeTryExceptSingleHandlerNode(
             tried          = StatementAssignmentVariable(
                 variable   = tmp_keys_variable,
-                source     = ExpressionCallEmpty(
-                    called     = _makeNameAttributeLookup(
+                source     = makeCallNode(
+                    _makeNameAttributeLookup(
                         ExpressionVariableRef(
                             variable   = star_dict_variable,
                             source_ref = internal_source_ref
                         ),
                         attribute_name = "keys"
                     ),
-                    source_ref = internal_source_ref
+                    internal_source_ref
                 ),
                 source_ref = internal_source_ref
             ),
@@ -831,15 +827,15 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable
         makeTryExceptSingleHandlerNode(
             tried          = StatementAssignmentVariable(
                 variable   = tmp_keys_variable,
-                source     = ExpressionCallEmpty(
-                    called     = _makeNameAttributeLookup(
+                source     = makeCallNode(
+                    _makeNameAttributeLookup(
                         ExpressionVariableRef(
                             variable   = star_dict_variable,
                             source_ref = internal_source_ref
                         ),
                         attribute_name = "keys"
                     ),
-                    source_ref = internal_source_ref
+                    internal_source_ref
                 ),
                 source_ref = internal_source_ref
             ),
@@ -977,8 +973,8 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable
         StatementAssignmentVariable(
             variable   = tmp_iter_variable,
             source     = ExpressionBuiltinIter1(
-                value      = ExpressionCallEmpty(
-                    called     = _makeNameAttributeLookup(
+                value      = makeCallNode(
+                    _makeNameAttributeLookup(
                         ExpressionVariableRef(
                             variable   = star_dict_variable,
                             source_ref = internal_source_ref
@@ -987,7 +983,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable
                                            if python_version < 300 else
                                          "items"
                     ),
-                    source_ref = internal_source_ref
+                    internal_source_ref
                 ),
                 source_ref = internal_source_ref
             ),
@@ -1092,7 +1088,7 @@ def getFunctionCallHelperStarList():
             star_list_variable = star_arg_list_variable,
         ),
         StatementReturn(
-            expression = ExpressionCallNoKeywords(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                     source_ref = internal_source_ref
@@ -1101,6 +1097,7 @@ def getFunctionCallHelperStarList():
                     variable   = star_arg_list_variable,
                     source_ref = internal_source_ref
                 ),
+                kw         = None,
                 source_ref = internal_source_ref
             ),
             source_ref = internal_source_ref
@@ -1189,7 +1186,7 @@ def getFunctionCallHelperKeywordsStarList():
             star_list_variable = star_arg_list_variable,
         ),
         StatementReturn(
-            expression = ExpressionCall(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                     source_ref = internal_source_ref
@@ -1294,7 +1291,7 @@ def getFunctionCallHelperPosStarList():
             star_list_variable = star_arg_list_variable,
         ),
         StatementReturn(
-            expression = ExpressionCallNoKeywords(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                     source_ref = internal_source_ref
@@ -1311,6 +1308,7 @@ def getFunctionCallHelperPosStarList():
                     ),
                     source_ref = internal_source_ref
                 ),
+                kw         = None,
                 source_ref = internal_source_ref
             ),
             source_ref = internal_source_ref
@@ -1406,7 +1404,7 @@ def getFunctionCallHelperPosKeywordsStarList():
             star_list_variable = star_arg_list_variable,
         ),
         StatementReturn(
-            expression = ExpressionCall(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                     source_ref = internal_source_ref
@@ -1533,11 +1531,12 @@ def getFunctionCallHelperStarDict():
             star_dict_variable = star_arg_dict_variable,
         ),
         StatementReturn(
-            expression = ExpressionCallKeywordsOnly(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                      source_ref = internal_source_ref
                 ),
+                args       = None,
                 kw         = ExpressionVariableRef(
                     variable   = star_arg_dict_variable,
                     source_ref = internal_source_ref
@@ -1645,7 +1644,7 @@ def getFunctionCallHelperPosStarDict():
             star_dict_variable = star_arg_dict_variable,
         ),
         StatementReturn(
-            expression = ExpressionCall(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                     source_ref = internal_source_ref
@@ -1791,11 +1790,12 @@ def getFunctionCallHelperKeywordsStarDict():
             star_dict_variable = star_arg_dict_variable,
         ),
         StatementReturn(
-            expression = ExpressionCallKeywordsOnly(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                     source_ref = internal_source_ref
                 ),
+                args       = None,
                 kw         = ExpressionVariableRef(
                     variable   = kw_variable,
                     source_ref = internal_source_ref
@@ -1937,7 +1937,7 @@ def getFunctionCallHelperPosKeywordsStarDict():
             star_dict_variable = star_arg_dict_variable,
         ),
         StatementReturn(
-            expression = ExpressionCall(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                     source_ref = internal_source_ref
@@ -2068,7 +2068,7 @@ def getFunctionCallHelperStarListStarDict():
 
     statements.append(
         StatementReturn(
-            expression = ExpressionCall(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                     source_ref = internal_source_ref
@@ -2169,7 +2169,7 @@ def getFunctionCallHelperPosStarListStarDict():
 
     statements.append(
         StatementReturn(
-            expression = ExpressionCall(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                     source_ref = internal_source_ref
@@ -2279,7 +2279,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
 
     statements.append(
         StatementReturn(
-            expression = ExpressionCall(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                     source_ref = internal_source_ref
@@ -2388,7 +2388,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
 
     statements.append(
         StatementReturn(
-            expression = ExpressionCall(
+            expression = makeExpressionCall(
                 called     = ExpressionVariableRef(
                     variable   = called_variable,
                     source_ref = internal_source_ref
@@ -2542,15 +2542,15 @@ def getFunctionCallHelperDictionaryUnpacking():
                 StatementAssignmentVariable(
                     variable   = tmp_iter2_variable,
                     source     = ExpressionBuiltinIter1(
-                        value      = ExpressionCallEmpty(
-                            called     = _makeNameAttributeLookup(
+                        value      = makeCallNode(
+                            _makeNameAttributeLookup(
                                 ExpressionTempVariableRef(
                                     variable   = tmp_item_variable,
                                     source_ref = internal_source_ref
                                 ),
                                 attribute_name = "keys"
                             ),
-                            source_ref = internal_source_ref
+                            internal_source_ref
                         ),
                         source_ref = internal_source_ref
                     ),

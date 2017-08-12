@@ -96,7 +96,7 @@ class ShapeLargeConstantValue(object):
 
 
 class ShapeLargeConstantValuePredictable(ShapeLargeConstantValue):
-    __slots__ = "predictor",
+    __slots__ = ("predictor",)
 
     def __init__(self, size, predictor, shape):
         ShapeLargeConstantValue.__init__(self, size, shape)

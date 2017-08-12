@@ -45,7 +45,7 @@ class ExpressionVariableNameRef(ExpressionBase):
 
     kind = "EXPRESSION_VARIABLE_NAME_REF"
 
-    __slots__ = "variable_name",
+    __slots__ = ("variable_name",)
 
     def __init__(self, variable_name, source_ref):
         ExpressionBase.__init__(

@@ -938,7 +938,7 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
 class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
     kind = "EXPRESSION_FUNCTION_QUALNAME_REF"
 
-    __slots__ = "function_body",
+    __slots__ = ("function_body",)
 
     def __init__(self, function_body, source_ref):
         CompileTimeConstantExpressionBase.__init__(

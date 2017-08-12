@@ -58,7 +58,7 @@ class ExpressionBuiltinGlobals(ExpressionBase):
 class ExpressionBuiltinLocalsBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = "variable_versions",
+    __slots__ = ("variable_versions",)
 
     def __init__(self, source_ref):
         ExpressionBase.__init__(

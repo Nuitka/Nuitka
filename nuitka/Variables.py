@@ -250,7 +250,7 @@ class ParameterVariable(LocalVariable):
 
 
 class ModuleVariable(Variable):
-    __slots__ = "module",
+    __slots__ = ("module",)
 
     def __init__(self, module, variable_name):
         assert type(variable_name) is str, repr(variable_name)

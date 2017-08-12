@@ -32,7 +32,7 @@ from nuitka.PythonVersions import python_version
 
 
 class BuiltinParameterSpec(ParameterSpec):
-    __slots__ = "builtin",
+    __slots__ = ("builtin",)
 
     def __init__(self, name, arg_names, default_count, list_star_arg = None,
                   dict_star_arg = None):

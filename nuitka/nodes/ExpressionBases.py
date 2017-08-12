@@ -44,7 +44,8 @@ from .shapes.StandardShapes import ShapeUnknown
 
 
 class ExpressionBase(NodeBase):
-    __slots__ = "code_generated",
+    # TODO: Maybe we can do this only for debug mode.
+    __slots__ = ("code_generated",)
 
     def getTypeShape(self):
         # Virtual method, pylint: disable=no-self-use
@@ -605,7 +606,7 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
 
     # TODO: Do this for all computations, do this in the base class of all
     # nodes.
-    __slots__ = "computed_attribute",
+    __slots__ = ("computed_attribute",)
 
     def __init__(self, source_ref):
         ExpressionBase.__init__(

@@ -144,7 +144,7 @@ def getOptions():
     if pylint_version >= b"1.7":
         default_pylint_options += """\
 --score=no
---ignored-argument-names=trace_collection
+--ignored-argument-names=_.*|trace_collection
 --disable=no-else-return\
 """.split('\n')
 
@@ -225,7 +225,7 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
 
         return os.path.basename(filename) in (
             "ReformulationContractionExpressions.py",
-            "Helpers.py"
+            "TreeHelpers.py"
         )
 
     filenames = [

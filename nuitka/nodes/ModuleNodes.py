@@ -689,7 +689,7 @@ class PythonInternalModule(CompiledPythonModule):
 class PythonShlibModule(PythonModuleBase):
     kind = "PYTHON_SHLIB_MODULE"
 
-    __slots__ = "used_modules",
+    __slots__ = ("used_modules",)
 
     avoid_duplicates = set()
 

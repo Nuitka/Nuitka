@@ -43,7 +43,7 @@ from .ExpressionBases import CompileTimeConstantExpressionBase
 class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = "builtin_name",
+    __slots__ = ("builtin_name",)
 
     def __init__(self, builtin_name, source_ref):
         CompileTimeConstantExpressionBase.__init__(

@@ -814,7 +814,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             StatementAssignmentVariableName(
                 variable_name = "__loader__",
                 source        = ExpressionModuleLoaderRef(
-                    source_ref    = internal_source_ref,
+                    source_ref = internal_source_ref,
                 ),
                 source_ref    = internal_source_ref
             )
@@ -831,15 +831,15 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 ExpressionImportModuleHard(
                     module_name = "importlib._bootstrap",
                     import_name = "ModuleSpec",
-                    source_ref    = internal_source_ref,
+                    source_ref  = internal_source_ref,
                 ),
                 makeConstantRefNode(
-                    constant = provider.getFullName(),
-                    source_ref = internal_source_ref,
+                    constant      = provider.getFullName(),
+                    source_ref    = internal_source_ref,
                     user_provided = True
                 ),
                 ExpressionModuleLoaderRef(
-                    source_ref    = internal_source_ref,
+                    source_ref = internal_source_ref,
                 ),
                 internal_source_ref
             )

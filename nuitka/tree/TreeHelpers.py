@@ -479,16 +479,16 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
     else:
         constant = True
 
-    sequence_kind = sequence_kind.upper()
+    sequence_kind = sequence_kind.lower()
 
     # Note: This would happen in optimization instead, but lets just do it
     # immediately to save some time.
     if constant:
-        if sequence_kind == "TUPLE":
+        if sequence_kind == "tuple":
             const_type = tuple
-        elif sequence_kind == "LIST":
+        elif sequence_kind == "list":
             const_type = list
-        elif sequence_kind == "SET":
+        elif sequence_kind == "set":
             const_type = set
 
             if needsSetLiteralReverseInsertion():
@@ -506,17 +506,17 @@ def makeSequenceCreationOrConstant(sequence_kind, elements, source_ref):
             user_provided = True
         )
     else:
-        if sequence_kind == "TUPLE":
+        if sequence_kind == "tuple":
             result = ExpressionMakeTuple(
                 elements   = elements,
                 source_ref = source_ref
             )
-        elif sequence_kind == "LIST":
+        elif sequence_kind == "list":
             result = ExpressionMakeList(
                 elements   = elements,
                 source_ref = source_ref
             )
-        elif sequence_kind == "SET":
+        elif sequence_kind == "set":
             result = ExpressionMakeSetLiteral(
                 elements   = elements,
                 source_ref = source_ref
@@ -592,7 +592,6 @@ def makeDictCreationOrConstant(keys, values, source_ref):
     return result
 
 
-# TODO: Use this one more often where possible.
 def makeDictCreationOrConstant2(keys, values, source_ref):
     # Create dictionary node. Tries to avoid it for constant values that are not
     # mutable. Keys are strings.

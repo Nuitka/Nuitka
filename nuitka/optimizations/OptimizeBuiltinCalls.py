@@ -92,10 +92,7 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinTuple
 )
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
-from nuitka.nodes.CallNodes import (
-    ExpressionCallEmpty,
-    ExpressionCallNoKeywords
-)
+from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import ExpressionBuiltinType3
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import (
@@ -142,6 +139,7 @@ from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyStatement
 )
 from nuitka.tree.TreeHelpers import (
+    makeCallNode,
     makeSequenceCreationOrConstant,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
@@ -157,13 +155,13 @@ def dir_extractor(node):
             source_ref = source_ref
         )
 
-        result = ExpressionCallEmpty(
-            called     = ExpressionAttributeLookup(
+        result = makeCallNode(
+            ExpressionAttributeLookup(
                 source         = source,
                 attribute_name = "keys",
                 source_ref     = source_ref
             ),
-            source_ref = source_ref
+            source_ref
         )
 
         # For Python3, keys doesn't really return values, but instead a handle
@@ -682,8 +680,8 @@ if python_version < 300:
                     tried,
                     StatementReturn(
                         expression = ExpressionBuiltinExecfile(
-                            source_code = ExpressionCallEmpty(
-                                called     = ExpressionAttributeLookup(
+                            source_code = makeCallNode(
+                                ExpressionAttributeLookup(
                                     source         = ExpressionBuiltinOpen(
                                         filename   = filename,
                                         mode       = makeConstantRefNode(
@@ -696,7 +694,7 @@ if python_version < 300:
                                     attribute_name = "read",
                                     source_ref     = source_ref
                                 ),
-                                source_ref = source_ref
+                                source_ref
                             ),
                             globals_arg = globals_ref,
                             locals_arg  = locals_ref,
@@ -806,7 +804,7 @@ def eval_extractor(node):
         string_fixup = [
             StatementAssignmentVariable(
                 variable   = source_variable,
-                source     = ExpressionCallNoKeywords(
+                source     = makeExpressionCall(
                     called     = ExpressionAttributeLookup(
                         source         = ExpressionTempVariableRef(
                             variable   = source_variable,
@@ -815,7 +813,8 @@ def eval_extractor(node):
                         attribute_name = "strip",
                         source_ref     = source_ref
                     ),
-                    args       = strip_choice,
+                    args       = strip_choice, # This is a tuple
+                    kw         = None,
                     source_ref = source_ref
                 ),
                 source_ref = source_ref
