@@ -27,6 +27,8 @@ The base class in PluginBase will serve as documentation of available.
 
 """
 
+from __future__ import print_function
+
 import os
 import sys
 
@@ -227,3 +229,10 @@ class Plugins(object):
                 return value
 
         return "compiled"
+
+
+def listPlugins():
+    for plugin_name in sorted( plugin_name2plugin_classes ):
+        print(plugin_name)
+
+    sys.exit(0)

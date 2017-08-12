@@ -703,6 +703,16 @@ this detection code is run in vain once you are certain of which plug-ins to
 use. Defaults to off."""
 )
 
+plugin_group.add_option(
+    "--plugin-list",
+    action  = "store_true",
+    dest    = "list_plugins",
+    default = False,
+    help    = """\
+Show list of all available plugins and exit. Defaults to off."""
+)
+
+
 parser.add_option_group(plugin_group)
 
 
@@ -735,6 +745,10 @@ def parseArgs():
             sys.argv = sys.argv[0:count+1]
 
     options, positional_args = parser.parse_args()
+
+    if shallListPlugins():
+        from nuitka.plugins.Plugins import listPlugins
+        listPlugins()
 
     if not positional_args:
         parser.print_help()
@@ -1055,6 +1069,10 @@ def getPythonFlags():
 
 def shallFreezeAllStdlib():
     return options.freeze_stdlib
+
+
+def shallListPlugins():
+    return options is not None and options.list_plugins
 
 
 def getPluginsEnabled():
