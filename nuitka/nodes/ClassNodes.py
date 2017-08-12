@@ -85,7 +85,9 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
         result = {
             "name"       : self.getFunctionName(),
             "provider"   : self.provider.getCodeName(),
-            "flags"      : ','.join(sorted(self.flags))
+            "flags"      : ""
+                             if self.flags is None else
+                           ','.join(sorted(self.flags))
         }
 
         if self.doc is not None:
