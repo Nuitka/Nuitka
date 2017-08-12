@@ -24,7 +24,6 @@ check it many times.
 """
 from nuitka.tree import Operations
 
-from .FinalizeClosureTaking import FinalizeClassClosure
 from .FinalizeMarkups import FinalizeMarkups
 
 
@@ -33,8 +32,3 @@ def prepareCodeGeneration(tree):
     Operations.visitTree(tree, visitor)
     for function in tree.getUsedFunctions():
         Operations.visitTree(function, visitor)
-
-    visitor = FinalizeClassClosure()
-    for function in tree.getUsedFunctions():
-        if function.hasFlag("has_super"):
-            Operations.visitFunction(function, visitor)
