@@ -302,7 +302,6 @@ def compareWithCPython(dirname, filename, extra_flags, search_mode, needs_2to3):
 
     """
 
-    # pylint: disable=too-many-branches
     if dirname is None:
         path = filename
     else:

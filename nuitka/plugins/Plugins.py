@@ -80,29 +80,6 @@ plugin_name2plugin_classes = dict(
     optional_plugin_classes
 )
 
-for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
-    if plugin_name not in plugin_name2plugin_classes:
-        sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
-
-    if plugin_name in Options.getPluginsEnabled() and \
-       plugin_name in Options.getPluginsDisabled():
-        sys.exit("Error, conflicting enable/disable of plug-in '%s'." % plugin_name)
-
-for plugin_name, (plugin_class, plugin_detector) in plugin_name2plugin_classes.items():
-    if plugin_name in Options.getPluginsEnabled():
-        active_plugin_list.append(
-            plugin_class(
-                **Options.getPluginOptions(plugin_name)
-            )
-        )
-    elif plugin_name not in Options.getPluginsDisabled():
-        if plugin_detector is not None \
-           and Options.shallDetectMissingPlugins() and \
-           plugin_detector.isRelevant():
-            active_plugin_list.append(
-                plugin_detector()
-            )
-
 
 class Plugins(object):
     @staticmethod
@@ -236,3 +213,31 @@ def listPlugins():
         print(plugin_name)
 
     sys.exit(0)
+
+
+def initPlugins():
+    for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
+        if plugin_name not in plugin_name2plugin_classes:
+            sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
+
+        if plugin_name in Options.getPluginsEnabled() and \
+           plugin_name in Options.getPluginsDisabled():
+            sys.exit("Error, conflicting enable/disable of plug-in '%s'." % plugin_name)
+
+    for plugin_name, (plugin_class, plugin_detector) in plugin_name2plugin_classes.items():
+        if plugin_name in Options.getPluginsEnabled():
+            active_plugin_list.append(
+                plugin_class(
+                    **Options.getPluginOptions(plugin_name)
+                )
+            )
+        elif plugin_name not in Options.getPluginsDisabled():
+            if plugin_detector is not None \
+               and Options.shallDetectMissingPlugins() and \
+               plugin_detector.isRelevant():
+                active_plugin_list.append(
+                    plugin_detector()
+                )
+
+
+initPlugins()
