@@ -273,6 +273,7 @@ def compileAndCompareWith(nuitka):
                     "--recurse-none",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s"% tmp_dir,
+                    "--no-pyi-file",
                     path
                 ]
                 command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
