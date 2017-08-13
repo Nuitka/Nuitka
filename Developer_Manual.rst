@@ -3384,6 +3384,122 @@ etc.
 
    PageBreak
 
+Prongs of Action
+================
+
+In this chapter, we keep track of prongs of action currently ongoing. This can
+get detailed and shows things we strive for.
+
+
+C types
+-------
+
+The ultimate goal is of course to get C types to be used instead of the Python
+object type in as many places as possible. Currently stuck on how to reflect
+the types intermediate expressions towards code generation.
+
+
+Builtin optimization
+--------------------
+
+Definitely want to get built-in names under full control, so that variable
+references to module variables do not have a twofold role. Currently they
+reference the module variable and also the potential built-in as a fallback.
+
+In terms of generated code size and complexity for modules with many variables
+and uses of them that is horrible. But ``some_var`` (normally) cannot be a
+built-in and therefore needs no code to check for that each time.
+
+This is also critical to getting to whole program optimization. Being certain
+what is what there on module level, will enable more definitely knowledge about
+data flows and module interfaces.
+
+Generator memory usage / Goto generators
+----------------------------------------
+
+Generator, coroutine, asyncgen memory usage. Currently, with fibers, every
+started generator alike object uses 1 MB of memory. That does not scale well.
+
+Already have we started code that will make generators re-entrant, with an
+initial goto dispatcher that continues code. The generator function will
+exit with a return when ``yield`` happens and resume at function entry again,
+going to the code portion in question.
+
+The storage of local variables and temporary variables in memory allocated
+for generator object is missing still.
+
+The benefit will be to be able to throw away all the platform dependent stuff
+for fibers, and hopefully this also could be faster for setup and maybe even
+the operation of generators.
+
+Class Creation Overhead Reduction
+---------------------------------
+
+This is more of a meta goal. Some work for the metaclass has already been done,
+but that is Python2 only currently. Being able to to decide built-ins and to
+distinguish between global only variables, and built-ins more clearly will help
+this a lot.
+
+In the end, empty classes should be able to be statically converted to calls
+to ``type`` with static dictionaries. The inlining of class creation function
+is also needed for this, but on Python3 cannot happen yet.
+
+Memory Usage at Compile Time
+----------------------------
+
+We will need to store more and more information in the future. Getting the tree
+to be tight shaped is therefore an effort, where we will be spending time too.
+
+The mix-ins prevent slots usage, so lets try and get rid of those. The "children
+having" should become more simple and faster code. I am even thinking of even
+generating code in the meta class, so it's both optimal and doesn't need that
+mix-in any more. This is going to be ugly then.
+
+Asyncgen Contractions
+---------------------
+
+They still don't work, although they most probably have to. Few code uses that,
+but it is a gap. The idea is to wait for the goto generators with their extra
+stacks to be sorted out, so this does not make things more complicated or gets
+in conflict with code changes for that.
+
+Plugins API and Options
+-----------------------
+
+Plugins need options and should be documented API. So should the doxygen be
+generated automatically and published.
+
+Coverage Testing
+----------------
+
+And then there is coverage, it should be taken and merged from all Python
+versions and OSes, but I never managed to merge between Windows and Linux
+for unknown reasons.
+
+Python3 Performance
+-------------------
+
+The Python3 lock for thread state is making it slower by a lot. I have only
+experimental code that just ignores the lock, but it likely only works on Linux,
+and I wonder why there is that lock in the first place.
+
+Ignoring the locks cannot be good. But what updates that thread state pointer
+ever without a thread change, and is this what abiflags are about in this
+context, are there some that allow us to ignore the locks.
+
+Test Runners
+------------
+
+Proper support for running tests against compiled packages. This is mostly
+done and needs documentation only.
+
+Distutils Integration
+---------------------
+
+Proper target to build a wheel with Nuitka compiled stuff in there. This is
+mostly done and needs testing and documentation only.
+
+
 Updates for this Manual
 =======================
 
