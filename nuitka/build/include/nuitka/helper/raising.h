@@ -448,7 +448,7 @@ NUITKA_MAY_BE_UNUSED static inline void RAISE_EXCEPTION_WITH_TRACEBACK( PyObject
     }
 }
 
-NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb )
+NUITKA_MAY_BE_UNUSED static bool RERAISE_EXCEPTION( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb )
 {
     PyThreadState *tstate = PyThreadState_GET();
     assert( tstate );
@@ -479,7 +479,11 @@ NUITKA_MAY_BE_UNUSED static void RERAISE_EXCEPTION( PyObject **exception_type, P
         );
         FETCH_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
 #endif
+
+        return false;
     }
+
+    return true;
 }
 
 

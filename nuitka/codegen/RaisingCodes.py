@@ -26,7 +26,10 @@ from nuitka.Options import isDebug
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import getFrameVariableTypeDescriptionCode
 from .LabelCodes import getGotoCode
-from .LineNumberCodes import emitErrorLineNumberUpdateCode
+from .LineNumberCodes import (
+    emitErrorLineNumberUpdateCode,
+    getErrorLineNumberUpdateCode
+)
 from .PythonAPICodes import getReferenceExportCode
 
 
@@ -77,10 +80,16 @@ def generateRaiseCode(statement, emit, context):
         assert exception_value is None
         assert exception_tb is None
 
+        old_source_ref = context.setCurrentSourceCodeReference(
+            value = statement.getCompatibleSourceReference()
+        )
+
         getReRaiseExceptionCode(
             emit    = emit,
             context = context
         )
+
+        context.setCurrentSourceCodeReference(old_source_ref)
     elif exception_value is None and exception_tb is None:
         raise_type_name  = context.allocateTempName("raise_type")
 
@@ -210,7 +219,16 @@ def getReRaiseExceptionCode(emit, context):
     if keeper_variables[0] is None:
         emit(
             """\
-RERAISE_EXCEPTION( &exception_type, &exception_value, &exception_tb );"""
+%(bool_res_name)s = RERAISE_EXCEPTION( &exception_type, &exception_value, &exception_tb );
+if (unlikely( %(bool_res_name)s == false ))
+{
+    %(update_code)s
+}
+""" % {
+                "bool_res_name" : context.getBoolResName(),
+                "update_code" : getErrorLineNumberUpdateCode(context)
+
+            }
         )
 
         frame_handle = context.getFrameHandle()
