@@ -31,8 +31,6 @@ import sys
 import tempfile
 import time
 
-from nuitka.utils.Execution import check_output
-
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
 thread_re                    = re.compile(r"Thread 0x[0-9a-fA-F]+")
@@ -230,6 +228,7 @@ exceeded while calling a Python object' in \
 
 def main():
     # Of course many cases to deal with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    from nuitka.utils.Execution import check_output
 
     filename = sys.argv[1]
     args     = sys.argv[2:]
@@ -434,7 +433,17 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
                 "--rcfile",
                 os.devnull,
                 "-a",
-                os.path.abspath(os.path.join(os.path.dirname(__file__), "nuitka"))
+                os.path.abspath(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..",
+                        "..",
+                        "..",
+                        "..",
+                        "bin",
+                        "nuitka"
+                    )
+                )
             ]
 
     if python_debug:
@@ -489,7 +498,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
 
     if coverage_mode:
         extra_options.append("--must-not-re-execute")
-        extra_options.append("--generate-c++-only")
+        extra_options.append("--generate-c-only")
 
     for plugin_enabled in plugins_enabled:
         extra_options.append("--plugin-enable=" + plugin_enabled)
@@ -630,7 +639,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
                not comparison_mode and \
                not os.path.exists(".coverage"):
                 sys.exit(
-                    "Error, no coverage module installed for %s." % os.environ["PYTHON"]
+                    "Error, failed to take coverage with %s." % os.environ["PYTHON"]
                 )
 
             exit_nuitka = exit_nuitka1
@@ -776,4 +785,22 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
 
 
 if __name__ == "__main__":
+    # Unchanged, running from checkout, use the parent directory, the nuitka
+    # package ought be there.
+    sys.path.insert(
+        0,
+        os.path.normpath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "..",
+                "..",
+            )
+        )
+    )
+    sys.path.insert(
+        1,
+        "/usr/share/nuitka"
+    )
+
     main()

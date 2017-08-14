@@ -124,6 +124,8 @@ print(sys.executable);\
         os.environ["COVERAGE_FILE"] = os.path.join(
             os.path.dirname(__file__),
             "..",
+            "..",
+            "..",
             ".coverage"
         )
 

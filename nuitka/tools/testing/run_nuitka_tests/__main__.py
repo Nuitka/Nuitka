@@ -56,8 +56,8 @@ def main():
         dest    = "basic_tests",
         default = True,
         help    = """\
-    The basic tests, execute these to check if Nuitka is healthy. Default
-    is %default."""
+The basic tests, execute these to check if Nuitka is healthy.
+Default is %default."""
     )
 
     parser.add_option(
@@ -683,8 +683,6 @@ Make a coverage analysis, that does not really check. Default is %default."""
         with open("data.coverage", 'w') as data_file:
             source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
-            data_file.write("NUITKA_SOURCE_DIR='%s'\n" % source_dir)
-
             nuitka_id = check_output(
                 "cd '%s'; git rev-parse HEAD" % source_dir,
                 shell = True
@@ -697,7 +695,26 @@ Make a coverage analysis, that does not really check. Default is %default."""
             data_file.write("NUITKA_COMMIT='%s'\n" % nuitka_id)
 
         copyToGlobalCoverageData("data.coverage", "data.coverage." + suffix)
-        copyToGlobalCoverageData(".coverage", ".coverage." + suffix)
+
+        def makeCoverageRelative(filename):
+            """ Normalize coverage data.
+
+            """
+
+            with open(filename) as input_file:
+                data = input_file.read()
+
+            data = data.replace(os.path.abspath(".") + os.path.sep, "")
+            if os.path.sep != "/":
+                data.replace(os.path.sep, "/")
+
+            with open(filename, "w") as output_file:
+                output_file.write(data)
+
+        coverage_file = os.environ.get("COVERAGE_FILE", ".coverage")
+
+        makeCoverageRelative(coverage_file)
+        copyToGlobalCoverageData(coverage_file, ".coverage." + suffix)
 
     print("OK.")
 
