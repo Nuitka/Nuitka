@@ -216,7 +216,7 @@ setup(
     version      = version,
     classifiers  = [
         # Nuitka is mature even
-        "5 - Production/Stable",
+        "Development Status :: 5 - Production/Stable",
 
         # Indicate who Nuitka is for
         "Intended Audience :: Developers",
