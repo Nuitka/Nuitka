@@ -406,6 +406,19 @@ Make a coverage analysis, that does not really check. Default is %default."""
                 if os.path.exists(os.path.join(part, command + suffix)):
                     return True
 
+        if os.name == "nt":
+            if command.startswith("python"):
+                remainder = command[6:]
+
+                if len(remainder) == 3 and remainder[1] == ".":
+                    command = getPythonExePathWindows(
+                        search = remainder,
+                        arch = None
+                    )
+
+                    return True
+
+
         return False
 
     def setExtraFlags(where, name, flags):
