@@ -639,7 +639,15 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
                not comparison_mode and \
                not os.path.exists(".coverage"):
                 sys.exit(
-                    "Error, failed to take coverage with %s." % os.environ["PYTHON"]
+                    """\
+Error, failed to take coverage with '%s'.
+
+Stderr was:
+%s
+""" % (
+    os.environ["PYTHON"],
+    stderr_nuitka1
+)
                 )
 
             exit_nuitka = exit_nuitka1
