@@ -148,26 +148,28 @@ cmdclass = {
     "install_scripts" : NuitkaInstallScripts,
 }
 
+# Fix for "develop", where the generated scripts from easy install are not
+# capable of running in their re-executing, not finding pkg_resources anymore.
+if "develop" in sys.argv:
+    try:
+        import setuptools.command.easy_install
+    except ImportError:
+        pass
+    else:
+        orig_easy_install = setuptools.command.easy_install.easy_install
 
-try:
-    import setuptools.command.easy_install
-except ImportError:
-    pass
-else:
-    orig_easy_install = setuptools.command.easy_install.easy_install
+        class NuitkaEasyInstall(setuptools.command.easy_install.easy_install):
+            @staticmethod
+            def _load_template(dev_path):
+                result = orig_easy_install._load_template(dev_path)
+                result = result.replace(
+                    "__import__('pkg_resources')",
+                    "# __import__('pkg_resources')",
+                )
 
-    class NuitkaEasyInstall(setuptools.command.easy_install.easy_install):
-        @staticmethod
-        def _load_template(dev_path):
-            result = orig_easy_install._load_template(dev_path)
-            result = result.replace(
-                "__import__('pkg_resources')",
-                "# __import__('pkg_resources')",
-            )
+                return result
 
-            return result
-
-    setuptools.command.easy_install.easy_install = NuitkaEasyInstall
+        setuptools.command.easy_install.easy_install = NuitkaEasyInstall
 
 if os.path.exists("/usr/bin/scons") and \
    "sdist" not in sys.argv and \
