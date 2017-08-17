@@ -110,8 +110,7 @@ for filename in os.listdir('.'):
         assert 0 == os.system(
             "tar --wildcards --delete --file " + new_name[:-3] + \
             " Nuitka*/*.pdf" + \
-            " Nuitka*/build/inline_copy" + \
-            " Nuitka*/Nuitka.egg-info"
+            " Nuitka*/build/inline_copy"
         )
         assert 0 == os.system("gzip -9 -n " + new_name[:-3])
 
