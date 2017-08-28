@@ -118,6 +118,7 @@ def getOptions():
 
     default_pylint_options = """\
 --rcfile=/dev/null
+--init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
 --disable=I0011,I0012,no-init,C0326,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
@@ -220,13 +221,10 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
         pylint_options.append("--notes=")
 
     def hasPyLintBugTrigger(filename):
-        if pylint_version < b"1.7":
+        if pylint_version < b"1.8":
             return False
 
-        return os.path.basename(filename) in (
-            "ReformulationContractionExpressions.py",
-            "TreeHelpers.py"
-        )
+        return os.path.basename(filename) in ()
 
     filenames = [
         filename
