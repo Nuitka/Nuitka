@@ -413,6 +413,21 @@ can not delete variable '%s' referenced in nested scope""" % (
                 )
         elif node.isStatementsFrame():
             node.updateLocalNames()
+        elif node.isParentVariableProvider() and \
+             not node.isCompiledPythonModule():
+            addFunctionVariableReleases(node)
+
+            # Python3 is influenced by the mere use of a variable named as
+            # "super". So we need to prepare ability to take closure.
+            if node.hasFlag("has_super"):
+                if not node.hasVariableName("__class__"):
+                    class_var = node.takeVariableForClosure("__class__")
+                    class_var.addVariableUser(node)
+
+                    node.registerProvidedVariable(class_var)
+                    while node != class_var.getOwner():
+                        node = node.getParentVariableProvider()
+                        node.registerProvidedVariable(class_var)
 
 
 def completeVariableClosures(tree):
@@ -424,23 +439,3 @@ def completeVariableClosures(tree):
 
     for visitor in visitors:
         visitTree(tree, visitor)
-
-        if tree.isCompiledPythonModule():
-            for function in tree.getFunctions():
-                visitTree(function, visitor)
-
-    if tree.isCompiledPythonModule():
-        for function in tree.getFunctions():
-            addFunctionVariableReleases(function)
-
-            # Python3 is influenced by the mere use of a variable named as
-            # "super". So we need to prepare ability to take closure.
-            if function.hasFlag("has_super"):
-                if not function.hasVariableName("__class__"):
-                    class_var = function.takeVariableForClosure("__class__")
-                    class_var.addVariableUser(function)
-
-                    function.registerProvidedVariable(class_var)
-                    while function != class_var.getOwner():
-                        function = function.getParentVariableProvider()
-                        function.registerProvidedVariable(class_var)
