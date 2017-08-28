@@ -837,7 +837,7 @@ class ExpressionFunctionRef(ExpressionBase):
             if result is not statements_sequence:
                 function_body.setBody(result)
 
-        function_body.trace_collection.updateFromCollection(old_collection)
+        function_body.trace_collection.updateVariablesFromCollection(old_collection)
 
         # TODO: Function collection may now know something.
         return self, None, None

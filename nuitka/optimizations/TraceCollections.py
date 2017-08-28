@@ -305,8 +305,8 @@ class CollectionStartpointMixin(object):
 
         return trace
 
-    def updateFromCollection(self, old_collection):
-        Variables.updateFromCollection(old_collection, self)
+    def updateVariablesFromCollection(self, old_collection):
+        Variables.updateVariablesFromCollection(old_collection, self)
 
     @contextlib.contextmanager
     def makeAbortStackContext(self, catch_breaks, catch_continues,

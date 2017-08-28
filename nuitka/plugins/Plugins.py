@@ -209,7 +209,7 @@ class Plugins(object):
 
 
 def listPlugins():
-    for plugin_name in sorted( plugin_name2plugin_classes ):
+    for plugin_name in sorted(plugin_name2plugin_classes):
         print(plugin_name)
 
     sys.exit(0)

@@ -448,7 +448,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
                 message    = "Recursed to module package."
             )
 
-        self.trace_collection.updateFromCollection(old_collection)
+        self.trace_collection.updateVariablesFromCollection(old_collection)
 
     def getTraceCollections(self):
         yield self.trace_collection

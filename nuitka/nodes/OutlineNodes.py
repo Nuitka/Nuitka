@@ -29,7 +29,7 @@ from .NodeBases import ChildrenHavingMixin
 
 
 class ExpressionOutlineBody(ExpressionChildrenHavingBase):
-    """ Outlined code.
+    """ Outlined expression code.
 
         This is for a call to a piece of code to be executed in a specific
         context. It contains an exclusively owned function body, that has

@@ -373,7 +373,7 @@ def makeOptimizationPass(initial_pass):
     for current_module in ModuleRegistry.getDoneModules():
         if current_module.isCompiledPythonModule():
             for function in current_module.getUnusedFunctions():
-                Variables.updateFromCollection(
+                Variables.updateVariablesFromCollection(
                     old_collection = function.trace_collection,
                     new_collection = None
                 )

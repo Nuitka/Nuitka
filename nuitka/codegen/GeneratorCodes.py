@@ -161,7 +161,7 @@ def getClosureCopyCode(to_name, closure_variables, closure_type, context):
         )
 
     closure_copy.append(
-        "assert( Py_SIZE( %s) >= %s ); " % (
+        "assert( Py_SIZE( %s ) >= %s ); " % (
             to_name,
             len(closure_variables)
         )

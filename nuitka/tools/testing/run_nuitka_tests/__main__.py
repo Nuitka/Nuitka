@@ -410,10 +410,10 @@ Make a coverage analysis, that does not really check. Default is %default."""
             if command.startswith("python"):
                 remainder = command[6:]
 
-                if len(remainder) == 3 and remainder[1] == ".":
+                if len(remainder) == 3 and remainder[1] == '.':
                     command = getPythonExePathWindows(
                         search = remainder,
-                        arch = None
+                        arch   = None
                     )
 
                     return True
@@ -717,11 +717,11 @@ Make a coverage analysis, that does not really check. Default is %default."""
             with open(filename) as input_file:
                 data = input_file.read()
 
-            data = data.replace(os.path.abspath(".") + os.path.sep, "")
-            if os.path.sep != "/":
-                data.replace(os.path.sep, "/")
+            data = data.replace(os.path.abspath('.') + os.path.sep, "")
+            if os.path.sep != '/':
+                data.replace(os.path.sep, '/')
 
-            with open(filename, "w") as output_file:
+            with open(filename, 'w') as output_file:
                 output_file.write(data)
 
         coverage_file = os.environ.get("COVERAGE_FILE", ".coverage")

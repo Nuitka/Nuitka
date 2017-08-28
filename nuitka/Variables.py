@@ -303,7 +303,7 @@ class TempVariable(Variable):
         return True
 
 
-def updateFromCollection(old_collection, new_collection):
+def updateVariablesFromCollection(old_collection, new_collection):
     # After removing/adding traces, we need to pre-compute the users state
     # information.
     touched_variables = set()

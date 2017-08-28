@@ -788,11 +788,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
 
 
 def addFunctionVariableReleases(function):
-    assert function.isExpressionFunctionBody() or \
-           function.isExpressionClassBody() or \
-           function.isExpressionGeneratorObjectBody() or \
-           function.isExpressionCoroutineObjectBody() or \
-           function.isExpressionAsyncgenObjectBody()
+    assert function.isExpressionFunctionBodyBase()
 
     releases = []
 

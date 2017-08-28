@@ -44,7 +44,7 @@ def simpleFunction1():
 
 def simpleFunction2():
     try:
-        return {y:i for i in range(x)}
+        return {y:i for i in range(x)}  # @UndefinedVariable
     except NameError:
         pass
 
@@ -53,7 +53,7 @@ def simpleFunction3():
 
 def simpleFunction4():
     try:
-        return {y for i in range(x)}
+        return {y for i in range(x)}  # @UndefinedVariable @UnusedVariable
     except NameError:
         pass
 

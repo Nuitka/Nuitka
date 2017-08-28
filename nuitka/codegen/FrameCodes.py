@@ -206,8 +206,7 @@ def getTypeSizeOf(type_indicator):
 
 
 def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
-                           type_descriptions,
-                           needs_preserve, parent_exception_exit,
+                           type_descriptions, needs_preserve, parent_exception_exit,
                            parent_return_exit, frame_exception_exit,
                            frame_return_exit, emit, context):
     # We really need this many parameters here.
