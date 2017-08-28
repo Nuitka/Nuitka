@@ -59,25 +59,6 @@ class TempMixin(object):
 
         self.cleanup_names = []
 
-        self.current_source_ref = None
-        self.last_source_ref = None
-
-    def getCurrentSourceCodeReference(self):
-        return self.current_source_ref
-
-    def setCurrentSourceCodeReference(self, value):
-        result = self.current_source_ref
-        self.current_source_ref = value
-
-        if value is not None:
-            self.last_source_ref = result
-
-        return result
-
-    def getLastSourceCodeReference(self):
-        result = self.last_source_ref
-        # self.last_source_ref = None
-        return result
 
     def formatTempName(self, base_name, number):
         if number is None:
@@ -320,7 +301,29 @@ class PythonContextBase(object):
     def __init__(self):
         self.source_ref = None
 
+        self.current_source_ref = None
+        self.last_source_ref = None
+
     __del__ = counted_del()
+
+    def getCurrentSourceCodeReference(self):
+        return self.current_source_ref
+
+    def setCurrentSourceCodeReference(self, value):
+        result = self.current_source_ref
+        self.current_source_ref = value
+
+        if value is not None:
+            self.last_source_ref = result
+
+        return result
+
+    def getLastSourceCodeReference(self):
+        result = self.last_source_ref
+        # self.last_source_ref = None
+        return result
+
+
 
 
 class PythonChildContextBase(PythonContextBase):
@@ -623,15 +626,28 @@ class FrameDeclarationsMixin(object):
         # Types of variables for current frame.
         self.variable_types = {}
 
-        # Currently active frame code identifier.
-        self.frame_handle = None
+        self.frames_used = 0
 
+        # Currently active frame stack inside the context.
+        self.frame_stack = [None]
 
     def getFrameHandle(self):
-        return self.frame_handle
+        return self.frame_stack[-1]
 
-    def setFrameHandle(self, frame_handle):
-        self.frame_handle = frame_handle
+    def pushFrameHandle(self, frame_handle):
+        self.frames_used += 1
+
+        if self.frames_used > 1:
+            frame_handle += "_%d" % self.frames_used
+
+        self.frame_stack.append(frame_handle)
+        return self.frame_stack[-1]
+
+    def popFrameHandle(self):
+        result = self.frame_stack[-1]
+        del self.frame_stack[-1]
+
+        return result
 
     def addFrameDeclaration(self, frame_decl):
         self.frame_declarations.append(frame_decl)
@@ -691,8 +707,48 @@ class FrameDeclarationsMixin(object):
         self.needs_type_description = True
 
 
+class ReturnReleaseModeMixin(object):
+    def __init__(self):
+        self.return_release_mode = False
+
+        self.return_exit = None
+
+    def setReturnReleaseMode(self, value):
+        result = self.return_release_mode
+        self.return_release_mode = value
+        return result
+
+    def getReturnReleaseMode(self):
+        return self.return_release_mode
+
+    def setReturnTarget(self, label):
+        result = self.return_exit
+        self.return_exit = label
+        return result
+
+    def getReturnTarget(self):
+        return self.return_exit
+
+
+class ReturnValueNameMixin(object):
+    def __init__(self):
+        self.return_name = None
+
+    def getReturnValueName(self):
+        if self.return_name is None:
+            self.return_name = self.allocateTempName("return_value", unique = True)
+
+        return self.return_name
+
+    def setReturnValueName(self, value):
+        result = self.return_name
+        self.return_name = value
+        return result
+
+
 class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
-                          FrameDeclarationsMixin):
+                          FrameDeclarationsMixin, ReturnReleaseModeMixin,
+                          ReturnValueNameMixin):
     # Plenty of attributes, because it's storing so many different things.
     # pylint: disable=too-many-instance-attributes
 
@@ -702,6 +758,10 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
         TempMixin.__init__(self)
         CodeObjectsMixin.__init__(self)
         FrameDeclarationsMixin.__init__(self)
+        ReturnReleaseModeMixin.__init__(self)
+
+        # TODO: For outlines bodies.
+        ReturnValueNameMixin.__init__(self)
 
         self.module = module
         self.name = module_name
@@ -715,13 +775,7 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
 
         self.constants = set()
 
-        self.return_release_mode = False
-
         self.frame_handle = None
-
-        self.return_exit = True
-
-        self.return_name = None
 
         self.needs_module_filename_object = False
 
@@ -775,30 +829,6 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
     def getDeclarations(self):
         return self.declaration_codes
 
-    def getReturnValueName(self):
-        return self.return_name
-
-    def setReturnValueName(self, value):
-        result = self.return_name
-        self.return_name = value
-        return result
-
-    def setReturnReleaseMode(self, value):
-        result = self.return_release_mode
-        self.return_release_mode = value
-        return result
-
-    def getReturnReleaseMode(self):
-        return self.return_release_mode
-
-    def getReturnTarget(self):
-        return self.return_exit
-
-    def setReturnTarget(self, label):
-        result = self.return_exit
-        self.return_exit = label
-        return result
-
     def mayRecurse(self):
         return False
 
@@ -821,7 +851,8 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
         return self.needs_module_filename_object
 
 
-class PythonFunctionContext(FrameDeclarationsMixin, PythonChildContextBase, TempMixin):
+class PythonFunctionContext(FrameDeclarationsMixin, PythonChildContextBase,
+                            TempMixin, ReturnReleaseModeMixin, ReturnValueNameMixin):
     def __init__(self, parent, function):
         PythonChildContextBase.__init__(
             self,
@@ -830,16 +861,13 @@ class PythonFunctionContext(FrameDeclarationsMixin, PythonChildContextBase, Temp
 
         TempMixin.__init__(self)
         FrameDeclarationsMixin.__init__(self)
+        ReturnReleaseModeMixin.__init__(self)
+        ReturnValueNameMixin.__init__(self)
 
         self.function = function
 
-        self.return_exit = None
-
         self.setExceptionEscape("function_exception_exit")
         self.setReturnTarget("function_return_exit")
-
-        self.return_release_mode = False
-        self.return_name = None
 
         self.frame_handle = None
 
@@ -857,33 +885,6 @@ class PythonFunctionContext(FrameDeclarationsMixin, PythonChildContextBase, Temp
 
     def hasLocalsDict(self):
         return self.function.hasLocalsDict()
-
-    def getReturnValueName(self):
-        if self.return_name is None:
-            self.return_name = self.allocateTempName("return_value", unique = True)
-
-        return self.return_name
-
-    def setReturnValueName(self, value):
-        result = self.return_name
-        self.return_name = value
-        return result
-
-    def getReturnTarget(self):
-        return self.return_exit
-
-    def setReturnTarget(self, label):
-        result = self.return_exit
-        self.return_exit = label
-        return result
-
-    def setReturnReleaseMode(self, value):
-        result = self.return_release_mode
-        self.return_release_mode = value
-        return result
-
-    def getReturnReleaseMode(self):
-        return self.return_release_mode
 
     def mayRecurse(self):
         # TODO: Determine this at compile time for enhanced optimizations.

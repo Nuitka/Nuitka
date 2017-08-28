@@ -67,7 +67,7 @@ def getFrameLocalsStorageSize(type_descriptions):
 def generateStatementsFrameCode(statement_sequence, emit, context):
     # This is a wrapper that provides also handling of frames, which got a
     # lot of variants and details, therefore lots of branches.
-    # pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches
 
     context.pushCleanupScope()
 
@@ -80,15 +80,13 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
 
     parent_exception_exit = context.getExceptionEscape()
 
-    # Allow stacking of frame handles.
-    old_frame_handle = context.getFrameHandle()
-
     if statement_sequence.hasStructureMember():
         frame_identifier = "%s->m_frame" % context.getContextObjectName()
     else:
         frame_identifier = code_identifier.replace("codeobj_", "frame_")
 
-    context.setFrameHandle(
+    # Allow stacking of frame handles.
+    frame_identifier = context.pushFrameHandle(
         frame_identifier
     )
 
@@ -189,7 +187,7 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     if frame_return_exit is not None:
         context.setReturnTarget(parent_return_exit)
 
-    context.setFrameHandle(old_frame_handle)
+    context.popFrameHandle()
 
     context.popCleanupScope()
 
