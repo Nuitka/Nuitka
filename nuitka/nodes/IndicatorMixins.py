@@ -41,6 +41,7 @@ class MarkLocalsDictIndicatorMixin(object):
     def hasForeignLocalsDict(self):
         return self.foreign_locals_dict
 
+
 class MarkUnoptimizedFunctionIndicatorMixin(object):
     """ Mixin for indication that a function contains an exec or star import.
 
@@ -81,3 +82,16 @@ class MarkNeedsAnnotationsMixin(object):
     def needsAnnotationsDictionary(self):
         """ For use during building only. Indicate "__annotations__" need. """
         return self.needs_annotations_dict
+
+
+class EntryPointMixin(object):
+    def __init__(self):
+        self.trace_collection = None
+
+    def setTraceCollection(self, trace_collection):
+        previous = self.trace_collection
+        self.trace_collection = trace_collection
+        return previous
+
+    def getTraceCollection(self):
+        return self.trace_collection

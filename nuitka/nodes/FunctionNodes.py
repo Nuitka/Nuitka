@@ -43,6 +43,7 @@ from .ExpressionBases import (
 )
 from .FutureSpecs import fromFlags
 from .IndicatorMixins import (
+    EntryPointMixin,
     MarkLocalsDictIndicatorMixin,
     MarkUnoptimizedFunctionIndicatorMixin
 )
@@ -63,11 +64,14 @@ from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 class MaybeLocalVariableUsage(Exception):
     pass
 
+
 class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
                                  ExpressionChildrenHavingBase):
 
-    def __init__(self, provider, name, code_prefix, flags, source_ref,
-                 body = None):
+    def __init__(self, provider, name, code_prefix, flags, source_ref, body):
+        while not isinstance(provider, EntryPointMixin):
+            provider = provider.getParentVariableProvider()
+
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -326,9 +330,27 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
             return self.getBody().mayRaiseException(exception_type)
 
 
+class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBase):
+    def __init__(self, provider, name, code_prefix, flags, source_ref):
+        ExpressionFunctionBodyBase.__init__(
+            self,
+            provider    = provider,
+            name        = name,
+            code_prefix = code_prefix,
+            flags       = flags,
+            body        = None,
+            source_ref  = source_ref
+        )
+
+        EntryPointMixin.__init__(self)
+
+    getBody = ChildrenHavingMixin.childGetter("body")
+    setBody = ChildrenHavingMixin.childSetter("body")
+
+
 class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
                              MarkUnoptimizedFunctionIndicatorMixin,
-                             ExpressionFunctionBodyBase):
+                             ExpressionFunctionEntryPointBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, leading to many methods, pylint: disable=R0901
 
@@ -346,21 +368,16 @@ class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, doc, parameters, flags, source_ref,
-                 body = None):
-        while provider.isExpressionOutlineBody():
-            provider = provider.getParentVariableProvider()
-
+    def __init__(self, provider, name, doc, parameters, flags, source_ref):
         if name == "<listcontraction>":
             assert python_version >= 300
 
-        ExpressionFunctionBodyBase.__init__(
+        ExpressionFunctionEntryPointBase.__init__(
             self,
             provider    = provider,
             name        = name,
             code_prefix = "function",
             flags       = flags,
-            body        = body,
             source_ref  = source_ref
         )
 
@@ -452,9 +469,6 @@ class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
     def getParameters(self):
         return self.parameters
 
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
-
     def needsCreation(self):
         return self.needs_creation
 
@@ -498,6 +512,7 @@ class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
 
     def needsExceptionReturnValue(self):
         return self.return_exception
+
 
 def convertNoneConstantOrEmptyDictToNone(node):
     if node is None:

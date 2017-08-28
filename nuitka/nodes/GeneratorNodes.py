@@ -26,12 +26,11 @@ from nuitka.PythonVersions import python_version
 
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .FunctionNodes import ExpressionFunctionBodyBase
+from .FunctionNodes import ExpressionFunctionEntryPointBase
 from .IndicatorMixins import (
     MarkLocalsDictIndicatorMixin,
     MarkUnoptimizedFunctionIndicatorMixin
 )
-from .NodeBases import ChildrenHavingMixin
 from .ReturnNodes import StatementReturn, StatementReturnNone
 
 
@@ -95,7 +94,7 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
 
 class ExpressionGeneratorObjectBody(MarkLocalsDictIndicatorMixin,
                                     MarkUnoptimizedFunctionIndicatorMixin,
-                                    ExpressionFunctionBodyBase):
+                                    ExpressionFunctionEntryPointBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
     kind = "EXPRESSION_GENERATOR_OBJECT_BODY"
@@ -113,10 +112,7 @@ class ExpressionGeneratorObjectBody(MarkLocalsDictIndicatorMixin,
         qualname_setup = None
 
     def __init__(self, provider, name, flags, source_ref):
-        while provider.isExpressionOutlineBody():
-            provider = provider.getParentVariableProvider()
-
-        ExpressionFunctionBodyBase.__init__(
+        ExpressionFunctionEntryPointBase.__init__(
             self,
             provider    = provider,
             name        = name,
@@ -130,6 +126,8 @@ class ExpressionGeneratorObjectBody(MarkLocalsDictIndicatorMixin,
         MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
         self.needs_generator_return_exit = False
+
+        self.trace_collection = None
 
     def getFunctionName(self):
         return self.name
@@ -149,9 +147,6 @@ class ExpressionGeneratorObjectBody(MarkLocalsDictIndicatorMixin,
     @staticmethod
     def needsCreation():
         return False
-
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
 
 
 class StatementGeneratorReturn(StatementReturn):

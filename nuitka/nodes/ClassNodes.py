@@ -25,7 +25,7 @@ from nuitka.PythonVersions import python_version
 
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .FunctionNodes import ExpressionFunctionBodyBase
+from .FunctionNodes import ExpressionFunctionEntryPointBase
 from .IndicatorMixins import (
     MarkLocalsDictIndicatorMixin,
     MarkNeedsAnnotationsMixin
@@ -34,7 +34,7 @@ from .IndicatorMixins import (
 
 class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
                           MarkNeedsAnnotationsMixin,
-                          ExpressionFunctionBodyBase):
+                          ExpressionFunctionEntryPointBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
 
@@ -50,10 +50,7 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
     }
 
     def __init__(self, provider, name, doc, flags, source_ref):
-        while provider.isExpressionOutlineBody():
-            provider = provider.getParentVariableProvider()
-
-        ExpressionFunctionBodyBase.__init__(
+        ExpressionFunctionEntryPointBase.__init__(
             self,
             provider    = provider,
             name        = name,
@@ -103,9 +100,6 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
             **args
         )
 
-    getBody = ExpressionFunctionBodyBase.childGetter("body")
-    setBody = ExpressionFunctionBodyBase.childSetter("body")
-
     def getDoc(self):
         return self.doc
 
@@ -125,7 +119,7 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
                     "__class__"
                 )
             else:
-                return ExpressionFunctionBodyBase.getVariableForClosure(
+                return ExpressionFunctionEntryPointBase.getVariableForClosure(
                     self,
                     variable_name = "__class__"
                 )

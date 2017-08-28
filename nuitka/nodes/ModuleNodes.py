@@ -41,7 +41,7 @@ from .Checkers import checkStatementsSequenceOrNone
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase
 from .FutureSpecs import FutureSpec, fromFlags
-from .IndicatorMixins import MarkNeedsAnnotationsMixin
+from .IndicatorMixins import EntryPointMixin, MarkNeedsAnnotationsMixin
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeMixin,
@@ -188,7 +188,8 @@ class PythonModuleBase(NodeBase):
 
 
 class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
-                           MarkNeedsAnnotationsMixin, PythonModuleBase):
+                           MarkNeedsAnnotationsMixin, EntryPointMixin,
+                           PythonModuleBase):
     """ Compiled Python Module
 
     """
@@ -228,15 +229,14 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
         MarkNeedsAnnotationsMixin.__init__(self)
 
+        EntryPointMixin.__init__(self)
+
         self.mode = mode
 
         self.variables = {}
 
         self.active_functions = OrderedSet()
         self.cross_used_functions = OrderedSet()
-
-        # SSA trace based information about the module.
-        self.trace_collection = None
 
         # Often None until tree building finishes its part.
         self.future_spec = future_spec

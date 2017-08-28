@@ -24,9 +24,8 @@ whose implementation lives here. The creation itself also lives here.
 
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .FunctionNodes import ExpressionFunctionBodyBase
+from .FunctionNodes import ExpressionFunctionEntryPointBase
 from .IndicatorMixins import MarkLocalsDictIndicatorMixin
-from .NodeBases import ChildrenHavingMixin
 
 
 class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
@@ -91,7 +90,7 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
         ]
 
 
-class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin, ExpressionFunctionBodyBase):
+class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin, ExpressionFunctionEntryPointBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
     kind = "EXPRESSION_COROUTINE_OBJECT_BODY"
@@ -108,10 +107,7 @@ class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin, ExpressionFunc
     qualname_setup = None
 
     def __init__(self, provider, name, flags, source_ref):
-        while provider.isExpressionOutlineBody():
-            provider = provider.getParentVariableProvider()
-
-        ExpressionFunctionBodyBase.__init__(
+        ExpressionFunctionEntryPointBase.__init__(
             self,
             provider    = provider,
             name        = name,
@@ -147,9 +143,6 @@ class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin, ExpressionFunc
     def isUnoptimized():
         return False
 
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
-
 
 class ExpressionAsyncWait(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_ASYNC_WAIT"
@@ -177,4 +170,4 @@ class ExpressionAsyncWait(ExpressionChildrenHavingBase):
         # TODO: Might be predictable based awaitable analysis or for constants.
         return self, None, None
 
-    getValue = ExpressionFunctionBodyBase.childGetter("expression")
+    getValue = ExpressionChildrenHavingBase.childGetter("expression")
