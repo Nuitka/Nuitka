@@ -294,6 +294,9 @@ int main( int argc, char **argv )
     Py_HashRandomizationFlag = 1;
 #endif
 
+    /* This suppresses warnings from getpath.c */
+    Py_FrozenFlag = 1;
+
     /* We want to import the site module, but only after we finished our own
      * setup. The site module import will be the first thing, the main module
      * does.
