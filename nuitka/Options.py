@@ -721,7 +721,7 @@ positional_args = None
 extra_args = []
 
 def parseArgs():
-    # many cases, pylint: disable=global-statement,too-many-branches,too-many-statements
+    # singleton with many cases, pylint: disable=global-statement,too-many-branches,too-many-statements
     global options, positional_args, extra_args
 
     # First, isolate the first non-option arguments.
@@ -1045,26 +1045,34 @@ def isStandaloneMode():
 def getIconPath():
     return options.icon_path
 
+_python_flags = None
 
 def getPythonFlags():
-    result = set()
+    # singleton, pylint: disable=global-statement
+    global _python_flags
 
-    for parts in options.python_flags:
-        for part in parts.split(','):
-            if part in ("-S", "nosite", "no_site"):
-                result.add("no_site")
-            elif part in ("static_hashes", "norandomization", "no_randomization"):
-                result.add("no_randomization")
-            elif part in ("-v", "trace_imports", "trace_import"):
-                result.add("trace_imports")
-            elif part in ("no_warnings", "nowarnings"):
-                result.add("no_warnings")
-            elif part in ("-O", "no_asserts", "noasserts"):
-                result.add("no_asserts")
-            else:
-                logging.warning("Unsupported flag '%s'.", part)
+    if _python_flags is None:
+        _python_flags = set()
 
-    return result
+        for parts in options.python_flags:
+            for part in parts.split(','):
+                if part in ("-S", "nosite", "no_site"):
+                    _python_flags.add("no_site")
+                elif part in ("static_hashes", "norandomization",
+                              "no_randomization"):
+                    _python_flags.add("no_randomization")
+                elif part in ("-v", "trace_imports", "trace_import"):
+                    _python_flags.add("trace_imports")
+                elif part in ("no_warnings", "nowarnings"):
+                    _python_flags.add("no_warnings")
+                elif part in ("-O", "no_asserts", "noasserts"):
+                    _python_flags.add("no_asserts")
+                else:
+                    # Do not warn before executing in final context.
+                    if "PYTHONHASHSEED" in os.environ:
+                        logging.warning("Unsupported flag '%s'.", part)
+
+    return _python_flags
 
 
 def shallFreezeAllStdlib():
