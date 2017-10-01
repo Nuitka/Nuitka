@@ -235,6 +235,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # test_xml_etree.py
         "xml.parsers.expat.errors",
 
+        # test_xmlrpc.py
+        "xmlrpc.client",
+
         # test_zipimport_support.py
         "test_zipped_doctest", "zip_pkg",
 
