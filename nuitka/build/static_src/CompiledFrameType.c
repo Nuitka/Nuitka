@@ -662,6 +662,11 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
 void Nuitka_Frame_AttachLocals( struct Nuitka_FrameObject *frame, char const *type_description, ... )
 {
     assert( frame->m_type_description == NULL );
+
+    // TODO: Do not call this if there is nothing to do. Instead make all the
+    // places handle NULL pointer.
+    if ( type_description == NULL ) type_description = "";
+
     frame->m_type_description = type_description;
 
 

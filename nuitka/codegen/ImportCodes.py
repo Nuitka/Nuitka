@@ -189,8 +189,9 @@ def generateImportStarCode(statement, emit, context):
         )
     else:
         emit(
-            "%s = IMPORT_MODULE_STAR( locals_dict, false, %s );" % (
+            "%s = IMPORT_MODULE_STAR( %s, false, %s );" % (
                 res_name,
+                context.getLocalsDictName(),
                 module_name
             )
         )

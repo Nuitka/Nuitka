@@ -143,7 +143,7 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
         if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
             # Just inform the collection that all has escaped.
-            trace_collection.onLocalsUsage()
+            trace_collection.onLocalsUsage(self.getParentVariableProvider())
 
         return new_node, tags, message
 

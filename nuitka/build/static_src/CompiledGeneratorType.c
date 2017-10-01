@@ -54,6 +54,7 @@ static void Nuitka_Generator_release_closure( struct Nuitka_GeneratorObject *gen
 {
     for( Py_ssize_t i = 0; i < generator->m_closure_given; i++ )
     {
+        CHECK_OBJECT( generator->m_closure[ i ] );
         Py_DECREF( generator->m_closure[ i ] );
     }
 

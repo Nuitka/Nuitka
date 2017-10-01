@@ -23,11 +23,6 @@ from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import allocateNestedConstants, getConstantInitCodes
-from .ErrorCodes import (
-    getErrorVariableDeclarations,
-    getExceptionKeeperVariableNames,
-    getExceptionPreserverVariableNames
-)
 from .Indentation import indented
 from .templates.CodeTemplatesModules import (
     template_global_copyright,
@@ -35,7 +30,6 @@ from .templates.CodeTemplatesModules import (
     template_module_exception_exit,
     template_module_noexception_exit
 )
-from .VariableCodes import getLocalVariableInitCode
 
 
 def getModuleAccessCode(context):
@@ -43,52 +37,23 @@ def getModuleAccessCode(context):
 
 
 def getModuleValues(context, module_name, module_identifier, codes,
-                    function_decl_codes, function_body_codes, temp_variables,
-                    is_main_module, is_internal_module):
+                    function_decl_codes, function_body_codes, outline_variables,
+                    temp_variables, is_main_module, is_internal_module):
     # For the module code, lots of arguments and attributes come together.
     # pylint: disable=too-many-locals
 
     # Temporary variable initializations
-    local_var_inits = [
-        getLocalVariableInitCode(
-            context   = context,
-            variable  = variable,
-            version   = 0,
-            init_from = None
-        )
-        for variable in
-        temp_variables
-    ]
+    # TODO: Move that to a place outside of functions.
+    from .FunctionCodes import setupFunctionLocalVariables, finalizeFunctionLocalVariables
+    local_var_inits, cleanup = setupFunctionLocalVariables(
+        context           = context,
+        parameters        = None,
+        closure_variables = (),
+        user_variables    = outline_variables,
+        temp_variables    = temp_variables
+    )
 
-    if context.needsExceptionVariables():
-        local_var_inits.extend(getErrorVariableDeclarations())
-
-    for keeper_index in range(1, context.getKeeperVariableCount()+1):
-        local_var_inits.extend(getExceptionKeeperVariableNames(keeper_index))
-
-    for preserver_id in context.getExceptionPreserverCounts():
-        local_var_inits.extend(getExceptionPreserverVariableNames(preserver_id))
-
-    tmp_infos = context.getTempNameInfos()
-
-    local_var_inits += [
-        "%s%s%s;" % (
-            tmp_type,
-            ' ' if not tmp_type.endswith('*') else "",
-            tmp_name
-        )
-        for tmp_name, tmp_type in
-        tmp_infos
-    ]
-
-    for tmp_name, _tmp_type in tmp_infos:
-        if tmp_name.startswith("tmp_outline_return_value_"):
-            local_var_inits.append("%s = NULL;" % tmp_name)
-
-    local_var_inits += context.getFrameDeclarations()
-
-    if context.needsFrameVariableTypeDescription():
-        local_var_inits.append("char *type_description;")
+    finalizeFunctionLocalVariables(context, local_var_inits, cleanup)
 
     if context.needsExceptionVariables():
         module_exit = template_module_exception_exit

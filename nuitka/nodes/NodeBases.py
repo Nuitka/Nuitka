@@ -434,6 +434,14 @@ class NodeBase(NodeMetaClassBase):
         # Virtual method, pylint: disable=no-self-use
         return False
 
+    def isExpressionFunctionBodyBase(self):
+        # Virtual method, pylint: disable=no-self-use
+        return False
+
+    def isExpressionOutlineFunctionBodyBase(self):
+        # Virtual method, pylint: disable=no-self-use
+        return False
+
     def visit(self, context, visitor):
         visitor(self)
 
@@ -536,7 +544,7 @@ class CodeNodeMixin(object):
 
     def getCodeName(self):
         if self.code_name is None:
-            provider = self.getParentVariableProvider()
+            provider = self.getParentVariableProvider().getEntryPoint()
             parent_name = provider.getCodeName()
 
             uid = "_%d" % provider.getChildUID(self)
@@ -822,22 +830,13 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
 
         self.providing[variable.getName()] = variable
 
-    def allocateTempScope(self, name, allow_closure = False):
+    def allocateTempScope(self, name):
         self.temp_scopes[name] = self.temp_scopes.get(name, 0) + 1
 
-        # TODO: Instead of using overly long code name, could just visit parents
-        # and make sure to allocate the scope at the top.
-        if allow_closure:
-            return "%s_%s_%d" % (
-                self.getCodeName(),
-                name,
-                self.temp_scopes[name]
-            )
-        else:
-            return "%s_%d" % (
-                name,
-                self.temp_scopes[name]
-            )
+        return "%s_%d" % (
+            name,
+            self.temp_scopes[name]
+        )
 
     def allocateTempVariable(self, temp_scope, name):
         if temp_scope is not None:
@@ -897,8 +896,6 @@ class ClosureTakerMixin(object):
     """ Mixin for nodes that accept variables from closure givers. """
 
     def __init__(self, provider):
-        assert provider.isParentVariableProvider(), provider
-
         self.provider = provider
 
         self.taken = set()
@@ -934,6 +931,15 @@ class ClosureTakerMixin(object):
                 key = lambda x : x.getName()
             )
         )
+
+    def getClosureVariableIndex(self, variable):
+        closure_variables = self.getClosureVariables()
+
+        for count, closure_variable in enumerate(closure_variables):
+            if variable is closure_variable:
+                return count
+
+        raise IndexError(variable)
 
     def hasTakenVariable(self, variable_name):
         for variable in self.taken:

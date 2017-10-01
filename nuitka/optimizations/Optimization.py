@@ -215,8 +215,6 @@ def optimizeUnusedClosureVariables(function_body):
            function_body.isExpressionGeneratorObjectBody():
             continue
 
-        variable_name = closure_variable.getName()
-
         variable_traces = function_body.trace_collection.getVariableTraces(
             variable = closure_variable
         )
@@ -228,7 +226,7 @@ def optimizeUnusedClosureVariables(function_body):
             signalChange(
                 "var_usage",
                 function_body.getSourceReference(),
-                message = "Remove unused closure variable '%s'." % variable_name
+                message = "Remove unused closure variable '%s'." % closure_variable.getName()
             )
 
             function_body.removeClosureVariable(closure_variable)
@@ -239,13 +237,19 @@ def optimizeUnusedClosureVariables(function_body):
 def optimizeUnusedUserVariables(function_body):
     changed = False
 
-    for local_variable in function_body.getUserLocalVariables():
+    for local_variable in function_body.getUserLocalVariables() + function_body.getOutlineLocalVariables():
         variable_traces = function_body.trace_collection.getVariableTraces(
             variable = local_variable
         )
 
         empty = areEmptyTraces(variable_traces)
         if empty:
+            signalChange(
+                "var_usage",
+                function_body.getSourceReference(),
+                message = "Remove unused local variable '%s'." % local_variable.getName()
+            )
+
             function_body.removeUserVariable(local_variable)
             changed = True
 
@@ -293,7 +297,10 @@ def optimizeVariables(module):
                         changed = True
             except Exception:
                 print("Problem with", function_body)
-                raise
+                raise#
+
+        if optimizeUnusedUserVariables(module):
+            changed = True
 
         if optimizeUnusedTempVariables(module):
             changed = True

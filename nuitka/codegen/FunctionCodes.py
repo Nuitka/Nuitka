@@ -23,6 +23,7 @@ from nuitka.PythonVersions import python_version
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import generateExpressionCode, generateStatementSequenceCode
+from .Contexts import PythonFunctionOutlineContext
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitCode,
@@ -33,7 +34,8 @@ from .ErrorCodes import (
     getReleaseCode
 )
 from .Indentation import indented
-from .LabelCodes import getLabelCode
+from .LabelCodes import getGotoCode, getLabelCode
+from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesFunction import (
@@ -442,11 +444,10 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
                                 user_variables, temp_variables):
 
     function_locals = []
-    function_cleanup = ""
+    function_cleanup = []
 
     if context.hasLocalsDict():
-        function_locals += function_dict_setup.split('\n')
-        function_cleanup = "Py_DECREF( locals_dict );\n"
+        context.allocateLocalsDictName()
 
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
@@ -497,9 +498,7 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
     return function_locals, function_cleanup
 
 
-def finalizeFunctionLocalVariables(context):
-    function_locals = []
-
+def finalizeFunctionLocalVariables(context, function_locals, function_cleanup):
     if context.needsExceptionVariables():
         function_locals.extend(getErrorVariableDeclarations())
 
@@ -523,9 +522,6 @@ def finalizeFunctionLocalVariables(context):
 
     function_locals += context.getFrameDeclarations()
 
-    if context.needsFrameVariableTypeDescription():
-        function_locals.append("char const *type_description;")
-
     # TODO: Could avoid this unless try/except or try/finally with returns
     # occur.
     if context.hasTempName("return_value"):
@@ -536,12 +532,23 @@ def finalizeFunctionLocalVariables(context):
         if tmp_name.startswith("tmp_outline_return_value_"):
             function_locals.append("%s = NULL;" % tmp_name)
 
+    for locals_dict_name in context.getLocalsDictNames():
+        function_locals.append(
+            function_dict_setup % {
+                "locals_dict" : locals_dict_name
+            }
+        )
 
-    return function_locals
+        function_cleanup.append(
+            "Py_DECREF( %(locals_dict)s );\n" % {
+                "locals_dict" : locals_dict_name
+            }
+        )
+
 
 def getFunctionCode(context, function_identifier, parameters, closure_variables,
-                    user_variables, temp_variables, function_doc, file_scope,
-                    needs_exception_exit):
+                    user_variables, outline_variables,
+                    temp_variables, function_doc, file_scope, needs_exception_exit):
 
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=too-many-locals
@@ -550,7 +557,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
         context           = context,
         parameters        = parameters,
         closure_variables = closure_variables,
-        user_variables    = user_variables,
+        user_variables    = user_variables + outline_variables,
         temp_variables    = temp_variables
     )
 
@@ -563,7 +570,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
         context            = context
     )
 
-    function_locals += finalizeFunctionLocalVariables(context)
+    finalizeFunctionLocalVariables(context, function_locals, function_cleanup)
 
     function_doc = context.getConstantCode(
         constant = function_doc
@@ -584,7 +591,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
 
     if needs_exception_exit:
         function_exit += template_function_exception_exit % {
-            "function_cleanup" : function_cleanup,
+            "function_cleanup" : indented(function_cleanup),
         }
 
     if context.hasTempName("return_value"):
@@ -682,7 +689,23 @@ def generateFunctionCallCode(to_name, expression, emit, context):
 
 
 def generateFunctionOutlineCode(to_name, expression, emit, context):
-    assert expression.isExpressionOutlineBody()
+    assert expression.isExpressionOutlineBody() or \
+           expression.isExpressionOutlineFunction() or \
+           expression.isExpressionClassBody()
+
+    if expression.isExpressionOutlineFunctionBodyBase():
+        context = PythonFunctionOutlineContext(
+            parent  = context,
+            outline = expression
+        )
+
+        locals_dict_handling = True
+    else:
+        locals_dict_handling = False
+
+    if locals_dict_handling:
+        if expression.hasLocalsDict():
+            context.allocateLocalsDictName()
 
     # Need to set return target, to assign to_name from.
     old_return_release_mode = context.getReturnReleaseMode()
@@ -692,6 +715,13 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
 
     return_value_name = context.allocateTempName("outline_return_value")
     old_return_value_name = context.setReturnValueName(return_value_name)
+
+    if expression.isExpressionOutlineFunctionBodyBase() and \
+       expression.getBody().mayRaiseException(BaseException):
+        exception_target = context.allocateLabel("outline_exception")
+        old_exception_target = context.setExceptionEscape(exception_target)
+    else:
+        exception_target = None
 
     generateStatementSequenceCode(
         statement_sequence = expression.getBody(),
@@ -705,6 +735,16 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         context = context,
         emit    = emit
     )
+
+    if exception_target is not None:
+        getLabelCode(exception_target, emit)
+
+        context.setCurrentSourceCodeReference(expression.getSourceReference())
+
+        emitErrorLineNumberUpdateCode(emit, context)
+        getGotoCode(old_exception_target, emit)
+
+        context.setExceptionEscape(old_exception_target)
 
     getLabelCode(return_target, emit)
     emit(
@@ -720,3 +760,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     context.setReturnTarget(old_return_target)
     context.setReturnReleaseMode(old_return_release_mode)
     context.setReturnValueName(old_return_value_name)
+
+    if locals_dict_handling:
+        if expression.hasLocalsDict():
+            context.endLocalsDictName()

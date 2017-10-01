@@ -126,6 +126,7 @@ static void Nuitka_Coroutine_release_closure( struct Nuitka_CoroutineObject *cor
 {
     for( Py_ssize_t i = 0; i < coroutine->m_closure_given; i++ )
     {
+        CHECK_OBJECT( coroutine->m_closure[ i ] );
         Py_DECREF( coroutine->m_closure[ i ] );
     }
 

@@ -63,8 +63,10 @@ def getFrameVariableTypeDescriptionCode(context):
     type_description = context.getFrameVariableTypeDescription()
 
     if type_description:
-        context.markAsNeedsFrameVariableDescription()
-        return 'type_description = "%s";' % type_description
+        return '%s = "%s";' % (
+            context.getFrameVariableTypeDescriptionName(),
+            type_description,
+        )
     else:
         return ""
 
@@ -290,7 +292,7 @@ def getReleaseCodes(release_names, emit, context):
 def getMustNotGetHereCode(reason, context, emit):
     getCommentCode(reason, emit)
 
-    provider = context.getOwner()
+    provider = context.getEntryPoint()
 
     emit(
         "NUITKA_CANNOT_GET_HERE( %(function_identifier)s );" % {

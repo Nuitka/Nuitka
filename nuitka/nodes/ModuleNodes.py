@@ -365,6 +365,9 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         # Modules should immediately closure variables on use.
         return True
 
+    def getEntryPoint(self):
+        return self
+
     def getCodeName(self):
         # For code name of modules, we need to translate to C identifiers,
         # removing characters illegal for that.
@@ -455,6 +458,48 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
         for function in self.getUsedFunctions():
             yield function.trace_collection
+
+    def markAsLocalsDict(self):
+        # Does not apply to modules.
+        pass
+
+    def hasLocalsDict(self):
+        return False
+
+    def isUnoptimized(self):
+        return False
+
+    def getLocalVariables(self):
+        return ()
+
+    def getUserLocalVariables(self):
+        return ()
+
+    def getOutlineLocalVariables(self):
+        outlines = self.getTraceCollection().getOutlineFunctions()
+
+        if outlines is None:
+            return ()
+
+        result = []
+
+        for outline in outlines:
+            result.extend(outline.getUserLocalVariables())
+
+        return tuple(result)
+
+    def hasClosureVariable(self, variable):
+        return False
+
+    def removeUserVariable(self, variable):
+        outlines = self.getTraceCollection().getOutlineFunctions()
+
+        for outline in outlines:
+            user_locals = outline.getUserLocalVariables()
+
+            if variable in user_locals:
+                outline.removeUserVariable(variable)
+                break
 
 
 class CompiledPythonPackage(CompiledPythonModule):

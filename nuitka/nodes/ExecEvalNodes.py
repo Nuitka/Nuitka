@@ -298,9 +298,9 @@ class StatementLocalsDictSync(StatementChildrenHavingBase):
         if self.getParentVariableProvider().isCompiledPythonModule():
             return None, "new_statements", "Removed sync back to locals without locals."
 
-        self.previous_traces = trace_collection.onLocalsUsage()
+        self.previous_traces = trace_collection.onLocalsUsage(self.getParentVariableProvider())
         trace_collection.removeAllKnowledge()
-        self.variable_traces = trace_collection.onLocalsUsage()
+        self.variable_traces = trace_collection.onLocalsUsage(self.getParentVariableProvider())
 
         return self, None, None
 

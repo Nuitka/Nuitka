@@ -415,6 +415,9 @@ def makeVariableRefNode(variable, source_ref):
 
 
 def makeExpressionBuiltinLocals(provider, source_ref):
+    while provider.isExpressionOutlineFunction():
+        provider = provider.getParentVariableProvider()
+
     if provider.isCompiledPythonModule():
         from .GlobalsLocalsNodes import ExpressionBuiltinGlobals
 

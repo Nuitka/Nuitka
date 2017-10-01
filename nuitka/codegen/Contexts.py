@@ -21,6 +21,7 @@
 
 import hashlib
 import sys
+from abc import ABCMeta, abstractmethod
 
 from nuitka import Options
 from nuitka.__past__ import iterItems
@@ -28,6 +29,20 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .Namify import namifyConstant
+
+
+class ContextMetaClass(ABCMeta):
+    pass
+
+
+# For Python2/3 compatible source, we create a base class that has the metaclass
+# used and doesn't require making a choice.
+ContextMetaClassBase = ContextMetaClass(
+    "ContextMetaClassBase",
+    (object,),
+    {}
+)
+
 
 # Many methods won't use self, but it's the interface. pylint: disable=no-self-use
 
@@ -58,7 +73,6 @@ class TempMixin(object):
         self.preserver_variable_counts = set()
 
         self.cleanup_names = []
-
 
     def formatTempName(self, base_name, number):
         if number is None:
@@ -100,12 +114,6 @@ class TempMixin(object):
 
     def hasTempName(self, base_name):
         return base_name in self.tmp_names
-
-    def isUsed(self, tmp_name):
-        if tmp_name.startswith("tmp_unused_"):
-            return False
-        else:
-            return True
 
     def forgetTempName(self, tmp_name):
         self.forgotten_names.add(tmp_name)
@@ -296,7 +304,7 @@ class CodeObjectsMixin(object):
             return hash_value.hexdigest()
 
 
-class PythonContextBase(object):
+class PythonContextBase(ContextMetaClassBase):
     @counted_init
     def __init__(self):
         self.source_ref = None
@@ -323,10 +331,193 @@ class PythonContextBase(object):
         # self.last_source_ref = None
         return result
 
+    def isUsed(self, tmp_name):
+        if tmp_name.startswith("tmp_unused_"):
+            return False
+        else:
+            return True
 
+    @abstractmethod
+    def getConstantCode(self, constant):
+        pass
+
+    @abstractmethod
+    def getModuleCodeName(self):
+        pass
+
+    @abstractmethod
+    def getModuleName(self):
+        pass
+
+    @abstractmethod
+    def addHelperCode(self, key, code):
+        pass
+
+    @abstractmethod
+    def hasHelperCode(self, key):
+        pass
+
+    @abstractmethod
+    def addDeclaration(self, key, code):
+        pass
+
+    @abstractmethod
+    def pushFrameVariables(self, frame_variables):
+        pass
+
+    @abstractmethod
+    def popFrameVariables(self):
+        pass
+
+    @abstractmethod
+    def getFrameVariableTypeDescriptions(self):
+        pass
+
+    @abstractmethod
+    def getFrameVariableTypeDescription(self):
+        pass
+
+    @abstractmethod
+    def getFrameVariableTypeDescriptionName(self):
+        pass
+
+    @abstractmethod
+    def getFrameVariableCodeNames(self):
+        pass
+
+    @abstractmethod
+    def getLocalsDictName(self):
+        pass
+
+    @abstractmethod
+    def allocateLocalsDictName(self):
+        pass
+
+    @abstractmethod
+    def endLocalsDictName(self):
+        pass
+
+    @abstractmethod
+    def allocateTempName(self, base_name, type_name = "PyObject *",
+                         unique = False):
+        pass
+
+    @abstractmethod
+    def getIntResName(self):
+        pass
+
+    @abstractmethod
+    def getBoolResName(self):
+        pass
+
+    @abstractmethod
+    def hasTempName(self, base_name):
+        pass
+
+    @abstractmethod
+    def forgetTempName(self, tmp_name):
+        pass
+
+    @abstractmethod
+    def getTempNameInfos(self):
+        pass
+
+    @abstractmethod
+    def getExceptionEscape(self):
+        pass
+
+    @abstractmethod
+    def setExceptionEscape(self, label):
+        pass
+
+    @abstractmethod
+    def getLoopBreakTarget(self):
+        pass
+
+    @abstractmethod
+    def setLoopBreakTarget(self, label):
+        pass
+
+    @abstractmethod
+    def getLoopContinueTarget(self):
+        pass
+
+    @abstractmethod
+    def setLoopContinueTarget(self, label):
+        pass
+
+    @abstractmethod
+    def allocateLabel(self, label):
+        pass
+
+    @abstractmethod
+    def needsExceptionVariables(self):
+        pass
+
+    @abstractmethod
+    def markAsNeedsExceptionVariables(self):
+        pass
+
+    @abstractmethod
+    def allocateExceptionKeeperVariables(self):
+        pass
+
+    @abstractmethod
+    def getExceptionKeeperVariables(self):
+        pass
+
+    @abstractmethod
+    def setExceptionKeeperVariables(self, keeper_vars):
+        pass
+
+    @abstractmethod
+    def addExceptionPreserverVariables(self, count):
+        pass
+
+    @abstractmethod
+    def getTrueBranchTarget(self):
+        pass
+
+    @abstractmethod
+    def getFalseBranchTarget(self):
+        pass
+
+    @abstractmethod
+    def setTrueBranchTarget(self, label):
+        pass
+
+    @abstractmethod
+    def setFalseBranchTarget(self, label):
+        pass
+
+    @abstractmethod
+    def getCleanupTempnames(self):
+        pass
+
+    @abstractmethod
+    def addCleanupTempName(self, tmp_name):
+        pass
+
+    @abstractmethod
+    def removeCleanupTempName(self, tmp_name):
+        pass
+
+    @abstractmethod
+    def needsCleanup(self, tmp_name):
+        pass
+
+    @abstractmethod
+    def pushCleanupScope(self):
+        pass
+
+    @abstractmethod
+    def popCleanupScope(self):
+        pass
 
 
 class PythonChildContextBase(PythonContextBase):
+    # Base classes can be abstract, pylint: disable=abstract-method
+
     def __init__(self, parent):
         PythonContextBase.__init__(self)
 
@@ -362,8 +553,21 @@ class PythonChildContextBase(PythonContextBase):
     def getFrameVariableTypeDescription(self):
         return self.parent.getFrameVariableTypeDescription()
 
+    def getFrameVariableTypeDescriptionName(self):
+        return self.parent.getFrameVariableTypeDescriptionName()
+
     def getFrameVariableCodeNames(self):
         return self.parent.getFrameVariableCodeNames()
+
+    def getLocalsDictName(self):
+        return self.parent.getLocalsDictName()
+
+    def allocateLocalsDictName(self):
+        return self.parent.allocateLocalsDictName()
+
+    def endLocalsDictName(self):
+        return self.parent.endLocalsDictName()
+
 
 def _getConstantDefaultPopulation():
     # Note: Can't work with set here, because we need to put in some values that
@@ -620,16 +824,18 @@ class FrameDeclarationsMixin(object):
         # Type descriptions of the current frame.
         self.frame_type_descriptions = [()]
 
-        # Indicator if the "type_description" is needed.
-        self.needs_type_description = False
-
         # Types of variables for current frame.
-        self.variable_types = {}
+        self.frame_variable_types = {}
 
         self.frames_used = 0
 
         # Currently active frame stack inside the context.
         self.frame_stack = [None]
+
+        self.locals_dict_used = 0
+
+        self.locals_dict_names = []
+
 
     def getFrameHandle(self):
         return self.frame_stack[-1]
@@ -649,11 +855,18 @@ class FrameDeclarationsMixin(object):
 
         return result
 
+    def getFramesCount(self):
+        return self.frames_used
+
     def addFrameDeclaration(self, frame_decl):
         self.frame_declarations.append(frame_decl)
 
     def getFrameDeclarations(self):
-        return self.frame_declarations
+        return self.frame_declarations + [
+            "NUITKA_MAY_BE_UNUSED char const *type_description_%d = NULL;" % (i+1)
+            for i in
+            range(self.getFramesCount())
+        ]
 
     def pushFrameVariables(self, frame_variables):
         """ Set current the frame variables. """
@@ -661,22 +874,25 @@ class FrameDeclarationsMixin(object):
         self.frame_type_descriptions.append(set())
 
     def popFrameVariables(self):
-        """ End of frame, remove it. """
+        """ End of frame, restore previous ones. """
         del self.frame_variables_stack[-1]
         del self.frame_type_descriptions[-1]
 
     def setVariableType(self, variable, variable_code_name, variable_c_type):
         assert variable.isLocalVariable(), variable
 
-        self.variable_types[variable.getName()] = variable_code_name, variable_c_type.getTypeIndicator()
+        self.frame_variable_types[variable] = variable_code_name, variable_c_type.getTypeIndicator()
 
     def getFrameVariableTypeDescriptions(self):
         return self.frame_type_descriptions[-1]
 
+    def getFrameVariableTypeDescriptionName(self):
+        return "type_description_%d" % (len(self.frame_stack) - 1)
+
     def getFrameVariableTypeDescription(self):
         result = "".join(
-            self.variable_types.get(var_name, ("NULL", 'N'))[1]
-            for var_name in
+            self.frame_variable_types.get(variable, ("NULL", 'N'))[1]
+            for variable in
             self.frame_variables_stack[-1]
         )
 
@@ -686,25 +902,36 @@ class FrameDeclarationsMixin(object):
         return result
 
     def getFrameVariableCodeNames(self):
-        def casted(var_name):
-            variable_desc = self.variable_types.get(var_name, ("NULL", 'N'))
+        result = []
 
-            if variable_desc[1] in ('b',):
-                return "(int)" + variable_desc[0]
+        for variable in self.frame_variables_stack[-1]:
+            variable_code_name, variable_code_type = self.frame_variable_types.get(variable, ("NULL", 'N'))
+
+            if variable_code_type in ('b',):
+                result.append("(int)" + variable_code_name)
             else:
-                return variable_desc[0]
+                result.append(variable_code_name)
 
-        return ", ".join(
-            casted(var_name)
-            for var_name in
-            self.frame_variables_stack[-1]
+        return result
+
+    def getLocalsDictName(self):
+        return self.locals_dict_names[-1]
+
+    def allocateLocalsDictName(self):
+        self.locals_dict_used += 1
+        self.locals_dict_names.append(
+            "locals_dict_%d" % self.locals_dict_used
         )
 
-    def needsFrameVariableTypeDescription(self):
-        return self.needs_type_description
+    def endLocalsDictName(self):
+        del self.locals_dict_names[-1]
 
-    def markAsNeedsFrameVariableDescription(self):
-        self.needs_type_description = True
+    def getLocalsDictNames(self):
+        return [
+            "locals_dict_%d" % (locals_dict_index + 1)
+            for locals_dict_index in
+            range(0, self.locals_dict_used)
+        ]
 
 
 class ReturnReleaseModeMixin(object):
@@ -746,9 +973,9 @@ class ReturnValueNameMixin(object):
         return result
 
 
-class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
+class PythonModuleContext(TempMixin, CodeObjectsMixin,
                           FrameDeclarationsMixin, ReturnReleaseModeMixin,
-                          ReturnValueNameMixin):
+                          ReturnValueNameMixin, PythonContextBase):
     # Plenty of attributes, because it's storing so many different things.
     # pylint: disable=too-many-instance-attributes
 
@@ -785,10 +1012,16 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
     def getOwner(self):
         return self.module
 
+    def getEntryPoint(self):
+        return self.module
+
     def isCompiledPythonModule(self):
         return True
 
     def hasLocalsDict(self):
+        return False
+
+    def hasForeignLocalsDict(self):
         return False
 
     def getName(self):
@@ -851,8 +1084,9 @@ class PythonModuleContext(PythonContextBase, TempMixin, CodeObjectsMixin,
         return self.needs_module_filename_object
 
 
-class PythonFunctionContext(FrameDeclarationsMixin, PythonChildContextBase,
-                            TempMixin, ReturnReleaseModeMixin, ReturnValueNameMixin):
+class PythonFunctionContext(FrameDeclarationsMixin,
+                            TempMixin, ReturnReleaseModeMixin,
+                            ReturnValueNameMixin, PythonChildContextBase):
     def __init__(self, parent, function):
         PythonChildContextBase.__init__(
             self,
@@ -883,8 +1117,14 @@ class PythonFunctionContext(FrameDeclarationsMixin, PythonChildContextBase,
     def getOwner(self):
         return self.function
 
+    def getEntryPoint(self):
+        return self.function
+
     def hasLocalsDict(self):
         return self.function.hasLocalsDict()
+
+    def hasForeignLocalsDict(self):
+        return self.function.hasForeignLocalsDict()
 
     def mayRecurse(self):
         # TODO: Determine this at compile time for enhanced optimizations.
@@ -949,3 +1189,143 @@ class PythonFunctionCreatedContext(PythonFunctionContext):
 
     def isForCreatedFunction(self):
         return True
+
+
+class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
+                                   ReturnValueNameMixin, PythonChildContextBase):
+    def __init__(self, parent, outline):
+        PythonChildContextBase.__init__(
+            self,
+            parent = parent
+        )
+
+        ReturnReleaseModeMixin.__init__(self)
+        ReturnValueNameMixin.__init__(self)
+
+        self.outline = outline
+
+    def getOwner(self):
+        return self.outline
+
+    def getEntryPoint(self):
+        return self.outline.getEntryPoint()
+
+    def allocateLabel(self, label):
+        return self.parent.allocateLabel(label)
+
+    def allocateTempName(self, base_name, type_name = "PyObject *",
+                         unique = False):
+        return self.parent.allocateTempName(base_name, type_name, unique)
+
+    def hasTempName(self, base_name):
+        return self.parent.hasTempName(base_name)
+
+    def getCleanupTempnames(self):
+        return self.parent.getCleanupTempnames()
+
+    def addCleanupTempName(self, tmp_name):
+        self.parent.addCleanupTempName(tmp_name)
+
+    def removeCleanupTempName(self, tmp_name):
+        self.parent.removeCleanupTempName(tmp_name)
+
+    def needsCleanup(self, tmp_name):
+        return self.parent.needsCleanup(tmp_name)
+
+    def pushCleanupScope(self):
+        return self.parent.pushCleanupScope()
+
+    def popCleanupScope(self):
+        self.parent.popCleanupScope()
+
+    def getCodeObjectHandle(self, code_object):
+        return self.parent.getCodeObjectHandle(code_object)
+
+    def getExceptionEscape(self):
+        return self.parent.getExceptionEscape()
+
+    def setExceptionEscape(self, label):
+        return self.parent.setExceptionEscape(label)
+
+    def getLoopBreakTarget(self):
+        return self.parent.getLoopBreakTarget()
+
+    def setLoopBreakTarget(self, label):
+        return self.parent.setLoopBreakTarget(label)
+
+    def getLoopContinueTarget(self):
+        return self.parent.getLoopContinueTarget()
+
+    def setLoopContinueTarget(self, label):
+        return self.parent.setLoopContinueTarget(label)
+
+    def getTrueBranchTarget(self):
+        return self.parent.getTrueBranchTarget()
+
+    def getFalseBranchTarget(self):
+        return self.parent.getFalseBranchTarget()
+
+    def setTrueBranchTarget(self, label):
+        self.parent.setTrueBranchTarget(label)
+
+    def setFalseBranchTarget(self, label):
+        self.parent.setFalseBranchTarget(label)
+
+    def getFrameHandle(self):
+        return self.parent.getFrameHandle()
+
+    def pushFrameHandle(self, frame_handle):
+        return self.parent.pushFrameHandle(frame_handle)
+
+    def popFrameHandle(self):
+        return self.parent.popFrameHandle()
+
+    def getExceptionKeeperVariables(self):
+        return self.parent.getExceptionKeeperVariables()
+
+    def setExceptionKeeperVariables(self, keeper_vars):
+        return self.parent.setExceptionKeeperVariables(keeper_vars)
+
+    def setVariableType(self, variable, variable_code_name, variable_c_type):
+        self.parent.setVariableType(variable, variable_code_name, variable_c_type)
+
+    def getIntResName(self):
+        return self.parent.getIntResName()
+
+    def getBoolResName(self):
+        return self.parent.getBoolResName()
+
+    def needsExceptionVariables(self):
+        return self.parent.needsExceptionVariables()
+
+    def markAsNeedsExceptionVariables(self):
+        self.parent.markAsNeedsExceptionVariables()
+
+    def allocateExceptionKeeperVariables(self):
+        return self.parent.allocateExceptionKeeperVariables()
+
+    def addFrameDeclaration(self, frame_decl):
+        self.parent.addFrameDeclaration(frame_decl)
+
+    def isForDirectCall(self):
+        return self.parent.isForDirectCall()
+
+    def mayRecurse(self):
+        # TODO: In modules, there could be loops with outlines, we could detect
+        # that.
+        return True
+
+    def hasLocalsDict(self):
+        return self.outline.hasLocalsDict()
+
+    def hasForeignLocalsDict(self):
+        return self.outline.hasForeignLocalsDict()
+
+    def addExceptionPreserverVariables(self, count):
+        self.parent.addExceptionPreserverVariables(count)
+
+    def getTempNameInfos(self):
+        return self.parent.getTempNameInfos()
+
+    def forgetTempName(self, tmp_name):
+        self.parent.forgetTempName(tmp_name)

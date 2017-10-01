@@ -52,13 +52,9 @@ from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationGet,
     StatementDictOperationRemove
 )
-from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionCall,
-    ExpressionFunctionCreation,
-    ExpressionFunctionQualnameRef,
-    ExpressionFunctionRef
-)
+from nuitka.nodes.FunctionNodes import ExpressionFunctionQualnameRef
 from nuitka.nodes.GlobalsLocalsNodes import (
+    ExpressionBuiltinLocalsCopy,
     ExpressionBuiltinLocalsUpdated,
     StatementSetLocals
 )
@@ -98,8 +94,7 @@ def _buildClassNode3(provider, node, source_ref):
 
     # We need a scope for the temporary variables, and they might be closured.
     temp_scope = provider.allocateTempScope(
-        name          = "class_creation",
-        allow_closure = True
+        name = "class_creation"
     )
 
     tmp_bases = provider.allocateTempVariable(
@@ -123,7 +118,6 @@ def _buildClassNode3(provider, node, source_ref):
         provider   = provider,
         name       = node.name,
         doc        = class_doc,
-        flags      = set(),
         source_ref = source_ref
     )
 
@@ -302,21 +296,7 @@ def _buildClassNode3(provider, node, source_ref):
     # returns its created class and cannot have other return statements
     # contained.
 
-    decorated_body = ExpressionFunctionCall(
-        function   = ExpressionFunctionCreation(
-            function_ref = ExpressionFunctionRef(
-                function_body = class_creation_function,
-                source_ref    = source_ref
-            ),
-            code_object  = code_object,
-            defaults     = (),
-            kw_defaults  = None,
-            annotations  = None,
-            source_ref   = source_ref
-        ),
-        values     = (),
-        source_ref = source_ref
-    )
+    decorated_body = class_creation_function
 
     for decorator in buildNodeList(
             provider,
@@ -559,7 +539,6 @@ def _buildClassNode2(provider, node, source_ref):
         provider   = provider,
         name       = node.name,
         doc        = class_doc,
-        flags      = set(),
         source_ref = source_ref
     )
 
@@ -584,6 +563,7 @@ def _buildClassNode2(provider, node, source_ref):
         code_object = code_object,
         source_ref  = source_ref
     )
+
     if body is not None:
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref.atInternal()
@@ -619,7 +599,7 @@ def _buildClassNode2(provider, node, source_ref):
     statements += [
         body,
         StatementReturn(
-            expression = ExpressionBuiltinLocalsUpdated(
+            expression = ExpressionBuiltinLocalsCopy(
                 source_ref = source_ref
             ),
             source_ref = source_ref.atInternal()
@@ -768,21 +748,7 @@ def _buildClassNode2(provider, node, source_ref):
         ),
         StatementAssignmentVariable(
             variable   = tmp_class_dict,
-            source     =   ExpressionFunctionCall(
-                function   = ExpressionFunctionCreation(
-                    function_ref = ExpressionFunctionRef(
-                        function_body = function_body,
-                        source_ref    = source_ref
-                    ),
-                    code_object  = None,
-                    defaults     = (),
-                    kw_defaults  = None,
-                    annotations  = None,
-                    source_ref   = source_ref
-                ),
-                values     = (),
-                source_ref = source_ref
-            ),
+            source     = function_body,
             source_ref = source_ref
         ),
         StatementAssignmentVariable(

@@ -25,7 +25,7 @@ expressions, or multiple returns, without running in a too different context.
 
 from .ExceptionNodes import ExpressionRaiseException
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .NodeBases import ChildrenHavingMixin
+from .FunctionNodes import ExpressionFunctionBodyBase
 
 
 class ExpressionOutlineBody(ExpressionChildrenHavingBase):
@@ -44,6 +44,10 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
     named_children = (
         "body",
     )
+
+    @staticmethod
+    def isExpressionOutlineBody():
+        return True
 
     def __init__(self, provider, name, source_ref, body = None):
         assert name != ""
@@ -71,8 +75,8 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
             "name"     : self.name
         }
 
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
+    getBody = ExpressionChildrenHavingBase.childGetter("body")
+    setBody = ExpressionChildrenHavingBase.childSetter("body")
 
     def getOutlineTempScope(self):
         # We use our own name as a temp_scope, cached from the parent, if the
@@ -164,3 +168,182 @@ class ExpressionOutlineBody(ExpressionChildrenHavingBase):
 
     def willRaiseException(self, exception_type):
         return self.getBody().willRaiseException(exception_type)
+
+    def getEntryPoint(self):
+        """ Entry point for code.
+
+            Normally ourselves. Only outlines will refer to their parent which
+            technically owns them.
+
+        """
+
+        return self.provider.getEntryPoint()
+
+    def getCodeName(self):
+        return self.provider.getCodeName()
+
+
+class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
+    """ Outlined function code.
+
+        This is for a call to a function to be called in-line to be executed
+        in a specific context. It contains an exclusively owned function body,
+        that has no other references, and can be considered part of the calling
+        context.
+
+        As normal function it must return a value, to use as expression value,
+        but we know we only exist once.
+
+        Once this has no frame, it can be changed to a mere outline expression.
+    """
+
+    def __init__(self, provider, name, source_ref, code_prefix = "outline",
+                 body = None):
+        assert name != ""
+
+        ExpressionFunctionBodyBase.__init__(
+            self,
+            provider    = provider,
+            name        = name,
+            code_prefix = code_prefix,
+            flags       = None,
+            body        = body,
+            source_ref  = source_ref
+        )
+
+        self.temp_scope = None
+
+    getBody = ExpressionFunctionBodyBase.childGetter("body")
+    setBody = ExpressionFunctionBodyBase.childSetter("body")
+
+    def isExpressionOutlineFunctionBodyBase(self):
+        return True
+
+    def getDetails(self):
+        return {
+            "name" : self.name,
+            "provider"   : self.provider.getCodeName()
+        }
+
+    def computeExpressionRaw(self, trace_collection):
+        # Keep track of these, so they can provide what variables are to be
+        # setup.
+        trace_collection.addOutlineFunction(self)
+
+        abort_context = trace_collection.makeAbortStackContext(
+            catch_breaks     = False,
+            catch_continues  = False,
+            catch_returns    = True,
+            catch_exceptions = False
+        )
+
+        with abort_context:
+            body = self.getBody()
+
+            result = body.computeStatementsSequence(
+                trace_collection = trace_collection
+            )
+
+            if result is not body:
+                self.setBody(result)
+                body = result
+
+            return_collections = trace_collection.getFunctionReturnCollections()
+
+        if return_collections:
+            trace_collection.mergeMultipleBranches(return_collections)
+
+        first_statement = body.getStatements()[0]
+
+        if first_statement.isStatementReturn():
+            return (
+                first_statement.getExpression(),
+                "new_expression",
+                "Outline function '%s' is now simple return, use directly." % self.name
+            )
+
+        if first_statement.isStatementRaiseException():
+            result = ExpressionRaiseException(
+                exception_type  = first_statement.getExceptionType(),
+                exception_value = first_statement.getExceptionValue(),
+                source_ref      = first_statement.getSourceReference()
+            )
+
+            return (
+                result,
+                "new_expression",
+                "Outline function is now exception raise, use directly."
+            )
+
+        # TODO: Function outline may become too trivial to outline and return
+        # collections may tell us something.
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return self.getBody().mayRaiseException(exception_type)
+
+    def willRaiseException(self, exception_type):
+        return self.getBody().willRaiseException(exception_type)
+
+    def getTraceCollection(self):
+        return self.provider.getTraceCollection()
+
+    def getOutlineTempScope(self):
+        # We use our own name as a temp_scope, cached from the parent, if the
+        # scope is None.
+        if self.temp_scope is None:
+            self.temp_scope = self.provider.allocateTempScope(self.name)
+
+        return self.temp_scope
+
+    def allocateTempVariable(self, temp_scope, name):
+        if temp_scope is None:
+            temp_scope = self.getOutlineTempScope()
+
+        return self.provider.allocateTempVariable(
+            temp_scope = temp_scope,
+            name       = name
+        )
+
+    def allocateTempScope(self, name):
+
+        # Let's scope the temporary scopes by the outline they come from.
+        return self.provider.allocateTempScope(
+            name = self.name + '$' + name
+        )
+
+    def getEntryPoint(self):
+        """ Entry point for code.
+
+            Normally ourselves. Only outlines will refer to their parent which
+            technically owns them.
+
+        """
+
+        return self.provider.getEntryPoint()
+
+    def getCodeName(self):
+        return self.provider.getCodeName()
+
+    def getClosureVariable(self, variable_name):
+        # Simply try and get from our parent.
+        return self.provider.getVariableForReference(
+            variable_name = variable_name
+        )
+
+
+class ExpressionOutlineFunction(ExpressionOutlineFunctionBodyBase):
+    kind = "EXPRESSION_OUTLINE_FUNCTION"
+
+    named_children = (
+        "body",
+    )
+
+    def isEarlyClosure(self):
+        return self.provider.isEarlyClosure()
+
+    def hasLocalsDict(self):
+        return self.provider.hasLocalsDict()
+
+    def markAsLocalsDict(self):
+        return self.provider.markAsLocalsDict()

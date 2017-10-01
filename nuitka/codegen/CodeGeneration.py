@@ -291,6 +291,7 @@ def generateFunctionBodyCode(function_body, context):
             function_identifier    = function_identifier,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
+            outline_variables      = function_body.getOutlineLocalVariables(),
             temp_variables         = function_body.getTempVariables(),
             needs_exception_exit   = needs_exception_exit,
             needs_generator_return = function_body.needsGeneratorReturnExit()
@@ -301,6 +302,7 @@ def generateFunctionBodyCode(function_body, context):
             function_identifier    = function_identifier,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
+            outline_variables      = function_body.getOutlineLocalVariables(),
             temp_variables         = function_body.getTempVariables(),
             needs_exception_exit   = needs_exception_exit,
             needs_generator_return = function_body.needsGeneratorReturnExit()
@@ -311,6 +313,7 @@ def generateFunctionBodyCode(function_body, context):
             function_identifier    = function_identifier,
             closure_variables      = function_body.getClosureVariables(),
             user_variables         = function_body.getUserLocalVariables(),
+            outline_variables      = function_body.getOutlineLocalVariables(),
             temp_variables         = function_body.getTempVariables(),
             needs_exception_exit   = needs_exception_exit,
             needs_generator_return = function_body.needsGeneratorReturnExit()
@@ -322,6 +325,7 @@ def generateFunctionBodyCode(function_body, context):
             parameters           = None,
             closure_variables    = function_body.getClosureVariables(),
             user_variables       = function_body.getUserLocalVariables(),
+            outline_variables    = function_body.getOutlineLocalVariables(),
             temp_variables       = function_body.getTempVariables(),
             function_doc         = function_body.getDoc(),
             needs_exception_exit = needs_exception_exit,
@@ -338,6 +342,7 @@ def generateFunctionBodyCode(function_body, context):
             parameters           = parameters,
             closure_variables    = function_body.getClosureVariables(),
             user_variables       = function_body.getUserLocalVariables(),
+            outline_variables    = function_body.getOutlineLocalVariables(),
             temp_variables       = function_body.getTempVariables(),
             function_doc         = function_body.getDoc(),
             needs_exception_exit = needs_exception_exit,
@@ -469,6 +474,7 @@ def prepareModuleCode(global_context, module, module_name):
         function_decl_codes = function_decl_codes,
         function_body_codes = function_body_codes,
         temp_variables      = module.getTempVariables(),
+        outline_variables   = module.getOutlineLocalVariables(),
         is_main_module      = module.isMainModule(),
         is_internal_module  = module.isInternalModule(),
         context             = context
@@ -630,6 +636,9 @@ setExpressionDispatchDict(
         "EXPRESSION_OPERATION_UNARY"                : generateOperationUnaryCode,
         "EXPRESSION_OPERATION_NOT"                  : generateOperationUnaryCode,
         "EXPRESSION_OUTLINE_BODY"                   : generateFunctionOutlineCode,
+        "EXPRESSION_OUTLINE_FUNCTION"               : generateFunctionOutlineCode,
+        # TODO: Rename to make more clear it is an outline
+        "EXPRESSION_CLASS_BODY"                     : generateFunctionOutlineCode,
         "EXPRESSION_RETURNED_VALUE_REF"             : generateReturnedValueRefCode,
         "EXPRESSION_SUBSCRIPT_LOOKUP"               : generateSubscriptLookupCode,
         "EXPRESSION_SLICE_LOOKUP"                   : generateSliceLookupCode,

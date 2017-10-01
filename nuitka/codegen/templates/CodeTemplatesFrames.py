@@ -63,6 +63,13 @@ popFrameStack();
 goto %(return_exit)s;
 """
 
+template_frame_attach_locals = """\
+Nuitka_Frame_AttachLocals(
+    (struct Nuitka_FrameObject *)%(frame_identifier)s,
+    %(type_description)s%(frame_variable_refs)s
+);
+"""
+
 template_frame_guard_full_exception_handler = """\
 %(frame_exception_exit)s:;
 
@@ -79,7 +86,8 @@ else if ( exception_tb->tb_frame != &%(frame_identifier)s->m_frame )
     exception_tb = ADD_TRACEBACK( exception_tb, %(frame_identifier)s, exception_lineno );
 }
 
-Nuitka_Frame_AttachLocals( (struct Nuitka_FrameObject *)%(frame_identifier)s, %(type_description)s %(frame_variable_refs)s );
+// Attachs locals to frame if any.
+%(attach_locals)s
 
 // Release cached frame.
 if ( %(frame_identifier)s == cache_%(frame_identifier)s )
@@ -89,7 +97,6 @@ if ( %(frame_identifier)s == cache_%(frame_identifier)s )
 cache_%(frame_identifier)s = NULL;
 
 assertFrameObject( %(frame_identifier)s );
-
 
 // Put the previous frame back on top.
 popFrameStack();
@@ -228,7 +235,7 @@ if ( !EXCEPTION_MATCH_GENERATOR( exception_type ) )
         exception_tb = ADD_TRACEBACK( exception_tb, %(frame_identifier)s, exception_lineno );
     }
 
-    Nuitka_Frame_AttachLocals( (struct Nuitka_FrameObject *)%(frame_identifier)s, %(type_description)s %(frame_variable_refs)s );
+%(attach_locals)s
 
     // Release cached frame.
     if ( %(frame_identifier)s == %(frame_cache_identifier)s )

@@ -22,6 +22,7 @@ source code comments with developer manual sections.
 
 """
 
+from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
@@ -40,20 +41,17 @@ from nuitka.nodes.FrameNodes import (
     StatementsFrameFunction,
     StatementsFrameGenerator
 )
-from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionBody,
-    ExpressionFunctionCall,
-    ExpressionFunctionCreation,
-    ExpressionFunctionRef
-)
+from nuitka.nodes.FunctionNodes import ExpressionFunctionRef
 from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
     ExpressionMakeGeneratorObject
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.NodeMakingHelpers import makeVariableRefNode
-from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
-from nuitka.nodes.ParameterSpecs import ParameterSpec
+from nuitka.nodes.OutlineNodes import (
+    ExpressionOutlineBody,
+    ExpressionOutlineFunction
+)
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import (
     StatementExpressionOnly,
@@ -108,10 +106,7 @@ def _buildPython2ListContraction(provider, node, source_ref):
         emit_class      = StatementListOperationAppend,
         iter_tmp        = iter_tmp,
         temp_scope      = None,
-        start_value     = makeConstantRefNode(
-            constant   = [],
-            source_ref = source_ref
-        ),
+        start_value     = [],
         container_tmp   = container_tmp,
         source_ref      = source_ref,
     )
@@ -145,18 +140,18 @@ def _buildPython2ListContraction(provider, node, source_ref):
 def buildListContractionNode(provider, node, source_ref):
     # List contractions are dealt with by general code.
     if python_version < 300:
-        return _buildPython2ListContraction(provider, node, source_ref)
-
+        return _buildPython2ListContraction(
+            provider   = provider,
+            node       = node,
+            source_ref = source_ref
+        )
 
     return _buildContractionNode(
         provider    = provider,
         node        = node,
         name        = "<listcontraction>",
         emit_class  = StatementListOperationAppend,
-        start_value = makeConstantRefNode(
-            constant   = [],
-            source_ref = source_ref
-        ),
+        start_value = [],
         source_ref  = source_ref
     )
 
@@ -169,10 +164,7 @@ def buildSetContractionNode(provider, node, source_ref):
         node        = node,
         name        = "<setcontraction>",
         emit_class  = StatementSetOperationAdd,
-        start_value = makeConstantRefNode(
-            constant   = set(),
-            source_ref = source_ref
-        ),
+        start_value = set(),
         source_ref  = source_ref
     )
 
@@ -185,10 +177,7 @@ def buildDictContractionNode(provider, node, source_ref):
         node        = node,
         name        = "<dictcontraction>",
         emit_class  = StatementDictOperationSet,
-        start_value = makeConstantRefNode(
-            constant   = {},
-            source_ref = source_ref
-        ),
+        start_value = {},
         source_ref  = source_ref
     )
 
@@ -304,7 +293,8 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
 def _buildContractionBodyNode(provider, node, emit_class, start_value,
                               container_tmp, iter_tmp, temp_scope,
-                              assign_provider, function_body, source_ref):
+                              assign_provider, function_body,
+                              source_ref):
 
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
@@ -314,8 +304,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
     # assigning one of the loop variables to the outside scope.
 
     tmp_variables = []
-
-    if assign_provider:
+    if emit_class is not ExpressionYield:
         tmp_variables.append(iter_tmp)
 
     if container_tmp is not None:
@@ -344,11 +333,13 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         statements.append(
             StatementAssignmentVariable(
                 variable   = container_tmp,
-                source     = start_value,
+                source     = makeConstantRefNode(
+                    constant   = start_value,
+                    source_ref = source_ref
+                ),
                 source_ref = source_ref.atInternal()
             )
         )
-
 
     if hasattr(node, "elt"):
         if start_value is not None:
@@ -549,46 +540,20 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     # described in the developer manual. They use a lot of temporary names,
     # nested blocks, etc. and so a lot of variable names.
 
-    # TODO: No function ought to be necessary, only a variable scope is.
-    function_body = ExpressionFunctionBody(
+    function_body = ExpressionOutlineFunction(
         provider   = provider,
-        name       = name,
-        doc        = None,
-        parameters = ParameterSpec(
-            ps_name          = name,
-            ps_normal_args   = (".0",),
-            ps_list_star_arg = None,
-            ps_dict_star_arg = None,
-            ps_default_count = 0,
-            ps_kw_only_args  = ()
-        ),
-        flags      = set(),
+        name       = intern(name[1:-1]),
         source_ref = source_ref
     )
 
-    iter_tmp = function_body.getVariableForAssignment(
-        variable_name = ".0"
-    )
-    assert iter_tmp.isParameterVariable()
-
-    parent_module = provider.getParentModule()
-
-    code_object = CodeObjectSpec(
-        co_name           = name,
-        co_kind           = "Function",
-        co_varnames       = function_body.getParameters().getParameterNames(),
-        co_argcount       = len(function_body.getParameters().getParameterNames()),
-        co_kwonlyargcount = 0,
-        co_has_starlist   = False,
-        co_has_stardict   = False,
-        co_filename       = parent_module.getRunTimeFilename(),
-        co_lineno         = source_ref.getLineNumber(),
-        future_spec       = parent_module.getFutureSpec()
+    iter_tmp = function_body.allocateTempVariable(
+        temp_scope = None,
+        name       = ".0"
     )
 
     container_tmp = function_body.allocateTempVariable(
         temp_scope = None,
-        name       = "contraction_result"
+        name       = "contraction"
     )
 
     statements, release_statements = _buildContractionBodyNode(
@@ -604,7 +569,18 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         source_ref      = source_ref,
     )
 
-    assert start_value
+    assign_iter_statement = StatementAssignmentVariable(
+        source     = ExpressionBuiltinIter1(
+            value      = buildNode(
+                provider   = provider,
+                node       = node.generators[0].iter,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        ),
+        variable   = iter_tmp,
+        source_ref = source_ref
+    )
 
     statements.append(
         StatementReturn(
@@ -625,37 +601,36 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         ),
     )
 
-    function_body.setBody(
-        makeStatementsSequenceFromStatement(
-            statement = StatementsFrameFunction(
+    if python_version < 300:
+        body = makeStatementsSequenceFromStatements(
+            assign_iter_statement,
+            statements
+        )
+    else:
+        parent_module = provider.getParentModule()
+
+        code_object = CodeObjectSpec(
+            co_name           = name,
+            co_kind           = "Function",
+            co_varnames       = (),
+            co_argcount       = 1,
+            co_kwonlyargcount = 0,
+            co_has_starlist   = False,
+            co_has_stardict   = False,
+            co_filename       = parent_module.getRunTimeFilename(),
+            co_lineno         = source_ref.getLineNumber(),
+            future_spec       = parent_module.getFutureSpec()
+        )
+
+        body = makeStatementsSequenceFromStatements(
+            assign_iter_statement,
+            StatementsFrameFunction(
                 statements  = mergeStatements(statements, False),
                 code_object = code_object,
                 source_ref  = source_ref
             )
         )
-    )
 
-    return ExpressionFunctionCall(
-        function   = ExpressionFunctionCreation(
-            function_ref = ExpressionFunctionRef(
-                function_body = function_body,
-                source_ref    = source_ref
-            ),
-            code_object  = code_object,
-            defaults     = (),
-            kw_defaults  = None,
-            annotations  = None,
-            source_ref   = source_ref
-        ),
-        values     = (
-            ExpressionBuiltinIter1(
-                value      = buildNode(
-                    provider   = provider,
-                    node       = node.generators[0].iter,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            ),
-        ),
-        source_ref = source_ref
-    )
+    function_body.setBody(body)
+
+    return function_body

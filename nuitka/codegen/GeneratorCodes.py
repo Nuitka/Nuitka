@@ -48,7 +48,8 @@ def getGeneratorObjectDeclCode(function_identifier):
 
 
 def getGeneratorObjectCode(context, function_identifier, closure_variables,
-                           user_variables, temp_variables, needs_exception_exit,
+                           user_variables, outline_variables,
+                           temp_variables, needs_exception_exit,
                            needs_generator_return):
     # Due to the current experimental code, pylint: disable=too-many-locals
 
@@ -56,7 +57,7 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
         context           = context,
         parameters        = None,
         closure_variables = closure_variables,
-        user_variables    = user_variables,
+        user_variables    = user_variables + outline_variables,
         temp_variables    = temp_variables
     )
 
@@ -69,15 +70,15 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
         context            = context
     )
 
-    function_locals += finalizeFunctionLocalVariables(context)
+    finalizeFunctionLocalVariables(context, function_locals, function_cleanup)
 
     if needs_exception_exit:
         generator_exit = template_generator_exception_exit % {
-            "function_cleanup" : function_cleanup
+            "function_cleanup" : indented(function_cleanup)
         }
     else:
         generator_exit = template_generator_noexception_exit % {
-            "function_cleanup" : function_cleanup
+            "function_cleanup" : indented(function_cleanup)
         }
 
     if needs_generator_return:

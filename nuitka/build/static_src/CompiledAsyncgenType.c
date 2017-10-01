@@ -105,6 +105,7 @@ static void Nuitka_Asyncgen_release_closure( struct Nuitka_AsyncgenObject *async
 {
     for( Py_ssize_t i = 0; i < asyncgen->m_closure_given; i++ )
     {
+        CHECK_OBJECT( asyncgen->m_closure[ i ] );
         Py_DECREF( asyncgen->m_closure[ i ] );
     }
 

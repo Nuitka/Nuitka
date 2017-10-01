@@ -175,10 +175,21 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 # globals too, on all versions, but for Python2 the locals
                 # dictionary is avoided unless "exec" appears, so it's not
                 # done.
-                if variable.getOwner() is not provider:
+                owner = variable.getOwner()
+                user = provider
+
+                while user is not owner:
+                    if user.isExpressionFunctionBody() or \
+                       user.isExpressionClassBody():
+                        break
+
+                    user = user.getParentVariableProvider()
+
+                if owner is not user:
                     if python_version >= 340 or \
                        (python_version >= 300 and \
                         variable.isModuleVariable()):
+
                         node.replaceWith(
                             ExpressionLocalsVariableRef(
                                 variable_name     = node.getVariableName(),
@@ -413,8 +424,7 @@ can not delete variable '%s' referenced in nested scope""" % (
                 )
         elif node.isStatementsFrame():
             node.updateLocalNames()
-        elif node.isParentVariableProvider() and \
-             not node.isCompiledPythonModule():
+        elif node.isExpressionFunctionBodyBase():
             addFunctionVariableReleases(node)
 
             # Python3 is influenced by the mere use of a variable named as

@@ -121,7 +121,17 @@ def getLocalVariableCodeType(context, variable, version):
     user = context.getOwner()
     owner = variable.getOwner()
 
-    variable_trace = user.trace_collection.getVariableTrace(variable, version)
+    user = user.getEntryPoint()
+
+    prefix = ""
+
+    if owner.isExpressionOutlineFunction() or owner.isExpressionClassBody():
+        entry_point = owner.getEntryPoint()
+
+        prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(owner)
+        owner = entry_point
+
+    variable_trace = user.getTraceCollection().getVariableTrace(variable, version)
 
     c_type = variable_trace.getPickedCType(context)
 
@@ -130,18 +140,20 @@ def getLocalVariableCodeType(context, variable, version):
             in_context = False,
             variable   = variable
         )
+
+        result = prefix + result
     elif context.isForDirectCall():
 
         if user.isExpressionGeneratorObjectBody():
-            closure_index = user.getClosureVariables().index(variable)
+            closure_index = user.getClosureVariableIndex(variable)
 
             result = "generator->m_closure[%d]" % closure_index
         elif user.isExpressionCoroutineObjectBody():
-            closure_index = user.getClosureVariables().index(variable)
+            closure_index = user.getClosureVariableIndex(variable)
 
             result = "coroutine->m_closure[%d]" % closure_index
         elif user.isExpressionAsyncgenObjectBody():
-            closure_index = user.getClosureVariables().index(variable)
+            closure_index = user.getClosureVariableIndex(variable)
 
             result = "asyncgen->m_closure[%d]" % closure_index
         else:
@@ -149,8 +161,10 @@ def getLocalVariableCodeType(context, variable, version):
                 in_context = True,
                 variable   = variable
             )
+
+            result = prefix + result
     else:
-        closure_index = user.getClosureVariables().index(variable)
+        closure_index = user.getClosureVariableIndex(variable)
 
         if user.isExpressionGeneratorObjectBody():
             result = "generator->m_closure[%d]" % closure_index
@@ -159,6 +173,9 @@ def getLocalVariableCodeType(context, variable, version):
         elif user.isExpressionAsyncgenObjectBody():
             result = "asyncgen->m_closure[%d]" % closure_index
         else:
+            # TODO: If this were context.getContextObjectName() this would be
+            # a one liner.
+
             result = "self->m_closure[%d]" % closure_index
 
     return result, c_type
@@ -272,7 +289,7 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
 
     emit(
         template_read_maybe_local_unclear % {
-            "locals_dict" : "locals_dict",
+            "locals_dict" : context.getLocalsDictName(),
             "fallback"    : indented(fallback_emit.codes),
             "tmp_name"    : to_name,
             "var_name"    : context.getConstantCode(

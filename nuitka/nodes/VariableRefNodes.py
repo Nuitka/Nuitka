@@ -264,7 +264,7 @@ local variable '%s' referenced before assignment""" % variable_name
            self.variable.getName() in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
            self.variable.isModuleVariable():
             # Just inform the collection that all escaped.
-            trace_collection.onLocalsUsage()
+            trace_collection.onLocalsUsage(self.getParentVariableProvider())
 
         return call_node, None, None
 
@@ -643,7 +643,7 @@ Replaced read-only module attribute '__package__' with constant value."""
            self.variable_name in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
            self.fallback_variable.isModuleVariable():
             # Just inform the collection that all escaped.
-            trace_collection.onLocalsUsage()
+            trace_collection.onLocalsUsage(self.getParentVariableProvider())
 
         return call_node, None, None
 

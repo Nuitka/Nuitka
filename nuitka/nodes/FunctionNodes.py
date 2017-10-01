@@ -30,7 +30,6 @@ classes.
 """
 
 from nuitka import Options, Variables
-from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
 from nuitka.PythonVersions import python_version
 from nuitka.tree.Extractions import updateVariableUsage
 
@@ -69,7 +68,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
                                  ExpressionChildrenHavingBase):
 
     def __init__(self, provider, name, code_prefix, flags, source_ref, body):
-        while not isinstance(provider, EntryPointMixin):
+        while provider.isExpressionOutlineBody():
             provider = provider.getParentVariableProvider()
 
         ExpressionChildrenHavingBase.__init__(
@@ -108,13 +107,26 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         self.non_local_declarations = []
 
         # Register ourselves immediately with the module.
-        provider.getParentModule().addFunction(self)
 
-        self.trace_collection = None
+        # TODO: Have a base class that is between outline function and entry
+        # point functions.
+        if not self.isExpressionOutlineFunction() and \
+           not self.isExpressionClassBody():
+            provider.getParentModule().addFunction(self)
 
     @staticmethod
     def isExpressionFunctionBodyBase():
         return True
+
+    def getEntryPoint(self):
+        """ Entry point for code.
+
+            Normally ourselves. Only outlines will refer to their parent which
+            technically owns them.
+
+        """
+
+        return self
 
     def getContainingClassDictCreation(self):
         current = self
@@ -183,6 +195,19 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
             if variable.getOwner() is self
         )
 
+    def getOutlineLocalVariables(self):
+        outlines = self.getTraceCollection().getOutlineFunctions()
+
+        if outlines is None:
+            return ()
+
+        result = []
+
+        for outline in outlines:
+            result.extend(outline.getUserLocalVariables())
+
+        return tuple(result)
+
     def removeClosureVariable(self, variable):
         assert variable in self.providing.values(), (self.providing, variable)
 
@@ -217,6 +242,9 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
             new_variable = new_variable
         )
 
+    def hasClosureVariable(self, variable):
+        return variable in self.taken
+
     def removeUserVariable(self, variable):
         assert variable in self.providing.values(), (self.providing, variable)
 
@@ -236,7 +264,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         return result
 
     def getVariableForReference(self, variable_name):
-        # print( "REF func", self.getCodeName(), variable_name )
+        # print( "REF func", self, variable_name )
 
         if self.hasProvidedVariable(variable_name):
             result = self.getProvidedVariable(variable_name)
@@ -250,12 +278,16 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
             if not result.isModuleVariable():
                 self.registerProvidedVariable(result)
 
+            entry_point = self.getEntryPoint()
+
             # For "exec" containing/star import containing, we raise this exception to indicate
             # that instead of merely a variable, to be assigned, we need to replace with locals
             # dict access.
-            if python_version < 300 and not self.isExpressionClassBody() and \
+            if python_version < 300 and \
+               not entry_point.isExpressionClassBody() and \
+               not entry_point.isPythonMainModule() and \
                result.isModuleVariable() and \
-               self.isUnoptimized():
+               entry_point.isUnoptimized():
                 raise MaybeLocalVariableUsage
 
         return result
@@ -755,6 +787,8 @@ error""" % self.getName()
         return 20
 
     def createOutlineFromCall(self, provider, values):
+        from nuitka.optimizations.FunctionInlining import convertFunctionCallToOutline
+
         return convertFunctionCallToOutline(
             provider     = provider,
             function_ref = self.getFunctionRef(),
@@ -766,7 +800,6 @@ error""" % self.getName()
             (trace.getVariable(), trace.getVersion())
             for trace in self.variable_closure_traces
         ]
-
 
 
 class ExpressionFunctionRef(ExpressionBase):
@@ -830,12 +863,11 @@ class ExpressionFunctionRef(ExpressionBase):
         # in the reference. We should do it in the body, and there we should
         # limit us to only doing it once per module run, e.g. being based on
         # presence in used functions of the module already.
-        old_collection = function_body.trace_collection
-
-        function_body.trace_collection = TraceCollectionFunction(
+        trace_collection = TraceCollectionFunction(
             parent        = trace_collection,
             function_body = function_body
         )
+        old_collection = function_body.setTraceCollection(trace_collection)
 
         statements_sequence = function_body.getBody()
 
@@ -846,13 +878,13 @@ class ExpressionFunctionRef(ExpressionBase):
 
         if statements_sequence is not None:
             result = statements_sequence.computeStatementsSequence(
-                trace_collection = function_body.trace_collection
+                trace_collection = trace_collection
             )
 
             if result is not statements_sequence:
                 function_body.setBody(result)
 
-        function_body.trace_collection.updateVariablesFromCollection(old_collection)
+        trace_collection.updateVariablesFromCollection(old_collection)
 
         # TODO: Function collection may now know something.
         return self, None, None

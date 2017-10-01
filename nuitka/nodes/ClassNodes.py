@@ -25,16 +25,16 @@ from nuitka.PythonVersions import python_version
 
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .FunctionNodes import ExpressionFunctionEntryPointBase
 from .IndicatorMixins import (
     MarkLocalsDictIndicatorMixin,
     MarkNeedsAnnotationsMixin
 )
+from .OutlineNodes import ExpressionOutlineFunction
 
 
 class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
                           MarkNeedsAnnotationsMixin,
-                          ExpressionFunctionEntryPointBase):
+                          ExpressionOutlineFunction):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
 
@@ -49,13 +49,12 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
         "body" : checkStatementsSequenceOrNone
     }
 
-    def __init__(self, provider, name, doc, flags, source_ref):
-        ExpressionFunctionEntryPointBase.__init__(
+    def __init__(self, provider, name, doc, source_ref):
+        ExpressionOutlineFunction.__init__(
             self,
             provider    = provider,
             name        = name,
             code_prefix = "class",
-            flags       = flags,
             source_ref  = source_ref
         )
 
@@ -119,7 +118,7 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
                     "__class__"
                 )
             else:
-                return ExpressionFunctionEntryPointBase.getVariableForClosure(
+                return ExpressionOutlineFunction.getVariableForClosure(
                     self,
                     variable_name = "__class__"
                 )
@@ -144,6 +143,9 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
 
     def mayRaiseException(self, exception_type):
         return self.getBody().mayRaiseException(exception_type)
+
+    def isUnoptimized(self):
+        return True
 
 
 class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):

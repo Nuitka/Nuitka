@@ -425,8 +425,6 @@ def generateLocalsDictSyncCode(statement, emit, context):
         context    = context
     )
 
-    provider = statement.getParentVariableProvider()
-
     old_source_ref = context.setCurrentSourceCodeReference(
         statement.getSourceReference()
     )
@@ -434,7 +432,7 @@ def generateLocalsDictSyncCode(statement, emit, context):
     getStoreLocalsCode(
         locals_name = locals_name,
         variables   = statement.previous_traces,
-        is_foreign  = provider.hasForeignLocalsDict(),
+        is_foreign  = context.hasForeignLocalsDict(),
         emit        = emit,
         context     = context
     )

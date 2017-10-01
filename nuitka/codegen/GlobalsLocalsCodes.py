@@ -25,7 +25,7 @@ from nuitka.PythonVersions import python_version
 from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode
 from .ModuleCodes import getModuleAccessCode
-from .PythonAPICodes import generateCAPIObjectCode
+from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
 from .templates.CodeTemplatesVariables import (
     template_set_locals_dict_value,
     template_set_locals_mapping_value,
@@ -87,7 +87,8 @@ def _getLocalVariableList(provider):
     ]
 
 
-def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict, emit, context):
+def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
+                               emit, context):
     # TODO: Variable could known to be set here, get a hand at that
     # information.
 
@@ -143,7 +144,14 @@ def getLoadLocalsCode(to_name, variables, provider, updated, emit, context):
 
     # Locals is sorted of course.
     def _sorted(variables):
-        all_variables = tuple(context.getOwner().getVariables())
+        locals_owner = context.getOwner()
+
+        if locals_owner.isExpressionOutlineBody():
+            locals_owner = locals_owner.getParentVariableProvider()
+
+        all_variables = tuple(
+            locals_owner.getVariables()
+        )
 
         return sorted(
             variables,
@@ -155,6 +163,8 @@ def getLoadLocalsCode(to_name, variables, provider, updated, emit, context):
     assert not provider.isCompiledPythonModule(), provider
 
     if not context.hasLocalsDict():
+        assert not updated
+
         # Need to create the dictionary first.
         emit(
             "%s = PyDict_New();" % (
@@ -168,20 +178,24 @@ def getLoadLocalsCode(to_name, variables, provider, updated, emit, context):
     elif updated:
         emit(
             """\
-%s = locals_dict;
-Py_INCREF( locals_dict );""" % (
+%s = %s;
+Py_INCREF( %s );""" % (
+                to_name,
+                context.getLocalsDictName(),
                 to_name
             )
         )
         context.addCleanupTempName(to_name)
 
+        # For Python3 it may not really be a dictionary.
         is_dict = python_version < 300 or \
-                  not context.getFunction().isExpressionClassBody()
+                  not context.getOwner().isExpressionClassBody()
         initial = False
     else:
         emit(
-            "%s = PyDict_Copy( locals_dict );" % (
+            "%s = PyDict_Copy( %s );" % (
                 to_name,
+                context.getLocalsDictName(),
             )
         )
         context.addCleanupTempName(to_name)
@@ -211,22 +225,19 @@ def generateSetLocalsCode(statement, emit, context):
         context    = context
     )
 
-    ref_count = context.needsCleanup(new_locals_name)
-
     emit(
         """\
-Py_DECREF(locals_dict);
-locals_dict = %s;""" % (
-            new_locals_name
-        )
+Py_DECREF(%(locals_dict)s);
+%(locals_dict)s = %(locals_value)s;""" % {
+            "locals_dict" : context.getLocalsDictName(),
+            "locals_value" : new_locals_name
+        }
     )
 
-    if not ref_count:
-        emit(
-            "Py_INCREF(locals_dict);"
-        )
 
-    if ref_count:
+    getReferenceExportCode(new_locals_name, emit, context)
+
+    if context.needsCleanup(new_locals_name):
         context.removeCleanupTempName(new_locals_name)
 
 

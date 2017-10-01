@@ -73,8 +73,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
         if node.needsLocalsDict():
             provider = node.getParentVariableProvider()
 
-            if not provider.isCompiledPythonModule():
-                provider.markAsLocalsDict()
+            provider.markAsLocalsDict()
 
             if node.isStatementSetLocals():
                 provider.markAsForeignLocalsDict()

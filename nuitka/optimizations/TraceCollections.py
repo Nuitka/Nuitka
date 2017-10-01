@@ -143,6 +143,8 @@ class CollectionStartpointMixin(object):
         self.return_collections = None
         self.exception_collections = None
 
+        self.outline_functions = None
+
     def getLoopBreakCollections(self):
         return self.break_collections
 
@@ -351,6 +353,15 @@ class CollectionStartpointMixin(object):
 
         return result
 
+    def addOutlineFunction(self, outline):
+        if self.outline_functions is None:
+            self.outline_functions = [outline]
+        else:
+            self.outline_functions.append(outline)
+
+    def getOutlineFunctions(self):
+        return self.outline_functions
+
 
 class TraceCollectionBase(CollectionTracingMixin):
     __del__ = counted_del()
@@ -482,20 +493,16 @@ class TraceCollectionBase(CollectionTracingMixin):
         self.markCurrentVariableTrace(variable, version)
 
 
-    def onLocalsUsage(self):
+    def onLocalsUsage(self, locals_owner):
         result = []
 
-        if self.owner.isExpressionFunctionBody():
-            include_closure = not self.owner.isUnoptimized()
-        else:
-            include_closure = False
+        include_closure = locals_owner.isExpressionFunctionBody() and \
+                          not locals_owner.isUnoptimized()
 
         for variable in self.getActiveVariables():
-            # TODO: Currently this is a bit difficult to express in a positive
-            # way, but we want to have only local variables.
-            if not variable.isTempVariable() and \
-               not variable.isModuleVariable() and \
-               (variable.getOwner() is self.owner or include_closure) and \
+            if variable.isLocalVariable() and \
+               (variable.getOwner() is locals_owner or
+                include_closure and locals_owner.hasClosureVariable(variable)) and \
                variable.getName() != ".0":
                 variable_trace = self.getVariableCurrentTrace(
                     variable
@@ -721,6 +728,9 @@ class TraceCollectionBase(CollectionTracingMixin):
     def resetValueStates(self):
         for key in self.value_states:
             self.value_states[key] = None
+
+    def addOutlineFunction(self, outline):
+        self.parent.addOutlineFunction(outline)
 
 
 class TraceCollectionBranch(TraceCollectionBase):

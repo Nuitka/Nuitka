@@ -97,7 +97,7 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
 
     def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
-        self.variable_versions = trace_collection.onLocalsUsage()
+        self.variable_versions = trace_collection.onLocalsUsage(self.getParentVariableProvider())
 
         if self.getParent().isStatementReturn():
             result = ExpressionBuiltinLocalsCopy(
@@ -117,7 +117,7 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
 
     def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
-        self.variable_versions = trace_collection.onLocalsUsage()
+        self.variable_versions = trace_collection.onLocalsUsage(self.getParentVariableProvider())
 
         for variable, version in self.variable_versions:
             trace = trace_collection.getVariableTrace(variable, version)

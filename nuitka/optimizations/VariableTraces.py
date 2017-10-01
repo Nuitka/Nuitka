@@ -123,9 +123,10 @@ class VariableTraceBase(object):
     def getPickedCType(self, context):
         """ Return type to use for specific context. """
 
-        user = context.getOwner()
+        user = context.getEntryPoint()
+        owner = self.variable.getEntryPoint()
 
-        if self.variable.getOwner() is user:
+        if owner is user:
             if self.variable.isSharedTechnically():
                 result = CTypeCellObject
             else:

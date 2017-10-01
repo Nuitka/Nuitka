@@ -139,9 +139,11 @@ class StatementsFrameBase(StatementsSequence):
                 ]
             )
 
-        is_optimized = not provider.isCompiledPythonModule() and \
-                       not provider.isExpressionClassBody() and \
-                       not provider.hasLocalsDict()
+        entry_point = provider.getEntryPoint()
+
+        is_optimized = not entry_point.isCompiledPythonModule() and \
+                       not entry_point.isExpressionClassBody() and \
+                       not entry_point.hasLocalsDict()
 
         self.code_object.setFlagIsOptimizedValue(is_optimized)
 

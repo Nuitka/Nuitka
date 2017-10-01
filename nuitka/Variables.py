@@ -67,6 +67,9 @@ class Variable(object):
     def getOwner(self):
         return self.owner
 
+    def getEntryPoint(self):
+        return self.owner.getEntryPoint()
+
     def getCodeName(self):
         var_name = self.variable_name
         var_name = var_name.replace('.', '$')
@@ -120,15 +123,19 @@ class Variable(object):
         if not self.users:
             return False
 
+        owner = self.owner.getEntryPoint()
+
         for user in self.users:
-            while user is not self.owner and \
+            user = user.getEntryPoint()
+
+            while user is not owner and \
                   (
                    (user.isExpressionFunctionBody() and not user.needsCreation()) or \
                    user.isExpressionClassBody()
                   ):
                 user = user.getParentVariableProvider()
 
-            if user is not self.owner:
+            if user is not owner:
                 return True
 
         return False
