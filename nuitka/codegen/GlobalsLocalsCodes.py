@@ -63,9 +63,9 @@ def getLoadGlobalsCode(to_name, emit, context):
     assert type(to_name) is str
 
     emit(
-        "%(to_name)s = ((PyModuleObject *)%(module_identifier)s)->md_dict;" % {
+        "%(to_name)s = (PyObject *)moduledict_%(module_identifier)s;" % {
             "to_name"           : to_name,
-            "module_identifier" : getModuleAccessCode(context)
+            "module_identifier" : context.getModuleCodeName()
         },
     )
 

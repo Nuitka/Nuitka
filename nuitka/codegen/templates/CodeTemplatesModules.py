@@ -222,7 +222,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     module_%(module_identifier)s = PyModule_Create( &mdef_%(module_identifier)s );
 #endif
 
-    moduledict_%(module_identifier)s = (PyDictObject *)((PyModuleObject *)module_%(module_identifier)s)->md_dict;
+    moduledict_%(module_identifier)s = MODULE_DICT( module_%(module_identifier)s );
 
     CHECK_OBJECT( module_%(module_identifier)s );
 
@@ -240,27 +240,20 @@ MOD_INIT_DECL( %(module_identifier)s )
     // it ourselves in the same way than CPython does. Note: This must be done
     // before the frame object is allocated, or else it may fail.
 
-    PyObject *module_dict = PyModule_GetDict( module_%(module_identifier)s );
-
-    if ( PyDict_GetItem( module_dict, const_str_plain___builtins__ ) == NULL )
+    if ( GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__ ) == NULL )
     {
         PyObject *value = (PyObject *)builtin_module;
 
-        // Check if main module, not a dict then.
+        // Check if main module, not a dict then but the module itself.
 #if !defined(_NUITKA_EXE) || !%(is_main_module)s
         value = PyModule_GetDict( value );
 #endif
 
-#ifndef __NUITKA_NO_ASSERT__
-        int res =
-#endif
-            PyDict_SetItem( module_dict, const_str_plain___builtins__, value );
-
-        assert( res == 0 );
+        UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__, value );
     }
 
 #if PYTHON_VERSION >= 330
-    PyDict_SetItem( module_dict, const_str_plain___loader__, metapath_based_loader );
+    UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, metapath_based_loader );
 #endif
 
     // Temp variables if any
