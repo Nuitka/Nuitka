@@ -80,7 +80,8 @@ from .TreeHelpers import (
     makeDictCreationOrConstant2,
     makeSequenceCreationOrConstant,
     makeStatementsSequence,
-    makeStatementsSequenceFromStatement
+    makeStatementsSequenceFromStatement,
+    mangleName
 )
 
 
@@ -494,7 +495,9 @@ def _buildClassNode3(provider, node, source_ref):
             source_ref = source_ref
         ),
         StatementAssignmentVariable(
-            variable   = provider.getVariableForAssignment(node.name),
+            variable   = provider.getVariableForAssignment(
+                mangleName(node.name, provider)
+            ),
             source     = decorated_body,
             source_ref = source_ref
         ),
@@ -843,7 +846,7 @@ def _buildClassNode2(provider, node, source_ref):
 
     statements.append(
         StatementAssignmentVariableName(
-            variable_name = node.name,
+            variable_name = mangleName(node.name, provider),
             source        = ExpressionTempVariableRef(
                 variable   = tmp_class,
                 source_ref = source_ref
