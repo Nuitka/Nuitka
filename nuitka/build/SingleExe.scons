@@ -23,6 +23,8 @@
 # This file is used to build an executable or shared library. Nuitka needs no
 # build process for itself, although it can be compiled using the same method.
 
+from __future__ import print_function
+
 import hashlib
 import os
 import platform
@@ -411,10 +413,10 @@ if win_target and \
     )
 
 if show_scons_mode:
-    print "Initial CC:", env.get("CC", None)
-    print "Initial CCVERSION:", env.get("CCVERSION", None)
-    print "Initial CXX:", env.get("CXX", None)
-    print "Initial CXXVERSION:", env.get("CXXVERSION", None)
+    print("Initial CC:", env.get("CC", None))
+    print("Initial CCVERSION:", env.get("CCVERSION", None))
+    print("Initial CXX:", env.get("CXX", None))
+    print("Initial CXXVERSION:", env.get("CXXVERSION", None))
 
 if "CC" in os.environ:
     # If the environment variable CXX is set, use that.
@@ -518,11 +520,11 @@ def setupSpawn(env):
 
         if data.rstrip():
             if not show_scons_mode:
-                print cmdline
-            print data,
+                print(cmdline)
+            print(data, end=' ')
 
         if err:
-            print err,
+            print(err, end=' ')
 
         return rv
 
@@ -586,13 +588,13 @@ if msvc_mode:
 
 
 if show_scons_mode:
-    print "Scons compiler: Using",
-    print getExecutablePath(the_compiler, initial = False),
+    print("Scons compiler: Using", end=' ')
+    print(getExecutablePath(the_compiler, initial = False), end=' ')
 
     if win_target and msvc_mode:
-        print "(MSVC %s)" % getMsvcVersionString()
+        print("(MSVC %s)" % getMsvcVersionString())
 
-    print
+    print()
 
 if win_target:
     setupSpawn(env)
@@ -715,7 +717,7 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
 
     # Give a warning if LTO mode was specified, but won't be used.
     if lto_mode and gcc_version < "4.6":
-        print >> sys.stderr, "Warning, LTO mode specified, but not available."
+        print("Warning, LTO mode specified, but not available.", file=sys.stderr)
 
     # The var-tracking does not scale, disable it. Should we really need it, we
     # can enable it. TODO: Does this cause a performance loss?
@@ -877,9 +879,17 @@ if python_debug:
     )
 
 def detectHostMultiarch():
-    import commands
+    pipe = SCons.Action._subproc(
+        env,
+        "dpkg-architecture",
+        stdin = 'devnull',
+        stderr = 'devnull',
+        stdout = subprocess.PIPE
+    )
 
-    for line in commands.getoutput("dpkg-architecture").split('\n'):
+    for line in pipe.stdout:
+        line = line.strip()
+
         if line.startswith("DEB_HOST_MULTIARCH="):
             return line.split('=', 1)[1]
     else:
@@ -1018,7 +1028,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
     command = [gendef_tool, "-", python_dll_filename]
 
     if show_scons_mode:
-        print "Scons: Creating Python library defs with:", command
+        print("Scons: Creating Python library defs with:", command)
 
     try:
         proc = subprocess.Popen(
@@ -1247,7 +1257,7 @@ def getLinkerArch():
         command = ["objdump", "-f", python_exe]
 
         if show_scons_mode:
-            print "Scons: Detecting Linux target arch with :", command
+            print("Scons: Detecting Linux target arch with :", command)
 
         try:
             proc = subprocess.Popen(
@@ -1694,7 +1704,7 @@ if os.path.exists(target[0].abspath):
     os.unlink(target[0].abspath)
 
 if show_scons_mode:
-    print "scons: Told to run compilation on %d CPUs." % job_count
+    print("scons: Told to run compilation on %d CPUs." % job_count)
 
 # Cached, when done, by the fastest possible algorithm and right inside the
 # build directory. Makes no sense of course, if that is removed later on by
