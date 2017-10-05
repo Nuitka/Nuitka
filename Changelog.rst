@@ -1,16 +1,18 @@
 Nuitka Release 0.5.28 (Draft)
 =============================
 
-This release is not done yet.
+This release has a focus on compatibility work and contains bug fixes and
+work to enhance the usability of Nuitka by integrating with distutils. The
+major improvement is that contractions no longer use pseudo functions to
+achieve their own local scope, but that there is now a structure for that.
 
 Bug Fixes
 ---------
 
 - Python3.6: Fix, ``async for`` was not yet implemented for async generators.
-  Fixed in 0.5.27.1 already.
 
 - Fix, functions with keyword arguments where the value was determined to be
-  a static raise could crash the compiler. Fixed in 0.5.27.1 already.
+  a static raise could crash the compiler.
 
 - Detect using MinGW64 32 bits C compiler being used with 64 bits Python
   with better error message.
@@ -40,6 +42,19 @@ Bug Fixes
 - Fix, using ``--recurse-directory`` on packages that are not in the search
   crashed the compiler.
 
+- Compatibility: Python2 ``set`` and ``dict`` contractions were using extra
+  frames like Python3 does, but those are not needed.
+
+
+Optimization
+------------
+
+- Contractions are now all properly inlined and allow for optimization as if
+  they were fully local. This should give better code in some cases.
+
+- Classes are now all building their locals dictionary inline to the using
+  scope, allowing for more compact code.
+
 New Features
 ------------
 
@@ -48,6 +63,8 @@ New Features
   .. code-block:: sh
 
      python setup.py --command-packages=nuitka.distutils clean -a bdist_nuitka
+
+  Use with caution, this is incomplete work.
 
 - Experimental support for running tests against compiled installation with
   ``nose`` and ``py.test``.
@@ -66,13 +83,17 @@ New Features
   extension module, so that standalone mode creation can benefit from knowing
   the dependencies of compiled code.
 
+- Added option ``--plugin-list`` that was mentioned in the help output, but
+  still missing so far.
+
 Cleanups
 --------
 
-- Rename tree and codegen ``Helper`` modules to unique names, easier to work
-  with.
+- Rename tree and codegen ``Helper`` modules to unique names, making them
+  easier to work with.
 
-- Share code to not warn for standard library paths with more warnings.
+- Share the code that decides to not warn for standard library paths with more
+  warnings.
 
 - Use the ``bool`` enum definition of Python2 which is more elegant than ours.
 
@@ -81,11 +102,17 @@ Cleanups
 
 - Move output comparison tool to the ``nuitka.tools.testing`` namespace.
 
+- Made frame code generation capable of using nested frames, allowing the real
+  inline of classes and contraction bodies, instead of "direct" calls to pseudo
+  functions being used.
+
+- Proper base classes for functions that are entry points, and functions that
+  are merely a local expression using return statements.
+
 Tests
 -----
 
-- The search mode with pattern, was not working anymore. Fixed in 0.5.27.1
-  already.
+- The search mode with pattern, was not working anymore.
 
 - Resume hash values now consider the Python version too.
 
@@ -99,11 +126,12 @@ Organizational
   you also had to tell it to recurse into that package or else it would only
   include the top level package, but nothing below.
 
-- Updated the man pages, removing mentions of C++ and using the currently
-  recommended options.
+- Updated the man pages, correct mentions of its C++ to C and don't use now
+  deprecated options.
 
-- Updated help output which still said that standalone mode implies recursion
-  into standard library, which is no longer true.
+- Updated the help output which still said that standalone mode implies
+  recursion into standard library, which is no longer true and even not
+  recommended.
 
 - Added option to disable the output of ``.pyi`` file when creating an extension
   module.
@@ -111,7 +139,28 @@ Organizational
 Summary
 -------
 
-This release is not done yet.
+This release was done to get the fixes and new features out for testing. There
+is work started that should make generators use an explicit extra stack via
+pointer, and restore instruction state via goto dispatchers at function entry,
+but that is not complete.
+
+This feature, dubbed "goto generators" will remove the need for fibers (which
+is itself a lot of code), reduce the memory footprint at run time for anything
+that uses a lot of generators, or coroutines.
+
+Integrating with ``distutils`` is also a new thing, and once completed will
+make use of Nuitka for existing projects automatic and trivial to do.
+
+Also, documenting how to run tests against compiled code, if that test code
+lives inside of that package, will make a huge difference.
+
+And then of course, nested frames now mean that every function could be inlined,
+which was previously not possible due to collisions of frames. This will pave
+the route for better optimization in those cases in future releases.
+
+The experimental features will require more work, but should make it easier to
+use Nuitka for existing projects. Future releases will make integrating Nuitka
+dead simple, or that is the hope.
 
 
 Nuitka Release 0.5.27
