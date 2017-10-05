@@ -871,7 +871,11 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             variable_name = "__package__",
             source        = makeConstantRefNode(
                 constant      = (
-                                  provider.getPackage()
+                                  (
+                                    None
+                                      if "." not in provider.getFullName() or python_version >= 320 else
+                                    provider.getFullName()
+                                  )
                                     if python_version < 330 else
                                   provider.getFullName()
                                 )
