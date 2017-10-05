@@ -248,9 +248,24 @@ def _buildSconsCommand(quiet, options):
     if Options.isShowScons():
         scons_command.append("--debug=explain")
 
+    # Python2, encoding unicode values
+    def encode(value):
+        if str is bytes and type(value) is unicode:
+            return value.encode("utf8")
+        else:
+            return value
+
     # Option values to provide to scons. Find these in the caller.
     for key, value in options.items():
-        scons_command += [key + '=' + value]
+        scons_command.append(
+            key + '=' + encode(value)
+        )
+
+    # Python2, make argument encoding recognizable.
+    if str is bytes:
+        scons_command.append(
+            "arg_encoding=utf8"
+        )
 
     return scons_command
 
