@@ -321,7 +321,7 @@ def makeModuleFrame(module, statements, source_ref):
         if module.isMainModule():
             code_name = "<module>"
         else:
-            code_name = "<module %s>" % module.getName()
+            code_name = "<module %s>" % module.getFullName()
 
     return StatementsFrameModule(
         statements  = statements,
