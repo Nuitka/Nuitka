@@ -653,8 +653,10 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
             if python_version >= 300:
                 filename = filename.decode("utf-8")
 
-                if filename.startswith("@rpath/"):
-                    filename = os.path.join(original_dir, filename[7:])
+            if filename.startswith("@rpath/"):
+                filename = os.path.join(original_dir, filename[7:])
+            elif filename.startswith("@loader_path/"):
+                filename = os.path.join(original_dir, filename[13:])
 
             # print "adding", filename
             result.add(filename)
