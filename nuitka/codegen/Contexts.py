@@ -1329,3 +1329,6 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
 
     def forgetTempName(self, tmp_name):
         self.parent.forgetTempName(tmp_name)
+
+    def getContextObjectName(self):
+        return self.parent.getContextObjectName()
