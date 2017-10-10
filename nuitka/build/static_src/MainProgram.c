@@ -53,6 +53,24 @@ static wchar_t **argv_unicode;
 static char *original_home;
 static char *original_path;
 
+#if defined( _WIN32 )
+static void setenv( char const *name, char const *value, int overwrite)
+{
+    assert( overwrite );
+
+    char buffer[MAXPATHLEN + 100];
+    memset( buffer, 0, sizeof(buffer) );
+    snprintf( buffer, sizeof(buffer) - 1, "%s=%s", name, value ? value : "" );
+
+    NUITKA_MAY_BE_UNUSED int res = _putenv( buffer );
+    assert( res == 0 );
+}
+
+static void unsetenv( char const *name )
+{
+    setenv( name, NULL, 1 );
+}
+#endif
 
 #if _NUITKA_FROZEN > 0
 extern void copyFrozenModulesTo( struct _frozen *destination );
@@ -103,8 +121,7 @@ static void prepareStandaloneEnvironment()
     /* get original environment variable values */
     original_home = getenv( "PYTHONHOME" );
     original_path = getenv( "PYTHONPATH" );
-    size_t original_home_size = ( original_home ) ? strlen( original_home ) : 0;
-    size_t original_path_size = ( original_path ) ? strlen( original_path ) : 0;
+    size_t original_path_size = ( original_path != NULL ) ? strlen( original_path ) : 0;
 
     /* Get the value to insert into it. */
     size_t insert_size = strlen( binary_directory ) * 2 + 50;
@@ -119,33 +136,27 @@ static void prepareStandaloneEnvironment()
     memset( insert_path, 0, insert_size );
     snprintf( insert_path, insert_size, env_string, binary_directory );
 
-    // set environment
-    size_t python_home_size = original_home_size + insert_size;
+    // Set the temporary environment for using during Py_Initialize.
     size_t python_path_size = original_path_size + insert_size;
-    char *python_home = (char *) malloc( python_home_size );
     char *python_path = (char *) malloc( python_path_size );
-    memset( python_home, 0, python_home_size );
     memset( python_path, 0, python_path_size );
-    snprintf( python_home, python_home_size, "%s%s",
-        insert_path, original_home ? original_home : "" );
     snprintf( python_path, python_path_size, "%s%s",
         insert_path, original_path ? original_path : "" );
 
-    if ( !( original_home && strstr( original_home, insert_path ) ) )
-    {
-#if defined( _WIN32 )
-        SetEnvironmentVariable( "PYTHONHOME", python_home );
-#else
-        setenv( "PYTHONHOME", python_home, 1 );
-#endif
-    }
+    assert( binary_directory != NULL );
+    assert( strlen( binary_directory ) > 0 );
+
+    NUITKA_PRINTF_TRACE("Binary dir is %s\n", binary_directory );
+
+    setenv( "PYTHONHOME", binary_directory, 1 );
+
+    // This has really failed before, on Windows.
+    assert( getenv( "PYTHONHOME") != NULL );
+    assert( strcmp( binary_directory, getenv("PYTHONHOME") ) == 0 );
+
     if ( !( original_path && strstr( original_path, insert_path ) ) )
     {
-#if defined( _WIN32 )
-        SetEnvironmentVariable( "PYTHONPATH", python_path );
-#else
         setenv( "PYTHONPATH", python_path, 1 );
-#endif
     }
 
     // clean up
@@ -154,9 +165,10 @@ static void prepareStandaloneEnvironment()
 
 static void restoreStandaloneEnvironment()
 {
-#if defined( _WIN32 )
-    SetEnvironmentVariable( "PYTHONHOME", original_home );
-#else
+    /* Make use the PYTHONHOME set previously. */
+    NUITKA_PRINTF_TRACE("Path is %s (PYTHONHOME %s)\n", Py_GetPath(), getenv( "PYTHONHOME" ) );
+    Py_GetPath();
+
     if ( original_home == NULL )
     {
         unsetenv( "PYTHONHOME" );
@@ -165,20 +177,17 @@ static void restoreStandaloneEnvironment()
     {
         setenv( "PYTHONHOME", original_home, 1 );
     }
-#endif
 
-#if defined( _WIN32 )
-    SetEnvironmentVariable( "PYTHONHOME", original_path );
-#else
     if ( original_path == NULL )
     {
-        unsetenv( "PYTHONHOME" );
+        unsetenv( "PYTHONPATH" );
     }
     else
     {
-        setenv( "PYTHONHOME", original_path, 1 );
+        setenv( "PYTHONPATH", original_path, 1 );
     }
-#endif
+
+    NUITKA_PRINTF_TRACE("Path is %s\n", Py_GetPath() );
 }
 
 #endif

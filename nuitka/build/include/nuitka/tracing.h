@@ -25,8 +25,10 @@
 
 #ifdef _NUITKA_TRACE
 #define NUITKA_PRINT_TRACE(value) {puts(value);fflush(stdout);}
+#define NUITKA_PRINTF_TRACE(...) {printf (__VA_ARGS__);fflush(stdout);}
 #else
 #define NUITKA_PRINT_TRACE(value)
+#define NUITKA_PRINTF_TRACE(...)
 #endif
 
 #endif

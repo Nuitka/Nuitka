@@ -2333,7 +2333,7 @@ char *getBinaryDirectoryUTF8Encoded()
 
     // On MacOS, the "dirname" call creates a separate internal string, we can
     // safely copy back.
-    strncpy(binary_directory, dirname(binary_directory), MAXPATHLEN);
+    strncpy( binary_directory, dirname(binary_directory), MAXPATHLEN );
 
 #elif defined( __FreeBSD__ )
     /* Not all of FreeBSD has /proc file system, so use the appropriate
