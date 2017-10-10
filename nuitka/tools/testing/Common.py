@@ -361,7 +361,7 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
         path = os.path.join(dirname, filename)
 
     command = [
-        sys.executable,
+        _python_executable,
         "-mcompileall",
         path
     ]
@@ -378,6 +378,21 @@ def checkCompilesNotWithCPython(dirname, filename, search_mode):
        search_mode.abortOnFinding(dirname, filename):
         my_print("Error exit!", result)
         sys.exit(result)
+
+
+def checkSucceedsWithCPython(filename):
+    command = [
+        _python_executable,
+        filename
+    ]
+
+    result = subprocess.call(
+        command,
+        stdout = open(os.devnull,'w'),
+        stderr = subprocess.STDOUT
+    )
+
+    return result == 0
 
 
 def hasDebugPython():

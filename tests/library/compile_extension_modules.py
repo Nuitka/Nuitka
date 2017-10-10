@@ -38,7 +38,8 @@ from nuitka.tools.testing.Common import (
     my_print,
     createSearchMode,
     compileLibraryTest,
-    check_output
+    check_output,
+    checkSucceedsWithCPython
 )
 
 setup(needs_io_encoding = True)
@@ -103,16 +104,21 @@ def action(stage_dir, root, path):
 
     command.append(filename)
 
-    try:
-        output = check_output(command).splitlines()
-    except Exception:
-        raise
-    else:
-        if output[-1] != b"OK":
-            sys.exit("FAIL")
-        my_print("OK")
+    if checkSucceedsWithCPython(filename):
+        try:
+            output = check_output(command).splitlines()
+        except Exception:
+            raise
+        else:
+            if output[-1] != b"OK":
 
-        shutil.rmtree(filename[:-3] + ".dist")
+
+                sys.exit("FAIL")
+            my_print("OK")
+
+            shutil.rmtree(filename[:-3] + ".dist")
+    else:
+        my_print("SKIP (does not work with CPython)")
 
 
 compileLibraryTest(
