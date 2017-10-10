@@ -26,8 +26,9 @@ You can use all Python library modules or and all extension modules freely. It
 translates the Python into a C level program that then uses "libpython" to
 execute in the same way as CPython does. All optimization is aimed at avoiding
 overhead, where it's unnecessary. None is aimed at removing compatibility,
-although there is an "improved" mode, where not every bug of standard Python
-is emulated, e.g. more complete error messages are given.
+although slight improvements will occassionally be done, where not every bug
+of standard Python is emulated, e.g. more complete error messages are given,
+but there is a full compatibility mode to disable even that.
 
 
 Usage
@@ -56,14 +57,15 @@ Requirements
 
 - Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4, 3.5, 3.6 (yes, but read below)
 
-  .. admonition:: Python3, yes but Python2 *compile time* dependency
+  .. admonition:: Python3, but 3.2, 3.3, and 3.4 need other Python versions as
+     a *compile time* dependency
 
-     For Python3 you *need* a Python2, but only during the compile time
-     only, and that is for Scons (which orchestrates the C compilation), and
-     is not yet ported. So for Python 3.x, there is currently a requirement to
-     also have a Python 2.x installed in order to compile, not to run a binary.
+     Nuitka itself is fully compatible with all mentions version, Scons is not.
 
-     Nuitka itself is fully Python3 compatible except for Scons.
+     For these versions, you *need* a Python2 or Python3.5 installed as well,
+     but only during the compile time only. That is for use with Scons (which
+     orchestrates the C compilation), which does not support the same Python
+     versions as Nuitka.
 
   .. admonition:: Moving to other machines
 
@@ -111,8 +113,8 @@ Requirements
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
-       (the Express editions will normally work just fine). The latest version
-       is recommend. There is no need to use older versions.
+       (the Express editions work just fine). The latest version is recommend.
+       There is no need to use older versions, they might in fact not work.
 
 
 Command Line
