@@ -156,6 +156,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "cairo"
         elif full_name == "reportlab.rl_config":
             yield "reportlab.rl_settings"
+        elif full_name == "socket":
+            yield "_socket"
         elif full_name == "ctypes":
             yield "_ctypes"
         elif full_name == "gi._gi":
