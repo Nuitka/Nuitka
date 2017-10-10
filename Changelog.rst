@@ -31,8 +31,9 @@ Bug Fixes
 - Compatibility: Made ``__loader__`` module attribute set when the module is
   loading already.
 
-- Standalone: Resolve the ``@rpath`` from ``otool`` output manually which
-  should make more things work correctly.
+- Standalone: Resolve the ``@rpath`` and ``@loader_path`` from ``otool`` on
+  MacOS manually to actual paths, which adds support for libraries compiled
+  with that.
 
 - Fix, nested functions calling ``super`` could crash the compiler.
 
@@ -45,6 +46,28 @@ Bug Fixes
 - Compatibility: Python2 ``set`` and ``dict`` contractions were using extra
   frames like Python3 does, but those are not needed.
 
+- Standalone: Fix, the way ``PYTHONHOME`` was set on Windows had no effect,
+  which allowed the compiled binary to access the original installation still.
+
+- Standalone: Added some newly discovered missing hidden dependencies of
+  extension modules.
+
+- Compatiblity: The name mangling of private names (e.g. ``__var``) in classes
+  was applied to variable names, and function declarations, but not to classes
+  yet.
+
+- Python3.6: Fix, added support for list contractions with ``await`` expressions
+  in async generators.
+
+- Python3.6: Fix, ``async for`` was not working in async generators yet.
+
+- Fix, for module tracebacks, we output the module name ``<module name``>
+  instead of merely ``<module>``, but if the module was in a package, that
+  was not indicated. Now it is ``<module package.name>``.
+
+- Windows: The cache directory could be unicode which then failed to pass as
+  an argument to scons. We now encode such names as UTF-8 and decode in Scons
+  afterwards, solving the problem in a generic way.
 
 Optimization
 ------------
@@ -54,6 +77,9 @@ Optimization
 
 - Classes are now all building their locals dictionary inline to the using
   scope, allowing for more compact code.
+
+- The dictionary API was not used in module template code, although it helps
+  to generate more compact code.
 
 New Features
 ------------
@@ -122,6 +148,11 @@ Tests
 Organizational
 --------------
 
+- Added support for Scons 3.0 and running Scons with Python3.5 or higher. The
+  option to specifiy the Python to use for scons has been renamed to reflect
+  that it may also be a Python3 now. Only for Python3.2 to Python3.4 we now
+  need another Python installation.
+
 - Made recursion the default for ``--recurse-directory`` with packages. Before
   you also had to tell it to recurse into that package or else it would only
   include the top level package, but nothing below.
@@ -161,6 +192,10 @@ the route for better optimization in those cases in future releases.
 The experimental features will require more work, but should make it easier to
 use Nuitka for existing projects. Future releases will make integrating Nuitka
 dead simple, or that is the hope.
+
+And last but not least, now that Scons works with Python3, chances are that
+Nuitka will more often work out the of the box. The older Python3 versions that
+still retain the issue are not very widespread.
 
 
 Nuitka Release 0.5.27
