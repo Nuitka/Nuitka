@@ -300,13 +300,19 @@ def detectVersion(env, cc):
     #if line:
     #    version = line
     line = pipe.stdout.readline()
+
+    if str is not bytes:
+        line = line.decode("utf8")
+
     match = re.search(r'[0-9]+(\.[0-9]+)+', line)
     if match:
         version = match.group(0)
+
     # Non-GNU compiler's output (like AIX xlc's) may exceed the stdout buffer:
     # So continue with reading to let the child process actually terminate.
     while pipe.stdout.readline():
         pass
+
     ret = pipe.wait()
     if ret != 0:
         return None
@@ -477,10 +483,11 @@ def setupSpawn(env):
         )
 
         data, err = proc.communicate()
+
         rv = proc.wait()
 
         if cmd == "cl":
-            data = data[data.find("\r\n") + 2 :]
+            data = data[data.find(b"\r\n") + 2 :]
 
             source_basenames = [
                 os.path.basename(source_file)
@@ -489,42 +496,42 @@ def setupSpawn(env):
             ]
 
             def check(line):
-                return line in ("",  "Generating Code...") or \
+                return line in (b"",  b"Generating Code...") or \
                        line in source_basenames
 
-            data = "\r\n".join(
+            data = b"\r\n".join(
                 line
                 for line in
-                data.split("\r\n")
+                data.split(b"\r\n")
                 if not check(line)
             )
 
         elif cmd == "rc":
-            data = data[data.find("reserved.\r") + 13:]
+            data = data[data.find(b"reserved.\r") + 13:]
 
-            data = '\n'.join(
+            data = b'\n'.join(
                 line
                 for line in
-                data.split('\n')
-                if not "identifier truncated to"
+                data.split(b'\n')
+                if b"identifier truncated to" not in line
             )
         elif cmd == "link" and module_mode:
-            data = "\r\n".join(
+            data = b"\r\n".join(
                 line
                 for line in
-                data.split("\r\n")
-                if "   Creating library" not in line
+                data.split(b"\r\n")
+                if b"   Creating library" not in line
                 # On localized compilers, the message to ignore is not as clear.
-                if not (module_mode and ".exp" in line)
+                if not (module_mode and b".exp" in line)
             )
 
         if data.rstrip():
             if not show_scons_mode:
                 print(cmdline)
-            print(data, end=' ')
+            print(data, end='')
 
         if err:
-            print(err, end=' ')
+            print(err, end='')
 
         return rv
 
@@ -1276,6 +1283,9 @@ def getLinkerArch():
         if rv != 0:
             return None
 
+        if str is not bytes:
+            data = data.decode("utf8")
+
         for line in data.splitlines():
             if " file format " in line:
                 return line.split(" file format ")[-1]
@@ -1329,7 +1339,10 @@ else:
 
                 output.write("   ")
 
-            output.write(" 0x%02x," % ord(stream_byte))
+            if str is bytes:
+                stream_byte = ord(stream_byte)
+
+            output.write(" 0x%02x," % stream_byte)
 
         output.write("\n};\n");
 

@@ -140,14 +140,14 @@ Python runtime warnings), "-O" (alias "noasserts"). Default empty."""
 )
 
 parser.add_option(
-    "--python2-for-scons",
+    "--python-for-scons", "--python2-for-scons",
     action  = "store",
-    dest    = "python2_scons",
+    dest    = "python_scons",
     default = None,
     help    = """\
-If using Python3, provide the path of a Python2 binary to use. For Python2
-defaults to what you run Nuitka with, otherwise searches on Windows in the
-registry or non-Windows in PATH."""
+If using Python3.2 to Python3.4, provide the path of a Python binary to use
+for Scons. Otherwise Nuitka can use what you run Nuitka with or a "scons"
+binary that is found in PATH, or a Python installation from Windows registry."""
 )
 
 parser.add_option(
@@ -817,7 +817,7 @@ Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" %
                 no_case_module
             )
 
-    scons_python = getPython2PathForScons()
+    scons_python = getPythonPathForScons()
 
     if scons_python is not None and not os.path.exists(scons_python):
         sys.exit("Error, no such Python2 binary '%s'." % scons_python)
@@ -1106,5 +1106,5 @@ def getPluginOptions(plugin_name):
     return {}
 
 
-def getPython2PathForScons():
-    return options.python2_scons
+def getPythonPathForScons():
+    return options.python_scons

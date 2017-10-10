@@ -61,12 +61,11 @@ def _getSconsBinaryCall():
 
         if scons_path is not None:
             return [
-                _getPython2ExePath(),
                 scons_path
             ]
 
     return [
-        _getPython2ExePath(),
+        _getPythonForSconsExePath(),
         os.path.join(
             _getSconsInlinePath(),
             "bin",
@@ -75,7 +74,7 @@ def _getSconsBinaryCall():
     ]
 
 
-def _getPython2ExePathWindows():
+def _getPythonSconsExePathWindows():
     """ Find Python2 on Windows.
 
     First try a few guesses, the look into registry for user or system wide
@@ -90,6 +89,10 @@ def _getPython2ExePathWindows():
         return r"c:\Python27\python.exe"
     elif os.path.isfile(r"c:\Python26\python.exe"):
         return r"c:\Python26\python.exe"
+    elif os.path.isfile(r"c:\Python35\python.exe"):
+        return r"c:\Python35\python.exe"
+    elif os.path.isfile(r"c:\Python36\python.exe"):
+        return r"c:\Python36\python.exe"
 
     # Windows only code, pylint: disable=I0021,import-error,undefined-variable
     try:
@@ -97,7 +100,7 @@ def _getPython2ExePathWindows():
     except ImportError:
         import winreg  # lint:ok
 
-    for search in ("2.7", "2.6"):
+    for search in ("2.7", "2.6", "3.5", "3.6"):
         for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
             for arch_key in 0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY:
                 try:
@@ -116,47 +119,44 @@ def _getPython2ExePathWindows():
                     pass
 
 
-def _getPython2ExePath():
+def _getPythonForSconsExePath():
     """ Find a way to call any Python2.
 
     Scons needs it as it doesn't support Python3.
     """
-    python_exe = Options.getPython2PathForScons()
+    python_exe = Options.getPythonPathForScons()
 
     if python_exe is not None:
         return python_exe
 
-    if python_version < 300:
+    if python_version < 300 or python_version >= 350:
         return sys.executable
     elif Utils.getOS() == "Windows":
-        python_exe = _getPython2ExePathWindows()
+        python_exe = _getPythonSconsExePathWindows()
 
         if python_exe is not None:
             return python_exe
         else:
             sys.exit("""\
-Error, while Nuitka is fully Python3 compatible, it needs to find a
-Python2 executable under C:\\Python26 or C:\\Python27 to execute
-Scons utility which is used to build the C files to binary, and which
-is not yet Python3 compatible.
+Error, while Nuitka works with Python 3.2 to 3.4, scons does not, and Nuitka
+needs to find a Python executable 2.6/2.7 or 3.5 or higher. Simply under the
+C:\\PythonXY, e.g. C:\\Python27 to execute the scons utility which is used
+to build the C files to binary.
 
-You may provide it using option "--python2-for-scons=path_to_python.exe"
-in case it is not visible in registry, e.g. uninstalled AnaConda Python.
+You may provide it using option "--python-for-scons=path_to_python.exe"
+in case it is not visible in registry, e.g. due to using uninstalled
+AnaConda Python.
 """)
 
-    candidate = Execution.getExecutablePath("python2.7")
-    if candidate is None:
-        candidate = Execution.getExecutablePath("python2.6")
+    for version_candidate in ("2.7", "2.6", "3.5", "3.6"):
+        candidate = Execution.getExecutablePath("python" + version_candidate)
 
-        if candidate is None:
-            candidate = Execution.getExecutablePath("python2")
+        if candidate is not None:
+            return candidate
 
-    # Our weakest bet is that there is no "python3" named "python", but we
-    # take it, as on some systems it's true.
-    if candidate is None:
-        candidate = "python"
-
-    return candidate
+    # Lets be optimistic, this is most often going to be new enough or a
+    # Python2 variant.
+    return "python"
 
 
 @contextlib.contextmanager
