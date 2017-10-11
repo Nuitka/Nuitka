@@ -48,7 +48,7 @@ PyObject *metapath_based_loader = NULL;
 #ifdef _NUITKA_EXE
 static inline bool isVerbose( void )
 {
-    return Py_VerboseFlag;
+    return Py_VerboseFlag != 0;
 }
 #elif _NUITKA_SYSFLAG_VERBOSE
 static inline bool isVerbose( void )

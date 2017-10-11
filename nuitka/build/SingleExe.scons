@@ -36,6 +36,7 @@ import sys
 
 import SCons
 
+
 def getArguments():
     arg_encoding = ARGUMENTS.get("argument_encoding")
 

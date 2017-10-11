@@ -1150,7 +1150,10 @@ def buildModuleTree(filename, package, is_top, is_main):
     # If there is source code associated (not the case for namespace packages of
     # Python3.3 or higher, then read it.
     if source_filename is not None:
-        source_code = readSourceCodeFromFilename(module.getFullName(), source_filename)
+        source_code = readSourceCodeFromFilename(
+            module_name = module.getFullName(),
+            source_filename = source_filename
+        )
 
         if is_main:
             checkPythonVersionFromCode(source_code)

@@ -118,9 +118,13 @@ def optimizeCompiledPythonModule(module):
             )
         )
 
-    Plugins.considerImplicitImports(module, signal_change = signalChange)
+    Plugins.considerImplicitImports(
+        module        = module,
+        signal_change = signalChange
+    )
 
     return touched
+
 
 def optimizeUncompiledPythonModule(module):
     if _progress:
@@ -140,13 +144,18 @@ def optimizeUncompiledPythonModule(module):
         used_module = ImportCache.getImportedModuleByName(package_name)
         ModuleRegistry.addUsedModule(used_module)
 
+    Plugins.considerImplicitImports(
+        module        = module,
+        signal_change = signalChange
+    )
+
 
 def optimizeShlibModule(module):
     # Pick up parent package if any.
     _attemptRecursion(module)
 
     Plugins.considerImplicitImports(
-        module,
+        module        = module,
         signal_change = signalChange
     )
 

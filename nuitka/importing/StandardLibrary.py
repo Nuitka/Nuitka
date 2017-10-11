@@ -50,7 +50,7 @@ def getStandardLibraryPaths():
         # Happens for virtualenv situation, some modules will come from the link
         # this points to.
         if os.path.islink(os_filename):
-            os_filename = os.readlink(os_filename)
+            os_filename = os.readlink(os_filename)  # @UndefinedVariable
             stdlib_paths.add(
                 os.path.normcase(
                     os.path.dirname(os_filename)
@@ -136,4 +136,5 @@ def isStandardLibraryPath(path):
     for candidate in getStandardLibraryPaths():
         if path.startswith(candidate):
             return True
+
     return False

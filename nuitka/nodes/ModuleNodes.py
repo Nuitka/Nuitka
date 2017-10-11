@@ -238,7 +238,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         self.active_functions = OrderedSet()
         self.cross_used_functions = OrderedSet()
 
-        # Often None until tree building finishes its part.
+        # Often "None" until tree building finishes its part.
         self.future_spec = future_spec
 
     def getDetails(self):

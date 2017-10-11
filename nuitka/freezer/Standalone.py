@@ -982,7 +982,6 @@ def copyUsedDLLs(dist_dir, standalone_entry_points):
     # being binary identical, so we can report them. And then of course
     # we also need to handle OS specifics, pylint: disable=too-many-branches
 
-    dll_map = []
 
     used_dlls = detectUsedDLLs(standalone_entry_points)
 
@@ -1038,6 +1037,8 @@ different from
                     "\n   ".join(sources2)
                 )
             )
+
+    dll_map = []
 
     for dll_filename, sources in iterItems(used_dlls):
         dll_name = os.path.basename(dll_filename)
