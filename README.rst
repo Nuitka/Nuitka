@@ -53,7 +53,9 @@ Requirements
     alternative.
 
   * Visual Studio 2017 or higher on Windows [#]_, older versions may work,
-    but are not officially supported.
+    but are not officially supported. Configure to use English language
+    pack for best results (Nuitka filters away garbage outputs, but only
+    for that language).
 
 - Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4, 3.5, 3.6 (yes, but read below)
 
