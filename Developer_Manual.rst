@@ -648,9 +648,10 @@ and do more work as necessary.
    module.
 
 For interfacing to Scons, there is the module ``nuitka.build.SconsInterface``
-that will support calling ``scons`` - potentially from an inline copy, mainly on
-Windows or when using source releases - and passing arguments to it. These
-arguments are passed as ``key=value``, and decoded in the scons file of Nuitka.
+that will support calling ``scons`` - potentially from one of two inline copies
+(one for before / one for Python 3.5 or later). These are mainly used on Windows
+or when using source releases - and passing arguments to it. These arguments are
+passed as ``key=value``, and decoded in the scons file of Nuitka.
 
 The scons file is named ``SingleExe.scons`` for lack of better name. It's really
 wrong now, but we have yet to find a better name. It once expressed the
@@ -761,6 +762,11 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 * ``icon_path``
 
   The icon to use for Windows programs if given.
+
+* ``nuitka_cache``
+
+  The cache directory to use. We put e.g. creating linker libraries for MinGW64
+  there.
 
 
 Locating Modules and Packages
