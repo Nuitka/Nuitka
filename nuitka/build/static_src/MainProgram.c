@@ -110,7 +110,8 @@ static void prepareStandaloneEnvironment()
 #endif
 
     /* Setup environment variables to tell CPython that we would like it to use
-     * the provided binary directory as the place to look for DLLs.
+     * the provided binary directory as the place to look for DLLs and for
+     * extension modules.
      */
     char *binary_directory = getBinaryDirectoryHostEncoded();
 
@@ -121,27 +122,6 @@ static void prepareStandaloneEnvironment()
     /* get original environment variable values */
     original_home = getenv( "PYTHONHOME" );
     original_path = getenv( "PYTHONPATH" );
-    size_t original_path_size = ( original_path != NULL ) ? strlen( original_path ) : 0;
-
-    /* Get the value to insert into it. */
-    size_t insert_size = strlen( binary_directory ) * 2 + 50;
-    char *insert_path = (char *) malloc( insert_size );
-
-#if defined( _WIN32 )
-    char const env_string[] = "%s;";
-#else
-    char const env_string[] = "%s:";
-#endif
-
-    memset( insert_path, 0, insert_size );
-    snprintf( insert_path, insert_size, env_string, binary_directory );
-
-    // Set the temporary environment for using during Py_Initialize.
-    size_t python_path_size = original_path_size + insert_size;
-    char *python_path = (char *) malloc( python_path_size );
-    memset( python_path, 0, python_path_size );
-    snprintf( python_path, python_path_size, "%s%s",
-        insert_path, original_path ? original_path : "" );
 
     assert( binary_directory != NULL );
     assert( strlen( binary_directory ) > 0 );
@@ -154,19 +134,29 @@ static void prepareStandaloneEnvironment()
     assert( getenv( "PYTHONHOME") != NULL );
     assert( strcmp( binary_directory, getenv("PYTHONHOME") ) == 0 );
 
-    if ( !( original_path && strstr( original_path, insert_path ) ) )
-    {
-        setenv( "PYTHONPATH", python_path, 1 );
-    }
+    setenv( "PYTHONPATH", binary_directory, 1 );
 
-    // clean up
-    free( insert_path );
+    assert( getenv( "PYTHONPATH") != NULL );
+    assert( strcmp( binary_directory, getenv("PYTHONPATH") ) == 0 );
+
+#if PYTHON_VERSION >= 300
+    wchar_t binary_directory2[MAXPATHLEN+1];
+    mbstowcs( binary_directory2, binary_directory, MAXPATHLEN );
+
+    Py_SetPath( binary_directory2 );
+#endif
 }
+
+#if PYTHON_VERSION < 300
+#define PY_FORMAT_GETPATH_RESULT "%s"
+#else
+#define PY_FORMAT_GETPATH_RESULT "%ls"
+#endif
 
 static void restoreStandaloneEnvironment()
 {
     /* Make use the PYTHONHOME set previously. */
-    NUITKA_PRINTF_TRACE("Path is %s (PYTHONHOME %s)\n", Py_GetPath(), getenv( "PYTHONHOME" ) );
+    NUITKA_PRINTF_TRACE("Path is '" PY_FORMAT_GETPATH_RESULT "' (PYTHONHOME %s)\n", Py_GetPath(), getenv( "PYTHONHOME" ) );
     Py_GetPath();
 
     if ( original_home == NULL )
@@ -187,7 +177,7 @@ static void restoreStandaloneEnvironment()
         setenv( "PYTHONPATH", original_path, 1 );
     }
 
-    NUITKA_PRINTF_TRACE("Path is %s\n", Py_GetPath() );
+    NUITKA_PRINTF_TRACE("Path is '" PY_FORMAT_GETPATH_RESULT "'.\n", Py_GetPath() );
 }
 
 #endif
