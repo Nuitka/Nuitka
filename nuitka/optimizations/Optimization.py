@@ -461,13 +461,11 @@ def optimize():
     if Options.isExperimental("check_xml_persistence"):
         _checkXMLPersistence()
 
-    # Demote to bytecode, now that imports had a chance to be resolved, and
+    # Demote compiled modules to bytecode, now that imports had a chance to be resolved, and
     # dependencies were handled.
     for module in ModuleRegistry.getDoneUserModules():
-        if module.isPythonShlibModule():
-            continue
-
-        if module.mode == "bytecode":
+        if module.isCompiledPythonModule() and \
+           module.mode == "bytecode":
             demoteCompiledModuleToBytecode(module)
 
     if _progress:

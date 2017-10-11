@@ -86,19 +86,20 @@ def _detectedPrecompiledFile(filename, module_name, result, user_provided,
         filename
     )
 
-    result.append(
-        makeUncompiledPythonModule(
-            module_name   = module_name,
-            bytecode      = loadCodeObjectData(
-                precompiled_filename = filename
-            ),
-            is_package    = "__init__" in filename,
-            filename      = filename,
-            user_provided = user_provided,
-            technical     = technical
-        )
+    uncompiled_module = makeUncompiledPythonModule(
+        module_name   = module_name,
+        bytecode      = loadCodeObjectData(
+            precompiled_filename = filename
+        ),
+        is_package    = "__init__" in filename,
+        filename      = filename,
+        user_provided = user_provided,
+        technical     = technical
     )
 
+    ImportCache.addImportedModule(uncompiled_module)
+
+    result.append(uncompiled_module)
     module_names.add(module_name)
 
 
@@ -161,19 +162,20 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
         bytecode    = bytecode
     )
 
-    result.append(
-        makeUncompiledPythonModule(
-            module_name   = module_name,
-            bytecode      = marshal.dumps(
-                bytecode
-            ),
-            is_package    = is_package,
-            filename      = filename,
-            user_provided = user_provided,
-            technical     = technical
-        )
+    uncompiled_module = makeUncompiledPythonModule(
+        module_name   = module_name,
+        bytecode      = marshal.dumps(
+            bytecode
+        ),
+        is_package    = is_package,
+        filename      = filename,
+        user_provided = user_provided,
+        technical     = technical
     )
 
+    ImportCache.addImportedModule(uncompiled_module)
+
+    result.append(uncompiled_module)
     module_names.add(module_name)
 
 
