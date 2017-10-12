@@ -942,7 +942,7 @@ def getSharedLibraryRPATH(filename):
         )
 
     for line in stdout.split(b"\n"):
-        if b"RPATH" in line:
+        if b"RPATH" in line or b"RUNPATH" in line:
             return line[line.find(b'[')+1:line.rfind(b']')]
 
     return None
