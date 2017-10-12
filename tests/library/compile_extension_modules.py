@@ -39,7 +39,9 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     compileLibraryTest,
     check_output,
-    checkSucceedsWithCPython
+    checkSucceedsWithCPython,
+    getRuntimeTraceOfLoadedFiles,
+    checkRuntimeLoadedFilesForOutsideAccesses
 )
 
 setup(needs_io_encoding = True)
@@ -56,6 +58,8 @@ blacklist = (
     "idnadata"           # Avoid too complex code for main program.
 )
 
+done = set()
+
 def decide(root, filename):
     if os.path.sep + "Cython" + os.path.sep in root:
         return False
@@ -67,9 +71,20 @@ def decide(root, filename):
     if filename.endswith("linux-gnu_d.so"):
         return False
 
+    if root.endswith(os.path.sep + "msgpack"):
+        return False
+
+    first_part = filename.split(".")[0]
+    if first_part in done:
+        return False
+    done.add(first_part)
+
     return filename.endswith((".so", ".pyd")) and \
            not filename.startswith("libpython")
 
+
+current_dir = os.path.normpath(os.getcwd())
+current_dir = os.path.normcase(current_dir)
 
 def action(stage_dir, root, path):
     command = [
@@ -110,11 +125,30 @@ def action(stage_dir, root, path):
         except Exception:
             raise
         else:
+            assert os.path.exists(filename[:-3] + ".dist")
+
+            loaded_filenames = getRuntimeTraceOfLoadedFiles(
+                path = os.path.join(
+                    filename[:-3] + ".dist",
+                     "importer.exe"
+                )
+            )
+
+            outside_accesses = checkRuntimeLoadedFilesForOutsideAccesses(
+                loaded_filenames,
+                [
+                    filename[:-3] + ".dist",
+                    current_dir,
+                    os.path.expanduser("~/.config")
+                ]
+            )
+
             if output[-1] != b"OK":
-
-
                 sys.exit("FAIL")
+
             my_print("OK")
+
+            assert not outside_accesses, outside_accesses
 
             shutil.rmtree(filename[:-3] + ".dist")
     else:
@@ -123,7 +157,7 @@ def action(stage_dir, root, path):
 
 compileLibraryTest(
     search_mode = search_mode,
-    stage_dir   = os.path.join(tmp_dir, "compile_library"),
+    stage_dir   = os.path.join(tmp_dir, "compile_extensions"),
     decide      = decide,
     action      = action
 )

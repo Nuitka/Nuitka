@@ -324,11 +324,10 @@ for filename in sorted(os.listdir('.')):
            loaded_filename == "/build":
             continue
 
-        if loaded_basename == "gconv-modules.cache":
-            continue
-
         # TODO: Unclear, loading gconv from filesystem of installed system
         # may be OK or not. I think it should be.
+        if loaded_basename == "gconv-modules.cache":
+            continue
         if "/gconv/" in loaded_filename:
             continue
         if loaded_basename.startswith("libicu"):

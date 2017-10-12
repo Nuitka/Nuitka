@@ -625,6 +625,100 @@ Error, needs 'strace' on your system to scan used libraries."""
     return result
 
 
+def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
+    result = []
+
+    for loaded_filename in loaded_filenames:
+        loaded_filename = os.path.normpath(loaded_filename)
+        loaded_filename = os.path.normcase(loaded_filename)
+        loaded_basename = os.path.basename(loaded_filename)
+
+        ok = False
+        for entry in white_list:
+            if loaded_filename.startswith(entry):
+                ok = True
+
+            while entry:
+                old_entry = entry
+                entry = os.path.dirname(entry)
+
+                if old_entry == entry:
+                    break
+
+                if loaded_filename == entry:
+                    ok = True
+                    break
+        if ok:
+            continue
+
+        if loaded_filename.startswith("/etc/"):
+            continue
+
+        if loaded_filename.startswith("/proc/") or loaded_filename == "/proc":
+            continue
+
+        if loaded_filename.startswith("/dev/"):
+            continue
+
+        if loaded_filename.startswith("/tmp/"):
+            continue
+
+        if loaded_filename.startswith("/run/"):
+            continue
+
+        if loaded_filename.startswith("/sys/"):
+            continue
+
+        if loaded_filename.startswith("/usr/lib/locale/"):
+            continue
+
+        if loaded_filename.startswith("/usr/share/locale/"):
+            continue
+
+        if loaded_filename.startswith("/usr/share/X11/locale/"):
+            continue
+
+        # Themes may of course be loaded.
+        if loaded_filename.startswith("/usr/share/themes"):
+            continue
+        if "gtk" in loaded_filename and "/engines/" in loaded_filename:
+            continue
+
+        # Terminal info files are OK too.
+        if loaded_filename.startswith("/lib/terminfo/"):
+            continue
+
+        # System C libraries are to be expected.
+        if loaded_basename.startswith((
+            "libc.so.",
+            "libpthread.so.",
+            "libdl.so.",
+            "libm.so.",
+        )):
+            continue
+
+        # Taking these from system is harmless and desirable
+        if loaded_basename.startswith((
+            "libz.so",
+            "libutil.so",
+            "libgcc_s.so",
+        )):
+            continue
+
+        # TODO: Unclear, loading gconv from filesystem of installed system
+        # may be OK or not. I think it should be.
+        if loaded_basename == "gconv-modules.cache":
+            continue
+        if "/gconv/" in loaded_filename:
+            continue
+        if loaded_basename.startswith("libicu"):
+            continue
+
+        result.append(loaded_filename)
+
+    return result
+
+
 def hasModule(module_name):
     result = subprocess.call(
         (
