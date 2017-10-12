@@ -555,6 +555,8 @@ for imp in imports:
 
 _detected_python_rpath = None
 
+ldd_result_cache = {}
+
 def _detectBinaryPathDLLsLinuxBSD(dll_filename):
     # Ask "ldd" about the libraries being used by the created binary, these
     # are the ones that interest us.
@@ -573,54 +575,64 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
                 os.path.dirname(sys.executable).encode("utf-8")
             )
 
-    with withEnvironmentPathAdded("LD_LIBRARY_PATH", _detected_python_rpath):
-        process = subprocess.Popen(
-            args   = [
-                "ldd",
-                dll_filename
-            ],
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE
-        )
+    if dll_filename not in ldd_result_cache:
+        with withEnvironmentPathAdded("LD_LIBRARY_PATH", _detected_python_rpath):
+            process = subprocess.Popen(
+                args   = [
+                    "ldd",
+                    dll_filename
+                ],
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE
+            )
 
-        stdout, _stderr = process.communicate()
+            stdout, _stderr = process.communicate()
 
-        for line in stdout.split(b"\n"):
-            if not line:
-                continue
+            for line in stdout.split(b"\n"):
+                if not line:
+                    continue
 
-            if b"=>" not in line:
-                continue
+                if b"=>" not in line:
+                    continue
 
-            part = line.split(b" => ", 2)[1]
+                part = line.split(b" => ", 2)[1]
 
-            if b"(" in part:
-                filename = part[:part.rfind(b"(")-1]
-            else:
-                filename = part
+                if b"(" in part:
+                    filename = part[:part.rfind(b"(")-1]
+                else:
+                    filename = part
 
-            if not filename:
-                continue
+                if not filename:
+                    continue
 
-            if python_version >= 300:
-                filename = filename.decode("utf-8")
+                if python_version >= 300:
+                    filename = filename.decode("utf-8")
 
-            # Sometimes might use stuff not found.
-            if filename == "not found":
-                continue
+                # Sometimes might use stuff not found.
+                if filename == "not found":
+                    continue
 
-            # Do not include kernel specific libraries.
-            if os.path.basename(filename).startswith(
-                    (
-                        "libc.so.",
-                        "libpthread.so.",
-                        "libm.so.",
-                        "libdl.so."
-                    )
-                ):
-                continue
+                # Do not include kernel specific libraries.
+                if os.path.basename(filename).startswith(
+                        (
+                            "libc.so.",
+                            "libpthread.so.",
+                            "libm.so.",
+                            "libdl.so."
+                        )
+                    ):
+                    continue
 
-            result.add(filename)
+                result.add(filename)
+
+        ldd_result_cache[dll_filename] = result
+    else:
+        result = ldd_result_cache[dll_filename]
+
+    sub_result = set(result)
+
+    for sub_dll_filename in result:
+        sub_result.union(_detectBinaryPathDLLsLinuxBSD(sub_dll_filename))
 
     return result
 
@@ -1088,12 +1100,12 @@ different from
     if Utils.getOS() == "Linux":
         # For Linux, the "rpath" of libraries may be an issue and must be
         # removed.
-        for _original_path, dll_filename in dll_map:
-            removeSharedLibraryRPATH(
-                os.path.join(dist_dir, dll_filename)
-            )
-
         for standalone_entry_point in standalone_entry_points[1:]:
             removeSharedLibraryRPATH(
                 standalone_entry_point[1]
+            )
+
+        for _original_path, dll_filename in dll_map:
+            removeSharedLibraryRPATH(
+                os.path.join(dist_dir, dll_filename)
             )
