@@ -174,6 +174,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "_cffi_backend"
         elif full_name.startswith("cryptography._Cryptography_cffi_"):
             yield "_cffi_backend"
+        elif full_name == "bcrypt._bcrypt":
+            yield "_cffi_backend"
+        elif full_name == "nacl._sodium":
+            yield "_cffi_backend"
         elif full_name == "_dbus_glib_bindings":
             yield "_dbus_bindings"
         elif full_name == "_mysql":
