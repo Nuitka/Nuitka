@@ -872,21 +872,16 @@ This left Nuitka with the strange problem, of how to emulate that.
 
 The solution is this:
 
-* Under Python3, usage of ``__class__`` as a reference in a function body that
-  is not a class dictionary creation, marks it up via
-  ``markAsClassClosureTaker``.
-
-* Functions that are marked up, will be forced to reference variable to
-  ``__class__``.
-
-  .. note::
-
-     This one should be optimized away later if not used. Currently we have "no
-     unused closure variable" detection, but it would cover it.
+* Under Python3, usage of ``__class__`` as a reference in a child function body
+  is mandatory. It remains that way until all variable names have been resolved.
 
 * When recognizing calls to ``super`` without arguments, make the arguments into
   variable reference to ``__class__`` and potentially ``self`` (actually first
   argument name).
+
+* After all variables have been known, and no suspicious unresolved calls to
+  anything named ``super`` are down, then unused references are optimized away
+  by the normal unused closure variable.
 
 * Class dictionary definitions are added.
 
