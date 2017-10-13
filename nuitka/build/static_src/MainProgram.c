@@ -134,10 +134,7 @@ static void prepareStandaloneEnvironment()
     assert( getenv( "PYTHONHOME") != NULL );
     assert( strcmp( binary_directory, getenv("PYTHONHOME") ) == 0 );
 
-    setenv( "PYTHONPATH", binary_directory, 1 );
-
-    assert( getenv( "PYTHONPATH") != NULL );
-    assert( strcmp( binary_directory, getenv("PYTHONPATH") ) == 0 );
+    unsetenv( "PYTHONPATH" );
 
 #if PYTHON_VERSION >= 300
     wchar_t binary_directory2[MAXPATHLEN+1];
@@ -159,6 +156,8 @@ static void restoreStandaloneEnvironment()
     NUITKA_PRINTF_TRACE("Path is '" PY_FORMAT_GETPATH_RESULT "' (PYTHONHOME %s)\n", Py_GetPath(), getenv( "PYTHONHOME" ) );
     Py_GetPath();
 
+    // Restore PYTHONHOME and PYTHONPATH, so spawning executables of Python
+    // will still work as expected.
     if ( original_home == NULL )
     {
         unsetenv( "PYTHONHOME" );
@@ -168,14 +167,24 @@ static void restoreStandaloneEnvironment()
         setenv( "PYTHONHOME", original_home, 1 );
     }
 
-    if ( original_path == NULL )
-    {
-        unsetenv( "PYTHONPATH" );
-    }
-    else
+    if ( original_path != NULL )
     {
         setenv( "PYTHONPATH", original_path, 1 );
     }
+
+    // Emulate the effect of Py_SetPath for Python2, and cleanup the duplicate
+    // produced for Python3. We do not want to have outside locations in the
+    // "sys.path", this removes them reliably. For Python2 it's relatively late
+    // but ought to be good enough still.
+    char *binary_directory = getBinaryDirectoryHostEncoded();
+#if PYTHON_VERSION < 300
+    PySys_SetPath( binary_directory );
+#else
+    wchar_t binary_directory2[MAXPATHLEN+1];
+    mbstowcs( binary_directory2, binary_directory, MAXPATHLEN );
+
+    PySys_SetPath( binary_directory2 );
+#endif
 
     NUITKA_PRINTF_TRACE("Path is '" PY_FORMAT_GETPATH_RESULT "'.\n", Py_GetPath() );
 }
