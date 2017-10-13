@@ -28,6 +28,8 @@ module.
 
 import os
 
+from nuitka.utils.Utils import getOS
+
 
 def getStandardLibraryPaths():
     """ Get the standard library paths.
@@ -107,6 +109,12 @@ def getStandardLibraryPaths():
 
             if os.path.isdir(candidate):
                 stdlib_paths.add(candidate)
+
+        if getOS() == "Windows":
+            import _ctypes
+            stdlib_paths.add(
+                os.path.dirname(_ctypes.__file__)
+            )
 
         getStandardLibraryPaths.result = [
             os.path.normcase(stdlib_path)
