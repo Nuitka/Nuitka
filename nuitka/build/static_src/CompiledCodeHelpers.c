@@ -2535,6 +2535,7 @@ void _initBuiltinModule()
 #ifdef _NUITKA_STANDALONE
 extern PyObject *const_str_plain___file__;
 
+// This is called for each module imported early on.
 void setEarlyFrozenModulesFileAttribute( void )
 {
     Py_ssize_t ppos = 0;

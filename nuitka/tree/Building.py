@@ -873,7 +873,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 constant      = (
                                   (
                                     None
-                                      if "." not in provider.getFullName() or python_version >= 320 else
+                                      if '.' not in provider.getFullName() or python_version >= 320 else
                                     provider.getFullName()
                                   )
                                     if python_version < 330 else
@@ -1151,7 +1151,7 @@ def buildModuleTree(filename, package, is_top, is_main):
     # Python3.3 or higher, then read it.
     if source_filename is not None:
         source_code = readSourceCodeFromFilename(
-            module_name = module.getFullName(),
+            module_name     = module.getFullName(),
             source_filename = source_filename
         )
 
