@@ -17,13 +17,53 @@
 #
 
 from __future__ import print_function
+import sys, os
 
 original_import = __import__
 
 _indentation = 0
 
-def enableImportTracing():
+def _normalizePath(path):
+    path = os.path.abspath(path)
 
+    best = None
+
+    for path_entry in sys.path:
+        if path.startswith(path_entry):
+            if best is None or len(path_entry) > len(best):
+                best = path_entry
+
+    if best is not None:
+        path = path.replace(best, "$PYTHONPATH")
+
+    return path
+
+def _moduleRepr(module):
+    try:
+        module_file = module.__file__
+        module_file = module_file.replace(".pyc", ".py")
+
+        if module_file.endswith(".so"):
+            module_file = os.path.join(
+                os.path.dirname(module_file),
+                os.path.basename(module_file).split(".")[0] + ".so"
+            )
+
+        file_desc = "file " + _normalizePath(module_file).replace(".pyc", ".py")
+
+
+        if file_desc.endswith("not_present.py"):
+            raise AttributeError
+
+    except AttributeError:
+        file_desc = "built-in"
+
+    return "<module %s %s>" % (
+        module.__name__,
+        file_desc
+    )
+
+def enableImportTracing(normalize_paths = True, show_source = False):
 
     def _ourimport(name, globals = None, locals = None, fromlist = None,  # @ReservedAssignment
                    level = -1):
@@ -31,19 +71,27 @@ def enableImportTracing():
         try:
             _indentation += 1
 
-            print(_indentation * " " + "name=%r level=%d" % (name, level))
-
+            print(_indentation * " " + "called with: name=%r level=%d" % (name, level))
 
             for entry in traceback.extract_stack()[:-1]:
                 if entry[2] == "_ourimport":
-                    print("__import__")
+                    print(_indentation * " " + "by __import__")
                 else:
-                    print("|".join(str(s) for s in entry))
+                    entry = list(entry)
+
+                    if not show_source:
+                        del entry[-1]
+                        del entry[-1]
+
+                    if normalize_paths:
+                        entry[0] = _normalizePath(entry[0])
+
+                    print(_indentation * " " + "by " + "|".join(str(s) for s in entry))
 
             print(_indentation * " " + "*" * 40)
 
             result = original_import(name, globals, locals, fromlist, level)
-            print(_indentation * " " + "RESULT:", result)
+            print(_indentation * " " + "RESULT:", _moduleRepr(result))
             return result
         finally:
             _indentation -= 1
