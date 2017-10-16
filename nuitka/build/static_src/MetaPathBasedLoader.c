@@ -106,7 +106,30 @@ extern PyObject *const_str_plain___path__;
 extern PyObject *const_str_plain___file__;
 extern PyObject *const_str_plain___loader__;
 
-static PyObject *loadModuleFromCodeObject( PyCodeObject *code_object, char const *filename, char const *name, bool is_package )
+// TODO: This updates the wrong absolute path. We ought to change it to
+// the "module_path_name" at the time of writing it, then we save a few
+// bytes in the blob, and don't have to create that string here.
+#ifdef _NUITKA_STANDALONE
+static void patchCodeObjectPaths( PyCodeObject *code_object, PyObject *module_path )
+{
+    code_object->co_filename = module_path;
+    Py_INCREF( module_path );
+
+    Py_ssize_t nconsts = PyTuple_GET_SIZE( code_object->co_consts );
+
+    for ( int i = 0; i < nconsts; i++ )
+    {
+        PyObject *constant = PyTuple_GET_ITEM( code_object->co_consts, i );
+
+        if ( PyCode_Check( constant ) )
+        {
+            patchCodeObjectPaths( (PyCodeObject *)constant, module_path );
+        }
+    }
+}
+#endif
+
+static PyObject *loadModuleFromCodeObject( PyCodeObject *code_object, char const *name, bool is_package )
 {
     assert( code_object != NULL );
 
@@ -125,23 +148,7 @@ static PyObject *loadModuleFromCodeObject( PyCodeObject *code_object, char const
 
     PyObject *module_path_entry = NULL;
 
-    if ( filename != NULL )
-    {
-        if ( is_package )
-        {
-            strncpy( buffer, filename, sizeof(buffer)-1 );
-            char const *path = getDirname( buffer );
-
-#if PYTHON_VERSION < 300
-            PyObject *module_path_entry_base = PyString_FromString( path );
-#else
-            PyObject *module_path_entry_base = PyUnicode_FromString( path );
-#endif
-            module_path_entry = MAKE_RELATIVE_PATH( module_path_entry_base );
-            Py_DECREF( module_path_entry_base );
-        }
-    }
-    else if ( is_package )
+    if ( is_package )
     {
         copyModulenameAsPath( buffer, name );
 #if PYTHON_VERSION < 300
@@ -155,21 +162,17 @@ static PyObject *loadModuleFromCodeObject( PyCodeObject *code_object, char const
         char sep_str[2] = { SEP, 0 };
         strncat( buffer, sep_str, sizeof(buffer)-1 );
         strncat( buffer, "__init__.py", sizeof(buffer)-1 );
-
-        filename = buffer;
     }
     else
     {
         copyModulenameAsPath( buffer, name );
         strncat( buffer, ".py", sizeof(buffer)-1 );
-
-        filename = buffer;
     }
 
 #if PYTHON_VERSION < 300
-    PyObject *module_path_name = PyString_FromString( filename );
+    PyObject *module_path_name = PyString_FromString( buffer );
 #else
-    PyObject *module_path_name = PyUnicode_FromString( filename );
+    PyObject *module_path_name = PyUnicode_FromString( buffer );
 #endif
 
     PyObject *module_path = MAKE_RELATIVE_PATH( module_path_name );
@@ -190,6 +193,10 @@ static PyObject *loadModuleFromCodeObject( PyCodeObject *code_object, char const
 
         Py_DECREF( path_list );
     }
+
+#ifdef _NUITKA_STANDALONE
+    patchCodeObjectPaths( code_object, module_path );
+#endif
 
     module = PyImport_ExecCodeModuleEx(
         (char *)name,
@@ -667,7 +674,6 @@ static PyObject *loadModule( PyObject *module_name, struct Nuitka_MetaPathBasedL
 
         return loadModuleFromCodeObject(
             code_object,
-            NULL,
             entry->name,
             ( entry->flags & NUITKA_PACKAGE_FLAG ) != 0
         );
