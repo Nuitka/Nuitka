@@ -69,6 +69,17 @@ Bug Fixes
   an argument to scons. We now encode such names as UTF-8 and decode in Scons
   afterwards, solving the problem in a generic way.
 
+- Standalone: Need to recursively resolve shared libraries with ``ldd``,
+  otherwise not all could be included.
+
+- Standalone: Make sure ``sys.path`` has no references to CPython compile time
+  paths, or else things may work on the compiling machine, but not on another.
+
+- Standalone: Added various missing dependencies.
+
+- Standalone: Wasn't considering the DLLs directory for standard library
+  extensions for freezing, which would leave out these.
+
 Optimization
 ------------
 
@@ -166,6 +177,8 @@ Organizational
 
 - Added option to disable the output of ``.pyi`` file when creating an extension
   module.
+
+- Removed Ubuntu Wily package download, no longer supported by Ubuntu.
 
 Summary
 -------
