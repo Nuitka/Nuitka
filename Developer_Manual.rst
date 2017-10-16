@@ -3456,14 +3456,6 @@ having" should become more simple and faster code. I am even thinking of even
 generating code in the meta class, so it's both optimal and doesn't need that
 mix-in any more. This is going to be ugly then.
 
-Asyncgen Contractions
----------------------
-
-They still don't work, although they most probably have to. Few code uses that,
-but it is a gap. The idea is to wait for the goto generators with their extra
-stacks to be sorted out, so this does not make things more complicated or gets
-in conflict with code changes for that.
-
 Plugins API and Options
 -----------------------
 
