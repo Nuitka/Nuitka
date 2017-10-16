@@ -93,6 +93,7 @@ def isConstantExpression(expression):
 
     return kind.startswith("Constant") or \
            kind in ("ImportModuleHard",
+                    "ImportName",
                     "ModuleFileAttributeRef",
                     "ModuleLoaderRef")
 
@@ -105,7 +106,7 @@ def checkSequence(statements):
 
             if not isConstantExpression(print_arg):
                 sys.exit(
-                    "%s: Error, print of non-constant %s." % (
+                    "%s: Error, print of non-constant '%s'." % (
                         getSourceRef(statement),
                         getKind(print_arg)
                     )
@@ -146,7 +147,7 @@ def checkSequence(statements):
                 continue
 
             elif not isConstantExpression(assign_source):
-                sys.exit("Error, assignment from non-constant %s." % getKind(assign_source))
+                sys.exit("Error, assignment from non-constant '%s'." % getKind(assign_source))
 
             continue
 
@@ -228,18 +229,22 @@ for filename in sorted(os.listdir('.')):
         assert len(module_statements_sequence) == 1
         module_statements = next(iter(module_statements_sequence))
 
-        checkSequence(module_statements)
+        try:
+            checkSequence(module_statements)
 
-        for function in root.xpath('role[@name="functions"]/node'):
-            function_body, = function.xpath('role[@name="body"]')
-            function_statements_sequence = function_body[0]
-            assert len(function_statements_sequence) == 1
-            function_statements = next(iter(function_statements_sequence))
+            for function in root.xpath('role[@name="functions"]/node'):
+                function_body, = function.xpath('role[@name="body"]')
+                function_statements_sequence = function_body[0]
+                assert len(function_statements_sequence) == 1
+                function_statements = next(iter(function_statements_sequence))
 
-            checkSequence(function_statements)
+                checkSequence(function_statements)
 
-        if changed:
-            os.unlink(filename)
+            if changed:
+                os.unlink(filename)
+        except SystemExit:
+            my_print("FAIL.")
+            raise
 
         my_print("OK.")
     else:

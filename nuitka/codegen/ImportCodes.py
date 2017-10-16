@@ -125,18 +125,31 @@ def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
 
 
 def generateImportModuleHardCode(to_name, expression, emit, context):
-    getImportModuleHardCode(
-        to_name     = to_name,
-        module_name = expression.getModuleName(),
-        import_name = expression.getImportName(),
-        needs_check = expression.mayRaiseException(BaseException),
+    module_name = expression.getModuleName()
+    needs_check = expression.mayRaiseException(BaseException)
+
+    emitLineNumberUpdateCode(emit, context)
+
+    emit(
+        """%s = PyImport_ImportModule("%s");""" % (
+            to_name,
+            module_name
+        )
+    )
+
+    getErrorExitCode(
+        check_name  = to_name,
+        needs_check = needs_check,
         emit        = emit,
         context     = context
     )
 
 
-def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
-                            emit, context):
+def generateImportModuleNameHardCode(to_name, expression, emit, context):
+    module_name = expression.getModuleName()
+    import_name = expression.getImportName()
+    needs_check = expression.mayRaiseException(BaseException)
+
     if module_name == "sys":
         emit(
             """%s = PySys_GetObject( (char *)"%s" );""" % (
@@ -145,12 +158,26 @@ def getImportModuleHardCode(to_name, module_name, import_name, needs_check,
             )
         )
     elif module_name in ("os", "__future__", "importlib._bootstrap"):
+        emitLineNumberUpdateCode(emit, context)
+
         emit(
-             """%s = PyObject_GetAttr( PyImport_ImportModule("%s"), %s );""" % (
-                to_name,
-                module_name,
-                context.getConstantCode(import_name)
-            )
+             """\
+{
+    PyObject *module = PyImport_ImportModule("%(module_name)s");
+    if (likely( module != NULL ))
+    {
+        %(to_name)s = PyObject_GetAttr( module, %(import_name)s );
+    }
+    else
+    {
+        %(to_name)s = NULL;
+    }
+}
+""" % {
+                "to_name"     : to_name,
+                "module_name" : module_name,
+                "import_name" : context.getConstantCode(import_name)
+            }
         )
     else:
         assert False, module_name

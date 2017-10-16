@@ -33,7 +33,7 @@ from nuitka.nodes.ContainerMakingNodes import (
 )
 from nuitka.nodes.FutureSpecs import FutureSpec
 from nuitka.nodes.ImportNodes import (
-    ExpressionImportModuleHard,
+    ExpressionImportModuleNameHard,
     ExpressionImportName
 )
 from nuitka.nodes.ModuleNodes import (
@@ -65,7 +65,7 @@ def createPathAssignment(package, source_ref):
         elements = [
             ExpressionCallNoKeywords(
                 called     = ExpressionAttributeLookup(
-                    source         = ExpressionImportModuleHard(
+                    source         = ExpressionImportModuleNameHard(
                         module_name = "os",
                         import_name = "path",
                         source_ref  = source_ref
@@ -88,7 +88,7 @@ def createPathAssignment(package, source_ref):
         def makeCall(module_name, import_name, attribute_name, *args):
             return ExpressionCallNoKeywords(
                 called     = ExpressionAttributeLookup(
-                    source         = ExpressionImportModuleHard(
+                    source         = ExpressionImportModuleNameHard(
                         module_name = module_name,
                         import_name = import_name,
                         source_ref  = source_ref

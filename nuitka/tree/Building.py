@@ -80,7 +80,7 @@ from nuitka.nodes.ConstantRefNodes import (
 from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
-from nuitka.nodes.ImportNodes import ExpressionImportModuleHard
+from nuitka.nodes.ImportNodes import ExpressionImportModuleNameHard
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
@@ -828,7 +828,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
         else:
             spec_value = makeCallNode(
-                ExpressionImportModuleHard(
+                ExpressionImportModuleNameHard(
                     module_name = "importlib._bootstrap",
                     import_name = "ModuleSpec",
                     source_ref  = internal_source_ref,

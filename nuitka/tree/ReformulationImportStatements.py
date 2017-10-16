@@ -33,6 +33,7 @@ from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.ImportNodes import (
     ExpressionBuiltinImport,
     ExpressionImportModuleHard,
+    ExpressionImportModuleNameHard,
     ExpressionImportName,
     StatementImportStar
 )
@@ -207,31 +208,20 @@ def buildImportFromNode(provider, node, source_ref):
             source_ref    = source_ref
         )
     else:
-        def makeImportName(import_name):
-            if module_name == "__future__":
-                # Make "__future__" imports tie hard immediately, they cannot be
-                # any other way.
-                return ExpressionImportModuleHard(
-                    module_name = "__future__",
-                    import_name = import_name,
-                    source_ref  = source_ref
-                )
-            else:
-                # Refer to be module, or a clone of the reference if need be.
-                return ExpressionImportName(
-                    module      = imported_from_module,
-                    import_name = import_name,
-                    source_ref  = source_ref
-                )
-
-        imported_from_module = ExpressionBuiltinImport(
-            name        = makeConstantRefNode(module_name, source_ref, True),
-            globals_arg = ExpressionBuiltinGlobals(source_ref),
-            locals_arg  = makeConstantRefNode(None, source_ref, True),
-            fromlist    = makeConstantRefNode(tuple(import_names), source_ref, True),
-            level       = level,
-            source_ref  = source_ref
-        )
+        if module_name == "__future__":
+            imported_from_module = ExpressionImportModuleHard(
+                module_name = "__future__",
+                source_ref  = source_ref
+            )
+        else:
+            imported_from_module = ExpressionBuiltinImport(
+                name        = makeConstantRefNode(module_name, source_ref, True),
+                globals_arg = ExpressionBuiltinGlobals(source_ref),
+                locals_arg  = makeConstantRefNode(None, source_ref, True),
+                fromlist    = makeConstantRefNode(tuple(import_names), source_ref, True),
+                level       = level,
+                source_ref  = source_ref
+            )
 
         # If we have multiple names to import, consider each.
         multi_names = len(target_names) > 1
@@ -270,8 +260,10 @@ def buildImportFromNode(provider, node, source_ref):
             import_statements.append(
                 StatementAssignmentVariableName(
                     variable_name = mangleName(target_name, provider),
-                    source        = makeImportName(
+                    source        = ExpressionImportName(
+                        module      = imported_from_module,
                         import_name = import_name,
+                        source_ref  = source_ref
                     ),
                     source_ref    = source_ref
                 )

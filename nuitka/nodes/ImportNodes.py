@@ -47,11 +47,54 @@ from .shapes.BuiltinTypeShapes import ShapeTypeBuiltinModule, ShapeTypeModule
 
 
 class ExpressionImportModuleHard(ExpressionBase):
-    """ Hard code import, e.g. of "sys" module as done in Python mechanics.
+    """ Hard coded import names, e.g. of "__future__"
 
+        These are directly created for some Python mechanics, but also due to
+        compile time optimization for imports of statically known modules.
     """
 
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
+
+    __slots__ = "module_name",
+
+    def __init__(self, module_name, source_ref):
+        ExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.module_name = module_name
+
+    def getDetails(self):
+        return {
+            "module_name" : self.module_name
+        }
+
+    def getModuleName(self):
+        return self.module_name
+
+    def computeExpressionRaw(self, trace_collection):
+        return self, None, None
+
+    def mayHaveSideEffects(self):
+        if self.module_name == "sys":
+            return False
+        elif self.module_name == "__future__":
+            return False
+        else:
+            return True
+
+    def mayRaiseException(self, exception_type):
+        return self.mayHaveSideEffects()
+
+
+class ExpressionImportModuleNameHard(ExpressionBase):
+    """ Hard coded import names, e.g. of "os.path.dirname"
+
+        These are directly created for some Python mechanics.
+    """
+
+    kind = "EXPRESSION_IMPORT_MODULE_NAME_HARD"
 
     __slots__ = "module_name", "import_name"
 

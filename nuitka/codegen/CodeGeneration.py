@@ -156,6 +156,7 @@ from .IdCodes import generateBuiltinHashCode, generateBuiltinIdCode
 from .ImportCodes import (
     generateBuiltinImportCode,
     generateImportModuleHardCode,
+    generateImportModuleNameHardCode,
     generateImportNameCode,
     generateImportStarCode
 )
@@ -615,6 +616,7 @@ setExpressionDispatchDict(
         "EXPRESSION_FUNCTION_CREATION"              : generateFunctionCreationCode,
         "EXPRESSION_FUNCTION_CALL"                  : generateFunctionCallCode,
         "EXPRESSION_IMPORT_MODULE_HARD"             : generateImportModuleHardCode,
+        "EXPRESSION_IMPORT_MODULE_NAME_HARD"        : generateImportModuleNameHardCode,
         "EXPRESSION_IMPORT_NAME"                    : generateImportNameCode,
         "EXPRESSION_LIST_OPERATION_EXTEND"          : generateListOperationExtendCode,
         "EXPRESSION_LIST_OPERATION_POP"             : generateListOperationPopCode,
