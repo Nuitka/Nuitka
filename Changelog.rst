@@ -4,7 +4,8 @@ Nuitka Release 0.5.28 (Draft)
 This release has a focus on compatibility work and contains bug fixes and
 work to enhance the usability of Nuitka by integrating with distutils. The
 major improvement is that contractions no longer use pseudo functions to
-achieve their own local scope, but that there is now a structure for that.
+achieve their own local scope, but that there is now a dedicated structure
+for that representing an in-lined function.
 
 Bug Fixes
 ---------
@@ -80,6 +81,9 @@ Bug Fixes
 - Standalone: Wasn't considering the DLLs directory for standard library
   extensions for freezing, which would leave out these.
 
+- Compatibility: For ``__future__`` imports the ``__import__`` function was
+  called more than once.
+
 Optimization
 ------------
 
@@ -122,6 +126,9 @@ New Features
 
 - Added option ``--plugin-list`` that was mentioned in the help output, but
   still missing so far.
+
+- The import tracing of the ``hints`` module has achieved experimental status
+  and can be used to test compatibility with regards to import behavior.
 
 Cleanups
 --------
@@ -193,10 +200,12 @@ is itself a lot of code), reduce the memory footprint at run time for anything
 that uses a lot of generators, or coroutines.
 
 Integrating with ``distutils`` is also a new thing, and once completed will
-make use of Nuitka for existing projects automatic and trivial to do.
+make use of Nuitka for existing projects automatic and trivial to do. There is
+a lot missing for that goal, but we will get there.
 
 Also, documenting how to run tests against compiled code, if that test code
-lives inside of that package, will make a huge difference.
+lives inside of that package, will make a huge difference, as that will make
+it easier for people to torture Nuitka with their own test cases.
 
 And then of course, nested frames now mean that every function could be inlined,
 which was previously not possible due to collisions of frames. This will pave
