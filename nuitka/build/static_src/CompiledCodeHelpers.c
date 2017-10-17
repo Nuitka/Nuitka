@@ -2530,46 +2530,6 @@ void _initBuiltinModule()
 
 #include "HelpersCalling.c"
 
-#if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
-
-#ifdef _NUITKA_STANDALONE
-extern PyObject *const_str_plain___file__;
-
-// This is called for each module imported early on.
-void setEarlyFrozenModulesFileAttribute( void )
-{
-    Py_ssize_t ppos = 0;
-    PyObject *key, *value;
-
-#if PYTHON_VERSION < 300
-    PyObject *file_value = MAKE_RELATIVE_PATH( PyString_FromString( "not_present.py" ) );
-#else
-    PyObject *file_value = MAKE_RELATIVE_PATH( PyUnicode_FromString( "not_present.py" ) );
-#endif
-
-    assert( file_value );
-
-    while( PyDict_Next( PyImport_GetModuleDict(), &ppos, &key, &value ) )
-    {
-        if ( key != NULL && value != NULL && PyModule_Check( value ) )
-        {
-            if ( !PyObject_HasAttr( value, const_str_plain___file__ ) )
-            {
-                PyObject_SetAttr( value, const_str_plain___file__, file_value );
-            }
-        }
-    }
-
-    Py_DECREF( file_value );
-
-    assert( !ERROR_OCCURRED() );
-}
-#endif
-
-
-#endif
-
-
 PyObject *MAKE_RELATIVE_PATH( PyObject *relative )
 {
     static PyObject *our_path_object = NULL;

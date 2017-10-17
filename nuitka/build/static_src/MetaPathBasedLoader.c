@@ -129,6 +129,36 @@ static void patchCodeObjectPaths( PyCodeObject *code_object, PyObject *module_pa
 }
 #endif
 
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_RELATIVE_PATH_FROM_NAME( char const *name, bool is_package )
+{
+    char buffer[ MAXPATHLEN+1 ];
+
+    copyModulenameAsPath( buffer, name );
+
+    if ( is_package )
+    {
+        char const sep_str[2] = { SEP, 0 };
+        strncat( buffer, sep_str, sizeof(buffer)-1 );
+        strncat( buffer, "__init__.py", sizeof(buffer)-1 );
+    }
+    else
+    {
+        strncat( buffer, ".py", sizeof(buffer)-1 );
+    }
+
+#if PYTHON_VERSION < 300
+    PyObject *module_path_entry_base = PyString_FromString( buffer );
+#else
+    PyObject *module_path_entry_base = PyUnicode_FromString( buffer );
+#endif
+
+    PyObject *result = MAKE_RELATIVE_PATH( module_path_entry_base );
+
+    Py_DECREF( module_path_entry_base );
+
+    return result;
+}
+
 static PyObject *loadModuleFromCodeObject( PyCodeObject *code_object, char const *name, bool is_package )
 {
     assert( code_object != NULL );
@@ -159,7 +189,7 @@ static PyObject *loadModuleFromCodeObject( PyCodeObject *code_object, char const
         module_path_entry = MAKE_RELATIVE_PATH( module_path_entry_base );
         Py_DECREF( module_path_entry_base );
 
-        char sep_str[2] = { SEP, 0 };
+        char const sep_str[2] = { SEP, 0 };
         strncat( buffer, sep_str, sizeof(buffer)-1 );
         strncat( buffer, "__init__.py", sizeof(buffer)-1 );
     }
@@ -1083,3 +1113,37 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
     );
     assert( res == 0 );
 }
+
+
+#if defined(_NUITKA_STANDALONE) || _NUITKA_FROZEN > 0
+
+extern PyObject *const_str_plain___file__;
+
+// This is called for each module imported early on.
+void setEarlyFrozenModulesFileAttribute( void )
+{
+    Py_ssize_t ppos = 0;
+    PyObject *key, *value;
+
+    while( PyDict_Next( PyImport_GetModuleDict(), &ppos, &key, &value ) )
+    {
+        if ( key != NULL && value != NULL && PyModule_Check( value ) )
+        {
+            if ( PyObject_HasAttr( value, const_str_plain___file__ ) )
+            {
+                bool is_package = PyObject_HasAttr( value, const_str_plain___path__ ) == 1;
+
+                PyObject *file_value = MAKE_RELATIVE_PATH_FROM_NAME(
+                    Nuitka_String_AsString( key ),
+                    is_package
+                );
+                PyObject_SetAttr( value, const_str_plain___file__, file_value );
+                Py_DECREF( file_value );
+            }
+        }
+    }
+
+    assert( !ERROR_OCCURRED() );
+}
+
+#endif

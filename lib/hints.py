@@ -50,11 +50,6 @@ def _moduleRepr(module):
             )
 
         file_desc = "file " + _normalizePath(module_file).replace(".pyc", ".py")
-
-
-        if file_desc.endswith("not_present.py"):
-            raise AttributeError
-
     except AttributeError:
         file_desc = "built-in"
 
