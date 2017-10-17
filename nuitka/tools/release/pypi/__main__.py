@@ -55,8 +55,10 @@ def main():
 
     print("Creating documentation.")
     createReleaseDocumentation()
-    print("Creating source distribution and uploading it.")
-    assert os.system("python setup.py sdist upload") == 0
+    print("Creating source distribution.")
+    assert os.system("python setup.py sdist") == 0
+    print("Uploading source dist")
+    assert os.system("twine upload dist/*")
     print("Uploaded.")
 
     # TODO: This won't work yet.
