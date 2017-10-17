@@ -1,5 +1,5 @@
-Nuitka Release 0.5.28 (Draft)
-=============================
+Nuitka Release 0.5.28
+=====================
 
 This release has a focus on compatibility work and contains bug fixes and
 work to enhance the usability of Nuitka by integrating with distutils. The
