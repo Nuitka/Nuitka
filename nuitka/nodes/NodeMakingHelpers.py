@@ -41,6 +41,7 @@ def makeConstantReplacementNode(constant, node):
         source_ref = node.getSourceReference()
     )
 
+
 def makeRaiseExceptionReplacementExpression(expression, exception_type,
                                             exception_value):
     from .ExceptionNodes import ExpressionRaiseException
@@ -53,7 +54,7 @@ def makeRaiseExceptionReplacementExpression(expression, exception_type,
     if shallWarnImplicitRaises():
         warning(
             '%s: Will always raise exception: "%s(%s)"',
-            expression.getSourceReference().getAsString(),
+            source_ref.getAsString(),
             exception_type,
             exception_value
         )
@@ -67,6 +68,40 @@ def makeRaiseExceptionReplacementExpression(expression, exception_type,
             constant = exception_value,
             node     = expression
         ),
+        source_ref      = source_ref
+    )
+
+    return result
+
+
+def makeRaiseExceptionReplacementStatement(statement, exception_type,
+                                           exception_value):
+    from .ExceptionNodes import StatementRaiseExceptionImplicit
+    from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+
+    source_ref = statement.getSourceReference()
+
+    assert type(exception_type) is str
+
+    if shallWarnImplicitRaises():
+        warning(
+            '%s: Will always raise exception: "%s(%s)"',
+            source_ref.getAsString(),
+            exception_type,
+            exception_value
+        )
+
+    result = StatementRaiseExceptionImplicit(
+        exception_type  = ExpressionBuiltinExceptionRef(
+            exception_name = exception_type,
+            source_ref     = source_ref
+        ),
+        exception_value = makeConstantReplacementNode(
+            constant = exception_value,
+            node     = statement
+        ),
+        exception_cause = None,
+        exception_trace = None,
         source_ref      = source_ref
     )
 

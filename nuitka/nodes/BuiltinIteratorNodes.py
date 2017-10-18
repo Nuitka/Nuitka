@@ -35,7 +35,10 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase
 )
 from .NodeBases import StatementChildrenHavingBase
-from .NodeMakingHelpers import wrapExpressionWithSideEffects
+from .NodeMakingHelpers import (
+    makeRaiseExceptionReplacementStatement,
+    wrapExpressionWithSideEffects
+)
 from .shapes.StandardShapes import ShapeIterator
 
 
@@ -214,23 +217,12 @@ Explicit raise already raises implicitly building exception type."""
                     return None, "new_statements", """\
 Determined iteration end check to be always true."""
                 else:
-                    source_ref = self.source_ref
-
-                    result = StatementRaiseExceptionImplicit(
-                        exception_type  = ExpressionBuiltinExceptionRef(
-                            exception_name = "ValueError",
-                            source_ref     = source_ref
-                        ),
-                        exception_value = makeConstantRefNode(
-                            constant   = "too many values to unpack"
-                                           if python_version < 300 else
-                                         "too many values to unpack (expected %d)" % self.getCount(),
-                            source_ref = source_ref
-
-                        ),
-                        exception_cause = None,
-                        exception_trace = None,
-                        source_ref      = source_ref
+                    result = makeRaiseExceptionReplacementStatement(
+                        statement       = self,
+                        exception_type  = "ValueError",
+                        exception_value = "too many values to unpack"
+                                            if python_version < 300 else
+                                          "too many values to unpack (expected %d)" % self.getCount()
                     )
 
                     trace_collection.onExceptionRaiseExit(
