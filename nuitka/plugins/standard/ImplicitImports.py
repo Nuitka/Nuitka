@@ -32,8 +32,16 @@ from nuitka.utils.Utils import getOS
 
 
 class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
+    def __init__(self):
+        NuitkaPluginBase.__init__(self)
+
+        self.pkg_utils_externals = None
+
     def isRequiredImplicitImport(self, module, full_name):
         if full_name == "_tkinter":
+            return False
+
+        if full_name.startswith("pkg_resources._vendor"):
             return False
 
         if module.isPythonShlibModule():
@@ -190,6 +198,30 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "apt_pkg"
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder"
+        elif full_name == "pkg_resources.extern":
+            if self.pkg_utils_externals is None:
+                for line in open(module.getCompileTimeFilename()):
+                    if line.startswith("names"):
+                        line = line.split("=")[-1].strip()
+                        parts = line.split(",")
+
+                        self.pkg_utils_externals = [
+                            part.strip("' ")
+                            for part in
+                            parts
+                        ]
+
+                        break
+                else:
+                    self.pkg_utils_externals = ()
+
+            for pkg_util_external in self.pkg_utils_externals:
+                yield "pkg_resources._vendor." + pkg_util_external
+        elif full_name == "pkg_resources._vendor.packaging":
+            yield "pkg_resources._vendor.packaging.version"
+            yield "pkg_resources._vendor.packaging.specifiers"
+            yield "pkg_resources._vendor.packaging.requirements"
+
 
     module_aliases = {
         "requests.packages.urllib3" : "urllib3",
