@@ -58,17 +58,3 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
                             )
                         )
                     )
-
-
-class NuitkaPluginDetectorDataFileCollector(NuitkaPluginBase):
-    plugin_name = "data-files"
-
-    @staticmethod
-    def isRelevant():
-        return Options.isStandaloneMode()
-
-    def considerDataFiles(self, module):
-        if module.getFullName() in known_data_files:
-            self.warnUnusedPlugin("Data files are not automatically collected.")
-
-        return ()

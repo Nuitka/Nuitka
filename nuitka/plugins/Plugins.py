@@ -36,10 +36,7 @@ from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
 
 from .PluginBase import post_modules, pre_modules
-from .standard.DataFileCollectorPlugin import (
-    NuitkaPluginDataFileCollector,
-    NuitkaPluginDetectorDataFileCollector
-)
+from .standard.DataFileCollectorPlugin import NuitkaPluginDataFileCollector
 from .standard.ImplicitImports import NuitkaPluginPopularImplicitImports
 from .standard.PmwPlugin import NuitkaPluginDetectorPmw, NuitkaPluginPmw
 
@@ -61,6 +58,7 @@ from .standard.PySidePyQtPlugin import (  # isort:skip
 
 active_plugin_list = [
     NuitkaPluginPopularImplicitImports(),
+    NuitkaPluginDataFileCollector(),
 ]
 
 # List of optional plug-in classes. Until we have the meta class to do it, just
@@ -70,7 +68,6 @@ optional_plugin_classes = (
     (NuitkaPluginMultiprocessingWorkaorunds, NuitkaPluginDetectorMultiprocessingWorkaorunds),
     (NuitkaPluginPyQtPySidePlugins, NuitkaPluginDetectorPyQtPySidePlugins),
     (NuitkaPluginPylintEclipseAnnotations, NuitkaPluginDetectorPylintEclipseAnnotations),
-    (NuitkaPluginDataFileCollector, NuitkaPluginDetectorDataFileCollector),
     (NuitkaPluginPmw, NuitkaPluginDetectorPmw),
 )
 
