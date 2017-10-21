@@ -25,7 +25,8 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 known_data_files = {
-    "nose.core" : ("../usage.txt",),
+    "nose.core" : ("usage.txt",),
+    "scrapy"    : ("VERSION",),
 }
 
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
@@ -39,14 +40,9 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         if module.getFullName() in known_data_files:
             for filename in known_data_files[module.getFullName()]:
                 source_path = os.path.join(
-                    module.getCompileTimeFilename(),
+                    os.path.dirname(module.getCompileTimeFilename()),
                     filename
                 )
-
-                # so we can ".." out from what is a filename, we have to
-                # normalize the result, or else checking for existance or
-                # opening it will fail.
-                source_path = os.path.normpath(source_path)
 
                 if os.path.isfile(source_path):
                     yield (
