@@ -3,6 +3,50 @@ Nuitka Release 0.5.29 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Windows: When using Scons for Python3 and Scons for Python2 on the same
+  build directory, a warning would be given about the need to migrate. Make
+  the Scons cache directory use the Python ABI version as a key too, to
+  avoid these issues. Fixed in 0.5.28.1 already.
+
+- Windows: Fixup for Python3 and Scons no more generating the MinGW64 import
+  library for Python anymore properly. Was only working if cached from a
+  previous install of Nuitka.
+
+- Plugins: Made the data files plugin mandatory and added support for the
+  scrapy package needs.
+
+- Fix, added implicit dependencies for ``pkg_resources.external`` package.
+  Fixed in 0.5.28.1 already.
+
+- Standalone: Patch the ``__file__`` value for technical bytecode modules
+  loaded during Python library initialization in a more compatible way.
+
+- Standalone: Extension modules when loaded might actually raise legit
+  errors, e.g. ``ImportError`` of another module, don't make those into
+  ``SystemError`` anymore.
+
+New Features
+------------
+
+- Added warning for implicit exception raises due to mismatch in unpacking
+  length. These are statically detected, but so far were not warned about.
+
+- Added cache for ``depends.exe`` results. This speeds up standalone mode
+  again as some of these calls were really slow.
+
+Organizational
+--------------
+
+- Using ``twine`` for upload to PyPI now as recommended on their site.
+
+Summary
+-------
+
+This release is not done yet.
+
 
 Nuitka Release 0.5.28
 =====================
