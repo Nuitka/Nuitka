@@ -213,6 +213,8 @@ def _executePylint(filenames, pylint_options, extra_options):
 
 
 def executePyLint(filenames, show_todos, verbose, one_by_one):
+    filenames = list(filenames)
+
     if verbose:
         print("Checking", filenames, "...")
 

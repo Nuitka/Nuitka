@@ -80,7 +80,7 @@ def main():
     goHome()
 
     found = False
-    for filename in scanTargets(positional_args):
+    for filename in scanTargets(positional_args, (".py", ".scons")):
         autoformat(filename, abort = options.abort)
         found = True
 
