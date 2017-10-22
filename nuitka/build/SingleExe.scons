@@ -1797,3 +1797,17 @@ if uninstalled_python:
 
         if result != 0:
             sys.exit("Error, call to 'install_name_tool' to fix Python library path failed.")
+
+
+with open(os.path.join(source_dir, "scons-report.txt"), 'w') as report_file:
+    for key, value in sorted(env._dict.items()):
+        if type(value) is not str:
+            continue
+
+        if key.startswith(('_', "CONFIGURE")):
+            continue
+
+        if key in ("MSVSSCONS", "BUILD_DIR"):
+            continue
+
+        print(key + '=' + value, file = report_file)
