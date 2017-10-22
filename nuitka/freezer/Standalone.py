@@ -154,7 +154,7 @@ __file__ = (__nuitka_binary_dir + '%s%s') if '__nuitka_binary_dir' in dict(__bui
         source_code = source_code
     )
 
-    bytecode = compile(source_code, filename, "exec")
+    bytecode = compile(source_code, filename, "exec", dont_inherit = True)
 
     bytecode = Plugins.onFrozenModuleBytecode(
         module_name = module_name,

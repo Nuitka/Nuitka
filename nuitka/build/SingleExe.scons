@@ -1055,6 +1055,9 @@ def makeWindowsMingGW64Lib(win_lib_path):
     if rv != 0:
         sys.exit('Error, unexpected error from "gendef.exe" %s.' % stderr)
 
+    if str is not bytes:
+        defs = defs.decode("utf8")
+
     defs_filename = os.path.join(
         new_win_lib_path,
         "python%s.defs" % python_abi_version.replace('.', "")
