@@ -22,6 +22,9 @@ MacOS, Windows, and Linux. Patches for other platforms are
 very welcome.
 """
 
+from __future__ import print_function
+
+import hashlib
 import marshal
 import os
 import shutil
@@ -45,12 +48,14 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceCodeFromFilename
 from nuitka.utils import Utils
+from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.Execution import withEnvironmentPathAdded
 from nuitka.utils.FileOperations import (
     areSamePaths,
     deleteFile,
     getSubDirectories,
-    listDir
+    listDir,
+    makePath
 )
 from nuitka.utils.Timing import TimerReport
 
@@ -700,9 +705,55 @@ def _makeBinaryPathPathDLLSearchEnv(package_name):
 
     return env
 
+def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filename):
+    original_filename = os.path.join(
+        original_dir,
+        os.path.basename(binary_filename)
+    )
 
-def _detectBinaryPathDLLsWindows(original_dir, binary_filename, package_name):
+    original_filename = os.path.normcase(original_filename)
+
+
+    if is_main_executable:
+        # Normalize main program name for caching as well, but need to use the
+        # scons information to distinguish different Python and arches, and
+        # compilers, so we use different libs there.
+        hashed_value = open(os.path.join(source_dir, "scons-report.txt")).read()
+    else:
+        hashed_value = original_filename
+
+    # Have different values for different Python major versions.
+    hashed_value += sys.version + sys.executable
+
+    if str is not bytes:
+        hashed_value = hashed_value.encode("utf8")
+
+    cache_dir = os.path.join(
+        getCacheDir(),
+        "library_deps",
+    )
+
+    makePath(cache_dir)
+
+    return os.path.join(
+        cache_dir,
+        hashlib.md5(hashed_value).hexdigest()
+    )
+
+
+def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, binary_filename,
+                                 package_name):
     result = set()
+
+    cache_filename = _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filename)
+
+    if os.path.exists(cache_filename):
+        for line in open(cache_filename):
+            line = line.strip()
+
+            result.add(line)
+
+        return result
 
     depends_exe = getDependsExePath()
 
@@ -848,10 +899,15 @@ SxS
     deleteFile(binary_filename + ".depends", must_exist = True)
     deleteFile(binary_filename + ".dwp", must_exist = True)
 
+    with open(cache_filename, 'w') as cache_file:
+        for dll_filename in result:
+            print(dll_filename, file = cache_file)
+
     return result
 
 
-def detectBinaryDLLs(original_filename, binary_filename, package_name):
+def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
+                     binary_filename, package_name):
     """ Detect the DLLs used by a binary.
 
         Using "ldd" (Linux), "depends.exe" (Windows), or "otool" (MacOS) the list
@@ -866,9 +922,11 @@ def detectBinaryDLLs(original_filename, binary_filename, package_name):
     elif Utils.getOS() == "Windows":
         with TimerReport("Running depends.exe for %s took %%.2f seconds" % binary_filename):
             return _detectBinaryPathDLLsWindows(
-                original_dir    = os.path.dirname(original_filename),
-                binary_filename = binary_filename,
-                package_name    = package_name
+                is_main_executable = is_main_executable,
+                source_dir         = source_dir,
+                original_dir       = os.path.dirname(original_filename),
+                binary_filename    = binary_filename,
+                package_name       = package_name
             )
     elif Utils.getOS() == "Darwin":
         return _detectBinaryPathDLLsMacOS(
@@ -880,18 +938,21 @@ def detectBinaryDLLs(original_filename, binary_filename, package_name):
         assert False, Utils.getOS()
 
 
-def detectUsedDLLs(standalone_entry_points):
+def detectUsedDLLs(source_dir, standalone_entry_points):
     result = OrderedDict()
 
-    for original_filename, binary_filename, package_name in standalone_entry_points:
+    for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
         used_dlls = detectBinaryDLLs(
-            original_filename = original_filename,
-            binary_filename   = binary_filename,
-            package_name      = package_name
+            is_main_executable = count == 0,
+            source_dir         = source_dir,
+            original_filename  = original_filename,
+            binary_filename    = binary_filename,
+            package_name       = package_name,
         )
 
         for dll_filename in used_dlls:
-            # We want these to be absolute paths.
+            # We want these to be absolute paths. Solve that in the parts
+            # where detectBinaryDLLs is platform specific.
             assert os.path.isabs(dll_filename), dll_filename
 
             if dll_filename not in result:
@@ -988,14 +1049,14 @@ libraries that need to be removed."""
         assert retcode == 0, filename
 
 
-def copyUsedDLLs(dist_dir, standalone_entry_points):
+def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     # This is terribly complex, because we check the list of used DLLs
     # trying to avoid duplicates, and detecting errors with them not
     # being binary identical, so we can report them. And then of course
     # we also need to handle OS specifics, pylint: disable=too-many-branches
 
 
-    used_dlls = detectUsedDLLs(standalone_entry_points)
+    used_dlls = detectUsedDLLs(source_dir, standalone_entry_points)
 
     # Fist make checks and remove some.
     for dll_filename1, sources1 in tuple(iterItems(used_dlls)):
