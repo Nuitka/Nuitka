@@ -474,7 +474,7 @@ def msvc_find_valid_batch_script(env,version):
                 (host_target, version)
             SCons.Warnings.warn(SCons.Warnings.VisualCMissingWarning, warn_msg)
         arg = _HOST_TARGET_ARCH_TO_BAT_ARCH[host_target]
-        
+
         # Get just version numbers
         maj, min = msvc_version_to_maj_min(version)
         # VS2015+
@@ -559,7 +559,9 @@ def msvc_setup_env(env):
         debug('MSVC_USE_SCRIPT set to False')
         warn_msg = "MSVC_USE_SCRIPT set to False, assuming environment " \
                    "set correctly."
-        SCons.Warnings.warn(SCons.Warnings.VisualCMissingWarning, warn_msg)
+
+        # Nuitka: We use this on purpose.
+        # SCons.Warnings.warn(SCons.Warnings.VisualCMissingWarning, warn_msg)
         return None
 
     for k, v in d.items():

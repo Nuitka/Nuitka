@@ -123,7 +123,8 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
                                 compile(
                                     source_code,
                                     module_filename,
-                                    "exec"
+                                    "exec",
+                                    dont_inherit = True
                                 )
                             ),
                             is_package    = module.isCompiledPythonPackage(),

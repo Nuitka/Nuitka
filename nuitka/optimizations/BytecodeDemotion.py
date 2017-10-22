@@ -52,7 +52,7 @@ def demoteCompiledModuleToBytecode(module):
         source_code = source_code
     )
 
-    bytecode = compile(source_code, filename, "exec")
+    bytecode = compile(source_code, filename, "exec", dont_inherit = True)
 
     bytecode = Plugins.onFrozenModuleBytecode(
         module_name = full_name,
