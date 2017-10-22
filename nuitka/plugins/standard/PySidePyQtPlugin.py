@@ -28,7 +28,6 @@ from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
-from nuitka.PythonVersions import python_version
 from nuitka.utils import Execution
 from nuitka.utils.FileOperations import getFileList
 
@@ -42,8 +41,13 @@ class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
 
     plugin_name = "qt-plugins"
 
-    @staticmethod
-    def getPyQtPluginDirs(qt_version):
+    def __init__(self):
+        self.qt_dirs = {}
+
+    def getPyQtPluginDirs(self, qt_version):
+        if qt_version in self.qt_dirs:
+            return self.qt_dirs[qt_version]
+
         command = """\
 from __future__ import print_function
 
@@ -62,7 +66,7 @@ if os.path.exists(guess_path):
 
         # May not be good for everybody, but we cannot have bytes in paths, or
         # else working with them breaks down.
-        if python_version >= 300:
+        if str is not bytes:
             output = output.decode("utf-8")
 
         result = []
@@ -79,6 +83,8 @@ if os.path.exists(guess_path):
                 line = line[len("GUESS: "):]
 
             result.append(os.path.normpath(line))
+
+        self.qt_dirs[qt_version] = result
 
         return result
 
@@ -112,9 +118,26 @@ if os.path.exists(guess_path):
                 for filename in
                 getFileList(plugin_dir)
                 if not filename.endswith(".qml")
+                if os.path.exists(os.path.join(target_plugin_dir, os.path.relpath(filename, plugin_dir)))
             ]
 
         return ()
+
+    def removeDllDependencies(self, dll_filename, dll_filenames):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        for values in self.qt_dirs.values():
+            for value in values:
+                if dll_filename.startswith(value):
+                    for sub_dll_filename in dll_filenames:
+                        for badword in (
+                            "libKF5", "libkfontinst", "libkorganizer", "libplasma",
+                            "libakregator", "libdolphin", "libnoteshared", "libknotes",
+                            "libsystemsettings", "libkerfuffle", "libkaddressbook",
+                            "libkworkspace", "libkmail", "libmilou", "libtaskmanager",
+                            "libkonsole", "libgwenview", "libweather_ion"):
+                            if os.path.basename(sub_dll_filename).startswith(badword):
+                                yield sub_dll_filename
+
 
     @staticmethod
     def createPostModuleLoadCode(module):

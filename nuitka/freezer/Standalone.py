@@ -625,6 +625,15 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
 
                 result.add(filename)
 
+        # Allow plugins to prevent inclusion.
+        blocked = Plugins.removeDllDependencies(
+            dll_filename = dll_filename,
+            dll_filenames = result
+        )
+
+        for to_remove in blocked:
+            result.discard(to_remove)
+
         ldd_result_cache[dll_filename] = result
     else:
         result = ldd_result_cache[dll_filename]
@@ -632,9 +641,9 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
     sub_result = set(result)
 
     for sub_dll_filename in result:
-        sub_result.union(_detectBinaryPathDLLsLinuxBSD(sub_dll_filename))
+        sub_result = sub_result.union(_detectBinaryPathDLLsLinuxBSD(sub_dll_filename))
 
-    return result
+    return sub_result
 
 
 def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
