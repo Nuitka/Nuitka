@@ -18,16 +18,10 @@
 
 import os
 import sys
-from distutils.command.install_scripts import install_scripts
-from distutils.core import setup
+from setuptools import setup
 
 os.chdir(os.path.dirname(__file__) or '.')
 
-scripts = ["bin/nuitka", "bin/nuitka-run"]
-
-# For Windows, there are batch files to launch Nuitka.
-if os.name == "nt":
-    scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
 
 # Detect the version of Nuitka from its source directly. Without calling it, we
 # don't mean to pollute with ".pyc" files and similar effects.
@@ -92,62 +86,6 @@ def findNuitkaPackages():
     return result
 
 
-class NuitkaInstallScripts(install_scripts):
-    """
-    This is a specialization of install_scripts that replaces the @LIBDIR@ with
-    the configured directory for modules. If possible, the path is made relative
-    to the directory for scripts.
-    """
-
-    def initialize_options(self):
-        install_scripts.initialize_options(self)
-
-        self.install_lib = None
-
-    def finalize_options(self):
-        install_scripts.finalize_options(self)
-
-        self.set_undefined_options("install", ("install_lib", "install_lib"))
-
-    def run(self):
-        install_scripts.run(self)
-
-        if os.path.splitdrive(self.install_dir)[0] != \
-           os.path.splitdrive(self.install_lib)[0]:
-            # can't make relative paths from one drive to another, so use an
-            # absolute path instead
-            libdir = self.install_lib
-        else:
-            common = os.path.commonprefix(
-                (self.install_dir, self.install_lib)
-            )
-            rest = self.install_dir[len(common):]
-            uplevel = len([n for n in os.path.split(rest) if n ])
-
-            libdir = uplevel * (".." + os.sep) + self.install_lib[len(common):]
-
-        for outfile in self.outfiles:
-            fp = open(outfile, "rb")
-            data = fp.read()
-            fp.close()
-
-            # skip binary files
-            if b'\0' in data:
-                continue
-
-            old_data = data
-
-            data = data.replace(b"@LIBDIR@", libdir.encode("unicode_escape"))
-
-            if data != old_data:
-                fp = open(outfile, "wb")
-                fp.write(data)
-                fp.close()
-
-cmdclass = {
-    "install_scripts" : NuitkaInstallScripts,
-}
-
 # Fix for "develop", where the generated scripts from easy install are not
 # capable of running in their re-executing, not finding pkg_resources anymore.
 if "develop" in sys.argv:
@@ -211,7 +149,6 @@ if sys.version_info >= (3,):
     util.byte_compile = byte_compile
 
 
-
 setup(
     name         = project_name,
     license      = "Apache License, Version 2.0",
@@ -264,8 +201,7 @@ setup(
 
     ],
     packages     = findNuitkaPackages(),
-    scripts      = scripts,
-    cmdclass     = cmdclass,
+    # cmdclass     = cmdclass,
 
     package_data = {
         # Include extra files
@@ -293,4 +229,5 @@ setup(
     description  = """\
 Python compiler with full language support and CPython compatibility""",
     keywords     = "compiler,python,nuitka",
+    entry_points = {"console_scripts": ['nuitka = nuitka.__main__']},
 )
