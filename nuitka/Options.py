@@ -40,6 +40,7 @@ else:
     usage = "usage: %prog [options] main_module.py"
 
 parser = OptionParser(
+    prog    = "nuitka",
     usage   = usage,
     version = getNuitkaVersion()
 )
@@ -727,6 +728,7 @@ def parseArgs():
     # First, isolate the first non-option arguments.
     if is_nuitka_run:
         count = 0
+        parser.prog = "nuitka-run"
 
         for count, arg in enumerate(sys.argv):
             if count == 0:

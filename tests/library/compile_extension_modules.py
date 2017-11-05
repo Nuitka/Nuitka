@@ -89,12 +89,8 @@ current_dir = os.path.normcase(current_dir)
 def action(stage_dir, root, path):
     command = [
         sys.executable,
-        os.path.join(
-            "..",
-            "..",
-            "bin",
-            "nuitka"
-        ),
+        "-m",
+        "nuitka.__main__",
         "--stand",
         "--run",
         "--output-dir",

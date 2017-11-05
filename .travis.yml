@@ -10,6 +10,8 @@ python:
   - "3.6"
   - "3.6-dev" # 3.6 development branch
 # command to install dependencies
-install: "sudo apt-get install scons chrpath"
+install:
+  - "sudo apt-get install scons chrpath"
+  - "pip install ."
 # command to run tests
 script: ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
