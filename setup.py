@@ -238,6 +238,7 @@ Python compiler with full language support and CPython compatibility""",
                         'build_with_nuitka = \
                          nuitka.distutils.bdist_nuitka:setuptools_build_hook'
                     ],
-                    "console_scripts": ['nuitka = nuitka.__main__'],
+                    "console_scripts": ['nuitka = nuitka.__main__',
+                                        'nuitka-run = nuitka.__main__'],
                    },
 )
