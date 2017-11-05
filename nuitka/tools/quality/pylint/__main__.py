@@ -85,7 +85,7 @@ Check files one by one. Default is %default."""
     options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["bin", "nuitka"]
+        positional_args = ["-m", "nuitka"]
 
     print("Working on:", positional_args)
 

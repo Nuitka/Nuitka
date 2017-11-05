@@ -409,17 +409,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
         if comparison_mode:
             nuitka_call = [
                 os.environ["PYTHON"],
-                os.path.abspath(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        "..",
-                        "..",
-                        "..",
-                        "..",
-                        "bin",
-                        "nuitka"
-                    )
-                )
+                "-m", "nuitka.__main__"
             ]
         else:
             assert coverage_mode
@@ -440,8 +430,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
                         "..",
                         "..",
                         "..",
-                        "bin",
-                        "nuitka"
+                        "nuitka",
+                        "__main__.py"
                     )
                 )
             ]

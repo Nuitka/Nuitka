@@ -67,7 +67,7 @@ def main():
     _options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["bin", "nuitka", "tests/reflected/compile_itself.py"]
+        positional_args = ["-m", "nuitka", "tests/reflected/compile_itself.py"]
 
     target_files = []
     for filename in scanTargets(positional_args, (".py",)):
