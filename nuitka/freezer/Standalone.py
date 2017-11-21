@@ -563,6 +563,9 @@ _detected_python_rpath = None
 ldd_result_cache = {}
 
 def _detectBinaryPathDLLsLinuxBSD(dll_filename):
+    # This is complex, as it also includes the caching mechanism
+    # pylint: disable=too-many-branches
+
     # Ask "ldd" about the libraries being used by the created binary, these
     # are the ones that interest us.
     result = set()
@@ -632,7 +635,7 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
 
         # Allow plugins to prevent inclusion.
         blocked = Plugins.removeDllDependencies(
-            dll_filename = dll_filename,
+            dll_filename  = dll_filename,
             dll_filenames = result
         )
 
@@ -752,6 +755,9 @@ def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filen
 
 def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, binary_filename,
                                  package_name):
+    # This is complex, as it also includes the caching mechanism
+    # pylint: disable=too-many-branches
+
     result = set()
 
     cache_filename = _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filename)
@@ -1062,7 +1068,8 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     # This is terribly complex, because we check the list of used DLLs
     # trying to avoid duplicates, and detecting errors with them not
     # being binary identical, so we can report them. And then of course
-    # we also need to handle OS specifics, pylint: disable=too-many-branches
+    # we also need to handle OS specifics.
+    # pylint: disable=too-many-branches,too-many-locals
 
 
     used_dlls = detectUsedDLLs(source_dir, standalone_entry_points)

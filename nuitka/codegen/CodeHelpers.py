@@ -42,7 +42,7 @@ def setExpressionDispatchDict(dispatch_dict):
 
 
 def generateExpressionCode(to_name, expression, emit, context,
-                            allow_none = False):
+                           allow_none = False):
     try:
         _generateExpressionCode(
             to_name    = to_name,

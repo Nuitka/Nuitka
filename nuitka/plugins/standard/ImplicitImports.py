@@ -202,8 +202,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             if self.pkg_utils_externals is None:
                 for line in open(module.getCompileTimeFilename()):
                     if line.startswith("names"):
-                        line = line.split("=")[-1].strip()
-                        parts = line.split(",")
+                        line = line.split('=')[-1].strip()
+                        parts = line.split(',')
 
                         self.pkg_utils_externals = [
                             part.strip("' ")
@@ -223,8 +223,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pkg_resources._vendor.packaging.requirements"
 
 
+    # We don't care about line length here, pylint: disable=line-too-long
+
     module_aliases = {
-        # Python2
         "six.moves.builtins" : "__builtin__" if python_version < 300 else "builtins",
         "six.moves.configparser" : "ConfigParser" if python_version < 300 else "configparser",
         "six.moves.copyreg" : "copy_reg" if python_version < 300 else "copyreg",
@@ -275,28 +276,28 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         "requests.packages.urllib3.contrib.ntlmpool" : "urllib3.contrib.ntlmpool",
         "requests.packages.urllib3.contrib.socks" : "urllib3.contrib.socks",
         "requests.packages.urllib3.exceptions" : "urllib3.exceptions",
-        'requests.packages.urllib3._collections' : 'urllib3._collections',
+        "requests.packages.urllib3._collections" : "urllib3._collections",
         "requests.packages.chardet" : "chardet",
         "requests.packages.idna"    : "idna",
-        'requests.packages.urllib3.packages' : 'urllib3.packages',
-        'requests.packages.urllib3.packages.ordered_dict' : 'urllib3.packages.ordered_dict',
-        'requests.packages.urllib3.packages.ssl_match_hostname' : 'urllib3.packages.ssl_match_hostname',
-        'requests.packages.urllib3.packages.ssl_match_hostname._implementation' : 'urllib3.packages.ssl_match_hostname._implementation',
-        'requests.packages.urllib3.connectionpool' : 'urllib3.connectionpool',
-        'requests.packages.urllib3.connection' : 'urllib3.connection',
-        'requests.packages.urllib3.filepost' : 'urllib3.filepost',
-        'requests.packages.urllib3.request' : 'urllib3.request',
-        'requests.packages.urllib3.response' : 'urllib3.response',
-        'requests.packages.urllib3.fields' : 'urllib3.fields',
-        'requests.packages.urllib3.poolmanager' : 'urllib3.poolmanager',
-        'requests.packages.urllib3.util' : 'urllib3.util',
-        'requests.packages.urllib3.util.connection' : 'urllib3.util.connection',
-        'requests.packages.urllib3.util.request' : 'urllib3.util.request',
-        'requests.packages.urllib3.util.response' : 'urllib3.util.response',
-        'requests.packages.urllib3.util.retry' : 'urllib3.util.retry',
-        'requests.packages.urllib3.util.ssl_' : 'urllib3.util.ssl_',
-        'requests.packages.urllib3.util.timeout' : 'urllib3.util.timeout',
-        'requests.packages.urllib3.util.url' : 'urllib3.util.url',
+        "requests.packages.urllib3.packages" : "urllib3.packages",
+        "requests.packages.urllib3.packages.ordered_dict" : "urllib3.packages.ordered_dict",
+        "requests.packages.urllib3.packages.ssl_match_hostname" : "urllib3.packages.ssl_match_hostname",
+        "requests.packages.urllib3.packages.ssl_match_hostname._implementation" : "urllib3.packages.ssl_match_hostname._implementation",
+        "requests.packages.urllib3.connectionpool" : "urllib3.connectionpool",
+        "requests.packages.urllib3.connection" : "urllib3.connection",
+        "requests.packages.urllib3.filepost" : "urllib3.filepost",
+        "requests.packages.urllib3.request" : "urllib3.request",
+        "requests.packages.urllib3.response" : "urllib3.response",
+        "requests.packages.urllib3.fields" : "urllib3.fields",
+        "requests.packages.urllib3.poolmanager" : "urllib3.poolmanager",
+        "requests.packages.urllib3.util" : "urllib3.util",
+        "requests.packages.urllib3.util.connection" : "urllib3.util.connection",
+        "requests.packages.urllib3.util.request" : "urllib3.util.request",
+        "requests.packages.urllib3.util.response" : "urllib3.util.response",
+        "requests.packages.urllib3.util.retry" : "urllib3.util.retry",
+        "requests.packages.urllib3.util.ssl_" : "urllib3.util.ssl_",
+        "requests.packages.urllib3.util.timeout" : "urllib3.util.timeout",
+        "requests.packages.urllib3.util.url" : "urllib3.util.url",
     }
 
     def onModuleSourceCode(self, module_name, source_code):

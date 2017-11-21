@@ -50,7 +50,7 @@ def getStoreLocalsCode(locals_name, variables, is_foreign, emit, context):
 
                 getErrorExitBoolCode(
                     condition = """\
-    %s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_KeyError )""" % value_name,
+%s == NULL && !EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_KeyError )""" % value_name,
                     emit      = emit,
                     context   = context
                 )

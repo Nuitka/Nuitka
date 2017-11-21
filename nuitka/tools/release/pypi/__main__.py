@@ -58,7 +58,7 @@ def main():
     print("Creating source distribution.")
     assert os.system("python setup.py sdist") == 0
     print("Uploading source dist")
-    assert os.system("twine upload dist/*")
+    assert os.system("twine upload dist/*") == 0
     print("Uploaded.")
 
     # TODO: This won't work yet.

@@ -145,6 +145,7 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
         return self.getBody().mayRaiseException(exception_type)
 
     def isUnoptimized(self):
+        # Classes all are that, pylint: disable=no-self-use
         return True
 
 

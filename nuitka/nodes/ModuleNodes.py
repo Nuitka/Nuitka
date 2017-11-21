@@ -466,15 +466,19 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         pass
 
     def hasLocalsDict(self):
+        # Modules don't do this, pylint: disable=no-self-use
         return False
 
     def isUnoptimized(self):
+        # Modules don't do this, pylint: disable=no-self-use
         return False
 
     def getLocalVariables(self):
+        # Modules don't do this, pylint: disable=no-self-use
         return ()
 
     def getUserLocalVariables(self):
+        # Modules don't do this, pylint: disable=no-self-use
         return ()
 
     def getOutlineLocalVariables(self):
@@ -491,6 +495,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         return tuple(result)
 
     def hasClosureVariable(self, variable):
+        # Modules don't do this, pylint: disable=no-self-use,unused-argument
         return False
 
     def removeUserVariable(self, variable):

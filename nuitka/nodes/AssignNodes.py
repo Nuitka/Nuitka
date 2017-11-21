@@ -346,7 +346,7 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                     if not source.isMutable():
                         if last_trace.hasDefiniteUsages() and not last_trace.getNameUsageCount():
                             self.variable_trace.setReplacementNode(
-                                lambda usage : source.makeClone()
+                                lambda _usage : source.makeClone()
                             )
 
                             propagated = True
@@ -380,51 +380,6 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                         # Something might be possible still.
 
                         pass
-                elif False and Options.isExperimental("unnamed_yet") and \
-                    source.isExpressionFunctionCreation() and \
-                    source.getFunctionRef().getFunctionBody().isExpressionFunctionBody() and \
-                    not source.getDefaults() and  \
-                    not source.getKwDefaults() and \
-                    not source.getAnnotations():
-                    # TODO: These are very mutable, right?
-
-                    provider = self.getParentVariableProvider()
-
-                    if variable.isTempVariable() or \
-                       (not provider.isUnoptimized() and \
-                        not provider.isExpressionClassBody()):
-
-                        if last_trace.getDefiniteUsages() <= 1 and \
-                           not last_trace.hasPotentialUsages() and \
-                           not last_trace.getNameUsageCount():
-
-                            if last_trace.getDefiniteUsages() == 1:
-                                self.variable_trace.setReplacementNode(
-                                    lambda usage : source.makeClone()
-                                )
-                                propagated = True
-                            else:
-                                propagated = False
-
-                            if not last_trace.getPrevious().isUninitTrace():
-                                # TODO: We could well decide, if that's even necessary.
-                                result = StatementDelVariable(
-                                    variable   = self.variable,
-                                    version    = self.variable_version,
-                                    tolerant   = True,
-                                    source_ref = self.getSourceReference()
-                                )
-                            else:
-                                result = None
-
-                            return (
-                                result,
-                                "new_statements",
-                                "Dropped %s assignment statement to '%s'." % (
-                                   "propagated" if propagated else "dead",
-                                   self.getVariableName()
-                                )
-                            )
                 else:
                     # More cases thinkable.
                     pass

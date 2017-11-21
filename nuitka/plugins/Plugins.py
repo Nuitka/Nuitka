@@ -183,9 +183,9 @@ class Plugins(object):
         return None
 
     @staticmethod
-    def suppressBuiltinImportWarning(module_name, source_ref):
+    def suppressBuiltinImportWarning(module, source_ref):
         for plugin in active_plugin_list:
-            if plugin.suppressBuiltinImportWarning(module_name, source_ref):
+            if plugin.suppressBuiltinImportWarning(module, source_ref):
                 return True
 
         return False

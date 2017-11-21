@@ -90,7 +90,8 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
         ]
 
 
-class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin, ExpressionFunctionEntryPointBase):
+class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin,
+                                    ExpressionFunctionEntryPointBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
     kind = "EXPRESSION_COROUTINE_OBJECT_BODY"
