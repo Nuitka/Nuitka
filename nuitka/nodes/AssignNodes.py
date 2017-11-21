@@ -344,7 +344,7 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                 if source.isCompileTimeConstant():
                     # Can safely forward propagate only non-mutable constants.
                     if not source.isMutable():
-                        if last_trace.hasDefiniteUsages() and not last_trace.getNameUsageCount():
+                        if not last_trace.getNameUsageCount():
                             self.variable_trace.setReplacementNode(
                                 lambda _usage : source.makeClone()
                             )
@@ -354,7 +354,6 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                             propagated = False
 
                         if not variable.isModuleVariable():
-
                             if not last_trace.hasPotentialUsages() and not last_trace.getNameUsageCount():
                                 if not last_trace.getPrevious().isUninitTrace():
                                     # TODO: We could well decide, if that's even necessary, but for now
