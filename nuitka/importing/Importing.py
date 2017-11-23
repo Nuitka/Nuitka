@@ -460,7 +460,7 @@ def _findModuleInPath(module_name, package_name):
     search_path = getPackageSearchPath(package_name)
 
     if _debug_module_finding:
-        print("_findModuleInPath: Using search path", search_path)
+        print("_findModuleInPath: Using search path", search_path, "for", package_name)
 
     try:
         module_filename = _findModuleInPath2(
