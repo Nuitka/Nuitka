@@ -97,10 +97,6 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         self.root_is_pure = False
         self.plat_name_supplied = self.plat_name is not None
 
-        if command == "install":
-            # Delete the source copy of the module
-            shutil.rmtree(os.path.join(self.build_lib, self.main_package))
-
         result = super(bdist_nuitka, self).run_command(command)
 
         # After building, we are ready to build the extension module, from
@@ -110,6 +106,9 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
             command_obj.ensure_finalized()
 
             self._buildPackage(os.path.abspath(command_obj.build_lib))
+
+            # Delete the source copy of the module
+            shutil.rmtree(os.path.join(self.build_lib, self.main_package))
 
         return result
 
