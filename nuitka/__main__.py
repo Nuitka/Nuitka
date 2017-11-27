@@ -146,8 +146,13 @@ if needs_reexec:
     # Potentially give Python command line flags as necessary.
     args.append("-S")
 
+    # If we were run directly as the module, replace with this file
+    argv = sys.argv
+    if argv[0] == 'nuitka':
+        argv = [__file__] + argv[1:]
+
     # Same arguments as before.
-    args += sys.argv + list(Options.getMainArgs())
+    args += argv + list(Options.getMainArgs())
 
     if current_version == intended_version:
         os.environ["NUITKA_PYTHONPATH"] = repr(
