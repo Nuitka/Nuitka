@@ -103,7 +103,7 @@ class build(distutils.command.build.build):
 
         command = [
             sys.executable,
-            nuitka_binary,
+            "-m", "nuitka",
             "--module",
             "--plugin-enable=pylint-warnings",
             "--output-dir=%s" % output_dir,
