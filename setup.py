@@ -19,7 +19,7 @@
 import os
 import sys
 from distutils.command.install_scripts import install_scripts
-from distutils.core import setup
+from setuptools import setup
 
 os.chdir(os.path.dirname(__file__) or '.')
 
@@ -293,4 +293,9 @@ setup(
     description  = """\
 Python compiler with full language support and CPython compatibility""",
     keywords     = "compiler,python,nuitka",
+    entry_points = {"distutils.commands": [
+                            'bdist_nuitka = \
+                             nuitka.distutils.bdist_nuitka:bdist_nuitka'
+                        ]
+                   },
 )
