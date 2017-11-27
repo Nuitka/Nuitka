@@ -23,7 +23,7 @@ import os
 import shutil
 import subprocess
 import sys
-
+import fnmatch
 import wheel.bdist_wheel  # @UnresolvedImport
 
 
@@ -67,6 +67,15 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         assert finding == "absolute", finding
         assert package is None, package
 
+        recurse_packages = self.compile_packages.copy()
+        if os.path.isdir(self.main_package):
+            # Include all python files in wheel
+            for root, dirs, files in os.walk(self.main_package):
+                for fn in fnmatch.filter(files, '*.py'):
+                    module = os.path.join(root, fn)[:-3] if fn != '__init__.py' else root
+                    pypath = ".".join(module.split(os.sep))
+                    recurse_packages.append(pypath)
+
         nuitka_binary = getExecutablePath("nuitka")
         if nuitka_binary is None:
             sys.exit("Error, cannot find nuitka binary in PATH.")
@@ -77,13 +86,12 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
             "--module",
             "--plugin-enable=pylint-warnings",
             "--output-dir=%s" % build_lib,
-            "--recurse-to={%s}" % ','.join(self.compile_packages),
             "--recurse-dir=%s" % self.main_package,
             "--recurse-not-to=*.tests",
             "--show-modules",
             "--remove-output",
             main_filename,
-        ]
+        ] + ["--recurse-to=%s" % p for p in recurse_packages]
 
         subprocess.check_call(
             command
