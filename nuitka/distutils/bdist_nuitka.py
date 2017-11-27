@@ -93,22 +93,15 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         self.build_lib = build_lib
 
     def run_command(self, command):
+        # Force module to be recognised as binary rather than pure python
+        self.root_is_pure = False
+        self.plat_name_supplied = self.plat_name is not None
+
         if command == "install":
-            command_obj = self.distribution.get_command_obj(command)
-
-            basedir_observed = ""
-
-            if os.name == "nt":
-                # win32 barfs if any of these are ''; could be '.'?
-                # (distutils.command.install:change_roots bug)
-                basedir_observed = os.path.normpath(os.path.join(self.data_dir, ".."))
-
-            setattr(command_obj, "install_platlib", basedir_observed)
-            setattr(command_obj, "install_purelib", None)
-
+            # Delete the source copy of the module
             shutil.rmtree(os.path.join(self.build_lib, self.main_package))
 
-        result = wheel.bdist_wheel.bdist_wheel.run_command(self, command)
+        result = super(bdist_nuitka, self).run_command(command)
 
         # After building, we are ready to build the extension module, from
         # what "build_py" command has done.
@@ -116,7 +109,7 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
             command_obj = self.distribution.get_command_obj(command)
             command_obj.ensure_finalized()
 
-            self._buildPackage(command_obj.build_lib)
+            self._buildPackage(os.path.abspath(command_obj.build_lib))
 
         return result
 
