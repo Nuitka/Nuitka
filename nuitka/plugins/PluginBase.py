@@ -294,6 +294,10 @@ class NuitkaPluginBase(object):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
+    def removeDllDependencies(self, dll_filename, dll_filenames):
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+        return ()
+
     def considerDataFiles(self, module):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()

@@ -335,7 +335,10 @@ def _findModuleInPath2(module_name, search_path):
         # First, check for a package with an init file, that would be the
         # first choice.
         if os.path.isdir(package_directory):
-            for suffix in (".py", ".pyc"):
+            for suffix, _mode, mtype in imp.get_suffixes():
+                if mtype == imp.C_EXTENSION:
+                    continue
+
                 package_file_name = "__init__" + suffix
 
                 file_path = os.path.join(package_directory, package_file_name)
@@ -457,7 +460,7 @@ def _findModuleInPath(module_name, package_name):
     search_path = getPackageSearchPath(package_name)
 
     if _debug_module_finding:
-        print("_findModuleInPath: Using search path", search_path)
+        print("_findModuleInPath: Using search path", search_path, "for", package_name)
 
     try:
         module_filename = _findModuleInPath2(

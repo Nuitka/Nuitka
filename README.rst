@@ -250,7 +250,7 @@ Where to go next
 ================
 
 Remember, this project is not completed yet. Although the CPython test suite
-works near perfect, there is still more work needed, to make it do more
+works near perfect, there is still more work needed, esp. to make it do more
 optimization. Try it out.
 
 Subscribe to its mailing lists
@@ -291,20 +291,13 @@ Best practices for reporting bugs:
   it's redundant, and it's not likely that I will look at it without
   the ability to change the Python or Nuitka source and re-run it.
 
-
-Contact me via email with your questions
-----------------------------------------
-
-The best place to ask questions is the mailing list. You are welcome to
-`contact me via email <mailto:Kay.Hayen@gmail.com>`__ with your questions. But
-it is increasingly true that for user questions the mailing list is the best
-place to go. Often somebody there knows more about what you are doing.
-
 Follow me on Twitter
 --------------------
 
 Nuitka announcements and interesting stuff is pointed to on the Twitter account,
 but obviously with no details. `@KayHayen <https://twitter.com/KayHayen>`_.
+
+I will not answer Nuitka questions via Twitter though.
 
 Word of Warning
 ---------------

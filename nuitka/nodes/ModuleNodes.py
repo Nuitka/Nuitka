@@ -420,6 +420,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
         if main_filename.endswith(".py"):
             result = main_filename[:-3]
+        elif main_filename.endswith(".pyw"):
+            result = main_filename[:-4]
         else:
             result = main_filename
 
