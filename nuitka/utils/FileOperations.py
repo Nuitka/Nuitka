@@ -81,9 +81,13 @@ def listDir(path):
 
 
 def getFileList(path):
+    result = []
+
     for root, _dirnames, filenames in os.walk(path):
         for filename in filenames:
-            yield os.path.join(root, filename)
+            result.append(os.path.join(root, filename))
+
+    return result
 
 
 def getSubDirectories(path):

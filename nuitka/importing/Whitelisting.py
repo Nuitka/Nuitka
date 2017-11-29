@@ -66,7 +66,7 @@ def getModuleWhiteList():
         "collections.abc",
 
         # test_compile.py
-        "__package__.module", "__mangled_mod",
+        "__package__.module", "__mangled_mod", "__package__",
 
         # test_ctypes
         "ctypes.test",
@@ -147,7 +147,8 @@ def getModuleWhiteList():
 
         # test_namespace_pkgs.py
         "foo.one", "foo.two", "parent.child.one", "parent.child.two",
-        "parent.child.three", "bar.two", "a_test",
+        "parent.child.three", "bar.two", "a_test", "parent.child", "parent",
+        "bar",
 
         # test_new.py
         "Spam",
@@ -162,7 +163,7 @@ def getModuleWhiteList():
 
         # test_pkg.py
         "t1", "t2", "t2.sub", "t2.sub.subsub", "t3.sub.subsub", "t5", "t6",
-        "t7", "t7.sub", "t7.sub.subsub", "t8",
+        "t7", "t7.sub", "t7.sub.subsub", "t8", "t3.sub", "t3",
 
         # test_pkgutil.py
         "foo", "foo.bar", "foo.baz", "zipimport", "pkg", "pkg.subpkg",
@@ -177,6 +178,7 @@ def getModuleWhiteList():
         # test_repr.py
         """areallylongpackageandmodulenametotestreprtruncation.\
 areallylongpackageandmodulenametotestreprtruncation""",
+        "areallylongpackageandmodulenametotestreprtruncation",
 
         # test_robotparser.py
         "urllib.error", "urllib.robotparser",
@@ -287,7 +289,10 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "pkg_resources.extern",
 
         # appdirs
-        "com.sun", "win32com"
+        "com.sun", "win32com",
+
+        # six
+        "six.moves",
     )
 
 

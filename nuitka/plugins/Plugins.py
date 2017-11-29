@@ -109,6 +109,18 @@ class Plugins(object):
         return result
 
     @staticmethod
+    def removeDllDependencies(dll_filename, dll_filenames):
+        dll_filenames = tuple(sorted(dll_filenames))
+
+        result = []
+
+        for plugin in active_plugin_list:
+            for removed_dll in plugin.removeDllDependencies(dll_filename, dll_filenames):
+                result.append(removed_dll)
+
+        return result
+
+    @staticmethod
     def considerDataFiles(module):
         for plugin in active_plugin_list:
             for value in plugin.considerDataFiles(module):

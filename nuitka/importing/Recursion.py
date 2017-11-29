@@ -264,6 +264,11 @@ def considerFilename(module_filename):
         module_relpath = relpath(module_filename)
 
         return module_filename, module_relpath, module_name
+    elif module_filename.endswith(".pyw"):
+        module_name = os.path.basename(module_filename)[:-4]
+        module_relpath = relpath(module_filename)
+
+        return module_filename, module_relpath, module_name
     else:
         return None
 

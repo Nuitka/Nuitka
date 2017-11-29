@@ -192,8 +192,79 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "PIL._tkinter_finder"
 
     module_aliases = {
+        # Python2
+        "six.moves.builtins" : "__builtin__" if python_version < 300 else "builtins",
+        "six.moves.configparser" : "ConfigParser" if python_version < 300 else "configparser",
+        "six.moves.copyreg" : "copy_reg" if python_version < 300 else "copyreg",
+        "six.moves.dbm_gnu" : "gdbm" if python_version < 300 else "dbm.gnu",
+        "six.moves._dummy_thread" : "dummy_thread" if python_version < 300 else "_dummy_thread",
+        "six.moves.http_cookiejar" : "cookielib"  if python_version < 300 else "http.cookiejar",
+        "six.moves.http_cookies" : "Cookie" if python_version < 300 else "http.cookies",
+        "six.moves.html_entities" : "htmlentitydefs" if python_version < 300 else "html.entities",
+        "six.moves.html_parser" : "HTMLParser" if python_version < 300 else "html.parser",
+        "six.moves.http_client" : "httplib"  if python_version < 300 else "http.client",
+        "six.moves.email_mime_multipart" : "email.MIMEMultipart" if python_version < 300 else "email.mime.multipart",
+        "six.moves.email_mime_nonmultipart" : "email.MIMENonMultipart"  if python_version < 300 else "email.mime.nonmultipart",
+        "six.moves.email_mime_text" : "email.MIMEText" if python_version < 300 else "email.mime.text",
+        "six.moves.email_mime_base" : "email.MIMEBase" if python_version < 300 else "email.mime.base",
+        "six.moves.BaseHTTPServer" : "BaseHTTPServer" if python_version < 300 else "http.server",
+        "six.moves.CGIHTTPServer" : "CGIHTTPServer" if python_version < 300 else "http.server",
+        "six.moves.SimpleHTTPServer" : "SimpleHTTPServer" if python_version < 300 else "http.server",
+        "six.moves.cPickle" : "cPickle" if python_version < 300 else "pickle",
+        "six.moves.queue" : "Queue" if python_version < 300 else "queue",
+        "six.moves.reprlib" :"repr" if python_version < 300 else "reprlib",
+        "six.moves.socketserver" : "SocketServer" if python_version < 300 else "socketserver",
+        "six.moves._thread" : "thread" if python_version < 300 else "_thread",
+        "six.moves.tkinter" :"Tkinter" if python_version < 300 else "tkinter",
+        "six.moves.tkinter_dialog" : "Dialog" if python_version < 300 else "tkinter.dialog",
+        "six.moves.tkinter_filedialog" : "FileDialog" if python_version < 300 else "tkinter.filedialog",
+        "six.moves.tkinter_scrolledtext" : "ScrolledText" if python_version < 300 else "tkinter.scrolledtext",
+        "six.moves.tkinter_simpledialog" : "SimpleDialog" if python_version < 300 else "tkinter.simpledialog",
+        "six.moves.tkinter_tix" : "Tix" if python_version < 300 else "tkinter.tix",
+        "six.moves.tkinter_ttk" :"ttk" if python_version < 300 else "tkinter.ttk",
+        "six.moves.tkinter_constants" :"Tkconstants" if python_version < 300 else "tkinter.constants",
+        "six.moves.tkinter_dnd" : "Tkdnd" if python_version < 300 else "tkinter.dnd",
+        "six.moves.tkinter_colorchooser" : "tkColorChooser" if python_version < 300 else "tkinter_colorchooser",
+        "six.moves.tkinter_commondialog" : "tkCommonDialog" if python_version < 300 else "tkinter_commondialog",
+        "six.moves.tkinter_tkfiledialog" : "tkFileDialog" if python_version < 300 else "tkinter.filedialog",
+        "six.moves.tkinter_font" : "tkFont" if python_version < 300 else "tkinter.font",
+        "six.moves.tkinter_messagebox" : "tkMessageBox" if python_version < 300 else "tkinter.messagebox",
+        "six.moves.tkinter_tksimpledialog" :"tkSimpleDialog" if python_version < 300 else "tkinter_tksimpledialog",
+        "six.moves.urllib_parse" : None if python_version < 300 else "urllib.parse",
+        "six.moves.urllib_error" : None if python_version < 300 else "urllib.error",
+        "six.moves.urllib_robotparser" :"robotparser" if python_version < 300 else "urllib.robotparser",
+        "six.moves.xmlrpc_client" :"xmlrpclib" if python_version < 300 else "xmlrpc.client",
+        "six.moves.xmlrpc_server" :"SimpleXMLRPCServer" if python_version < 300 else "xmlrpc.server",
+        "six.moves.winreg" : "_winreg" if python_version < 300 else "winreg",
+
         "requests.packages.urllib3" : "urllib3",
-        "requests.packages.chardet" : "chardet"
+        "requests.packages.urllib3.contrib" : "urllib3.contrib",
+        "requests.packages.urllib3.contrib.pyopenssl" : "urllib3.contrib.pyopenssl",
+        "requests.packages.urllib3.contrib.ntlmpool" : "urllib3.contrib.ntlmpool",
+        "requests.packages.urllib3.contrib.socks" : "urllib3.contrib.socks",
+        "requests.packages.urllib3.exceptions" : "urllib3.exceptions",
+        'requests.packages.urllib3._collections' : 'urllib3._collections',
+        "requests.packages.chardet" : "chardet",
+        "requests.packages.idna"    : "idna",
+        'requests.packages.urllib3.packages' : 'urllib3.packages',
+        'requests.packages.urllib3.packages.ordered_dict' : 'urllib3.packages.ordered_dict',
+        'requests.packages.urllib3.packages.ssl_match_hostname' : 'urllib3.packages.ssl_match_hostname',
+        'requests.packages.urllib3.packages.ssl_match_hostname._implementation' : 'urllib3.packages.ssl_match_hostname._implementation',
+        'requests.packages.urllib3.connectionpool' : 'urllib3.connectionpool',
+        'requests.packages.urllib3.connection' : 'urllib3.connection',
+        'requests.packages.urllib3.filepost' : 'urllib3.filepost',
+        'requests.packages.urllib3.request' : 'urllib3.request',
+        'requests.packages.urllib3.response' : 'urllib3.response',
+        'requests.packages.urllib3.fields' : 'urllib3.fields',
+        'requests.packages.urllib3.poolmanager' : 'urllib3.poolmanager',
+        'requests.packages.urllib3.util' : 'urllib3.util',
+        'requests.packages.urllib3.util.connection' : 'urllib3.util.connection',
+        'requests.packages.urllib3.util.request' : 'urllib3.util.request',
+        'requests.packages.urllib3.util.response' : 'urllib3.util.response',
+        'requests.packages.urllib3.util.retry' : 'urllib3.util.retry',
+        'requests.packages.urllib3.util.ssl_' : 'urllib3.util.ssl_',
+        'requests.packages.urllib3.util.timeout' : 'urllib3.util.timeout',
+        'requests.packages.urllib3.util.url' : 'urllib3.util.url',
     }
 
     def onModuleSourceCode(self, module_name, source_code):
@@ -213,8 +284,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         # Do nothing by default.
         return source_code
 
-    def suppressBuiltinImportWarning(self, module_name, source_ref):
-        if module_name == "setuptools":
+    def suppressBuiltinImportWarning(self, module, source_ref):
+        if module.getFullName() in ("setuptools", "six"):
             return True
 
         return False
