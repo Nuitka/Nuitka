@@ -22,6 +22,9 @@ BuildRequires: python-tools
 BuildRequires: python-libs
 BuildRequires: python-debug
 %endif
+%if 0%{?fedora} >= 27
+BuildRequires: python3-tools
+%endif
 BuildRequires:  gcc-c++
 BuildRequires:  strace
 BuildRequires:  chrpath
