@@ -392,8 +392,11 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
                function_body.isExpressionCoroutineObjectBody() or \
                function_body.isExpressionAsyncgenObjectBody()
 
-        if function_body not in self.active_functions:
+        result = function_body not in self.active_functions
+        if result:
             self.active_functions.add(function_body)
+
+        return result
 
     def getUsedFunctions(self):
         return self.active_functions
@@ -460,14 +463,6 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
         for function in self.getUsedFunctions():
             yield function.trace_collection
-
-    def markAsLocalsDict(self):
-        # Does not apply to modules.
-        pass
-
-    def hasLocalsDict(self):
-        # Modules don't do this, pylint: disable=no-self-use
-        return False
 
     def isUnoptimized(self):
         # Modules don't do this, pylint: disable=no-self-use

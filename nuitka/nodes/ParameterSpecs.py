@@ -31,6 +31,7 @@ flexible.
 
 from nuitka import Variables
 from nuitka.PythonVersions import python_version
+from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 
 class TooManyArguments(Exception):
@@ -54,6 +55,7 @@ class ParameterSpec(object):
         "kw_only_variables"
     )
 
+    @counted_init
     def __init__(self, ps_name, ps_normal_args, ps_kw_only_args, ps_list_star_arg,
                  ps_dict_star_arg, ps_default_count):
         if type(ps_normal_args) is str:
@@ -91,6 +93,8 @@ class ParameterSpec(object):
 
         self.kw_only_args = tuple(ps_kw_only_args)
         self.kw_only_variables = None
+
+    __del__ = counted_del()
 
     def makeClone(self):
         return ParameterSpec(

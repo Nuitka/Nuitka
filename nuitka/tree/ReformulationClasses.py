@@ -54,10 +54,13 @@ from nuitka.nodes.DictionaryNodes import (
 )
 from nuitka.nodes.FunctionNodes import ExpressionFunctionQualnameRef
 from nuitka.nodes.GlobalsLocalsNodes import (
-    ExpressionBuiltinLocalsCopy,
-    ExpressionBuiltinLocalsUpdated,
-    StatementSetLocals
+    ExpressionBuiltinLocalsRef,
+    StatementReleaseLocals,
+    StatementSetLocals,
+    StatementSetLocalsDictionary
 )
+from nuitka.nodes.LocalsDictNodes import StatementLocalsDictOperationSet
+from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
@@ -161,13 +164,15 @@ def _buildClassNode3(provider, node, source_ref):
 
     statements = [
         StatementSetLocals(
-            new_locals = ExpressionTempVariableRef(
+            locals_scope = class_creation_function.getLocalsScope(),
+            new_locals   = ExpressionTempVariableRef(
                 variable   = tmp_prepared,
                 source_ref = source_ref
             ),
-            source_ref = source_ref
+            source_ref   = source_ref
         ),
         StatementAssignmentVariableName(
+            provider      = class_creation_function,
             variable_name = "__module__",
             source        = makeConstantRefNode(
                 constant      = provider.getParentModule().getFullName(),
@@ -181,6 +186,7 @@ def _buildClassNode3(provider, node, source_ref):
     if class_doc is not None:
         statements.append(
             StatementAssignmentVariableName(
+                provider      = class_creation_function,
                 variable_name = "__doc__",
                 source        = makeConstantRefNode(
                     constant      = class_doc,
@@ -194,9 +200,6 @@ def _buildClassNode3(provider, node, source_ref):
     # The "__qualname__" attribute is new in Python 3.3.
     if python_version >= 330:
         qualname = class_creation_function.getFunctionQualname()
-        qualname_variable = class_creation_function.getVariableForAssignment(
-            "__qualname__"
-        )
 
         if python_version < 340:
             qualname_ref = makeConstantRefNode(
@@ -211,9 +214,10 @@ def _buildClassNode3(provider, node, source_ref):
             )
 
         statements.append(
-            StatementAssignmentVariableName(
-                variable_name = qualname_variable.getName(),
-                source        = qualname_ref,
+            StatementLocalsDictOperationSet(
+                locals_scope  = class_creation_function.getLocalsScope(),
+                variable_name = "__qualname__",
+                value         = qualname_ref,
                 source_ref    = source_ref
             )
         )
@@ -225,6 +229,7 @@ def _buildClassNode3(provider, node, source_ref):
        class_creation_function.needsAnnotationsDictionary():
         statements.append(
             StatementAssignmentVariableName(
+                provider      = class_creation_function,
                 variable_name = "__annotations__",
                 source        = makeConstantRefNode(
                     constant      = {},
@@ -238,9 +243,9 @@ def _buildClassNode3(provider, node, source_ref):
     statements.append(body)
 
     statements += [
-        StatementAssignmentVariableName(
-            variable_name = "__class__",
-            source        = makeExpressionCall(
+        StatementAssignmentVariable(
+            variable   = class_variable,
+            source     = makeExpressionCall(
                 called     = ExpressionTempVariableRef(
                     variable   = tmp_metaclass,
                     source_ref = source_ref
@@ -257,8 +262,9 @@ def _buildClassNode3(provider, node, source_ref):
                             variable   = tmp_bases,
                             source_ref = source_ref
                         ),
-                        ExpressionBuiltinLocalsUpdated(
-                            source_ref = source_ref
+                        ExpressionBuiltinLocalsRef(
+                            locals_scope = class_creation_function.getLocalsScope(),
+                            source_ref   = source_ref
                         )
                     ),
                     source_ref    = source_ref
@@ -269,7 +275,7 @@ def _buildClassNode3(provider, node, source_ref):
                 ),
                 source_ref = source_ref
             ),
-            source_ref    = source_ref
+            source_ref = source_ref
         ),
         StatementReturn(
             expression = class_variable_ref,
@@ -277,21 +283,22 @@ def _buildClassNode3(provider, node, source_ref):
         )
     ]
 
-    body = makeStatementsSequence(
-        statements = statements,
-        allow_none = True,
-        source_ref = source_ref
+    body = makeStatementsSequenceFromStatement(
+        statement = makeTryFinallyStatement(
+            provider   = class_creation_function,
+            tried      = mergeStatements(statements, True),
+            final      = StatementReleaseLocals(
+                locals_scope = class_creation_function.getLocalsScope(),
+                source_ref   = source_ref
+            ),
+            source_ref = source_ref
+        )
     )
 
     # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained.
 
     class_creation_function.setBody(body)
-
-    class_creation_function.registerProvidedVariable(tmp_bases)
-    class_creation_function.registerProvidedVariable(tmp_class_decl_dict)
-    class_creation_function.registerProvidedVariable(tmp_metaclass)
-    class_creation_function.registerProvidedVariable(tmp_prepared)
 
     # The class body is basically a function that implicitly, at the end
     # returns its created class and cannot have other return statements
@@ -494,13 +501,12 @@ def _buildClassNode3(provider, node, source_ref):
             ),
             source_ref = source_ref
         ),
-        StatementAssignmentVariable(
-            variable   = provider.getVariableForAssignment(
-                mangleName(node.name, provider)
-            ),
-            source     = decorated_body,
-            source_ref = source_ref
-        ),
+        StatementAssignmentVariableName(
+            provider      = provider,
+            variable_name = mangleName(node.name, provider),
+            source        = decorated_body,
+            source_ref    = source_ref
+        )
     )
 
     if python_version >= 340:
@@ -575,7 +581,12 @@ def _buildClassNode2(provider, node, source_ref):
     # returns its locals and cannot have other return statements contained, and
     # starts out with a variables "__module__" and potentially "__doc__" set.
     statements = [
+        StatementSetLocalsDictionary(
+            locals_scope = function_body.getLocalsScope(),
+            source_ref   = source_ref
+        ),
         StatementAssignmentVariableName(
+            provider      = function_body,
             variable_name = "__module__",
             source        = makeConstantRefNode(
                 constant      = provider.getParentModule().getFullName(),
@@ -589,6 +600,7 @@ def _buildClassNode2(provider, node, source_ref):
     if class_doc is not None:
         statements.append(
             StatementAssignmentVariableName(
+                provider      = function_body,
                 variable_name = "__doc__",
                 source        = makeConstantRefNode(
                     constant      = class_doc,
@@ -602,17 +614,24 @@ def _buildClassNode2(provider, node, source_ref):
     statements += [
         body,
         StatementReturn(
-            expression = ExpressionBuiltinLocalsCopy(
-                source_ref = source_ref
+            expression = ExpressionBuiltinLocalsRef(
+                locals_scope = function_body.getLocalsScope(),
+                source_ref   = source_ref
             ),
-            source_ref = source_ref.atInternal()
+            source_ref = source_ref
         )
     ]
 
-    body = makeStatementsSequence(
-        statements = statements,
-        allow_none = True,
-        source_ref = source_ref
+    body = makeStatementsSequenceFromStatement(
+        statement = makeTryFinallyStatement(
+            provider   = function_body,
+            tried      = mergeStatements(statements, True),
+            final      = StatementReleaseLocals(
+                locals_scope = function_body.getLocalsScope(),
+                source_ref   = source_ref
+            ),
+            source_ref = source_ref
+        )
     )
 
     # The class body is basically a function that implicitly, at the end
@@ -706,6 +725,7 @@ def _buildClassNode2(provider, node, source_ref):
                         # TODO: Should avoid checking __builtins__ for this.
                         expression = ExpressionVariableNameRef(
                             variable_name = "__metaclass__",
+                            provider      = parent_module,
                             source_ref    = source_ref
                         ),
                         source_ref = source_ref
@@ -846,6 +866,7 @@ def _buildClassNode2(provider, node, source_ref):
 
     statements.append(
         StatementAssignmentVariableName(
+            provider      = provider,
             variable_name = mangleName(node.name, provider),
             source        = ExpressionTempVariableRef(
                 variable   = tmp_class,

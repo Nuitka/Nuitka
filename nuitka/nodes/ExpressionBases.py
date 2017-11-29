@@ -77,14 +77,6 @@ class ExpressionBase(NodeBase):
         else:
             return None
 
-    def mayBeNone(self):
-        """ Could this evaluate to be "None".
-
-            Yes or no. Defaults to pessimistic yes."""
-        # For overload, pylint: disable=no-self-use
-
-        return True
-
     def isKnownToBeIterable(self, count):
         """ Can be iterated at all (count is None) or exactly count times.
 
@@ -663,11 +655,6 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         # Virtual method overload
 
         # Checking attributes of compile time constants never raises.
-        return False
-
-    def mayBeNone(self):
-        # Only the "None" compile time constant is going to allow that, and
-        # it overload this again.
         return False
 
     def computeExpressionOperationNot(self, not_node, trace_collection):

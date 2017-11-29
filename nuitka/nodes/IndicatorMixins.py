@@ -24,24 +24,6 @@ used like this.
 """
 
 
-class MarkLocalsDictIndicatorMixin(object):
-    def __init__(self):
-        self.needs_locals_dict = False
-        self.foreign_locals_dict = False
-
-    def hasLocalsDict(self):
-        return self.needs_locals_dict
-
-    def markAsLocalsDict(self):
-        self.needs_locals_dict = True
-
-    def markAsForeignLocalsDict(self):
-        self.foreign_locals_dict = True
-
-    def hasForeignLocalsDict(self):
-        return self.foreign_locals_dict
-
-
 class MarkUnoptimizedFunctionIndicatorMixin(object):
     """ Mixin for indication that a function contains an exec or star import.
 
@@ -52,14 +34,6 @@ class MarkUnoptimizedFunctionIndicatorMixin(object):
     def __init__(self, flags):
         self.unoptimized_locals = "has_exec" in flags
         self.unqualified_exec = "has_unqualified_exec" in flags
-        self.exec_source_ref = None
-
-    def markAsUnqualifiedExecContaining(self, source_ref):
-        assert self.unqualified_exec
-
-        # Let the first one win.
-        if self.exec_source_ref is None:
-            self.exec_source_ref = source_ref
 
     def isUnoptimized(self):
         return self.unoptimized_locals
@@ -67,8 +41,8 @@ class MarkUnoptimizedFunctionIndicatorMixin(object):
     def isUnqualifiedExec(self):
         return self.unoptimized_locals and self.unqualified_exec
 
-    def getExecSourceRef(self):
-        return self.exec_source_ref
+    def getLocalsScope(self):
+        return self.locals_scope
 
 
 class MarkNeedsAnnotationsMixin(object):

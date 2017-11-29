@@ -197,6 +197,7 @@ def buildImportFromNode(provider, node, source_ref):
             import_locals = makeConstantRefNode({}, source_ref, True)
 
         return StatementImportStar(
+            locals_scope  = None if provider.isCompiledPythonModule() else provider.getLocalsScope(),
             module_import = ExpressionBuiltinImport(
                 name        = makeConstantRefNode(module_name, source_ref, True),
                 globals_arg = import_globals,
@@ -259,6 +260,7 @@ def buildImportFromNode(provider, node, source_ref):
 
             import_statements.append(
                 StatementAssignmentVariableName(
+                    provider      = provider,
                     variable_name = mangleName(target_name, provider),
                     source        = ExpressionImportName(
                         module      = imported_from_module,
@@ -342,6 +344,7 @@ def buildImportModulesNode(provider, node, source_ref):
 
         import_nodes.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = mangleName(
                     local_name
                       if local_name is not None else

@@ -44,7 +44,6 @@ from nuitka.nodes.CoroutineNodes import (
 )
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionBody,
-    ExpressionFunctionCall,
     ExpressionFunctionCreation,
     ExpressionFunctionRef
 )
@@ -53,11 +52,14 @@ from nuitka.nodes.GeneratorNodes import (
     ExpressionMakeGeneratorObject,
     StatementGeneratorReturnNone
 )
+from nuitka.nodes.GlobalsLocalsNodes import StatementSetLocalsDictionary
+from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableNameRef
+    ExpressionVariableNameRef,
+    ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
 
@@ -93,6 +95,26 @@ def _insertFinalReturnStatement(function_statements_body, return_statement):
     return function_statements_body
 
 
+def _insertInitialSetLocalsDictStatement(function_body, function_statements_body):
+    locals_statement = StatementSetLocalsDictionary(
+        locals_scope = function_body.getLocalsScope(),
+        source_ref   = function_body.source_ref
+    )
+
+    if function_statements_body is None:
+        function_statements_body = makeStatementsSequenceFromStatement(
+            statement = locals_statement
+        )
+    else:
+        function_statements_body.setStatements(
+            (
+                locals_statement,
+            ) + function_statements_body.getStatements()
+        )
+
+    return function_statements_body
+
+
 def buildFunctionNode(provider, node, source_ref):
     # Functions have way too many details, pylint: disable=too-many-branches,too-many-locals
 
@@ -104,7 +126,7 @@ def buildFunctionNode(provider, node, source_ref):
         nodes = function_statement_nodes
     )
 
-    outer_body, function_body, code_object = buildFunctionWithParsing(
+    function_body, code_body, code_object = buildFunctionWithParsing(
         provider      = provider,
         function_kind = function_kind,
         name          = node.name,
@@ -114,9 +136,7 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref    = source_ref
     )
 
-    if function_kind == "Function":
-        code_body = function_body
-    elif function_kind == "Generator":
+    if function_kind == "Generator":
         code_body = ExpressionGeneratorObjectBody(
             provider   = function_body,
             name       = node.name,
@@ -127,10 +147,7 @@ def buildFunctionNode(provider, node, source_ref):
 
         for variable in function_body.getVariables():
             code_body.getVariableForReference(variable.getName())
-    else:
-        assert False, function_kind
 
-    if function_kind == "Generator":
         function_body.setBody(
             makeStatementsSequenceFromStatement(
                 statement = StatementReturn(
@@ -182,6 +199,12 @@ def buildFunctionNode(provider, node, source_ref):
             )
         )
 
+    if "has_exec" in flags:
+        function_statements_body = _insertInitialSetLocalsDictStatement(
+            function_body            = code_body,
+            function_statements_body = function_statements_body,
+        )
+
     if function_statements_body.isStatementsFrame():
         function_statements_body = makeStatementsSequenceFromStatement(
             statement = function_statements_body
@@ -195,7 +218,7 @@ def buildFunctionNode(provider, node, source_ref):
 
     function_creation = ExpressionFunctionCreation(
         function_ref = ExpressionFunctionRef(
-            function_body = outer_body,
+            function_body = function_body,
             source_ref    = source_ref
         ),
         code_object  = code_object,
@@ -249,6 +272,7 @@ def buildFunctionNode(provider, node, source_ref):
         )
 
     result = StatementAssignmentVariableName(
+        provider      = provider,
         variable_name = mangleName(node.name, provider),
         source        = decorated_function,
         source_ref    = source_ref
@@ -276,8 +300,8 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         provider      = provider,
         function_kind = function_kind,
         name          = node.name,
-        flags         = (),
         function_doc  = function_doc,
+        flags         = (),
         node          = node,
         source_ref    = source_ref
     )
@@ -394,6 +418,7 @@ def buildAsyncFunctionNode(provider, node, source_ref):
         )
 
     result = StatementAssignmentVariableName(
+        provider      = provider,
         variable_name = mangleName(node.name, provider),
         source        = decorated_function,
         source_ref    = source_ref
@@ -529,7 +554,6 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
     # pylint: disable=too-many-locals
 
     kind = getKind(node)
-
     assert kind in ("FunctionDef", "Lambda", "AsyncFunctionDef"), "unsupported for kind " + kind
 
     def extractArg(arg):
@@ -614,7 +638,6 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
 
     if special_args:
         inner_name = name.strip("<>") + "$inner"
-        inner_arg_names = []
         iter_vars = []
 
         values = []
@@ -642,9 +665,8 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
 
             for element_index, arg_name in enumerate(arg_names):
                 if getKind(arg_name) == "Name":
-                    inner_arg_names.append(arg_name.id)
-
-                    arg_var = outer_body.allocateTempVariable(None, "tmp_" + arg_name.id)
+                    arg_var = outer_body.createProvidedVariable(arg_name.id)
+                    outer_body.registerProvidedVariable(arg_var)
 
                     statements.append(
                         StatementAssignmentVariable(
@@ -663,7 +685,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                     )
 
                     accesses.append(
-                        ExpressionTempVariableRef(
+                        ExpressionVariableRef(
                             variable   = arg_var,
                             source_ref = source_ref
                         )
@@ -704,6 +726,7 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
         for arg_name in parameters.getParameterNames():
             if arg_name.startswith('.'):
                 source = ExpressionVariableNameRef(
+                    provider      = outer_body,
                     variable_name = arg_name,
                     source_ref    = source_ref
                 )
@@ -714,48 +737,21 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
             else:
                 values.append(
                     ExpressionVariableNameRef(
+                        provider      = outer_body,
                         variable_name = arg_name,
                         source_ref    = source_ref
                     )
                 )
 
-                inner_arg_names.append(arg_name)
-
-        inner_parameters = ParameterSpec(
-            ps_name          = inner_name,
-            ps_normal_args   = inner_arg_names,
-            ps_kw_only_args  = (),
-            ps_list_star_arg = None,
-            ps_dict_star_arg = None,
-            ps_default_count = None
-        )
-
-        function_body = ExpressionFunctionBody(
+        code_body = ExpressionOutlineFunction(
             provider   = outer_body,
             name       = inner_name,
-            flags      = flags,
-            doc        = function_doc,
-            parameters = inner_parameters,
             source_ref = source_ref
         )
 
         statements.append(
             StatementReturn(
-                ExpressionFunctionCall(
-                    function   = ExpressionFunctionCreation(
-                        function_ref = ExpressionFunctionRef(
-                            function_body = function_body,
-                            source_ref    = source_ref
-                        ),
-                        code_object  = code_object,
-                        defaults     = (),
-                        kw_defaults  = None,
-                        annotations  = None,
-                        source_ref   = source_ref
-                    ),
-                    values     = values,
-                    source_ref = source_ref
-                ),
+                expression = code_body,
                 source_ref = source_ref
             )
         )
@@ -782,9 +778,9 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
             )
         )
     else:
-        function_body = outer_body
+        code_body = outer_body
 
-    return outer_body, function_body, code_object
+    return outer_body, code_body, code_object
 
 
 def addFunctionVariableReleases(function):

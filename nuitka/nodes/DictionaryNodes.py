@@ -254,9 +254,6 @@ Created dictionary found to be constant."""
     def getTruthValue(self):
         return self.getIterationLength() > 0
 
-    def mayBeNone(self):
-        return False
-
     def isMapping(self):
         # Dictionaries are always mappings, but this is a virtual method,
         # pylint: disable=no-self-use

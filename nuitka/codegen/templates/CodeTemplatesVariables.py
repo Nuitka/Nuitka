@@ -196,14 +196,27 @@ if (unlikely( %(tmp_name)s == NULL ))
 }
 """
 
-template_read_maybe_local_unclear = """\
-%(tmp_name)s = PyDict_GetItem( %(locals_dict)s, %(var_name)s );
+template_read_locals_dict_with_fallback = """\
+%(to_name)s = PyDict_GetItem( %(locals_dict)s, %(var_name)s );
 
-if ( %(tmp_name)s == NULL )
+if ( %(to_name)s == NULL )
 {
 %(fallback)s
 }
 """
+
+template_read_locals_mapping_with_fallback = """\
+%(to_name)s = PyObject_GetItem( %(locals_dict)s, %(var_name)s );
+
+if ( %(to_name)s == NULL )
+{
+    if ( CHECK_AND_CLEAR_KEY_ERROR_OCCURRED() )
+    {
+%(fallback)s
+    }
+}
+"""
+
 
 template_del_global_unclear = """\
 %(res_name)s = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, %(var_name)s );

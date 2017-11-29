@@ -43,9 +43,9 @@ from .ExpressionBases import (
 from .FutureSpecs import fromFlags
 from .IndicatorMixins import (
     EntryPointMixin,
-    MarkLocalsDictIndicatorMixin,
     MarkUnoptimizedFunctionIndicatorMixin
 )
+from .LocalsScopes import LocalsDictHandle
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeMixin,
@@ -106,13 +106,6 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         # Non-local declarations.
         self.non_local_declarations = []
 
-        # Register ourselves immediately with the module.
-
-        # TODO: Have a base class that is between outline function and entry
-        # point functions.
-        if not self.isExpressionOutlineFunction() and \
-           not self.isExpressionClassBody():
-            provider.getParentModule().addFunction(self)
 
     @staticmethod
     def isExpressionFunctionBodyBase():
@@ -159,11 +152,6 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
         return False
 
-    def isLocalsUpdatedMode(self):
-        return python_version >= 300 or \
-               self.isEarlyClosure() or \
-               self.isUnoptimized()
-
     def hasVariableName(self, variable_name):
         return variable_name in self.providing or variable_name in self.temp_variables
 
@@ -209,12 +197,13 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         return tuple(result)
 
     def removeClosureVariable(self, variable):
-        assert variable in self.providing.values(), (self.providing, variable)
+        # Do not remove parameter variables of ours.
+        assert not variable.isParameterVariable() or variable.getOwner() is not self
 
-        del self.providing[variable.getName()]
+        variable_name = variable.getName()
 
-        assert not variable.isParameterVariable() or \
-               variable.getOwner() is not self
+        if variable_name in self.providing:
+            del self.providing[variable.getName()]
 
         self.taken.remove(variable)
 
@@ -376,12 +365,52 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
         EntryPointMixin.__init__(self)
 
+        provider.getParentModule().addFunction(self)
+
+        if "has_exec" in flags or python_version >= 300:
+            locals_dict_name = "locals_%s" % (
+                self.getCodeName(),
+            )
+
+            self.locals_scope = LocalsDictHandle(locals_dict_name)
+        else:
+            self.locals_scope = None
+
     getBody = ChildrenHavingMixin.childGetter("body")
     setBody = ChildrenHavingMixin.childSetter("body")
 
+    def computeFunctionRaw(self, trace_collection):
+        from nuitka.optimizations.TraceCollections import \
+            TraceCollectionFunction
 
-class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
-                             MarkUnoptimizedFunctionIndicatorMixin,
+        trace_collection = TraceCollectionFunction(
+            parent        = trace_collection,
+            function_body = self
+        )
+        old_collection = self.setTraceCollection(trace_collection)
+
+        self.computeFunction(trace_collection)
+
+        trace_collection.updateVariablesFromCollection(old_collection)
+
+    def computeFunction(self, trace_collection):
+        statements_sequence = self.getBody()
+
+        if statements_sequence is not None and \
+           not statements_sequence.getStatements():
+            statements_sequence.setStatements(None)
+            statements_sequence = None
+
+        if statements_sequence is not None:
+            result = statements_sequence.computeStatementsSequence(
+                trace_collection = trace_collection
+            )
+
+            if result is not statements_sequence:
+                self.setBody(result)
+
+
+class ExpressionFunctionBody(MarkUnoptimizedFunctionIndicatorMixin,
                              ExpressionFunctionEntryPointBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, leading to many methods, pylint: disable=R0901
@@ -401,9 +430,6 @@ class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
         qualname_setup = None
 
     def __init__(self, provider, name, doc, parameters, flags, source_ref):
-        if name == "<listcontraction>":
-            assert python_version >= 300
-
         ExpressionFunctionEntryPointBase.__init__(
             self,
             provider    = provider,
@@ -412,8 +438,6 @@ class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
             flags       = flags,
             source_ref  = source_ref
         )
-
-        MarkLocalsDictIndicatorMixin.__init__(self)
 
         MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
@@ -518,6 +542,14 @@ class ExpressionFunctionBody(MarkLocalsDictIndicatorMixin,
 
     def markAsCrossModuleUsed(self):
         self.cross_module_use = True
+
+    def computeFunction(self, trace_collection):
+        # TODO: A different function node type seems justified due to this
+        if self.isUnoptimized():
+            with trace_collection.makeLocalsDictContext(self.locals_scope):
+                ExpressionFunctionEntryPointBase.computeFunction(self, trace_collection)
+        else:
+            ExpressionFunctionEntryPointBase.computeFunction(self, trace_collection)
 
     def computeExpressionCall(self, call_node, call_args, call_kw,
                               trace_collection):
@@ -854,37 +886,10 @@ class ExpressionFunctionRef(ExpressionBase):
         from nuitka.ModuleRegistry import addUsedModule
         addUsedModule(owning_module)
 
-        owning_module.addUsedFunction(function_body)
+        needs_visit = owning_module.addUsedFunction(function_body)
 
-        from nuitka.optimizations.TraceCollections import \
-            TraceCollectionFunction
-
-        # TODO: Doesn't this mean, we can do this multiple times by doing it
-        # in the reference. We should do it in the body, and there we should
-        # limit us to only doing it once per module run, e.g. being based on
-        # presence in used functions of the module already.
-        trace_collection = TraceCollectionFunction(
-            parent        = trace_collection,
-            function_body = function_body
-        )
-        old_collection = function_body.setTraceCollection(trace_collection)
-
-        statements_sequence = function_body.getBody()
-
-        if statements_sequence is not None and \
-           not statements_sequence.getStatements():
-            function_body.setStatements(None)
-            statements_sequence = None
-
-        if statements_sequence is not None:
-            result = statements_sequence.computeStatementsSequence(
-                trace_collection = trace_collection
-            )
-
-            if result is not statements_sequence:
-                function_body.setBody(result)
-
-        trace_collection.updateVariablesFromCollection(old_collection)
+        if needs_visit:
+            function_body.computeFunctionRaw(trace_collection)
 
         # TODO: Function collection may now know something.
         return self, None, None

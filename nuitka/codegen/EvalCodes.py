@@ -18,6 +18,7 @@
 """ Eval/exec/execfile/compile built-in related codes. """
 
 from nuitka import Options
+from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateExpressionCode
@@ -30,7 +31,7 @@ from .ErrorCodes import (
 from .VariableCodes import getVariableAssignmentCode
 
 
-def getStoreLocalsCode(locals_name, variables, is_foreign, emit, context):
+def getStoreLocalsCode(locals_name, variables, is_dict, emit, context):
     for variable, version in variables:
         if not variable.isModuleVariable():
             key_name = context.getConstantCode(
@@ -39,7 +40,15 @@ def getStoreLocalsCode(locals_name, variables, is_foreign, emit, context):
 
             value_name = context.allocateTempName("locals_value", unique = True)
 
-            if is_foreign:
+            if is_dict:
+                emit(
+                    "%s = PyDict_GetItem( %s, %s );" % (
+                       value_name,
+                       locals_name,
+                       key_name,
+                    )
+                )
+            else:
                 emit(
                    "%s = PyObject_GetItem( %s, %s );" % (
                        value_name,
@@ -58,14 +67,6 @@ def getStoreLocalsCode(locals_name, variables, is_foreign, emit, context):
                 emit("CLEAR_ERROR_OCCURRED();")
 
                 context.addCleanupTempName(value_name)
-            else:
-                emit(
-                    "%s = PyDict_GetItem( %s, %s );" % (
-                       value_name,
-                       locals_name,
-                       key_name,
-                    )
-                )
 
             emit("if ( %s != NULL )" % value_name)
             emit('{')
@@ -81,8 +82,6 @@ def getStoreLocalsCode(locals_name, variables, is_foreign, emit, context):
             )
 
             emit('}')
-
-
 
 
 def generateBuiltinCompileCode(to_name, expression, emit, context):
@@ -432,7 +431,7 @@ def generateLocalsDictSyncCode(statement, emit, context):
     getStoreLocalsCode(
         locals_name = locals_name,
         variables   = statement.previous_traces,
-        is_foreign  = context.hasForeignLocalsDict(),
+        is_dict     = locals_arg.getTypeShape() is ShapeTypeDict,
         emit        = emit,
         context     = context
     )

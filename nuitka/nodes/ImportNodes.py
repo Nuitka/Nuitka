@@ -316,8 +316,8 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                                     sub_imported_module.getFullName()
                                 )
         else:
-            while "." in module_name:
-                module_name = ".".join(module_name.split(".")[:-1])
+            while '.' in module_name:
+                module_name = '.'.join(module_name.split('.')[:-1])
 
                 module_package, module_filename, _finding = findModule(
                     importing      = self,
@@ -441,7 +441,7 @@ class StatementImportStar(StatementChildrenHavingBase):
 
     named_children = ("module",)
 
-    def __init__(self, module_import, source_ref):
+    def __init__(self, locals_scope, module_import, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -450,10 +450,17 @@ class StatementImportStar(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.locals_scope = locals_scope
+
     getSourceModule = StatementChildrenHavingBase.childGetter("module")
+
+    def getLocalsDictScope(self):
+        return self.locals_scope
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getSourceModule())
+
+        trace_collection.onLocalsDictEscaped()
 
         # Need to invalidate everything, and everything could be assigned to
         # something else now.

@@ -1023,12 +1023,16 @@ def super_extractor(node):
                     exception_value = "super(): no arguments",
                 )
 
+            class_variable = provider.getVariableForReference(
+                variable_name = "__class__"
+            )
+
+            provider.trace_collection.getVariableCurrentTrace(class_variable).addUsage()
+
             type_arg = ExpressionVariableRef(
                 # Ought to be already closure taken due to "super" flag in
                 # tree building.
-                variable   = provider.getVariableForReference(
-                    variable_name = "__class__"
-                ),
+                variable   = class_variable,
                 source_ref = source_ref
             )
 
@@ -1060,10 +1064,14 @@ def super_extractor(node):
                 if parameter_provider.getParameters().getArgumentCount() > 0:
                     par1_name = parameter_provider.getParameters().getArgumentNames()[0]
 
+                    object_variable = provider.getVariableForReference(
+                        variable_name = par1_name
+                    )
+
+                    provider.trace_collection.getVariableCurrentTrace(object_variable).addUsage()
+
                     object_arg = ExpressionVariableRef(
-                        variable   =  provider.getVariableForReference(
-                            variable_name = par1_name
-                        ),
+                        variable   = object_variable,
                         source_ref = source_ref
                     )
 

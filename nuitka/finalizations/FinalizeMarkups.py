@@ -66,18 +66,6 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
         # Also all self specific things have been done on the outside,
         # pylint: disable=no-self-use
-        if node.isExpressionFunctionBody():
-            if node.isUnoptimized():
-                node.markAsLocalsDict()
-
-        if node.needsLocalsDict():
-            provider = node.getParentVariableProvider()
-
-            provider.markAsLocalsDict()
-
-            if node.isStatementSetLocals():
-                provider.markAsForeignLocalsDict()
-
         if node.isStatementReturn() or node.isStatementGeneratorReturn():
             search = node
 

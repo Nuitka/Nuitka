@@ -30,7 +30,6 @@ the traces.
 
 """
 
-from nuitka import Options
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 
 from .NodeBases import NodeBase, StatementChildrenHavingBase
@@ -51,7 +50,7 @@ class StatementAssignmentVariableName(StatementChildrenHavingBase):
         "source",
     )
 
-    def __init__(self, source, variable_name, source_ref):
+    def __init__(self, provider, variable_name, source, source_ref):
         assert source is not None, source_ref
 
         StatementChildrenHavingBase.__init__(
@@ -63,10 +62,14 @@ class StatementAssignmentVariableName(StatementChildrenHavingBase):
         )
 
         self.variable_name = variable_name
+        self.provider = provider
+
+        assert not provider.isExpressionOutlineBody(), source_ref
 
     def getDetails(self):
         return {
-            "variable_name" : self.variable_name
+            "variable_name" : self.variable_name,
+            "provider" : self.provider
         }
 
     def getVariableName(self):
@@ -88,20 +91,23 @@ class StatementDelVariableName(NodeBase):
 
     kind = "STATEMENT_DEL_VARIABLE_NAME"
 
-    __slots__ = "variable_name", "tolerant"
+    __slots__ = "variable_name", "provider", "tolerant"
 
-    def __init__(self, variable_name, tolerant, source_ref):
+    def __init__(self, provider, variable_name, tolerant, source_ref):
         NodeBase.__init__(
             self,
             source_ref = source_ref
         )
 
         self.variable_name = variable_name
+        self.provider = provider
+
         self.tolerant = tolerant
 
     def getDetails(self):
         return {
             "variable_name" : self.variable_name,
+            "provider" : self.provider,
             "tolerant" : self.tolerant
         }
 
@@ -239,11 +245,10 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         return self.getAssignSource().mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        # This is very complex stuff, pylint: disable=too-many-branches,too-many-return-statements
+        # This is very complex stuff, pylint: disable=too-many-branches
 
         # TODO: Way too ugly to have global trace kinds just here, and needs to
-        # be abstracted somehow. But for now we let it live here: pylint: disable=too-many-statements
-
+        # be abstracted somehow. But for now we let it live here.
         source = self.getAssignSource()
 
         if source.isExpressionSideEffects():

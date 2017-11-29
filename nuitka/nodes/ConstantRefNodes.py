@@ -384,9 +384,6 @@ class ExpressionConstantNoneRef(ExpressionConstantRefBase):
     def getTypeShape(self):
         return ShapeTypeNoneType
 
-    def mayBeNone(self):
-        return True
-
 
 class ExpressionConstantTrueRef(ExpressionConstantRefBase):
     kind = "EXPRESSION_CONSTANT_TRUE_REF"

@@ -31,6 +31,7 @@ from logging import warning
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.Options import isDebug, shallWarnImplicitRaises
+from nuitka.PythonVersions import python_version
 
 
 def makeConstantReplacementNode(constant, node):
@@ -460,13 +461,26 @@ def makeExpressionBuiltinLocals(provider, source_ref):
             source_ref = source_ref
         )
     else:
-        from .GlobalsLocalsNodes import ExpressionBuiltinLocalsUpdated, ExpressionBuiltinLocalsCopy
-
-        if provider.isLocalsUpdatedMode():
-            locals_class = ExpressionBuiltinLocalsUpdated
-        else:
-            locals_class = ExpressionBuiltinLocalsCopy
-
-        return locals_class(
-            source_ref = source_ref
+        from .GlobalsLocalsNodes import (
+            ExpressionBuiltinLocalsCopy,
+            ExpressionBuiltinLocalsRef,
+            ExpressionBuiltinLocalsUpdated
         )
+
+        # TODO: make this dependent on getLocalsScope not being None.
+        if provider.isExpressionClassBody():
+            return ExpressionBuiltinLocalsRef(
+                locals_scope = provider.getLocalsScope(),
+                source_ref   = source_ref
+            )
+        elif python_version >= 300 or provider.isUnoptimized():
+            assert provider.getLocalsScope(), provider
+
+            return ExpressionBuiltinLocalsUpdated(
+                locals_scope = provider.getLocalsScope(),
+                source_ref   = source_ref
+            )
+        else:
+            return ExpressionBuiltinLocalsCopy(
+                source_ref = source_ref
+            )

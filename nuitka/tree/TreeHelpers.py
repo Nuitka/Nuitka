@@ -377,6 +377,9 @@ def buildFrameNode(provider, nodes, code_object, source_ref):
     if not statements:
         return None
 
+    if provider.isExpressionOutlineFunction():
+        provider = provider.getParentVariableProvider()
+
     if provider.isExpressionFunctionBody() or \
        provider.isExpressionClassBody():
         result = StatementsFrameFunction(

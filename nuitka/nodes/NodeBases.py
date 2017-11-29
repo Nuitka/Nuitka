@@ -236,7 +236,8 @@ class NodeBase(NodeMetaClassBase):
 
         parent = self.getParent()
 
-        while parent is not None and not parent.isExpressionFunctionBodyBase():
+        while parent is not None and \
+              not parent.isExpressionFunctionBodyBase():
             parent = parent.getParent()
 
         return parent
@@ -517,12 +518,6 @@ class NodeBase(NodeMetaClassBase):
         """ Is the node aborting, control flow doesn't continue after this node.  """
         assert self.isStatement(), self.kind
 
-        return False
-
-    def needsLocalsDict(self):
-        """ Node requires a locals dictionary by provider. """
-
-        # Virtual method, pylint: disable=no-self-use
         return False
 
 
@@ -855,6 +850,11 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         result = self.createTempVariable(
             temp_name = full_name
         )
+
+        # Late added temp variables should be treated with care for the
+        # remaining trace.
+        if self.trace_collection is not None:
+            self.trace_collection.initVariableUnknown(result).addUsage()
 
         return result
 
