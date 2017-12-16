@@ -201,7 +201,7 @@ def getExecutablePath(filename, initial):
     """ Find an execute in either normal PATH, or Scons detected PATH. """
 
     if os.path.exists(filename):
-        return True
+        return filename
 
     # Variable substitution from environment is needed, because this can contain
     # "$CC" which should be looked up too.
