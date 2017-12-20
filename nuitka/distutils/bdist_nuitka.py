@@ -23,34 +23,34 @@ import os
 import shutil
 import subprocess
 import sys
-import fnmatch
 import wheel.bdist_wheel  # @UnresolvedImport
+import distutils.command.build
+import distutils.command.install
+
+
+def setuptools_build_hook(dist, keyword, value):
+    # If the user project setup.py includes the key "build_with_nuitka=True" all
+    # build operations (build, bdist_wheel, install etc) will run via nuitka
+    if not value:
+        return
+    dist.cmdclass = dist.cmdclass or {}  # Ensure is a dict
+    dist.cmdclass['build'] = build
+    dist.cmdclass['install'] = install
+    dist.cmdclass['bdist_wheel'] = bdist_nuitka
 
 
 # Class name enforced by distutils, must match the command name.
 # pylint: disable=C0103
-class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
+class build(distutils.command.build.build):
 
-    def finalize_options(self):
-        # self.distribution.libraries = [[True]]
-        self.distribution.has_ext_modules = lambda: True
-
-        super(bdist_nuitka, self).finalize_options()
-        # Force module to be recognised as binary rather than pure python
-        self.root_is_pure = False
-        self.plat_name_supplied = self.plat_name is not None
-
-    # Our wheel base class is very unpure, so are we
     # pylint: disable=attribute-defined-outside-init
     def run(self):
         self.compile_packages = self.distribution.packages
         self.main_package = self.compile_packages[0]
 
-        # Exclude packages from the wheel, we deal with them by compiling
-        # into single package.
-        # self.distribution.packages = []
+        super(build, self).run()
 
-        wheel.bdist_wheel.bdist_wheel.run(self)
+        self._buildPackage(os.path.abspath(self.build_lib))
 
     def _buildPackage(self, build_lib):
         # Nuitka wants the main package by filename, probably we should stop
@@ -80,16 +80,17 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         keep_resources = False
 
         python_files = []
-        recurse_packages = self.compile_packages.copy()
         if os.path.isdir(main_filename):
             # Include all python files in wheel
             for root, dirs, files in os.walk(main_filename):
+                if '__pycache__' in dirs:
+                    dirs.remove('__pycache__')
+                    shutil.rmtree(os.path.join(root, '__pycache__'))
+
                 for fn in files:
-                    if fnmatch.fnmatch(fn, '*.py'):
-                        relpath = os.path.relpath(os.path.join(root, fn), os.path.dirname(main_filename))
-                        module = relpath[:-3] if fn != '__init__.py' else os.path.basename(root)
-                        pypath = ".".join(module.split(os.sep))
-                        recurse_packages.append(pypath)
+                    if fn.lower().endswith(('.py', '.pyc', '.pyo')):
+                        # These files will definitely be deleted once nuitka
+                        # has compiled the main_package
                         python_files.append(os.path.join(root, fn))
                     else:
                         keep_resources = True
@@ -107,11 +108,12 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
             "--plugin-enable=pylint-warnings",
             "--output-dir=%s" % output_dir,
             "--recurse-dir=%s" % self.main_package,
+            "--recurse-to=%s" % self.main_package,
             "--recurse-not-to=*.tests",
             "--show-modules",
             "--remove-output",
             main_filename,
-        ] + ["--recurse-to=%s" % p for p in recurse_packages]
+        ]
 
         subprocess.check_call(
             command
@@ -121,29 +123,42 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         self.build_lib = build_lib
 
         if keep_resources:
-            # Delete the individual source files and add new __init__ stub
+            # Delete the individual source files
             for fn in python_files:
                 os.unlink(fn)
         else:
-            # Delete the source copy of the module
+            # Delete the entire source copy of the module
             shutil.rmtree(os.path.join(self.build_lib, self.main_package))
 
-    def run_command(self, command):
-        if command == "install":
-            command_obj = self.distribution.get_command_obj("install_lib")
-            setattr(command_obj, "install_dir", self.bdist_dir)
 
-        result = super(bdist_nuitka, self).run_command(command)
+# pylint: disable=C0103
+class install(distutils.command.install.install):
 
-        # After building, we are ready to build the extension module, from
-        # the folder what "build_py" command has assembled for us.
-        if command == "build":
-            command_obj = self.distribution.get_command_obj(command)
-            command_obj.ensure_finalized()
+    # pylint: disable=attribute-defined-outside-init
+    def finalize_options(self):
+        super(install, self).finalize_options()
+        # Ensure the purelib folder is not used
+        self.install_lib = self.install_platlib
 
-            self._buildPackage(os.path.abspath(command_obj.build_lib))
 
-        return result
+# pylint: disable=C0103
+class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
+
+    def initialize_options(self):
+        # Register the command class overrides above
+        dist = self.distribution
+        dist.cmdclass = dist.cmdclass or {}  # Ensure is a dict
+        dist.cmdclass['build'] = build
+        dist.cmdclass['install'] = install
+
+        super(bdist_nuitka, self).initialize_options()
+
+    # pylint: disable=attribute-defined-outside-init
+    def finalize_options(self):
+        super(bdist_nuitka, self).finalize_options()
+        # Force module to use correct platform in name
+        self.root_is_pure = False
+        self.plat_name_supplied = self.plat_name is not None
 
     def write_wheelfile(self, wheelfile_base, generator = None):
         if generator is None:
