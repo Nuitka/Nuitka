@@ -429,6 +429,7 @@ if "CC" in os.environ:
     # If the environment variable CXX is set, use that.
     env["CC"] = os.environ["CC"]
     env["CCVERSION"] = None
+    found_gcc = True
 elif clang_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
