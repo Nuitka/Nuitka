@@ -201,7 +201,7 @@ def getExecutablePath(filename, initial):
     """ Find an execute in either normal PATH, or Scons detected PATH. """
 
     if os.path.exists(filename):
-        return True
+        return filename
 
     # Variable substitution from environment is needed, because this can contain
     # "$CC" which should be looked up too.
@@ -1726,7 +1726,7 @@ if show_scons_mode:
 # build directory. Makes no sense of course, if that is removed later on by
 # Nuitka.
 if cache_mode:
-    CacheDir(os.path.join(source_dir, "cache-" + target_arch + python_abi_version)) # @UndefinedVariable
+    CacheDir(os.path.join(source_dir, "cache-" + target_arch + '-' + python_abi_version)) # @UndefinedVariable
     Decider("MD5-timestamp") # @UndefinedVariable
 
 # Before we go, also lets turn KeyboardInterrupt into a mere error exit.

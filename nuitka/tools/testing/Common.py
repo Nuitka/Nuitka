@@ -626,6 +626,9 @@ Error, needs 'strace' on your system to scan used libraries."""
 
 
 def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
+    # A lot of special white listing is required.
+    # pylint: disable=too-many-branches,too-many-statements
+
     result = []
 
     for loaded_filename in loaded_filenames:

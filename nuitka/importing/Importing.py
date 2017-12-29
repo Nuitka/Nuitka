@@ -136,7 +136,7 @@ def isWhiteListedImport(node):
     return StandardLibrary.isStandardLibraryPath(module.getFilename())
 
 
-def warnAbout(importing, module_name, parent_package, level):
+def warnAbout(importing, module_name, parent_package, level, tried_names):
     # This probably should not be dealt with here.
     if module_name == "":
         return
@@ -167,11 +167,12 @@ def warnAbout(importing, module_name, parent_package, level):
 
             if parent_package is not None:
                 warning(
-                    "%s: Cannot find '%s' in package '%s' %s.",
+                    "%s: Cannot find '%s' in package '%s' %s (tried %s).",
                     importing.getSourceReference().getAsString(),
                     module_name,
                     parent_package,
-                    level_desc
+                    level_desc,
+                    ','.join(tried_names)
                 )
             else:
                 warning(
@@ -298,6 +299,7 @@ def findModule(importing, module_name, parent_package, level, warn):
             importing      = importing,
             module_name    = module_name,
             parent_package = parent_package,
+            tried_names    = tried_names,
             level          = level
         )
 
@@ -315,7 +317,7 @@ def _findModuleInPath2(module_name, search_path):
         None, if it is a built-in.
     """
     # We have many branches here, because there are a lot of cases to try.
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-locals
 
     # We may have to decide between package and module, therefore build
     # a list of candidates.
@@ -335,7 +337,10 @@ def _findModuleInPath2(module_name, search_path):
         # First, check for a package with an init file, that would be the
         # first choice.
         if os.path.isdir(package_directory):
-            for suffix in (".py", ".pyc"):
+            for suffix, _mode, mtype in imp.get_suffixes():
+                if mtype == imp.C_EXTENSION:
+                    continue
+
                 package_file_name = "__init__" + suffix
 
                 file_path = os.path.join(package_directory, package_file_name)
@@ -457,7 +462,7 @@ def _findModuleInPath(module_name, package_name):
     search_path = getPackageSearchPath(package_name)
 
     if _debug_module_finding:
-        print("_findModuleInPath: Using search path", search_path)
+        print("_findModuleInPath: Using search path", search_path, "for", package_name)
 
     try:
         module_filename = _findModuleInPath2(

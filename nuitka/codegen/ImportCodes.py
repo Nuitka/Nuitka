@@ -204,7 +204,7 @@ def generateImportStarCode(statement, emit, context):
 
     res_name = context.getBoolResName()
 
-    if not context.hasLocalsDict():
+    if statement.getLocalsDictScope() is None:
         emit(
             "%s = IMPORT_MODULE_STAR( %s, true, %s );" % (
                 res_name,
@@ -215,13 +215,19 @@ def generateImportStarCode(statement, emit, context):
             )
         )
     else:
+        locals_dict_name = statement.getLocalsDictScope().getCodeName()
+
         emit(
-            "%s = IMPORT_MODULE_STAR( %s, false, %s );" % (
-                res_name,
-                context.getLocalsDictName(),
-                module_name
-            )
+            """
+%(res_name)s = IMPORT_MODULE_STAR( %(locals_dict)s, false, %(module_name)s );
+""" % {
+                "res_name"    : res_name,
+                "locals_dict" : locals_dict_name,
+                "module_name" : module_name
+            }
         )
+
+        context.addLocalsDictName(locals_dict_name)
 
     getReleaseCode(
         release_name = module_name,

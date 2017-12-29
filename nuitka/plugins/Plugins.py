@@ -106,6 +106,18 @@ class Plugins(object):
         return result
 
     @staticmethod
+    def removeDllDependencies(dll_filename, dll_filenames):
+        dll_filenames = tuple(sorted(dll_filenames))
+
+        result = []
+
+        for plugin in active_plugin_list:
+            for removed_dll in plugin.removeDllDependencies(dll_filename, dll_filenames):
+                result.append(removed_dll)
+
+        return result
+
+    @staticmethod
     def considerDataFiles(module):
         for plugin in active_plugin_list:
             for value in plugin.considerDataFiles(module):
@@ -171,9 +183,9 @@ class Plugins(object):
         return None
 
     @staticmethod
-    def suppressBuiltinImportWarning(module_name, source_ref):
+    def suppressBuiltinImportWarning(module, source_ref):
         for plugin in active_plugin_list:
-            if plugin.suppressBuiltinImportWarning(module_name, source_ref):
+            if plugin.suppressBuiltinImportWarning(module, source_ref):
                 return True
 
         return False

@@ -335,7 +335,6 @@ def generateDictOperationSetCode(statement, emit, context):
     )
 
 
-
 def generateDictOperationRemoveCode(statement, emit, context):
     dict_arg_name = context.allocateTempName("dictdel_dict", unique = True)
     generateExpressionCode(

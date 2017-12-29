@@ -392,8 +392,11 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
                function_body.isExpressionCoroutineObjectBody() or \
                function_body.isExpressionAsyncgenObjectBody()
 
-        if function_body not in self.active_functions:
+        result = function_body not in self.active_functions
+        if result:
             self.active_functions.add(function_body)
+
+        return result
 
     def getUsedFunctions(self):
         return self.active_functions
@@ -420,6 +423,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
         if main_filename.endswith(".py"):
             result = main_filename[:-3]
+        elif main_filename.endswith(".pyw"):
+            result = main_filename[:-4]
         else:
             result = main_filename
 
@@ -459,20 +464,16 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         for function in self.getUsedFunctions():
             yield function.trace_collection
 
-    def markAsLocalsDict(self):
-        # Does not apply to modules.
-        pass
-
-    def hasLocalsDict(self):
-        return False
-
     def isUnoptimized(self):
+        # Modules don't do this, pylint: disable=no-self-use
         return False
 
     def getLocalVariables(self):
+        # Modules don't do this, pylint: disable=no-self-use
         return ()
 
     def getUserLocalVariables(self):
+        # Modules don't do this, pylint: disable=no-self-use
         return ()
 
     def getOutlineLocalVariables(self):
@@ -489,6 +490,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         return tuple(result)
 
     def hasClosureVariable(self, variable):
+        # Modules don't do this, pylint: disable=no-self-use,unused-argument
         return False
 
     def removeUserVariable(self, variable):

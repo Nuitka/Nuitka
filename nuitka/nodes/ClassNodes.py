@@ -25,15 +25,12 @@ from nuitka.PythonVersions import python_version
 
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .IndicatorMixins import (
-    MarkLocalsDictIndicatorMixin,
-    MarkNeedsAnnotationsMixin
-)
+from .IndicatorMixins import MarkNeedsAnnotationsMixin
+from .LocalsScopes import LocalsDictHandle, LocalsMappingHandle
 from .OutlineNodes import ExpressionOutlineFunction
 
 
-class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
-                          MarkNeedsAnnotationsMixin,
+class ExpressionClassBody(MarkNeedsAnnotationsMixin,
                           ExpressionOutlineFunction):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
@@ -54,17 +51,24 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
             self,
             provider    = provider,
             name        = name,
+            # TODO: Not used, right?
             code_prefix = "class",
             source_ref  = source_ref
         )
 
         MarkNeedsAnnotationsMixin.__init__(self)
 
-        MarkLocalsDictIndicatorMixin.__init__(self)
-
         self.doc = doc
 
-        self.has_annotations = False
+        locals_dict_name = "locals_%s_%d" % (
+            self.getName(),
+            source_ref.getLineNumber()
+        )
+
+        if python_version < 300:
+            self.locals_scope = LocalsDictHandle(locals_dict_name)
+        else:
+            self.locals_scope = LocalsMappingHandle(locals_dict_name)
 
     def getDetail(self):
         return "named %s" % self.getFunctionName()
@@ -106,6 +110,12 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
     def isEarlyClosure():
         return True
 
+    def computeExpressionRaw(self, trace_collection):
+        # Classes have their own locals dict scope.
+
+        with trace_collection.makeLocalsDictContext(self.locals_scope):
+            return ExpressionOutlineFunction.computeExpressionRaw(self, trace_collection)
+
     def getVariableForClosure(self, variable_name):
         # print( "getVariableForClosure", self, variable_name )
 
@@ -130,12 +140,6 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
     def markAsDirectlyCalled(self):
         pass
 
-    def markAsExecContaining(self):
-        pass
-
-    def markAsUnqualifiedExecContaining(self, source_ref):
-        pass
-
     def mayHaveSideEffects(self):
         # The function definition has no side effects, calculating the defaults
         # would be, but that is done outside of this.
@@ -145,7 +149,11 @@ class ExpressionClassBody(MarkLocalsDictIndicatorMixin,
         return self.getBody().mayRaiseException(exception_type)
 
     def isUnoptimized(self):
+        # Classes all are that.
         return True
+
+    def getLocalsScope(self):
+        return self.locals_scope
 
 
 class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):

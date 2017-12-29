@@ -160,7 +160,7 @@ class CacheDir(object):
             # as an attempt to alleviate this, on the basis that it's a pretty
             # unlikely occurence (it'd require two builds with a brand new cache
             # directory)
-            if os.path.isdir(path) and len(os.listdir(path)) != 0:
+            if os.path.isdir(path) and len(f for f in os.listdir(path) if os.path.basename(f) != "config") != 0:
                 self.config['prefix_len'] = 1
                 # When building the project I was testing this on, the warning
                 # was output over 20 times. That seems excessive
@@ -179,7 +179,7 @@ class CacheDir(object):
                         # the same time as me, bad things will happen
                         msg = "Failed to create cache directory " + path
                         raise SCons.Errors.EnvironmentError(msg)
-                        
+
                 self.config['prefix_len'] = 2
                 if not os.path.exists(config_file):
                     try:
@@ -195,7 +195,7 @@ class CacheDir(object):
             except ValueError:
                 msg = "Failed to read cache configuration for " + path
                 raise SCons.Errors.EnvironmentError(msg)
-            
+
 
     def CacheDebug(self, fmt, target, cachefile):
         if cache_debug != self.current_cache_debug:

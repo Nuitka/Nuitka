@@ -76,9 +76,6 @@ if python_version >= 300:
                 source_ref  = source_ref
             )
 
-        def needsLocalsDict(self):
-            return True
-
         def computeExpression(self, trace_collection):
             # TODO: Attempt for constant values to do it.
             return self, None, None
@@ -113,9 +110,6 @@ if python_version < 300:
                 locals_arg  = locals_arg,
                 source_ref  = source_ref
             )
-
-        def needsLocalsDict(self):
-            return True
 
         def computeExpressionDrop(self, statement, trace_collection):
             # In this case, the copy-back must be done and will only be done
@@ -165,9 +159,6 @@ class StatementExec(StatementChildrenHavingBase):
     getSourceCode = StatementChildrenHavingBase.childGetter("source")
     getGlobals = StatementChildrenHavingBase.childGetter("globals")
     getLocals = StatementChildrenHavingBase.childGetter("locals")
-
-    def needsLocalsDict(self):
-        return self.getLocals().mayBeNone()
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(

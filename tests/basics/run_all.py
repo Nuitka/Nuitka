@@ -56,14 +56,6 @@ python_version = setup(needs_io_encoding = True)
 
 search_mode = createSearchMode()
 
-if python_version >= "3.4":
-    # These tests don't work with 3.4 yet, and the list is considered the major
-    # TODO for 3.4 support.
-    search_mode.mayFailFor(
-        # Prepared dictionaries of "enum.Enums" are not used early enough
-        "Classes34.py",
-    )
-
 # Create large constants test on the fly, if it's not there, not going to
 # add it to release archives for no good reason.
 if not os.path.exists("BigConstants.py"):

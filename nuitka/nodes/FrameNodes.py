@@ -143,14 +143,14 @@ class StatementsFrameBase(StatementsSequence):
 
         is_optimized = not entry_point.isCompiledPythonModule() and \
                        not entry_point.isExpressionClassBody() and \
-                       not entry_point.hasLocalsDict()
+                       not entry_point.isUnoptimized()
 
         self.code_object.setFlagIsOptimizedValue(is_optimized)
 
         new_locals = not provider.isCompiledPythonModule() and \
                      (python_version < 340 or (
                      not provider.isExpressionClassBody() and \
-                     not provider.hasLocalsDict()))
+                     not provider.isUnoptimized()))
 
         self.code_object.setFlagNewLocalsValue(new_locals)
 

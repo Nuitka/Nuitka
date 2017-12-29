@@ -161,8 +161,18 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         )
 
         self.recurse_attempted = False
+
+        # The module actually referenced in that import.
         self.imported_module = None
+
+        # The fromlist imported modules if any.
         self.import_list_modules = []
+
+        # For "package.sub_package.module" we also need to import the package,
+        # because the imported_module not be found, as it's not a module, e.g.
+        # in the case of "os.path" or "six.moves".
+        self.package_modules = None
+
         self.finding = None
 
         self.type_shape = ShapeTypeModule
@@ -305,6 +315,31 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                                 self.import_list_modules.append(
                                     sub_imported_module.getFullName()
                                 )
+        else:
+            while '.' in module_name:
+                module_name = '.'.join(module_name.split('.')[:-1])
+
+                module_package, module_filename, _finding = findModule(
+                    importing      = self,
+                    module_name    = module_name,
+                    parent_package = parent_package,
+                    level          = level,
+                    warn           = True
+                )
+
+                if module_filename is not None:
+                    package_module = self._consider(
+                        trace_collection = trace_collection,
+                        module_filename  = module_filename,
+                        module_package   = module_package
+                    )
+
+                    if package_module is not None:
+                        if self.package_modules is None:
+                            self.package_modules = []
+
+                        self.package_modules.append(package_module)
+
 
     def _addUsedModules(self, trace_collection):
         if self.finding != "not-found":
@@ -313,6 +348,13 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
             for import_list_module in self.import_list_modules:
                 trace_collection.onUsedModule(import_list_module)
+
+        # These are added in any case.
+        if self.package_modules is not None:
+            for package_module in self.package_modules:
+                trace_collection.onUsedModule(package_module.getFullName())
+
+
 
     def computeExpression(self, trace_collection):
         # TODO: In fact, if the module is not a package, we don't have to insist
@@ -399,7 +441,7 @@ class StatementImportStar(StatementChildrenHavingBase):
 
     named_children = ("module",)
 
-    def __init__(self, module_import, source_ref):
+    def __init__(self, locals_scope, module_import, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -408,10 +450,17 @@ class StatementImportStar(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
+        self.locals_scope = locals_scope
+
     getSourceModule = StatementChildrenHavingBase.childGetter("module")
+
+    def getLocalsDictScope(self):
+        return self.locals_scope
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getSourceModule())
+
+        trace_collection.onLocalsDictEscaped()
 
         # Need to invalidate everything, and everything could be assigned to
         # something else now.

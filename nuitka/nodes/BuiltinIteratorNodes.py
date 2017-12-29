@@ -27,9 +27,6 @@ good.
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
-from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
-from .ConstantRefNodes import makeConstantRefNode
-from .ExceptionNodes import StatementRaiseExceptionImplicit
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase

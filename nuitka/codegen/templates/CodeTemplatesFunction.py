@@ -106,7 +106,7 @@ function_direct_body_template = """\
 
 function_dict_setup = """\
 // Locals dictionary setup.
-PyObject *%(locals_dict)s = PyDict_New();
+PyObject *%(locals_dict)s = NULL;
 """
 
 from . import TemplateDebugWrapper # isort:skip

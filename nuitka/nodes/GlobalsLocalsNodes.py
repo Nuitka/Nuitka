@@ -26,10 +26,13 @@ The "dir()" call without arguments is reformulated to locals or globals calls.
 
 from nuitka.PythonVersions import python_version
 
-from .ConstantRefNodes import makeConstantRefNode
+from .ConstantRefNodes import (
+    ExpressionConstantDictEmptyRef,
+    makeConstantRefNode
+)
 from .DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 from .VariableRefNodes import ExpressionVariableRef
 
 
@@ -49,9 +52,6 @@ class ExpressionBuiltinGlobals(ExpressionBase):
         return False
 
     def mayRaiseException(self, exception_type):
-        return False
-
-    def mayBeNone(self):
         return False
 
 
@@ -82,9 +82,6 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
     def mayRaiseException(self, exception_type):
         return self.mayHaveSideEffects()
 
-    def mayBeNone(self):
-        return False
-
     def getVariableVersions(self):
         return self.variable_versions
 
@@ -92,8 +89,20 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
 class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
     kind = "EXPRESSION_BUILTIN_LOCALS_UPDATED"
 
-    def needsLocalsDict(self):
-        return not self.getParent().isStatementReturn()
+    __slots__ = "locals_scope",
+
+    def __init__(self, locals_scope, source_ref):
+        ExpressionBuiltinLocalsBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.locals_scope = locals_scope
+
+        assert locals_scope is not None
+
+    def getLocalsScope(self):
+        return self.locals_scope
 
     def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
@@ -101,23 +110,49 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
 
         if self.getParent().isStatementReturn():
             result = ExpressionBuiltinLocalsCopy(
-                source_ref = self.getSourceReference()
+                source_ref = self.source_ref
             )
 
             return result, "new_expression", "Locals does not escape, no write back needed."
 
+        trace_collection.onLocalsDictEscaped()
+
+        return self, None, None
+
+
+class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
+    kind = "EXPRESSION_BUILTIN_LOCALS_REF"
+
+    __slots__ = "locals_scope",
+
+    def __init__(self, locals_scope, source_ref):
+        ExpressionBuiltinLocalsBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.locals_scope = locals_scope
+
+    def getLocalsScope(self):
+        return self.locals_scope
+
+    def computeExpressionRaw(self, trace_collection):
+        # Just inform the collection that all escaped.
+
+        self.variable_versions = trace_collection.onLocalsUsage(self.getParentVariableProvider())
         return self, None, None
 
 
 class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
     kind = "EXPRESSION_BUILTIN_LOCALS_COPY"
 
-    def needsLocalsDict(self):
-        return False
-
     def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
+
         self.variable_versions = trace_collection.onLocalsUsage(self.getParentVariableProvider())
+
+        # TODO: Remove later.
+        assert not self.getParentVariableProvider().isExpressionClassBody()
 
         for variable, version in self.variable_versions:
             trace = trace_collection.getVariableTrace(variable, version)
@@ -175,7 +210,7 @@ class StatementSetLocals(StatementChildrenHavingBase):
         "new_locals",
     )
 
-    def __init__(self, new_locals, source_ref):
+    def __init__(self, locals_scope, new_locals, source_ref):
         StatementChildrenHavingBase.__init__(
             self,
             values     = {
@@ -184,8 +219,20 @@ class StatementSetLocals(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-    def needsLocalsDict(self):
-        return True
+        self.locals_scope = locals_scope
+
+    def getDetailsForDisplay(self):
+        return {
+            "locals_scope" : self.locals_scope.getCodeName()
+        }
+
+    def getDetails(self):
+        return {
+            "locals_scope" : self.locals_scope
+        }
+
+    def getLocalsScope(self):
+        return self.locals_scope
 
     def mayRaiseException(self, exception_type):
         return self.getNewLocals().mayRaiseException(exception_type)
@@ -193,10 +240,6 @@ class StatementSetLocals(StatementChildrenHavingBase):
     getNewLocals = StatementChildrenHavingBase.childGetter("new_locals")
 
     def computeStatement(self, trace_collection):
-        # Make sure that we don't even assume "unset" of things not set yet for
-        # anything.
-        trace_collection.removeAllKnowledge()
-
         trace_collection.onExpression(self.getNewLocals())
         new_locals = self.getNewLocals()
 
@@ -212,7 +255,54 @@ class StatementSetLocals(StatementChildrenHavingBase):
             return result, "new_raise", """\
 Setting locals already raises implicitly building new locals."""
 
+        trace_collection.setLocalsDictShape(self.getNewLocals().getTypeShape())
+
         return self, None, None
+
+
+class StatementSetLocalsDictionary(StatementSetLocals):
+    kind = "STATEMENT_SET_LOCALS_DICTIONARY"
+
+    def __init__(self, locals_scope, source_ref):
+        StatementSetLocals.__init__(
+            self,
+            locals_scope = locals_scope,
+            new_locals   = ExpressionConstantDictEmptyRef(
+                source_ref = source_ref
+            ),
+            source_ref   = source_ref
+        )
+
+    def mayRaiseException(self, exception_type):
+        return False
+
+
+class StatementReleaseLocals(NodeBase):
+    kind = "STATEMENT_RELEASE_LOCALS"
+
+    __slots__ = "locals_scope",
+
+    def __init__(self, locals_scope, source_ref):
+        NodeBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        self.locals_scope = locals_scope
+
+    def computeStatement(self, trace_collection):
+        trace_collection.setLocalsDictShape(None)
+
+        return self, None, None
+
+    def getDetails(self):
+        return {"locals_scope": self.locals_scope}
+
+    def getLocalsScope(self):
+        return self.locals_scope
+
+    def mayRaiseException(self, exception_type):
+        return False
 
 
 class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):
@@ -221,6 +311,3 @@ class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):
     def computeExpression(self, trace_collection):
         # TODO: Quite some cases should be possible to predict.
         return self, None, None
-
-    def mayBeNone(self):
-        return False

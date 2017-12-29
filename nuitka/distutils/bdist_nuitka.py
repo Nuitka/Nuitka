@@ -23,36 +23,44 @@ import os
 import shutil
 import subprocess
 import sys
-
 import wheel.bdist_wheel  # @UnresolvedImport
+import distutils.command.build
+import distutils.command.install
+
+
+def setuptools_build_hook(dist, keyword, value):
+    # If the user project setup.py includes the key "build_with_nuitka=True" all
+    # build operations (build, bdist_wheel, install etc) will run via nuitka
+    if not value:
+        return
+    dist.cmdclass = dist.cmdclass or {}  # Ensure is a dict
+    dist.cmdclass['build'] = build
+    dist.cmdclass['install'] = install
+    dist.cmdclass['bdist_wheel'] = bdist_nuitka
 
 
 # Class name enforced by distutils, must match the command name.
 # pylint: disable=C0103
-class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
+class build(distutils.command.build.build):
 
-    # Our wheel base class is very unpure, so are we
     # pylint: disable=attribute-defined-outside-init
     def run(self):
         self.compile_packages = self.distribution.packages
         self.main_package = self.compile_packages[0]
 
-        # Exclude packages from the wheel, we deal with them by compiling
-        # into single package.
-        # self.distribution.packages = []
+        super(build, self).run()
 
-        wheel.bdist_wheel.bdist_wheel.run(self)
+        self._buildPackage(os.path.abspath(self.build_lib))
 
     def _buildPackage(self, build_lib):
         # Nuitka wants the main package by filename, probably we should stop
         # needing that.
         from nuitka.importing.Importing import findModule, setMainScriptDirectory
-        from nuitka.utils.Execution import getExecutablePath
 
         old_dir = os.getcwd()
         os.chdir(build_lib)
 
-        # Search in the build directory preferrably.
+        # Search in the build directory preferably.
         setMainScriptDirectory('.')
 
         package, main_filename, finding = findModule(
@@ -67,6 +75,28 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         assert finding == "absolute", finding
         assert package is None, package
 
+        # If there are other files left over in the wheel after python scripts
+        # are compiled, we'll keep the folder structure with the files in the wheel
+        keep_resources = False
+
+        python_files = []
+        if os.path.isdir(main_filename):
+            # Include all python files in wheel
+            for root, dirs, files in os.walk(main_filename):
+                if '__pycache__' in dirs:
+                    dirs.remove('__pycache__')
+                    shutil.rmtree(os.path.join(root, '__pycache__'))
+
+                for fn in files:
+                    if fn.lower().endswith(('.py', '.pyc', '.pyo')):
+                        # These files will definitely be deleted once nuitka
+                        # has compiled the main_package
+                        python_files.append(os.path.join(root, fn))
+                    else:
+                        keep_resources = True
+
+        output_dir = build_lib
+
         nuitka_binary = getExecutablePath("nuitka")
         if nuitka_binary is None:
             sys.exit("Error, cannot find nuitka binary in PATH.")
@@ -76,9 +106,9 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
             nuitka_binary,
             "--module",
             "--plugin-enable=pylint-warnings",
-            "--output-dir=%s" % build_lib,
-            "--recurse-to={%s}" % ','.join(self.compile_packages),
+            "--output-dir=%s" % output_dir,
             "--recurse-dir=%s" % self.main_package,
+            "--recurse-to=%s" % self.main_package,
             "--recurse-not-to=*.tests",
             "--show-modules",
             "--remove-output",
@@ -92,37 +122,45 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
 
         self.build_lib = build_lib
 
-    def run_command(self, command):
-        if command == "install":
-            command_obj = self.distribution.get_command_obj(command)
-
-            basedir_observed = ""
-
-            if os.name == "nt":
-                # win32 barfs if any of these are ''; could be '.'?
-                # (distutils.command.install:change_roots bug)
-                basedir_observed = os.path.normpath(os.path.join(self.data_dir, ".."))
-
-            setattr(command_obj, "install_platlib", basedir_observed)
-            setattr(command_obj, "install_purelib", None)
-
+        if keep_resources:
+            # Delete the individual source files
+            for fn in python_files:
+                os.unlink(fn)
+        else:
+            # Delete the entire source copy of the module
             shutil.rmtree(os.path.join(self.build_lib, self.main_package))
 
-        result = wheel.bdist_wheel.bdist_wheel.run_command(self, command)
 
-        # After building, we are ready to build the extension module, from
-        # what "build_py" command has done.
-        if command == "build":
-            command_obj = self.distribution.get_command_obj(command)
-            command_obj.ensure_finalized()
+# pylint: disable=C0103
+class install(distutils.command.install.install):
 
-            self._buildPackage(command_obj.build_lib)
+    # pylint: disable=attribute-defined-outside-init
+    def finalize_options(self):
+        super(install, self).finalize_options()
+        # Ensure the purelib folder is not used
+        self.install_lib = self.install_platlib
 
-        return result
+
+# pylint: disable=C0103
+class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
+
+    def initialize_options(self):
+        # Register the command class overrides above
+        dist = self.distribution
+        dist.cmdclass = dist.cmdclass or {}  # Ensure is a dict
+        dist.cmdclass['build'] = build
+        dist.cmdclass['install'] = install
+
+        super(bdist_nuitka, self).initialize_options()
+
+    # pylint: disable=attribute-defined-outside-init
+    def finalize_options(self):
+        super(bdist_nuitka, self).finalize_options()
+        # Force module to use correct platform in name
+        self.root_is_pure = False
+        self.plat_name_supplied = self.plat_name is not None
 
     def write_wheelfile(self, wheelfile_base, generator = None):
-        self.root_is_pure = False
-
         if generator is None:
             from nuitka.Version import getNuitkaVersion
             generator = "Nuitka (%s)" % getNuitkaVersion()

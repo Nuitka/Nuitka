@@ -349,7 +349,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                     source_ref = source_ref
                 ),
                 buildNode(
-                    provider   = function_body,
+                    provider   = function_body if not assign_provider else provider,
                     node       = node.elt,
                     source_ref = source_ref
                 ),
@@ -375,12 +375,12 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                 source_ref = source_ref
             ),
             key        = buildNode(
-                provider   = function_body,
+                provider   = function_body if not assign_provider else provider,
                 node       = node.key,
                 source_ref = source_ref,
             ),
             value      = buildNode(
-                provider   = function_body,
+                provider   = function_body if not assign_provider else provider,
                 node       = node.value,
                 source_ref = source_ref,
             ),
@@ -418,7 +418,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             # First create the iterator and store it, next should be loop body
             value_iterator = ExpressionBuiltinIter1(
                 value      = buildNode(
-                    provider   = function_body,
+                    provider   = provider if assign_provider else function_body,
                     node       = qual.iter,
                     source_ref = source_ref
                 ),
@@ -474,7 +474,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
         ]
 
         conditions = buildNodeList(
-            provider   = function_body,
+            provider   = provider if assign_provider else function_body,
             nodes      = qual.ifs,
             source_ref = source_ref
         )

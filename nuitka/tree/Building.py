@@ -184,6 +184,7 @@ from .VariableClosure import completeVariableClosures
 def buildVariableReferenceNode(provider, node, source_ref):
     return ExpressionVariableNameRef(
         variable_name = mangleName(node.id, provider),
+        provider      = provider,
         source_ref    = source_ref
     )
 
@@ -783,6 +784,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__doc__",
                 source        = makeConstantRefNode(
                     constant      = doc,
@@ -795,6 +797,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__file__",
                 source        = ExpressionModuleFileAttributeRef(
                     source_ref = internal_source_ref,
@@ -812,6 +815,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if python_version >= 330:
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__loader__",
                 source        = ExpressionModuleLoaderRef(
                     source_ref = internal_source_ref,
@@ -846,6 +850,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__spec__",
                 source        = spec_value,
                 source_ref    = internal_source_ref
@@ -855,6 +860,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     if python_version >= 300:
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__cached__",
                 source        = ExpressionConstantNoneRef(
                     source_ref    = internal_source_ref,
@@ -868,6 +874,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     # for normal modules, previously for packages only.
     statements.append(
         StatementAssignmentVariableName(
+            provider      = provider,
             variable_name = "__package__",
             source        = makeConstantRefNode(
                 constant      = (
@@ -899,6 +906,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # Set "__initializing__" at the beginning to True
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__initializing__",
                 source        = makeConstantRefNode(
                     constant      = True,
@@ -913,6 +921,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # Set "__annotations__" on module level to {}
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__annotations__",
                 source        = makeConstantRefNode(
                     constant      = {},
@@ -934,6 +943,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # Set "__initializing__" at the end to False
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__initializing__",
                 source        = makeConstantRefNode(
                     constant      = False,

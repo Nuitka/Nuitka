@@ -25,7 +25,6 @@ whose implementation lives here. The creation itself also lives here.
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionEntryPointBase
-from .IndicatorMixins import MarkLocalsDictIndicatorMixin
 
 
 class ExpressionMakeAsyncgenObject(ExpressionChildrenHavingBase):
@@ -90,10 +89,7 @@ class ExpressionMakeAsyncgenObject(ExpressionChildrenHavingBase):
         ]
 
 
-class ExpressionAsyncgenObjectBody(MarkLocalsDictIndicatorMixin,
-                                   ExpressionFunctionEntryPointBase):
-    # We really want these many ancestors, as per design, we add properties via
-    # base class mix-ins a lot, pylint: disable=R0901
+class ExpressionAsyncgenObjectBody(ExpressionFunctionEntryPointBase):
     kind = "EXPRESSION_ASYNCGEN_OBJECT_BODY"
 
     named_children = (
@@ -116,8 +112,6 @@ class ExpressionAsyncgenObjectBody(MarkLocalsDictIndicatorMixin,
             flags       = flags,
             source_ref  = source_ref
         )
-
-        MarkLocalsDictIndicatorMixin.__init__(self)
 
         self.needs_generator_return_exit = False
 

@@ -342,8 +342,5 @@ class ExpressionOutlineFunction(ExpressionOutlineFunctionBodyBase):
     def isEarlyClosure(self):
         return self.provider.isEarlyClosure()
 
-    def hasLocalsDict(self):
-        return self.provider.hasLocalsDict()
-
-    def markAsLocalsDict(self):
-        return self.provider.markAsLocalsDict()
+    def isUnoptimized(self):
+        return self.provider.isUnoptimized()

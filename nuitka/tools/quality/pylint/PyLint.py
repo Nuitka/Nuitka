@@ -137,7 +137,7 @@ def getOptions():
 --min-public-methods=0
 --max-public-methods=100
 --max-args=11
---max-parents=10
+--max-parents=12
 --max-nested-blocks=10
 --max-bool-expr=10\
 """.split('\n')
@@ -162,34 +162,36 @@ def _executePylint(filenames, pylint_options, extra_options):
     process = subprocess.Popen(
         args   = command,
         stdout = subprocess.PIPE,
-        stderr = subprocess.STDOUT,
+        stderr = subprocess.PIPE,
         shell  = False
     )
 
+
     stdout, stderr = process.communicate()
-    _exit_code = process.returncode
+    exit_code = process.returncode
+
+    if exit_code == -11:
+        sys.exit("Error, segfault from pylint.")
 
     assert not stderr, stderr
 
     if stdout:
-        stdout = stdout.replace(b"\r\n", b'\n')
+        if str is not bytes:
+            stdout = stdout.decode("utf8")
+
+        # Normalize from Windows newlines potentially
+        stdout = stdout.replace("\r\n", '\n')
 
         # Remove hard to disable error line given under Windows.
-        lines = stdout.split(b"\n")
+        lines = stdout.split('\n')
         try:
             error_line = lines.index(
-                b"No config file found, using default configuration"
+                "No config file found, using default configuration"
             )
             del lines[error_line]
             del lines[error_line]
         except ValueError:
             pass
-
-        lines = [
-            line.decode()
-            for line in
-            lines
-        ]
 
         lines = [
             line
@@ -223,10 +225,10 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
         pylint_options.append("--notes=")
 
     def hasPyLintBugTrigger(filename):
-        if pylint_version < b"1.8":
-            return False
-
-        return os.path.basename(filename) in ()
+        return os.path.basename(filename) in (
+            "ReformulationContractionExpressions.py",
+            "TreeHelpers.py"
+        )
 
     filenames = [
         filename

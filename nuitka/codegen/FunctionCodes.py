@@ -39,7 +39,6 @@ from .LineNumberCodes import emitErrorLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesFunction import (
-    function_dict_setup,
     function_direct_body_template,
     template_function_body,
     template_function_direct_declaration,
@@ -446,9 +445,6 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
     function_locals = []
     function_cleanup = []
 
-    if context.hasLocalsDict():
-        context.allocateLocalsDictName()
-
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
             function_locals.append(
@@ -534,13 +530,11 @@ def finalizeFunctionLocalVariables(context, function_locals, function_cleanup):
 
     for locals_dict_name in context.getLocalsDictNames():
         function_locals.append(
-            function_dict_setup % {
-                "locals_dict" : locals_dict_name
-            }
+            "PyObject *%s = NULL;" % locals_dict_name
         )
 
         function_cleanup.append(
-            "Py_DECREF( %(locals_dict)s );\n" % {
+            "Py_XDECREF( %(locals_dict)s );\n" % {
                 "locals_dict" : locals_dict_name
             }
         )
@@ -595,11 +589,9 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
         }
 
     if context.hasTempName("return_value"):
-        function_exit += indented(
-            template_function_return_exit % {
-                "function_cleanup" : indented(function_cleanup),
-            }
-        )
+        function_exit += template_function_return_exit % {
+            "function_cleanup" : indented(function_cleanup),
+        }
 
     if context.isForCreatedFunction():
         parameter_objects_decl = ["struct Nuitka_FunctionObject const *self"]
@@ -699,14 +691,6 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
             outline = expression
         )
 
-        locals_dict_handling = True
-    else:
-        locals_dict_handling = False
-
-    if locals_dict_handling:
-        if expression.hasLocalsDict():
-            context.allocateLocalsDictName()
-
     # Need to set return target, to assign to_name from.
     old_return_release_mode = context.getReturnReleaseMode()
 
@@ -760,7 +744,3 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     context.setReturnTarget(old_return_target)
     context.setReturnReleaseMode(old_return_release_mode)
     context.setReturnValueName(old_return_value_name)
-
-    if locals_dict_handling:
-        if expression.hasLocalsDict():
-            context.endLocalsDictName()

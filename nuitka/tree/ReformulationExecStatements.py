@@ -222,8 +222,6 @@ def buildExecNode(provider, node, source_ref):
     exec_locals = node.locals
     body = node.body
 
-    orig_globals = exec_globals
-
     # Handle exec(a,b,c) to be same as exec a, b, c
     if exec_locals is None and exec_globals is None and \
        getKind(body) == "Tuple":
@@ -250,10 +248,6 @@ exec: arg 1 must be a string, file, or code object""",
                 exception_cause = None,
                 source_ref      = source_ref
             )
-
-    if not provider.isCompiledPythonModule():
-        if orig_globals is None:
-            provider.markAsUnqualifiedExecContaining(source_ref)
 
     temp_scope = provider.allocateTempScope("exec")
 
@@ -471,7 +465,7 @@ exec: arg 1 must be a string, file, or code object""",
                             variable   = locals_keeper_variable,
                             source_ref = source_ref,
                         ),
-                        source_ref = source_ref.atInternal()
+                        source_ref = source_ref
                     )
                 ),
                 no_branch  = None,

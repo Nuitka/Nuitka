@@ -136,9 +136,6 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
 
         return False
 
-    def mayBeNone(self):
-        return False
-
     def computeExpressionDrop(self, statement, trace_collection):
         result = makeStatementOnlyNodesFromExpressions(
             expressions = self.getElements()
