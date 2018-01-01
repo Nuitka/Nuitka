@@ -19,13 +19,14 @@
 
 """
 
+import distutils.command.build
+import distutils.command.install
 import os
 import shutil
 import subprocess
 import sys
+
 import wheel.bdist_wheel  # @UnresolvedImport
-import distutils.command.build
-import distutils.command.install
 
 
 def setuptools_build_hook(dist, keyword, value):
@@ -34,9 +35,9 @@ def setuptools_build_hook(dist, keyword, value):
     if not value:
         return
     dist.cmdclass = dist.cmdclass or {}  # Ensure is a dict
-    dist.cmdclass['build'] = build
-    dist.cmdclass['install'] = install
-    dist.cmdclass['bdist_wheel'] = bdist_nuitka
+    dist.cmdclass["build"] = build
+    dist.cmdclass["install"] = install
+    dist.cmdclass["bdist_wheel"] = bdist_nuitka
 
 
 # Class name enforced by distutils, must match the command name.
@@ -83,12 +84,12 @@ class build(distutils.command.build.build):
         if os.path.isdir(main_filename):
             # Include all python files in wheel
             for root, dirs, files in os.walk(main_filename):
-                if '__pycache__' in dirs:
-                    dirs.remove('__pycache__')
-                    shutil.rmtree(os.path.join(root, '__pycache__'))
+                if "__pycache__" in dirs:
+                    dirs.remove("__pycache__")
+                    shutil.rmtree(os.path.join(root, "__pycache__"))
 
                 for fn in files:
-                    if fn.lower().endswith(('.py', '.pyc', '.pyo')):
+                    if fn.lower().endswith((".py", ".pyc", ".pyo")):
                         # These files will definitely be deleted once nuitka
                         # has compiled the main_package
                         python_files.append(os.path.join(root, fn))
@@ -148,8 +149,8 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         # Register the command class overrides above
         dist = self.distribution
         dist.cmdclass = dist.cmdclass or {}  # Ensure is a dict
-        dist.cmdclass['build'] = build
-        dist.cmdclass['install'] = install
+        dist.cmdclass["build"] = build
+        dist.cmdclass["install"] = install
 
         super(bdist_nuitka, self).initialize_options()
 

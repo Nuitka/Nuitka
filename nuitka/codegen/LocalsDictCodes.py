@@ -63,6 +63,8 @@ def generateSetLocalsDictCode(statement, emit, context):
 
 
 def generateReleaseLocalsDictCode(statement, emit, context):
+    # The statement has it all, pylint: disable=unused-argument
+
     locals_dict_name = statement.getLocalsScope().getCodeName()
 
     emit(
