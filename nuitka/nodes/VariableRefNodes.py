@@ -24,8 +24,8 @@ and its expressions, changing the meaning of course dramatically.
 
 from nuitka import Builtins, Variables
 from nuitka.ModuleRegistry import getOwnerFromCodeName
+from nuitka.PythonVersions import python_version
 
-from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import (
     ExpressionDictOperationGet,
     ExpressionDictOperationIn,
@@ -34,6 +34,12 @@ from .DictionaryNodes import (
     StatementDictOperationSet
 )
 from .ExpressionBases import ExpressionBase
+from .ModuleAttributeNodes import (
+    ExpressionModuleAttributeLoaderRef,
+    ExpressionModuleAttributeNameRef,
+    ExpressionModuleAttributePackageRef,
+    ExpressionModuleAttributeSpecRef
+)
 from .NodeMakingHelpers import makeRaiseExceptionReplacementExpression
 from .shapes.StandardShapes import ShapeUnknown
 
@@ -221,15 +227,41 @@ Module variable '%s' found to be built-in reference.""" % (
                     variable_name
                 )
             elif variable_name == "__name__":
-                new_node = makeConstantRefNode(
-                    constant   = variable.getOwner().getParentModule().\
-                                   getFullName(),
+                new_node = ExpressionModuleAttributeNameRef(
+                    module     = variable.getOwner(),
                     source_ref = self.getSourceReference()
                 )
 
-                change_tags = "new_constant"
+                change_tags = "new_expression"
                 change_desc = """\
-Replaced read-only module attribute '__name__' with constant value."""
+Replaced read-only module attribute '__name__' with module attribute reference."""
+            elif variable_name == "__package__":
+                new_node = ExpressionModuleAttributePackageRef(
+                    module     = variable.getOwner(),
+                    source_ref = self.getSourceReference()
+                )
+
+                change_tags = "new_expression"
+                change_desc = """\
+Replaced read-only module attribute '__package__' with module attribute reference."""
+            elif variable_name == "__loader__" and python_version >= 330:
+                new_node = ExpressionModuleAttributeLoaderRef(
+                    module     = variable.getOwner(),
+                    source_ref = self.getSourceReference()
+                )
+
+                change_tags = "new_expression"
+                change_desc = """\
+Replaced read-only module attribute '__loader__' with module attribute reference."""
+            elif variable_name == "__spec__" and python_version >= 340:
+                new_node = ExpressionModuleAttributeSpecRef(
+                    module     = variable.getOwner(),
+                    source_ref = self.getSourceReference()
+                )
+
+                change_tags = "new_expression"
+                change_desc = """\
+Replaced read-only module attribute '__spec__' with module attribute reference."""
             else:
                 self.variable_trace.addUsage()
 

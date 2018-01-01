@@ -549,6 +549,8 @@ class PythonChildContextBase(PythonContextBase):
 
 
 def _getConstantDefaultPopulation():
+    # Lots of cases, pylint: disable=too-many-branches
+
     # Note: Can't work with set here, because we need to put in some values that
     # cannot be hashed.
 
@@ -570,6 +572,7 @@ def _getConstantDefaultPopulation():
         "__module__",
         "__class__",
         "__name__",
+        "__package__",
         "__metaclass__",
         "__dict__",
         "__doc__",
@@ -622,10 +625,16 @@ def _getConstantDefaultPopulation():
             "file"
         )
 
-        # For Python3 bytes built-in.
-        result += (
-            "bytes",
+        # For Python3 "bytes" built-in.
+        result.append(
+            "bytes"
         )
+
+        # For Python3 "__name__" to "__package__" parsing
+        result.append(
+            '.'
+        )
+
 
     if python_version >= 330:
         # Modules have that attribute starting with 3.3
@@ -699,6 +708,12 @@ def _getConstantDefaultPopulation():
     if "no_warnings" in Options.getPythonFlags():
         result.append(
             "ignore"
+        )
+
+    if python_version >= 340:
+        # Setting the __spec__ module attribute.
+        result.append(
+            "__spec__"
         )
 
     if python_version >= 350:

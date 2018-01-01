@@ -193,8 +193,11 @@ from .LoopCodes import (
     generateLoopContinueCode
 )
 from .ModuleCodes import (
-    generateModuleFileAttributeCode,
-    generateModuleLoaderRefCode,
+    generateModuleAttributeFileCode,
+    generateModuleAttributeLoaderCode,
+    generateModuleAttributeNameCode,
+    generateModuleAttributePackageCode,
+    generateModuleAttributeSpecCode,
     getModuleCode,
     getModuleValues
 )
@@ -486,6 +489,7 @@ def prepareModuleCode(global_context, module, module_name):
         outline_variables   = module.getOutlineLocalVariables(),
         is_main_module      = module.isMainModule(),
         is_internal_module  = module.isInternalModule(),
+        is_package          = module.isCompiledPythonPackage(),
         context             = context
     )
 
@@ -629,8 +633,11 @@ setExpressionDispatchDict(
         "EXPRESSION_IMPORT_NAME"                      : generateImportNameCode,
         "EXPRESSION_LIST_OPERATION_EXTEND"            : generateListOperationExtendCode,
         "EXPRESSION_LIST_OPERATION_POP"               : generateListOperationPopCode,
-        "EXPRESSION_MODULE_FILE_ATTRIBUTE_REF"        : generateModuleFileAttributeCode,
-        "EXPRESSION_MODULE_LOADER_REF"                : generateModuleLoaderRefCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF"        : generateModuleAttributeFileCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF"        : generateModuleAttributeNameCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF"     : generateModuleAttributePackageCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_LOADER_REF"      : generateModuleAttributeLoaderCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_SPEC_REF"        : generateModuleAttributeSpecCode,
         "EXPRESSION_MAKE_GENERATOR_OBJECT"            : generateMakeGeneratorObjectCode,
         "EXPRESSION_MAKE_COROUTINE_OBJECT"            : generateMakeCoroutineObjectCode,
         "EXPRESSION_MAKE_ASYNCGEN_OBJECT"             : generateMakeAsyncgenObjectCode,

@@ -3527,6 +3527,8 @@ PyObject *MY_RICHCOMPARE_NORECURSE( PyObject *a, PyObject *b, int op )
 
 #endif
 
+#include "HelpersPythonCompat.c"
+
 #include "HelpersDeepcopy.c"
 
 #if _NUITKA_PROFILE

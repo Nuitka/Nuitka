@@ -36,10 +36,8 @@ from nuitka.nodes.ImportNodes import (
     ExpressionImportModuleNameHard,
     ExpressionImportName
 )
-from nuitka.nodes.ModuleNodes import (
-    CompiledPythonPackage,
-    ExpressionModuleFileAttributeRef
-)
+from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeFileRef
+from nuitka.nodes.ModuleNodes import CompiledPythonPackage
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 
@@ -75,7 +73,8 @@ def createPathAssignment(package, source_ref):
                 ),
                 args       = ExpressionMakeTuple(
                     elements   = (
-                        ExpressionModuleFileAttributeRef(
+                        ExpressionModuleAttributeFileRef(
+                            module     = package,
                             source_ref = source_ref,
                         ),
                     ),

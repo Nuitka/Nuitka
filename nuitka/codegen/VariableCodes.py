@@ -247,7 +247,7 @@ def getVariableAssignmentCode(context, emit, variable, version,
             context.removeCleanupTempName(tmp_name)
 
 
-def _generateModuleVariableAccessCode(to_name, variable_name, needs_check,
+def generateModuleVariableAccessCode(to_name, variable_name, needs_check,
                                       emit, context):
     emit(
         template_read_mvar_unclear % {
@@ -272,7 +272,7 @@ def _generateModuleVariableAccessCode(to_name, variable_name, needs_check,
 
 def getVariableAccessCode(to_name, variable, version, needs_check, emit, context):
     if variable.isModuleVariable():
-        _generateModuleVariableAccessCode(
+        generateModuleVariableAccessCode(
             to_name       = to_name,
             variable_name = variable.getName(),
             needs_check   = needs_check,
