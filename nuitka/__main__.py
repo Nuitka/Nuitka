@@ -70,7 +70,17 @@ if "NUITKA_PYTHONPATH" in os.environ:
     # to have imported. pylint: disable=eval-used
     sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
     del os.environ["NUITKA_PYTHONPATH"]
+else:
+    # Remove path element added for being called via "__main__.py", this can
+    # only lead to trouble, having e.g. a "distutils" in sys.path that comes
+    # from "nuitka.distutils".
+    sys.path = [
+        path_element
+        for path_element in sys.path
+        if os.path.dirname(os.path.abspath(__file__)) != path_element
+    ]
 
+# For re-execution, we might not have done this.
 from nuitka import Options                  # isort:skip
 Options.parseArgs()
 
@@ -142,7 +152,7 @@ if needs_reexec:
         python_binary,
         python_binary,
         "-S",
-        __file__,
+        sys.modules["__main__"].__file__,
     ]
 
     if Options.is_nuitka_run:

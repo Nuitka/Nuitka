@@ -188,7 +188,7 @@ def executePASS1():
 
     my_print("Compiling '%s'." % nuitka_main_path)
 
-    shutil.copyfile(nuitka_main_path, "nuitka.py")
+    shutil.copyfile(nuitka_main_path, "nuitka-runner.py")
 
     command = [
         os.environ["PYTHON"],
@@ -197,7 +197,7 @@ def executePASS1():
         "--plugin-enable=pylint-warnings",
         "--output-dir=.",
         "--python-flag=-S",
-        "nuitka.py"
+        "nuitka-runner.py"
     ]
     command += os.environ.get("NUITKA_EXTRA_OPTIONS", "").split()
 
@@ -207,6 +207,8 @@ def executePASS1():
 
     if result != 0:
         sys.exit(result)
+
+    shutil.move("nuitka-runner.exe", "nuitka.exe")
 
     scons_inline_copy_path = os.path.join(
         base_dir,
