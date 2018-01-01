@@ -69,7 +69,7 @@ def main():
     options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["-m", "nuitka"]
+        positional_args = ["bin", "nuitka"]
 
     print("Working on:", positional_args)
 

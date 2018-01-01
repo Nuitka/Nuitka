@@ -32,8 +32,7 @@ from nuitka.Version import getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
-is_nuitka_run = os.path.basename(sys.argv[0]).lower().startswith("nuitka-run")\
-                or '--run' in sys.argv
+is_nuitka_run = os.path.basename(sys.argv[0]).lower().startswith("nuitka-run")
 
 if not is_nuitka_run:
     usage = "usage: %prog [--module] [--execute] [options] main_module.py"
@@ -41,7 +40,6 @@ else:
     usage = "usage: %prog [options] main_module.py"
 
 parser = OptionParser(
-    prog    = "nuitka",
     usage   = usage,
     version = getNuitkaVersion()
 )
@@ -729,7 +727,6 @@ def parseArgs():
     # First, isolate the first non-option arguments.
     if is_nuitka_run:
         count = 0
-        parser.prog = "nuitka-run"
 
         for count, arg in enumerate(sys.argv):
             if count == 0:

@@ -178,7 +178,7 @@ for filename in sorted(os.listdir('.')):
 
         command = [
             os.environ["PYTHON"],
-            "-m", "nuitka.__main__",
+            os.path.abspath(os.path.join("..", "..", "bin", "nuitka")),
             "--dump-xml",
             "--module",
             filename
