@@ -30,38 +30,6 @@ import os
 import sys
 import warnings
 
-# LIBDIR trick start (marker for removal on platforms that don't need it)
-libdir = "@LIBDIR@"
-
-# Two cases:
-if libdir != '@' "LIBDIR" '@':
-    # Changed by our "distutils" hook, then use the given path.
-
-    if not os.path.isabs(libdir):
-        libdir = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            libdir
-        )
-        libdir = os.path.abspath(libdir)
-
-    sys.path.insert(
-        0,
-        libdir
-    )
-else:
-    # Unchanged, running from checkout, use the parent directory, the nuitka
-    # package ought be there.
-    sys.path.insert(
-        0,
-        os.path.normpath(
-            os.path.join(
-                os.path.dirname(__file__),
-                ".."
-            )
-        )
-    )
-# LIBDIR trick end (marker for removal on platforms that don't need it)
-
 # PyLint for Python3 thinks we import from ourselves if we really
 # import from package, pylint:disable=I0021,no-name-in-module
 
