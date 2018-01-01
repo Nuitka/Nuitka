@@ -41,6 +41,7 @@ template_global_copyright = """\
  * limitations under the License.
  */
 """
+
 template_module_body_template = """
 #include "nuitka/prelude.h"
 
@@ -108,11 +109,17 @@ static struct PyModuleDef mdef_%(module_identifier)s =
   };
 #endif
 
+extern PyObject *const_str_plain___package__;
+
 #if PYTHON_VERSION >= 300
-extern PyObject *metapath_based_loader;
+extern PyObject *const_str_dot;
 #endif
 #if PYTHON_VERSION >= 330
 extern PyObject *const_str_plain___loader__;
+extern PyObject *metapath_based_loader;
+#endif
+#if PYTHON_VERSION >= 330
+extern PyObject *const_str_plain___spec__;
 #endif
 
 extern void _initCompiledCellType();
@@ -212,17 +219,62 @@ MOD_INIT_DECL( %(module_identifier)s )
         "%(module_name)s",       // Module Name
         NULL,                    // No methods initially, all are added
                                  // dynamically in actual module code only.
-        NULL,                    // No __doc__ is initially set, as it could
+        NULL,                    // No "__doc__" is initially set, as it could
                                  // not contain NUL this way, added early in
                                  // actual code.
         NULL,                    // No self for modules, we don't use it.
         PYTHON_API_VERSION
     );
 #else
+
     module_%(module_identifier)s = PyModule_Create( &mdef_%(module_identifier)s );
 #endif
 
     moduledict_%(module_identifier)s = MODULE_DICT( module_%(module_identifier)s );
+
+    // Update "__package__" value to what it ought to be.
+    {
+#if %(is_package)s
+#if PYTHON_VERSION < 300 || PYTHON_VERSION >= 330
+        PyObject *module_name = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ );
+
+        UPDATE_STRING_DICT1(
+            moduledict_%(module_identifier)s,
+            (Nuitka_StringObject *)const_str_plain___package__,
+            module_name
+        );
+#endif
+
+#else
+        PyObject *module_name = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ );
+
+#if PYTHON_VERSION < 300
+        char const *module_name_cstr = PyString_AS_STRING( module_name );
+
+        char const *last_dot = strrchr( module_name_cstr, '.' );
+
+        if ( last_dot != NULL )
+        {
+            UPDATE_STRING_DICT1(
+                moduledict_%(module_identifier)s,
+                (Nuitka_StringObject *)const_str_plain___package__,
+                PyString_FromStringAndSize( module_name_cstr, last_dot - module_name_cstr )
+            );
+        }
+#else
+        Py_ssize_t dot_index = PyUnicode_Find( module_name, const_str_dot, 0, PyUnicode_GetLength( module_name ), -1 );
+
+        if ( dot_index != -1 )
+        {
+            UPDATE_STRING_DICT1(
+                moduledict_%(module_identifier)s,
+                (Nuitka_StringObject *)const_str_plain___package__,
+                PyUnicode_Substring( module_name, 0, dot_index )
+            );
+        }
+#endif
+#endif
+    }
 
     CHECK_OBJECT( module_%(module_identifier)s );
 
@@ -255,6 +307,34 @@ MOD_INIT_DECL( %(module_identifier)s )
 #if PYTHON_VERSION >= 330
     UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, metapath_based_loader );
 #endif
+
+#if PYTHON_VERSION >= 340
+#if %(is_main_module)s
+    UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, Py_None );
+#else
+    {
+        PyObject *bootstrap_module = PyImport_ImportModule("importlib._bootstrap");
+        CHECK_OBJECT( bootstrap_module );
+        PyObject *module_spec_class = PyObject_GetAttrString( bootstrap_module, "ModuleSpec" );
+        Py_DECREF( bootstrap_module );
+
+        PyObject *args[] = {
+            GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ ),
+            metapath_based_loader
+        };
+
+        PyObject *spec_value = CALL_FUNCTION_WITH_ARGS2(
+            module_spec_class,
+            args
+        );
+
+        UPDATE_STRING_DICT1( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, spec_value );
+
+        Py_DECREF( module_spec_class );
+    }
+#endif
+#endif
+
 
     // Temp variables if any
 %(temps_decl)s

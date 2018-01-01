@@ -17,11 +17,17 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-
-print("__name__ is ", __name__)
-print("__package__ is ", __package__)
+from __future__ import print_function
 
 import sys
+
+print("__name__ is", __name__)
+
+if sys.version_info[:2] != (3,2):
+    print("__package__ is", __package__)
+else:
+    print("__package__ is correct:", __package__ is None or __package__ == "kitty")
+
 print("From sys.modules", sys.modules["kitty"])
 
 from kitty.speak.hello import speak

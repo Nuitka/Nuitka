@@ -153,6 +153,14 @@ typedef enum {false, true} bool;
 #define Nuitka_StringIntern PyUnicode_InternInPlace
 #endif
 
+#if PYTHON_VERSION < 330
+
+#define PyUnicode_GetLength(x) (PyUnicode_GetSize(x) / sizeof(Py_UNICODE))
+
+extern PyObject *PyUnicode_Substring( PyObject *self, Py_ssize_t start, Py_ssize_t end );
+
+#endif
+
 
 /* With the idea to reduce the amount of exported symbols in the DLLs, make it
  * clear that the module "init" function should of course be exported, but not

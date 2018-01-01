@@ -16,7 +16,9 @@
 #     limitations under the License.
 #
 
-print("*** Child2: Begin", __name__)
+from __future__ import print_function
+
+print("*** Child2: Begin", __name__, "in", __package__)
 try:
     import Child1
 except ImportError:
