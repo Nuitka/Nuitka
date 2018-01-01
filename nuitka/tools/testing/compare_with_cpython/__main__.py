@@ -707,7 +707,7 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
 
         # In case of segfault, also output the call stack by entering debugger
         # without stdin forwarded.
-        if exit_code_return and exit_nuitka == -11 and sys.platform != "nt":
+        if exit_code_return and exit_nuitka == -11 and sys.platform != "nt" and not module_mode:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
 
             process = subprocess.Popen(
