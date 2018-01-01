@@ -41,7 +41,7 @@ from nuitka.utils.FileOperations import removeDirectory, listDir # isort:skip
 
 python_version = setup()
 
-nuitka_main_path = os.path.join("..", "..", "nuitka", "__main__.py")
+nuitka_main_path = os.path.join("..", "..", "bin", "nuitka")
 
 tmp_dir = getTempDir()
 

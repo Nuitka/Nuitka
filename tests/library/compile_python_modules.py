@@ -64,8 +64,12 @@ def decide(root, filename):
 def action(stage_dir, root, path):
     command = [
         sys.executable,
-        "-m",
-        "nuitka.__main__",
+        os.path.join(
+            "..",
+            "..",
+            "bin",
+            "nuitka"
+        ),
         "--module",
         "--output-dir",
         stage_dir,

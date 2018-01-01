@@ -46,11 +46,12 @@ def main():
 
     os.chdir("subject")
 
+    nuitka_main_path = os.path.join("..", "..", "..", "bin", "nuitka")
     tmp_dir = getTempDir()
 
     command = [
         os.environ["PYTHON"],
-        "-m", "nuitka.__main__",
+        nuitka_main_path,
         "--plugin-enable=pylint-warnings",
         "--output-dir=%s" % tmp_dir,
         "--recurse-all",
