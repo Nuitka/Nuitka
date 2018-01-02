@@ -27,7 +27,15 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
-from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
+from nuitka.nodes.AsyncgenNodes import (
+    ExpressionAsyncgenObjectBody,
+    ExpressionMakeAsyncgenObject
+)
+from nuitka.nodes.BuiltinIteratorNodes import (
+    ExpressionAsyncIter,
+    ExpressionAsyncNext,
+    ExpressionBuiltinIter1
+)
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import StatementConditional
@@ -73,6 +81,41 @@ from .TreeHelpers import (
     makeStatementsSequenceFromStatements,
     mergeStatements
 )
+
+
+def _makeIteratorCreation(provider, qual, source_ref):
+    if getattr(qual, "is_async", 0):
+        iter_class = ExpressionAsyncIter
+    else:
+        iter_class = ExpressionBuiltinIter1
+
+    return iter_class(
+        value      = buildNode(
+            provider   = provider,
+            node       = qual.iter,
+            source_ref = source_ref
+        ),
+        source_ref = source_ref
+    )
+
+
+def _makeIteratorNext(provider, qual, iterator_ref, source_ref):
+    if getattr(qual, "is_async", 0):
+        next_class = ExpressionAsyncNext
+    else:
+        next_class = ExpressionBuiltinNext1
+
+    return next_class(
+        value      = iterator_ref,
+        source_ref = source_ref
+    )
+
+
+def _getStopIterationName(qual):
+    if getattr(qual, "is_async", 0):
+        return "StopAsyncIteration"
+    else:
+        return "StopIteration"
 
 
 def _buildPython2ListContraction(provider, node, source_ref):
@@ -213,37 +256,45 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         future_spec       = parent_module.getFutureSpec()
     )
 
-    code_body = ExpressionGeneratorObjectBody(
-        provider   = provider,
-        name       = "<genexpr>",
-        flags      = set(),
-        source_ref = source_ref
-    )
+    is_async = sum(getattr(qual, "is_async", 0) for qual in node.generators)
+
+    if is_async:
+        code_body = ExpressionAsyncgenObjectBody(
+            provider   = provider,
+            name       = "<genexpr>",
+            flags      = set(),
+            source_ref = source_ref
+        )
+
+        maker_class = ExpressionMakeAsyncgenObject
+    else:
+        code_body = ExpressionGeneratorObjectBody(
+            provider   = provider,
+            name       = "<genexpr>",
+            flags      = set(),
+            source_ref = source_ref
+        )
+
+        maker_class = ExpressionMakeGeneratorObject
+
 
     function_body.setBody(
         makeStatementsSequenceFromStatements(
             StatementAssignmentVariable(
                 variable   = iter_tmp,
-                source     = ExpressionBuiltinIter1(
-                    value      = buildNode(
-                        provider   = provider,
-                        node       = node.generators[0].iter,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
+                source     = _makeIteratorCreation(provider, node.generators[0], source_ref),
                 source_ref = source_ref
             ),
             makeTryFinallyStatement(
                 provider   = function_body,
                 tried      = StatementReturn(
-                    expression = ExpressionMakeGeneratorObject(
-                        generator_ref = ExpressionFunctionRef(
+                    expression = maker_class(
+                        ExpressionFunctionRef(
                             function_body = code_body,
                             source_ref    = source_ref
                         ),
-                        code_object   = code_object,
-                        source_ref    = source_ref
+                        code_object = code_object,
+                        source_ref  = source_ref
                     ),
                     source_ref = source_ref
                 ),
@@ -312,17 +363,12 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
     # First assign the iterator if we are an outline.
     if assign_provider:
+
+
         statements = [
             StatementAssignmentVariable(
                 variable   = iter_tmp,
-                source     = ExpressionBuiltinIter1(
-                    value      = buildNode(
-                        provider   = provider,
-                        node       = node.generators[0].iter,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
+                source     = _makeIteratorCreation(provider, node.generators[0], source_ref),
                 source_ref = source_ref.atInternal()
             )
         ]
@@ -416,12 +462,9 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             nested_statements = []
         else:
             # First create the iterator and store it, next should be loop body
-            value_iterator = ExpressionBuiltinIter1(
-                value      = buildNode(
-                    provider   = provider if assign_provider else function_body,
-                    node       = qual.iter,
-                    source_ref = source_ref
-                ),
+            value_iterator = _makeIteratorCreation(
+                provider   = provider if assign_provider else function_body,
+                qual       = qual,
                 source_ref = source_ref
             )
 
@@ -449,15 +492,17 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
             makeTryExceptSingleHandlerNode(
                 tried          = StatementAssignmentVariable(
                     variable   = tmp_value_variable,
-                    source     = ExpressionBuiltinNext1(
-                        value      = iterator_ref,
-                        source_ref = source_ref
+                    source     = _makeIteratorNext(
+                        provider     = provider,
+                        iterator_ref = iterator_ref,
+                        qual         = qual,
+                        source_ref   = source_ref
                     ),
                     source_ref = source_ref
                 ),
-                exception_name = "StopIteration",
+                exception_name = _getStopIterationName(qual),
                 handler_body   = StatementLoopBreak(
-                    source_ref = source_ref.atInternal()
+                    source_ref = source_ref
                 ),
                 source_ref     = source_ref
             ),
@@ -570,14 +615,7 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     )
 
     assign_iter_statement = StatementAssignmentVariable(
-        source     = ExpressionBuiltinIter1(
-            value      = buildNode(
-                provider   = provider,
-                node       = node.generators[0].iter,
-                source_ref = source_ref
-            ),
-            source_ref = source_ref
-        ),
+        source     = _makeIteratorCreation(provider, node.generators[0], source_ref),
         variable   = iter_tmp,
         source_ref = source_ref
     )
