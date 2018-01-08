@@ -976,7 +976,7 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
             Locker.release()
     result = OrderedDict()
     Locker = Lock()
-    with ThreadPoolExecutor(max_worker=os.cpu_count()*20) as Worker:
+    with ThreadPoolExecutor(max_workers=os.cpu_count()*20) as Worker:
         for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
             Worker.submit(GetDLL, count, source_dir, original_filename, binary_filename, package_name)
     return result
