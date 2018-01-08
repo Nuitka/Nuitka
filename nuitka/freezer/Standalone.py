@@ -61,7 +61,7 @@ from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import getDependsExePath
 
-from threading import Thread
+from threading import Lock
 from concurrent.futures import ThreadPoolExecutor
 
 
