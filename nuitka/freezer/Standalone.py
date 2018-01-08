@@ -61,6 +61,9 @@ from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import getDependsExePath
 
+from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
+
 
 def loadCodeObjectData(precompiled_filename):
     # Ignoring magic numbers, etc. which we don't have to care for much as
@@ -954,9 +957,7 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
 
 
 def detectUsedDLLs(source_dir, standalone_entry_points):
-    result = OrderedDict()
-
-    for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
+    def GetDLL(count, source_dir, original_filename, binary_filename, package_name):
         used_dlls = detectBinaryDLLs(
             is_main_executable = count == 0,
             source_dir         = source_dir,
@@ -964,17 +965,21 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
             binary_filename    = binary_filename,
             package_name       = package_name,
         )
-
-        for dll_filename in used_dlls:
+         for dll_filename in used_dlls:
             # We want these to be absolute paths. Solve that in the parts
             # where detectBinaryDLLs is platform specific.
             assert os.path.isabs(dll_filename), dll_filename
-
+            Locker.acquire()
             if dll_filename not in result:
                 result[dll_filename] = []
 
             result[dll_filename].append(binary_filename)
-
+            Locker.release()
+    result = OrderedDict()
+    Locker = Lock()
+    with ThreadPoolExecuter(max_worker=os.get_cpu()*20) as Worker:
+        for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
+            Worker.submit(GetDLL, count, source_dir, original_filename, binary_filename, package_name)
     return result
 
 
