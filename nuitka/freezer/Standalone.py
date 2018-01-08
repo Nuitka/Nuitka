@@ -61,8 +61,9 @@ from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import getDependsExePath
 
-from threading import Lock
-from concurrent.futures import ThreadPoolExecutor
+if sys.version_info >= (3, 0):
+    from threading import Lock
+    from concurrent.futures import ThreadPoolExecutor
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -975,10 +976,18 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
             result[dll_filename].append(binary_filename)
             Locker.release()
     result = OrderedDict()
-    Locker = Lock()
-    with ThreadPoolExecutor(max_workers=os.cpu_count()*20) as Worker:
+    if sys.version_info >= (3,0):
+        Locker = Lock()
+        try:
+            workers = os.cpu_count() * 20
+        except AttributeError:
+            workers = 10
+        with ThreadPoolExecutor(max_workers=workers)  as Worker:
+            for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
+                Worker.submit(GetDLL, count, source_dir, original_filename, binary_filename, package_name)
+    else:
         for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
-            Worker.submit(GetDLL, count, source_dir, original_filename, binary_filename, package_name)
+                GetDLL(count, source_dir, original_filename, binary_filename, package_name)
     return result
 
 
