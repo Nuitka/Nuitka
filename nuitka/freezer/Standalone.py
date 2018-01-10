@@ -970,11 +970,13 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
             # We want these to be absolute paths. Solve that in the parts
             # where detectBinaryDLLs is platform specific.
             assert os.path.isabs(dll_filename), dll_filename
-            Locker.acquire()
+            if sys.version_info >= (3,0):
+                Locker.acquire()
             if dll_filename not in result:
                 result[dll_filename] = []
             result[dll_filename].append(binary_filename)
-            Locker.release()
+            if sys.version_info >= (3,0):
+                Locker.release()
     result = OrderedDict()
     if sys.version_info >= (3,0):
         Locker = Lock()
