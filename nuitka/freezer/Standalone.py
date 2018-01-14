@@ -981,7 +981,7 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
     if sys.version_info >= (3,0):
         Locker = Lock()
         try:
-            workers = os.cpu_count() * 20
+            workers = os.cpu_count() * 3
         except AttributeError:
             workers = 10
         with ThreadPoolExecutor(max_workers=workers)  as Worker:
