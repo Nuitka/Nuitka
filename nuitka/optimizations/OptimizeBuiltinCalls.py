@@ -1096,7 +1096,7 @@ def super_extractor(node):
             source_ref   = source_ref
         )
 
-    provider = node.getParentVariableProvider()
+    provider = node.getParentVariableProvider().getEntryPoint()
 
     if not provider.isCompiledPythonModule():
         provider.discardFlag("has_super")
