@@ -67,17 +67,10 @@ Monkey patching "multiprocessing" load environment."""
         full_name = module.getFullName()
 
         if full_name == "multiprocessing.forking" or \
-           full_name == "multiprocessing.spawn":
+           full_name == "multiprocessing.reduction":
 
-            if full_name == "multiprocessing.spawn":
-                code = """\
-from multiprocessing.reduction import ForkingPickler
-"""
-            if full_name == "multiprocessing.forking":
-                code = """\
-from multiprocessing.forking import ForkingPickler
-"""
-            code += """\
+            code = """\
+from %s import ForkingPickler
 
 class C:
    def f():
@@ -89,8 +82,9 @@ def _reduce_compiled_method(m):
     else:
         return getattr, (m.im_self, m.im_func.__name__)
 
-ForkingPickler.register(type(C.f), _reduce_compiled_method)
+ForkingPickler.register(type(C().f), _reduce_compiled_method)
 """
+            code %= full_name
 
             return code, """\
 Monkey patching "multiprocessing" for compiled methods."""
