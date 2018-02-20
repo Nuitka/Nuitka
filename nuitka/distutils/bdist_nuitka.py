@@ -98,10 +98,6 @@ class build(distutils.command.build.build):
 
         output_dir = build_lib
 
-        nuitka_binary = getExecutablePath("nuitka")
-        if nuitka_binary is None:
-            sys.exit("Error, cannot find nuitka binary in PATH.")
-
         command = [
             sys.executable,
             "-m", "nuitka",
