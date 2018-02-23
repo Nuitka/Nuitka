@@ -558,6 +558,8 @@ _detected_python_rpath = None
 ldd_result_cache = {}
 
 def _detectBinaryPathDLLsLinuxBSD(dll_filename):
+    if ldd_result_cache.get(dll_filename):
+        return ldd_result_cache[dll_filename]
     # Ask "ldd" about the libraries being used by the created binary, these
     # are the ones that interest us.
     result = set()
@@ -575,68 +577,65 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
                 os.path.dirname(sys.executable).encode("utf-8")
             )
 
-    if dll_filename not in ldd_result_cache:
-        with withEnvironmentPathAdded("LD_LIBRARY_PATH", _detected_python_rpath):
-            process = subprocess.Popen(
-                args   = [
-                    "ldd",
-                    dll_filename
-                ],
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE
-            )
-
-            stdout, _stderr = process.communicate()
-
-            for line in stdout.split(b"\n"):
-                if not line:
-                    continue
-
-                if b"=>" not in line:
-                    continue
-
-                part = line.split(b" => ", 2)[1]
-
-                if b"(" in part:
-                    filename = part[:part.rfind(b"(")-1]
-                else:
-                    filename = part
-
-                if not filename:
-                    continue
-
-                if python_version >= 300:
-                    filename = filename.decode("utf-8")
-
-                # Sometimes might use stuff not found.
-                if filename == "not found":
-                    continue
-
-                # Do not include kernel specific libraries.
-                if os.path.basename(filename).startswith(
-                        (
-                            "libc.so.",
-                            "libpthread.so.",
-                            "libm.so.",
-                            "libdl.so."
-                        )
-                    ):
-                    continue
-
-                result.add(filename)
-
-        # Allow plugins to prevent inclusion.
-        blocked = Plugins.removeDllDependencies(
-            dll_filename = dll_filename,
-            dll_filenames = result
+    with withEnvironmentPathAdded("LD_LIBRARY_PATH", _detected_python_rpath):
+        process = subprocess.Popen(
+            args   = [
+                "ldd",
+                dll_filename
+            ],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE
         )
 
-        for to_remove in blocked:
-            result.discard(to_remove)
+        stdout, _stderr = process.communicate()
 
-        ldd_result_cache[dll_filename] = result
-    else:
-        result = ldd_result_cache[dll_filename]
+        for line in stdout.split(b"\n"):
+            if not line:
+                continue
+
+            if b"=>" not in line:
+                continue
+
+            part = line.split(b" => ", 2)[1]
+
+            if b"(" in part:
+                filename = part[:part.rfind(b"(")-1]
+            else:
+                filename = part
+
+            if not filename:
+                continue
+
+            if python_version >= 300:
+                filename = filename.decode("utf-8")
+
+            # Sometimes might use stuff not found.
+            if filename == "not found":
+                continue
+
+            # Do not include kernel specific libraries.
+            if os.path.basename(filename).startswith(
+                    (
+                        "libc.so.",
+                        "libpthread.so.",
+                        "libm.so.",
+                        "libdl.so."
+                    )
+                ):
+                continue
+
+            result.add(filename)
+
+    # Allow plugins to prevent inclusion.
+    blocked = Plugins.removeDllDependencies(
+        dll_filename = dll_filename,
+        dll_filenames = result
+    )
+
+    for to_remove in blocked:
+        result.discard(to_remove)
+
+    ldd_result_cache[dll_filename] = result
 
     sub_result = set(result)
 
