@@ -53,13 +53,13 @@ from nuitka.nodes.DictionaryNodes import (
     StatementDictOperationRemove
 )
 from nuitka.nodes.FunctionNodes import ExpressionFunctionQualnameRef
-from nuitka.nodes.GlobalsLocalsNodes import (
-    ExpressionBuiltinLocalsRef,
+from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
+from nuitka.nodes.LocalsDictNodes import (
+    StatementLocalsDictOperationSet,
     StatementReleaseLocals,
     StatementSetLocals,
     StatementSetLocalsDictionary
 )
-from nuitka.nodes.LocalsDictNodes import StatementLocalsDictOperationSet
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn

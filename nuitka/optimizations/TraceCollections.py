@@ -154,6 +154,14 @@ class CollectionStartpointMixin(object):
         # TODO: This is really a value shape, isn't it.
         self.locals_dict = None
 
+        # Dictionary of local dicts, e.g. multiple classes, nested or not, can
+        # produce that situation. The key is the locals_scope object of the
+        # locals dictionary. This stores the shape and the value traces for
+        # the keys.
+        self.locals_dict_values = {}
+
+        self.locals_dict_shapes = {}
+
     def getLoopBreakCollections(self):
         return self.break_collections
 
@@ -332,11 +340,14 @@ class CollectionStartpointMixin(object):
         self.locals_dict = old_locals_dict
         self.locals_dict_shape = old_locals_dict_shape
 
-    def setLocalsDictShape(self, locals_dict_shape):
+    def setLocalsDictShape(self, locals_scope, locals_dict_shape):
+        self.locals_dict_shapes[locals_scope] = locals_dict_shape
+        self.locals_dict_values[locals_scope] = {}
+
         self.locals_dict_shape = locals_dict_shape
 
-    def getLocalsDictShape(self):
-        return self.locals_dict_shape
+    def getLocalsDictShape(self, locals_scope):
+        return self.locals_dict_shapes[locals_scope]
 
     @contextlib.contextmanager
     def makeAbortStackContext(self, catch_breaks, catch_continues,
@@ -782,8 +793,9 @@ class TraceCollectionBase(CollectionTracingMixin):
     def onLocalsDictEscaped(self):
         self.parent.onLocalsDictEscaped()
 
-    def setLocalsDictShape(self, locals_dict_shape):
+    def setLocalsDictShape(self, locals_scope, locals_dict_shape):
         self.parent.setLocalsDictShape(
+            locals_scope      = locals_scope,
             locals_dict_shape = locals_dict_shape
         )
 

@@ -52,7 +52,7 @@ from nuitka.nodes.GeneratorNodes import (
     ExpressionMakeGeneratorObject,
     StatementGeneratorReturnNone
 )
-from nuitka.nodes.GlobalsLocalsNodes import StatementSetLocalsDictionary
+from nuitka.nodes.LocalsDictNodes import StatementSetLocalsDictionary
 from nuitka.nodes.OutlineNodes import ExpressionOutlineFunction
 from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn, StatementReturnNone

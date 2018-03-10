@@ -26,13 +26,9 @@ The "dir()" call without arguments is reformulated to locals or globals calls.
 
 from nuitka.PythonVersions import python_version
 
-from .ConstantRefNodes import (
-    ExpressionConstantDictEmptyRef,
-    makeConstantRefNode
-)
+from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
-from .NodeBases import NodeBase, StatementChildrenHavingBase
 from .VariableRefNodes import ExpressionVariableRef
 
 
@@ -202,107 +198,6 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
 
         return result, "new_expression", "Statically predicted locals dictionary."
 
-
-class StatementSetLocals(StatementChildrenHavingBase):
-    kind = "STATEMENT_SET_LOCALS"
-
-    named_children = (
-        "new_locals",
-    )
-
-    def __init__(self, locals_scope, new_locals, source_ref):
-        StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "new_locals" : new_locals,
-            },
-            source_ref = source_ref
-        )
-
-        self.locals_scope = locals_scope
-
-    def getDetailsForDisplay(self):
-        return {
-            "locals_scope" : self.locals_scope.getCodeName()
-        }
-
-    def getDetails(self):
-        return {
-            "locals_scope" : self.locals_scope
-        }
-
-    def getLocalsScope(self):
-        return self.locals_scope
-
-    def mayRaiseException(self, exception_type):
-        return self.getNewLocals().mayRaiseException(exception_type)
-
-    getNewLocals = StatementChildrenHavingBase.childGetter("new_locals")
-
-    def computeStatement(self, trace_collection):
-        trace_collection.onExpression(self.getNewLocals())
-        new_locals = self.getNewLocals()
-
-        if new_locals.willRaiseException(BaseException):
-            from .NodeMakingHelpers import \
-               makeStatementExpressionOnlyReplacementNode
-
-            result = makeStatementExpressionOnlyReplacementNode(
-                expression = new_locals,
-                node       = self
-            )
-
-            return result, "new_raise", """\
-Setting locals already raises implicitly building new locals."""
-
-        trace_collection.setLocalsDictShape(self.getNewLocals().getTypeShape())
-
-        return self, None, None
-
-
-class StatementSetLocalsDictionary(StatementSetLocals):
-    kind = "STATEMENT_SET_LOCALS_DICTIONARY"
-
-    def __init__(self, locals_scope, source_ref):
-        StatementSetLocals.__init__(
-            self,
-            locals_scope = locals_scope,
-            new_locals   = ExpressionConstantDictEmptyRef(
-                source_ref = source_ref
-            ),
-            source_ref   = source_ref
-        )
-
-    def mayRaiseException(self, exception_type):
-        return False
-
-
-class StatementReleaseLocals(NodeBase):
-    kind = "STATEMENT_RELEASE_LOCALS"
-
-    __slots__ = "locals_scope",
-
-    def __init__(self, locals_scope, source_ref):
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-        self.locals_scope = locals_scope
-
-    def computeStatement(self, trace_collection):
-        trace_collection.setLocalsDictShape(None)
-
-        return self, None, None
-
-    def getDetails(self):
-        return {"locals_scope": self.locals_scope}
-
-    def getLocalsScope(self):
-        return self.locals_scope
-
-    def mayRaiseException(self, exception_type):
-        return False
 
 
 class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):
