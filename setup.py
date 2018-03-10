@@ -18,8 +18,8 @@
 
 import os
 import sys
-from distutils.command.install_scripts import install_scripts
 from setuptools import setup
+from setuptools.command import easy_install
 
 os.chdir(os.path.dirname(__file__) or '.')
 
@@ -88,30 +88,6 @@ def findNuitkaPackages():
 
     return result
 
-
-# Fix for "develop", where the generated scripts from easy install are not
-# capable of running in their re-executing, not finding pkg_resources anymore.
-if "develop" in sys.argv:
-    try:
-        import setuptools.command.easy_install
-    except ImportError:
-        pass
-    else:
-        orig_easy_install = setuptools.command.easy_install.easy_install
-
-        class NuitkaEasyInstall(setuptools.command.easy_install.easy_install):
-            @staticmethod
-            def _load_template(dev_path):
-                result = orig_easy_install._load_template(dev_path)
-                result = result.replace(
-                    "__import__('pkg_resources')",
-                    "# __import__('pkg_resources')",
-                )
-
-                return result
-
-        setuptools.command.easy_install.easy_install = NuitkaEasyInstall
-
 if os.path.exists("/usr/bin/scons") and \
    "sdist" not in sys.argv and \
    "bdist_wininst" not in sys.argv and \
@@ -151,6 +127,48 @@ if sys.version_info >= (3,):
 
     util.byte_compile = byte_compile
 
+
+# We monkey patch easy install script generation to not load pkg_resources,
+# which is very slow to launch. This can save one second or more per launch
+# of Nuitka.
+runner_script_template = """\
+# -*- coding: utf-8 -*-
+# Launcher for Nuitka
+
+import os
+if "NUITKA_PYTHONPATH" in os.environ:
+
+    # Restore the PYTHONPATH gained from the site module, that we chose not
+    # to have imported. pylint: disable=eval-used
+    import sys
+    sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
+    del os.environ["NUITKA_PYTHONPATH"]
+
+import nuitka.__main__
+"""
+
+@classmethod
+def get_args(cls, dist, header=None):
+    """
+    Yield write_script() argument tuples for a distribution's
+    console_scripts and gui_scripts entry points.
+    """
+    if header is None:
+        header = cls.get_header()
+
+    for type_ in 'console', 'gui':
+        group = type_ + '_scripts'
+
+        for name, _ep in dist.get_entry_map(group).items():
+            package_path_handling = ""
+
+            script_text = runner_script_template
+
+            args = cls._get_script_args(type_, name, header, script_text)
+            for res in args:
+                yield res
+
+easy_install.ScriptWriter.get_args = get_args
 
 setup(
     name         = project_name,
@@ -204,8 +222,6 @@ setup(
 
     ],
     packages     = findNuitkaPackages(),
-    # cmdclass     = cmdclass,
-
     package_data = {
         # Include extra files
         "" : ["*.txt", "*.rst", "*.c", "*.h", "*.ui"],
@@ -232,15 +248,18 @@ setup(
     description  = """\
 Python compiler with full language support and CPython compatibility""",
     keywords     = "compiler,python,nuitka",
-    entry_points = {"distutils.commands": [
-                        'bdist_nuitka = \
-                         nuitka.distutils.bdist_nuitka:bdist_nuitka'
-                    ],
-                    "distutils.setup_keywords": [
-                        'build_with_nuitka = \
-                         nuitka.distutils.bdist_nuitka:setuptools_build_hook'
-                    ],
-                    "console_scripts": ['nuitka = nuitka.__main__',
-                                        'nuitka-run = nuitka.__main__'],
-                   },
+    zip_safe     = False,
+    entry_points = {
+        "distutils.commands": [
+            'bdist_nuitka = \
+             nuitka.distutils.bdist_nuitka:bdist_nuitka'
+        ],
+        "distutils.setup_keywords": [
+            "build_with_nuitka = nuitka.distutils.bdist_nuitka:setuptools_build_hook"
+        ],
+        "console_scripts": [
+            "nuitka = nuitka.__main__",
+            "nuitka-run = nuitka.__main__"
+        ],
+    },
 )
