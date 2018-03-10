@@ -237,7 +237,7 @@ def buildFunctionNode(provider, node, source_ref):
 
         for decorator in decorators:
             if decorator.isExpressionVariableNameRef() and \
-               decorator.getVariableName() == "staticmethod":
+               decorator.getVariableName() in ("staticmethod", "classmethod"):
                 break
         else:
             decorators.append(
