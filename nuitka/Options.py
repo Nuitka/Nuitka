@@ -75,18 +75,6 @@ implies these option: "--recurse-all". You may also want to use
 of code dependencies. Defaults to off.""",
 )
 
-parser.add_option(
-    "--nofreeze-stdlib",
-    action  = "store_false",
-    dest    = "freeze_stdlib",
-    default = True,
-    help    = """\
-In standalone mode by default all modules of standard library will be frozen
-as bytecode. This compiles them all and as a result compilation time will
-increase very much.
-""",
-    )
-
 
 parser.add_option(
     "--python-version",
@@ -180,7 +168,8 @@ recurse_group.add_option(
     dest    = "recurse_stdlib",
     default = False,
     help    = """\
-Also descend into imported modules from standard library. Defaults to off."""
+Also descend into imported modules from standard library. This will increase
+the compilation time by a lot. Defaults to off."""
 )
 
 recurse_group.add_option(
@@ -1076,7 +1065,7 @@ def getPythonFlags():
 
 
 def shallFreezeAllStdlib():
-    return options.freeze_stdlib
+    return not shallFollowStandardLibrary()
 
 
 def shallListPlugins():
