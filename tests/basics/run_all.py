@@ -32,15 +32,6 @@ sys.path.insert(
     )
 )
 
-# Find nuitka package from system installation for package test too.
-try:
-    import nuitka  # @UnusedImport
-except ImportError:
-    # Find nuitka in system install.
-    sys.path[0] = "/usr/share/nuitka"
-    import nuitka  # @UnusedImport
-
-
 
 from nuitka.tools.testing.Common import (
     my_print,
@@ -48,7 +39,6 @@ from nuitka.tools.testing.Common import (
     decideFilenameVersionSkip,
     compareWithCPython,
     hasDebugPython,
-    withPythonPathChange,
     createSearchMode
 )
 
@@ -129,14 +119,13 @@ for filename in sorted(os.listdir('.')):
                      not filename.endswith("32.py") and \
                      not filename.endswith("33.py")
 
-        with withPythonPathChange(".."):
-            compareWithCPython(
-                dirname     = None,
-                filename    = filename,
-                extra_flags = extra_flags,
-                search_mode = search_mode,
-                needs_2to3  = needs_2to3
-            )
+        compareWithCPython(
+            dirname     = None,
+            filename    = filename,
+            extra_flags = extra_flags,
+            search_mode = search_mode,
+            needs_2to3  = needs_2to3
+        )
     else:
         my_print("Skipping", filename)
 

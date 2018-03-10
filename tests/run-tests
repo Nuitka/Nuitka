@@ -36,10 +36,6 @@ sys.path.insert(
         )
     )
 )
-sys.path.insert(
-    1,
-    "/usr/share/nuitka"
-)
 
 from nuitka.tools.testing.run_nuitka_tests.__main__ import main # isort:skip
 main()

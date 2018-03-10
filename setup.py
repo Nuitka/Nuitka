@@ -222,6 +222,8 @@ else:
     easy_install.get_script_args = get_script_args
 
 
+binary_suffix = "" if sys.version_info[0] == 2 else sys.version_info[0]
+
 setup(
     name         = project_name,
     license      = "Apache License, Version 2.0",
@@ -310,8 +312,8 @@ Python compiler with full language support and CPython compatibility""",
             "build_with_nuitka = nuitka.distutils.bdist_nuitka:setuptools_build_hook"
         ],
         "console_scripts": [
-            "nuitka = nuitka.__main__",
-            "nuitka-run = nuitka.__main__"
+            "nuitka%s = nuitka.__main__" % binary_suffix,
+            "nuitka%s-run = nuitka.__main__" % binary_suffix
         ],
     },
 )

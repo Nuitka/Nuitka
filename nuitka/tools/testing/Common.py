@@ -908,18 +908,44 @@ def checkDebugPython():
         sys.gettotalrefcount = lambda : 0
 
 
-@contextmanager
-def withPythonPathChange(python_path):
+def addToPythonPath(python_path):
     if type(python_path) in (tuple, list):
         python_path = os.pathsep.join(python_path)
 
     if python_path:
+        if "PYTHONPATH" in os.environ:
+            os.environ["PYTHONPATH"] += os.pathsep + python_path
+        else:
+            os.environ["PYTHONPATH"] = python_path
+
+
+@contextmanager
+def withPythonPathChange(python_path):
+    if python_path:
+        if type(python_path) not in (tuple, list):
+            python_path = python_path.split(os.pathsep)
+
+        python_path = [
+            os.path.normpath(os.path.abspath(element))
+            for element in
+            python_path
+        ]
+
+        python_path = os.pathsep.join(python_path)
+
         if "PYTHONPATH" in os.environ:
             old_path = os.environ["PYTHONPATH"]
             os.environ["PYTHONPATH"] += os.pathsep + python_path
         else:
             old_path = None
             os.environ["PYTHONPATH"] = python_path
+
+#     print(
+#         "Effective PYTHONPATH in %s is %r" % (
+#             sys.modules["__main__"],
+#             os.environ.get("PYTHONPATH", "")
+#         )
+#     )
 
     yield
 

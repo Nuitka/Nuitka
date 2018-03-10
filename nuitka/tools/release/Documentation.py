@@ -85,37 +85,44 @@ def makeManpages():
     if not os.path.exists("man"):
         os.mkdir("man")
 
-    assert subprocess.call(
-        """\
+    def makeManpage(python, suffix):
+        assert subprocess.call(
+            """\
 help2man -n 'the Python compiler' --no-discard-stderr --no-info \
 --include doc/nuitka-man-include.txt \
-./bin/nuitka >doc/nuitka.1""",
-        shell = True
-    ) == 0
-    assert subprocess.call(
-        "help2man -n 'the Python compiler' --no-discard-stderr --no-info ./bin/nuitka-run >doc/nuitka-run.1",
-        shell = True
-    ) == 0
+'%s ./bin/nuitka' >doc/nuitka%s.1""" % ( python, suffix ),
+            shell = True
+        ) == 0
+        assert subprocess.call(
+            """\
+help2man -n 'the Python compiler' --no-discard-stderr --no-info \
+--include doc/nuitka-man-include.txt \
+'%s ./bin/nuitka-run' >doc/nuitka%s-run.1""" % ( python, suffix ),
+            shell = True
+        ) == 0
 
-    for manpage in ("doc/nuitka.1", "doc/nuitka-run.1"):
-        manpage_contents = open(manpage).readlines()
-        new_contents = []
-        mark = False
+        for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" % suffix):
+            manpage_contents = open(manpage).readlines()
+            new_contents = []
+            mark = False
 
-        for count, line in enumerate(manpage_contents):
-            if mark:
-                line = ".SS " + line + ".BR\n"
-                mark = False
-            elif line == ".IP\n" and manpage_contents[ count + 1 ].endswith(":\n"):
-                mark = True
-                continue
+            for count, line in enumerate(manpage_contents):
+                if mark:
+                    line = ".SS " + line + ".BR\n"
+                    mark = False
+                elif line == ".IP\n" and manpage_contents[ count + 1 ].endswith(":\n"):
+                    mark = True
+                    continue
 
-            if line == r"\fB\-\-g\fR++\-only" + '\n':
-                line = r"\fB\-\-g\++\-only\fR" + '\n'
+                if line == r"\fB\-\-g\fR++\-only" + '\n':
+                    line = r"\fB\-\-g\++\-only\fR" + '\n'
 
-            new_contents.append(line)
+                new_contents.append(line)
 
-        open(manpage, 'w').writelines(new_contents)
+            open(manpage, 'w').writelines(new_contents)
+
+    makeManpage("python2", "")
+    makeManpage("python3", "3")
 
 def createRstPDF(document, args):
     assert subprocess.call(
