@@ -359,11 +359,6 @@ static PyObject *Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutine
     return _Nuitka_Coroutine_send( coroutine, value, false );
 }
 
-static PyObject *Nuitka_Coroutine_tp_iternext( struct Nuitka_CoroutineObject *coroutine )
-{
-    return Nuitka_Coroutine_send( coroutine, Py_None );
-}
-
 PyObject *Nuitka_Coroutine_close( struct Nuitka_CoroutineObject *coroutine, PyObject *args )
 {
     if ( coroutine->m_status == status_Running )
@@ -822,8 +817,8 @@ PyTypeObject Nuitka_Coroutine_Type =
     0,                                                    /* tp_clear */
     0,                                                    /* tp_richcompare */
     offsetof(struct Nuitka_CoroutineObject, m_weakrefs),  /* tp_weaklistoffset */
-    PyObject_SelfIter,                                    /* tp_iter */
-    (iternextfunc)Nuitka_Coroutine_tp_iternext,           /* tp_iternext */
+    0,                                                    /* tp_iter */
+    0,                                                    /* tp_iternext */
     Nuitka_Coroutine_methods,                             /* tp_methods */
     Nuitka_Coroutine_members,                             /* tp_members */
     Nuitka_Coroutine_getsetlist,                          /* tp_getset */
