@@ -27,14 +27,16 @@ os.chdir(os.path.dirname(__file__) or '.')
 # Detect the version of Nuitka from its source directly. Without calling it, we
 # don't mean to pollute with ".pyc" files and similar effects.
 def detectVersion():
-    version_line, = [
-        line
-        for line in
-        open("nuitka/Version.py")
-        if line.startswith("Nuitka V")
-    ]
+    with open("nuitka/Version.py") as version_file:
+        version_line, = [
+            line
+            for line in
+            version_file
 
-    return version_line.split('V')[1].strip()
+            if line.startswith("Nuitka V")
+        ]
+
+        return version_line.split('V')[1].strip()
 
 version = detectVersion()
 
