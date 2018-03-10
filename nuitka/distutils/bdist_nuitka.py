@@ -31,14 +31,20 @@ import wheel.bdist_wheel  # @UnresolvedImport
 
 def setuptools_build_hook(dist, keyword, value):
     # If the user project setup.py includes the key "build_with_nuitka=True" all
-    # build operations (build, bdist_wheel, install etc) will run via nuitka
+    # build operations (build, bdist_wheel, install etc) will run via Nuitka.
+    # pylint: disable=unused-argument
+
     if not value:
         return
+
     dist.cmdclass = dist.cmdclass or {}  # Ensure is a dict
     dist.cmdclass["build"] = build
     dist.cmdclass["install"] = install
     dist.cmdclass["bdist_wheel"] = bdist_nuitka
 
+
+# False alarm due to distutils not being fully understood
+# pylint: disable=super-on-old-class
 
 # Class name enforced by distutils, must match the command name.
 # pylint: disable=C0103
