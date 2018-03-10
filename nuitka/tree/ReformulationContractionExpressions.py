@@ -52,7 +52,8 @@ from nuitka.nodes.FrameNodes import (
 from nuitka.nodes.FunctionNodes import ExpressionFunctionRef
 from nuitka.nodes.GeneratorNodes import (
     ExpressionGeneratorObjectBody,
-    ExpressionMakeGeneratorObject
+    ExpressionMakeGeneratorObject,
+    StatementGeneratorReturnNone
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.NodeMakingHelpers import makeVariableRefNode
@@ -319,6 +320,13 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         assign_provider = False,
         source_ref      = source_ref,
     )
+
+    if is_async:
+        statements.append(
+            StatementGeneratorReturnNone(
+                source_ref = source_ref
+            )
+        )
 
     statements = (
         makeTryFinallyStatement(
