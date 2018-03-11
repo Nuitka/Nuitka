@@ -18,6 +18,7 @@
 
 import os
 import sys
+import re
 from setuptools import setup
 from setuptools.command import easy_install
 
@@ -147,6 +148,7 @@ if "NUITKA_PYTHONPATH" in os.environ:
 import nuitka.__main__
 """
 
+# This is for newer setuptools:
 @classmethod
 def get_args(cls, dist, header=None):
     """
@@ -160,15 +162,65 @@ def get_args(cls, dist, header=None):
         group = type_ + '_scripts'
 
         for name, _ep in dist.get_entry_map(group).items():
-            package_path_handling = ""
-
             script_text = runner_script_template
 
             args = cls._get_script_args(type_, name, header, script_text)
             for res in args:
                 yield res
 
-easy_install.ScriptWriter.get_args = get_args
+try:
+    easy_install.ScriptWriter.get_args = get_args
+except AttributeError:
+    pass
+
+# This is for older setuptools:
+def get_script_args(dist, executable=os.path.normpath(sys.executable), wininst=False):
+    """Yield write_script() argument tuples for a distribution's entrypoints"""
+    header = easy_install.get_script_header("", executable, wininst)
+    for group in 'console_scripts', 'gui_scripts':
+        for name, _ep in dist.get_entry_map(group).items():
+            script_text = runner_script_template
+            if sys.platform=='win32' or wininst:
+                # On Windows/wininst, add a .py extension and an .exe launcher
+                if group=='gui_scripts':
+                    launcher_type = 'gui'
+                    ext = '-script.pyw'
+                    old = ['.pyw']
+                    new_header = re.sub('(?i)python.exe','pythonw.exe',header)
+                else:
+                    launcher_type = 'cli'
+                    ext = '-script.py'
+                    old = ['.py','.pyc','.pyo']
+                    new_header = re.sub('(?i)pythonw.exe','python.exe',header)
+                if os.path.exists(new_header[2:-1].strip('"')) or sys.platform!='win32':
+                    hdr = new_header
+                else:
+                    hdr = header
+                yield (name+ext, hdr+script_text, 't', [name+x for x in old])
+                yield (
+                    name+'.exe', easy_install.get_win_launcher(launcher_type),
+                    'b' # write in binary mode
+                )
+                if not easy_install.is_64bit():
+                    # install a manifest for the launcher to prevent Windows
+                    #  from detecting it as an installer (which it will for
+                    #  launchers like easy_install.exe). Consider only
+                    #  adding a manifest for launchers detected as installers.
+                    #  See Distribute #143 for details.
+                    m_name = name + '.exe.manifest'
+                    yield (m_name, easy_install.load_launcher_manifest(name), 't')
+            else:
+                # On other platforms, we assume the right thing to do is to
+                # just write the stub with no extension.
+                yield (name, header+script_text)
+
+try:
+    easy_install.get_script_args
+except AttributeError:
+    pass
+else:
+    easy_install.get_script_args = get_script_args
+
 
 setup(
     name         = project_name,
