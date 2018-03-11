@@ -156,6 +156,16 @@ parser.add_option(
 Enable warnings for unusual code detected at compile time.""",
 )
 
+parser.add_option(
+    "--assume-yes-for-downloads",
+    action  = "store_true",
+    dest    = "assume_yes_for_downloads",
+    default = False,
+    help    = """\
+Allow Nuitka to download code if necessary, e.g. dependency walker on Windows.""",
+)
+
+
 recurse_group = OptionGroup(
     parser,
     "Control the recursion into imported modules"
@@ -905,6 +915,10 @@ def shallWarnImplicitRaises():
 
 def shallWarnUnusualCode():
     return options.warn_unusual_code
+
+
+def assumeYesForDownloads():
+    return options.assume_yes_for_downloads
 
 
 def isDebug():
