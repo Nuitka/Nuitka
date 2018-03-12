@@ -940,12 +940,12 @@ def withPythonPathChange(python_path):
             old_path = None
             os.environ["PYTHONPATH"] = python_path
 
-#     print(
-#         "Effective PYTHONPATH in %s is %r" % (
-#             sys.modules["__main__"],
-#             os.environ.get("PYTHONPATH", "")
-#         )
-#     )
+    print(
+        "Effective PYTHONPATH in %s is %r" % (
+            sys.modules["__main__"],
+            os.environ.get("PYTHONPATH", "")
+        )
+    )
 
     yield
 
