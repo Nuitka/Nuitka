@@ -31,7 +31,7 @@ import sys
 import tempfile
 import time
 
-from nuitka.tools.testing.Common import withPythonPathChange, addToPythonPath
+from nuitka.tools.testing.Common import addToPythonPath, withPythonPathChange
 
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")

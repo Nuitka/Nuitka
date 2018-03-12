@@ -61,7 +61,7 @@ class build(distutils.command.build.build):
 
     def _buildPackage(self, build_lib):
         # Nuitka wants the main package by filename, probably we should stop
-        # needing that.
+        # needing that, pylint: disable=too-many-locals
         from nuitka.importing.Importing import findModule, setMainScriptDirectory
 
         old_dir = os.getcwd()

@@ -65,7 +65,7 @@ def getDependsExePath():
 
     if not os.path.isfile(nuitka_depends_zip) and not os.path.isfile(depends_exe):
         if assumeYesForDownloads():
-            reply = "y"
+            reply = 'y'
         else:
             Tracing.printLine(
                 """\

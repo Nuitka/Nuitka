@@ -90,18 +90,18 @@ def makeManpages():
             """\
 help2man -n 'the Python compiler' --no-discard-stderr --no-info \
 --include doc/nuitka-man-include.txt \
-'%s ./bin/nuitka' >doc/nuitka%s.1""" % ( python, suffix ),
+'%s ./bin/nuitka' >doc/nuitka%s.1""" % (python, suffix),
             shell = True
         ) == 0
         assert subprocess.call(
             """\
 help2man -n 'the Python compiler' --no-discard-stderr --no-info \
 --include doc/nuitka-man-include.txt \
-'%s ./bin/nuitka-run' >doc/nuitka%s-run.1""" % ( python, suffix ),
+'%s ./bin/nuitka-run' >doc/nuitka%s-run.1""" % (python, suffix),
             shell = True
         ) == 0
 
-        for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" % suffix):
+        for manpage in ("doc/nuitka%s.1" % suffix, "doc/nuitka%s-run.1" %suffix):
             manpage_contents = open(manpage).readlines()
             new_contents = []
             mark = False
@@ -122,7 +122,7 @@ help2man -n 'the Python compiler' --no-discard-stderr --no-info \
             open(manpage, 'w').writelines(new_contents)
 
     makeManpage("python2", "")
-    makeManpage("python3", "3")
+    makeManpage("python3", '3')
 
 def createRstPDF(document, args):
     assert subprocess.call(
