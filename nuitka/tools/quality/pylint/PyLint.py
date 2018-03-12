@@ -112,6 +112,12 @@ def checkVersion():
 #
 # R1705: Unnecessary "else" after "return"
 # Frequently we use multiple branches where each returns.
+#
+# inconsistent-return-statements
+# This makes no sense, having to have a variable for return is bad in my mind.
+#
+# c-extension-no-member
+# Not too useful for us.
 
 def getOptions():
     checkVersion()
@@ -149,6 +155,11 @@ def getOptions():
 --disable=no-else-return\
 """.split('\n')
 
+    if pylint_version >= b"1.8":
+        default_pylint_options += """\
+--disable=c-extension-no-member,inconsistent-return-statements\
+""".split('\n')
+
     return default_pylint_options
 
 our_exit_code = 0
@@ -173,7 +184,27 @@ def _executePylint(filenames, pylint_options, extra_options):
     if exit_code == -11:
         sys.exit("Error, segfault from pylint.")
 
-    assert not stderr, stderr
+    if stderr:
+        if str is not bytes:
+            stderr = stderr.decode("utf8")
+
+        # Normalize from Windows newlines potentially
+        stdout = stdout.replace("\r\n", '\n')
+
+        lines = stdout.split('\n')
+
+        line = [
+            line
+            for line in
+            lines
+            if "Using config file" not in line
+        ]
+
+        for line in lines:
+            print(line)
+
+        if lines:
+            our_exit_code = 1
 
     if stdout:
         if str is not bytes:
