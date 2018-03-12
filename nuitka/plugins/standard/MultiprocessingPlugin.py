@@ -30,7 +30,7 @@ from nuitka.utils import Utils
 
 
 class NuitkaPluginMultiprocessingWorkaorunds(NuitkaPluginBase):
-    """ This is to make multiprocess work with Nuitka and use compiled code.
+    """ This is to make multiprocessing work with Nuitka and use compiled code.
 
         When running in accelerated mode, it's not good to fork a new Python
         instance to run other code, as that won't be accelerated. And when
@@ -38,7 +38,7 @@ class NuitkaPluginMultiprocessingWorkaorunds(NuitkaPluginBase):
         same principle.
 
         So by default, this module is on and works around the behavior of the
-        "multiprocess.forking" expectations.
+        "multiprocessing.forking/multiprocessing.spawn" expectations.
     """
     plugin_name = "multiprocessing"
 
@@ -49,7 +49,8 @@ class NuitkaPluginMultiprocessingWorkaorunds(NuitkaPluginBase):
     def createPreModuleLoadCode(module):
         full_name = module.getFullName()
 
-        if full_name == "multiprocessing.forking":
+        if full_name == "multiprocessing.forking" or \
+           full_name == "multiprocessing.spawn":
             code = """\
 import sys
 sys.frozen = 1
@@ -65,9 +66,11 @@ Monkey patching "multiprocessing" load environment."""
     def createPostModuleLoadCode(module):
         full_name = module.getFullName()
 
-        if full_name == "multiprocessing.forking":
+        if full_name == "multiprocessing.forking" or \
+           full_name == "multiprocessing.reduction":
+
             code = """\
-from multiprocessing.forking import ForkingPickler
+from %s import ForkingPickler
 
 class C:
    def f():
@@ -79,9 +82,10 @@ def _reduce_compiled_method(m):
     else:
         return getattr, (m.im_self, m.im_func.__name__)
 
-print type(_reduce_compiled_method)
-ForkingPickler.register(type(C.f), _reduce_compiled_method)
+ForkingPickler.register(type(C().f), _reduce_compiled_method)
 """
+            code %= full_name
+
             return code, """\
 Monkey patching "multiprocessing" for compiled methods."""
 
@@ -93,6 +97,7 @@ Monkey patching "multiprocessing" for compiled methods."""
         from nuitka.tree.Building import CompiledPythonModule, readSourceCodeFromFilename, createModuleTree
         from nuitka.ModuleRegistry import addRootModule
         from nuitka.plugins.Plugins import Plugins
+        from sys import hexversion
         # First, build the module node and then read again from the
         # source code.
         module_name = "__parents_main__"
@@ -115,10 +120,16 @@ Monkey patching "multiprocessing" for compiled methods."""
 
         # For the call stack, this may look bad or different to what
         # CPython does. Using the "__import__" built-in to not spoil
-        # or use the module namespace.
-        source_code += """
+        # or use the module namespace. The forking module was split up
+        # into multiple modules in Python 3.4.0.a2
+        if hexversion >= 0x030400A2:
+            source_code += """
 __import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
-__import__("multiprocessing.forking").forking.main()"""
+__import__("multiprocessing.spawn").spawn.freeze_support()"""
+        else:
+            source_code += """
+__import__("sys").modules["__main__"] = __import__("sys").modules[__name__]
+__import__("multiprocessing.forking").forking.freeze_support()"""
 
         createModuleTree(
             module      = slave_main_module,
