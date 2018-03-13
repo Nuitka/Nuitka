@@ -192,6 +192,23 @@ extern PyObject *PyUnicode_Substring( PyObject *self, Py_ssize_t start, Py_ssize
 
 #endif
 
+
+/* Avoid gcc warnings about using an integer as a bool. This is a cherry-pick.
+ *
+ * This might apply to more versions. I am seeing this on 3.3.2, and it was
+ * fixed for Python 2.x only later. We could include more versions. This is
+ * only a problem with debug mode and therefore not too important maybe.
+ */
+#if PYTHON_VERSION >= 330 && PYTHON_VERSION < 340
+
+#undef  PyMem_MALLOC
+#define PyMem_MALLOC(n) ((size_t)(n) > (size_t)PY_SSIZE_T_MAX ? NULL : malloc(((n) != 0) ? (n) : 1))
+
+#undef  PyMem_REALLOC
+#define PyMem_REALLOC(p, n) ((size_t)(n) > (size_t)PY_SSIZE_T_MAX  ? NULL : realloc((p), ((n) != 0) ? (n) : 1))
+
+#endif
+
 /* The name of the entry point for DLLs changed between CPython versions, and
  * this is here to hide that.
  */
