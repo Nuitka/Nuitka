@@ -30,7 +30,7 @@ import tempfile
 from contextlib import contextmanager
 
 from nuitka.Tracing import my_print
-from nuitka.utils.AppDirs import getCacheDir
+from nuitka.utils.AppDirs import getAppDir, getCacheDir
 from nuitka.utils.Execution import check_output
 from nuitka.utils.FileOperations import makePath, removeDirectory
 
@@ -434,7 +434,7 @@ def getDependsExePath():
     if "APPDATA" not in os.environ:
         sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
 
-    nuitka_app_dir = os.path.join(os.environ["APPDATA"],"nuitka")
+    nuitka_app_dir = getAppDir()
 
     depends_dir = os.path.join(
         nuitka_app_dir,
@@ -940,12 +940,12 @@ def withPythonPathChange(python_path):
             old_path = None
             os.environ["PYTHONPATH"] = python_path
 
-    print(
-        "Effective PYTHONPATH in %s is %r" % (
-            sys.modules["__main__"],
-            os.environ.get("PYTHONPATH", "")
-        )
-    )
+#     print(
+#         "Effective PYTHONPATH in %s is %r" % (
+#             sys.modules["__main__"],
+#             os.environ.get("PYTHONPATH", "")
+#         )
+#     )
 
     yield
 
