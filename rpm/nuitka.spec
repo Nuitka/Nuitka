@@ -3,6 +3,8 @@
 
 %global python3_sitearch %(%{__python3} -c "import sys, distutils.sysconfig; sys.stdout.write(distutils.sysconfig.get_python_lib(0))")
 
+%global _python_bytecompile_errors_terminate_build 0
+
 Name:           nuitka
 Version:        VERSION
 Release:        5%{?dist}
