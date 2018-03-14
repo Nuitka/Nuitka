@@ -221,8 +221,14 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
 
     def getDetails(self):
         return {
-            "name" : self.name,
-            "provider"   : self.provider.getCodeName()
+            "name"     : self.name,
+            "provider" : self.provider
+        }
+
+    def getDetailsForDisplay(self):
+        return {
+            "name"     : self.name,
+            "provider" : self.provider.getCodeName()
         }
 
     def computeExpressionRaw(self, trace_collection):
