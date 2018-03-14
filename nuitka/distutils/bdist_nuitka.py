@@ -110,14 +110,27 @@ class build(distutils.command.build.build):
             "--output-dir=%s" % output_dir,
             "--recurse-dir=%s" % self.main_package,
             "--recurse-to=%s" % self.main_package,
-            "--recurse-not-to=*.tests",
             "--show-modules",
-            "--remove-output",
-            main_filename,
+            "--remove-output"
         ]
 
+        # Process any extra options from setuptools
+        if 'nuitka' in self.distribution.command_options:
+            for option, details in self.distribution.command_options['nuitka'].items():
+                option = "--" + option.lstrip('-')
+                source, value = details
+                if value is None:
+                    command.append(option)
+                elif hasattr(value, '__iter__'):
+                    for val in value:
+                        command.append('%s=%s' % (option, val))
+                else:
+                    command.append('%s=%s' % (option, value))
+
+        command.append(main_filename)
+
         subprocess.check_call(
-            command
+            command, cwd=build_lib
         )
         os.chdir(old_dir)
 
