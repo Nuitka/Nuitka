@@ -155,8 +155,7 @@ typedef enum {false, true} bool;
 
 #if PYTHON_VERSION < 330
 
-#define PyUnicode_GetLength(x) (PyUnicode_GetSize(x) / sizeof(Py_UNICODE))
-
+#define PyUnicode_GetLength(x) (PyUnicode_GetSize(x))
 extern PyObject *PyUnicode_Substring( PyObject *self, Py_ssize_t start, Py_ssize_t end );
 
 #endif
