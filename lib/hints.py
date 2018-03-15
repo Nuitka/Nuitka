@@ -61,7 +61,9 @@ def _moduleRepr(module):
 def enableImportTracing(normalize_paths = True, show_source = False):
 
     def _ourimport(name, globals = None, locals = None, fromlist = None,  # @ReservedAssignment
-                   level = -1):
+                   level = -1 if sys.version_info[0] < 2 else 0):
+        builtins.__import__ = original_import
+
         global _indentation
         try:
             _indentation += 1
@@ -85,8 +87,13 @@ def enableImportTracing(normalize_paths = True, show_source = False):
 
             print(_indentation * " " + "*" * 40)
 
+            builtins.__import__ = _ourimport
             result = original_import(name, globals, locals, fromlist, level)
+            builtins.__import__ = original_import
             print(_indentation * " " + "RESULT:", _moduleRepr(result))
+            print(_indentation * " " + "*" * 40)
+            builtins.__import__ = _ourimport
+
             return result
         finally:
             _indentation -= 1
