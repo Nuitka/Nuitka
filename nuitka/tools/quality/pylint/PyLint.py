@@ -39,6 +39,16 @@ def getPylintBinaryPath():
     if pylint_binary is None:
         pylint_binary = Execution.getExecutablePath("pylint")
 
+        if pylint_binary is None and os.name == "nt":
+            candidate = os.path.join(
+                os.path.dirname(sys.executable),
+                "Scripts/pylint.exe"
+            )
+
+            if os.path.exists(candidate):
+                pylint_binary = candidate
+
+
     return pylint_binary
 
 
@@ -123,7 +133,6 @@ def getOptions():
     checkVersion()
 
     default_pylint_options = """\
---rcfile=/dev/null
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
 --disable=I0011,I0012,no-init,C0326,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module
 --enable=useless-suppression
@@ -154,6 +163,11 @@ def getOptions():
 --ignored-argument-names=_.*|trace_collection
 --disable=no-else-return\
 """.split('\n')
+
+    if os.name != "nt":
+        default_pylint_options.append(
+            "--rcfile=%s" % os.devnull
+        )
 
     if pylint_version >= b"1.8":
         default_pylint_options += """\

@@ -553,11 +553,12 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
     if comparison_mode:
         start_time = time.time()
 
-        process = subprocess.Popen(
-            args   = cpython_cmd,
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE
-        )
+        with withPythonPathChange(os.getcwd()):
+            process = subprocess.Popen(
+                args   = cpython_cmd,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE
+            )
 
         stdout_cpython, stderr_cpython = process.communicate()
         exit_cpython = process.returncode

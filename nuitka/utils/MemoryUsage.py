@@ -70,9 +70,7 @@ def getOwnProcessMemoryUsage():
 
         return counters.PrivateUsage
     else:
-        # Posix only code, pylint: disable=I0021,import-error
-        import resource  # @UnresolvedImport
-
+        import resource  # Posix only code, @UnresolvedImport pylint: disable=I0021,import-error
         # The value is from "getrusage", which has OS dependent scaling, at least
         # MacOS and Linux are different. Others maybe too.
         if getOS() == "Darwin":
