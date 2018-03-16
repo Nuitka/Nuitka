@@ -566,7 +566,7 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
     # This is complex, as it also includes the caching mechanism
     # pylint: disable=too-many-branches
 
-    if ldd_result_cache.get(dll_filename):
+    if dll_filename in ldd_result_cache:
         return ldd_result_cache[dll_filename]
 
     # Ask "ldd" about the libraries being used by the created binary, these
@@ -649,7 +649,7 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
     sub_result = set(result)
 
     for sub_dll_filename in result:
-        sub_result = sub_result.union(_detectBinaryPathDLLsLinuxBSD(sub_dll_filename))
+        sub_result.update(_detectBinaryPathDLLsLinuxBSD(sub_dll_filename))
 
     return sub_result
 
