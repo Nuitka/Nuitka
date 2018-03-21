@@ -717,6 +717,10 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
         if loaded_basename.startswith("libicu"):
             continue
 
+        # GTK may access X files.
+        if loaded_basename == ".Xauthority":
+            continue
+
         result.append(loaded_filename)
 
     return result
