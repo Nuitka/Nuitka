@@ -235,7 +235,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         return variable in self.taken
 
     def removeUserVariable(self, variable):
-        assert variable in self.providing.values(), (self.providing, variable)
+        assert variable in self.providing.values(), (self, self.providing, variable)
 
         del self.providing[variable.getName()]
 

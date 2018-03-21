@@ -626,12 +626,6 @@ class TraceCollectionBase(CollectionTracingMixin):
         if new_node is not expression:
             expression.replaceWith(new_node)
 
-            if new_node.isExpressionVariableRef() or \
-               new_node.isExpressionTempVariableRef():
-                # Remember the reference for constraint collection.
-                assert new_node.variable_trace.hasDefiniteUsages()
-
-
         return new_node
 
     def onStatement(self, statement):
