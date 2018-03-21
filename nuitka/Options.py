@@ -32,7 +32,7 @@ from nuitka.Version import getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
-is_nuitka_run = os.path.basename(sys.argv[0]).lower().startswith("nuitka-run")
+is_nuitka_run = os.path.basename(sys.argv[0]).lower().endswith("-run")
 
 if not is_nuitka_run:
     usage = "usage: %prog [--module] [--execute] [options] main_module.py"
