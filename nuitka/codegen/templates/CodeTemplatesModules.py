@@ -246,9 +246,9 @@ MOD_INIT_DECL( %(module_identifier)s )
 #endif
 
 #else
-        PyObject *module_name = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ );
 
 #if PYTHON_VERSION < 300
+        PyObject *module_name = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ );
         char const *module_name_cstr = PyString_AS_STRING( module_name );
 
         char const *last_dot = strrchr( module_name_cstr, '.' );
@@ -261,7 +261,14 @@ MOD_INIT_DECL( %(module_identifier)s )
                 PyString_FromStringAndSize( module_name_cstr, last_dot - module_name_cstr )
             );
         }
+#elif PYTHON_VERSION < 330
+        UPDATE_STRING_DICT1(
+            moduledict_%(module_identifier)s,
+            (Nuitka_StringObject *)const_str_plain___package__,
+            Py_None
+        );
 #else
+        PyObject *module_name = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ );
         Py_ssize_t dot_index = PyUnicode_Find( module_name, const_str_dot, 0, PyUnicode_GetLength( module_name ), -1 );
 
         if ( dot_index != -1 )
