@@ -1421,7 +1421,25 @@ struct Nuitka_AIterWrapper
 
 static PyObject *Nuitka_AIterWrapper_iternext( struct Nuitka_AIterWrapper *aw )
 {
+#if PYTHON_VERSION < 360
     PyErr_SetObject( PyExc_StopIteration, aw->aw_aiter );
+#else
+    if ( !PyTuple_Check( aw->aw_aiter ) && !PyExceptionInstance_Check( aw->aw_aiter ) )
+    {
+        PyErr_SetObject( PyExc_StopIteration, aw->aw_aiter );
+    }
+    else
+    {
+        PyObject *result = PyObject_CallFunctionObjArgs(PyExc_StopIteration, aw->aw_aiter, NULL);
+        if (unlikely( result == NULL ))
+        {
+            return NULL;
+        }
+        PyErr_SetObject( PyExc_StopIteration, result );
+        Py_DECREF( result );
+    }
+#endif
+
     return NULL;
 }
 
