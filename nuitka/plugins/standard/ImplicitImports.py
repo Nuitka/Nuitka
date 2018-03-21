@@ -48,6 +48,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             if full_name in module.getUsedModules():
                 return False
 
+        if full_name == "gi._gobject":
+            return False
+
         return True
 
 
