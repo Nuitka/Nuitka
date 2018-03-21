@@ -1,7 +1,9 @@
 Nuitka Release 0.5.29 (Draft)
 =============================
 
-This release is not done yet.
+This release comes with a lot of improvements across the board. A lot of focus
+has been givevn to the packaging side of Nuitka, but also there is a lot of
+compatibility work.
 
 Bug Fixes
 ---------
@@ -13,13 +15,19 @@ Bug Fixes
 
 - Windows: Fixup for Python3 and Scons no more generating the MinGW64 import
   library for Python anymore properly. Was only working if cached from a
-  previous install of Nuitka.
+  previous install of Nuitka. Fixed in 0.5.28.1 already.
 
 - Plugins: Made the data files plugin mandatory and added support for the
   scrapy package needs.
 
 - Fix, added implicit dependencies for ``pkg_resources.external`` package.
   Fixed in 0.5.28.1 already.
+
+- Fix, an import of ``x.y`` where this was not a package didn't cause the
+  package ``x`` to be included.
+
+* Standalone: Added support for ``six.moves`` and ``requests.packages`` meta
+  imports, these cause hidden implicit imports, that are now properly handled.
 
 - Standalone: Patch the ``__file__`` value for technical bytecode modules
   loaded during Python library initialization in a more compatible way.
@@ -28,8 +36,29 @@ Bug Fixes
   errors, e.g. ``ImportError`` of another module, don't make those into
   ``SystemError`` anymore.
 
+- Python3.2: The ``__package__`` of sub-packages was wrong, which could cause
+  issues when doing relative imports in that sub-package.
+
+- Python3: Contractions in a finally clause could crash the compiler.
+
+- Fix, unused closure variables could lead to a crash in they were passed to
+  a nested function.
+
+- Linux: Standalone dependency analysis could enter an endless recursion in
+  case of cyclic dependencies.
+
+- Python3.6: Async generation expressions need to return a ``None`` value too.
+
 New Features
 ------------
+
+- It is now possible to run Nuitka with ``some_python_you_choose -m nuitka ...``
+  and therefore know exactly which Python installation is going to be used. It
+  does of course need Nuitka installed for this to work. This mechanism is going
+  to replace the ``--python-version`` mechanism in the future.
+
+- There are dedicated runners for Python3, simply use ``nuitka3`` or
+  ``nuitka3-run`` to execute Nuitka if your code is Python3 code.
 
 - Added warning for implicit exception raises due to mismatch in unpacking
   length. These are statically detected, but so far were not warned about.
@@ -37,10 +66,50 @@ New Features
 - Added cache for ``depends.exe`` results. This speeds up standalone mode
   again as some of these calls were really slow.
 
+- The import tracer is more robust against recursion and works with Python3
+  now.
+
+- Added an option to assume yes for downloading questions. The currently only
+  enables the download of ``depends.exe`` and is intended for CI servers.
+
 Organizational
 --------------
 
+- The ``nuitka`` Python package is now installed into the public namespace and
+  used from there. There are distinct copies to be installed for both Python2
+  and Python3 on platforms where it is supported.
+
 - Using ``twine`` for upload to PyPI now as recommended on their site.
+
+- Running ``pylint`` on Windows became practical again.
+
+- Added RPM packages for Fedora 26 and 27, these used to fail due to packaging
+  issues.
+
+- Added RPM packages for openSUSE Leap 42.2, 42.3 and 15.0 which were simply
+  missing.
+
+- Added RPM packages for SLE 15.
+
+- Added support for PyLint 1.8 and its new warnings.
+
+- The RPM packages no longer contain ``nuitka-run3``, it will be replaced by
+  the new ``nuitka3-run`` which is in all packages.
+
+- The runners used for installation are now easy install created, but patched
+  to avoid overhead at run time.
+
+- Added repository for Ubuntu Artful (17.10) for download, removed support
+  for Ubuntu Yakkety and Zesty (no more supported by them).
+
+- Removed support for Debian Wheezy and Ubuntu Precise (they are too old for
+  modern packaging used).
+
+Tests
+-----
+
+- Windows: Standalone tests were referencing an old path to ``depends.exe``
+  that wasn't populated on new installs.
 
 Summary
 -------
