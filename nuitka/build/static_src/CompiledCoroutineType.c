@@ -1587,7 +1587,11 @@ PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutin
 
     if (unlikely( awaitable_iter == NULL ))
     {
+#if PYTHON_VERSION >= 360
+        _PyErr_FormatFromCause(
+#else
         PyErr_Format(
+#endif
             PyExc_TypeError,
             "'async for' received an invalid object from __aiter__: %s",
             Py_TYPE( iter )->tp_name
@@ -1651,7 +1655,11 @@ PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutin
 
     if (unlikely( awaitable_iter == NULL ))
     {
+#if PYTHON_VERSION >= 360
+        _PyErr_FormatFromCause(
+#else
         PyErr_Format(
+#endif
             PyExc_TypeError,
             "'async for' received an invalid object from __anext__: %s",
             Py_TYPE( next_value )->tp_name
