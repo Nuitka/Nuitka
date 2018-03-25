@@ -49,6 +49,9 @@ Bug Fixes
 
 - Python3.6: Async generation expressions need to return a ``None`` value too.
 
+- Python3.4: Fix, ``__spec__`` is a package attribute and not a built-in
+  value.
+
 New Features
 ------------
 
@@ -71,6 +74,45 @@ New Features
 
 - Added an option to assume yes for downloading questions. The currently only
   enables the download of ``depends.exe`` and is intended for CI servers.
+
+- There is now a report file for scons, which records the values used to run
+  things, this could be useful for debugging.
+
+- Nuitka now registers with distutils and can be used with ``bdist_wheel``
+  directly, but this lacks documentation and tests. Many improvements in
+  the distutils build.
+
+Optimization
+------------
+
+- Forward propagate compile time constants even if they are only potential
+  usages. This is actually the case where this makes the most sense, as it
+  might remove its use entirely from the branches that do not use it.
+
+- Avoid extra copy of ``finally`` code. The cloning operation takes time and
+  memory, and this shaved of 0.3% of Nuitka memory usage, as these can also
+  become dangling.
+
+- Class dictionaries are now proper dictionarties in optimization, using some
+  dedicated code for name lookups that are transformed to dedicated locals
+  dictionary or mapping (Python3) accesses. This currently does not fully
+  optimize, but will in coming releases, and saves about 25% of memory compared
+  to the old code.
+
+- Treating module attributes ``__package__``, ``__loader__``, ``__file__``,
+  and ``__spec__`` with dedicated nodes, that allow or forbid optimization
+  dependent on usage.
+
+- Python3.6: Async generator expressions were not working fully, become more
+  compatible.
+
+- Fix, using ``super`` inside a contraction could crash the compiler.
+
+- Fix, also accept ``__new__`` as properly decorated in case it's a
+  ``classmethod`` too.
+
+- Fix, removed obsolete ``--nofreeze-stdlib`` which only complicated using
+  the ``--recurse-stdlib`` which should be used instead.
 
 Organizational
 --------------
@@ -100,16 +142,29 @@ Organizational
   to avoid overhead at run time.
 
 - Added repository for Ubuntu Artful (17.10) for download, removed support
-  for Ubuntu Yakkety and Zesty (no more supported by them).
+  for Ubuntu Yakkety, Vivid and Zesty (no more supported by them).
 
 - Removed support for Debian Wheezy and Ubuntu Precise (they are too old for
   modern packaging used).
+
+- There is now a issue template for Github, so when used.
 
 Tests
 -----
 
 - Windows: Standalone tests were referencing an old path to ``depends.exe``
   that wasn't populated on new installs.
+
+- Refinements for CPython test suites to become more stable in results. Some
+  tests occasionally fail to clean up, or might do indetermistic outputs, or
+  are not relevant at all.
+
+- The tests don't use the runners, but more often do ``-m nuitka`` to become
+  executable without having to find the proper runner. This improves usage
+  during the RPM builds and generally.
+
+- Travis: Do not test development versions of CPython, even for stable release,
+  they break too often.
 
 Summary
 -------

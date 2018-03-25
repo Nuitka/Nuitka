@@ -166,6 +166,37 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows.""
 )
 
 
+include_group = OptionGroup(
+    parser,
+    "Control the inclusion of modules and packages."
+)
+
+include_group.add_option(
+    "--include-package",
+    action  = "append",
+    dest    = "include_package",
+    metavar = "PACKAGE",
+    default = [],
+    help    = """\
+Include a whole package. Give as a Python namespace, e.g. ``some_package.sub_package``
+and Nuitka will then find it and include it and all the modules found below that
+disk location in the binary or extension module it creates, and make it available
+for import by the code. Default empty."""
+)
+
+include_group.add_option(
+    "--include-module",
+    action  = "append",
+    dest    = "include_modules",
+    metavar = "MODULE",
+    default = [],
+    help    = """\
+Include a single module. Give as a Python namespace, e.g. ``some_package.some_module``
+and Nuitka will then find it and include it in the binary or extension module
+it creates, and make it available for import by the code. Default empty."""
+)
+
+
 recurse_group = OptionGroup(
     parser,
     "Control the recursion into imported modules"
