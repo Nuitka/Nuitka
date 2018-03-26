@@ -660,6 +660,17 @@ CHECK_OBJECT( const_int_pos_1 );
         if attemptToMarshal(constant_identifier, constant_value, emit):
             return
 
+        # Special handling for empty frozensets.
+        if not constant_value and constant_type is frozenset:
+            emit(
+                "%s = PyObject_CallFunction((PyObject*)&PyFrozenSet_Type, NULL);" % (
+                    constant_identifier,
+                )
+            )
+
+            return
+
+
         # TODO: Hinting size is really not possible?
         emit(
             "%s = %s( NULL );" % (
