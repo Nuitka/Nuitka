@@ -66,6 +66,7 @@ def makeLogoImages():
 def checkRstLint(document):
     import restructuredtext_lint  # @UnresolvedImport pylint:disable=I0021,import-error
 
+    print("Checking %r for proper restructed text ..." % document)
     lint_results = restructuredtext_lint.lint(open(document).read(), document)
 
     lint_error = False
@@ -79,6 +80,8 @@ def checkRstLint(document):
 
     if lint_error:
         sys.exit("Error, no lint clean rest.")
+
+    print("OK.")
 
 
 def makeManpages():
@@ -141,9 +144,9 @@ def createRstPDF(document, args):
 
 
 def createReleaseDocumentation():
-    for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
-        checkRstLint(document)
+    checkReleaseDocumentation()
 
+    for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
         args = []
 
         if document != "Changelog.rst":
@@ -156,3 +159,8 @@ def createReleaseDocumentation():
 
     if os.name != "nt":
         makeManpages()
+
+
+def checkReleaseDocumentation():
+    for document in ("README.rst", "Developer_Manual.rst", "Changelog.rst"):
+        checkRstLint(document)
