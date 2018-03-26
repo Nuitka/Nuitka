@@ -300,6 +300,12 @@ class StatementLocalsDictOperationDel(NodeBase):
         # TODO: Specialize for Python3 maybe to save attribute for Python2.
         self.may_raise_del = python_version >= 300
 
+    def getDetails(self):
+        return {
+            "variable_name" : self.variable_name,
+            "locals_scope"  : self.locals_scope
+        }
+
     def getVariableName(self):
         return self.variable_name
 
