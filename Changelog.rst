@@ -1,5 +1,5 @@
-Nuitka Release 0.5.29 (Draft)
-=============================
+Nuitka Release 0.5.29
+=====================
 
 This release comes with a lot of improvements across the board. A lot of focus
 has been givevn to the packaging side of Nuitka, but also there is a lot of
