@@ -30,6 +30,7 @@ import sys
 import tempfile
 from optparse import OptionParser
 
+from nuitka.tools.testing.Common import withDirectoryChange
 from nuitka.tools.Basics import goHome
 from nuitka.utils.Execution import (
     check_output,
@@ -696,10 +697,8 @@ Make a coverage analysis, that does not really check. Default is %default."""
         with open("data.coverage", 'w') as data_file:
             source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
-            nuitka_id = check_output(
-                "cd '%s'; git rev-parse HEAD" % source_dir,
-                shell = True
-            )
+            with withDirectoryChange(source_dir):
+                nuitka_id = check_output("git rev-parse HEAD")
             nuitka_id = nuitka_id.strip()
 
             if sys.version_info > (3,):

@@ -1201,3 +1201,10 @@ def getTestingCacheDir():
     result = os.path.join(cache_dir, "tests_state")
     makePath(result)
     return result
+
+
+@contextmanager
+def withDirectoryChange(path):
+    old_cwd = os.chdir(path)
+    yield
+    os.chdir(old_cwd)
