@@ -547,7 +547,7 @@ def buildAnnAssignNode(provider, node, source_ref):
         )
 
         # Only name referencing annotations are effective right now.
-        if statements[-1].isStatementAssignmentVariable():
+        if statements[-1].isStatementAssignmentVariableName():
             variable_name = statements[-1].getVariableName()
         else:
             variable_name = None
@@ -568,7 +568,8 @@ def buildAnnAssignNode(provider, node, source_ref):
     # they are ignored like comments.
     if variable_name is not None:
         if provider.isExpressionFunctionBody():
-            provider.getVariableForAssignment(variable_name)
+            if node.simple:
+                provider.getVariableForAssignment(variable_name)
         else:
             annotation = buildNode(provider, node.annotation, source_ref)
 
