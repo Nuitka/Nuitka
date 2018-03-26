@@ -137,7 +137,7 @@ Error, no file ends with 'Main.py' or 'Main' in %s, incomplete test case.""" % (
             )
 
         extra_python_path = [
-            os.path.abspath(os.path.join(filename,entry))
+            os.path.abspath(os.path.join(filename, entry))
             for entry in
             os.listdir(filename)
             if entry.startswith("path")

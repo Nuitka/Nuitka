@@ -39,6 +39,16 @@ def getPylintBinaryPath():
     if pylint_binary is None:
         pylint_binary = Execution.getExecutablePath("pylint")
 
+        if pylint_binary is None and os.name == "nt":
+            candidate = os.path.join(
+                os.path.dirname(sys.executable),
+                "Scripts/pylint.exe"
+            )
+
+            if os.path.exists(candidate):
+                pylint_binary = candidate
+
+
     return pylint_binary
 
 
@@ -112,12 +122,17 @@ def checkVersion():
 #
 # R1705: Unnecessary "else" after "return"
 # Frequently we use multiple branches where each returns.
+#
+# inconsistent-return-statements
+# This makes no sense, having to have a variable for return is bad in my mind.
+#
+# c-extension-no-member
+# Not too useful for us.
 
 def getOptions():
     checkVersion()
 
     default_pylint_options = """\
---rcfile=/dev/null
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
 --disable=I0011,I0012,no-init,C0326,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module
 --enable=useless-suppression
@@ -137,7 +152,7 @@ def getOptions():
 --min-public-methods=0
 --max-public-methods=100
 --max-args=11
---max-parents=10
+--max-parents=12
 --max-nested-blocks=10
 --max-bool-expr=10\
 """.split('\n')
@@ -147,6 +162,16 @@ def getOptions():
 --score=no
 --ignored-argument-names=_.*|trace_collection
 --disable=no-else-return\
+""".split('\n')
+
+    if os.name != "nt":
+        default_pylint_options.append(
+            "--rcfile=%s" % os.devnull
+        )
+
+    if pylint_version >= b"1.8":
+        default_pylint_options += """\
+--disable=c-extension-no-member,inconsistent-return-statements\
 """.split('\n')
 
     return default_pylint_options
@@ -162,34 +187,56 @@ def _executePylint(filenames, pylint_options, extra_options):
     process = subprocess.Popen(
         args   = command,
         stdout = subprocess.PIPE,
-        stderr = subprocess.STDOUT,
+        stderr = subprocess.PIPE,
         shell  = False
     )
 
-    stdout, stderr = process.communicate()
-    _exit_code = process.returncode
 
-    assert not stderr, stderr
+    stdout, stderr = process.communicate()
+    exit_code = process.returncode
+
+    if exit_code == -11:
+        sys.exit("Error, segfault from pylint.")
+
+    if stderr:
+        if str is not bytes:
+            stderr = stderr.decode("utf8")
+
+        # Normalize from Windows newlines potentially
+        stdout = stdout.replace("\r\n", '\n')
+
+        lines = stdout.split('\n')
+
+        line = [
+            line
+            for line in
+            lines
+            if "Using config file" not in line
+        ]
+
+        for line in lines:
+            print(line)
+
+        if lines:
+            our_exit_code = 1
 
     if stdout:
-        stdout = stdout.replace(b"\r\n", b'\n')
+        if str is not bytes:
+            stdout = stdout.decode("utf8")
+
+        # Normalize from Windows newlines potentially
+        stdout = stdout.replace("\r\n", '\n')
 
         # Remove hard to disable error line given under Windows.
-        lines = stdout.split(b"\n")
+        lines = stdout.split('\n')
         try:
             error_line = lines.index(
-                b"No config file found, using default configuration"
+                "No config file found, using default configuration"
             )
             del lines[error_line]
             del lines[error_line]
         except ValueError:
             pass
-
-        lines = [
-            line.decode()
-            for line in
-            lines
-        ]
 
         lines = [
             line
@@ -213,6 +260,8 @@ def _executePylint(filenames, pylint_options, extra_options):
 
 
 def executePyLint(filenames, show_todos, verbose, one_by_one):
+    filenames = list(filenames)
+
     if verbose:
         print("Checking", filenames, "...")
 
@@ -221,10 +270,10 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
         pylint_options.append("--notes=")
 
     def hasPyLintBugTrigger(filename):
-        if pylint_version < b"1.8":
-            return False
-
-        return os.path.basename(filename) in ()
+        return os.path.basename(filename) in (
+            "ReformulationContractionExpressions.py",
+            "TreeHelpers.py"
+        )
 
     filenames = [
         filename

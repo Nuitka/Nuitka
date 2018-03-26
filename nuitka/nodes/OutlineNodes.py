@@ -221,8 +221,14 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
 
     def getDetails(self):
         return {
-            "name" : self.name,
-            "provider"   : self.provider.getCodeName()
+            "name"     : self.name,
+            "provider" : self.provider
+        }
+
+    def getDetailsForDisplay(self):
+        return {
+            "name"     : self.name,
+            "provider" : self.provider.getCodeName()
         }
 
     def computeExpressionRaw(self, trace_collection):
@@ -342,8 +348,5 @@ class ExpressionOutlineFunction(ExpressionOutlineFunctionBodyBase):
     def isEarlyClosure(self):
         return self.provider.isEarlyClosure()
 
-    def hasLocalsDict(self):
-        return self.provider.hasLocalsDict()
-
-    def markAsLocalsDict(self):
-        return self.provider.markAsLocalsDict()
+    def isUnoptimized(self):
+        return self.provider.isUnoptimized()

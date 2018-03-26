@@ -38,8 +38,6 @@ from nuitka.utils.CStrings import encodePythonIdentifierToC
 from nuitka.utils.FileOperations import relpath
 
 from .Checkers import checkStatementsSequenceOrNone
-from .ConstantRefNodes import makeConstantRefNode
-from .ExpressionBases import ExpressionBase
 from .FutureSpecs import FutureSpec, fromFlags
 from .IndicatorMixins import EntryPointMixin, MarkNeedsAnnotationsMixin
 from .NodeBases import (
@@ -392,8 +390,11 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
                function_body.isExpressionCoroutineObjectBody() or \
                function_body.isExpressionAsyncgenObjectBody()
 
-        if function_body not in self.active_functions:
+        result = function_body not in self.active_functions
+        if result:
             self.active_functions.add(function_body)
+
+        return result
 
     def getUsedFunctions(self):
         return self.active_functions
@@ -461,20 +462,16 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         for function in self.getUsedFunctions():
             yield function.trace_collection
 
-    def markAsLocalsDict(self):
-        # Does not apply to modules.
-        pass
-
-    def hasLocalsDict(self):
-        return False
-
     def isUnoptimized(self):
+        # Modules don't do this, pylint: disable=no-self-use
         return False
 
     def getLocalVariables(self):
+        # Modules don't do this, pylint: disable=no-self-use
         return ()
 
     def getUserLocalVariables(self):
+        # Modules don't do this, pylint: disable=no-self-use
         return ()
 
     def getOutlineLocalVariables(self):
@@ -491,6 +488,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         return tuple(result)
 
     def hasClosureVariable(self, variable):
+        # Modules don't do this, pylint: disable=no-self-use,unused-argument
         return False
 
     def removeUserVariable(self, variable):
@@ -838,51 +836,3 @@ class PythonShlibModule(PythonModuleBase):
 
     def getParentModule(self):
         return self
-
-
-class ExpressionModuleFileAttributeRef(ExpressionBase):
-    kind = "EXPRESSION_MODULE_FILE_ATTRIBUTE_REF"
-
-    def __init__(self, source_ref):
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-    def mayRaiseException(self, exception_type):
-        return False
-
-    def computeExpressionRaw(self, trace_collection):
-        # There is not a whole lot to do here, the path will change at run
-        # time
-        if Options.getFileReferenceMode() != "runtime":
-            result = makeConstantRefNode(
-                constant   = self.getRunTimeFilename(),
-                source_ref = self.getSourceReference()
-            )
-
-            return result, "new_expression", "Using original '__file__' value."
-
-        return self, None, None
-
-    def getCompileTimeFilename(self):
-        return self.getParentModule().getCompileTimeFilename()
-
-    def getRunTimeFilename(self):
-        return self.getParentModule().getRunTimeFilename()
-
-
-class ExpressionModuleLoaderRef(ExpressionBase):
-    kind = "EXPRESSION_MODULE_LOADER_REF"
-
-    def __init__(self, source_ref):
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
-
-    def mayRaiseException(self, exception_type):
-        return False
-
-    def computeExpressionRaw(self, trace_collection):
-        return self, None, None

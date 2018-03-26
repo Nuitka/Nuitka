@@ -22,7 +22,7 @@
 import os
 
 
-def addFromDirectory(path, blacklist):
+def addFromDirectory(path, suffixes, blacklist):
     for dirpath, dirnames, filenames in os.walk(path):
         dirnames.sort()
 
@@ -52,7 +52,7 @@ def addFromDirectory(path, blacklist):
                 continue
 
             # Python files only. TODO: Provided this from the outside.
-            if not filename.endswith(".py"):
+            if not filename.endswith(suffixes):
                 line = open(fullpath).readline()
                 if not line.startswith("#!") or "python" not in line:
                     continue
@@ -63,12 +63,12 @@ def addFromDirectory(path, blacklist):
             yield fullpath
 
 
-def scanTargets(positional_args, blacklist = ()):
+def scanTargets(positional_args, suffixes, blacklist = ()):
     for positional_arg in positional_args:
         positional_arg = os.path.normpath(positional_arg)
 
         if os.path.isdir(positional_arg):
-            for value in addFromDirectory(positional_arg, blacklist):
+            for value in addFromDirectory(positional_arg, suffixes, blacklist):
                 yield value
         else:
             yield positional_arg

@@ -20,12 +20,9 @@
 """
 
 from .CodeHelpers import generateExpressionCode
-from .Emission import SourceCodeCollector
 from .ErrorCodes import getCheckObjectCode, getNameReferenceErrorCode
-from .Indentation import indented
 from .templates.CodeTemplatesVariables import (
     template_del_global_unclear,
-    template_read_maybe_local_unclear,
     template_read_mvar_unclear
 )
 
@@ -250,7 +247,7 @@ def getVariableAssignmentCode(context, emit, variable, version,
             context.removeCleanupTempName(tmp_name)
 
 
-def _generateModuleVariableAccessCode(to_name, variable_name, needs_check,
+def generateModuleVariableAccessCode(to_name, variable_name, needs_check,
                                       emit, context):
     emit(
         template_read_mvar_unclear % {
@@ -272,36 +269,10 @@ def _generateModuleVariableAccessCode(to_name, variable_name, needs_check,
         getCheckObjectCode(to_name, emit)
 
 
-def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
-    variable_name = expression.getVariableName()
-
-    fallback_emit = SourceCodeCollector()
-
-    getVariableAccessCode(
-        to_name     = to_name,
-        variable    = expression.getFallbackVariable(),
-        version     = expression.getFallbackVariableVersion(),
-        needs_check = True,
-        emit        = fallback_emit,
-        context     = context
-    )
-
-
-    emit(
-        template_read_maybe_local_unclear % {
-            "locals_dict" : context.getLocalsDictName(),
-            "fallback"    : indented(fallback_emit.codes),
-            "tmp_name"    : to_name,
-            "var_name"    : context.getConstantCode(
-                constant = variable_name
-            )
-        }
-    )
-
 
 def getVariableAccessCode(to_name, variable, version, needs_check, emit, context):
     if variable.isModuleVariable():
-        _generateModuleVariableAccessCode(
+        generateModuleVariableAccessCode(
             to_name       = to_name,
             variable_name = variable.getName(),
             needs_check   = needs_check,

@@ -24,6 +24,8 @@ extern PyObject *const_tuple_empty;
 
 NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, PyObject *positional_args, PyObject *named_args )
 {
+    // Not allowed to enter with an error set. This often catches leaked errors from
+    // elsewhere.
     assert( !ERROR_OCCURRED() );
 
     CHECK_OBJECT( function_object );

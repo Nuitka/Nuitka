@@ -31,6 +31,7 @@ from logging import warning
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
 from nuitka.Options import isDebug, shallWarnImplicitRaises
+from nuitka.PythonVersions import python_version
 
 
 def makeConstantReplacementNode(constant, node):
@@ -40,6 +41,7 @@ def makeConstantReplacementNode(constant, node):
         constant   = constant,
         source_ref = node.getSourceReference()
     )
+
 
 def makeRaiseExceptionReplacementExpression(expression, exception_type,
                                             exception_value):
@@ -53,7 +55,7 @@ def makeRaiseExceptionReplacementExpression(expression, exception_type,
     if shallWarnImplicitRaises():
         warning(
             '%s: Will always raise exception: "%s(%s)"',
-            expression.getSourceReference().getAsString(),
+            source_ref.getAsString(),
             exception_type,
             exception_value
         )
@@ -67,6 +69,40 @@ def makeRaiseExceptionReplacementExpression(expression, exception_type,
             constant = exception_value,
             node     = expression
         ),
+        source_ref      = source_ref
+    )
+
+    return result
+
+
+def makeRaiseExceptionReplacementStatement(statement, exception_type,
+                                           exception_value):
+    from .ExceptionNodes import StatementRaiseExceptionImplicit
+    from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+
+    source_ref = statement.getSourceReference()
+
+    assert type(exception_type) is str
+
+    if shallWarnImplicitRaises():
+        warning(
+            '%s: Will always raise exception: "%s(%s)"',
+            source_ref.getAsString(),
+            exception_type,
+            exception_value
+        )
+
+    result = StatementRaiseExceptionImplicit(
+        exception_type  = ExpressionBuiltinExceptionRef(
+            exception_name = exception_type,
+            source_ref     = source_ref
+        ),
+        exception_value = makeConstantReplacementNode(
+            constant = exception_value,
+            node     = statement
+        ),
+        exception_cause = None,
+        exception_trace = None,
         source_ref      = source_ref
     )
 
@@ -425,13 +461,26 @@ def makeExpressionBuiltinLocals(provider, source_ref):
             source_ref = source_ref
         )
     else:
-        from .GlobalsLocalsNodes import ExpressionBuiltinLocalsUpdated, ExpressionBuiltinLocalsCopy
-
-        if provider.isLocalsUpdatedMode():
-            locals_class = ExpressionBuiltinLocalsUpdated
-        else:
-            locals_class = ExpressionBuiltinLocalsCopy
-
-        return locals_class(
-            source_ref = source_ref
+        from .GlobalsLocalsNodes import (
+            ExpressionBuiltinLocalsCopy,
+            ExpressionBuiltinLocalsRef,
+            ExpressionBuiltinLocalsUpdated
         )
+
+        # TODO: make this dependent on getLocalsScope not being None.
+        if provider.isExpressionClassBody():
+            return ExpressionBuiltinLocalsRef(
+                locals_scope = provider.getLocalsScope(),
+                source_ref   = source_ref
+            )
+        elif python_version >= 300 or provider.isUnoptimized():
+            assert provider.getLocalsScope(), provider
+
+            return ExpressionBuiltinLocalsUpdated(
+                locals_scope = provider.getLocalsScope(),
+                source_ref   = source_ref
+            )
+        else:
+            return ExpressionBuiltinLocalsCopy(
+                source_ref = source_ref
+            )

@@ -7,11 +7,13 @@ Build-Depends: debhelper (>= 9),
                python (>= 2.6.6-2),
                python-all-dbg (>= 2.6.6-2),
                python-all-dev (>= 2.6.6-2),
+               python-setuptools,
                rst2pdf (>= 0.14-2),
                python-imaging | python-pil,
                scons (>= 2.0.0),
-               python3-all-dev (>= 3.2) | base-files (<< 6.1),
-               python3-all-dbg (>= 3.2) | base-files (<< 6.1),
+               python3-all-dev (>= 3.2),
+               python3-all-dbg (>= 3.2),
+               python3-setuptools,
                python-appdirs  | base-files (<< 7.2),
                python3-appdirs | base-files (<< 7.2),
                strace,
@@ -21,6 +23,7 @@ Vcs-browser: http://nuitka.net/gitweb/?p=Nuitka.git;a=summary
 Homepage: http://nuitka.net
 Standards-Version: 3.9.8
 X-Python-Version: >= 2.6
+X-Python3-Version: >= 3.2
 
 Package: nuitka
 Architecture: all
@@ -29,8 +32,10 @@ Depends: gcc (>= 5.0) | g++ (>= 4.4) | clang (>= 3.0),
          python-appdirs  | base-files (<< 7.2),
          python3-appdirs | base-files (<< 7.2),
          python-dev (>= 2.6.6-2),
+         python3-dev,
          ${misc:Depends},
-         ${python:Depends}
+         ${python:Depends},
+         ${python3:Depends}
 Recommends: python-lxml (>= 2.3),
             python-pyqt5,
             strace,

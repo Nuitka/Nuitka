@@ -28,7 +28,6 @@ from abc import ABCMeta
 
 from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
-from nuitka.containers.odict import OrderedDict
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import counted_del, counted_init
@@ -236,7 +235,8 @@ class NodeBase(NodeMetaClassBase):
 
         parent = self.getParent()
 
-        while parent is not None and not parent.isExpressionFunctionBodyBase():
+        while parent is not None and \
+              not parent.isExpressionFunctionBodyBase():
             parent = parent.getParent()
 
         return parent
@@ -519,12 +519,6 @@ class NodeBase(NodeMetaClassBase):
 
         return False
 
-    def needsLocalsDict(self):
-        """ Node requires a locals dictionary by provider. """
-
-        # Virtual method, pylint: disable=no-self-use
-        return False
-
 
 class CodeNodeMixin(object):
     def __init__(self, name, code_prefix):
@@ -798,9 +792,8 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
             code_prefix = code_prefix
         )
 
-        # TODO: Only Python3 classes need this to be an ordered dict, the order
-        # of it should come from elsewhere though.
-        self.providing = OrderedDict()
+        self.providing = {}
+        self.variable_order = []
 
         self.temp_variables = {}
 
@@ -816,6 +809,7 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
             self.providing[variable_name] = self.createProvidedVariable(
                 variable_name = variable_name
             )
+            self.variable_order.append(variable_name)
 
         return self.providing[variable_name]
 
@@ -828,7 +822,12 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
     def registerProvidedVariable(self, variable):
         assert variable is not None
 
-        self.providing[variable.getName()] = variable
+        variable_name = variable.getName()
+        self.providing[variable_name] = variable
+        self.variable_order.append(variable_name)
+
+    def getProvidedVariableOrder(self):
+        return self.variable_order
 
     def allocateTempScope(self, name):
         self.temp_scopes[name] = self.temp_scopes.get(name, 0) + 1
@@ -855,6 +854,11 @@ class ClosureGiverNodeMixin(CodeNodeMixin):
         result = self.createTempVariable(
             temp_name = full_name
         )
+
+        # Late added temp variables should be treated with care for the
+        # remaining trace.
+        if self.trace_collection is not None:
+            self.trace_collection.initVariableUnknown(result).addUsage()
 
         return result
 

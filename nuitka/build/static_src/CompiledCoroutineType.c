@@ -359,11 +359,6 @@ static PyObject *Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutine
     return _Nuitka_Coroutine_send( coroutine, value, false );
 }
 
-static PyObject *Nuitka_Coroutine_tp_iternext( struct Nuitka_CoroutineObject *coroutine )
-{
-    return Nuitka_Coroutine_send( coroutine, Py_None );
-}
-
 PyObject *Nuitka_Coroutine_close( struct Nuitka_CoroutineObject *coroutine, PyObject *args )
 {
     if ( coroutine->m_status == status_Running )
@@ -822,8 +817,8 @@ PyTypeObject Nuitka_Coroutine_Type =
     0,                                                    /* tp_clear */
     0,                                                    /* tp_richcompare */
     offsetof(struct Nuitka_CoroutineObject, m_weakrefs),  /* tp_weaklistoffset */
-    PyObject_SelfIter,                                    /* tp_iter */
-    (iternextfunc)Nuitka_Coroutine_tp_iternext,           /* tp_iternext */
+    0,                                                    /* tp_iter */
+    0,                                                    /* tp_iternext */
     Nuitka_Coroutine_methods,                             /* tp_methods */
     Nuitka_Coroutine_members,                             /* tp_members */
     Nuitka_Coroutine_getsetlist,                          /* tp_getset */
@@ -1426,7 +1421,25 @@ struct Nuitka_AIterWrapper
 
 static PyObject *Nuitka_AIterWrapper_iternext( struct Nuitka_AIterWrapper *aw )
 {
+#if PYTHON_VERSION < 360
     PyErr_SetObject( PyExc_StopIteration, aw->aw_aiter );
+#else
+    if ( !PyTuple_Check( aw->aw_aiter ) && !PyExceptionInstance_Check( aw->aw_aiter ) )
+    {
+        PyErr_SetObject( PyExc_StopIteration, aw->aw_aiter );
+    }
+    else
+    {
+        PyObject *result = PyObject_CallFunctionObjArgs(PyExc_StopIteration, aw->aw_aiter, NULL);
+        if (unlikely( result == NULL ))
+        {
+            return NULL;
+        }
+        PyErr_SetObject( PyExc_StopIteration, result );
+        Py_DECREF( result );
+    }
+#endif
+
     return NULL;
 }
 
@@ -1574,7 +1587,11 @@ PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutin
 
     if (unlikely( awaitable_iter == NULL ))
     {
+#if PYTHON_VERSION >= 360
+        _PyErr_FormatFromCause(
+#else
         PyErr_Format(
+#endif
             PyExc_TypeError,
             "'async for' received an invalid object from __aiter__: %s",
             Py_TYPE( iter )->tp_name
@@ -1638,7 +1655,11 @@ PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutin
 
     if (unlikely( awaitable_iter == NULL ))
     {
+#if PYTHON_VERSION >= 360
+        _PyErr_FormatFromCause(
+#else
         PyErr_Format(
+#endif
             PyExc_TypeError,
             "'async for' received an invalid object from __anext__: %s",
             Py_TYPE( next_value )->tp_name

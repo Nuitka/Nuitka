@@ -16,6 +16,8 @@
 #     limitations under the License.
 #
 
+from __future__ import print_function
+
 print( "*** Main: Importing" )
 
 import some_package.Child2

@@ -25,7 +25,6 @@ whose implementation lives here. The creation itself also lives here.
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionEntryPointBase
-from .IndicatorMixins import MarkLocalsDictIndicatorMixin
 
 
 class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
@@ -90,9 +89,7 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
         ]
 
 
-class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin, ExpressionFunctionEntryPointBase):
-    # We really want these many ancestors, as per design, we add properties via
-    # base class mix-ins a lot, pylint: disable=R0901
+class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
     kind = "EXPRESSION_COROUTINE_OBJECT_BODY"
 
     named_children = (
@@ -115,8 +112,6 @@ class ExpressionCoroutineObjectBody(MarkLocalsDictIndicatorMixin, ExpressionFunc
             flags       = flags,
             source_ref  = source_ref
         )
-
-        MarkLocalsDictIndicatorMixin.__init__(self)
 
         self.needs_generator_return_exit = False
 

@@ -94,7 +94,7 @@ def isConstantExpression(expression):
     return kind.startswith("Constant") or \
            kind in ("ImportModuleHard",
                     "ImportName",
-                    "ModuleFileAttributeRef",
+                    "ModuleAttributeFileRef",
                     "ModuleLoaderRef")
 
 def checkSequence(statements):

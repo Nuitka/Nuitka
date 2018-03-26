@@ -833,6 +833,10 @@ The order is sorted by time.
 - David Cortesi: Submitted patches and test cases to make MacOS port more
   usable, specifically for the Python3 standalone support of Qt.
 
+- Andrew Leech: Submitted github pull request to allow using "-m nuitka" to
+  call the compiler. Also pull request to improve "bist_nuitka" and to do
+  the registration.
+
 Projects used by Nuitka
 -----------------------
 

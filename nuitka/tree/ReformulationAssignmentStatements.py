@@ -58,8 +58,7 @@ from nuitka.nodes.SubscriptNodes import (
 )
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableNameRef,
-    ExpressionVariableRef
+    ExpressionVariableNameRef
 )
 from nuitka.PythonVersions import python_version
 
@@ -127,6 +126,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
 
     if kind == "Name":
         return StatementAssignmentVariableName(
+            provider      = provider,
             variable_name = detail,
             source        = source,
             source_ref    = source_ref
@@ -366,7 +366,7 @@ def buildAssignmentStatements(provider, node, source, source_ref,
     )
 
     return buildAssignmentStatementsFromDecoded(
-        provider   = temp_provider,
+        provider   = provider,
         kind       = kind,
         detail     = detail,
         source     = source,
@@ -547,7 +547,7 @@ def buildAnnAssignNode(provider, node, source_ref):
         )
 
         # Only name referencing annotations are effective right now.
-        if statements[-1].isStatementAssignmentVariable():
+        if statements[-1].isStatementAssignmentVariableName():
             variable_name = statements[-1].getVariableName()
         else:
             variable_name = None
@@ -568,14 +568,16 @@ def buildAnnAssignNode(provider, node, source_ref):
     # they are ignored like comments.
     if variable_name is not None:
         if provider.isExpressionFunctionBody():
-            provider.getVariableForAssignment(variable_name)
+            if node.simple:
+                provider.getVariableForAssignment(variable_name)
         else:
             annotation = buildNode(provider, node.annotation, source_ref)
 
             statements.append(
                 StatementAssignmentSubscript(
-                    expression = ExpressionVariableRef(
-                        variable   = provider.getVariableForAssignment("__annotations__"),
+                    expression = ExpressionVariableNameRef(
+                        provider   = provider,
+                        variable_name = "__annotations__",
                         source_ref = source_ref
                     ),
                     subscript  = makeConstantRefNode(
@@ -594,12 +596,13 @@ def buildAnnAssignNode(provider, node, source_ref):
     )
 
 
-def buildDeleteStatementFromDecoded(kind, detail, source_ref):
+def buildDeleteStatementFromDecoded(provider, kind, detail, source_ref):
     if kind in ("Name", "Name_Exception"):
         # Note: Name_Exception is a "del" for exception handlers that doesn't
         # insist on the variable being defined, user code may do it too, and
         # that will be fine, so make that tolerant.
         return StatementDelVariableName(
+            provider      = provider,
             variable_name = detail,
             tolerant      = kind == "Name_Exception",
             source_ref    = source_ref
@@ -649,6 +652,7 @@ def buildDeleteStatementFromDecoded(kind, detail, source_ref):
         for sub_node in detail:
             result.append(
                 buildDeleteStatementFromDecoded(
+                    provider   = provider,
                     kind       = sub_node[0],
                     detail     = sub_node[1],
                     source_ref = source_ref
@@ -682,6 +686,7 @@ def buildDeleteNode(provider, node, source_ref):
 
         statements.append(
             buildDeleteStatementFromDecoded(
+                provider   = provider,
                 kind       = kind,
                 detail     = detail,
                 source_ref = source_ref
@@ -694,11 +699,12 @@ def buildDeleteNode(provider, node, source_ref):
     )
 
 
-def _buildInplaceAssignVariableNode(variable_name, operator, expression,
-                                    source_ref):
+def _buildInplaceAssignVariableNode(provider, variable_name, operator,
+                                    expression, source_ref):
     inplace_node = makeExpressionOperationBinaryInplace(
         operator   = operator,
         left       = ExpressionVariableNameRef(
+            provider      = provider,
             variable_name = variable_name,
             source_ref    = source_ref
         ),
@@ -710,6 +716,7 @@ def _buildInplaceAssignVariableNode(variable_name, operator, expression,
 
     return (
         StatementAssignmentVariableName(
+            provider      = provider,
             variable_name = variable_name,
             source        = inplace_node,
             source_ref    = source_ref
@@ -1047,6 +1054,7 @@ def buildInplaceAssignNode(provider, node, source_ref):
 
     if kind == "Name":
         statements = _buildInplaceAssignVariableNode(
+            provider      = provider,
             variable_name = detail,
             operator      = operator,
             expression    = expression,

@@ -118,7 +118,7 @@ class StatementTry(StatementChildrenHavingBase):
             catch_breaks     = break_handler is not None,
             catch_continues  = continue_handler is not None,
             catch_returns    = return_handler is not None,
-            catch_exceptions = True,
+            catch_exceptions = True
         )
 
         with abort_context:

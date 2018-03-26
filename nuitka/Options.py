@@ -32,7 +32,7 @@ from nuitka.Version import getNuitkaVersion
 
 # Indicator if we were called as "nuitka-run" in which case we assume some
 # other defaults and work a bit different with parameters.
-is_nuitka_run = os.path.basename(sys.argv[0]).lower().startswith("nuitka-run")
+is_nuitka_run = os.path.basename(sys.argv[0]).lower().endswith("-run")
 
 if not is_nuitka_run:
     usage = "usage: %prog [--module] [--execute] [options] main_module.py"
@@ -74,18 +74,6 @@ implies these option: "--recurse-all". You may also want to use
 "--python-flag=no_site" to avoid the "site.py" module, which can save a lot
 of code dependencies. Defaults to off.""",
 )
-
-parser.add_option(
-    "--nofreeze-stdlib",
-    action  = "store_false",
-    dest    = "freeze_stdlib",
-    default = True,
-    help    = """\
-In standalone mode by default all modules of standard library will be frozen
-as bytecode. This compiles them all and as a result compilation time will
-increase very much.
-""",
-    )
 
 
 parser.add_option(
@@ -168,6 +156,47 @@ parser.add_option(
 Enable warnings for unusual code detected at compile time.""",
 )
 
+parser.add_option(
+    "--assume-yes-for-downloads",
+    action  = "store_true",
+    dest    = "assume_yes_for_downloads",
+    default = False,
+    help    = """\
+Allow Nuitka to download code if necessary, e.g. dependency walker on Windows.""",
+)
+
+
+include_group = OptionGroup(
+    parser,
+    "Control the inclusion of modules and packages."
+)
+
+include_group.add_option(
+    "--include-package",
+    action  = "append",
+    dest    = "include_package",
+    metavar = "PACKAGE",
+    default = [],
+    help    = """\
+Include a whole package. Give as a Python namespace, e.g. ``some_package.sub_package``
+and Nuitka will then find it and include it and all the modules found below that
+disk location in the binary or extension module it creates, and make it available
+for import by the code. Default empty."""
+)
+
+include_group.add_option(
+    "--include-module",
+    action  = "append",
+    dest    = "include_modules",
+    metavar = "MODULE",
+    default = [],
+    help    = """\
+Include a single module. Give as a Python namespace, e.g. ``some_package.some_module``
+and Nuitka will then find it and include it in the binary or extension module
+it creates, and make it available for import by the code. Default empty."""
+)
+
+
 recurse_group = OptionGroup(
     parser,
     "Control the recursion into imported modules"
@@ -180,7 +209,8 @@ recurse_group.add_option(
     dest    = "recurse_stdlib",
     default = False,
     help    = """\
-Also descend into imported modules from standard library. Defaults to off."""
+Also descend into imported modules from standard library. This will increase
+the compilation time by a lot. Defaults to off."""
 )
 
 recurse_group.add_option(
@@ -918,6 +948,10 @@ def shallWarnUnusualCode():
     return options.warn_unusual_code
 
 
+def assumeYesForDownloads():
+    return options.assume_yes_for_downloads
+
+
 def isDebug():
     return options is not None and (options.debug or options.debugger)
 
@@ -1076,7 +1110,7 @@ def getPythonFlags():
 
 
 def shallFreezeAllStdlib():
-    return options.freeze_stdlib
+    return not shallFollowStandardLibrary()
 
 
 def shallListPlugins():

@@ -70,7 +70,7 @@ def main():
         positional_args = ["bin", "nuitka", "tests/reflected/compile_itself.py"]
 
     target_files = []
-    for filename in scanTargets(positional_args):
+    for filename in scanTargets(positional_args, (".py",)):
 
         package_name = os.path.dirname(filename)
         if package_name.startswith("nuitka" + os.path.sep):

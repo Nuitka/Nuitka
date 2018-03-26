@@ -71,8 +71,8 @@ template_asyncgen_return_exit = """\
 template_make_asyncgen_template = """
 %(to_name)s = Nuitka_Asyncgen_New(
     %(asyncgen_identifier)s,
-    self->m_name,
-    self->m_qualname,
+    %(asyncgen_name_obj)s,
+    %(asyncgen_qualname_obj)s,
     %(code_identifier)s,
     %(closure_count)d
 );

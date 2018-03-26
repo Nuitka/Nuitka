@@ -17,4 +17,7 @@
 #
 from __future__ import print_function
 
+import sys
+
 print("The deep package has __package__", __package__)
+print("The deep package has __package__", sys.modules[__name__].__package__)

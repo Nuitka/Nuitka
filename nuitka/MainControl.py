@@ -783,13 +783,6 @@ def main():
 
             sys.exit(0)
 
-        # Remove the source directory (now build directory too) if asked to.
-        if Options.isRemoveBuildDir():
-            removeDirectory(
-                path          = getSourceDirectoryPath(main_module),
-                ignore_errors = False
-            )
-
         if Options.isStandaloneMode():
             binary_filename = options["result_name"] + ".exe"
 
@@ -811,6 +804,7 @@ def main():
                 )
 
             copyUsedDLLs(
+                source_dir              = getSourceDirectoryPath(main_module),
                 dist_dir                = dist_dir,
                 standalone_entry_points = standalone_entry_points
             )
@@ -832,6 +826,13 @@ def main():
                     source_filename,
                     target_filename
                 )
+
+        # Remove the source directory (now build directory too) if asked to.
+        if Options.isRemoveBuildDir():
+            removeDirectory(
+                path          = getSourceDirectoryPath(main_module),
+                ignore_errors = False
+            )
 
         # Modules should not be executable, but Scons creates them like it, fix
         # it up here.

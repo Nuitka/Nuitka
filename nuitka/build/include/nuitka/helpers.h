@@ -67,8 +67,8 @@ extern void stopProfiling( void );
 
 
 #include "nuitka/helper/boolean.h"
-
 #include "nuitka/helper/dictionaries.h"
+#include "nuitka/helper/mappings.h"
 
 #if PYTHON_VERSION >= 300
 static char *_PyUnicode_AS_STRING( PyObject *unicode )

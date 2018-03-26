@@ -27,10 +27,7 @@ from nuitka.PythonVersions import python_version
 from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionEntryPointBase
-from .IndicatorMixins import (
-    MarkLocalsDictIndicatorMixin,
-    MarkUnoptimizedFunctionIndicatorMixin
-)
+from .IndicatorMixins import MarkUnoptimizedFunctionIndicatorMixin
 from .ReturnNodes import StatementReturn, StatementReturnNone
 
 
@@ -44,7 +41,7 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
     getGeneratorRef = ExpressionChildrenHavingBase.childGetter("generator_ref")
 
     def __init__(self, generator_ref, code_object, source_ref):
-        assert generator_ref.getFunctionBody().isExpressionGeneratorObjectBody()
+        assert generator_ref.getFunctionBody().isExpressionGeneratorObjectBody(), generator_ref
 
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -92,8 +89,7 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
 
 
 
-class ExpressionGeneratorObjectBody(MarkLocalsDictIndicatorMixin,
-                                    MarkUnoptimizedFunctionIndicatorMixin,
+class ExpressionGeneratorObjectBody(MarkUnoptimizedFunctionIndicatorMixin,
                                     ExpressionFunctionEntryPointBase):
     # We really want these many ancestors, as per design, we add properties via
     # base class mix-ins a lot, pylint: disable=R0901
@@ -121,8 +117,6 @@ class ExpressionGeneratorObjectBody(MarkLocalsDictIndicatorMixin,
             source_ref  = source_ref
         )
 
-        MarkLocalsDictIndicatorMixin.__init__(self)
-
         MarkUnoptimizedFunctionIndicatorMixin.__init__(self, flags)
 
         self.needs_generator_return_exit = False
@@ -147,6 +141,15 @@ class ExpressionGeneratorObjectBody(MarkLocalsDictIndicatorMixin,
     @staticmethod
     def needsCreation():
         return False
+
+    def computeFunction(self, trace_collection):
+        # TODO: A different function node type seems justified due to this.
+        if self.isUnoptimized():
+
+            with trace_collection.makeLocalsDictContext(self.locals_scope):
+                ExpressionFunctionEntryPointBase.computeFunction(self, trace_collection)
+        else:
+            ExpressionFunctionEntryPointBase.computeFunction(self, trace_collection)
 
 
 class StatementGeneratorReturn(StatementReturn):

@@ -104,7 +104,7 @@ python_debug = getBoolOption("python_debug", False)
 full_compat_mode = getBoolOption("full_compat", False)
 
 # Experimental indications. Do things that are not yet safe to do.
-experimental = ARGUMENTS.get("experimental", "").split(",")
+experimental = ARGUMENTS.get("experimental", "").split(',')
 
 # Tracing mode. Output program progress.
 trace_mode = getBoolOption("trace_mode", False)
@@ -188,20 +188,20 @@ if "CC" in os.environ:
     cc_dirname = os.path.dirname(os.environ["CC"])
 
     if os.path.isdir(cc_dirname):
-        os.environ["PATH"] = os.pathsep.join([ cc_dirname ] + os.environ["PATH"].split(os.pathsep))
+        os.environ["PATH"] = os.pathsep.join([cc_dirname] + os.environ["PATH"].split(os.pathsep))
 
 if "CXX" in os.environ:
     cxx_dirname = os.path.dirname(os.environ["CXX"])
 
     if os.path.isdir(cxx_dirname):
-        os.environ["PATH"] = os.pathsep.join([ cxx_dirname ] + os.environ["PATH"].split(os.pathsep))
+        os.environ["PATH"] = os.pathsep.join([cxx_dirname] + os.environ["PATH"].split(os.pathsep))
 
 
 def getExecutablePath(filename, initial):
     """ Find an execute in either normal PATH, or Scons detected PATH. """
 
     if os.path.exists(filename):
-        return True
+        return filename
 
     # Variable substitution from environment is needed, because this can contain
     # "$CC" which should be looked up too.
@@ -289,9 +289,9 @@ def detectVersion(env, cc):
     #pipe = SCons.Action._subproc(env, SCons.Util.CLVar(cc) + ['-dumpversion'],
     pipe = SCons.Action._subproc(
         env,
-        SCons.Util.CLVar(cc) + ['--version'],
-        stdin = 'devnull',
-        stderr = 'devnull',
+        SCons.Util.CLVar(cc) + ["--version"],
+        stdin  = "devnull",
+        stderr = "devnull",
         stdout = subprocess.PIPE
     )
     # -dumpversion was added in GCC 3.0.  As long as we're supporting
@@ -344,7 +344,7 @@ def myDetect(self, progs):
 
         # Ignore gcc before gcc version 5, no C11 support. We will find the
         # C++ compiler of it though.
-        if gcc_version < "5":
+        if gcc_version < '5':
             progs = [
                 "gcc-6.5", "gcc-6.3", "gcc-6.1",
                 "gcc-5.5", "gcc-5.3", "gcc-5.1",
@@ -426,9 +426,10 @@ if show_scons_mode:
     print("Initial CXXVERSION:", env.get("CXXVERSION", None))
 
 if "CC" in os.environ:
-    # If the environment variable CXX is set, use that.
+    # If the environment variable CC is set, use that.
     env["CC"] = os.environ["CC"]
     env["CCVERSION"] = None
+    found_gcc = True
 elif clang_mode:
     # If requested by the user, use the clang compiler, overriding what was
     # said in environment.
@@ -476,11 +477,11 @@ def setupSpawn(env):
 
         proc = subprocess.Popen(
             cmdline,
-            stdin       = subprocess.PIPE,
-            stdout      = subprocess.PIPE,
-            stderr      = subprocess.PIPE,
-            shell       = False,
-            env         = env
+            stdin  = subprocess.PIPE,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+            shell  = False,
+            env    = env
         )
 
         data, err = proc.communicate()
@@ -529,10 +530,10 @@ def setupSpawn(env):
         if data.rstrip():
             if not show_scons_mode:
                 print(cmdline)
-            print(data, end='')
+            print(data, end = "")
 
         if err:
-            print(err, end='')
+            print(err, end = "")
 
         return rv
 
@@ -596,8 +597,8 @@ if msvc_mode:
 
 
 if show_scons_mode:
-    print("Scons compiler: Using", end=' ')
-    print(getExecutablePath(the_compiler, initial = False), end=' ')
+    print("Scons compiler: Using", end = ' ')
+    print(getExecutablePath(the_compiler, initial = False), end = ' ')
 
     if win_target and msvc_mode:
         print("(MSVC %s)" % getMsvcVersionString())
@@ -725,7 +726,7 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
 
     # Give a warning if LTO mode was specified, but won't be used.
     if lto_mode and gcc_version < "4.6":
-        print("Warning, LTO mode specified, but not available.", file=sys.stderr)
+        print("Warning, LTO mode specified, but not available.", file = sys.stderr)
 
     # The var-tracking does not scale, disable it. Should we really need it, we
     # can enable it. TODO: Does this cause a performance loss?
@@ -825,7 +826,7 @@ if no_python_warnings:
         CPPDEFINES = ["_NUITKA_NO_PYTHON_WARNINGS"]
     )
 
-if python_version < "3":
+if python_version < '3':
     env.Append(
         CPPDEFINES = ["_NUITKA_SYSFLAG_PY3K_WARNING=%d" % (1 if python_sysflag_py3k_warning else 0)]
     )
@@ -876,7 +877,7 @@ if win_target:
     )
 
     # This is used for "GetCommandLineW" used in Windows code for Python3.
-    if python_version >= "3":
+    if python_version >= '3':
         env.Append(
             LIBS = ["Shell32"]
         )
@@ -890,8 +891,8 @@ def detectHostMultiarch():
     pipe = SCons.Action._subproc(
         env,
         "dpkg-architecture",
-        stdin = 'devnull',
-        stderr = 'devnull',
+        stdin  = "devnull",
+        stderr = "devnull",
         stdout = subprocess.PIPE
     )
 
@@ -955,7 +956,7 @@ if not win_target and \
 # Some virtualenv contain the "orig-prefix.txt" as a textual link to
 # the target, this is Windows and standard virtualenv. There are two
 # places to look for.
-for candidate in ("Lib/orig-prefix.txt", "lib/python%s/orig-prefix.txt" % python_version):
+for candidate in ("Lib/orig-prefix.txt", "lib/python%s/orig-prefix.txt" %python_version):
     candidate = os.path.join(python_prefix, candidate)
     if os.path.exists(candidate):
         python_prefix = open(candidate).read()
@@ -1033,7 +1034,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
         "gendef"
     )
 
-    command = [gendef_tool, "-", python_dll_filename]
+    command = [gendef_tool, '-', python_dll_filename]
 
     if show_scons_mode:
         print("Scons: Creating Python library defs with:", command)
@@ -1041,10 +1042,10 @@ def makeWindowsMingGW64Lib(win_lib_path):
     try:
         proc = subprocess.Popen(
             command,
-            stdin       = subprocess.PIPE,
-            stdout      = subprocess.PIPE,
-            stderr      = subprocess.PIPE,
-            shell       = False
+            stdin  = subprocess.PIPE,
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+            shell  = False
         )
     except WindowsError:
         sys.exit('Error, cannot find "gendef.exe" which is required though.')
@@ -1273,10 +1274,10 @@ def getLinkerArch():
         try:
             proc = subprocess.Popen(
                 command,
-                stdin       = subprocess.PIPE,
-                stdout      = subprocess.PIPE,
-                stderr      = subprocess.PIPE,
-                shell       = False
+                stdin  = subprocess.PIPE,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE,
+                shell  = False
             )
         except OSError:
             return None
@@ -1569,10 +1570,10 @@ Error, call to 'mt.exe' (%s) to extract manifest failed (error code %d.)""" % (
                 try:
                     proc = subprocess.Popen(
                         command,
-                        stdin       = subprocess.PIPE,
-                        stdout      = subprocess.PIPE,
-                        stderr      = subprocess.PIPE,
-                        shell       = False
+                        stdin  = subprocess.PIPE,
+                        stdout = subprocess.PIPE,
+                        stderr = subprocess.PIPE,
+                        shell  = False
                     )
                 except WindowsError:
                     sys.exit("Error, cannot find 'windres.exe' but it is required.")
@@ -1590,8 +1591,7 @@ error:
 In case of "File format not recognized" you are most likely using the
 64 bits version of Python and the 32 bits version of MinGW64. There is
 also a 64 bits version, download and use that one instead.
-""" % stderr
-                )
+""" % stderr)
 
                 # Need to reduce to what we use, and remove the quoting of the
                 # actual manifest. We created a full "rc" file, but that we do
@@ -1746,7 +1746,7 @@ if uninstalled_python:
         build_definitions["PYTHON_HOME_PATH"] = python_prefix
 
 def makeCLiteral(value):
-    value = value.replace("\\", r"\\")
+    value = value.replace('\\', r"\\")
     value = value.replace('"', r'\"')
 
     return '"' + value + '"'
@@ -1778,7 +1778,7 @@ if uninstalled_python:
         # TODO: This should have become unnecessary by DLL_EXTRA_PATH
         shutil.copy(
             getWindowsPythonDLLPath(),
-            os.path.dirname(result_basepath) or "."
+            os.path.dirname(result_basepath) or '.'
         )
     elif sys.platform == "darwin":
         # TODO: Move this to where we do it for Linux already.
@@ -1798,3 +1798,17 @@ if uninstalled_python:
 
         if result != 0:
             sys.exit("Error, call to 'install_name_tool' to fix Python library path failed.")
+
+
+with open(os.path.join(source_dir, "scons-report.txt"), 'w') as report_file:
+    for key, value in sorted(env._dict.items()):
+        if type(value) is not str:
+            continue
+
+        if key.startswith(('_', "CONFIGURE")):
+            continue
+
+        if key in ("MSVSSCONS", "BUILD_DIR"):
+            continue
+
+        print(key + '=' + value, file = report_file)

@@ -16,7 +16,7 @@
 #     limitations under the License.
 #
 """
-Namespace packages of Python3.3
+Namespace packages of Python3.3 or higher
 
 """
 
@@ -36,10 +36,8 @@ from nuitka.nodes.ImportNodes import (
     ExpressionImportModuleNameHard,
     ExpressionImportName
 )
-from nuitka.nodes.ModuleNodes import (
-    CompiledPythonPackage,
-    ExpressionModuleFileAttributeRef
-)
+from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeFileRef
+from nuitka.nodes.ModuleNodes import CompiledPythonPackage
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 
@@ -75,7 +73,8 @@ def createPathAssignment(package, source_ref):
                 ),
                 args       = ExpressionMakeTuple(
                     elements   = (
-                        ExpressionModuleFileAttributeRef(
+                        ExpressionModuleAttributeFileRef(
+                            module     = package,
                             source_ref = source_ref,
                         ),
                     ),
@@ -139,14 +138,16 @@ def createPathAssignment(package, source_ref):
         )
 
     return StatementAssignmentVariableName(
+        provider      = package,
         variable_name = "__path__",
         source        = path_value,
         source_ref    = source_ref
     )
 
 
-def createPython3NamespacePath(package_name, module_relpath, source_ref):
+def createPython3NamespacePath(package, package_name, module_relpath, source_ref):
     return StatementAssignmentVariableName(
+        provider      = package,
         variable_name = "__path__",
         source        = ExpressionCallNoKeywords(
             called     = ExpressionImportName(
@@ -193,6 +194,7 @@ def createNamespacePackage(package_name, module_relpath):
 
     if python_version >= 300:
         statement = createPython3NamespacePath(
+            package        = package,
             package_name   = package_name,
             module_relpath = module_relpath,
             source_ref     = source_ref

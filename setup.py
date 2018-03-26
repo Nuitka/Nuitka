@@ -18,28 +18,26 @@
 
 import os
 import sys
-from distutils.command.install_scripts import install_scripts
-from distutils.core import setup
+import re
+from setuptools import setup
+from setuptools.command import easy_install
 
 os.chdir(os.path.dirname(__file__) or '.')
 
-scripts = ["bin/nuitka", "bin/nuitka-run"]
-
-# For Windows, there are batch files to launch Nuitka.
-if os.name == "nt":
-    scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
 
 # Detect the version of Nuitka from its source directly. Without calling it, we
 # don't mean to pollute with ".pyc" files and similar effects.
 def detectVersion():
-    version_line, = [
-        line
-        for line in
-        open("nuitka/Version.py")
-        if line.startswith("Nuitka V")
-    ]
+    with open("nuitka/Version.py") as version_file:
+        version_line, = [
+            line
+            for line in
+            version_file
 
-    return version_line.split('V')[1].strip()
+            if line.startswith("Nuitka V")
+        ]
+
+        return version_line.split('V')[1].strip()
 
 version = detectVersion()
 
@@ -91,86 +89,6 @@ def findNuitkaPackages():
 
     return result
 
-
-class NuitkaInstallScripts(install_scripts):
-    """
-    This is a specialization of install_scripts that replaces the @LIBDIR@ with
-    the configured directory for modules. If possible, the path is made relative
-    to the directory for scripts.
-    """
-
-    def initialize_options(self):
-        install_scripts.initialize_options(self)
-
-        self.install_lib = None
-
-    def finalize_options(self):
-        install_scripts.finalize_options(self)
-
-        self.set_undefined_options("install", ("install_lib", "install_lib"))
-
-    def run(self):
-        install_scripts.run(self)
-
-        if os.path.splitdrive(self.install_dir)[0] != \
-           os.path.splitdrive(self.install_lib)[0]:
-            # can't make relative paths from one drive to another, so use an
-            # absolute path instead
-            libdir = self.install_lib
-        else:
-            common = os.path.commonprefix(
-                (self.install_dir, self.install_lib)
-            )
-            rest = self.install_dir[len(common):]
-            uplevel = len([n for n in os.path.split(rest) if n ])
-
-            libdir = uplevel * (".." + os.sep) + self.install_lib[len(common):]
-
-        for outfile in self.outfiles:
-            fp = open(outfile, "rb")
-            data = fp.read()
-            fp.close()
-
-            # skip binary files
-            if b'\0' in data:
-                continue
-
-            old_data = data
-
-            data = data.replace(b"@LIBDIR@", libdir.encode("unicode_escape"))
-
-            if data != old_data:
-                fp = open(outfile, "wb")
-                fp.write(data)
-                fp.close()
-
-cmdclass = {
-    "install_scripts" : NuitkaInstallScripts,
-}
-
-# Fix for "develop", where the generated scripts from easy install are not
-# capable of running in their re-executing, not finding pkg_resources anymore.
-if "develop" in sys.argv:
-    try:
-        import setuptools.command.easy_install
-    except ImportError:
-        pass
-    else:
-        orig_easy_install = setuptools.command.easy_install.easy_install
-
-        class NuitkaEasyInstall(setuptools.command.easy_install.easy_install):
-            @staticmethod
-            def _load_template(dev_path):
-                result = orig_easy_install._load_template(dev_path)
-                result = result.replace(
-                    "__import__('pkg_resources')",
-                    "# __import__('pkg_resources')",
-                )
-
-                return result
-
-        setuptools.command.easy_install.easy_install = NuitkaEasyInstall
-
 if os.path.exists("/usr/bin/scons") and \
    "sdist" not in sys.argv and \
    "bdist_wininst" not in sys.argv and \
@@ -211,6 +129,100 @@ if sys.version_info >= (3,):
     util.byte_compile = byte_compile
 
 
+# We monkey patch easy install script generation to not load pkg_resources,
+# which is very slow to launch. This can save one second or more per launch
+# of Nuitka.
+runner_script_template = """\
+# -*- coding: utf-8 -*-
+# Launcher for Nuitka
+
+import os
+if "NUITKA_PYTHONPATH" in os.environ:
+
+    # Restore the PYTHONPATH gained from the site module, that we chose not
+    # to have imported. pylint: disable=eval-used
+    import sys
+    sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
+    del os.environ["NUITKA_PYTHONPATH"]
+
+import nuitka.__main__
+"""
+
+# This is for newer setuptools:
+@classmethod
+def get_args(cls, dist, header=None):
+    """
+    Yield write_script() argument tuples for a distribution's
+    console_scripts and gui_scripts entry points.
+    """
+    if header is None:
+        header = cls.get_header()
+
+    for type_ in 'console', 'gui':
+        group = type_ + '_scripts'
+
+        for name, _ep in dist.get_entry_map(group).items():
+            script_text = runner_script_template
+
+            args = cls._get_script_args(type_, name, header, script_text)
+            for res in args:
+                yield res
+
+try:
+    easy_install.ScriptWriter.get_args = get_args
+except AttributeError:
+    pass
+
+# This is for older setuptools:
+def get_script_args(dist, executable=os.path.normpath(sys.executable), wininst=False):
+    """Yield write_script() argument tuples for a distribution's entrypoints"""
+    header = easy_install.get_script_header("", executable, wininst)
+    for group in 'console_scripts', 'gui_scripts':
+        for name, _ep in dist.get_entry_map(group).items():
+            script_text = runner_script_template
+            if sys.platform=='win32' or wininst:
+                # On Windows/wininst, add a .py extension and an .exe launcher
+                if group=='gui_scripts':
+                    launcher_type = 'gui'
+                    ext = '-script.pyw'
+                    old = ['.pyw']
+                    new_header = re.sub('(?i)python.exe','pythonw.exe',header)
+                else:
+                    launcher_type = 'cli'
+                    ext = '-script.py'
+                    old = ['.py','.pyc','.pyo']
+                    new_header = re.sub('(?i)pythonw.exe','python.exe',header)
+                if os.path.exists(new_header[2:-1].strip('"')) or sys.platform!='win32':
+                    hdr = new_header
+                else:
+                    hdr = header
+                yield (name+ext, hdr+script_text, 't', [name+x for x in old])
+                yield (
+                    name+'.exe', easy_install.get_win_launcher(launcher_type),
+                    'b' # write in binary mode
+                )
+                if not easy_install.is_64bit():
+                    # install a manifest for the launcher to prevent Windows
+                    #  from detecting it as an installer (which it will for
+                    #  launchers like easy_install.exe). Consider only
+                    #  adding a manifest for launchers detected as installers.
+                    #  See Distribute #143 for details.
+                    m_name = name + '.exe.manifest'
+                    yield (m_name, easy_install.load_launcher_manifest(name), 't')
+            else:
+                # On other platforms, we assume the right thing to do is to
+                # just write the stub with no extension.
+                yield (name, header+script_text)
+
+try:
+    easy_install.get_script_args
+except AttributeError:
+    pass
+else:
+    easy_install.get_script_args = get_script_args
+
+
+binary_suffix = "" if sys.version_info[0] == 2 else sys.version_info[0]
 
 setup(
     name         = project_name,
@@ -264,9 +276,6 @@ setup(
 
     ],
     packages     = findNuitkaPackages(),
-    scripts      = scripts,
-    cmdclass     = cmdclass,
-
     package_data = {
         # Include extra files
         "" : ["*.txt", "*.rst", "*.c", "*.h", "*.ui"],
@@ -293,4 +302,18 @@ setup(
     description  = """\
 Python compiler with full language support and CPython compatibility""",
     keywords     = "compiler,python,nuitka",
+    zip_safe     = False,
+    entry_points = {
+        "distutils.commands": [
+            'bdist_nuitka = \
+             nuitka.distutils.bdist_nuitka:bdist_nuitka'
+        ],
+        "distutils.setup_keywords": [
+            "build_with_nuitka = nuitka.distutils.bdist_nuitka:setuptools_build_hook"
+        ],
+        "console_scripts": [
+            "nuitka%s = nuitka.__main__" % binary_suffix,
+            "nuitka%s-run = nuitka.__main__" % binary_suffix
+        ],
+    },
 )

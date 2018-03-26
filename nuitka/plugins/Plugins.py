@@ -36,10 +36,7 @@ from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
 
 from .PluginBase import post_modules, pre_modules
-from .standard.DataFileCollectorPlugin import (
-    NuitkaPluginDataFileCollector,
-    NuitkaPluginDetectorDataFileCollector
-)
+from .standard.DataFileCollectorPlugin import NuitkaPluginDataFileCollector
 from .standard.ImplicitImports import NuitkaPluginPopularImplicitImports
 from .standard.PmwPlugin import NuitkaPluginDetectorPmw, NuitkaPluginPmw
 
@@ -55,12 +52,16 @@ from .standard.PySidePyQtPlugin import (  # isort:skip
     NuitkaPluginDetectorPyQtPySidePlugins,
     NuitkaPluginPyQtPySidePlugins
 )
-
+from .standard.EnumPlugin import (  # isort:skip
+    NuitkaPluginEnumWorkarounds,
+    NuitkaPluginDetectorEnumWorkarounds
+)
 # The standard plug-ins have their list hard-coded here. User plug-ins will
 # be scanned later, TODO.
 
 active_plugin_list = [
     NuitkaPluginPopularImplicitImports(),
+    NuitkaPluginDataFileCollector(),
 ]
 
 # List of optional plug-in classes. Until we have the meta class to do it, just
@@ -70,8 +71,8 @@ optional_plugin_classes = (
     (NuitkaPluginMultiprocessingWorkaorunds, NuitkaPluginDetectorMultiprocessingWorkaorunds),
     (NuitkaPluginPyQtPySidePlugins, NuitkaPluginDetectorPyQtPySidePlugins),
     (NuitkaPluginPylintEclipseAnnotations, NuitkaPluginDetectorPylintEclipseAnnotations),
-    (NuitkaPluginDataFileCollector, NuitkaPluginDetectorDataFileCollector),
     (NuitkaPluginPmw, NuitkaPluginDetectorPmw),
+    (NuitkaPluginEnumWorkarounds, NuitkaPluginDetectorEnumWorkarounds)
 )
 
 plugin_name2plugin_classes = dict(
@@ -186,9 +187,9 @@ class Plugins(object):
         return None
 
     @staticmethod
-    def suppressBuiltinImportWarning(module_name, source_ref):
+    def suppressBuiltinImportWarning(module, source_ref):
         for plugin in active_plugin_list:
-            if plugin.suppressBuiltinImportWarning(module_name, source_ref):
+            if plugin.suppressBuiltinImportWarning(module, source_ref):
                 return True
 
         return False

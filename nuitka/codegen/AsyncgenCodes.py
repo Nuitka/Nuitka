@@ -102,13 +102,19 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
 
     emit(
         template_make_asyncgen_template % {
-            "closure_copy"        : indented(closure_copy, 0, True),
-            "asyncgen_identifier" : asyncgen_object_body.getCodeName(),
-            "to_name"             : to_name,
-            "code_identifier"     : context.getCodeObjectHandle(
+            "closure_copy"          : indented(closure_copy, 0, True),
+            "to_name"               : to_name,
+            "asyncgen_identifier"   : asyncgen_object_body.getCodeName(),
+            "asyncgen_name_obj"     : context.getConstantCode(
+                constant = asyncgen_object_body.getFunctionName()
+            ),
+            "asyncgen_qualname_obj" : context.getConstantCode(
+                constant = asyncgen_object_body.getFunctionQualname()
+            ),
+            "code_identifier"       : context.getCodeObjectHandle(
                 code_object = expression.getCodeObject(),
             ),
-            "closure_count"       : len(closure_variables)
+            "closure_count"         : len(closure_variables)
         }
     )
 

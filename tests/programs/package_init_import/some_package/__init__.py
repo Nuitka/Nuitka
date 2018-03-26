@@ -15,8 +15,19 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
+from __future__ import print_function
 
-print("This is some_package", __name__, "in", __package__)
+import sys
+
+print(
+    "This is some_package",
+    __name__,
+    "in",
+    "__package__: ",
+    __package__
+      if __package__ is not None or sys.version_info[:2] != (3,2) else
+    ".".join(__name__.split(".")[:-1])
+)
 
 try:
     import PackageLocal

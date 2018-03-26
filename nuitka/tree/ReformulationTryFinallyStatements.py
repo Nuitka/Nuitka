@@ -101,11 +101,17 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
 
             compare(f1, f2)
 
-    if tried.mayRaiseException(BaseException):
-        except_handler = final.makeClone()
+    def getFinal():
+        # Make a clone of "final" only if necessary.
+        if hasattr(getFinal, "used"):
+            return final.makeClone()
+        else:
+            getFinal.used = True
+            return final
 
+    if tried.mayRaiseException(BaseException):
         except_handler = getStatementsAppended(
-            statement_sequence = except_handler,
+            statement_sequence = getFinal(),
             statements         = makeReraiseExceptionStatement(
                 source_ref = source_ref
             )
@@ -148,7 +154,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
 
     if tried.mayBreak():
         break_handler = getStatementsAppended(
-            statement_sequence = final.makeClone(),
+            statement_sequence = getFinal(),
             statements         = StatementLoopBreak(
                 source_ref = source_ref
             )
@@ -160,7 +166,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
 
     if tried.mayContinue():
         continue_handler = getStatementsAppended(
-            statement_sequence = final.makeClone(),
+            statement_sequence = getFinal(),
             statements         = StatementLoopContinue(
                 source_ref = source_ref
             )
@@ -172,7 +178,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
 
     if tried.mayReturn():
         return_handler = getStatementsAppended(
-            statement_sequence = final.makeClone(),
+            statement_sequence = getFinal(),
             statements         = StatementReturn(
                 expression = ExpressionReturnedValueRef(
                     source_ref = source_ref
@@ -181,6 +187,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
             )
         )
 
+        return_handler.parent = provider
     else:
         return_handler = None
 
@@ -199,7 +206,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
         return makeStatementsSequence(
             statements = (
                 result,
-                final
+                getFinal()
             ),
             allow_none = False,
             source_ref = source_ref

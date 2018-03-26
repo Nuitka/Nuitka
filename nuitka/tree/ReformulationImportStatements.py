@@ -33,7 +33,6 @@ from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.ImportNodes import (
     ExpressionBuiltinImport,
     ExpressionImportModuleHard,
-    ExpressionImportModuleNameHard,
     ExpressionImportName,
     StatementImportStar
 )
@@ -135,7 +134,8 @@ def _enableFutureFeature(node, object_name, source_ref):
 def buildImportFromNode(provider, node, source_ref):
     # "from .. import .." statements. This may trigger a star import, or
     # multiple names being looked up from the given module variable name.
-    # This is pretty complex, pylint: disable=too-many-branches,too-many-locals
+    # This is pretty complex.
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     module_name = node.module if node.module is not None else ""
     level = node.level
@@ -197,6 +197,7 @@ def buildImportFromNode(provider, node, source_ref):
             import_locals = makeConstantRefNode({}, source_ref, True)
 
         return StatementImportStar(
+            locals_scope  = None if provider.isCompiledPythonModule() else provider.getLocalsScope(),
             module_import = ExpressionBuiltinImport(
                 name        = makeConstantRefNode(module_name, source_ref, True),
                 globals_arg = import_globals,
@@ -259,6 +260,7 @@ def buildImportFromNode(provider, node, source_ref):
 
             import_statements.append(
                 StatementAssignmentVariableName(
+                    provider      = provider,
                     variable_name = mangleName(target_name, provider),
                     source        = ExpressionImportName(
                         module      = imported_from_module,
@@ -342,6 +344,7 @@ def buildImportModulesNode(provider, node, source_ref):
 
         import_nodes.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = mangleName(
                     local_name
                       if local_name is not None else

@@ -104,10 +104,5 @@ function_direct_body_template = """\
 }
 """
 
-function_dict_setup = """\
-// Locals dictionary setup.
-PyObject *%(locals_dict)s = PyDict_New();
-"""
-
 from . import TemplateDebugWrapper # isort:skip
 TemplateDebugWrapper.checkDebug(globals())

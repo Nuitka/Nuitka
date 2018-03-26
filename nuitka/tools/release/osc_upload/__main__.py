@@ -57,7 +57,6 @@ cd osc && \
 osc init home:kayhayen Nuitka && osc repairwc && \
 cp ../dist/Nuitka-*.tar.gz . && \
 sed -e s/VERSION/%s/ ../rpm/nuitka.spec >./nuitka.spec && \
-cp ../rpm/nuitka-run3 . && \
 cp ../rpm/nuitka-rpmlintrc . && \
 osc addremove && \
 echo 'New release' >ci_message && \
@@ -80,7 +79,6 @@ osc repairwc && \
 cp ../dist/Nuitka-*.tar.gz . && \
 sed -e s/VERSION/%s/ ../rpm/nuitka.spec >./nuitka-unstable.spec && \
 sed -i nuitka-unstable.spec -e 's/Name: *nuitka/Name:           nuitka-unstable/' && \
-cp ../rpm/nuitka-run3 . && \
 cp ../rpm/nuitka-rpmlintrc . && \
 osc addremove && echo 'New release' >ci_message && \
 osc ci --file ci_message
@@ -102,7 +100,6 @@ osc repairwc && \
 cp ../dist/Nuitka-*.tar.gz . && \
 sed -e s/VERSION/%s/ ../rpm/nuitka.spec >./nuitka-experimental.spec && \
 sed -i nuitka-experimental.spec -e 's/Name: *nuitka/Name:           nuitka-experimental/' && \
-cp ../rpm/nuitka-run3 . && \
 cp ../rpm/nuitka-rpmlintrc . && \
 osc addremove && \
 echo 'New release' >ci_message && osc ci --file ci_message

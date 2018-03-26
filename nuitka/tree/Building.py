@@ -80,13 +80,11 @@ from nuitka.nodes.ConstantRefNodes import (
 from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
-from nuitka.nodes.ImportNodes import ExpressionImportModuleNameHard
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
+from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeFileRef
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
     CompiledPythonPackage,
-    ExpressionModuleFileAttributeRef,
-    ExpressionModuleLoaderRef,
     PythonMainModule,
     PythonShlibModule
 )
@@ -169,7 +167,6 @@ from .TreeHelpers import (
     getBuildContext,
     getKind,
     makeAbsoluteImportNode,
-    makeCallNode,
     makeModuleFrame,
     makeStatementsSequence,
     makeStatementsSequenceFromStatement,
@@ -184,6 +181,7 @@ from .VariableClosure import completeVariableClosures
 def buildVariableReferenceNode(provider, node, source_ref):
     return ExpressionVariableNameRef(
         variable_name = mangleName(node.id, provider),
+        provider      = provider,
         source_ref    = source_ref
     )
 
@@ -783,6 +781,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__doc__",
                 source        = makeConstantRefNode(
                     constant      = doc,
@@ -795,8 +794,10 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__file__",
-                source        = ExpressionModuleFileAttributeRef(
+                source        = ExpressionModuleAttributeFileRef(
+                    module     = provider,
                     source_ref = internal_source_ref,
                 ),
                 source_ref    = internal_source_ref
@@ -809,52 +810,10 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 createPathAssignment(provider, internal_source_ref)
             )
 
-    if python_version >= 330:
-        statements.append(
-            StatementAssignmentVariableName(
-                variable_name = "__loader__",
-                source        = ExpressionModuleLoaderRef(
-                    source_ref = internal_source_ref,
-                ),
-                source_ref    = internal_source_ref
-            )
-        )
-
-    if python_version >= 340:
-        if provider.isMainModule():
-            spec_value = makeConstantRefNode(
-                constant   = None,
-                source_ref = internal_source_ref
-            )
-        else:
-            spec_value = makeCallNode(
-                ExpressionImportModuleNameHard(
-                    module_name = "importlib._bootstrap",
-                    import_name = "ModuleSpec",
-                    source_ref  = internal_source_ref,
-                ),
-                makeConstantRefNode(
-                    constant      = provider.getFullName(),
-                    source_ref    = internal_source_ref,
-                    user_provided = True
-                ),
-                ExpressionModuleLoaderRef(
-                    source_ref = internal_source_ref,
-                ),
-                internal_source_ref
-            )
-
-        statements.append(
-            StatementAssignmentVariableName(
-                variable_name = "__spec__",
-                source        = spec_value,
-                source_ref    = internal_source_ref
-            )
-        )
-
     if python_version >= 300:
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__cached__",
                 source        = ExpressionConstantNoneRef(
                     source_ref    = internal_source_ref,
@@ -864,34 +823,6 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
         )
 
-    # The "__package__" attribute is set to proper value for 3.3 or higher even
-    # for normal modules, previously for packages only.
-    statements.append(
-        StatementAssignmentVariableName(
-            variable_name = "__package__",
-            source        = makeConstantRefNode(
-                constant      = (
-                                  (
-                                    None
-                                      if '.' not in provider.getFullName() or python_version >= 320 else
-                                    provider.getFullName()
-                                  )
-                                    if python_version < 330 else
-                                  provider.getFullName()
-                                )
-                                  if provider.isCompiledPythonPackage() else
-                                (
-                                    provider.getPackage()
-                                      if python_version >= 330 else
-                                    None
-                                ),
-                source_ref    = internal_source_ref,
-                user_provided = True
-            ),
-            source_ref    = internal_source_ref
-        )
-    )
-
     needs__initializing__ = not provider.isMainModule() and \
       (python_version >= 330 and python_version < 340)
 
@@ -899,6 +830,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # Set "__initializing__" at the beginning to True
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__initializing__",
                 source        = makeConstantRefNode(
                     constant      = True,
@@ -913,6 +845,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # Set "__annotations__" on module level to {}
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__annotations__",
                 source        = makeConstantRefNode(
                     constant      = {},
@@ -934,6 +867,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         # Set "__initializing__" at the end to False
         statements.append(
             StatementAssignmentVariableName(
+                provider      = provider,
                 variable_name = "__initializing__",
                 source        = makeConstantRefNode(
                     constant      = False,

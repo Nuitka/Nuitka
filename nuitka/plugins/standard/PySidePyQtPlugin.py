@@ -124,7 +124,6 @@ if os.path.exists(guess_path):
         return ()
 
     def removeDllDependencies(self, dll_filename, dll_filenames):
-        # Virtual method, pylint: disable=no-self-use,unused-argument
         for values in self.qt_dirs.values():
             for value in values:
                 if dll_filename.startswith(value):

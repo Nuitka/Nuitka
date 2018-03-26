@@ -386,18 +386,6 @@ class PythonContextBase(ContextMetaClassBase):
         pass
 
     @abstractmethod
-    def getLocalsDictName(self):
-        pass
-
-    @abstractmethod
-    def allocateLocalsDictName(self):
-        pass
-
-    @abstractmethod
-    def endLocalsDictName(self):
-        pass
-
-    @abstractmethod
     def allocateTempName(self, base_name, type_name = "PyObject *",
                          unique = False):
         pass
@@ -559,17 +547,10 @@ class PythonChildContextBase(PythonContextBase):
     def getFrameVariableCodeNames(self):
         return self.parent.getFrameVariableCodeNames()
 
-    def getLocalsDictName(self):
-        return self.parent.getLocalsDictName()
-
-    def allocateLocalsDictName(self):
-        return self.parent.allocateLocalsDictName()
-
-    def endLocalsDictName(self):
-        return self.parent.endLocalsDictName()
-
 
 def _getConstantDefaultPopulation():
+    # Lots of cases, pylint: disable=too-many-branches
+
     # Note: Can't work with set here, because we need to put in some values that
     # cannot be hashed.
 
@@ -591,6 +572,7 @@ def _getConstantDefaultPopulation():
         "__module__",
         "__class__",
         "__name__",
+        "__package__",
         "__metaclass__",
         "__dict__",
         "__doc__",
@@ -643,10 +625,16 @@ def _getConstantDefaultPopulation():
             "file"
         )
 
-        # For Python3 bytes built-in.
-        result += (
-            "bytes",
+        # For Python3 "bytes" built-in.
+        result.append(
+            "bytes"
         )
+
+        # For Python3 "__name__" to "__package__" parsing
+        result.append(
+            '.'
+        )
+
 
     if python_version >= 330:
         # Modules have that attribute starting with 3.3
@@ -720,6 +708,12 @@ def _getConstantDefaultPopulation():
     if "no_warnings" in Options.getPythonFlags():
         result.append(
             "ignore"
+        )
+
+    if python_version >= 340:
+        # Setting the __spec__ module attribute.
+        result.append(
+            "__spec__"
         )
 
     if python_version >= 350:
@@ -832,9 +826,7 @@ class FrameDeclarationsMixin(object):
         # Currently active frame stack inside the context.
         self.frame_stack = [None]
 
-        self.locals_dict_used = 0
-
-        self.locals_dict_names = []
+        self.locals_dict_names = set()
 
 
     def getFrameHandle(self):
@@ -914,24 +906,11 @@ class FrameDeclarationsMixin(object):
 
         return result
 
-    def getLocalsDictName(self):
-        return self.locals_dict_names[-1]
-
-    def allocateLocalsDictName(self):
-        self.locals_dict_used += 1
-        self.locals_dict_names.append(
-            "locals_dict_%d" % self.locals_dict_used
-        )
-
-    def endLocalsDictName(self):
-        del self.locals_dict_names[-1]
-
     def getLocalsDictNames(self):
-        return [
-            "locals_dict_%d" % (locals_dict_index + 1)
-            for locals_dict_index in
-            range(0, self.locals_dict_used)
-        ]
+        return self.locals_dict_names
+
+    def addLocalsDictName(self, locals_dict_name):
+        self.locals_dict_names.add(locals_dict_name)
 
 
 class ReturnReleaseModeMixin(object):
@@ -1017,12 +996,6 @@ class PythonModuleContext(TempMixin, CodeObjectsMixin,
 
     def isCompiledPythonModule(self):
         return True
-
-    def hasLocalsDict(self):
-        return False
-
-    def hasForeignLocalsDict(self):
-        return False
 
     def getName(self):
         return self.name
@@ -1119,12 +1092,6 @@ class PythonFunctionContext(FrameDeclarationsMixin,
 
     def getEntryPoint(self):
         return self.function
-
-    def hasLocalsDict(self):
-        return self.function.hasLocalsDict()
-
-    def hasForeignLocalsDict(self):
-        return self.function.hasForeignLocalsDict()
 
     def mayRecurse(self):
         # TODO: Determine this at compile time for enhanced optimizations.
@@ -1315,11 +1282,8 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
         # that.
         return True
 
-    def hasLocalsDict(self):
-        return self.outline.hasLocalsDict()
-
-    def hasForeignLocalsDict(self):
-        return self.outline.hasForeignLocalsDict()
+    def addLocalsDictName(self, locals_dict_name):
+        self.parent.addLocalsDictName(locals_dict_name)
 
     def addExceptionPreserverVariables(self, count):
         self.parent.addExceptionPreserverVariables(count)

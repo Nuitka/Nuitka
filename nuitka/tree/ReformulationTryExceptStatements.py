@@ -328,6 +328,7 @@ def buildTryExceptionNode(provider, node, source_ref):
                         source_ref = source_ref
                     ),
                     final      = buildDeleteStatementFromDecoded(
+                        provider   = provider,
                         kind       = kind,
                         detail     = detail,
                         source_ref = source_ref

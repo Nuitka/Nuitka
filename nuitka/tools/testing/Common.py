@@ -30,7 +30,7 @@ import tempfile
 from contextlib import contextmanager
 
 from nuitka.Tracing import my_print
-from nuitka.utils.AppDirs import getCacheDir
+from nuitka.utils.AppDirs import getAppDir, getCacheDir
 from nuitka.utils.Execution import check_output
 from nuitka.utils.FileOperations import makePath, removeDirectory
 
@@ -434,7 +434,7 @@ def getDependsExePath():
     if "APPDATA" not in os.environ:
         sys.exit("Error, standalone mode cannot find 'APPDATA' environment.")
 
-    nuitka_app_dir = os.path.join(os.environ["APPDATA"],"nuitka")
+    nuitka_app_dir = getAppDir()
 
     depends_dir = os.path.join(
         nuitka_app_dir,
@@ -626,6 +626,9 @@ Error, needs 'strace' on your system to scan used libraries."""
 
 
 def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
+    # A lot of special white listing is required.
+    # pylint: disable=too-many-branches,too-many-statements
+
     result = []
 
     for loaded_filename in loaded_filenames:
@@ -712,6 +715,10 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
         if "/gconv/" in loaded_filename:
             continue
         if loaded_basename.startswith("libicu"):
+            continue
+
+        # GTK may access X files.
+        if loaded_basename == ".Xauthority":
             continue
 
         result.append(loaded_filename)
@@ -905,18 +912,44 @@ def checkDebugPython():
         sys.gettotalrefcount = lambda : 0
 
 
-@contextmanager
-def withPythonPathChange(python_path):
+def addToPythonPath(python_path):
     if type(python_path) in (tuple, list):
         python_path = os.pathsep.join(python_path)
 
     if python_path:
+        if "PYTHONPATH" in os.environ:
+            os.environ["PYTHONPATH"] += os.pathsep + python_path
+        else:
+            os.environ["PYTHONPATH"] = python_path
+
+
+@contextmanager
+def withPythonPathChange(python_path):
+    if python_path:
+        if type(python_path) not in (tuple, list):
+            python_path = python_path.split(os.pathsep)
+
+        python_path = [
+            os.path.normpath(os.path.abspath(element))
+            for element in
+            python_path
+        ]
+
+        python_path = os.pathsep.join(python_path)
+
         if "PYTHONPATH" in os.environ:
             old_path = os.environ["PYTHONPATH"]
             os.environ["PYTHONPATH"] += os.pathsep + python_path
         else:
             old_path = None
             os.environ["PYTHONPATH"] = python_path
+
+#     print(
+#         "Effective PYTHONPATH in %s is %r" % (
+#             sys.modules["__main__"],
+#             os.environ.get("PYTHONPATH", "")
+#         )
+#     )
 
     yield
 
@@ -1168,3 +1201,10 @@ def getTestingCacheDir():
     result = os.path.join(cache_dir, "tests_state")
     makePath(result)
     return result
+
+
+@contextmanager
+def withDirectoryChange(path):
+    old_cwd = os.chdir(path)
+    yield
+    os.chdir(old_cwd)

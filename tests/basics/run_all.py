@@ -32,15 +32,6 @@ sys.path.insert(
     )
 )
 
-# Find nuitka package from system installation for package test too.
-try:
-    import nuitka  # @UnusedImport
-except ImportError:
-    # Find nuitka in system install.
-    sys.path[0] = "/usr/share/nuitka"
-    import nuitka  # @UnusedImport
-
-
 
 from nuitka.tools.testing.Common import (
     my_print,
@@ -48,21 +39,12 @@ from nuitka.tools.testing.Common import (
     decideFilenameVersionSkip,
     compareWithCPython,
     hasDebugPython,
-    withPythonPathChange,
     createSearchMode
 )
 
 python_version = setup(needs_io_encoding = True)
 
 search_mode = createSearchMode()
-
-if python_version >= "3.4":
-    # These tests don't work with 3.4 yet, and the list is considered the major
-    # TODO for 3.4 support.
-    search_mode.mayFailFor(
-        # Prepared dictionaries of "enum.Enums" are not used early enough
-        "Classes34.py",
-    )
 
 # Create large constants test on the fly, if it's not there, not going to
 # add it to release archives for no good reason.
@@ -137,14 +119,13 @@ for filename in sorted(os.listdir('.')):
                      not filename.endswith("32.py") and \
                      not filename.endswith("33.py")
 
-        with withPythonPathChange(".."):
-            compareWithCPython(
-                dirname     = None,
-                filename    = filename,
-                extra_flags = extra_flags,
-                search_mode = search_mode,
-                needs_2to3  = needs_2to3
-            )
+        compareWithCPython(
+            dirname     = None,
+            filename    = filename,
+            extra_flags = extra_flags,
+            search_mode = search_mode,
+            needs_2to3  = needs_2to3
+        )
     else:
         my_print("Skipping", filename)
 

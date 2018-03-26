@@ -16,6 +16,8 @@
 #     limitations under the License.
 #
 
+from __future__ import print_function
+
 print("*** Child2: Begin", __name__)
 try:
     import Child1

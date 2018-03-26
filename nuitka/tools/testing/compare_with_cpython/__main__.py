@@ -31,6 +31,8 @@ import sys
 import tempfile
 import time
 
+from nuitka.tools.testing.Common import addToPythonPath, withPythonPathChange
+
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
 thread_re                    = re.compile(r"Thread 0x[0-9a-fA-F]+")
@@ -226,6 +228,14 @@ exceeded while calling a Python object' in \
     return result
 
 
+def checkNoPermissionError(output):
+    for candidate in (b"Permission denied:", b"PermissionError:"):
+        if candidate in output:
+            return False
+
+    return True
+
+
 def main():
     # Of course many cases to deal with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
     from nuitka.utils.Execution import check_output
@@ -409,17 +419,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
         if comparison_mode:
             nuitka_call = [
                 os.environ["PYTHON"],
-                os.path.abspath(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        "..",
-                        "..",
-                        "..",
-                        "..",
-                        "bin",
-                        "nuitka"
-                    )
-                )
+                "-m",
+                "nuitka.__main__", # Note: Needed for Python2.6
             ]
         else:
             assert coverage_mode
@@ -433,17 +434,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
                 "--rcfile",
                 os.devnull,
                 "-a",
-                os.path.abspath(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        "..",
-                        "..",
-                        "..",
-                        "..",
-                        "bin",
-                        "nuitka"
-                    )
-                )
+                "-m",
+                "nuitka.__main__" # Note: Needed for Python2.6
             ]
 
     if python_debug:
@@ -478,11 +470,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
         os.environ["PYTHONPATH"] = python_path.strip()
 
     if binary_python_path:
-        python_path = os.environ.get("PYTHONPATH", "")
-        os.environ["PYTHONPATH"] = os.pathsep.join(
-            python_path.split(os.pathsep) + \
-            [os.path.dirname(os.path.abspath(filename))]
-        )
+        addToPythonPath(os.path.dirname(os.path.abspath(filename)))
 
     if keep_python_path or binary_python_path:
         extra_options.append("--keep-pythonpath")
@@ -573,17 +561,27 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
     if comparison_mode:
         start_time = time.time()
 
-        process = subprocess.Popen(
-            args   = cpython_cmd,
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE
-        )
+        # Try a coupile of times for permission denied, on Windows it can
+        # be transient.
+        for _i in range(3):
+            with withPythonPathChange(os.getcwd()):
+                process = subprocess.Popen(
+                    args   = cpython_cmd,
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.PIPE
+                )
 
-        stdout_cpython, stderr_cpython = process.communicate()
-        exit_cpython = process.returncode
+            stdout_cpython, stderr_cpython = process.communicate()
+            exit_cpython = process.returncode
+
+            if checkNoPermissionError(stdout_cpython) and \
+               checkNoPermissionError(stderr_cpython):
+                break
+
+            my_print("Retrying CPython due to permission problems after delay.")
+            time.sleep(2)
 
         cpython_time = time.time() - start_time
-
 
     if comparison_mode and not silent_mode:
         displayOutput(stdout_cpython, stderr_cpython)
@@ -613,23 +611,37 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
     if not two_step_execution:
         if trace_command:
             my_print("Nuitka command:", nuitka_cmd)
-        process = subprocess.Popen(
-            args   = nuitka_cmd,
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE
-        )
 
-        stdout_nuitka, stderr_nuitka = process.communicate()
-        exit_nuitka = process.returncode
+        # Try a coupile of times for permission denied, on Windows it can
+        # be transient.
+        for _i in range(3):
+            with withPythonPathChange(nuitka_package_dir):
+                process = subprocess.Popen(
+                    args   = nuitka_cmd,
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.PIPE
+                )
+
+            stdout_nuitka, stderr_nuitka = process.communicate()
+            exit_nuitka = process.returncode
+
+            if checkNoPermissionError(stdout_nuitka) and \
+               checkNoPermissionError(stderr_nuitka):
+                break
+
+            my_print("Retrying nuitka exe due to permission problems after delay.")
+            time.sleep(2)
+
     else:
         if trace_command:
             my_print("Nuitka command 1:", nuitka_cmd1)
 
-        process = subprocess.Popen(
-            args   = nuitka_cmd1,
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE
-        )
+        with withPythonPathChange(nuitka_package_dir):
+            process = subprocess.Popen(
+                args   = nuitka_cmd1,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE
+            )
 
         stdout_nuitka1, stderr_nuitka1 = process.communicate()
         exit_nuitka1 = process.returncode
@@ -717,7 +729,7 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
 
         # In case of segfault, also output the call stack by entering debugger
         # without stdin forwarded.
-        if exit_code_return and exit_nuitka == -11 and sys.platform != "nt":
+        if exit_code_return and exit_nuitka == -11 and sys.platform != "nt" and not module_mode:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
 
             process = subprocess.Popen(
@@ -792,23 +804,25 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
         my_print("OK, same outputs.")
 
 
+nuitka_package_dir = os.path.normpath(
+    os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "..",
+        )
+    )
+)
+
+
 if __name__ == "__main__":
     # Unchanged, running from checkout, use the parent directory, the nuitka
     # package ought be there.
     sys.path.insert(
         0,
-        os.path.normpath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "..",
-                "..",
-                "..",
-            )
-        )
-    )
-    sys.path.insert(
-        1,
-        "/usr/share/nuitka"
+        nuitka_package_dir
     )
 
     main()

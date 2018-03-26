@@ -153,9 +153,6 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
     def getStep():
         return None
 
-    def mayBeNone(self):
-        return False
-
 
 class ExpressionBuiltinRange1(ExpressionBuiltinRangeBase):
     kind = "EXPRESSION_BUILTIN_RANGE1"
@@ -497,9 +494,6 @@ class ExpressionBuiltinXrangeBase(ExpressionChildrenHavingBase):
     @staticmethod
     def getStep():
         return None
-
-    def mayBeNone(self):
-        return False
 
 
 class ExpressionBuiltinXrange1(ExpressionBuiltinXrangeBase):

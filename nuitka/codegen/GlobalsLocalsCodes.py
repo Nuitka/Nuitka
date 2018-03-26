@@ -20,12 +20,10 @@
 This also includes writing back to locals for exec statements.
 """
 
-from nuitka.PythonVersions import python_version
+from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 
-from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode
-from .ModuleCodes import getModuleAccessCode
-from .PythonAPICodes import generateCAPIObjectCode, getReferenceExportCode
+from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesVariables import (
     template_set_locals_dict_value,
     template_set_locals_mapping_value,
@@ -35,17 +33,107 @@ from .templates.CodeTemplatesVariables import (
 from .VariableCodes import getLocalVariableCodeType
 
 
+def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
+    # The locals scope is the context needed, pylint: disable=unused-argument
+
+    emit(
+        """\
+%s = %s;""" % (
+            to_name,
+            expression.getLocalsScope().getCodeName(),
+        )
+    )
+
+
 def generateBuiltinLocalsCode(to_name, expression, emit, context):
     provider = expression.getParentVariableProvider()
 
-    getLoadLocalsCode(
-        to_name   = to_name,
-        variables = expression.getVariableVersions(),
-        provider  = provider,
-        updated   = expression.isExpressionBuiltinLocalsUpdated(),
-        emit      = emit,
-        context   = context
-    )
+    variables = expression.getVariableVersions()
+    updated   = expression.isExpressionBuiltinLocalsUpdated()
+
+    # Locals is sorted of course.
+    def _sorted(variables):
+        locals_owner = context.getOwner()
+
+        if locals_owner.isExpressionOutlineBody():
+            locals_owner = locals_owner.getParentVariableProvider()
+
+        variable_order = locals_owner.getProvidedVariableOrder()
+
+        return sorted(
+            variables,
+            key = lambda variable_desc: variable_order.index(variable_desc[0].getName()),
+        )
+
+    # Optimization will have made this "globals", and it wouldn't be
+    # about local variables at all.
+    assert not provider.isCompiledPythonModule(), provider
+
+    if updated:
+        locals_scope = expression.getLocalsScope()
+
+        locals_dict_name = locals_scope.getCodeName()
+        is_dict = locals_scope.getTypeShape() is ShapeTypeDict
+        # For Python3 it may really not be a dictionary.
+
+        # TODO: Creation is not needed for classes.
+        emit(
+            """\
+if (%(locals_dict)s == NULL) %(locals_dict)s = PyDict_New();
+%(to_name)s = %(locals_dict)s;
+Py_INCREF( %(to_name)s );""" % {
+                "to_name" : to_name ,
+                "locals_dict" : locals_dict_name,
+            }
+        )
+        context.addCleanupTempName(to_name)
+
+        context.addLocalsDictName(locals_dict_name)
+
+        initial = False
+    else:
+        locals_scope = provider.getLocalsScope()
+
+        if locals_scope is not None:
+            # TODO: No need to use that variable normally.
+
+            locals_dict_name = locals_scope.getCodeName()
+
+            # TODO: Many uses could avoid adding a locals dict.
+            emit(
+                """\
+if (%(locals_dict)s == NULL) %(locals_dict)s = PyDict_New();
+%(to_name)s = PyDict_Copy( %(locals_dict)s );""" % {
+                    "to_name"     : to_name,
+                    "locals_dict" : locals_dict_name,
+                }
+            )
+
+            context.addLocalsDictName(locals_dict_name)
+            initial = False
+        else:
+            emit(
+                "%s = PyDict_New();" % (
+                    to_name,
+                )
+            )
+
+            initial = True
+
+        context.addCleanupTempName(to_name)
+
+        is_dict = True
+
+    for local_var, version in _sorted(variables):
+        _getVariableDictUpdateCode(
+            target_name = to_name,
+            variable    = local_var,
+            version     = version,
+            is_dict     = is_dict,
+            initial     = initial,
+            emit        = emit,
+            context     = context
+        )
 
 
 def generateBuiltinGlobalsCode(to_name, expression, emit, context):
@@ -138,107 +226,6 @@ def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
             emit      = emit,
             context   = context
         )
-
-
-def getLoadLocalsCode(to_name, variables, provider, updated, emit, context):
-
-    # Locals is sorted of course.
-    def _sorted(variables):
-        locals_owner = context.getOwner()
-
-        if locals_owner.isExpressionOutlineBody():
-            locals_owner = locals_owner.getParentVariableProvider()
-
-        all_variables = tuple(
-            locals_owner.getVariables()
-        )
-
-        return sorted(
-            variables,
-            key = lambda variable_desc: all_variables.index(variable_desc[0]),
-        )
-
-    # Optimization will have made this "globals", and it wouldn't be
-    # about local variables at all.
-    assert not provider.isCompiledPythonModule(), provider
-
-    if not context.hasLocalsDict():
-        assert not updated
-
-        # Need to create the dictionary first.
-        emit(
-            "%s = PyDict_New();" % (
-                to_name,
-            )
-        )
-        context.addCleanupTempName(to_name)
-
-        is_dict = True
-        initial = True
-    elif updated:
-        emit(
-            """\
-%s = %s;
-Py_INCREF( %s );""" % (
-                to_name,
-                context.getLocalsDictName(),
-                to_name
-            )
-        )
-        context.addCleanupTempName(to_name)
-
-        # For Python3 it may not really be a dictionary.
-        is_dict = python_version < 300 or \
-                  not context.getOwner().isExpressionClassBody()
-        initial = False
-    else:
-        emit(
-            "%s = PyDict_Copy( %s );" % (
-                to_name,
-                context.getLocalsDictName(),
-            )
-        )
-        context.addCleanupTempName(to_name)
-
-        is_dict = True
-        initial = False
-
-    for local_var, version in _sorted(variables):
-        _getVariableDictUpdateCode(
-            target_name = to_name,
-            variable    = local_var,
-            version     = version,
-            is_dict     = is_dict,
-            initial     = initial,
-            emit        = emit,
-            context     = context
-        )
-
-
-def generateSetLocalsCode(statement, emit, context):
-    new_locals_name = context.allocateTempName("set_locals", unique = True)
-
-    generateExpressionCode(
-        to_name    = new_locals_name,
-        expression = statement.getNewLocals(),
-        emit       = emit,
-        context    = context
-    )
-
-    emit(
-        """\
-Py_DECREF(%(locals_dict)s);
-%(locals_dict)s = %(locals_value)s;""" % {
-            "locals_dict" : context.getLocalsDictName(),
-            "locals_value" : new_locals_name
-        }
-    )
-
-
-    getReferenceExportCode(new_locals_name, emit, context)
-
-    if context.needsCleanup(new_locals_name):
-        context.removeCleanupTempName(new_locals_name)
 
 
 def generateBuiltinDir1Code(to_name, expression, emit, context):

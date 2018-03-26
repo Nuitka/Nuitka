@@ -302,7 +302,7 @@ class NuitkaPluginBase(object):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return ()
 
-    def suppressBuiltinImportWarning(self, module_name, source_ref):
+    def suppressBuiltinImportWarning(self, module, source_ref):
         # Virtual method, pylint: disable=no-self-use,unused-argument
         return False
 

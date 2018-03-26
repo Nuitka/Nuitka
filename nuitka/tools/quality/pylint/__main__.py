@@ -95,7 +95,7 @@ Check files one by one. Default is %default."""
         "SyntaxHighlighting.py",
     )
 
-    filenames = list(scanTargets(positional_args, blacklist))
+    filenames = list(scanTargets(positional_args, (".py",), blacklist))
     PyLint.executePyLint(filenames, options.todos, options.verbose, options.one_by_one)
 
     if not filenames:

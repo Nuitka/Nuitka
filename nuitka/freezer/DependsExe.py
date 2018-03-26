@@ -30,6 +30,7 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     raw_input,
     urlretrieve
 )
+from nuitka.Options import assumeYesForDownloads
 from nuitka.utils import Utils
 from nuitka.utils.AppDirs import getAppDir
 from nuitka.utils.FileOperations import deleteFile, makePath
@@ -63,20 +64,23 @@ def getDependsExePath():
     makePath(nuitka_depends_dir)
 
     if not os.path.isfile(nuitka_depends_zip) and not os.path.isfile(depends_exe):
-        Tracing.printLine(
-            """\
+        if assumeYesForDownloads():
+            reply = 'y'
+        else:
+            Tracing.printLine(
+                """\
 Nuitka will make use of Dependency Walker (http://dependencywalker.com) tool
 to analyze the dependencies of Python extension modules. Is it OK to download
 and put it in "%s".
 No installer needed, cached, one time question.
 
 Proceed and download? [Yes]/No """ % (
-                nuitka_app_dir
+                    nuitka_app_dir
+                )
             )
-        )
-        Tracing.flushStdout()
+            Tracing.flushStdout()
 
-        reply = raw_input()
+            reply = raw_input()
 
         if reply.lower() in ("no", 'n'):
             sys.exit("Nuitka does not work in --standalone on Windows without.")
