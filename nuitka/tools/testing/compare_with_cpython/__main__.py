@@ -228,6 +228,14 @@ exceeded while calling a Python object' in \
     return result
 
 
+def checkNoPermissionError(output):
+    for candidate in (b"Permission denied:", b"PermissionError:"):
+        if candidate in output:
+            return False
+
+    return True
+
+
 def main():
     # Of course many cases to deal with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
     from nuitka.utils.Execution import check_output
@@ -553,18 +561,27 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
     if comparison_mode:
         start_time = time.time()
 
-        with withPythonPathChange(os.getcwd()):
-            process = subprocess.Popen(
-                args   = cpython_cmd,
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE
-            )
+        # Try a coupile of times for permission denied, on Windows it can
+        # be transient.
+        for _i in range(3):
+            with withPythonPathChange(os.getcwd()):
+                process = subprocess.Popen(
+                    args   = cpython_cmd,
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.PIPE
+                )
 
-        stdout_cpython, stderr_cpython = process.communicate()
-        exit_cpython = process.returncode
+            stdout_cpython, stderr_cpython = process.communicate()
+            exit_cpython = process.returncode
+
+            if checkNoPermissionError(stdout_cpython) and \
+               checkNoPermissionError(stderr_cpython):
+                break
+
+            my_print("Retrying CPython due to permission problems after delay.")
+            time.sleep(2)
 
         cpython_time = time.time() - start_time
-
 
     if comparison_mode and not silent_mode:
         displayOutput(stdout_cpython, stderr_cpython)
@@ -595,15 +612,26 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
         if trace_command:
             my_print("Nuitka command:", nuitka_cmd)
 
-        with withPythonPathChange(nuitka_package_dir):
-            process = subprocess.Popen(
-                args   = nuitka_cmd,
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE
-            )
+        # Try a coupile of times for permission denied, on Windows it can
+        # be transient.
+        for _i in range(3):
+            with withPythonPathChange(nuitka_package_dir):
+                process = subprocess.Popen(
+                    args   = nuitka_cmd,
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.PIPE
+                )
 
-        stdout_nuitka, stderr_nuitka = process.communicate()
-        exit_nuitka = process.returncode
+            stdout_nuitka, stderr_nuitka = process.communicate()
+            exit_nuitka = process.returncode
+
+            if checkNoPermissionError(stdout_nuitka) and \
+               checkNoPermissionError(stderr_nuitka):
+                break
+
+            my_print("Retrying nuitka exe due to permission problems after delay.")
+            time.sleep(2)
+
     else:
         if trace_command:
             my_print("Nuitka command 1:", nuitka_cmd1)
