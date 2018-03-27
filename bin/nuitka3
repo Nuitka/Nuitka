@@ -38,4 +38,5 @@ sys.path.insert(
     )
 )
 
-import nuitka.__main__ # isort:skip pylint: disable=unused-import
+import nuitka.__main__ # isort:skip
+nuitka.__main__.main()

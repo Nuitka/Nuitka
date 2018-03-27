@@ -16,6 +16,7 @@ Build-Depends: debhelper (>= 9),
                python3-setuptools,
                python-appdirs  | base-files (<< 7.2),
                python3-appdirs | base-files (<< 7.2),
+               2to3 | base-files (<< 11.1),
                strace,
                chrpath
 Vcs-Git: http://git.nuitka.net/Nuitka.git

@@ -58,16 +58,15 @@ else:
     xrange = range  # @ReservedAssignment
 
 
-try:
-    from urllib.request import urlretrieve
-except ImportError:
-    from urllib import urlretrieve
+if str is bytes:
+    from urllib import urlretrieve # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+else:
+    from urllib.request import urlretrieve # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from io import StringIO
+if str is bytes:
+    from cStringIO import StringIO # @UnresolvedImport pylint: disable=I0021,import-error
+else:
+    from io import StringIO # @UnresolvedImport pylint: disable=I0021,import-error
 
 try:
     from functools import total_ordering

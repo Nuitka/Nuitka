@@ -44,7 +44,7 @@ def setuptools_build_hook(dist, keyword, value):
 
 
 # False alarm due to distutils not being fully understood
-# pylint: disable=super-on-old-class
+# pylint: disable=I0021,super-on-old-class
 
 # Class name enforced by distutils, must match the command name.
 # pylint: disable=C0103

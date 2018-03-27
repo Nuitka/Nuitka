@@ -24,7 +24,7 @@ from .shapes.StandardShapes import ShapeUnknown
 
 
 class LocalsDictHandle(object):
-    __slots = "locals_name",
+    __slots__ = ("locals_name",)
 
     @counted_init
     def __init__(self, locals_name):
