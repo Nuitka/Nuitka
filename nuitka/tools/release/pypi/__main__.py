@@ -77,7 +77,6 @@ def main():
     print("*" * 40)
 
     if "check" not in sys.argv:
-        assert False
         print("Uploading source dist")
         assert os.system("twine upload dist/*") == 0
         print("Uploaded.")
