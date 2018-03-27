@@ -85,10 +85,13 @@ rm -rf %{buildroot}
 %endif
 
 %changelog
-* Sun Sep 08 2013 Kay Hayen <kay.hayen@gmail.com 0.4.6
+* Mon Mar 26 2018 Kay Hayen<kay.hayen@gmail.com> - 0.5.29
+- added Python3 packaging
+
+* Sun Sep 08 2013 Kay Hayen <kay.hayen@gmail.com> - 0.4.6
 - changed description to match what we use for Debian
 
-* Fri Mar 15 2013 Kay Hayen <kay.hayen@gmail.com 0.4.2
+* Fri Mar 15 2013 Kay Hayen <kay.hayen@gmail.com> - 0.4.2
 - addressed complaints from opensuse buildservice
 - moved to group "/Development/Languages/Python"
 - no trailing dot for description,

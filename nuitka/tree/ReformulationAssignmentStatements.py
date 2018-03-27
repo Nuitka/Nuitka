@@ -576,9 +576,9 @@ def buildAnnAssignNode(provider, node, source_ref):
             statements.append(
                 StatementAssignmentSubscript(
                     expression = ExpressionVariableNameRef(
-                        provider   = provider,
+                        provider      = provider,
                         variable_name = "__annotations__",
-                        source_ref = source_ref
+                        source_ref    = source_ref
                     ),
                     subscript  = makeConstantRefNode(
                         constant   = variable_name,

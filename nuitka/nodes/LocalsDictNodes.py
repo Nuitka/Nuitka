@@ -38,7 +38,7 @@ from .NodeBases import NodeBase, StatementChildrenHavingBase
 class ExpressionLocalsVariableRefORFallback(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK"
 
-    named_children = "fallback",
+    named_children = ("fallback",)
 
     def __init__(self, locals_scope, variable_name, fallback_node, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -403,7 +403,7 @@ class StatementSetLocalsDictionary(StatementSetLocals):
 class StatementReleaseLocals(NodeBase):
     kind = "STATEMENT_RELEASE_LOCALS"
 
-    __slots__ = "locals_scope",
+    __slots__ = ("locals_scope",)
 
     def __init__(self, locals_scope, source_ref):
         NodeBase.__init__(
