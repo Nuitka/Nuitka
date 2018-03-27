@@ -95,10 +95,10 @@ def _getPythonSconsExePathWindows():
         return r"c:\Python36\python.exe"
 
     # Windows only code, pylint: disable=I0021,import-error,undefined-variable
-    try:
-        import _winreg as winreg
-    except ImportError:
-        import winreg  # lint:ok
+    if python_version < 300:
+        import _winreg as winreg # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+    else:
+        import winreg  # @Reimport @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
     for search in ("2.7", "2.6", "3.5", "3.6"):
         for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):

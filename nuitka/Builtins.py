@@ -40,7 +40,7 @@ def _getBuiltinExceptionNames():
             return False
 
     # Hide Python3 changes for built-in exception names
-    try:
+    if python_version < 300:
         import exceptions
 
         names = [
@@ -59,8 +59,7 @@ def _getBuiltinExceptionNames():
             if isExceptionName(name):
                 names.append(key)
                 values[name] = getattr(sys.modules["__builtin__"], key)
-
-    except ImportError:
+    else:
         exceptions = {}
 
         for key, value in  sys.modules["builtins"].__dict__.items():
