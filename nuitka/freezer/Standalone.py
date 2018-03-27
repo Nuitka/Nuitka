@@ -225,7 +225,7 @@ def _detectImports(command, user_provided, technical):
     if python_version >= 300:
         command += '\nprint("\\n".join(sorted("import " + module.__name__ + " # sourcefile " + ' \
                    'module.__file__ for module in sys.modules.values() if hasattr(module, "__file__") and ' \
-                   'module.__file__ != "<frozen>")), file = sys.stderr)'  # do not read it
+                   'module.__file__ not in (None, "<frozen>"))), file = sys.stderr)'  # do not read it
 
     reduced_path = [
         path_element
