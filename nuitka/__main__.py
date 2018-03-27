@@ -30,165 +30,170 @@ import os
 import sys
 import warnings
 
-# PyLint for Python3 thinks we import from ourselves if we really
-# import from package, pylint:disable=I0021,no-name-in-module
+def main():
+    # PyLint for Python3 thinks we import from ourselves if we really
+    # import from package, pylint:disable=I0021,no-name-in-module
 
-if "NUITKA_PYTHONPATH" in os.environ:
-    # Restore the PYTHONPATH gained from the site module, that we chose not
-    # to have imported. pylint: disable=eval-used
-    sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
-    del os.environ["NUITKA_PYTHONPATH"]
-else:
-    # Remove path element added for being called via "__main__.py", this can
-    # only lead to trouble, having e.g. a "distutils" in sys.path that comes
-    # from "nuitka.distutils".
-    sys.path = [
-        path_element
-        for path_element in sys.path
-        if os.path.dirname(os.path.abspath(__file__)) != path_element
-    ]
-
-# For re-execution, we might not have done this.
-from nuitka import Options                  # isort:skip
-Options.parseArgs()
-
-from nuitka.utils import Utils, Execution   # isort:skip
-
-import logging # isort:skip
-logging.basicConfig(format = "Nuitka:%(levelname)s:%(message)s")
-
-# We don't care, and these are triggered by run time calculations of "range" and
-# others, while on python2.7 they are disabled by default.
-
-warnings.simplefilter("ignore", DeprecationWarning)
-
-# We will run with the Python configuration as specified by the user, if it does
-# not match, we restart ourselves with matching configuration.
-needs_reexec = False
-
-current_version = "%d.%d" % (sys.version_info[0], sys.version_info[1])
-
-# We support to execute with a specified version.
-intended_version = Options.getIntendedPythonVersion()
-if intended_version is None:
-    intended_version = current_version
-
-# If it's a different version, we find it by guessing it, otherwise we use the
-# one previously used.
-if current_version != intended_version:
-    if Utils.getOS() == "Windows":
-        python_binary = Execution.getPythonExePathWindows(
-            intended_version,
-            Options.getIntendedPythonArch()
-        )
+    if "NUITKA_PYTHONPATH" in os.environ:
+        # Restore the PYTHONPATH gained from the site module, that we chose not
+        # to have imported. pylint: disable=eval-used
+        sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
+        del os.environ["NUITKA_PYTHONPATH"]
     else:
-        python_binary = Execution.getExecutablePath("python" + intended_version)
+        # Remove path element added for being called via "__main__.py", this can
+        # only lead to trouble, having e.g. a "distutils" in sys.path that comes
+        # from "nuitka.distutils".
+        sys.path = [
+            path_element
+            for path_element in sys.path
+            if os.path.dirname(os.path.abspath(__file__)) != path_element
+        ]
 
-    if python_binary is None:
-        sys.exit(
-            "Error, cannot find Python %s binary in PATH (%s)." % (
+    # For re-execution, we might not have done this.
+    from nuitka import Options                  # isort:skip
+    Options.parseArgs()
+
+    from nuitka.utils import Utils, Execution   # isort:skip
+
+    import logging # isort:skip
+    logging.basicConfig(format = "Nuitka:%(levelname)s:%(message)s")
+
+    # We don't care, and these are triggered by run time calculations of "range" and
+    # others, while on python2.7 they are disabled by default.
+
+    warnings.simplefilter("ignore", DeprecationWarning)
+
+    # We will run with the Python configuration as specified by the user, if it does
+    # not match, we restart ourselves with matching configuration.
+    needs_reexec = False
+
+    current_version = "%d.%d" % (sys.version_info[0], sys.version_info[1])
+
+    # We support to execute with a specified version.
+    intended_version = Options.getIntendedPythonVersion()
+    if intended_version is None:
+        intended_version = current_version
+
+    # If it's a different version, we find it by guessing it, otherwise we use the
+    # one previously used.
+    if current_version != intended_version:
+        if Utils.getOS() == "Windows":
+            python_binary = Execution.getPythonExePathWindows(
                 intended_version,
-                os.environ.get("PATH", "")
+                Options.getIntendedPythonArch()
             )
-        )
+        else:
+            python_binary = Execution.getExecutablePath("python" + intended_version)
 
-    needs_reexec = True
-else:
-    python_binary = sys.executable
+        if python_binary is None:
+            sys.exit(
+                "Error, cannot find Python %s binary in PATH (%s)." % (
+                    intended_version,
+                    os.environ.get("PATH", "")
+                )
+            )
 
-python_flags = Options.getPythonFlags()
+        needs_reexec = True
+    else:
+        python_binary = sys.executable
 
-if sys.flags.no_site == 0:
-    needs_reexec = True
+    python_flags = Options.getPythonFlags()
 
-# The hash randomization totally changes the created source code created,
-# changing it every single time Nuitka is run. This kills any attempt at
-# caching it, and comparing generated source code. While the created binary
-# actually may still use it, during compilation we don't want to. So lets
-# disable it.
-if os.environ.get("PYTHONHASHSEED", "-1") != '0':
-    needs_reexec = True
+    if sys.flags.no_site == 0:
+        needs_reexec = True
 
-# In case we need to re-execute.
-if needs_reexec:
-    if not Options.isAllowedToReexecute():
-        sys.exit("Error, not allowed to re-execute, but that would be needed.")
+    # The hash randomization totally changes the created source code created,
+    # changing it every single time Nuitka is run. This kills any attempt at
+    # caching it, and comparing generated source code. While the created binary
+    # actually may still use it, during compilation we don't want to. So lets
+    # disable it.
+    if os.environ.get("PYTHONHASHSEED", "-1") != '0':
+        needs_reexec = True
 
-    # Execute with full path as the process name, so it can find itself and its
-    # libraries.
-    args = [
-        python_binary,
-        python_binary,
-        "-S",
-        sys.modules["__main__"].__file__,
-    ]
+    # In case we need to re-execute.
+    if needs_reexec:
+        if not Options.isAllowedToReexecute():
+            sys.exit("Error, not allowed to re-execute, but that would be needed.")
 
-    if Options.is_nuitka_run:
-        args.append("--run")
+        # Execute with full path as the process name, so it can find itself and its
+        # libraries.
+        args = [
+            python_binary,
+            python_binary,
+            "-S",
+            sys.modules["__main__"].__file__,
+        ]
 
-    # Same arguments as before.
-    args += sys.argv[1:] + list(Options.getMainArgs())
+        if Options.is_nuitka_run:
+            args.append("--run")
 
-    if current_version == intended_version:
-        os.environ["NUITKA_PYTHONPATH"] = repr(
-            sys.path
-        )
+        # Same arguments as before.
+        args += sys.argv[1:] + list(Options.getMainArgs())
 
-        from nuitka.importing.PreloadedPackages import detectPreLoadedPackagePaths, detectPthImportedPackages
-        os.environ["NUITKA_NAMESPACES"] = repr(
-            detectPreLoadedPackagePaths()
-        )
+        if current_version == intended_version:
+            os.environ["NUITKA_PYTHONPATH"] = repr(
+                sys.path
+            )
 
-        if "site" in sys.modules:
-            os.environ["NUITKA_SITE_FILENAME"] = sys.modules["site"].__file__
+            from nuitka.importing.PreloadedPackages import detectPreLoadedPackagePaths, detectPthImportedPackages
+            os.environ["NUITKA_NAMESPACES"] = repr(
+                detectPreLoadedPackagePaths()
+            )
 
-            os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
+            if "site" in sys.modules:
+                os.environ["NUITKA_SITE_FILENAME"] = sys.modules["site"].__file__
+
+                os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
 
 
-    os.environ["NUITKA_SITE_FLAG"] = str(sys.flags.no_site) \
-                                       if "no_site" not in Options.getPythonFlags() \
-                                     else '1'
+        os.environ["NUITKA_SITE_FLAG"] = str(sys.flags.no_site) \
+                                           if "no_site" not in Options.getPythonFlags() \
+                                         else '1'
 
-    os.environ["PYTHONHASHSEED"] = '0'
+        os.environ["PYTHONHASHSEED"] = '0'
 
-    Execution.callExec(args)
+        Execution.callExec(args)
 
-if Options.isShowMemory():
-    from nuitka.utils import MemoryUsage
-    MemoryUsage.startMemoryTracing()
+    if Options.isShowMemory():
+        from nuitka.utils import MemoryUsage
+        MemoryUsage.startMemoryTracing()
 
-# Inform the user about potential issues.
-if current_version not in Options.getSupportedPythonVersions():
+    # Inform the user about potential issues.
+    if current_version not in Options.getSupportedPythonVersions():
 
-    # Do not disturb run of automatic tests, detected from the presence of
-    # that environment variable.
-    if "PYTHON" not in os.environ:
-        logging.warning(
-            "The version '%s' is not currently supported. Expect problems.",
-            current_version
-        )
+        # Do not disturb run of automatic tests, detected from the presence of
+        # that environment variable.
+        if "PYTHON" not in os.environ:
+            logging.warning(
+                "The version '%s' is not currently supported. Expect problems.",
+                current_version
+            )
 
-if "NUITKA_NAMESPACES" in os.environ:
-    # Restore the detected name space packages, that were force loaded in
-    # site.py, and will need a free pass later on. pylint: disable=eval-used
+    if "NUITKA_NAMESPACES" in os.environ:
+        # Restore the detected name space packages, that were force loaded in
+        # site.py, and will need a free pass later on. pylint: disable=eval-used
 
-    from nuitka.importing.PreloadedPackages import setPreloadedPackagePaths
+        from nuitka.importing.PreloadedPackages import setPreloadedPackagePaths
 
-    setPreloadedPackagePaths(eval(os.environ["NUITKA_NAMESPACES"]))
-    del os.environ["NUITKA_NAMESPACES"]
+        setPreloadedPackagePaths(eval(os.environ["NUITKA_NAMESPACES"]))
+        del os.environ["NUITKA_NAMESPACES"]
 
-if "NUITKA_PTH_IMPORTED" in os.environ:
-    # Restore the packages that the ".pth" files asked to import.
-    # pylint: disable=eval-used
+    if "NUITKA_PTH_IMPORTED" in os.environ:
+        # Restore the packages that the ".pth" files asked to import.
+        # pylint: disable=eval-used
 
-    from nuitka.importing.PreloadedPackages import setPthImportedPackages
+        from nuitka.importing.PreloadedPackages import setPthImportedPackages
 
-    setPthImportedPackages(eval(os.environ["NUITKA_PTH_IMPORTED"]))
-    del os.environ["NUITKA_PTH_IMPORTED"]
+        setPthImportedPackages(eval(os.environ["NUITKA_PTH_IMPORTED"]))
+        del os.environ["NUITKA_PTH_IMPORTED"]
 
-# Now the main program.
-from nuitka import MainControl  # isort:skip
-MainControl.main()
+    # Now the real main program of Nuitka can take over.
+    from nuitka import MainControl  # isort:skip
+    MainControl.main()
 
-if Options.isShowMemory():
-    MemoryUsage.showMemoryTrace()
+    if Options.isShowMemory():
+        MemoryUsage.showMemoryTrace()
+
+if __name__ == "__main__":
+    main()
+

@@ -146,6 +146,7 @@ if "NUITKA_PYTHONPATH" in os.environ:
     del os.environ["NUITKA_PYTHONPATH"]
 
 import nuitka.__main__
+nuitka.__main__.main()
 """
 
 # This is for newer setuptools:
@@ -312,8 +313,8 @@ Python compiler with full language support and CPython compatibility""",
             "build_with_nuitka = nuitka.distutils.bdist_nuitka:setuptools_build_hook"
         ],
         "console_scripts": [
-            "nuitka%s = nuitka.__main__" % binary_suffix,
-            "nuitka%s-run = nuitka.__main__" % binary_suffix
+            "nuitka%s = nuitka.__main__:main" % binary_suffix,
+            "nuitka%s-run = nuitka.__main__:main" % binary_suffix
         ],
     },
 )
