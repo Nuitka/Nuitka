@@ -33,7 +33,7 @@ from .ExpressionBases import ExpressionBase
 class ExpressionModuleAttributeBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = "module",
+    __slots__ = ("module",)
 
     def __init__(self, module, source_ref):
         ExpressionBase.__init__(

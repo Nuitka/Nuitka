@@ -612,7 +612,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
         if trace_command:
             my_print("Nuitka command:", nuitka_cmd)
 
-        # Try a coupile of times for permission denied, on Windows it can
+        # Try a couple of times for permission denied, on Windows it can
         # be transient.
         for _i in range(3):
             with withPythonPathChange(nuitka_package_dir):

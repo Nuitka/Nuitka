@@ -55,7 +55,7 @@ class ExpressionImportModuleHard(ExpressionBase):
 
     kind = "EXPRESSION_IMPORT_MODULE_HARD"
 
-    __slots__ = "module_name",
+    __slots__ = ("module_name",)
 
     def __init__(self, module_name, source_ref):
         ExpressionBase.__init__(

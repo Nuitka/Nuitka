@@ -85,7 +85,7 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
 class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
     kind = "EXPRESSION_BUILTIN_LOCALS_UPDATED"
 
-    __slots__ = "locals_scope",
+    __slots__ = ("locals_scope",)
 
     def __init__(self, locals_scope, source_ref):
         ExpressionBuiltinLocalsBase.__init__(
@@ -119,7 +119,7 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
 class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
     kind = "EXPRESSION_BUILTIN_LOCALS_REF"
 
-    __slots__ = "locals_scope",
+    __slots__ = ("locals_scope",)
 
     def __init__(self, locals_scope, source_ref):
         ExpressionBuiltinLocalsBase.__init__(

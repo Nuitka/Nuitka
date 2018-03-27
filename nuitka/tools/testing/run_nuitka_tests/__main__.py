@@ -30,8 +30,8 @@ import sys
 import tempfile
 from optparse import OptionParser
 
-from nuitka.tools.testing.Common import withDirectoryChange
 from nuitka.tools.Basics import goHome
+from nuitka.tools.testing.Common import withDirectoryChange
 from nuitka.utils.Execution import (
     check_output,
     getExecutablePath,
