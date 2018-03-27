@@ -136,15 +136,6 @@ runner_script_template = """\
 # -*- coding: utf-8 -*-
 # Launcher for Nuitka
 
-import os
-if "NUITKA_PYTHONPATH" in os.environ:
-
-    # Restore the PYTHONPATH gained from the site module, that we chose not
-    # to have imported. pylint: disable=eval-used
-    import sys
-    sys.path = eval(os.environ["NUITKA_PYTHONPATH"])
-    del os.environ["NUITKA_PYTHONPATH"]
-
 import nuitka.__main__
 nuitka.__main__.main()
 """

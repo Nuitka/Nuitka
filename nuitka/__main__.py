@@ -33,6 +33,8 @@ import warnings
 def main():
     # PyLint for Python3 thinks we import from ourselves if we really
     # import from package, pylint:disable=I0021,no-name-in-module
+    if "NUITKA_BINARY_NAME" in os.environ:
+        sys.argv[0] = os.environ["NUITKA_BINARY_NAME"]
 
     if "NUITKA_PYTHONPATH" in os.environ:
         # Restore the PYTHONPATH gained from the site module, that we chose not
@@ -97,8 +99,6 @@ def main():
     else:
         python_binary = sys.executable
 
-    python_flags = Options.getPythonFlags()
-
     if sys.flags.no_site == 0:
         needs_reexec = True
 
@@ -121,8 +121,10 @@ def main():
             python_binary,
             python_binary,
             "-S",
-            sys.modules["__main__"].__file__,
+            sys.modules[__name__].__file__,
         ]
+
+        os.environ["NUITKA_BINARY_NAME"] = sys.modules["__main__"].__file__
 
         if Options.is_nuitka_run:
             args.append("--run")
