@@ -22,6 +22,8 @@
 from __future__ import print_function
 
 import os
+import sys
+import shutil
 
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
@@ -53,31 +55,31 @@ def main():
     contents = open("README.rst", "rb").read()
     assert b".. contents" not in contents
 
+    shutil.rmtree("check_nuitka", ignore_errors = True)
+    shutil.rmtree("dist", ignore_errors = True)
+
     print("Creating documentation.")
     createReleaseDocumentation()
     print("Creating source distribution.")
     assert os.system("python setup.py sdist") == 0
-    print("Uploading source dist")
-    assert os.system("twine upload dist/*") == 0
-    print("Uploaded.")
 
-    # TODO: This won't work yet.
-    # import time
-    # import xmlrpclib
-    # if False:
-    #     for _i in range(60):
-    #         # Wait some time for PyPI to catch up with us. Without delay
-    #         # the old version will still appear. Since this is running
-    #         # in a Buildbot, we need not be optimal.
-    #         time.sleep(5*60)
-    #
-    #         pypi = xmlrpclib.ServerProxy("https://pypi.python.org/pypi")
-    #         pypi_versions = pypi.package_releases("Nuitka")
-    #
-    #         assert len(pypi_versions) == 1, pypi_versions
-    #         if nuitka_version == pypi_versions[0]:
-    #             break
-    #
-    #         print("Version check failed:", nuitka_version, pypi_versions)
-    #
-    #     print("Uploaded OK:", pypi_versions[0])
+    print("Creating virtualenv for quick test:")
+    assert os.system("virtualenv check_nuitka") == 0
+
+    print("Installing Nuitka into virtualenv:")
+    print("*" * 40)
+    assert os.system("cd check_nuitka; . bin/activate; pip install ../dist/Nuitka*.tar.gz") == 0
+    print("*" * 40)
+
+    print("Compiling basic test:")
+    print("*" * 40)
+    assert os.system("cd check_nuitka; . bin/activate; nuitka-run ../tests/basics/Asserts.py") == 0
+    print("*" * 40)
+
+    if "check" not in sys.argv:
+        assert False
+        print("Uploading source dist")
+        assert os.system("twine upload dist/*") == 0
+        print("Uploaded.")
+    else:
+        print("Checked OK, not uploaded.")
