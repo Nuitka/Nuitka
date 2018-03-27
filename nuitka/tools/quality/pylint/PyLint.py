@@ -67,10 +67,15 @@ def checkVersion():
             stderr = open(os.devnull, 'w')
         )
 
-        pylint_version = pylint_version.split(b"\n")[0].split()[-1]
+        if str is not bytes:
+            pylint_version = pylint_version.decode("utf8")
 
-    if pylint_version < b"1.6.5":
+        pylint_version = pylint_version.split('\n')[0].split()[-1]
+
+    if pylint_version < "1.6.5":
         sys.exit("Error, needs PyLint 1.6.5 or higher not %r." % pylint_version)
+
+    print("Using PyLint version", pylint_version, "on Python", sys.version.split('\n')[0])
 
 
 # Disabled globally:
@@ -157,7 +162,7 @@ def getOptions():
 --max-bool-expr=10\
 """.split('\n')
 
-    if pylint_version >= b"1.7":
+    if pylint_version >= "1.7":
         default_pylint_options += """\
 --score=no
 --ignored-argument-names=_.*|trace_collection
@@ -169,7 +174,7 @@ def getOptions():
             "--rcfile=%s" % os.devnull
         )
 
-    if pylint_version >= b"1.8":
+    if pylint_version >= "1.8":
         default_pylint_options += """\
 --disable=c-extension-no-member,inconsistent-return-statements\
 """.split('\n')
@@ -203,15 +208,16 @@ def _executePylint(filenames, pylint_options, extra_options):
             stderr = stderr.decode("utf8")
 
         # Normalize from Windows newlines potentially
-        stdout = stdout.replace("\r\n", '\n')
+        stderr = stderr.replace("\r\n", '\n')
 
-        lines = stdout.split('\n')
+        lines = stderr.split('\n')
 
-        line = [
+        lines = [
             line
             for line in
             lines
             if "Using config file" not in line
+            if line
         ]
 
         for line in lines:

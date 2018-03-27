@@ -27,6 +27,8 @@ import os
 import sys
 from optparse import OptionParser
 
+from nuitka.PythonVersions import python_version
+
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
 sys.path.insert(
@@ -89,11 +91,15 @@ Check files one by one. Default is %default."""
 
     print("Working on:", positional_args)
 
-    blacklist = (
+    blacklist = [
         "oset.py",
         "odict.py",
         "SyntaxHighlighting.py",
-    )
+    ]
+
+    # Avoid checking the Python2 runner with Python3, it has name collisions.
+    if python_version >= 300:
+        blacklist.append("nuitka")
 
     filenames = list(scanTargets(positional_args, (".py",), blacklist))
     PyLint.executePyLint(filenames, options.todos, options.verbose, options.one_by_one)
