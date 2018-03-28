@@ -30,9 +30,14 @@ import os
 import sys
 import warnings
 
+
 def main():
     # PyLint for Python3 thinks we import from ourselves if we really
     # import from package, pylint:disable=I0021,no-name-in-module
+
+    # Also high complexity.
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+
     if "NUITKA_BINARY_NAME" in os.environ:
         sys.argv[0] = os.environ["NUITKA_BINARY_NAME"]
 
@@ -211,4 +216,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
