@@ -22,8 +22,8 @@
 from __future__ import print_function
 
 import os
-import sys
 import shutil
+import sys
 
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
@@ -67,14 +67,14 @@ def main():
     assert os.system("virtualenv check_nuitka") == 0
 
     print("Installing Nuitka into virtualenv:")
-    print("*" * 40)
+    print('*' * 40)
     assert os.system("cd check_nuitka; . bin/activate; pip install ../dist/Nuitka*.tar.gz") == 0
-    print("*" * 40)
+    print('*' * 40)
 
     print("Compiling basic test:")
-    print("*" * 40)
+    print('*' * 40)
     assert os.system("cd check_nuitka; . bin/activate; nuitka-run ../tests/basics/Asserts.py") == 0
-    print("*" * 40)
+    print('*' * 40)
 
     if "check" not in sys.argv:
         print("Uploading source dist")
