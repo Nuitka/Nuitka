@@ -1193,7 +1193,11 @@ def getTestingCacheDir():
 
 
 @contextmanager
-def withDirectoryChange(path):
-    old_cwd = os.chdir(path)
+def withDirectoryChange(path, allow_none = False):
+    if path is not None or not allow_none:
+        old_cwd = os.chdir(path)
+
     yield
-    os.chdir(old_cwd)
+
+    if path is not None or not allow_none:
+        os.chdir(old_cwd)
