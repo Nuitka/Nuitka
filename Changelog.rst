@@ -1,6 +1,35 @@
 Nuitka Release 0.5.30 (Draft)
 =============================
 
+Bug Fixes
+---------
+
+- Fix, the new setuptools runners were not used by ``pip`` breaking the use
+  of Nuitka from PyPI.
+
+- Fix, imports of ``six.moves`` could crash the compiler for built-in names.
+  Fixed in 0.5.29.2 already.
+
+- Windows: Make the ``nuitka-run`` not a symlink as these work really bad on
+  that platform, instead make it a full copy just like we did for ``nuitka3-run``
+  already. Fixed in 0.5.29.2 already.
+
+Tests
+-----
+
+- Added burn test with local install of pip distribution to virtualenv before
+  making any PyPI upload. It seems pip got its specific error sources too.
+
+- Avoid calling ``2to3`` and prefer ``<python> -m lib2to3`` instead, as it
+  seems at least Debian Testing stopped to provide the binary by default. For
+  Python 2.6 and 3.2 we continue to rely on it, as the don't support that mode
+  of operation.
+
+- The PyLint checks have been made more robust and even more Python3 portable.
+
+Summary
+-------
+
 This release is not done yet.
 
 
