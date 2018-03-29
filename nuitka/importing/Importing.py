@@ -457,7 +457,7 @@ def _findModuleInPath(module_name, package_name):
 
     # Free pass for built-in modules, the need not exist.
     if package_name is None and imp.is_builtin(module_name):
-        return None, module_name
+        return None
 
     search_path = getPackageSearchPath(package_name)
 
