@@ -27,6 +27,7 @@ import sys
 
 from nuitka.tools.release.Documentation import createReleaseDocumentation
 from nuitka.tools.release.Release import checkBranchName
+from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.Version import getNuitkaVersion
 
 
@@ -63,18 +64,17 @@ def main():
     print("Creating source distribution.")
     assert os.system("python setup.py sdist") == 0
 
-    print("Creating virtualenv for quick test:")
-    assert os.system("virtualenv check_nuitka") == 0
+    print("Creating a virtualenv for quick test:")
+    with withVirtualenv("check_nuitka") as venv:
+        print("Installing Nuitka into virtualenv:")
+        print('*' * 40)
+        assert os.system(". bin/activate; pip install ../dist/Nuitka*.tar.gz") == 0
+        print('*' * 40)
 
-    print("Installing Nuitka into virtualenv:")
-    print('*' * 40)
-    assert os.system("cd check_nuitka; . bin/activate; pip install ../dist/Nuitka*.tar.gz") == 0
-    print('*' * 40)
-
-    print("Compiling basic test:")
-    print('*' * 40)
-    assert os.system("cd check_nuitka; . bin/activate; nuitka-run ../tests/basics/Asserts.py") == 0
-    print('*' * 40)
+        print("Compiling basic test:")
+        print('*' * 40)
+        assert os.system(". bin/activate; nuitka-run ../tests/basics/Asserts.py") == 0
+        print('*' * 40)
 
     if "check" not in sys.argv:
         print("Uploading source dist")
