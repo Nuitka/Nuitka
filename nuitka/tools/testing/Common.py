@@ -187,21 +187,10 @@ def convertUsing2to3(path, force = False):
     except shutil.SameFileError:  # @UndefinedVariable
         pass
 
-    # On Windows, we cannot rely on 2to3 to be in the path.
-    if os.name == "nt":
-        command = [
-            sys.executable,
-            os.path.join(
-                os.path.dirname(sys.executable),
-                "Tools/Scripts/2to3.py"
-            )
-        ]
-    else:
-        command = [
-            "2to3"
-        ]
-
-    command += [
+    command = [
+        sys.executable,
+        "-m",
+        "lib2to3",
         "-w",
         "-n",
         "--no-diffs",

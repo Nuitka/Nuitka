@@ -59,25 +59,6 @@ for filename in sorted(os.listdir(my_dir)):
         active = True
 
     if active:
-        # TODO: Reactivate Python3 support here.
-        if False:
-            new_path = os.path.join(tempfile.gettempdir(), filename)
-            shutil.copy(path, new_path)
-
-            path = new_path
-
-            # On Windows, we cannot rely on 2to3 to be in the path.
-            if os.name == "nt":
-                command = sys.executable + ' ' + os.path.join(os.path.dirname(sys.executable), "Tools/Scripts/2to3.py")
-            else:
-                command = "2to3"
-
-            result = subprocess.call(
-                command + " -w -n --no-diffs " + path,
-                stderr = open(os.devnull, 'w'),
-                shell  = True
-            )
-
         command = "%s %s '%s' '%s' %s" % (
             sys.executable,
             os.path.join(my_dir, "..", "..", "bin", "compare_with_xml"),

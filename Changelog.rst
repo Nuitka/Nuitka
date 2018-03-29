@@ -169,7 +169,14 @@ Tests
 Summary
 -------
 
-This release is not done yet.
+This release consolidates a lot of what we already had, adding hopeful stuff
+for distutils integration. This will need tests and documentation though, but
+should make Nuitka really easy to use. A few features are still missing to make
+it generally reliable in that mode, but they are going to come.
+
+Also the locals dictionary work is kind of incomplete without a proper generic
+tracing of not only local variables, but also dictionary keys. With that work
+in place, a lot of improvements will happen.
 
 
 Nuitka Release 0.5.28
