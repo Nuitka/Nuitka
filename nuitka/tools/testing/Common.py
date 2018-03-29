@@ -187,10 +187,31 @@ def convertUsing2to3(path, force = False):
     except shutil.SameFileError:  # @UndefinedVariable
         pass
 
-    command = [
-        sys.executable,
-        "-m",
-        "lib2to3",
+    # For Python2.6 and 3.2 the -m lib2to3 was not yet supported.
+    use_binary = sys.version_info[:2] in ((2,6), (3,2))
+
+    if use_binary:
+        # On Windows, we cannot rely on 2to3 to be in the path.
+        if os.name == "nt":
+            command = [
+                sys.executable,
+                os.path.join(
+                    os.path.dirname(sys.executable),
+                    "Tools/Scripts/2to3.py"
+                )
+            ]
+        else:
+            command = [
+                "2to3"
+            ]
+    else:
+        command = [
+            sys.executable,
+            "-m",
+            "lib2to3",
+        ]
+
+    command += [
         "-w",
         "-n",
         "--no-diffs",
