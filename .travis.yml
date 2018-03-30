@@ -10,10 +10,9 @@ python:
   - "3.6"
 # command to install dependencies
 install:
-  - "sudo apt-get install scons chrpath"
+  - "sudo apt-get install scons chrpath pylint"
   - "pip install ."
 # command to run tests
 script:
   - ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
   - ./bin/check-nuitka-with-pylint
-    ./bin/check-nuitka-with-pylint3
