@@ -575,6 +575,7 @@ def buildAnnAssignNode(provider, node, source_ref):
 
             statements.append(
                 StatementAssignmentSubscript(
+                    # TODO: Use ExpressionVariableLocalNameRef once they work better.
                     expression = ExpressionVariableNameRef(
                         provider      = provider,
                         variable_name = "__annotations__",

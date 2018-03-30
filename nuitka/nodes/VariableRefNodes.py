@@ -65,6 +65,10 @@ class ExpressionVariableNameRef(ExpressionBase):
 
         self.provider = provider
 
+    @staticmethod
+    def isExpressionVariableNameRef():
+        return True
+
     def getDetails(self):
         return {
             "variable_name" : self.variable_name,
@@ -76,6 +80,25 @@ class ExpressionVariableNameRef(ExpressionBase):
 
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
+
+    @staticmethod
+    def needsFallback():
+        return True
+
+
+class ExpressionVariableLocalNameRef(ExpressionVariableNameRef):
+    """ These are used before the actual variable object is known from VariableClosure.
+
+        The special thing about this as opposed to ExpressionVariableNameRef is that
+        these must remain local names and cannot fallback to outside scopes. This is
+        used for __annotations__.
+
+    """
+    kind = "EXPRESSION_VARIABLE_LOCAL_NAME_REF"
+
+    @staticmethod
+    def needsFallback():
+        return False
 
 
 class ExpressionVariableRefBase(ExpressionBase):
