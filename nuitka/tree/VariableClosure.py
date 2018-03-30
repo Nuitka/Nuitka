@@ -30,6 +30,7 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.FunctionNodes import MaybeLocalVariableUsage
 from nuitka.nodes.LocalsDictNodes import (
+    ExpressionLocalsVariableRef,
     ExpressionLocalsVariableRefORFallback,
     StatementLocalsDictOperationDel,
     StatementLocalsDictOperationSet
@@ -203,21 +204,31 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             provider = node.provider
 
             if provider is not None and provider.isExpressionClassBody():
-                variable = provider.getVariableForReference(
-                    variable_name = node.getVariableName()
-                )
-
-                node.replaceWith(
-                    ExpressionLocalsVariableRefORFallback(
-                        locals_scope  = provider.getLocalsScope(),
-                        variable_name = node.getVariableName(),
-                        fallback_node = ExpressionVariableRef(
-                            variable   = variable,
-                            source_ref = node.source_ref
-                        ),
-                        source_ref    = node.source_ref
+                if node.needsFallback():
+                    variable = provider.getVariableForReference(
+                        variable_name = node.getVariableName()
                     )
-                )
+
+                    node.replaceWith(
+                        ExpressionLocalsVariableRefORFallback(
+                            locals_scope  = provider.getLocalsScope(),
+                            variable_name = node.getVariableName(),
+                            fallback_node = ExpressionVariableRef(
+                                variable   = variable,
+                                source_ref = node.source_ref
+                            ),
+                            source_ref    = node.source_ref
+                        )
+                    )
+                else:
+                    node.replaceWith(
+                        ExpressionLocalsVariableRef(
+                            locals_scope  = provider.getLocalsScope(),
+                            variable_name = node.getVariableName(),
+                            source_ref    = node.source_ref
+                        )
+                    )
+
             elif provider is None:
                 # Module
                 variable = provider.getVariableForReference(
