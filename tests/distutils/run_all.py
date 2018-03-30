@@ -37,7 +37,6 @@ sys.path.insert(
 from nuitka.tools.testing.Common import (
     my_print,
     setup,
-    compareWithCPython,
     createSearchMode,
     decideFilenameVersionSkip
 )
@@ -78,10 +77,30 @@ for filename in sorted(os.listdir('.')):
         removeDirectory(os.path.join(case_dir, "dist"), ignore_errors = False)
 
         with withVirtualenv("venv_cpython") as venv:
-            venv.runCommand("cd %r; python setup.py install" % case_dir)
+            venv.runCommand(
+                commands = [
+                    'cd "%s"' % case_dir,
+                    "python setup.py bdist_wheel",
+                ]
+            )
 
+            dist_dir = os.path.join(case_dir, "dist")
+
+            venv.runCommand(
+                'pip install "%s"' % (
+                    os.path.join(
+                        dist_dir,
+                        os.listdir(dist_dir)[0]
+                    )
+                )
+            )
+
+            # Need to call CPython binary for Windows.
             process = subprocess.Popen(
-                args   = os.path.join(venv.getVirtualenvDir(), "bin", "runner"),
+                args   = [
+                    sys.executable,
+                    os.path.join(venv.getVirtualenvDir(), "bin" if os.name != "nt" else "scripts", "runner")
+                ],
                 stdout = subprocess.PIPE,
                 stderr = subprocess.PIPE
             )
@@ -102,13 +121,38 @@ for filename in sorted(os.listdir('.')):
 
         with withVirtualenv("venv_nuitka") as venv:
             # Install nuitka from source.
-            venv.runCommand("cd %r; python setup.py install; rm -rf Nuitka.egg-info" % nuitka_dir)
+            venv.runCommand(
+                commands = [
+                    'cd "%s"' % nuitka_dir,
+                    "python setup.py install",
+                    # rm -rf Nuitka.egg-info" )
+                ]
+            )
+
 
             # Create the wheel
-            venv.runCommand("cd %r; python setup.py bdist_nuitka; pip install dist/*.whl" % case_dir)
+            venv.runCommand(
+                commands = [
+                    'cd "%s"' % case_dir,
+                    "python setup.py bdist_nuitka"
+                ]
+            )
+
+            dist_dir = os.path.join(case_dir, "dist")
+            venv.runCommand(
+                'pip install "%s"' % (
+                    os.path.join(
+                        dist_dir,
+                        os.listdir(dist_dir)[0]
+                    )
+                )
+            )
 
             process = subprocess.Popen(
-                args   = os.path.join(venv.getVirtualenvDir(), "bin", "runner"),
+                args   = [
+                    sys.executable,
+                    os.path.join(venv.getVirtualenvDir(), "bin" if os.name != "nt" else "scripts", "runner")
+                ],
                 stdout = subprocess.PIPE,
                 stderr = subprocess.PIPE
             )

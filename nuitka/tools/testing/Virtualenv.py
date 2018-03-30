@@ -23,24 +23,33 @@
 from __future__ import print_function
 
 import os
+import subprocess
 import sys
 from contextlib import contextmanager
 
+from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.utils.FileOperations import removeDirectory
 
 from .Common import withDirectoryChange
+
 
 class Virtualenv(object):
     def __init__(self, env_dir):
         self.env_dir = os.path.abspath(env_dir)
 
-    def runCommand(self, command):
-        command = "cd %s; . bin/activate; %s" % (
-            self.env_dir,
-            command
-        )
+    def runCommand(self, commands):
+        if type(commands) in (str, unicode):
+            commands = [commands]
 
-        assert os.system(command) == 0, command
+        with withDirectoryChange(self.env_dir):
+            if os.name == "nt":
+                commands = [r"call scripts\activate.bat"] + commands
+            else:
+                commands = [". bin/activate]"] + commands
+
+            command = " && ".join(commands)
+
+            assert os.system(command) == 0, command
 
     def getVirtualenvDir(self):
         return self.env_dir
@@ -66,8 +75,14 @@ def withVirtualenv(env_name, base_dir = None, python = None):
     removeDirectory(env_dir, ignore_errors = False)
 
     with withDirectoryChange(base_dir, allow_none = True):
-        assert os.system("virtualenv %r -p %r" % (env_name, python)) == 0
-
+        subprocess.check_call(
+            [
+                python,
+                "-m",
+                "virtualenv",
+                env_name
+            ]
+        )
 
         yield Virtualenv(env_dir)
 
