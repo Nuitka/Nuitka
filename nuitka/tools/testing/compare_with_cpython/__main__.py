@@ -563,7 +563,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
 
         # Try a coupile of times for permission denied, on Windows it can
         # be transient.
-        for _i in range(3):
+        for _i in range(5):
             with withPythonPathChange(os.getcwd()):
                 process = subprocess.Popen(
                     args   = cpython_cmd,
@@ -614,7 +614,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
 
         # Try a couple of times for permission denied, on Windows it can
         # be transient.
-        for _i in range(3):
+        for _i in range(5):
             with withPythonPathChange(nuitka_package_dir):
                 process = subprocess.Popen(
                     args   = nuitka_cmd,
