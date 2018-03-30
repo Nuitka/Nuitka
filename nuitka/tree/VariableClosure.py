@@ -203,7 +203,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
         if node.isExpressionVariableNameRef():
             provider = node.provider
 
-            if provider is not None and provider.isExpressionClassBody():
+            if provider.isExpressionClassBody():
                 if node.needsFallback():
                     variable = provider.getVariableForReference(
                         variable_name = node.getVariableName()
@@ -228,61 +228,6 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                             source_ref    = node.source_ref
                         )
                     )
-
-            elif provider is None:
-                # Module
-                variable = provider.getVariableForReference(
-                    variable_name = node.getVariableName()
-                )
-
-                # Python3.4 version respects closure variables taken can be
-                # overridden by writes to locals. It should be done for
-                # globals too, on all versions, but for Python2 the locals
-                # dictionary is avoided unless "exec" appears, so it's not
-                # done.
-                owner = variable.getOwner()
-                user = provider
-
-                while user is not owner:
-                    if user.isExpressionFunctionBody() or \
-                       user.isExpressionClassBody():
-                        break
-
-                    user = user.getParentVariableProvider()
-
-                if owner is not user:
-                    if python_version >= 340 or \
-                       (python_version >= 300 and \
-                        variable.isModuleVariable()):
-
-                        node.replaceWith(
-                            ExpressionLocalsVariableRefORFallback(
-                                locals_scope  = provider.getLocalsScope(),
-                                variable_name = node.getVariableName(),
-                                fallback_node = ExpressionVariableRef(
-                                    variable   = variable,
-                                    source_ref = node.source_ref
-                                ),
-                                source_ref    = node.getSourceReference()
-                            )
-                        )
-
-                    else:
-                        node.replaceWith(
-                            ExpressionVariableRef(
-                                variable   = variable,
-                                source_ref = node.source_ref
-                            )
-                        )
-                else:
-                    node.replaceWith(
-                        ExpressionVariableRef(
-                            variable   = variable,
-                            source_ref = node.source_ref
-                        )
-                    )
-
-                variable.addVariableUser(provider)
         elif node.isExpressionTempVariableRef():
             if node.getVariable().getOwner() != node.getParentVariableProvider():
                 node.getParentVariableProvider().addClosureVariable(
