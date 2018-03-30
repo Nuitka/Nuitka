@@ -68,12 +68,12 @@ def main():
     with withVirtualenv("check_nuitka") as venv:
         print("Installing Nuitka into virtualenv:")
         print('*' * 40)
-        assert os.system(". bin/activate; pip install ../dist/Nuitka*.tar.gz") == 0
+        venv.runCommand("pip install ../dist/Nuitka*.tar.gz")
         print('*' * 40)
 
         print("Compiling basic test:")
         print('*' * 40)
-        assert os.system(". bin/activate; nuitka-run ../tests/basics/Asserts.py") == 0
+        venv.runCommand("nuitka-run ../tests/basics/Asserts.py")
         print('*' * 40)
 
     if "check" not in sys.argv:
