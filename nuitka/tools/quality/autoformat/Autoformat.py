@@ -28,8 +28,10 @@ import re
 import shutil
 import sys
 
-from baron.parser import ParsingError  # @UnresolvedImport
-from redbaron import RedBaron  # @UnresolvedImport
+from baron.parser import \
+    ParsingError  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+from redbaron import \
+    RedBaron  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
 
 def autoformat(filename, abort = False):
