@@ -174,6 +174,8 @@ The program you compiled wants to be run with: %s.
 
 Nuitka is currently running with Python version '%s', which seems to not
 match that. Nuitka cannot guess the Python version of your source code. You
-therefore might want to specify '--python-version=' to make it clear.
-""" % (shebang, python_version_str)
+therefore might want to specify: '%s -m nuitka'.
+
+That will make use the correct Python version for Nuitka.
+""" % (shebang, python_version_str, binary)
             )

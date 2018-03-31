@@ -706,7 +706,8 @@ def handleSyntaxError(e):
 
 Nuitka is very syntax compatible with standard Python. It is currently running
 with Python version '%s', you might want to specify more clearly with the use
-of e.g. '--python-version=%s' option, if that's not the one expected.
+of the precise Python interpreter binary and '-m nuitka', e.g. use this
+'python%s -m nuitka' option, if that's not the one the program expects.
 """ % (python_version_str, suggested_python_version_str)
 
     sys.exit(error_message)
