@@ -31,10 +31,12 @@ def goHome():
         getHomePath()
     )
 
+my_abs_path = os.path.abspath(__file__)
+
 def getHomePath():
     return os.path.normpath(
         os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
+            os.path.dirname(my_abs_path),
             "..",
             ".."
         )
