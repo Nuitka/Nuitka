@@ -698,13 +698,16 @@ Make a coverage analysis, that does not really check. Default is %default."""
             source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
             with withDirectoryChange(source_dir):
-                nuitka_id = check_output("git rev-parse HEAD")
+                nuitka_id = check_output("git rev-parse HEAD".split())
             nuitka_id = nuitka_id.strip()
 
             if sys.version_info > (3,):
                 nuitka_id = nuitka_id.decode()
 
-            data_file.write("NUITKA_COMMIT='%s'\n" % nuitka_id)
+            data_file.write("NUITKA_SOURCE_DIR=%r\n" % source_dir)
+            data_file.write("NUITKA_COMMIT=%r\n" % nuitka_id)
+
+
 
         copyToGlobalCoverageData("data.coverage", "data.coverage." + suffix)
 
