@@ -22,11 +22,7 @@ import os
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
-from nuitka.PythonVersions import (
-    getSupportedPythonVersions,
-    getSupportedPythonVersionStr,
-    python_version_str
-)
+from nuitka.PythonVersions import getSupportedPythonVersions
 from nuitka.utils import Utils
 from nuitka.Version import getNuitkaVersion
 
@@ -82,12 +78,13 @@ parser.add_option(
     dest    = "python_version",
     choices = getSupportedPythonVersions(),
     default = None,
-    help    = """\
-Major version of Python to be used, one of %s.
-Defaults to what you run Nuitka with (currently %s)""" % (
-       getSupportedPythonVersionStr(),
-       python_version_str
-    )
+    help    = SUPPRESS_HELP
+#               """\
+# Major version of Python to be used, one of %s.
+# Defaults to what you run Nuitka with (currently %s)""" % (
+#        getSupportedPythonVersionStr(),
+#        python_version_str
+#     )
 )
 
 if os.name == "nt":
