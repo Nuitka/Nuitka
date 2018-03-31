@@ -174,6 +174,9 @@ static PyMethodDef _method_def_types_coroutine_replacement =
 /* Replace inspect functions with ones that handle compiles types too. */
 void patchInspectModule( void )
 {
+    static bool is_done = false;
+    if (is_done) return;
+
 #if PYTHON_VERSION >= 300
 #ifdef _NUITKA_EXE
     // May need to import the "site" module, because otherwise the patching can
@@ -190,6 +193,7 @@ void patchInspectModule( void )
     }
 #endif
 
+    // TODO: Change this into an import hook that is executed after it is imported.
     module_inspect = IMPORT_MODULE5( const_str_plain_inspect, Py_None, Py_None, const_tuple_empty, const_int_0 );
 
     if ( module_inspect == NULL )
@@ -268,6 +272,7 @@ types._GeneratorWrapper = GeneratorWrapperEnhanced\
 
 #endif
 
+    is_done = true;
 }
 #endif
 

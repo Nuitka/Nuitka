@@ -133,6 +133,19 @@ def simpleFunction8():
 
     run_async(foo())
 
+
+def simpleFunction9():
+    a = {
+        'a': 1,
+        'b': 2
+    }
+    b = {
+        'c': 3,
+        **a
+    }
+
+    return b
+
 # These need stderr to be wrapped.
 tests_stderr = ()
 

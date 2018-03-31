@@ -115,13 +115,26 @@ def main():
         if not Options.isAllowedToReexecute():
             sys.exit("Error, not allowed to re-execute, but that would be needed.")
 
+        our_filename = sys.modules[__name__].__file__
+
+        # Workaround for --python-version which will choke on existing, but
+        # not matching .pyc files.
+        if current_version != intended_version:
+            pyc_filename = our_filename[:-2] + ".pyc"
+
+            if os.path.exists(pyc_filename):
+                try:
+                    os.unlink(pyc_filename)
+                except OSError:
+                    pass
+
         # Execute with full path as the process name, so it can find itself and its
         # libraries.
         args = [
             python_binary,
             python_binary,
             "-S",
-            sys.modules[__name__].__file__,
+            our_filename,
         ]
 
         os.environ["NUITKA_BINARY_NAME"] = sys.modules["__main__"].__file__
