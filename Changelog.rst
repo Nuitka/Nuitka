@@ -14,6 +14,20 @@ Bug Fixes
   that platform, instead make it a full copy just like we did for ``nuitka3-run``
   already. Fixed in 0.5.29.2 already.
 
+- Python3.5: In module mode, ``types.coroutine`` was monkey patched into an
+  endless recursion if including more than one module, e.g. for a package.
+  Fixed in 0.5.29.3 already.
+
+- Python3.5: Dictionary unpackings with both star arguments and non star
+  arguments could leak memory.
+
+  .. code-block:: python
+
+    c = {a : 1, **d}
+
+- Fix, distutils usage was not working for Python2 anymore, due to using
+  ``super`` for what are old style classes on that version.
+
 Tests
 -----
 
@@ -26,6 +40,23 @@ Tests
   of operation.
 
 - The PyLint checks have been made more robust and even more Python3 portable.
+
+- Added PyLint to Travis builds, so PRs are automatically checked too.
+
+- Added test for distutils usage with Nuitka that should prevent regressions
+  for this new feature in the future.
+
+Cleanups
+--------
+
+- Stop using ``--python-version`` in tests where they still remained.
+
+Organizational
+--------------
+
+- Deprecating the ``--python-version`` argument which should be replaced by
+  using ``-m nuitka`` with the correct Python version. Outputs have been
+  updated to recommend this one instead.
 
 Summary
 -------
