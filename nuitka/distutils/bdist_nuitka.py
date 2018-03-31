@@ -19,8 +19,8 @@
 
 """
 
-import distutils.command.build
-import distutils.command.install
+import distutils.command.build  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+import distutils.command.install  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import os
 import shutil
 import subprocess
