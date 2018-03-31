@@ -27,8 +27,6 @@ import os
 import sys
 from optparse import OptionParser
 
-from nuitka.PythonVersions import python_version
-
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
 sys.path.insert(
@@ -46,8 +44,11 @@ sys.path.insert(
 from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH # isort:skip
 from nuitka.tools.quality.ScanSources import scanTargets # isort:skip
 from nuitka.tools.quality.pylint import PyLint # isort:skip
+from nuitka.tools.testing.Common import setup, hasModule # isort:skip
+from nuitka.PythonVersions import python_version # isort:skip
 
 def main():
+    setup()
     goHome()
 
     # So PyLint finds nuitka package.
@@ -74,7 +75,6 @@ Show TODO items. Default is %default."""
 Be version in output. Default is %default."""
     )
 
-
     parser.add_option(
         "--one-by-one",
         action  = "store_true",
@@ -84,7 +84,21 @@ Be version in output. Default is %default."""
 Check files one by one. Default is %default."""
     )
 
+    parser.add_option(
+        "--not-installed-is-no-error",
+        action  = "store_true",
+        dest    = "not_installed_is_no_error",
+        default = False,
+        help    = """\
+Insist on PyLint to be installed. Default is %default."""
+    )
+
+
     options, positional_args = parser.parse_args()
+
+    if not options.not_installed_is_no_error and not hasModule("pylint"):
+        print("PyLint is not installed for this interpreter version: SKIPPED")
+        sys.exit(0)
 
     if not positional_args:
         positional_args = ["bin", "nuitka"]
@@ -102,7 +116,12 @@ Check files one by one. Default is %default."""
         blacklist.append("nuitka")
 
     filenames = list(scanTargets(positional_args, (".py",), blacklist))
-    PyLint.executePyLint(filenames, options.todos, options.verbose, options.one_by_one)
+    PyLint.executePyLint(
+        filenames  = filenames,
+        show_todos = options.todos,
+        verbose    = options.verbose,
+        one_by_one = options.one_by_one,
+    )
 
     if not filenames:
         sys.exit("No files found.")

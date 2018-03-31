@@ -28,29 +28,8 @@ import os
 import subprocess
 import sys
 
+from nuitka.tools.testing.Common import hasModule
 from nuitka.utils import Execution
-
-pylint_binary = None
-
-def getPylintBinaryPath():
-    # pylint: disable=global-statement
-    global pylint_binary
-
-    if pylint_binary is None:
-        pylint_binary = Execution.getExecutablePath("pylint")
-
-        if pylint_binary is None and os.name == "nt":
-            candidate = os.path.join(
-                os.path.dirname(sys.executable),
-                "Scripts/pylint.exe"
-            )
-
-            if os.path.exists(candidate):
-                pylint_binary = candidate
-
-
-    return pylint_binary
-
 
 pylint_version = None
 
@@ -58,24 +37,24 @@ def checkVersion():
     # pylint: disable=global-statement
     global pylint_version
 
-    if getPylintBinaryPath() is None:
-        sys.exit("Error, pylint is not installed.")
+    if not hasModule("pylint"):
+        sys.exit("Error, pylint is not installed for this interpreter version.")
 
     if pylint_version is None:
         pylint_version = Execution.check_output(
-            [sys.executable, getPylintBinaryPath(), "--version"],
+            [os.environ["PYTHON"], "-m", "pylint", "--version"],
             stderr = open(os.devnull, 'w')
         )
 
         if str is not bytes:
             pylint_version = pylint_version.decode("utf8")
 
-        pylint_version = pylint_version.split('\n')[0].split()[-1]
+        pylint_version = pylint_version.split('\n')[0].split()[-1].strip(',')
 
     if pylint_version < "1.6.5":
         sys.exit("Error, needs PyLint 1.6.5 or higher not %r." % pylint_version)
 
-    print("Using PyLint version", pylint_version, "on Python", sys.version.split('\n')[0])
+    print("Using PyLint version:", pylint_version)
 
 
 # Disabled globally:
@@ -187,7 +166,7 @@ def _executePylint(filenames, pylint_options, extra_options):
     # This is kind of a singleton module, pylint: disable=global-statement
     global our_exit_code
 
-    command = [sys.executable, getPylintBinaryPath()] + pylint_options + extra_options + filenames
+    command = [os.environ["PYTHON"], "-m", "pylint"] + pylint_options + extra_options + filenames
 
     process = subprocess.Popen(
         args   = command,
