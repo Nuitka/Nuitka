@@ -96,7 +96,7 @@ Insist on PyLint to be installed. Default is %default."""
 
     options, positional_args = parser.parse_args()
 
-    if not options.not_installed_is_no_error and not hasModule("pylint"):
+    if options.not_installed_is_no_error and not hasModule("pylint"):
         print("PyLint is not installed for this interpreter version: SKIPPED")
         sys.exit(0)
 

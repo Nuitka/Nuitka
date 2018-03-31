@@ -11,10 +11,9 @@ python:
 # command to install dependencies
 install:
   - "sudo apt-get install scons chrpath"
-  - "pip install pylint"
+  - "pip install pylint" || true # This will fail e.g. on 2.6
   - "pip install ."
 # command to run tests
 script:
   - ./tests/run-tests --no-other-python --skip-reflection-test --skip-all-cpython-tests
   - ./bin/check-nuitka-with-pylint --not-installed-is-no-error
-  - ./bin/check-nuitka-with-pylint3 --not-installed-is-no-error
