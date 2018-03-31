@@ -30,6 +30,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
+    StatementDelVariable,
     StatementReleaseVariable
 )
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
@@ -212,6 +213,12 @@ def getDictUnpackingHelper():
             variable   = tmp_item_variable,
             source_ref = internal_source_ref
         ),
+        # We get handed our args responsibility.
+        StatementDelVariable(
+            variable      = args_variable,
+            tolerant      = False,
+            source_ref    = internal_source_ref
+        )
     )
 
     tried = makeStatementsSequenceFromStatements(
