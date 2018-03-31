@@ -614,7 +614,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
     # Just the quick syntax test, full tests are run later.
     if checkExecutableCommand("python3.2"):
         executeSubTest(
-            "./bin/nuitka --python-version=3.2 --version",
+            "python3.2 ./bin/nuitka --version",
             hide_output = True
         )
 
