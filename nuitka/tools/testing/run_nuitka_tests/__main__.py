@@ -675,10 +675,8 @@ Make a coverage analysis, that does not really check. Default is %default."""
             if coverage_dir is None:
                 return
 
-            assert subprocess.call(
+            subprocess.check_call(
                 (
-                    "C:\\MinGW\\msys\\1.0\\bin\\scp.exe"
-                       if os.name == "nt" else
                     "scp",
                     source,
                     os.path.join(
@@ -686,7 +684,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
                         target
                     )
                 )
-            ) == 0
+            )
 
         if os.name == "nt":
             suffix = "win"
