@@ -11,7 +11,7 @@ python:
 # command to install dependencies
 install:
   - "sudo apt-get install scons chrpath"
-  - "pip install pylint" || true # This will fail e.g. on 2.6
+  - "pip install pylint || true" # This will fail e.g. on 2.6
   - "pip install ."
 # command to run tests
 script:
