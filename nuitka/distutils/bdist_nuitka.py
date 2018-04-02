@@ -26,7 +26,7 @@ import shutil
 import subprocess
 import sys
 
-import wheel.bdist_wheel  # @UnresolvedImport
+import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
 
 def setuptools_build_hook(dist, keyword, value):

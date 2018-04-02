@@ -39,7 +39,7 @@ from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 class NodeCheckMetaClass(ABCMeta):
     kinds = {}
 
-    def __new__(cls, name, bases, dictionary):
+    def __new__(cls, name, bases, dictionary): # pylint: disable=I0021,arguments-differ
         # This is in conflict with either PyDev or Pylint, pylint: disable=C0204
         assert len(bases) == len(set(bases)), bases
 
@@ -96,11 +96,13 @@ class NodeCheckMetaClass(ABCMeta):
 # For every node type, there is a test, and then some more members,
 
 # For Python2/3 compatible source, we create a base class that has the metaclass
-# used and doesn't require making a choice.
+# used and doesn't require making a syntax choice.
 NodeMetaClassBase = NodeCheckMetaClass(
     "NodeMetaClassBase",
     (object,),
-    {"__slots__" : () }
+    {
+        "__slots__" : ()
+    }
 )
 
 
