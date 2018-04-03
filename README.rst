@@ -122,11 +122,24 @@ Requirements
 Command Line
 ------------
 
-No environment variable changes are needed, most noteworthy, you do not have to
-mess with ``PYTHONPATH`` at all for Nuitka. You just execute the ``nuitka`` and
-``nuitka-run`` scripts directly without any changes to the environment. You may
-want to add the ``bin`` directory to your ``PATH`` for your convenience, but
-that step is optional.
+The recommended way of executing Nuitka is ``<the_right_python> -m nuitka`` to
+be absolutely certain which Python interpreter you are using, so it is easier
+to match with what Nuitka has.
+
+The next best way of executing Nuitka bare that is from a source checkout or
+archive, with no environment variable changes, most noteworthy, you do not
+have to mess with ``PYTHONPATH`` at all for Nuitka. You just execute the
+``nuitka`` and ``nuitka-run`` scripts directly without any changes to the
+environment. You may want to add the ``bin`` directory to your ``PATH`` for
+your convenience, but that step is optional.
+
+Moreover, if you want to execute with the right interpreter in that case, be
+sure to execute ``<the_right_python> bin/nuitka`` and be good.
+
+  .. admonition:: Pick the right Interpreter
+
+     If you encounter a ``SyntaxError`` you absolutely most certainly have
+     picked the wrong interpreter for the program you are compiling.
 
 Nuitka has a ``--help`` option to output what it can do:
 
@@ -170,7 +183,7 @@ that is the main program, do it like this:
 
 .. code-block:: bash
 
-    nuitka --recurse-all program.py
+    python -m nuitka --recurse-all program.py
 
 .. note::
 
@@ -184,7 +197,7 @@ included in the executable:
 
 .. code-block:: bash
 
-    nuitka --recurse-all --recurse-directory=plugin_dir program.py
+    python -m nuitka --recurse-all --recurse-directory=plugin_dir program.py
 
 .. note::
 
@@ -211,7 +224,6 @@ included in the executable:
    we wouldn't want to overwrite it, or be unsure which one is the compiled
    form, and which one is not.
 
-
 Use Case 2 - Extension Module compilation
 -----------------------------------------
 
@@ -219,7 +231,7 @@ If you want to compile a single extension module, all you have to do is this:
 
 .. code-block:: bash
 
-    nuitka --module some_module.py
+    python -m nuitka --module some_module.py
 
 The resulting file "some_module.so" can then be used instead of
 "some_module.py". It's left as an exercise to the reader, what happens if both
@@ -237,7 +249,7 @@ feasible, use Nuitka like this:
 
 .. code-block:: bash
 
-    nuitka --module some_package --include-package=some_package
+    python -m nuitka --module some_package --include-package=some_package
 
 .. note::
 
@@ -336,7 +348,7 @@ The development of Nuitka occurs in git. We currently have these 3 branches:
   <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/factory>`__:
 
   This branch contains unfinished and incomplete work. It is very frequently
-  subject ``git rebase`` and the public staging ground, where my work
+  subject to ``git rebase`` and the public staging ground, where my work
   for develop branch lives first. It is intended for testing only and
   recommended to base any of your own development on. When updating it,
   you very often will get merge conflicts. Simply resolve those by doing
