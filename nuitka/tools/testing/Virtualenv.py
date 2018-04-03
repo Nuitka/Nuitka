@@ -45,7 +45,7 @@ class Virtualenv(object):
             if os.name == "nt":
                 commands = [r"call scripts\activate.bat"] + commands
             else:
-                commands = [". bin/activate]"] + commands
+                commands = [". bin/activate"] + commands
 
             command = " && ".join(commands)
 

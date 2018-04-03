@@ -40,6 +40,8 @@ from nuitka.tools.testing.Common import (
     createSearchMode,
     decideFilenameVersionSkip
 )
+
+from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.tools.testing.Virtualenv import withVirtualenv
 from nuitka.utils.FileOperations import removeDirectory
 
@@ -125,12 +127,16 @@ for filename in sorted(os.listdir('.')):
                 commands = [
                     'cd "%s"' % nuitka_dir,
                     "python setup.py install",
-                    # rm -rf Nuitka.egg-info" )
                 ]
             )
 
+            # Remove that left over from the install command.
+            removeDirectory(
+                path          = os.path.join(nuitka_dir, "Nuitka.egg-info"),
+                ignore_errors = False
+            )
 
-            # Create the wheel
+            # Create the wheel with Nuitka compilation.
             venv.runCommand(
                 commands = [
                     'cd "%s"' % case_dir,
@@ -168,5 +174,38 @@ for filename in sorted(os.listdir('.')):
             assert exit_nuitka == 0, exit_nuitka
             print("EXIT was OK.")
 
+        exit_code_stdout = compareOutput(
+            "stdout",
+            stdout_cpython,
+            stdout_nuitka,
+            ignore_warnings = True,
+            ignore_infos    = True,
+            syntax_errors   = True
+        )
+
+        exit_code_stderr = compareOutput(
+            "stderr",
+            stderr_cpython,
+            stderr_nuitka,
+            ignore_warnings = True,
+            ignore_infos    = True,
+            syntax_errors   = True
+        )
+
+        exit_code_return = exit_cpython != exit_nuitka
+
+        if exit_code_return:
+            my_print(
+                """\
+Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
+                    exit_cpython = exit_cpython,
+                    exit_nuitka  = exit_nuitka
+                )
+            )
+
+        exit_code = exit_code_stdout or exit_code_stderr or exit_code_return
+
+        if exit_code:
+            sys.exit("Error, outputs differed.")
 
 search_mode.finish()
