@@ -123,11 +123,28 @@ def createNodeTree(filename):
         )
 
         if kind != "absolute":
-            sys.exit("Error, failed to locate package %r" % package_name)
+            sys.exit("Error, failed to locate package %r." % package_name)
 
         Recursion.checkPluginPath(
             plugin_filename = package_directory,
             module_package  = package_package
+        )
+
+    for module_name in Options.getMustIncludeModules():
+        module_package, module_filename, kind = Importing.findModule(
+            importing      = None,
+            module_name    = module_name,
+            parent_package = None,
+            level          = 0,
+            warn           = False
+        )
+
+        if kind != "absolute":
+            sys.exit("Error, failed to locate module %r." % module_name)
+
+        Recursion.checkPluginSinglePath(
+            plugin_filename = module_filename,
+            module_package  = module_package
         )
 
     # Then optimize the tree and potentially recursed modules.
