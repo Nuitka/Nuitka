@@ -171,7 +171,7 @@ include_group = OptionGroup(
 include_group.add_option(
     "--include-package",
     action  = "append",
-    dest    = "include_package",
+    dest    = "include_packages",
     metavar = "PACKAGE",
     default = [],
     help    = """\
@@ -935,6 +935,14 @@ def getShallFollowExtra():
 
 def getShallFollowExtraFilePatterns():
     return sum([ x.split(',') for x in options.recurse_extra_files ], [])
+
+
+def getMustIncludeModules():
+    return sum([ x.split(',') for x in options.include_modules ], [])
+
+
+def getMustIncludePackages():
+    return sum([ x.split(',') for x in options.include_packages ], [])
 
 
 def shallWarnImplicitRaises():

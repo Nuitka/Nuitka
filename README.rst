@@ -237,7 +237,7 @@ feasible, use Nuitka like this:
 
 .. code-block:: bash
 
-    nuitka --module some_package --recurse-directory=some_package
+    nuitka --module some_package --include-package=some_package
 
 .. note::
 

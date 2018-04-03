@@ -69,7 +69,7 @@ for filename in sorted(os.listdir('.')):
         my_print("Consider output of recursively compiled program:", filename)
 
         for filename_main in os.listdir(filename):
-            if not os.path.isdir(os.path.join(filename,filename_main)):
+            if not os.path.isdir(os.path.join(filename, filename_main)):
                 continue
 
             if filename_main not in ("..", '.'):
@@ -81,7 +81,7 @@ Error, no package in dir '%s' found, incomplete test case.""" % filename
             )
 
         extensions = [
-            "--recurse-to=%s" % os.path.basename(filename_main)
+            "--include-package=%s" % os.path.basename(filename_main)
         ]
 
         if not "--output-dir" in os.environ.get("NUITKA_EXTRA_OPTIONS", ""):
