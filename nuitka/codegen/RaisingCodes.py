@@ -199,7 +199,7 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
         parent = expression.parent
         assert parent.isExpressionSideEffects() or \
                parent.isExpressionConditional(), \
-               (expression, expression.parent)
+               (expression, expression.parent, expression.asXmlText())
 
     # That's how we indicate exception to the surrounding world.
     emit("%s = NULL;" % to_name)

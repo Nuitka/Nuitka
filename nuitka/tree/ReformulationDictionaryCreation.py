@@ -215,9 +215,9 @@ def getDictUnpackingHelper():
         ),
         # We get handed our args responsibility.
         StatementDelVariable(
-            variable      = args_variable,
-            tolerant      = False,
-            source_ref    = internal_source_ref
+            variable   = args_variable,
+            tolerant   = False,
+            source_ref = internal_source_ref
         )
     )
 
