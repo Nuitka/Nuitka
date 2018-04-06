@@ -39,6 +39,14 @@ class ShapeTypeNoneType(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -70,6 +78,14 @@ class ShapeTypeBool(ShapeBase):
         return True
 
     @staticmethod
+    def hasShapeSlotLong():
+        return True
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return True
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -93,6 +109,14 @@ class ShapeTypeInt(ShapeBase):
 
     @staticmethod
     def hasShapeSlotInt():
+        return True
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return True
+
+    @staticmethod
+    def hasShapeSlotFloat():
         return True
 
     @staticmethod
@@ -122,6 +146,14 @@ class ShapeTypeLong(ShapeBase):
         return True
 
     @staticmethod
+    def hasShapeSlotLong():
+        return True
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return True
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -142,6 +174,14 @@ if python_version < 300:
 
         @staticmethod
         def hasShapeSlotInt():
+            return True
+
+        @staticmethod
+        def hasShapeSlotLong():
+            return True
+
+        @staticmethod
+        def hasShapeSlotFloat():
             return True
 
         @staticmethod
@@ -173,6 +213,14 @@ class ShapeTypeFloat(ShapeBase):
         return True
 
     @staticmethod
+    def hasShapeSlotLong():
+        return True
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return True
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -196,6 +244,14 @@ class ShapeTypeTuple(ShapeBase):
 
     @staticmethod
     def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
         return False
 
     @staticmethod
@@ -239,6 +295,14 @@ class ShapeTypeList(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return True
 
@@ -276,6 +340,14 @@ class ShapeTypeSet(ShapeBase):
 
     @staticmethod
     def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
         return False
 
     @staticmethod
@@ -319,6 +391,14 @@ class ShapeTypeFrozenset(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
     def hasShapeSlotNext():
         return False
 
@@ -346,6 +426,14 @@ class ShapeTypeDict(ShapeBase):
 
     @staticmethod
     def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
         return False
 
     @staticmethod
@@ -386,7 +474,15 @@ class ShapeTypeStr(ShapeBase):
 
     @staticmethod
     def hasShapeSlotInt():
-        return False
+        return True
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return True
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return True
 
     @staticmethod
     def hasShapeSlotIter():
@@ -427,7 +523,15 @@ if python_version < 300:
 
         @staticmethod
         def hasShapeSlotInt():
-            return False
+            return True
+
+        @staticmethod
+        def hasShapeSlotLong():
+            return True
+
+        @staticmethod
+        def hasShapeSlotFloat():
+            return True
 
         @staticmethod
         def hasShapeSlotIter():
@@ -465,7 +569,15 @@ if python_version < 300:
 
         @staticmethod
         def hasShapeSlotInt():
-            return False
+            return True
+
+        @staticmethod
+        def hasShapeSlotLong():
+            return True
+
+        @staticmethod
+        def hasShapeSlotFloat():
+            return True
 
         @staticmethod
         def hasShapeSlotIter():
@@ -494,6 +606,14 @@ if python_version >= 300:
 
         @staticmethod
         def hasShapeSlotInt():
+            return False
+
+        @staticmethod
+        def hasShapeSlotLong():
+            return False
+
+        @staticmethod
+        def hasShapeSlotFloat():
             return False
 
         @staticmethod
@@ -541,6 +661,14 @@ class ShapeTypeBytearray(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return True
 
@@ -581,6 +709,14 @@ class ShapeTypeEllipsisType(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -607,6 +743,14 @@ class ShapeTypeSlice(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -630,6 +774,14 @@ class ShapeTypeXrange(ShapeBase):
 
     @staticmethod
     def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
         return False
 
     @staticmethod
@@ -673,6 +825,14 @@ class ShapeTypeType(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -700,6 +860,14 @@ class ShapeTypeModule(ShapeBase):
 
     @staticmethod
     def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
         return False
 
     @staticmethod
@@ -733,6 +901,14 @@ class ShapeTypeFile(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return True
 
@@ -759,6 +935,14 @@ class ShapeTypeStaticmethod(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -782,6 +966,14 @@ class ShapeTypeClassmethod(ShapeBase):
 
     @staticmethod
     def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
         return False
 
     @staticmethod

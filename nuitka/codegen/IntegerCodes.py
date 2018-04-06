@@ -26,100 +26,97 @@ from .ErrorCodes import getErrorExitCode, getReleaseCodes
 from .PythonAPICodes import generateCAPIObjectCode
 
 
-def generateBuiltinLongCode(to_name, expression, emit, context):
+def generateBuiltinLong1Code(to_name, expression, emit, context):
     assert python_version < 300
 
     value = expression.getValue()
-    base = expression.getBase()
 
-    assert value is not None
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "PyNumber_Long",
+        arg_desc   = (
+            ("long_arg", value),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
 
-    if base is None:
-        generateCAPIObjectCode(
-            to_name    = to_name,
-            capi       = "PyNumber_Long",
-            arg_desc   = (
-                ("long_arg", value),
-            ),
-            may_raise  = expression.mayRaiseException(BaseException),
-            source_ref = expression.getCompatibleSourceReference(),
-            emit       = emit,
-            context    = context
+
+def generateBuiltinLong2Code(to_name, expression, emit, context):
+    assert python_version < 300
+
+    value_name, base_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    emit(
+        "%s = TO_LONG2( %s, %s );" % (
+            to_name,
+            value_name,
+            base_name
         )
-    else:
-        value_name, base_name = generateChildExpressionsCode(
-            expression = expression,
-            emit       = emit,
-            context    = context
-        )
+    )
 
-        emit(
-            "%s = TO_LONG2( %s, %s );" % (
-                to_name,
-                value_name,
-                base_name
-            )
-        )
+    getReleaseCodes(
+        release_names = (value_name, base_name),
+        emit          = emit,
+        context       = context
+    )
 
-        getReleaseCodes(
-            release_names = (value_name, base_name),
-            emit          = emit,
-            context       = context
-        )
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
 
-        getErrorExitCode(
-            check_name = to_name,
-            emit       = emit,
-            context    = context
-        )
-
-        context.addCleanupTempName(to_name)
+    context.addCleanupTempName(to_name)
 
 
-def generateBuiltinIntCode(to_name, expression, emit, context):
-
+def generateBuiltinInt1Code(to_name, expression, emit, context):
     value = expression.getValue()
-    base = expression.getBase()
 
-    assert value is not None
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "PyNumber_Int",
+        arg_desc   = (
+            ("int_arg", value),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context,
+    )
 
-    if base is None:
-        generateCAPIObjectCode(
-            to_name    = to_name,
-            capi       = "PyNumber_Int",
-            arg_desc   = (
-                ("int_arg", value),
-            ),
-            may_raise  = expression.mayRaiseException(BaseException),
-            source_ref = expression.getCompatibleSourceReference(),
-            emit       = emit,
-            context    = context,
+
+def generateBuiltinInt2Code(to_name, expression, emit, context):
+    value_name, base_name = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    emit(
+        "%s = TO_INT2( %s, %s );" % (
+            to_name,
+            value_name,
+            base_name
         )
-    else:
-        value_name, base_name = generateChildExpressionsCode(
-            expression = expression,
-            emit       = emit,
-            context    = context
-        )
+    )
 
-        emit(
-            "%s = TO_INT2( %s, %s );" % (
-                to_name,
-                value_name,
-                base_name
-            )
-        )
+    getReleaseCodes(
+        release_names = (value_name, base_name),
+        emit          = emit,
+        context       = context
+    )
 
-        getReleaseCodes(
-            release_names = (value_name, base_name),
-            emit          = emit,
-            context       = context
-        )
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
 
-        getErrorExitCode(
-            check_name = to_name,
-            emit       = emit,
-            context    = context
-        )
-
-        context.addCleanupTempName(to_name)
+    context.addCleanupTempName(to_name)

@@ -52,6 +52,10 @@ from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinOct
 )
 from nuitka.nodes.BuiltinHashNodes import ExpressionBuiltinHash
+from nuitka.nodes.BuiltinIntegerNodes import (
+    ExpressionBuiltinInt1,
+    ExpressionBuiltinInt2
+)
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
     ExpressionBuiltinIter2
@@ -85,7 +89,6 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinComplex,
     ExpressionBuiltinFloat,
     ExpressionBuiltinFrozenset,
-    ExpressionBuiltinInt,
     ExpressionBuiltinList,
     ExpressionBuiltinSet,
     ExpressionBuiltinStr,
@@ -110,6 +113,7 @@ from nuitka.nodes.GlobalsLocalsNodes import (
 )
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeMakingHelpers import (
+    makeConstantReplacementNode,
     makeExpressionBuiltinLocals,
     makeRaiseExceptionReplacementExpression,
     makeRaiseExceptionReplacementExpressionFromInstance,
@@ -554,10 +558,19 @@ def frozenset_extractor(node):
 
 
 def float_extractor(node):
+    def makeFloat0(source_ref):
+        # pylint: disable=unused-argument
+
+        return makeConstantReplacementNode(
+            constant = float(),
+            node     = node
+        )
+
     return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinFloat,
-        builtin_spec  = BuiltinOptimization.builtin_float_spec
+        node                = node,
+        builtin_class       = ExpressionBuiltinFloat,
+        builtin_spec        = BuiltinOptimization.builtin_float_spec,
+        empty_special_class = makeFloat0
     )
 
 
@@ -606,20 +619,65 @@ def bool_extractor(node):
 
 
 def int_extractor(node):
+    def makeInt0(source_ref):
+        # pylint: disable=unused-argument
+
+        return makeConstantReplacementNode(
+            constant = int(),
+            node     = node,
+        )
+
+    def selectIntBuiltin(value, base, source_ref):
+        if base is None:
+            return ExpressionBuiltinInt1(
+                value      = value,
+                source_ref = source_ref
+            )
+        else:
+            return ExpressionBuiltinInt2(
+                value      = value,
+                base       = base,
+                source_ref = source_ref
+            )
+
     return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinInt,
-        builtin_spec  = BuiltinOptimization.builtin_int_spec
+        node                = node,
+        builtin_class       = selectIntBuiltin,
+        builtin_spec        = BuiltinOptimization.builtin_int_spec,
+        empty_special_class = makeInt0
     )
 
+
 if python_version < 300:
-    from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinLong
+    from nuitka.nodes.BuiltinIntegerNodes import ExpressionBuiltinLong1, ExpressionBuiltinLong2
 
     def long_extractor(node):
+        def makeLong0(source_ref):
+            # pylint: disable=unused-argument
+
+            return makeConstantReplacementNode(
+                constant = int(),
+                node     = node,
+            )
+
+        def selectIntBuiltin(value, base, source_ref):
+            if base is None:
+                return ExpressionBuiltinLong1(
+                    value      = value,
+                    source_ref = source_ref
+                )
+            else:
+                return ExpressionBuiltinLong2(
+                    value      = value,
+                    base       = base,
+                    source_ref = source_ref
+                )
+
         return BuiltinOptimization.extractBuiltinArgs(
-            node          = node,
-            builtin_class = ExpressionBuiltinLong,
-            builtin_spec  = BuiltinOptimization.builtin_long_spec
+            node                = node,
+            builtin_class       = selectIntBuiltin,
+            builtin_spec        = BuiltinOptimization.builtin_int_spec,
+            empty_special_class = makeLong0
         )
 
 

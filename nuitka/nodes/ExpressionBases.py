@@ -25,6 +25,7 @@ abstract execution, and different from statements.
 
 from abc import abstractmethod
 
+from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
 from nuitka.Constants import isCompileTimeConstantValue
 
 from .NodeBases import ChildrenHavingMixin, NodeBase
@@ -384,6 +385,39 @@ class ExpressionBase(NodeBase):
 
         return len_node, None, None
 
+    def computeExpressionInt(self, int_node, trace_collection):
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return int_node, None, None
+
+    def computeExpressionLong(self, long_node, trace_collection):
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return long_node, None, None
+
+    def computeExpressionFloat(self, float_node, trace_collection):
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return float_node, None, None
+
     def computeExpressionIter1(self, iter_node, trace_collection):
         shape = self.getTypeShape()
 
@@ -477,6 +511,24 @@ class ExpressionBase(NodeBase):
 
     def mayRaiseExceptionBool(self, exception_type):
         """ Unless we are told otherwise, everything may raise being checked. """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
+
+    def mayRaiseExceptionInt(self, exception_type):
+        """ Unless we are told otherwise, everything may raise in __int__. """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
+
+    def mayRaiseExceptionLong(self, exception_type):
+        """ Unless we are told otherwise, everything may raise in __long__. """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
+
+    def mayRaiseExceptionFloat(self, exception_type):
+        """ Unless we are told otherwise, everything may raise in __float__. """
         # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return True
@@ -641,14 +693,12 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         # Virtual method overload
 
         # We remember it from our computation.
-
         return not self.computed_attribute
 
     def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
         # Virtual method overload
 
         # We remember it from our computation.
-
         return not self.computed_attribute
 
     def mayRaiseExceptionAttributeCheck(self, exception_type, attribute_name):
@@ -672,6 +722,31 @@ Compile time constant negation truth value pre-computed."""
             description = """\
 Compile time constant len value pre-computed."""
         )
+
+    def computeExpressionInt(self, int_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node        = int_node,
+            computation = lambda : int(self.getCompileTimeConstant()),
+            description = """\
+Compile time constant int value pre-computed."""
+        )
+
+    def computeExpressionLong(self, long_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node        = long_node,
+            computation = lambda : long(self.getCompileTimeConstant()),
+            description = """\
+Compile time constant long value pre-computed."""
+        )
+
+    def computeExpressionFloat(self, float_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node        = float_node,
+            computation = lambda : float(self.getCompileTimeConstant()),
+            description = """\
+Compile time constant float value pre-computed."""
+        )
+
 
     def isKnownToHaveAttribute(self, attribute_name):
         if self.computed_attribute is None:

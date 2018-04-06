@@ -15,17 +15,15 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Built-in type nodes tuple/list/float/int etc.
+""" Built-in type nodes tuple/list/set/float/str/unicode etc.
 
 These are all very simple and have predictable properties, because we know their type and
 that should allow some important optimizations.
 """
 
-from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
 from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
 
-from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase,
@@ -39,8 +37,7 @@ from .shapes.BuiltinTypeShapes import (
     ShapeTypeBool,
     ShapeTypeBytearray,
     ShapeTypeBytes,
-    ShapeTypeIntOrLong,
-    ShapeTypeLong,
+    ShapeTypeFloat,
     ShapeTypeStr,
     ShapeTypeUnicode
 )
@@ -118,10 +115,33 @@ class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
     builtin_spec = BuiltinOptimization.builtin_frozenset_spec
 
 
-class ExpressionBuiltinFloat(ExpressionBuiltinTypeBase):
+class ExpressionBuiltinFloat(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_FLOAT"
 
-    builtin_spec = BuiltinOptimization.builtin_float_spec
+    named_children = ("value",)
+
+    def __init__(self, value, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "value" : value
+            },
+            source_ref = source_ref
+        )
+
+    def getTypeShape(self):
+        return ShapeTypeFloat
+
+    def computeExpression(self, trace_collection):
+        return self.subnode_value.computeExpressionFloat(
+            float_node       = self,
+            trace_collection = trace_collection
+        )
+
+    def mayRaiseException(self, exception_type):
+        return self.subnode_value.mayRaiseExceptionFloat(exception_type)
+
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
 
 class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
@@ -154,78 +174,6 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
 
     def getTypeShape(self):
         return ShapeTypeBool
-
-
-class ExpressionBuiltinIntLongBase(ExpressionSpecBasedComputationBase):
-    named_children = ("value", "base")
-
-    # Note: Version specific, may be allowed or not.
-    try:
-        int(base = 2)
-    except TypeError:
-        base_only_value = False
-    else:
-        base_only_value = True
-
-    # To be overloaded by child classes with int/long.
-    builtin = int
-
-    def __init__(self, value, base, source_ref):
-        if value is None and self.base_only_value:
-            value = makeConstantRefNode(
-                constant      = '0',
-                source_ref    = source_ref,
-                user_provided = True
-            )
-
-        ExpressionSpecBasedComputationBase.__init__(
-            self,
-            values     = {
-                "value" : value,
-                "base"  : base
-            },
-            source_ref = source_ref
-        )
-
-    getValue = ExpressionSpecBasedComputationBase.childGetter("value")
-    getBase = ExpressionSpecBasedComputationBase.childGetter("base")
-
-    def computeExpression(self, trace_collection):
-        value = self.getValue()
-        base = self.getBase()
-
-        given_values = []
-
-        if value is None:
-            if base is not None:
-                if not self.base_only_value:
-                    return trace_collection.getCompileTimeComputationResult(
-                        node        = self,
-                        computation = lambda : self.builtin(base = 2),
-                        description = """\
-%s built-in call with only base argument""" % self.builtin.__name__
-                    )
-
-            given_values = ()
-        elif base is None:
-            given_values = (value,)
-        else:
-            given_values = (value, base)
-
-        return self.computeBuiltinSpec(
-            trace_collection = trace_collection,
-            given_values     = given_values
-        )
-
-
-class ExpressionBuiltinInt(ExpressionBuiltinIntLongBase):
-    kind = "EXPRESSION_BUILTIN_INT"
-
-    builtin_spec = BuiltinOptimization.builtin_int_spec
-    builtin = int
-
-    def getTypeShape(self):
-        return ShapeTypeIntOrLong
 
 
 class ExpressionBuiltinUnicodeBase(ExpressionSpecBasedComputationBase):
@@ -301,16 +249,6 @@ if python_version < 300:
 
         def getTypeShape(self):
             return ShapeTypeStr
-
-
-    class ExpressionBuiltinLong(ExpressionBuiltinIntLongBase):
-        kind = "EXPRESSION_BUILTIN_LONG"
-
-        builtin_spec = BuiltinOptimization.builtin_long_spec
-        builtin = long
-
-        def getTypeShape(self):
-            return ShapeTypeLong
 
 
     class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):

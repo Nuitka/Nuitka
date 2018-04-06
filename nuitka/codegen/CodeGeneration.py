@@ -160,7 +160,12 @@ from .ImportCodes import (
     generateImportNameCode,
     generateImportStarCode
 )
-from .IntegerCodes import generateBuiltinIntCode, generateBuiltinLongCode
+from .IntegerCodes import (
+    generateBuiltinInt1Code,
+    generateBuiltinInt2Code,
+    generateBuiltinLong1Code,
+    generateBuiltinLong2Code
+)
 from .IteratorCodes import (
     generateBuiltinIter1Code,
     generateBuiltinIter2Code,
@@ -540,8 +545,10 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_BOOL"                     : generateBuiltinBoolCode,
         "EXPRESSION_BUILTIN_BYTEARRAY1"               : generateBuiltinBytearray1Code,
         "EXPRESSION_BUILTIN_BYTEARRAY3"               : generateBuiltinBytearray3Code,
-        "EXPRESSION_BUILTIN_INT"                      : generateBuiltinIntCode,
-        "EXPRESSION_BUILTIN_LONG"                     : generateBuiltinLongCode,
+        "EXPRESSION_BUILTIN_INT1"                     : generateBuiltinInt1Code,
+        "EXPRESSION_BUILTIN_INT2"                     : generateBuiltinInt2Code,
+        "EXPRESSION_BUILTIN_LONG1"                    : generateBuiltinLong1Code,
+        "EXPRESSION_BUILTIN_LONG2"                    : generateBuiltinLong2Code,
         "EXPRESSION_BUILTIN_FLOAT"                    : generateBuiltinFloatCode,
         "EXPRESSION_BUILTIN_COMPLEX"                  : generateBuiltinComplexCode,
         "EXPRESSION_BUILTIN_LEN"                      : generateBuiltinLenCode,

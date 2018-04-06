@@ -47,6 +47,14 @@ class ShapeUnknown(ShapeBase):
         return None
 
     @staticmethod
+    def hasShapeSlotLong():
+        return None
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return None
+
+    @staticmethod
     def hasShapeSlotIter():
         return None
 
@@ -111,6 +119,14 @@ class ShapeIterator(ShapeBase):
 
     @staticmethod
     def hasShapeSlotInt():
+        return None
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return None
+
+    @staticmethod
+    def hasShapeSlotFloat():
         return None
 
     @staticmethod
