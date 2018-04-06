@@ -13,7 +13,7 @@ install:
   - "sudo apt-get install scons chrpath"
   # This will install PyLint but not where it does not work. It will fail
   # to install 2.6 and be buggy for 3.3
-  - "python -c 'import sys;exit(sys.version_info[:2] not in ((2,6), (3,3)))' || pip install pylint"
+  - "python -c 'import sys;exit(sys.version_info[:2] not in ((2,6), (3,3), (3,6)))' || pip install pylint"
   - "pip install ."
 # commands to run tests
 script:
