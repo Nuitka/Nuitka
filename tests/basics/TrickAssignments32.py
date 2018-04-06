@@ -171,7 +171,7 @@ def someFunctionThatReturnsDeletedValueViaAdd():
 
 
     a = 1
-    c += 1
+    c + 1
     return a
 
 
@@ -185,14 +185,14 @@ else:
 
 def someFunctionThatReturnsDeletedValueViaSub():
     class C:
-        def __add__(self, other):
+        def __sub__(self, other):
             nonlocal a
             del a
     c = C()
 
 
     a = 1
-    c += 1
+    c - 1
     return a
 
 
@@ -204,7 +204,143 @@ else:
     print("Ouch.!")
 
 
-# TODO: There is a whole lot more operations to cover.
+def someFunctionThatReturnsDeletedValueViaMul():
+    class C:
+        def __mul__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c * 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaMul()
+except UnboundLocalError:
+    print("OK, object mul correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaRemainder():
+    class C:
+        def __mod__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c % 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaRemainder()
+except UnboundLocalError:
+    print("OK, object remainder correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaDivmod():
+    class C:
+        def __divmod__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    divmod(c, 1)
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaDivmod()
+except UnboundLocalError:
+    print("OK, object divmod correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaPower():
+    class C:
+        def __pow__(self, other):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    c ** 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaPower()
+except UnboundLocalError:
+    print("OK, object power correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaUnaryMinus():
+    class C:
+        def __neg__(self):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    -c
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaUnaryMinus()
+except UnboundLocalError:
+    print("OK, object unary minus correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaUnaryPlus():
+    class C:
+        def __pos__(self):
+            nonlocal a
+            del a
+
+            return 7
+    c = C()
+
+
+    a = 1
+    +c
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaUnaryPlus()
+except UnboundLocalError:
+    print("OK, object unary plus correctly deleted an item.")
+else:
+    print("Ouch.!")
+
 
 def someFunctionThatReturnsDeletedValueViaNot():
     class C:
@@ -225,9 +361,288 @@ def someFunctionThatReturnsDeletedValueViaNot():
 try:
     someFunctionThatReturnsDeletedValueViaNot()
 except UnboundLocalError:
-    print("OK, object not correctly deleted an item.")
+    print("OK, object bool correctly deleted an item.")
 else:
     print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInvert():
+    class C:
+        def __invert__(self):
+            nonlocal a
+            del a
+
+            return False
+
+    c = C()
+
+    a = 1
+    ~c
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInvert()
+except UnboundLocalError:
+    print("OK, object invert correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaLshift():
+    class C:
+        def __lshift__(self, other):
+            nonlocal a
+            del a
+
+            return False
+
+    c = C()
+
+    a = 1
+    c << 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaLshift()
+except UnboundLocalError:
+    print("OK, object lshift correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaRshift():
+    class C:
+        def __rshift__(self, other):
+            nonlocal a
+            del a
+
+            return False
+
+    c = C()
+
+    a = 1
+    c >> 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaRshift()
+except UnboundLocalError:
+    print("OK, object rshift correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaBitwiseAnd():
+    class C:
+        def __and__(self, other):
+            nonlocal a
+            del a
+
+            return False
+
+    c = C()
+
+    a = 1
+    c & 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaBitwiseAnd()
+except UnboundLocalError:
+    print("OK, object bitwise and correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaBitwiseOr():
+    class C:
+        def __or__(self, other):
+            nonlocal a
+            del a
+
+            return False
+
+    c = C()
+
+    a = 1
+    c | 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaBitwiseOr()
+except UnboundLocalError:
+    print("OK, object bitwise or correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaBitwiseXor():
+    class C:
+        def __xor__(self, other):
+            nonlocal a
+            del a
+
+            return False
+
+    c = C()
+
+    a = 1
+    c ^ 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaBitwiseXor()
+except UnboundLocalError:
+    print("OK, object bitwise xor correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInt():
+    class C:
+        def __int__(self):
+            nonlocal a
+            del a
+
+            return False
+
+    c = C()
+
+    a = 1
+    int(c)
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInt()
+except UnboundLocalError:
+    print("OK, object int correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaFloat():
+    class C:
+        def __float__(self):
+            nonlocal a
+            del a
+
+            return 0.0
+
+    c = C()
+
+    a = 1
+    float(c)
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaFloat()
+except UnboundLocalError:
+    print("OK, object float correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInplaceAdd():
+    class C:
+        def __iadd__(self, other):
+            nonlocal a
+            del a
+    c = C()
+
+    a = 1
+    c += 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceAdd()
+except UnboundLocalError:
+    print("OK, object inplace add correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInplaceSub():
+    class C:
+        def __isub__(self, other):
+            nonlocal a
+            del a
+    c = C()
+
+    a = 1
+    c -= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceSub()
+except UnboundLocalError:
+    print("OK, object inplace sub correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+# TODO: More in-place operations are missing here.
+
+
+def someFunctionThatReturnsDeletedValueViaIndex():
+    class C:
+        def __index__(self):
+            nonlocal a
+            del a
+
+            return 0
+
+    c = C()
+
+    a = 1
+    [1][c]
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaIndex()
+except UnboundLocalError:
+    print("OK, object index correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaLen():
+    class C:
+        def __len__(self):
+            nonlocal a
+            del a
+
+            return 0
+
+    c = C()
+
+    a = 1
+    len(c)
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaLen()
+except UnboundLocalError:
+    print("OK, object len correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+# TODO: The matrix multiply needs a dedicated test too.
+
+
+# TODO: There is a whole lot more operations to cover.
+
 
 def someFunctionThatReturnsDeletedValueViaRepr():
     class C:
@@ -301,6 +716,75 @@ else:
     print("Ouch.!")
 
 
-# TODO: The "del" operation may surrect a variable value by "__del__".
+def someFunctionThatReturnsDeletedValueViaDel():
+    class C:
+        def __del__(self):
+            nonlocal a
+            del a
+
+            return "<some_repr>"
+
+    c = C()
+
+
+    a = 1
+    del c
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaDel()
+except UnboundLocalError:
+    print("OK, object del correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaHash():
+    class C:
+        def __hash__(self):
+            nonlocal a
+            del a
+
+            return 42
+
+    c = C()
+
+    a = 1
+    {}[c] = 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaHash()
+except UnboundLocalError:
+    print("OK, object hash correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaIter():
+    class C:
+        def __iter__(self):
+            nonlocal a
+            del a
+
+            return iter(range(2))
+
+    c = C()
+
+    a = 1
+    x, y = c
+    return a, x, y
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaIter()
+except UnboundLocalError:
+    print("OK, object iter correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
 
 # TODO: There must be way more than these.
