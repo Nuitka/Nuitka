@@ -711,6 +711,9 @@ Compile time constant len value pre-computed."""
             )
 
         # TODO: Look-up of subscript to index may happen.
+        # Any code could be run due to that, note that.
+        trace_collection.onControlFlowEscape(self)
+
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return lookup_node, None, None
