@@ -67,12 +67,18 @@ def main():
     _options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["bin", "nuitka", "tests/reflected/compile_itself.py"]
+        positional_args = [
+            "bin",
+            "nuitka",
+            "tests/reflected/compile_itself.py"
+        ]
 
     target_files = []
-    for filename in scanTargets(positional_args, (".py",)):
+    for filename in scanTargets(positional_args, (".py", ".scons")):
 
         package_name = os.path.dirname(filename)
+
+        # Make imports local if possible.
         if package_name.startswith("nuitka" + os.path.sep):
             package_name = package_name.replace(os.path.sep, '.')
 
@@ -86,8 +92,6 @@ def main():
 
 
         target_files.append(filename)
-
-    target_files.append("nuitka/build/SingleExe.scons")
 
     setupPATH()
     subprocess.check_call(
