@@ -196,9 +196,13 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
     # Missed optimization opportunity, please report it, this should not
     # normally happen. We are supposed to propagate this upwards.
     if isDebug():
+        # TODO: Need to optimize ExpressionLocalsVariableRefORFallback once we know
+        # it handles cases where the value is not in locals dict properly.
+
         parent = expression.parent
         assert parent.isExpressionSideEffects() or \
-               parent.isExpressionConditional(), \
+               parent.isExpressionConditional() or \
+               parent.isExpressionLocalsVariableRefORFallback(), \
                (expression, expression.parent, expression.asXmlText())
 
     # That's how we indicate exception to the surrounding world.
