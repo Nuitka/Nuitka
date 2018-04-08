@@ -49,7 +49,7 @@ def displayOutput(stdout, stderr):
 
 
 def checkNoPermissionError(output):
-    for candidate in (b"Permission denied:", b"PermissionError:"):
+    for candidate in (b"Permission denied:", b"PermissionError:", b"DBPermissionsError:"):
         if candidate in output:
             return False
 
