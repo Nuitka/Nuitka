@@ -173,8 +173,7 @@ class VariableTraceBase(object):
     def mustHaveValue(self):
         # TODO: Temporarily disable far reaching of assumptions, until value
         # escaping can be trusted.
-        if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically() is not False:
+        if self.variable.isModuleVariable():
             return False
 
         # Merge traces have this overloaded.
@@ -182,8 +181,7 @@ class VariableTraceBase(object):
         return self.isInitTrace() or self.isAssignTrace()
 
     def mustNotHaveValue(self):
-        if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically() is not False:
+        if self.variable.isModuleVariable():
             return False
 
         return self.isUninitTrace()
