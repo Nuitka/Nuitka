@@ -162,7 +162,7 @@ def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(template,
     if type_name is not None:
         result = makeRaiseExceptionReplacementExpressionFromInstance(
             expression = original_node,
-            exception  = TypeError(template % type_name)
+            exception  = TypeError(template % type_name if '%' in template else template)
         )
 
         result = wrapExpressionWithNodeSideEffects(

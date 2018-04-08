@@ -27,6 +27,8 @@ from abc import abstractmethod
 
 from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
 from nuitka.Constants import isCompileTimeConstantValue
+from nuitka.Options import isFullCompat
+from nuitka.PythonVersions import python_version
 
 from .NodeBases import ChildrenHavingMixin, NodeBase
 from .NodeMakingHelpers import (
@@ -386,6 +388,19 @@ class ExpressionBase(NodeBase):
         return len_node, None, None
 
     def computeExpressionInt(self, int_node, trace_collection):
+        shape = self.getTypeShape()
+
+        if shape.hasShapeSlotInt() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template      =
+                    "int() argument must be a string or a number, not '%s'"
+                      if python_version < 300 else
+                    "int() argument must be a string, a bytes-like object or a number, not '%s'",
+                operation     = "int",
+                original_node = int_node,
+                value_node    = self
+            )
+
         self.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.
@@ -397,6 +412,16 @@ class ExpressionBase(NodeBase):
         return int_node, None, None
 
     def computeExpressionLong(self, long_node, trace_collection):
+        shape = self.getTypeShape()
+
+        if shape.hasShapeSlotLong() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template      = "long() argument must be a string or a number, not '%s'",
+                operation     = "long",
+                original_node = long_node,
+                value_node    = self
+            )
+
         self.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.
@@ -408,6 +433,18 @@ class ExpressionBase(NodeBase):
         return long_node, None, None
 
     def computeExpressionFloat(self, float_node, trace_collection):
+        shape = self.getTypeShape()
+
+        if shape.hasShapeSlotFloat() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                    "float() argument must be a string or a number"
+                      if isFullCompat() and python_version < 300 else
+                    "float() argument must be a string or a number, not '%s'",
+                operation     = "long",
+                original_node = float_node,
+                value_node    = self
+            )
+
         self.onContentEscapes(trace_collection)
 
         # Any code could be run, note that.
@@ -420,8 +457,6 @@ class ExpressionBase(NodeBase):
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         shape = self.getTypeShape()
-
-        assert shape is not None, self
 
         if shape.hasShapeSlotIter() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
