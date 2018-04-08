@@ -589,6 +589,47 @@ except UnboundLocalError:
 else:
     print("Ouch.!")
 
+
+def someFunctionThatReturnsDeletedValueViaInplaceMul():
+    class C:
+        def __imul__(self, other):
+            nonlocal a
+            del a
+    c = C()
+
+    a = 1
+    c *= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceMul()
+except UnboundLocalError:
+    print("OK, object inplace mul correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
+def someFunctionThatReturnsDeletedValueViaInplaceRemainder():
+    class C:
+        def __imod__(self, other):
+            nonlocal a
+            del a
+    c = C()
+
+    a = 1
+    c %= 1
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaInplaceRemainder()
+except UnboundLocalError:
+    print("OK, object inplace remainder correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
 # TODO: More in-place operations are missing here.
 
 
