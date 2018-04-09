@@ -555,7 +555,11 @@ PyObject *CALL_METHOD_NO_ARGS( PyObject *source, PyObject *attr_name )
         if ( descr != NULL )
         {
             CHECK_OBJECT( descr );
-            return CALL_FUNCTION_NO_ARGS( descr );
+
+            PyObject *result = CALL_FUNCTION_NO_ARGS( descr );
+            Py_DECREF( descr );
+
+            return result;
         }
 
 #if PYTHON_VERSION < 300
