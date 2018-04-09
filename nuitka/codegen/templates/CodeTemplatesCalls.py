@@ -521,10 +521,14 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
         if ( descr != NULL )
         {
             CHECK_OBJECT( descr );
-            return CALL_FUNCTION_WITH_ARGS%(args_count)d(
+
+            PyObject *result = CALL_FUNCTION_WITH_ARGS%(args_count)d(
                 descr,
                 args
             );
+            Py_DECREF( descr );
+
+            return result;
         }
 
 #if PYTHON_VERSION < 300
