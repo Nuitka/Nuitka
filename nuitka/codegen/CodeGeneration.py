@@ -211,7 +211,11 @@ from .OperationCodes import (
     generateOperationUnaryCode
 )
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
-from .RaisingCodes import generateRaiseCode, generateRaiseExpressionCode
+from .RaisingCodes import (
+    generateRaiseCode,
+    generateRaiseExpressionCode,
+    generateReraiseCode
+)
 from .ReturnCodes import (
     generateGeneratorReturnNoneCode,
     generateGeneratorReturnValueCode,
@@ -725,6 +729,7 @@ setStatementDispatchDict(
         "STATEMENT_LOOP_CONTINUE"             : generateLoopContinueCode,
         "STATEMENT_RAISE_EXCEPTION"           : generateRaiseCode,
         "STATEMENT_RAISE_EXCEPTION_IMPLICIT"  : generateRaiseCode,
+        "STATEMENT_RERAISE_EXCEPTION"         : generateReraiseCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK"      : generateUnpackCheckCode,
         "STATEMENT_EXEC"                      : generateExecCode,
         "STATEMENT_LOCALS_DICT_SYNC"          : generateLocalsDictSyncCode,

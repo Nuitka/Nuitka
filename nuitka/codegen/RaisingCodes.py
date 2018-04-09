@@ -33,6 +33,21 @@ from .LineNumberCodes import (
 from .PythonAPICodes import getReferenceExportCode
 
 
+def generateReraiseCode(statement, emit, context):
+    context.markAsNeedsExceptionVariables()
+
+    old_source_ref = context.setCurrentSourceCodeReference(
+        value = statement.getCompatibleSourceReference()
+    )
+
+    getReRaiseExceptionCode(
+        emit    = emit,
+        context = context
+    )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
+
+
 def generateRaiseCode(statement, emit, context):
     exception_type  = statement.getExceptionType()
     exception_value = statement.getExceptionValue()
@@ -76,20 +91,7 @@ def generateRaiseCode(statement, emit, context):
 
         context.setCurrentSourceCodeReference(old_source_ref)
     elif exception_type is None:
-        assert exception_cause is None
-        assert exception_value is None
-        assert exception_tb is None
-
-        old_source_ref = context.setCurrentSourceCodeReference(
-            value = statement.getCompatibleSourceReference()
-        )
-
-        getReRaiseExceptionCode(
-            emit    = emit,
-            context = context
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
+        assert False, statement
     elif exception_value is None and exception_tb is None:
         raise_type_name  = context.allocateTempName("raise_type")
 
@@ -139,7 +141,7 @@ def generateRaiseCode(statement, emit, context):
         getRaiseExceptionWithValueCode(
             raise_type_name  = raise_type_name,
             raise_value_name = raise_value_name,
-            implicit         = statement.isImplicit(),
+            implicit         = statement.isStatementRaiseExceptionImplicit(),
             emit             = emit,
             context          = context
         )
@@ -230,7 +232,7 @@ if (unlikely( %(bool_res_name)s == false ))
 }
 """ % {
                 "bool_res_name" : context.getBoolResName(),
-                "update_code" : getErrorLineNumberUpdateCode(context)
+                "update_code"   : getErrorLineNumberUpdateCode(context)
 
             }
         )

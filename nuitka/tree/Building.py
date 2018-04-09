@@ -78,7 +78,10 @@ from nuitka.nodes.ConstantRefNodes import (
     makeConstantRefNode
 )
 from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
-from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.ExceptionNodes import (
+    StatementRaiseException,
+    StatementReraiseException
+)
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
 from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeFileRef
@@ -282,30 +285,39 @@ def buildRaiseNode(provider, node, source_ref):
         exception_trace = None
         exception_cause = buildNode(provider, node.cause, source_ref, allow_none = True)
 
-    result = StatementRaiseException(
-        exception_type  = exception_type,
-        exception_value = exception_value,
-        exception_trace = exception_trace,
-        exception_cause = exception_cause,
-        source_ref      = source_ref
-    )
+    if exception_type is None:
+        assert exception_value is None
+        assert exception_trace is None
+        assert exception_cause is None
 
-    if exception_cause is not None:
-        result.setCompatibleSourceReference(
-            source_ref = exception_cause.getCompatibleSourceReference()
+        result = StatementReraiseException(
+            source_ref = source_ref
         )
-    elif exception_trace is not None:
-        result.setCompatibleSourceReference(
-            source_ref = exception_trace.getCompatibleSourceReference()
+    else:
+        result = StatementRaiseException(
+            exception_type  = exception_type,
+            exception_value = exception_value,
+            exception_trace = exception_trace,
+            exception_cause = exception_cause,
+            source_ref      = source_ref
         )
-    elif exception_value is not None:
-        result.setCompatibleSourceReference(
-            source_ref = exception_value.getCompatibleSourceReference()
-        )
-    elif exception_type is not None:
-        result.setCompatibleSourceReference(
-            source_ref = exception_type.getCompatibleSourceReference()
-        )
+
+        if exception_cause is not None:
+            result.setCompatibleSourceReference(
+                source_ref = exception_cause.getCompatibleSourceReference()
+            )
+        elif exception_trace is not None:
+            result.setCompatibleSourceReference(
+                source_ref = exception_trace.getCompatibleSourceReference()
+            )
+        elif exception_value is not None:
+            result.setCompatibleSourceReference(
+                source_ref = exception_value.getCompatibleSourceReference()
+            )
+        elif exception_type is not None:
+            result.setCompatibleSourceReference(
+                source_ref = exception_type.getCompatibleSourceReference()
+            )
 
     return result
 

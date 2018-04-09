@@ -20,11 +20,21 @@
 """
 
 from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import NodeBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 
-class StatementRaiseException(StatementChildrenHavingBase):
+class StatementRaiseExceptionMixin(object):
+    @staticmethod
+    def isStatementAborting():
+        return True
+
+    @staticmethod
+    def isStatementRaiseException():
+        return True
+
+
+class StatementRaiseException(StatementRaiseExceptionMixin, StatementChildrenHavingBase):
     kind = "STATEMENT_RAISE_EXCEPTION"
 
     named_children = (
@@ -36,6 +46,8 @@ class StatementRaiseException(StatementChildrenHavingBase):
 
     def __init__(self, exception_type, exception_value, exception_trace,
                  exception_cause, source_ref):
+        assert exception_type is not None
+
         if exception_type is None:
             assert exception_value is None
 
@@ -67,16 +79,6 @@ class StatementRaiseException(StatementChildrenHavingBase):
     getExceptionCause = StatementChildrenHavingBase.childGetter(
         "exception_cause"
     )
-
-    def isStatementReraiseException(self):
-        return self.getExceptionType() is None
-
-    def isStatementAborting(self):
-        return True
-
-    @staticmethod
-    def isImplicit():
-        return False
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(
@@ -157,19 +159,26 @@ Explicit raise already raises implicitly building exception cause."""
         return self, None, None
 
     def needsFrame(self):
-        return not self.isStatementReraiseException()
+        return True
 
 
 class StatementRaiseExceptionImplicit(StatementRaiseException):
     kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"
 
-    @staticmethod
-    def isStatementRaiseException():
-        return True
 
-    @staticmethod
-    def isImplicit():
-        return True
+class StatementReraiseException(StatementRaiseExceptionMixin, NodeBase):
+    kind = "STATEMENT_RERAISE_EXCEPTION"
+
+    def __init__(self, source_ref):
+        NodeBase.__init__(self, source_ref = source_ref)
+
+    def computeStatement(self, trace_collection):
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def needsFrame(self):
+        return False
 
 
 class ExpressionRaiseException(ExpressionChildrenHavingBase):

@@ -36,7 +36,10 @@ from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
     ExpressionMakeDict
 )
-from nuitka.nodes.ExceptionNodes import StatementRaiseException
+from nuitka.nodes.ExceptionNodes import (
+    StatementRaiseException,
+    StatementReraiseException
+)
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
     StatementsFrameCoroutine,
@@ -670,12 +673,8 @@ def getStatementsPrepended(statement_sequence, statements):
 def makeReraiseExceptionStatement(source_ref):
     return StatementsSequence(
         statements = (
-            StatementRaiseException(
-                exception_type  = None,
-                exception_value = None,
-                exception_trace = None,
-                exception_cause = None,
-                source_ref      = source_ref
+            StatementReraiseException(
+                source_ref = source_ref
             ),
         ),
         source_ref = source_ref
