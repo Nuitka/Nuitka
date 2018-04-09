@@ -21,11 +21,11 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import sys
 from optparse import OptionParser
+
+from nuitka.Tracing import my_print
 
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
@@ -71,7 +71,7 @@ def main():
     if not positional_args:
         positional_args = ["bin", "nuitka"]
 
-    print("Working on:", positional_args)
+    my_print("Working on:", positional_args)
 
     positional_args = [
         os.path.abspath(positional_arg)

@@ -29,6 +29,8 @@ import subprocess
 import sys
 from optparse import OptionParser
 
+from nuitka.tools.quality.autoformat.Autoformat import cleanupWindowsNewlines
+
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
 sys.path.insert(
@@ -75,6 +77,9 @@ def main():
 
     target_files = []
     for filename in scanTargets(positional_args, (".py", ".scons")):
+        # This breaks the PyLint annotations currently.
+        if os.path.basename(filename) == "Autoformat.py":
+            continue
 
         package_name = os.path.dirname(filename)
 
@@ -103,6 +108,11 @@ def main():
             "__init__.py"
         ] + target_files
     )
+
+    # For Windows, work around that isort changes encoding.
+    if os.name == "nt":
+        for filename in target_files:
+            cleanupWindowsNewlines(filename)
 
 if __name__ == "__main__":
     main()
