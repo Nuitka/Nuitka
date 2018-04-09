@@ -32,6 +32,7 @@ from .FileOperations import makePath
 try:
     import appdirs
 except ImportError:
+    # Temporarily add the inline copy of appdir to the import path.
     sys.path.append(
         os.path.join(
             os.path.dirname(__file__),
@@ -44,6 +45,9 @@ except ImportError:
         import appdirs
     except ImportError:
         appdirs = None
+
+    # Do not forget to remove it again.
+    del sys.path[-1]
 
 
 def getCacheDir():
