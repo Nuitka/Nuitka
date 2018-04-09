@@ -19,7 +19,7 @@ Bug Fixes
   Fixed in 0.5.29.3 already.
 
 - Python3.5: Dictionary unpackings with both star arguments and non star
-  arguments could leak memory.
+  arguments could leak memory. Fixed in 0.5.29.3 already.
 
   .. code-block:: python
 
@@ -27,6 +27,36 @@ Bug Fixes
 
 - Fix, distutils usage was not working for Python2 anymore, due to using
   ``super`` for what are old style classes on that version.
+
+- Fix, some method calls to C function members could leak references.
+
+  .. code-block:: python
+
+    class C:
+       for_call = functools.partial
+
+       def m():
+          self.for_call() # This leaked a reference to the descriptor.
+
+New Features
+------------
+
+- Added option ``--include-package`` to force inclusion of a whole package with
+  the submodules in a compilation result.
+
+- Added options ``--include-module`` to force inclusion of a single module in
+  a compilation result.
+
+Optimization
+------------
+
+- The re-raising of exceptions has gotten its own special node type. This aims
+  at more readability (XML output) and avoiding the overhead of checking
+  potential attributes during optimization.
+
+- Changed built-in ``int``, ``long``, and ``float`` to using a slot mechanism
+  that also analyses the type shape and detects and warns about errors at
+  compile time.
 
 Tests
 -----
@@ -44,19 +74,42 @@ Tests
 - Added PyLint to Travis builds, so PRs are automatically checked too.
 
 - Added test for distutils usage with Nuitka that should prevent regressions
-  for this new feature in the future.
+  for this new feature and to document how it can be used.
+
+- Make coverage taking work on Windows and provide the full information needed,
+  the rendering stage is not there working yet though.
+
+- Expanded the trick assignment test cases to cover more slots to find bugs
+  introduced with more aggressive optimization of closure variables.
 
 Cleanups
 --------
 
 - Stop using ``--python-version`` in tests where they still remained.
 
+- Split the forms of ``int`` and ``long`` into two different nodes, they share
+  nothing except the name. Create the constants for the zero arg variant more
+  immediately.
+
+- Split the output comparison part into a dedicated testing module so it can
+  be re-used, e.g. when doing distutils tests.
+
+- Removed dead code from variable closure taking.
+
 Organizational
 --------------
+
+- There is now a pull request template for Github when used.
 
 - Deprecating the ``--python-version`` argument which should be replaced by
   using ``-m nuitka`` with the correct Python version. Outputs have been
   updated to recommend this one instead.
+
+- Make automatic import sorting and autoformat tools properly executable on
+  Windows without them changing new lines.
+
+- The documentation was updated to prefer the call method with ``-m nuitka``
+  and manually providing the Python binary to use.
 
 Summary
 -------
@@ -213,7 +266,7 @@ Organizational
 - Removed support for Debian Wheezy and Ubuntu Precise (they are too old for
   modern packaging used).
 
-- There is now a issue template for Github, so when used.
+- There is now a issue template for Github when used.
 
 Tests
 -----
