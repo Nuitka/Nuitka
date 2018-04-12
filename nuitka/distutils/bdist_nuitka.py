@@ -25,6 +25,8 @@ import os
 import shutil
 import subprocess
 import sys
+import collections
+from nuitka.__past__ import unicode
 
 import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
@@ -110,6 +112,7 @@ class build(distutils.command.build.build):
             "--output-dir=%s" % output_dir,
             "--recurse-dir=%s" % self.main_package,
             "--recurse-to=%s" % self.main_package,
+            "--recurse-not-to=*.tests",
             "--show-modules",
             "--remove-output"
         ]
@@ -121,7 +124,8 @@ class build(distutils.command.build.build):
                 source, value = details
                 if value is None:
                     command.append(option)
-                elif hasattr(value, '__iter__'):
+                elif isinstance(value, collections.Iterable) and \
+                        not isinstance(value, (unicode, bytes, str)):
                     for val in value:
                         command.append('%s=%s' % (option, val))
                 else:
