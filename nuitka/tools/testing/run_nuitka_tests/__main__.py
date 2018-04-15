@@ -244,15 +244,6 @@ Do not use Python2.7 even if available on the system. Default is %default."""
     )
 
     parser.add_option(
-        "--no-python3.2",
-        action  = "store_true",
-        dest    = "no32",
-        default = False,
-        help    = """\
-Do not use Python3.2 even if available on the system. Default is %default."""
-    )
-
-    parser.add_option(
         "--no-python3.3",
         action  = "store_true",
         dest    = "no33",
@@ -310,8 +301,6 @@ Make a coverage analysis, that does not really check. Default is %default."""
             options.no26 = True
         if sys.version_info[0:2] != (2,7):
             options.no27 = True
-        if sys.version_info[0:2] != (3,2):
-            options.no32 = True
         if sys.version_info[0:2] != (3,3):
             options.no33 = True
         if sys.version_info[0:2] != (3,4):
@@ -367,8 +356,6 @@ Make a coverage analysis, that does not really check. Default is %default."""
             return False
         if command == "python2.7" and options.no27:
             return False
-        if command == "python3.2" and options.no32:
-            return False
         if command == "python3.3" and options.no33:
             return False
         if command == "python3.4" and options.no34:
@@ -383,8 +370,6 @@ Make a coverage analysis, that does not really check. Default is %default."""
         if command == "python2.6" and sys.version_info[0:2] == (2,6):
             return True
         if command == "python2.7" and sys.version_info[0:2] == (2,7):
-            return True
-        if command == "python3.2" and sys.version_info[0:2] == (3,2):
             return True
         if command == "python3.3" and sys.version_info[0:2] == (3,3):
             return True

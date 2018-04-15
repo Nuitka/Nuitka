@@ -130,7 +130,7 @@ parser.add_option(
     dest    = "python_scons",
     default = None,
     help    = """\
-If using Python3.2 to Python3.4, provide the path of a Python binary to use
+If using Python3.3 or Python3.4, provide the path of a Python binary to use
 for Scons. Otherwise Nuitka can use what you run Nuitka with or a "scons"
 binary that is found in PATH, or a Python installation from Windows registry."""
 )
