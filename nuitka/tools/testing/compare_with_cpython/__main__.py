@@ -54,7 +54,7 @@ def checkNoPermissionError(output):
             return False
 
     # These are localized it seems.
-    if re.search(b"(WindowsError|FileNotFoundError):.*@test", output):
+    if re.search(b"(WindowsError|FileNotFoundError|FileExistsError):.*@test", output):
         return False
 
     return True
