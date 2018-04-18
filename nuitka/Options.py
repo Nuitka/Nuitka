@@ -922,27 +922,45 @@ def _splitShellPattern(value):
 
 
 def getShallFollowInNoCase():
-    return sum([ _splitShellPattern(x) for x in options.recurse_not_modules ], [])
+    return sum(
+        [_splitShellPattern(x) for x in options.recurse_not_modules ],
+        []
+    )
 
 
 def getShallFollowModules():
-    return sum([ _splitShellPattern(x) for x in options.recurse_modules ], [])
+    return sum(
+        [_splitShellPattern(x) for x in options.recurse_modules + options.include_modules + options.include_packages],
+        []
+    )
 
 
 def getShallFollowExtra():
-    return sum([ x.split(',') for x in options.recurse_extra ], [])
+    return sum(
+        [_splitShellPattern(x) for x in options.recurse_extra],
+        []
+    )
 
 
 def getShallFollowExtraFilePatterns():
-    return sum([ x.split(',') for x in options.recurse_extra_files ], [])
+    return sum(
+        [_splitShellPattern(x) for x in options.recurse_extra_files],
+        []
+    )
 
 
 def getMustIncludeModules():
-    return sum([ x.split(',') for x in options.include_modules ], [])
+    return sum(
+        [_splitShellPattern(x) for x in options.include_modules],
+        []
+    )
 
 
 def getMustIncludePackages():
-    return sum([ x.split(',') for x in options.include_packages ], [])
+    return sum(
+        [_splitShellPattern(x) for x in options.include_packages ],
+        []
+    )
 
 
 def shallWarnImplicitRaises():
