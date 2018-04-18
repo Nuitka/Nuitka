@@ -104,7 +104,7 @@ class ExpressionVariableLocalNameRef(ExpressionVariableNameRef):
 class ExpressionVariableRefBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = "variable", "variable_trace"
+    __slots__ = "variable", "variable_version", "variable_trace"
 
     def __init__(self, variable, source_ref):
         ExpressionBase.__init__(
@@ -114,6 +114,7 @@ class ExpressionVariableRefBase(ExpressionBase):
 
         self.variable = variable
         self.variable_trace = None
+        self.variable_version = None
 
     def getVariableName(self):
         return self.variable.getName()
@@ -122,7 +123,10 @@ class ExpressionVariableRefBase(ExpressionBase):
         return self.variable
 
     def getVariableVersion(self):
-        return self.variable_trace.getVersion()
+        return self.variable_version
+
+    def getVariableTrace(self):
+        return self.variable_trace
 
 
 class ExpressionVariableRef(ExpressionVariableRefBase):
@@ -193,7 +197,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         variable = self.variable
         assert variable is not None
 
-        self.variable_trace = trace_collection.getVariableCurrentTrace(
+        self.variable_version, self.variable_trace = trace_collection.getVariableCurrentTraceVersion(
             variable = variable
         )
 
@@ -513,7 +517,7 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
             return ShapeUnknown
 
     def computeExpressionRaw(self, trace_collection):
-        self.variable_trace = trace_collection.getVariableCurrentTrace(
+        self.variable_version, self.variable_trace = trace_collection.getVariableCurrentTraceVersion(
             variable = self.variable
         )
 

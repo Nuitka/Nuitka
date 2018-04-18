@@ -418,25 +418,26 @@ class StatementDelVariable(NodeBase):
     """
     kind = "STATEMENT_DEL_VARIABLE"
 
-    __slots__ = "variable", "variable_version", "variable_trace", "previous_trace", "tolerant"
+    __slots__ = "variable", "variable_version", "variable_trace", "previous_version", "previous_trace", "tolerant"
 
     def __init__(self, tolerant, source_ref, variable, version = None):
         if type(tolerant) is str:
             tolerant = tolerant == "True"
-
         assert tolerant is True or tolerant is False, repr(tolerant)
 
         if variable is not None:
             if version is None:
                 version = variable.allocateTargetNumber()
 
-        self.variable = variable
-        self.variable_version = version
-
         NodeBase.__init__(
             self,
             source_ref = source_ref
         )
+
+        self.variable = variable
+        self.variable_version = version
+
+        self.previous_version = None
 
         self.variable_trace = None
         self.previous_trace = None
@@ -522,7 +523,7 @@ class StatementDelVariable(NodeBase):
     def computeStatement(self, trace_collection):
         variable = self.variable
 
-        self.previous_trace = trace_collection.getVariableCurrentTrace(variable)
+        self.previous_version, self.previous_trace = trace_collection.getVariableCurrentTraceVersion(variable)
 
         # First eliminate us entirely if we can.
         if self.tolerant and self.previous_trace.isUninitTrace():
@@ -594,7 +595,7 @@ class StatementReleaseVariable(NodeBase):
 
     kind = "STATEMENT_RELEASE_VARIABLE"
 
-    __slots__ = "variable", "variable_trace"
+    __slots__ = "variable", "variable_version", "variable_trace"
 
     def __init__(self, variable, source_ref):
         assert variable is not None, source_ref
@@ -605,6 +606,7 @@ class StatementReleaseVariable(NodeBase):
         )
 
         self.variable = variable
+        self.variable_version = None
 
         self.variable_trace = None
 
@@ -640,13 +642,13 @@ class StatementReleaseVariable(NodeBase):
         return self.variable
 
     def getVariableVersion(self):
-        return self.variable_trace.getVersion()
+        return self.variable_version
 
     def setVariable(self, variable):
         self.variable = variable
 
     def computeStatement(self, trace_collection):
-        self.variable_trace = trace_collection.getVariableCurrentTrace(self.variable)
+        self.variable_version, self.variable_trace = trace_collection.getVariableCurrentTraceVersion(self.variable)
 
         if self.variable_trace.isUninitTrace():
             return (

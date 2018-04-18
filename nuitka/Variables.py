@@ -23,6 +23,7 @@ module variable references.
 
 """
 
+from nuitka.__past__ import iterItems
 from nuitka.nodes.shapes.StandardShapes import ShapeUnknown
 from nuitka.utils import InstanceCounters, Utils
 
@@ -145,7 +146,6 @@ class Variable(object):
 
     def removeTrace(self, variable_trace):
         # Make it unusable, and break GC cycles while at it.
-        variable_trace.variable = None
         variable_trace.previous = None
 
         self.traces.remove(variable_trace)
@@ -316,16 +316,12 @@ def updateVariablesFromCollection(old_collection, new_collection):
     touched_variables = set()
 
     if old_collection is not None:
-        for variable_trace in old_collection.getVariableTracesAll().values():
-            variable = variable_trace.getVariable()
-
+        for (variable, _version), variable_trace in iterItems(old_collection.getVariableTracesAll()):
             variable.removeTrace(variable_trace)
             touched_variables.add(variable)
 
     if new_collection is not None:
-        for variable_trace in new_collection.getVariableTracesAll().values():
-            variable = variable_trace.getVariable()
-
+        for (variable, _version), variable_trace in iterItems(new_collection.getVariableTracesAll()):
             variable.addTrace(variable_trace)
             touched_variables.add(variable)
 

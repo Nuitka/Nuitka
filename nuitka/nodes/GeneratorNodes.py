@@ -67,10 +67,12 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
         self.variable_closure_traces = []
 
         for closure_variable in self.getGeneratorRef().getFunctionBody().getClosureVariables():
-            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            version, trace = trace_collection.getVariableCurrentTraceVersion(closure_variable)
             trace.addClosureUsage()
 
-            self.variable_closure_traces.append(trace)
+            self.variable_closure_traces.append(
+                (closure_variable, version, trace)
+            )
 
         # TODO: Generator body may know something too.
         return self, None, None
@@ -82,11 +84,7 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
         return False
 
     def getClosureVariableVersions(self):
-        return [
-            (trace.getVariable(), trace.getVersion())
-            for trace in self.variable_closure_traces
-        ]
-
+        return self.variable_closure_traces
 
 
 class ExpressionGeneratorObjectBody(MarkUnoptimizedFunctionIndicatorMixin,

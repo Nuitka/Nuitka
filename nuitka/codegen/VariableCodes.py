@@ -19,6 +19,13 @@
 
 """
 
+from nuitka.Options import isExperimental
+
+from .c_types.CTypePyObjectPtrs import (
+    CTypeCellObject,
+    CTypePyObjectPtr,
+    CTypePyObjectPtrPtr
+)
 from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getCheckObjectCode, getNameReferenceErrorCode
 from .templates.CodeTemplatesVariables import (
@@ -58,8 +65,8 @@ def generateDelVariableCode(statement, emit, context):
 
     getVariableDelCode(
         variable    = statement.getVariable(),
-        new_version = statement.variable_trace.getVersion(),
-        old_version = statement.previous_trace.getVersion(),
+        new_version = statement.variable_version,
+        old_version = statement.previous_version,
         tolerant    = statement.isTolerant(),
         needs_check = statement.isTolerant() or \
                       statement.mayRaiseException(BaseException),
@@ -111,6 +118,40 @@ def getVariableCodeName(in_context, variable):
     else:
         return "var_" + variable.getCodeName()
 
+enable_bool_ctype = isExperimental("enable_bool_ctype")
+
+def getPickedCType(variable, version, context):
+    """ Return type to use for specific context. """
+
+    user = context.getEntryPoint()
+    owner = variable.getEntryPoint()
+
+    if owner is user:
+        if variable.isSharedTechnically():
+            result = CTypeCellObject
+        else:
+            if enable_bool_ctype:
+                shapes = variable.getTypeShapes()
+
+                if len(shapes) > 1:
+                    return CTypePyObjectPtr
+                else:
+                    # We are avoiding this for now.
+                    assert shapes, (variable, version)
+
+                    return shapes.pop().getCType()
+            else:
+                return CTypePyObjectPtr
+    elif context.isForDirectCall():
+        if variable.isSharedTechnically():
+            result = CTypeCellObject
+        else:
+            result = CTypePyObjectPtrPtr
+    else:
+        result = CTypeCellObject
+
+    return result
+
 
 def getLocalVariableCodeType(context, variable, version):
     # Now must be local or temporary variable.
@@ -128,9 +169,7 @@ def getLocalVariableCodeType(context, variable, version):
         prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(owner)
         owner = entry_point
 
-    variable_trace = user.getTraceCollection().getVariableTrace(variable, version)
-
-    c_type = variable_trace.getPickedCType(context)
+    c_type = getPickedCType(variable, version, context)
 
     if owner is user:
         result = getVariableCodeName(

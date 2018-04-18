@@ -112,8 +112,11 @@ class StatementLoop(StatementChildrenHavingBase):
                 # the loop and hit a 'continue'.
                 for variable in self.loop_variables:
                     loop_entry_traces.add(
-                        trace_collection.markActiveVariableAsLoopMerge(
-                            variable = variable
+                        (
+                            variable,
+                            trace_collection.markActiveVariableAsLoopMerge(
+                                variable = variable
+                            )
                         )
                     )
 
@@ -138,9 +141,7 @@ class StatementLoop(StatementChildrenHavingBase):
 
                 self.loop_variables = set()
 
-                for loop_entry_trace in loop_entry_traces:
-                    variable = loop_entry_trace.getVariable()
-
+                for variable, loop_entry_trace in loop_entry_traces:
                     loop_end_traces = set()
 
                     for continue_collection in continue_collections:

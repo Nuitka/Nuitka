@@ -61,6 +61,17 @@ class CollectionTracingMixin(object):
             version  = self.getCurrentVariableVersion(variable)
         )
 
+    def getVariableCurrentTraceVersion(self, variable):
+        version = self.getCurrentVariableVersion(variable)
+
+        trace = self.getVariableTrace(
+            variable = variable,
+            version  = version
+        )
+
+        return version, trace
+
+
     def markCurrentVariableTrace(self, variable, version):
         self.variable_actives[variable] = version
 
@@ -92,8 +103,6 @@ class CollectionTracingMixin(object):
                 version  = version,
                 trace    = VariableTraceUnknown(
                     owner    = self.owner,
-                    variable = variable,
-                    version  = version,
                     previous = current
                 )
             )
@@ -107,11 +116,7 @@ class CollectionTracingMixin(object):
 
         version = variable.allocateTargetNumber()
 
-        result = VariableTraceLoopMerge(
-            variable = variable,
-            version  = version,
-            previous = current
-        )
+        result = VariableTraceLoopMerge(current)
 
         self.addVariableTrace(
             variable = variable,
@@ -251,11 +256,7 @@ class CollectionStartpointMixin(object):
     def addVariableMergeMultipleTrace(self, variable, traces):
         version = variable.allocateTargetNumber()
 
-        trace_merge = VariableTraceMerge(
-            variable = variable,
-            version  = version,
-            traces   = traces
-        )
+        trace_merge = VariableTraceMerge(traces)
 
         self.addVariableTrace(variable, version, trace_merge)
 
@@ -280,8 +281,6 @@ class CollectionStartpointMixin(object):
     def initVariableUnknown(self, variable):
         trace = VariableTraceUnknown(
             owner    = self.owner,
-            variable = variable,
-            version  = 0,
             previous = None
         )
 
@@ -294,11 +293,7 @@ class CollectionStartpointMixin(object):
         return trace
 
     def _initVariableInit(self, variable):
-        trace = VariableTraceInit(
-            owner    = self.owner,
-            variable = variable,
-            version  = 0
-        )
+        trace = VariableTraceInit(self.owner)
 
         self.addVariableTrace(
             variable = variable,
@@ -311,8 +306,6 @@ class CollectionStartpointMixin(object):
     def _initVariableUninit(self, variable):
         trace = VariableTraceUninit(
             owner    = self.owner,
-            variable = variable,
-            version  = 0,
             previous = None
         )
 
@@ -387,8 +380,6 @@ class CollectionStartpointMixin(object):
             result = self._initVariableUninit(variable)
         else:
             assert False, variable
-
-        assert result.getVariable() is variable
 
         return result
 
@@ -527,8 +518,6 @@ class TraceCollectionBase(CollectionTracingMixin):
         variable_trace = VariableTraceAssign(
             owner       = self.owner,
             assign_node = assign_node,
-            variable    = variable,
-            version     = version,
             previous    = self.getVariableCurrentTrace(
                 variable = variable
             )
@@ -552,8 +541,6 @@ class TraceCollectionBase(CollectionTracingMixin):
 
         variable_trace = VariableTraceUninit(
             owner    = self.owner,
-            variable = variable,
-            version  = version,
             previous = old_trace
         )
 
@@ -580,7 +567,7 @@ class TraceCollectionBase(CollectionTracingMixin):
                (variable.getOwner() is locals_owner or
                 include_closure and locals_owner.hasClosureVariable(variable)) and \
                variable.getName() != ".0":
-                variable_trace = self.getVariableCurrentTrace(
+                version, variable_trace = self.getVariableCurrentTraceVersion(
                     variable
                 )
 
@@ -589,7 +576,7 @@ class TraceCollectionBase(CollectionTracingMixin):
                 result.append(
                     (
                         variable,
-                        variable_trace.getVersion()
+                        version
                     )
                 )
 
@@ -853,7 +840,6 @@ class TraceCollectionBranch(TraceCollectionBase):
 
     def initVariable(self, variable):
         variable_trace = self.parent.initVariable(variable)
-        assert variable_trace.getVersion() == 0
 
         self.variable_actives[variable] = 0
 
