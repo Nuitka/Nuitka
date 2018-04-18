@@ -500,7 +500,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
         # At least one Debian Jessie, these versions won't have lxml installed, so
         # don't run them there. Also these won't be very version dependent in their
         # results.
-        if use_python != "python2.6" and use_python != "python3.2":
+        if use_python != "python2.6":
             if options.optimization_tests:
                 print("Running the optimizations tests with options '%s' with %s:" % (flags, use_python))
                 setExtraFlags(where, "optimizations", flags)
@@ -590,18 +590,10 @@ Make a coverage analysis, that does not really check. Default is %default."""
 
     assert checkExecutableCommand("python2.6") or \
            checkExecutableCommand("python2.7") or \
-           checkExecutableCommand("python3.2") or \
            checkExecutableCommand("python3.3") or \
            checkExecutableCommand("python3.4") or \
            checkExecutableCommand("python3.5") or \
            checkExecutableCommand("python3.6")
-
-    # Just the quick syntax test, full tests are run later.
-    if checkExecutableCommand("python3.2"):
-        executeSubTest(
-            "python3.2 ./bin/nuitka --version",
-            hide_output = True
-        )
 
     if checkExecutableCommand("python2.6"):
         execute_tests("python2.6-debug", "python2.6", "--debug")
@@ -613,11 +605,6 @@ Make a coverage analysis, that does not really check. Default is %default."""
     else:
         print("Cannot execute tests with Python 2.7, disabled or not installed.")
 
-    if checkExecutableCommand("python3.2"):
-        execute_tests("python3.2-debug", "python3.2", "--debug")
-    else:
-        print("Cannot execute tests with Python 3.2, disabled or not installed.")
-
     if checkExecutableCommand("python2.6"):
         execute_tests("python2.6-nodebug", "python2.6", "")
     else:
@@ -627,11 +614,6 @@ Make a coverage analysis, that does not really check. Default is %default."""
         execute_tests("python2.7-nodebug", "python2.7", "")
     else:
         print("Cannot execute tests with Python 2.7, disabled or not installed.")
-
-    if checkExecutableCommand("python3.2"):
-        execute_tests("python3.2-nodebug", "python3.2", "")
-    else:
-        print("Cannot execute tests with Python 3.2, disabled or not installed.")
 
     if checkExecutableCommand("python3.3"):
         execute_tests("python3.3-nodebug", "python3.3", "")
