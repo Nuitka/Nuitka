@@ -38,13 +38,13 @@ from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
-from .VariableTraces import (
-    VariableTraceAssign,
-    VariableTraceInit,
-    VariableTraceLoopMerge,
-    VariableTraceMerge,
-    VariableTraceUninit,
-    VariableTraceUnknown
+from .ValueTraces import (
+    ValueTraceAssign,
+    ValueTraceInit,
+    ValueTraceLoopMerge,
+    ValueTraceMerge,
+    ValueTraceUninit,
+    ValueTraceUnknown
 )
 
 signalChange = None
@@ -101,7 +101,7 @@ class CollectionTracingMixin(object):
             self.addVariableTrace(
                 variable = variable,
                 version  = version,
-                trace    = VariableTraceUnknown(
+                trace    = ValueTraceUnknown(
                     owner    = self.owner,
                     previous = current
                 )
@@ -116,7 +116,7 @@ class CollectionTracingMixin(object):
 
         version = variable.allocateTargetNumber()
 
-        result = VariableTraceLoopMerge(current)
+        result = ValueTraceLoopMerge(current)
 
         self.addVariableTrace(
             variable = variable,
@@ -256,7 +256,7 @@ class CollectionStartpointMixin(object):
     def addVariableMergeMultipleTrace(self, variable, traces):
         version = variable.allocateTargetNumber()
 
-        trace_merge = VariableTraceMerge(traces)
+        trace_merge = ValueTraceMerge(traces)
 
         self.addVariableTrace(variable, version, trace_merge)
 
@@ -279,7 +279,7 @@ class CollectionStartpointMixin(object):
         Tracing.printSeparator()
 
     def initVariableUnknown(self, variable):
-        trace = VariableTraceUnknown(
+        trace = ValueTraceUnknown(
             owner    = self.owner,
             previous = None
         )
@@ -293,7 +293,7 @@ class CollectionStartpointMixin(object):
         return trace
 
     def _initVariableInit(self, variable):
-        trace = VariableTraceInit(self.owner)
+        trace = ValueTraceInit(self.owner)
 
         self.addVariableTrace(
             variable = variable,
@@ -304,7 +304,7 @@ class CollectionStartpointMixin(object):
         return trace
 
     def _initVariableUninit(self, variable):
-        trace = VariableTraceUninit(
+        trace = ValueTraceUninit(
             owner    = self.owner,
             previous = None
         )
@@ -515,7 +515,7 @@ class TraceCollectionBase(CollectionTracingMixin):
         variable = assign_node.getVariable()
 
         # TODO: The variable, version and assign_node are redundant to pass.
-        variable_trace = VariableTraceAssign(
+        variable_trace = ValueTraceAssign(
             owner       = self.owner,
             assign_node = assign_node,
             previous    = self.getVariableCurrentTrace(
@@ -539,7 +539,7 @@ class TraceCollectionBase(CollectionTracingMixin):
         # remember the delete of the current
         old_trace = self.getVariableCurrentTrace(variable)
 
-        variable_trace = VariableTraceUninit(
+        variable_trace = ValueTraceUninit(
             owner    = self.owner,
             previous = old_trace
         )

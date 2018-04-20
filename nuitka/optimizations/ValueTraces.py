@@ -15,17 +15,17 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Variable trace objects.
+""" Value trace objects.
 
-Variable traces indicate the flow of variables and merges their versions for
+Value traces indicate the flow of values and merges their versions for
 the SSA (Single State Assignment) form being used in Nuitka.
 
-Variable version can start as:
+Values can be seen as:
 
 * Unknown (maybe initialized, maybe not, we cannot know)
 * Uninit (definitely not initialized, first version, or after "del" statement)
 * Init (definitely initialized, e.g. parameter variables)
-* Merge (result of diverged code paths)
+* Merge (result of diverged code paths, loop potentially)
 
 """
 
@@ -35,7 +35,7 @@ from logging import debug
 from nuitka.utils import InstanceCounters
 
 
-class VariableTraceBase(object):
+class ValueTraceBase(object):
     # We are going to have many instance attributes
 
     __slots__ = (
@@ -142,19 +142,18 @@ class VariableTraceBase(object):
         return False
 
 
-
-class VariableTraceUninit(VariableTraceBase):
+class ValueTraceUninit(ValueTraceBase):
     __slots__ = ()
 
     def __init__(self, owner, previous):
-        VariableTraceBase.__init__(
+        ValueTraceBase.__init__(
             self,
             owner    = owner,
             previous = previous
         )
 
     def __repr__(self):
-        return "<VariableTraceUninit of {owner}>".format(
+        return "<ValueTraceUninit of {owner}>".format(
             owner = self.owner
         )
 
@@ -172,18 +171,18 @@ class VariableTraceUninit(VariableTraceBase):
             debug("  -> value escapes")
 
 
-class VariableTraceInit(VariableTraceBase):
+class ValueTraceInit(ValueTraceBase):
     __slots__ = ()
 
     def __init__(self, owner):
-        VariableTraceBase.__init__(
+        ValueTraceBase.__init__(
             self,
             owner    = owner,
             previous = None
         )
 
     def __repr__(self):
-        return "<VariableTraceInit of {owner}>".format(
+        return "<ValueTraceInit of {owner}>".format(
             owner = self.owner
         )
 
@@ -201,16 +200,16 @@ class VariableTraceInit(VariableTraceBase):
         return True
 
 
-class VariableTraceUnknown(VariableTraceBase):
+class ValueTraceUnknown(ValueTraceBase):
     def __init__(self, owner, previous):
-        VariableTraceBase.__init__(
+        ValueTraceBase.__init__(
             self,
             owner    = owner,
             previous = previous
         )
 
     def __repr__(self):
-        return "<VariableTraceUnknown of {owner}>".format(
+        return "<ValueTraceUnknown of {owner}>".format(
             owner = self.owner
         )
 
@@ -249,11 +248,11 @@ class VariableTraceUnknown(VariableTraceBase):
                 self.previous.addPotentialUsage()
 
 
-class VariableTraceAssign(VariableTraceBase):
+class ValueTraceAssign(ValueTraceBase):
     __slots__ = ("assign_node", "replace_it")
 
     def __init__(self, owner, assign_node, previous):
-        VariableTraceBase.__init__(
+        ValueTraceBase.__init__(
             self,
             owner    = owner,
             previous = previous
@@ -263,7 +262,7 @@ class VariableTraceAssign(VariableTraceBase):
         self.replace_it = None
 
     def __repr__(self):
-        return "<VariableTraceAssign at {source_ref}>".format(
+        return "<ValueTraceAssign at {source_ref}>".format(
             source_ref = self.assign_node.getSourceReference().getAsString()
         )
 
@@ -296,7 +295,7 @@ class VariableTraceAssign(VariableTraceBase):
         return self.assign_node.getAssignSource().hasShapeDictionaryExact()
 
 
-class VariableTraceMerge(VariableTraceBase):
+class ValueTraceMerge(ValueTraceBase):
     """ Merge of two or more traces.
 
         Happens at the end of conditional blocks. This is "phi" in
@@ -307,7 +306,7 @@ class VariableTraceMerge(VariableTraceBase):
     __slots__ = ()
 
     def __init__(self, traces):
-        VariableTraceBase.__init__(
+        ValueTraceBase.__init__(
             self,
             owner    = traces[0].owner,
             previous = tuple(traces)
@@ -315,10 +314,9 @@ class VariableTraceMerge(VariableTraceBase):
 
     def __repr__(self):
         return """\
-<VariableTraceMerge of {previous}>""".format(
+<ValueTraceMerge of {previous}>""".format(
             previous = tuple(previous.getVersion() for previous in self.previous)
         )
-
 
     @staticmethod
     def isMergeTrace():
@@ -374,7 +372,7 @@ class VariableTraceMerge(VariableTraceBase):
         return True
 
 
-class VariableTraceLoopMerge(VariableTraceBase):
+class ValueTraceLoopMerge(ValueTraceBase):
     """ Merge of loop wrap around with loop start value.
 
         Happens at the start of loop blocks. This is for loop closed SSA, to
@@ -388,7 +386,7 @@ class VariableTraceLoopMerge(VariableTraceBase):
     __slots__ = ("loop_finished",)
 
     def __init__(self, previous):
-        VariableTraceBase.__init__(
+        ValueTraceBase.__init__(
             self,
             owner    = previous.owner,
             previous = previous
