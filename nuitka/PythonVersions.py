@@ -144,23 +144,6 @@ def isUninstalledPython():
 def getRunningPythonDLLPath():
     import ctypes.wintypes
 
-    GetModuleHandle = ctypes.windll.kernel32.GetModuleHandleW  # @UndefinedVariable
-    GetModuleHandle.argtypes = (
-        ctypes.wintypes.LPWSTR,
-    )
-    GetModuleHandle.restype = ctypes.wintypes.DWORD
-
-    big, major = sys.version_info[0:2]
-
-    dll_module_name = "python%d%d" % (big, major)
-    module_handle = GetModuleHandle(dll_module_name)
-
-    if module_handle == 0:
-        dll_module_name += "_d"
-        module_handle = GetModuleHandle(dll_module_name)
-
-    assert module_handle, (sys.executable, dll_module_name, sys.flags.debug)
-
     MAX_PATH = 4096
     buf = ctypes.create_unicode_buffer(MAX_PATH)
 
@@ -172,8 +155,11 @@ def getRunningPythonDLLPath():
     )
     GetModuleFileName.restype = ctypes.wintypes.DWORD
 
-    res = GetModuleFileName(module_handle, buf, MAX_PATH)
-    assert res != 0
+    # We trust ctypes internals here, pylint: disable=protected-access
+    res = GetModuleFileName(ctypes.pythonapi._handle, buf, MAX_PATH)
+    if res == 0:
+        # Windows only code, pylint: disable=undefined-variable
+        raise WindowsError(ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())) # @UndefinedVariable
 
     dll_path = os.path.normcase(buf.value)
     assert os.path.exists(dll_path), dll_path
