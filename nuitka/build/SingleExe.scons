@@ -530,9 +530,16 @@ def setupSpawn(env):
         if data.rstrip():
             if not show_scons_mode:
                 print(cmdline)
+
+            if str is not bytes:
+                data = data.decode("utf8")
+
             print(data, end = "")
 
         if err:
+            if str is not bytes:
+                err = err.decode("utf8")
+
             print(err, end = "")
 
         return rv
