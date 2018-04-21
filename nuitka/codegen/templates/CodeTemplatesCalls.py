@@ -678,7 +678,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
     {
         PyObject *called_object = (*type->tp_getattr)(
             source,
-            Nuitka_String_AsString_Unchecked( attr_name )
+            (char *)Nuitka_String_AsString_Unchecked( attr_name )
         );
 
         if (unlikely( called_object == NULL ))

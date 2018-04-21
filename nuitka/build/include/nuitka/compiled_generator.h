@@ -163,13 +163,13 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
      */
     PyThreadState *thread_state = PyThreadState_GET();
 
-    PyObject *saved_exception_type = thread_state->exc_type;
-    PyObject *saved_exception_value = thread_state->exc_value;
-    PyObject *saved_exception_traceback = thread_state->exc_traceback;
+    PyObject *saved_exception_type = EXC_TYPE(thread_state);
+    PyObject *saved_exception_value = EXC_VALUE(thread_state);
+    PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
-    thread_state->exc_type = thread_state->frame->f_exc_type;
-    thread_state->exc_value = thread_state->frame->f_exc_value;
-    thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
+    EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
+    EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
+    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("YIELD exit:\n");

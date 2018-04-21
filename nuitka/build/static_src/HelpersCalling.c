@@ -406,7 +406,7 @@ PyObject *CALL_METHOD_WITH_POSARGS( PyObject *source, PyObject *attribute, PyObj
         }
         else if ( type->tp_getattr != NULL )
         {
-            called_object = (*type->tp_getattr)( source, Nuitka_String_AsString_Unchecked( attribute ) );
+            called_object = (*type->tp_getattr)( source, (char *)Nuitka_String_AsString_Unchecked( attribute ) );
         }
         else
         {
@@ -700,7 +700,7 @@ PyObject *CALL_METHOD_NO_ARGS( PyObject *source, PyObject *attr_name )
     {
         PyObject *called_object = (*type->tp_getattr)(
             source,
-            Nuitka_String_AsString_Unchecked( attr_name )
+            (char *)Nuitka_String_AsString_Unchecked( attr_name )
         );
 
         if (unlikely( called_object == NULL ))

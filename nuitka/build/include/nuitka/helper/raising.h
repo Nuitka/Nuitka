@@ -34,12 +34,12 @@ static void CHAIN_EXCEPTION( PyObject *exception_value )
 
     // Normalize existing exception first. TODO: Will normally be done already.
     NORMALIZE_EXCEPTION(
-        &thread_state->exc_type,
-        &thread_state->exc_value,
-        (PyTracebackObject **)&thread_state->exc_traceback
+        &EXC_TYPE(thread_state),
+        &EXC_VALUE(thread_state),
+        (PyTracebackObject **)&EXC_TRACEBACK(thread_state)
     );
 
-    PyObject *old_exc_value = thread_state->exc_value;
+    PyObject *old_exc_value = EXC_VALUE(thread_state);
 
     if ( old_exc_value != NULL && old_exc_value != Py_None && old_exc_value != exception_value )
     {
@@ -66,8 +66,8 @@ static void CHAIN_EXCEPTION( PyObject *exception_value )
         Py_INCREF( old_exc_value );
         PyException_SetContext( exception_value, old_exc_value );
 
-        CHECK_OBJECT( thread_state->exc_traceback );
-        PyException_SetTraceback( old_exc_value, thread_state->exc_traceback );
+        CHECK_OBJECT( EXC_TRACEBACK(thread_state) );
+        PyException_SetTraceback( old_exc_value, EXC_TRACEBACK(thread_state) );
     }
 }
 #endif
@@ -453,11 +453,11 @@ NUITKA_MAY_BE_UNUSED static bool RERAISE_EXCEPTION( PyObject **exception_type, P
     PyThreadState *tstate = PyThreadState_GET();
     assert( tstate );
 
-    *exception_type = tstate->exc_type != NULL ? tstate->exc_type : Py_None;
+    *exception_type = EXC_TYPE(tstate) != NULL ? EXC_TYPE(tstate) : Py_None;
     Py_INCREF( *exception_type );
-    *exception_value = tstate->exc_value;
+    *exception_value = EXC_VALUE(tstate);
     Py_XINCREF( *exception_value );
-    *exception_tb = (PyTracebackObject *)tstate->exc_traceback;
+    *exception_tb = (PyTracebackObject *)EXC_TRACEBACK(tstate);
     Py_XINCREF( *exception_tb );
 
     CHECK_OBJECT( *exception_type );

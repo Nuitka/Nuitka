@@ -71,7 +71,7 @@ extern void stopProfiling( void );
 #include "nuitka/helper/mappings.h"
 
 #if PYTHON_VERSION >= 300
-static char *_PyUnicode_AS_STRING( PyObject *unicode )
+static char const *_PyUnicode_AS_STRING( PyObject *unicode )
 {
 #if PYTHON_VERSION < 330
     PyObject *bytes = _PyUnicode_AsDefaultEncodedString( unicode, NULL );
@@ -348,7 +348,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
     if ( encoding ) CHECK_OBJECT( encoding );
     if ( errors ) CHECK_OBJECT( errors );
 
-    char *encoding_str;
+    char const *encoding_str;
 
     if ( encoding == NULL )
     {
@@ -373,7 +373,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *en
         return NULL;
     }
 
-    char *errors_str;
+    char const *errors_str;
 
     if ( errors == NULL )
     {

@@ -167,19 +167,33 @@ NUITKA_MAY_BE_UNUSED static PyTracebackObject *ADD_TRACEBACK( PyTracebackObject 
 extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_str_plain_exc_traceback;
 #endif
 
+// Need some wrapper functions for accessing exception type, value, and traceback
+// due to changes in Python 3.7
+
+# if PYTHON_VERSION < 370
+#define EXC_TYPE(x) (x->exc_type)
+#define EXC_VALUE(x) (x->exc_value)
+#define EXC_TRACEBACK(x) (x->exc_traceback)
+#else
+#define EXC_TYPE(x) (x->exc_state.exc_type)
+#define EXC_VALUE(x) (x->exc_state.exc_value)
+#define EXC_TRACEBACK(x) (x->exc_state.exc_traceback)
+#endif
+
+
 // Helper that sets the current thread exception, releasing the current one, for
 // use in this file only.
 NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION( PyObject *exception_type, PyObject *exception_value, PyTracebackObject *exception_tb )
 {
     PyThreadState *thread_state = PyThreadState_GET();
 
-    PyObject *old_type  = thread_state->exc_type;
-    PyObject *old_value = thread_state->exc_value;
-    PyObject *old_tb    = thread_state->exc_traceback;
+    PyObject *old_type  = EXC_TYPE(thread_state);
+    PyObject *old_value = EXC_VALUE(thread_state);
+    PyObject *old_tb    = EXC_TRACEBACK(thread_state);
 
-    thread_state->exc_type = exception_type;
-    thread_state->exc_value = exception_value;
-    thread_state->exc_traceback = (PyObject *)exception_tb;
+    EXC_TYPE(thread_state) = exception_type;
+    EXC_VALUE(thread_state) = exception_value;
+    EXC_TRACEBACK(thread_state) = (PyObject *)exception_tb;
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("SET_CURRENT_EXCEPTION:\n");
@@ -207,6 +221,10 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION( PyObject *excepti
         assert( Py_REFCNT( exception_tb ) >= 2 );
 #endif
 }
+
+#if PYTHON_VERSION < 370
+// TODO: This will be needed but initially it is unclear where to put exceptions now.
+
 
 // Preserve the current exception as the frame to restore.
 NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION( struct Nuitka_FrameObject *frame_object )
@@ -282,6 +300,8 @@ NUITKA_MAY_BE_UNUSED static inline void RESTORE_FRAME_EXCEPTION( struct Nuitka_F
     }
 #endif
 }
+
+#endif
 
 // Publish an exception, erasing the values of the variables.
 NUITKA_MAY_BE_UNUSED static inline void PUBLISH_EXCEPTION( PyObject **exception_type, PyObject **exception_value, PyTracebackObject **exception_tb )
@@ -449,7 +469,7 @@ NUITKA_MAY_BE_UNUSED static inline void ADD_EXCEPTION_CONTEXT( PyObject **except
 {
     PyThreadState *tstate = PyThreadState_GET();
 
-    PyObject *context = tstate->exc_value;
+    PyObject *context = EXC_VALUE(tstate);
 
     if ( context != NULL )
     {
