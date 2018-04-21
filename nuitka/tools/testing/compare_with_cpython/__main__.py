@@ -584,6 +584,9 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
                     # It appears there is a tiny lock race that we randomly cause,
                     # likely because --run spawns a subprocess that might still
                     # be doing the cleanup work.
+                    if os.path.exists(nuitka_cmd2[0]+".away"):
+                        os.unlink(nuitka_cmd2[0]+".away")
+
                     for _i in range(10):
                         try:
                             os.rename(nuitka_cmd2[0], nuitka_cmd2[0]+".away")
@@ -599,8 +602,6 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
                             continue
                         else:
                             break
-
-                    assert not os.path.exists(nuitka_cmd2[0]+".away")
 
                     if os.path.exists(pdb_filename):
                         os.unlink(pdb_filename)
