@@ -79,21 +79,21 @@ def _getPythonSconsExePathWindows():
     """ Find Python2 on Windows.
 
     First try a few guesses, the look into registry for user or system wide
-    installations of Python2. Both Python 2.6 and 2.7 will do.
+    installations of Python2. Both Python 2.6 and 2.7, and 3.5 or higher
+    will do.
     """
+
+    # Ordered in the list of preference.
+    scons_supported = ("2.7", "2.6", "3.5", "3.6", "3.7")
 
     # Shortcuts for the default installation directories, to avoid going to
     # registry at all unless necessary. Any Python2 will do for Scons, so it
     # might be avoided entirely.
+    for search in scons_supported:
+        candidate = r"c:\Python%s\python.exe" % search.replace(".", "")
 
-    if os.path.isfile(r"c:\Python27\python.exe"):
-        return r"c:\Python27\python.exe"
-    elif os.path.isfile(r"c:\Python26\python.exe"):
-        return r"c:\Python26\python.exe"
-    elif os.path.isfile(r"c:\Python35\python.exe"):
-        return r"c:\Python35\python.exe"
-    elif os.path.isfile(r"c:\Python36\python.exe"):
-        return r"c:\Python36\python.exe"
+        if os.path.isfile(candidate):
+            return candidate
 
     # Windows only code, pylint: disable=I0021,import-error,undefined-variable
     if python_version < 300:
@@ -101,7 +101,7 @@ def _getPythonSconsExePathWindows():
     else:
         import winreg  # @Reimport @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
-    for search in ("2.7", "2.6", "3.5", "3.6"):
+    for search in scons_supported:
         for hkey_branch in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
             for arch_key in 0, winreg.KEY_WOW64_32KEY, winreg.KEY_WOW64_64KEY:
                 try:
