@@ -24,8 +24,6 @@ expression only stuff.
 """
 
 
-from abc import ABCMeta
-
 from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
 from nuitka.PythonVersions import python_version
@@ -34,76 +32,7 @@ from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .FutureSpecs import fromFlags
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
-
-
-class NodeCheckMetaClass(ABCMeta):
-    kinds = {}
-
-    def __new__(cls, name, bases, dictionary): # pylint: disable=I0021,arguments-differ
-        # This is in conflict with either PyDev or Pylint, pylint: disable=C0204
-        assert len(bases) == len(set(bases)), bases
-
-        last_mixin = None
-        for base in bases:
-            base_name = base.__name__
-            is_mixin = base_name.endswith("Mixin")
-
-            if is_mixin and last_mixin is False:
-                assert False, (name, bases)
-
-            last_mixin = is_mixin
-
-        if "__slots__" not in dictionary:
-            dictionary["__slots__"] = ()
-
-        return ABCMeta.__new__(cls, name, bases, dictionary)
-
-    def __init__(cls, name, bases, dictionary):  # @NoSelf
-        if not name.endswith("Base"):
-            assert ("kind" in dictionary), name
-            kind = dictionary["kind"]
-
-            assert type(kind) is str, name
-            assert kind not in NodeCheckMetaClass.kinds, name
-
-            NodeCheckMetaClass.kinds[kind] = cls
-            NodeCheckMetaClass.kinds[name] = cls
-
-            def convert(value):
-                if value in ("AND", "OR", "NOT"):
-                    return value
-                else:
-                    return value.title()
-
-            kind_to_name_part = "".join(
-                [convert(x) for x in kind.split('_')]
-            )
-            assert name.endswith(kind_to_name_part), \
-              (name, kind_to_name_part)
-
-            # Automatically add checker methods for everything to the common
-            # base class
-            checker_method = "is" + kind_to_name_part
-
-            def checkKind(self):
-                return self.kind == kind
-
-            if not hasattr(NodeBase, checker_method):
-                setattr(NodeBase, checker_method, checkKind)
-
-        ABCMeta.__init__(cls, name, bases, dictionary)
-
-# For every node type, there is a test, and then some more members,
-
-# For Python2/3 compatible source, we create a base class that has the metaclass
-# used and doesn't require making a syntax choice.
-NodeMetaClassBase = NodeCheckMetaClass(
-    "NodeMetaClassBase",
-    (object,),
-    {
-        "__slots__" : ()
-    }
-)
+from .NodeMetaClasses import NodeCheckMetaClass, NodeMetaClassBase
 
 
 class NodeBase(NodeMetaClassBase):
@@ -1054,8 +983,9 @@ def makeChild(provider, child, source_ref):
         )
 
 
-def getNodeClassFromName(kind):
+def getNodeClassFromKind(kind):
     return NodeCheckMetaClass.kinds[kind]
+
 
 def extractKindAndArgsFromXML(xml, source_ref):
     kind = xml.attrib["kind"]
@@ -1076,7 +1006,7 @@ def extractKindAndArgsFromXML(xml, source_ref):
         source_ref = source_ref.atLineNumber(int(args["line"]))
         del args["line"]
 
-    node_class = getNodeClassFromName(kind)
+    node_class = getNodeClassFromKind(kind)
 
     return kind, node_class, args, source_ref
 
