@@ -73,6 +73,7 @@ from nuitka.nodes.VariableRefNodes import (
 )
 from nuitka.PythonVersions import python_version
 
+from .ReformulationSequenceCreation import buildTupleCreationNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildFrameNode,
@@ -326,14 +327,10 @@ def _buildClassNode3(provider, node, source_ref):
     statements = (
         StatementAssignmentVariable(
             variable   = tmp_bases,
-            source     = makeSequenceCreationOrConstant(
-                sequence_kind = "tuple",
-                elements      = buildNodeList(
-                    provider,
-                    node.bases,
-                    source_ref
-                ),
-                source_ref    = source_ref
+            source     = buildTupleCreationNode(
+                provider   = provider,
+                elements   = node.bases,
+                source_ref = source_ref
             ),
             source_ref = source_ref
         ),
