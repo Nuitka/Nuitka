@@ -240,9 +240,7 @@ def initPlugins():
     for plugin_name, (plugin_class, plugin_detector) in plugin_name2plugin_classes.items():
         if plugin_name in Options.getPluginsEnabled():
             active_plugin_list.append(
-                plugin_class(
-                    **Options.getPluginOptions(plugin_name)
-                )
+                plugin_class()
             )
         elif plugin_name not in Options.getPluginsDisabled():
             if plugin_detector is not None \

@@ -153,8 +153,8 @@ def installedversions(alpha = 0):
 
         # Set this to 0 if you do not use any of the Pmw.Color functions:
         # Set this to 0 if you do not use any of the Pmw.Blt functions:
-        needBlt = not self.getPluginOptionBool("noblt", True)
-        needColor = not self.getPluginOptionBool("nocolor", True)
+        needBlt = not self.getPluginOptionBool("blt", True)
+        needColor = not self.getPluginOptionBool("color", True)
 
         outfile = StringIO()
 

@@ -1141,26 +1141,49 @@ def shallListPlugins():
 
 
 def getPluginsEnabled():
-    if not options:
-        return ()
+    """ Return the names of plugin that were enabled.
 
-    return options.plugins_enabled
+    """
+    result = set()
+
+    if options:
+        for plugin_enabled in options.plugins_enabled:
+            result.add(plugin_enabled.split("=",1)[0])
+
+    return tuple(result)
+
+
+def getPluginOptions(plugin_name):
+    """ Return the options provided for a specific plugin.
+
+    """
+    result = []
+
+    if options:
+        for plugin_enabled in options.plugins_enabled:
+            if "=" not in plugin_enabled:
+                continue
+
+            name, args = plugin_enabled.split("=",1)
+
+            if name == plugin_name:
+                result.extend(args.split(","))
+
+    return result
 
 
 def getPluginsDisabled():
+    """ Return the names of plugin that were disabled.
+
+    """
     if not options:
         return ()
 
-    return options.plugins_disabled
+    return tuple(set(options.plugins_disabled))
 
 
 def shallDetectMissingPlugins():
     return options is not None and options.detect_missing_plugins
-
-
-def getPluginOptions(plugin_name):
-    # TODO: This should come from command line, pylint: disable=unused-argument
-    return {}
 
 
 def getPythonPathForScons():

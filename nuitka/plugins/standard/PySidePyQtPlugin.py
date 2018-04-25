@@ -29,7 +29,11 @@ from logging import info
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils import Execution
-from nuitka.utils.FileOperations import getFileList
+from nuitka.utils.FileOperations import (
+    getFileList,
+    getSubDirectories,
+    removeDirectory
+)
 
 
 class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
@@ -107,7 +111,30 @@ if os.path.exists(guess_path):
                 target_plugin_dir
             )
 
-            info("Copying all Qt plug-ins to '%s'." % target_plugin_dir)
+            plugin_options = self.getPluginOptions()
+            if not plugin_options:
+                plugin_options.append("all")
+
+            if plugin_options == ["sensible"]:
+                plugin_options = ["imageformats", "iconengines", "mediaservice", "printsupport"]
+
+            info(
+                "Copying '%s' Qt plug-ins to '%s'." % (
+                    ",".join(plugin_options),
+                    target_plugin_dir
+                )
+            )
+
+            if "all" not in plugin_options:
+                for plugin_candidate in getSubDirectories(target_plugin_dir):
+                    if os.path.basename(plugin_candidate) not in plugin_options:
+                        removeDirectory(plugin_candidate, ignore_errors = False)
+
+                for plugin_candidate in plugin_options:
+                    if not os.path.isdir(os.path.join(target_plugin_dir, plugin_candidate)):
+                        sys.exit("Error, no such Qt plugin family: %s" % plugin_candidate)
+
+
 
             return [
                 (
