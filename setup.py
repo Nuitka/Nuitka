@@ -24,6 +24,12 @@ from setuptools.command import easy_install
 
 os.chdir(os.path.dirname(__file__) or '.')
 
+scripts = []
+
+# For Windows, there are batch files to launch Nuitka.
+if os.name == "nt":
+    scripts += ["misc/nuitka.bat", "misc/nuitka-run.bat"]
+
 
 # Detect the version of Nuitka from its source directly. Without calling it, we
 # don't mean to pollute with ".pyc" files and similar effects.
@@ -295,6 +301,7 @@ setup(
 Python compiler with full language support and CPython compatibility""",
     keywords     = "compiler,python,nuitka",
     zip_safe     = False,
+    scripts      = scripts,
     entry_points = {
         "distutils.commands": [
             'bdist_nuitka = \
