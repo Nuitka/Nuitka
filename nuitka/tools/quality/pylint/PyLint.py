@@ -162,6 +162,38 @@ def getOptions():
 
 our_exit_code = 0
 
+def _cleanupPylintOutput(output):
+    if str is not bytes:
+        output = output.decode("utf8")
+
+    # Normalize from Windows newlines potentially
+    output = output.replace("\r\n", '\n')
+
+    lines = output.split('\n')
+
+    lines = [
+        line
+        for line in
+        lines
+        if "Using config file" not in line
+        if "Unable to import 'resource'" not in line
+        if line
+    ]
+
+    try:
+        error_line = lines.index(
+            "No config file found, using default configuration"
+        )
+        del lines[error_line]
+
+        if error_line < len(lines):
+            del lines[error_line]
+    except ValueError:
+        pass
+
+    return lines
+
+
 def _executePylint(filenames, pylint_options, extra_options):
     # This is kind of a singleton module, pylint: disable=global-statement
     global our_exit_code
@@ -182,63 +214,25 @@ def _executePylint(filenames, pylint_options, extra_options):
     if exit_code == -11:
         sys.exit("Error, segfault from pylint.")
 
+    stdout = _cleanupPylintOutput(stdout)
+    stderr = _cleanupPylintOutput(stderr)
+
     if stderr:
-        if str is not bytes:
-            stderr = stderr.decode("utf8")
+        our_exit_code = 1
 
-        # Normalize from Windows newlines potentially
-        stderr = stderr.replace("\r\n", '\n')
-
-        lines = stderr.split('\n')
-
-        lines = [
-            line
-            for line in
-            lines
-            if "Using config file" not in line
-            if line
-        ]
-
-        for line in lines:
+        for line in stderr:
             print(line)
-
-        if lines:
-            our_exit_code = 1
 
     if stdout:
-        if str is not bytes:
-            stdout = stdout.decode("utf8")
-
-        # Normalize from Windows newlines potentially
-        stdout = stdout.replace("\r\n", '\n')
-
-        # Remove hard to disable error line given under Windows.
-        lines = stdout.split('\n')
-        try:
-            error_line = lines.index(
-                "No config file found, using default configuration"
-            )
-            del lines[error_line]
-            del lines[error_line]
-        except ValueError:
-            pass
-
-        lines = [
-            line
-            for line in
-            lines
-            if "Unable to import 'resource'" not in line
-        ]
-
         # If we filtered everything away, remove the leading file name report.
-        if len(lines) == 1:
-            assert lines[0].startswith("*****")
-            lines = []
+        if len(stdout) == 1:
+            assert stdout[0].startswith("*****")
+            stdout = []
 
-        for line in lines:
+        for line in stdout:
             print(line)
 
-        if lines:
+        if stdout:
             our_exit_code = 1
 
     sys.stdout.flush()

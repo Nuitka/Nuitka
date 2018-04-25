@@ -158,7 +158,7 @@ def getRunningPythonDLLPath():
     # We trust ctypes internals here, pylint: disable=protected-access
     res = GetModuleFileName(ctypes.pythonapi._handle, buf, MAX_PATH)
     if res == 0:
-        # Windows only code, pylint: disable=undefined-variable
+        # Windows only code, pylint: disable=I0021,undefined-variable
         raise WindowsError(ctypes.GetLastError(), ctypes.FormatError(ctypes.GetLastError())) # @UndefinedVariable
 
     dll_path = os.path.normcase(buf.value)

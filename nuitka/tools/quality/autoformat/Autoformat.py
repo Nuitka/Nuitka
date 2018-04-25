@@ -39,8 +39,8 @@ def cleanupWindowsNewlines(filename):
 
     source_code = open(filename, "rb").read()
 
-    updated_code = source_code.replace("\r\n", '\n')
-    updated_code = updated_code.replace("\n\r", '\n')
+    updated_code = source_code.replace(b"\r\n", b'\n')
+    updated_code = updated_code.replace(b"\n\r", b'\n')
 
     if updated_code != source_code:
         my_print("Fixing Windows new lines for", filename)

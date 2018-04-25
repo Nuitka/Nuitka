@@ -102,9 +102,10 @@ def main():
     subprocess.check_call(
         [
             "isort",
-            "-ot",
-            "-m3",
-            "-ns",
+            "-ot", # Order imports by type in addition to alphabetically
+            "-m3", # "vert-hanging"
+            "-up", # Prefer braces () over \ for line continuation.
+            "-ns", # Do not ignore those:
             "__init__.py"
         ] + target_files
     )
