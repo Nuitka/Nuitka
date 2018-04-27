@@ -187,6 +187,9 @@ MOD_INIT_DECL( %(module_identifier)s )
     patchTypeComparison();
 
     // Enable meta path based loader if not already done.
+#ifdef _NUITKA_TRACE
+    puts("%(module_name)s: Calling setupMetaPathBasedLoader().");
+#endif
     setupMetaPathBasedLoader();
 
 #if PYTHON_VERSION >= 300
