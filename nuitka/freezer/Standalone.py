@@ -695,28 +695,6 @@ def _detectBinaryPathDLLsMacOS(original_dir, binary_filename):
     return result
 
 
-def _makeBinaryPathPathDLLSearchEnv(package_name):
-    # Put the PYTHONPATH into the system "PATH", DLLs frequently live in
-    # the package directories.
-    env = os.environ.copy()
-    path = env.get("PATH","").split(os.pathsep)
-
-    # Put the "Python.exe" first. At least for WinPython, they put the DLLs
-    # there.
-    path = [sys.prefix] + sys.path + path
-
-    if package_name is not None:
-        for element in sys.path:
-            candidate = os.path.join(element, package_name)
-
-            if os.path.isdir(candidate):
-                path.append(candidate)
-
-
-    env["PATH"] = os.pathsep.join(path)
-
-    return env
-
 def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filename):
     original_filename = os.path.join(
         original_dir,
@@ -753,8 +731,7 @@ def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filen
     )
 
 
-def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, binary_filename,
-                                 package_name):
+def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, binary_filename):
     # This is complex, as it also includes the caching mechanism
     # pylint: disable=too-many-branches
 
@@ -810,8 +787,7 @@ SxS
             "-pa1",
             "-ps1",
             binary_filename
-        ),
-        env = _makeBinaryPathPathDLLSearchEnv(package_name),
+        )
     )
 
     inside = False
@@ -922,7 +898,7 @@ SxS
 
 
 def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
-                     binary_filename, package_name):
+                     binary_filename):
     """ Detect the DLLs used by a binary.
 
         Using "ldd" (Linux), "depends.exe" (Windows), or "otool" (MacOS) the list
@@ -940,8 +916,7 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
                 is_main_executable = is_main_executable,
                 source_dir         = source_dir,
                 original_dir       = os.path.dirname(original_filename),
-                binary_filename    = binary_filename,
-                package_name       = package_name
+                binary_filename    = binary_filename
             )
     elif Utils.getOS() == "Darwin":
         return _detectBinaryPathDLLsMacOS(
@@ -956,13 +931,12 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
 def detectUsedDLLs(source_dir, standalone_entry_points):
     result = OrderedDict()
 
-    for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
+    for count, (original_filename, binary_filename, _package_name) in enumerate(standalone_entry_points):
         used_dlls = detectBinaryDLLs(
             is_main_executable = count == 0,
             source_dir         = source_dir,
             original_filename  = original_filename,
-            binary_filename    = binary_filename,
-            package_name       = package_name,
+            binary_filename    = binary_filename
         )
 
         for dll_filename in used_dlls:
