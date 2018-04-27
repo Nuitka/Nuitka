@@ -1,6 +1,9 @@
 Nuitka Release 0.5.30 (Draft)
 =============================
 
+This release has improvements in all areas. Many bug fixes are accompanied
+with optimization changes towards value tracing.
+
 Bug Fixes
 ---------
 
@@ -38,6 +41,16 @@ Bug Fixes
        def m():
           self.for_call() # This leaked a reference to the descriptor.
 
+- Python3.5: The bases classes should be treated as an unpacking too.
+
+  .. code-block:: python
+
+    class C(*D): # Allowed syntax that was not supported.
+       pass
+
+- Windows: Added back batch files to run Nuitka from the command line. Fixed
+  in 0.5.29.5 already.
+
 New Features
 ------------
 
@@ -46,6 +59,17 @@ New Features
 
 - Added options ``--include-module`` to force inclusion of a single module in
   a compilation result.
+
+- The ```multiprocessing`` plug-in got adapted to Python 3.4 changes and will
+  now also work in accelerated mode on Windows.
+
+- It is now possible to specify the Qt plugin directories with e.g.
+  ``--enable-plugin=qt_plugins=imageformats`` and have only those included. This
+  should avoid dependency creep for shared libraries.
+
+- Plugins can now make the decision about recursing to a module or not.
+
+- Plugins now can get their own options passed.
 
 Optimization
 ------------
@@ -57,6 +81,13 @@ Optimization
 - Changed built-in ``int``, ``long``, and ``float`` to using a slot mechanism
   that also analyses the type shape and detects and warns about errors at
   compile time.
+
+- Changed the variable tracing to value tracing. This meant to cleanup all the
+  places that were using it to find the variable.
+
+- Enable must have / must not value value optimization for all kinds of variables
+  including module and closure variables. This often avoids error exits and leads
+  to smaller and faster generated code.
 
 Tests
 -----
@@ -82,6 +113,11 @@ Tests
 - Expanded the trick assignment test cases to cover more slots to find bugs
   introduced with more aggressive optimization of closure variables.
 
+- New test to cover multiprocessing usage.
+
+- Generating more code tests out of doctests for increased coverage of
+  Nuitka.
+
 Cleanups
 --------
 
@@ -95,6 +131,13 @@ Cleanups
   be re-used, e.g. when doing distutils tests.
 
 - Removed dead code from variable closure taking.
+
+- Have a dedicated module for the metaclass of nodes in the tree, so it
+  is easier to find, and doesn't clutter the node base classes module as
+  much.
+
+- Have a dedicated node for reraise statements instead of checking for
+  all the arguments to be non-present.
 
 Organizational
 --------------
@@ -114,7 +157,18 @@ Organizational
 Summary
 -------
 
-This release is not done yet.
+This release continued the distutils integration adding first tests, but more
+features and documentation will be needed.
+
+Also, for the locals dictionary work, the variable tracing was made generic,
+but not yet put to use. If we use this to also trace dictionary keys, we can
+expect a lot of improvements for class code again.
+
+The locals dictionary tracing will be the focus before resuming the work on
+C types, where the ultimate performance boost lies. However, currently, not
+the full compatibility has been achieved even with currently using dictionaries
+for classes, and we would like to be able to statically optimize those better
+anyway.
 
 
 Nuitka Release 0.5.29
