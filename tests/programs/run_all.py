@@ -109,6 +109,9 @@ for filename in sorted(os.listdir('.')):
               )
 
         extra_flags.append("ignore_warnings")
+    elif filename == "multiprocessing_using":
+        if os.name == "nt":
+            extra_flags.append("plugin_enable:multiprocessing")
     else:
         os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options
 
