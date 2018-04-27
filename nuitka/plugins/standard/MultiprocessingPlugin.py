@@ -29,7 +29,7 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils import Utils
 
 
-class NuitkaPluginMultiprocessingWorkaorunds(NuitkaPluginBase):
+class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     """ This is to make multiprocessing work with Nuitka and use compiled code.
 
         When running in accelerated mode, it's not good to fork a new Python
@@ -66,9 +66,7 @@ Monkey patching "multiprocessing" load environment."""
     def createPostModuleLoadCode(module):
         full_name = module.getFullName()
 
-        if full_name == "multiprocessing.forking" or \
-           full_name == "multiprocessing.reduction":
-
+        if full_name in ("multiprocessing.forking", "multiprocessing.reduction"):
             code = """\
 from %s import ForkingPickler
 
@@ -83,12 +81,12 @@ def _reduce_compiled_method(m):
         return getattr, (m.im_self, m.im_func.__name__)
 
 ForkingPickler.register(type(C().f), _reduce_compiled_method)
+ForkingPickler.register(type(C.f), _reduce_compiled_method)
 """
             code %= full_name
 
             return code, """\
 Monkey patching "multiprocessing" for compiled methods."""
-
 
         return None, None
 
@@ -157,8 +155,11 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             else:
                 assert False
 
+        if module_package == "multiprocessing" and module_name in ("forking", "spawn"):
+            return True, "Multiprocessing plugin needs this to monkey patch it."
 
-class NuitkaPluginDetectorMultiprocessingWorkaorunds(NuitkaPluginBase):
+
+class NuitkaPluginDetectorMultiprocessingWorkarounds(NuitkaPluginBase):
     plugin_name = "multiprocessing"
 
     @staticmethod

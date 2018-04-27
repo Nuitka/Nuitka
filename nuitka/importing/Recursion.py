@@ -176,12 +176,15 @@ def decideRecursion(module_filename, module_name, module_package, module_kind,
                     extra_recursion = False):
     # Many branches, which make decisions immediately, by returning
     # pylint: disable=too-many-return-statements
-    Plugins.onModuleEncounter(
+    plugin_decision = Plugins.onModuleEncounter(
         module_filename,
         module_name,
         module_package,
         module_kind
     )
+
+    if plugin_decision:
+        return plugin_decision
 
     if module_kind == "shlib":
         if Options.isStandaloneMode():
