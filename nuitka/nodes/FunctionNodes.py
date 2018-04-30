@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -681,10 +681,12 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         self.variable_closure_traces = []
 
         for closure_variable in self.getFunctionRef().getFunctionBody().getClosureVariables():
-            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            version, trace = trace_collection.getVariableCurrentTraceVersion(closure_variable)
             trace.addClosureUsage()
 
-            self.variable_closure_traces.append(trace)
+            self.variable_closure_traces.append(
+                (closure_variable, version, trace)
+            )
 
         # TODO: Function body may know something too.
         return self, None, None
@@ -828,10 +830,7 @@ error""" % self.getName()
         )
 
     def getClosureVariableVersions(self):
-        return [
-            (trace.getVariable(), trace.getVersion())
-            for trace in self.variable_closure_traces
-        ]
+        return self.variable_closure_traces
 
 
 class ExpressionFunctionRef(ExpressionBase):
@@ -956,10 +955,12 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         self.variable_closure_traces = []
 
         for closure_variable in function_body.getClosureVariables():
-            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            version, trace = trace_collection.getVariableCurrentTraceVersion(closure_variable)
             trace.addClosureUsage()
 
-            self.variable_closure_traces.append(trace)
+            self.variable_closure_traces.append(
+                (closure_variable, version, trace)
+            )
 
         return self, None, None
 
@@ -981,10 +982,8 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     getArgumentValues = ExpressionChildrenHavingBase.childGetter("values")
 
     def getClosureVariableVersions(self):
-        return [
-            (trace.getVariable(), trace.getVersion())
-            for trace in self.variable_closure_traces
-        ]
+        return self.variable_closure_traces
+
 
 # Needed for Python3.3 and higher
 class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):

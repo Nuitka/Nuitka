@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -160,7 +160,12 @@ from .ImportCodes import (
     generateImportNameCode,
     generateImportStarCode
 )
-from .IntegerCodes import generateBuiltinIntCode, generateBuiltinLongCode
+from .IntegerCodes import (
+    generateBuiltinInt1Code,
+    generateBuiltinInt2Code,
+    generateBuiltinLong1Code,
+    generateBuiltinLong2Code
+)
 from .IteratorCodes import (
     generateBuiltinIter1Code,
     generateBuiltinIter2Code,
@@ -206,7 +211,11 @@ from .OperationCodes import (
     generateOperationUnaryCode
 )
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
-from .RaisingCodes import generateRaiseCode, generateRaiseExpressionCode
+from .RaisingCodes import (
+    generateRaiseCode,
+    generateRaiseExpressionCode,
+    generateReraiseCode
+)
 from .ReturnCodes import (
     generateGeneratorReturnNoneCode,
     generateGeneratorReturnValueCode,
@@ -540,8 +549,10 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_BOOL"                     : generateBuiltinBoolCode,
         "EXPRESSION_BUILTIN_BYTEARRAY1"               : generateBuiltinBytearray1Code,
         "EXPRESSION_BUILTIN_BYTEARRAY3"               : generateBuiltinBytearray3Code,
-        "EXPRESSION_BUILTIN_INT"                      : generateBuiltinIntCode,
-        "EXPRESSION_BUILTIN_LONG"                     : generateBuiltinLongCode,
+        "EXPRESSION_BUILTIN_INT1"                     : generateBuiltinInt1Code,
+        "EXPRESSION_BUILTIN_INT2"                     : generateBuiltinInt2Code,
+        "EXPRESSION_BUILTIN_LONG1"                    : generateBuiltinLong1Code,
+        "EXPRESSION_BUILTIN_LONG2"                    : generateBuiltinLong2Code,
         "EXPRESSION_BUILTIN_FLOAT"                    : generateBuiltinFloatCode,
         "EXPRESSION_BUILTIN_COMPLEX"                  : generateBuiltinComplexCode,
         "EXPRESSION_BUILTIN_LEN"                      : generateBuiltinLenCode,
@@ -718,6 +729,7 @@ setStatementDispatchDict(
         "STATEMENT_LOOP_CONTINUE"             : generateLoopContinueCode,
         "STATEMENT_RAISE_EXCEPTION"           : generateRaiseCode,
         "STATEMENT_RAISE_EXCEPTION_IMPLICIT"  : generateRaiseCode,
+        "STATEMENT_RERAISE_EXCEPTION"         : generateReraiseCode,
         "STATEMENT_SPECIAL_UNPACK_CHECK"      : generateUnpackCheckCode,
         "STATEMENT_EXEC"                      : generateExecCode,
         "STATEMENT_LOCALS_DICT_SYNC"          : generateLocalsDictSyncCode,

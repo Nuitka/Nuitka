@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -244,15 +244,6 @@ Do not use Python2.7 even if available on the system. Default is %default."""
     )
 
     parser.add_option(
-        "--no-python3.2",
-        action  = "store_true",
-        dest    = "no32",
-        default = False,
-        help    = """\
-Do not use Python3.2 even if available on the system. Default is %default."""
-    )
-
-    parser.add_option(
         "--no-python3.3",
         action  = "store_true",
         dest    = "no33",
@@ -310,8 +301,6 @@ Make a coverage analysis, that does not really check. Default is %default."""
             options.no26 = True
         if sys.version_info[0:2] != (2,7):
             options.no27 = True
-        if sys.version_info[0:2] != (3,2):
-            options.no32 = True
         if sys.version_info[0:2] != (3,3):
             options.no33 = True
         if sys.version_info[0:2] != (3,4):
@@ -367,8 +356,6 @@ Make a coverage analysis, that does not really check. Default is %default."""
             return False
         if command == "python2.7" and options.no27:
             return False
-        if command == "python3.2" and options.no32:
-            return False
         if command == "python3.3" and options.no33:
             return False
         if command == "python3.4" and options.no34:
@@ -383,8 +370,6 @@ Make a coverage analysis, that does not really check. Default is %default."""
         if command == "python2.6" and sys.version_info[0:2] == (2,6):
             return True
         if command == "python2.7" and sys.version_info[0:2] == (2,7):
-            return True
-        if command == "python3.2" and sys.version_info[0:2] == (3,2):
             return True
         if command == "python3.3" and sys.version_info[0:2] == (3,3):
             return True
@@ -515,7 +500,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
         # At least one Debian Jessie, these versions won't have lxml installed, so
         # don't run them there. Also these won't be very version dependent in their
         # results.
-        if use_python != "python2.6" and use_python != "python3.2":
+        if use_python != "python2.6":
             if options.optimization_tests:
                 print("Running the optimizations tests with options '%s' with %s:" % (flags, use_python))
                 setExtraFlags(where, "optimizations", flags)
@@ -605,18 +590,10 @@ Make a coverage analysis, that does not really check. Default is %default."""
 
     assert checkExecutableCommand("python2.6") or \
            checkExecutableCommand("python2.7") or \
-           checkExecutableCommand("python3.2") or \
            checkExecutableCommand("python3.3") or \
            checkExecutableCommand("python3.4") or \
            checkExecutableCommand("python3.5") or \
            checkExecutableCommand("python3.6")
-
-    # Just the quick syntax test, full tests are run later.
-    if checkExecutableCommand("python3.2"):
-        executeSubTest(
-            "./bin/nuitka --python-version=3.2 --version",
-            hide_output = True
-        )
 
     if checkExecutableCommand("python2.6"):
         execute_tests("python2.6-debug", "python2.6", "--debug")
@@ -628,11 +605,6 @@ Make a coverage analysis, that does not really check. Default is %default."""
     else:
         print("Cannot execute tests with Python 2.7, disabled or not installed.")
 
-    if checkExecutableCommand("python3.2"):
-        execute_tests("python3.2-debug", "python3.2", "--debug")
-    else:
-        print("Cannot execute tests with Python 3.2, disabled or not installed.")
-
     if checkExecutableCommand("python2.6"):
         execute_tests("python2.6-nodebug", "python2.6", "")
     else:
@@ -642,11 +614,6 @@ Make a coverage analysis, that does not really check. Default is %default."""
         execute_tests("python2.7-nodebug", "python2.7", "")
     else:
         print("Cannot execute tests with Python 2.7, disabled or not installed.")
-
-    if checkExecutableCommand("python3.2"):
-        execute_tests("python3.2-nodebug", "python3.2", "")
-    else:
-        print("Cannot execute tests with Python 3.2, disabled or not installed.")
 
     if checkExecutableCommand("python3.3"):
         execute_tests("python3.3-nodebug", "python3.3", "")
@@ -675,10 +642,8 @@ Make a coverage analysis, that does not really check. Default is %default."""
             if coverage_dir is None:
                 return
 
-            assert subprocess.call(
+            subprocess.check_call(
                 (
-                    "C:\\MinGW\\msys\\1.0\\bin\\scp.exe"
-                       if os.name == "nt" else
                     "scp",
                     source,
                     os.path.join(
@@ -686,7 +651,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
                         target
                     )
                 )
-            ) == 0
+            )
 
         if os.name == "nt":
             suffix = "win"
@@ -698,13 +663,16 @@ Make a coverage analysis, that does not really check. Default is %default."""
             source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
             with withDirectoryChange(source_dir):
-                nuitka_id = check_output("git rev-parse HEAD")
+                nuitka_id = check_output("git rev-parse HEAD".split())
             nuitka_id = nuitka_id.strip()
 
             if sys.version_info > (3,):
                 nuitka_id = nuitka_id.decode()
 
-            data_file.write("NUITKA_COMMIT='%s'\n" % nuitka_id)
+            data_file.write("NUITKA_SOURCE_DIR=%r\n" % source_dir)
+            data_file.write("NUITKA_COMMIT=%r\n" % nuitka_id)
+
+
 
         copyToGlobalCoverageData("data.coverage", "data.coverage." + suffix)
 

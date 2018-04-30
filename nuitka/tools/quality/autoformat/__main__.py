@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,11 +21,11 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import sys
 from optparse import OptionParser
+
+from nuitka.Tracing import my_print
 
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
@@ -71,7 +71,7 @@ def main():
     if not positional_args:
         positional_args = ["bin", "nuitka"]
 
-    print("Working on:", positional_args)
+    my_print("Working on:", positional_args)
 
     positional_args = [
         os.path.abspath(positional_arg)

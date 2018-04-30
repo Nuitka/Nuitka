@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -67,10 +67,12 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
         self.variable_closure_traces = []
 
         for closure_variable in self.getGeneratorRef().getFunctionBody().getClosureVariables():
-            trace = trace_collection.getVariableCurrentTrace(closure_variable)
+            version, trace = trace_collection.getVariableCurrentTraceVersion(closure_variable)
             trace.addClosureUsage()
 
-            self.variable_closure_traces.append(trace)
+            self.variable_closure_traces.append(
+                (closure_variable, version, trace)
+            )
 
         # TODO: Generator body may know something too.
         return self, None, None
@@ -82,11 +84,7 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
         return False
 
     def getClosureVariableVersions(self):
-        return [
-            (trace.getVariable(), trace.getVersion())
-            for trace in self.variable_closure_traces
-        ]
-
+        return self.variable_closure_traces
 
 
 class ExpressionGeneratorObjectBody(MarkUnoptimizedFunctionIndicatorMixin,

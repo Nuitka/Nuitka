@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -20,14 +20,21 @@
 Inspired/copied from by http://diotavelli.net/PyQtWiki/Python%20syntax%20highlighting
 """
 
-from PyQt5.QtCore import \
+from PyQt5.QtCore import (
     QRegExp  # @UnresolvedImport pylint: disable=I0021,import-error
-from PyQt5.QtGui import QColor  # @UnresolvedImport pylint: disable=I0021,import-error
-from PyQt5.QtGui import QFont  # @UnresolvedImport pylint: disable=I0021,import-error
-from PyQt5.QtGui import \
+)
+from PyQt5.QtGui import (
+    QColor  # @UnresolvedImport pylint: disable=I0021,import-error
+)
+from PyQt5.QtGui import (
+    QFont  # @UnresolvedImport pylint: disable=I0021,import-error
+)
+from PyQt5.QtGui import (
     QSyntaxHighlighter  # @UnresolvedImport pylint: disable=I0021,import-error
-from PyQt5.QtGui import \
+)
+from PyQt5.QtGui import (
     QTextCharFormat  # @UnresolvedImport pylint: disable=I0021,import-error
+)
 
 
 def createTextFormat(color, style = ""):

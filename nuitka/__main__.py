@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -30,9 +30,14 @@ import os
 import sys
 import warnings
 
+
 def main():
     # PyLint for Python3 thinks we import from ourselves if we really
     # import from package, pylint:disable=I0021,no-name-in-module
+
+    # Also high complexity.
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+
     if "NUITKA_BINARY_NAME" in os.environ:
         sys.argv[0] = os.environ["NUITKA_BINARY_NAME"]
 
@@ -211,4 +216,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

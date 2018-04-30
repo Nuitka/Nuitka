@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -44,8 +44,11 @@ sys.path.insert(
 from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH # isort:skip
 from nuitka.tools.quality.ScanSources import scanTargets # isort:skip
 from nuitka.tools.quality.pylint import PyLint # isort:skip
+from nuitka.tools.testing.Common import setup, hasModule # isort:skip
+from nuitka.PythonVersions import python_version # isort:skip
 
 def main():
+    setup()
     goHome()
 
     # So PyLint finds nuitka package.
@@ -72,7 +75,6 @@ Show TODO items. Default is %default."""
 Be version in output. Default is %default."""
     )
 
-
     parser.add_option(
         "--one-by-one",
         action  = "store_true",
@@ -82,21 +84,44 @@ Be version in output. Default is %default."""
 Check files one by one. Default is %default."""
     )
 
+    parser.add_option(
+        "--not-installed-is-no-error",
+        action  = "store_true",
+        dest    = "not_installed_is_no_error",
+        default = False,
+        help    = """\
+Insist on PyLint to be installed. Default is %default."""
+    )
+
+
     options, positional_args = parser.parse_args()
+
+    if options.not_installed_is_no_error and not hasModule("pylint"):
+        print("PyLint is not installed for this interpreter version: SKIPPED")
+        sys.exit(0)
 
     if not positional_args:
         positional_args = ["bin", "nuitka"]
 
     print("Working on:", positional_args)
 
-    blacklist = (
+    blacklist = [
         "oset.py",
         "odict.py",
         "SyntaxHighlighting.py",
-    )
+    ]
+
+    # Avoid checking the Python2 runner with Python3, it has name collisions.
+    if python_version >= 300:
+        blacklist.append("nuitka")
 
     filenames = list(scanTargets(positional_args, (".py",), blacklist))
-    PyLint.executePyLint(filenames, options.todos, options.verbose, options.one_by_one)
+    PyLint.executePyLint(
+        filenames  = filenames,
+        show_todos = options.todos,
+        verbose    = options.verbose,
+        one_by_one = options.one_by_one,
+    )
 
     if not filenames:
         sys.exit("No files found.")

@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -25,7 +25,10 @@ abstract execution, and different from statements.
 
 from abc import abstractmethod
 
+from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
 from nuitka.Constants import isCompileTimeConstantValue
+from nuitka.Options import isFullCompat
+from nuitka.PythonVersions import python_version
 
 from .NodeBases import ChildrenHavingMixin, NodeBase
 from .NodeMakingHelpers import (
@@ -384,10 +387,76 @@ class ExpressionBase(NodeBase):
 
         return len_node, None, None
 
-    def computeExpressionIter1(self, iter_node, trace_collection):
+    def computeExpressionInt(self, int_node, trace_collection):
         shape = self.getTypeShape()
 
-        assert shape is not None, self
+        if shape.hasShapeSlotInt() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template      =
+                    "int() argument must be a string or a number, not '%s'"
+                      if python_version < 300 else
+                    "int() argument must be a string, a bytes-like object or a number, not '%s'",
+                operation     = "int",
+                original_node = int_node,
+                value_node    = self
+            )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return int_node, None, None
+
+    def computeExpressionLong(self, long_node, trace_collection):
+        shape = self.getTypeShape()
+
+        if shape.hasShapeSlotLong() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template      = "long() argument must be a string or a number, not '%s'",
+                operation     = "long",
+                original_node = long_node,
+                value_node    = self
+            )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return long_node, None, None
+
+    def computeExpressionFloat(self, float_node, trace_collection):
+        shape = self.getTypeShape()
+
+        if shape.hasShapeSlotFloat() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                    "float() argument must be a string or a number"
+                      if isFullCompat() and python_version < 300 else
+                    "float() argument must be a string or a number, not '%s'",
+                operation     = "long",
+                original_node = float_node,
+                value_node    = self
+            )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return float_node, None, None
+
+    def computeExpressionIter1(self, iter_node, trace_collection):
+        shape = self.getTypeShape()
 
         if shape.hasShapeSlotIter() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
@@ -477,6 +546,24 @@ class ExpressionBase(NodeBase):
 
     def mayRaiseExceptionBool(self, exception_type):
         """ Unless we are told otherwise, everything may raise being checked. """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
+
+    def mayRaiseExceptionInt(self, exception_type):
+        """ Unless we are told otherwise, everything may raise in __int__. """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
+
+    def mayRaiseExceptionLong(self, exception_type):
+        """ Unless we are told otherwise, everything may raise in __long__. """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
+
+    def mayRaiseExceptionFloat(self, exception_type):
+        """ Unless we are told otherwise, everything may raise in __float__. """
         # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return True
@@ -641,14 +728,12 @@ class CompileTimeConstantExpressionBase(ExpressionBase):
         # Virtual method overload
 
         # We remember it from our computation.
-
         return not self.computed_attribute
 
     def mayRaiseExceptionAttributeLookupSpecial(self, exception_type, attribute_name):
         # Virtual method overload
 
         # We remember it from our computation.
-
         return not self.computed_attribute
 
     def mayRaiseExceptionAttributeCheck(self, exception_type, attribute_name):
@@ -672,6 +757,31 @@ Compile time constant negation truth value pre-computed."""
             description = """\
 Compile time constant len value pre-computed."""
         )
+
+    def computeExpressionInt(self, int_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node        = int_node,
+            computation = lambda : int(self.getCompileTimeConstant()),
+            description = """\
+Compile time constant int value pre-computed."""
+        )
+
+    def computeExpressionLong(self, long_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node        = long_node,
+            computation = lambda : long(self.getCompileTimeConstant()),
+            description = """\
+Compile time constant long value pre-computed."""
+        )
+
+    def computeExpressionFloat(self, float_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node        = float_node,
+            computation = lambda : float(self.getCompileTimeConstant()),
+            description = """\
+Compile time constant float value pre-computed."""
+        )
+
 
     def isKnownToHaveAttribute(self, attribute_name):
         if self.computed_attribute is None:

@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -45,8 +45,8 @@ from .standard.ConsiderPyLintAnnotationsPlugin import (  # isort:skip
     NuitkaPluginPylintEclipseAnnotations
 )
 from .standard.MultiprocessingPlugin import (  # isort:skip
-    NuitkaPluginDetectorMultiprocessingWorkaorunds,
-    NuitkaPluginMultiprocessingWorkaorunds
+    NuitkaPluginDetectorMultiprocessingWorkarounds,
+    NuitkaPluginMultiprocessingWorkarounds
 )
 from .standard.PySidePyQtPlugin import (  # isort:skip
     NuitkaPluginDetectorPyQtPySidePlugins,
@@ -68,7 +68,7 @@ active_plugin_list = [
 # add your class here. The second one is a detector, which is supposed to give
 # a missing plug-in message, should it find the condition to make it useful.
 optional_plugin_classes = (
-    (NuitkaPluginMultiprocessingWorkaorunds, NuitkaPluginDetectorMultiprocessingWorkaorunds),
+    (NuitkaPluginMultiprocessingWorkarounds, NuitkaPluginDetectorMultiprocessingWorkarounds),
     (NuitkaPluginPyQtPySidePlugins, NuitkaPluginDetectorPyQtPySidePlugins),
     (NuitkaPluginPylintEclipseAnnotations, NuitkaPluginDetectorPylintEclipseAnnotations),
     (NuitkaPluginPmw, NuitkaPluginDetectorPmw),
@@ -168,13 +168,19 @@ class Plugins(object):
     @staticmethod
     def onModuleEncounter(module_filename, module_name, module_package,
                           module_kind):
+        result = False
+
         for plugin in active_plugin_list:
-            plugin.onModuleEncounter(
+            must_recurse = plugin.onModuleEncounter(
                 module_filename,
                 module_name,
                 module_package,
                 module_kind
             )
+
+            result = result or must_recurse
+
+        return result
 
     @staticmethod
     def considerFailedImportReferrals(module_name):
@@ -240,9 +246,7 @@ def initPlugins():
     for plugin_name, (plugin_class, plugin_detector) in plugin_name2plugin_classes.items():
         if plugin_name in Options.getPluginsEnabled():
             active_plugin_list.append(
-                plugin_class(
-                    **Options.getPluginOptions(plugin_name)
-                )
+                plugin_class()
             )
         elif plugin_name not in Options.getPluginsDisabled():
             if plugin_detector is not None \

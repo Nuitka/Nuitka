@@ -1,4 +1,4 @@
-//     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -313,11 +313,12 @@ int main( int argc, char **argv )
 
     /* Initial command line handling only. */
 
-    NUITKA_PRINT_TRACE("main(): Calling convert/setCommandLineParameters.");
-
 #if PYTHON_VERSION >= 300
+    NUITKA_PRINT_TRACE("main(): Calling convertCommandLineParameters.");
     argv_unicode = convertCommandLineParameters( argc, argv );
 #endif
+
+    NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
 
 #if PYTHON_VERSION < 300
     bool is_multiprocess_forking = setCommandLineParameters( argc, argv, true );

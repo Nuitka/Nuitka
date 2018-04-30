@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,6 +28,8 @@ import re
 import subprocess
 import sys
 from optparse import OptionParser
+
+from nuitka.tools.quality.autoformat.Autoformat import cleanupWindowsNewlines
 
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
@@ -67,12 +69,21 @@ def main():
     _options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = ["bin", "nuitka", "tests/reflected/compile_itself.py"]
+        positional_args = [
+            "bin",
+            "nuitka",
+            "tests/reflected/compile_itself.py"
+        ]
 
     target_files = []
-    for filename in scanTargets(positional_args, (".py",)):
+    for filename in scanTargets(positional_args, (".py", ".scons")):
+        # This breaks the PyLint annotations currently.
+        if os.path.basename(filename) == "Autoformat.py":
+            continue
 
         package_name = os.path.dirname(filename)
+
+        # Make imports local if possible.
         if package_name.startswith("nuitka" + os.path.sep):
             package_name = package_name.replace(os.path.sep, '.')
 
@@ -87,18 +98,22 @@ def main():
 
         target_files.append(filename)
 
-    target_files.append("nuitka/build/SingleExe.scons")
-
     setupPATH()
     subprocess.check_call(
         [
             "isort",
-            "-ot",
-            "-m3",
-            "-ns",
+            "-ot", # Order imports by type in addition to alphabetically
+            "-m3", # "vert-hanging"
+            "-up", # Prefer braces () over \ for line continuation.
+            "-ns", # Do not ignore those:
             "__init__.py"
         ] + target_files
     )
+
+    # For Windows, work around that isort changes encoding.
+    if os.name == "nt":
+        for filename in target_files:
+            cleanupWindowsNewlines(filename)
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python tests originally created or extracted from other peoples work. The
 #     parts were too small to be protected.
@@ -95,9 +95,7 @@ for filename in sorted(os.listdir('.')):
 
     if filename == "plugin_import":
         os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
-          " --recurse-directory=%s/some_package" % (
-              os.path.abspath(filename)
-          )
+          " --include-package=some_package"
     elif filename == "reimport_main_dynamic":
         if python_version < '3':
             os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
@@ -111,6 +109,9 @@ for filename in sorted(os.listdir('.')):
               )
 
         extra_flags.append("ignore_warnings")
+    elif filename == "multiprocessing_using":
+        if os.name == "nt":
+            extra_flags.append("plugin_enable:multiprocessing")
     else:
         os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options
 

@@ -1,5 +1,5 @@
 # -*- python -*-
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -530,9 +530,16 @@ def setupSpawn(env):
         if data.rstrip():
             if not show_scons_mode:
                 print(cmdline)
+
+            if str is not bytes:
+                data = data.decode("utf8")
+
             print(data, end = "")
 
         if err:
+            if str is not bytes:
+                err = err.decode("utf8")
+
             print(err, end = "")
 
         return rv

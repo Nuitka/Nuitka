@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -44,6 +44,14 @@ class ShapeUnknown(ShapeBase):
 
     @staticmethod
     def hasShapeSlotInt():
+        return None
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return None
+
+    @staticmethod
+    def hasShapeSlotFloat():
         return None
 
     @staticmethod
@@ -111,6 +119,14 @@ class ShapeIterator(ShapeBase):
 
     @staticmethod
     def hasShapeSlotInt():
+        return None
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return None
+
+    @staticmethod
+    def hasShapeSlotFloat():
         return None
 
     @staticmethod

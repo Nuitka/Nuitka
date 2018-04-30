@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -28,29 +28,8 @@ import os
 import subprocess
 import sys
 
+from nuitka.tools.testing.Common import hasModule
 from nuitka.utils import Execution
-
-pylint_binary = None
-
-def getPylintBinaryPath():
-    # pylint: disable=global-statement
-    global pylint_binary
-
-    if pylint_binary is None:
-        pylint_binary = Execution.getExecutablePath("pylint")
-
-        if pylint_binary is None and os.name == "nt":
-            candidate = os.path.join(
-                os.path.dirname(sys.executable),
-                "Scripts/pylint.exe"
-            )
-
-            if os.path.exists(candidate):
-                pylint_binary = candidate
-
-
-    return pylint_binary
-
 
 pylint_version = None
 
@@ -58,19 +37,24 @@ def checkVersion():
     # pylint: disable=global-statement
     global pylint_version
 
-    if getPylintBinaryPath() is None:
-        sys.exit("Error, pylint is not installed.")
+    if not hasModule("pylint"):
+        sys.exit("Error, pylint is not installed for this interpreter version.")
 
     if pylint_version is None:
         pylint_version = Execution.check_output(
-            [sys.executable, getPylintBinaryPath(), "--version"],
+            [os.environ["PYTHON"], "-m", "pylint", "--version"],
             stderr = open(os.devnull, 'w')
         )
 
-        pylint_version = pylint_version.split(b"\n")[0].split()[-1]
+        if str is not bytes:
+            pylint_version = pylint_version.decode("utf8")
 
-    if pylint_version < b"1.6.5":
+        pylint_version = pylint_version.split('\n')[0].split()[-1].strip(',')
+
+    if pylint_version < "1.6.5":
         sys.exit("Error, needs PyLint 1.6.5 or higher not %r." % pylint_version)
+
+    print("Using PyLint version:", pylint_version)
 
 
 # Disabled globally:
@@ -157,7 +141,7 @@ def getOptions():
 --max-bool-expr=10\
 """.split('\n')
 
-    if pylint_version >= b"1.7":
+    if pylint_version >= "1.7":
         default_pylint_options += """\
 --score=no
 --ignored-argument-names=_.*|trace_collection
@@ -169,7 +153,7 @@ def getOptions():
             "--rcfile=%s" % os.devnull
         )
 
-    if pylint_version >= b"1.8":
+    if pylint_version >= "1.8":
         default_pylint_options += """\
 --disable=c-extension-no-member,inconsistent-return-statements\
 """.split('\n')
@@ -178,11 +162,43 @@ def getOptions():
 
 our_exit_code = 0
 
+def _cleanupPylintOutput(output):
+    if str is not bytes:
+        output = output.decode("utf8")
+
+    # Normalize from Windows newlines potentially
+    output = output.replace("\r\n", '\n')
+
+    lines = output.split('\n')
+
+    lines = [
+        line
+        for line in
+        lines
+        if "Using config file" not in line
+        if "Unable to import 'resource'" not in line
+        if line
+    ]
+
+    try:
+        error_line = lines.index(
+            "No config file found, using default configuration"
+        )
+        del lines[error_line]
+
+        if error_line < len(lines):
+            del lines[error_line]
+    except ValueError:
+        pass
+
+    return lines
+
+
 def _executePylint(filenames, pylint_options, extra_options):
     # This is kind of a singleton module, pylint: disable=global-statement
     global our_exit_code
 
-    command = [sys.executable, getPylintBinaryPath()] + pylint_options + extra_options + filenames
+    command = [os.environ["PYTHON"], "-m", "pylint"] + pylint_options + extra_options + filenames
 
     process = subprocess.Popen(
         args   = command,
@@ -198,62 +214,25 @@ def _executePylint(filenames, pylint_options, extra_options):
     if exit_code == -11:
         sys.exit("Error, segfault from pylint.")
 
+    stdout = _cleanupPylintOutput(stdout)
+    stderr = _cleanupPylintOutput(stderr)
+
     if stderr:
-        if str is not bytes:
-            stderr = stderr.decode("utf8")
+        our_exit_code = 1
 
-        # Normalize from Windows newlines potentially
-        stdout = stdout.replace("\r\n", '\n')
-
-        lines = stdout.split('\n')
-
-        line = [
-            line
-            for line in
-            lines
-            if "Using config file" not in line
-        ]
-
-        for line in lines:
+        for line in stderr:
             print(line)
-
-        if lines:
-            our_exit_code = 1
 
     if stdout:
-        if str is not bytes:
-            stdout = stdout.decode("utf8")
-
-        # Normalize from Windows newlines potentially
-        stdout = stdout.replace("\r\n", '\n')
-
-        # Remove hard to disable error line given under Windows.
-        lines = stdout.split('\n')
-        try:
-            error_line = lines.index(
-                "No config file found, using default configuration"
-            )
-            del lines[error_line]
-            del lines[error_line]
-        except ValueError:
-            pass
-
-        lines = [
-            line
-            for line in
-            lines
-            if "Unable to import 'resource'" not in line
-        ]
-
         # If we filtered everything away, remove the leading file name report.
-        if len(lines) == 1:
-            assert lines[0].startswith("*****")
-            lines = []
+        if len(stdout) == 1:
+            assert stdout[0].startswith("*****")
+            stdout = []
 
-        for line in lines:
+        for line in stdout:
             print(line)
 
-        if lines:
+        if stdout:
             our_exit_code = 1
 
     sys.stdout.flush()

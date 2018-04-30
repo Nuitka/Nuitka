@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -15,47 +15,37 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Variable trace objects.
+""" Value trace objects.
 
-Variable traces indicate the flow of variables and merges their versions for
+Value traces indicate the flow of values and merges their versions for
 the SSA (Single State Assignment) form being used in Nuitka.
 
-Variable version can start as:
+Values can be seen as:
 
 * Unknown (maybe initialized, maybe not, we cannot know)
 * Uninit (definitely not initialized, first version, or after "del" statement)
 * Init (definitely initialized, e.g. parameter variables)
-* Merge (result of diverged code paths)
+* Merge (result of diverged code paths, loop potentially)
 
 """
 
 
 from logging import debug
 
-from nuitka.codegen.c_types.CTypePyObjectPtrs import (
-    CTypeCellObject,
-    CTypePyObjectPtr,
-    CTypePyObjectPtrPtr
-)
-from nuitka.Options import isExperimental
 from nuitka.utils import InstanceCounters
 
-enable_bool_ctype = isExperimental("enable_bool_ctype")
 
-
-class VariableTraceBase(object):
-    # We are going to have many instance attributes, pylint: disable=too-many-instance-attributes
+class ValueTraceBase(object):
+    # We are going to have many instance attributes
 
     __slots__ = (
-        "owner", "variable", "version", "usage_count", "has_potential_usages",
+        "owner", "usage_count", "has_potential_usages",
         "name_usages", "closure_usages", "is_escaped", "previous"
     )
 
     @InstanceCounters.counted_init
-    def __init__(self, owner, variable, version, previous):
+    def __init__(self, owner, previous):
         self.owner = owner
-        self.variable = variable
-        self.version = version
 
         # Definite usage indicator.
         self.usage_count = 0
@@ -76,14 +66,8 @@ class VariableTraceBase(object):
 
     __del__ = InstanceCounters.counted_del()
 
-    def getVariable(self):
-        return self.variable
-
     def getOwner(self):
         return self.owner
-
-    def getVersion(self):
-        return self.version
 
     def addClosureUsage(self):
         self.addUsage()
@@ -120,36 +104,6 @@ class VariableTraceBase(object):
     def getPrevious(self):
         return self.previous
 
-    def getPickedCType(self, context):
-        """ Return type to use for specific context. """
-
-        user = context.getEntryPoint()
-        owner = self.variable.getEntryPoint()
-
-        if owner is user:
-            if self.variable.isSharedTechnically():
-                result = CTypeCellObject
-            else:
-                if enable_bool_ctype:
-                    shapes = self.variable.getTypeShapes()
-
-                    if len(shapes) > 1:
-                        return CTypePyObjectPtr
-                    else:
-                        assert shapes, self
-                        return shapes.pop().getCType()
-                else:
-                    return CTypePyObjectPtr
-        elif context.isForDirectCall():
-            if self.variable.isSharedTechnically():
-                result = CTypeCellObject
-            else:
-                result = CTypePyObjectPtrPtr
-        else:
-            result = CTypeCellObject
-
-        return result
-
     @staticmethod
     def isAssignTrace():
         return False
@@ -171,21 +125,11 @@ class VariableTraceBase(object):
         return False
 
     def mustHaveValue(self):
-        # TODO: Temporarily disable far reaching of assumptions, until value
-        # escaping can be trusted.
-        if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically() is not False:
-            return False
-
         # Merge traces have this overloaded.
 
         return self.isInitTrace() or self.isAssignTrace()
 
     def mustNotHaveValue(self):
-        if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically() is not False:
-            return False
-
         return self.isUninitTrace()
 
     def getReplacementNode(self, usage):
@@ -198,23 +142,19 @@ class VariableTraceBase(object):
         return False
 
 
-
-class VariableTraceUninit(VariableTraceBase):
+class ValueTraceUninit(ValueTraceBase):
     __slots__ = ()
 
-    def __init__(self, owner, variable, version, previous):
-        VariableTraceBase.__init__(
+    def __init__(self, owner, previous):
+        ValueTraceBase.__init__(
             self,
             owner    = owner,
-            variable = variable,
-            version  = version,
             previous = previous
         )
 
     def __repr__(self):
-        return "<VariableTraceUninit {variable} {version}>".format(
-            variable = self.variable,
-            version  = self.version
+        return "<ValueTraceUninit of {owner}>".format(
+            owner = self.owner
         )
 
     @staticmethod
@@ -222,11 +162,6 @@ class VariableTraceUninit(VariableTraceBase):
         return True
 
     def dump(self):
-        debug(
-            "Trace of %s %d:",
-            self.variable,
-            self.version
-        )
         debug("  Starts out uninitialized")
 
         if self.usage_count:
@@ -236,30 +171,22 @@ class VariableTraceUninit(VariableTraceBase):
             debug("  -> value escapes")
 
 
-class VariableTraceInit(VariableTraceBase):
+class ValueTraceInit(ValueTraceBase):
     __slots__ = ()
 
-    def __init__(self, owner, variable, version):
-        VariableTraceBase.__init__(
+    def __init__(self, owner):
+        ValueTraceBase.__init__(
             self,
             owner    = owner,
-            variable = variable,
-            version  = version,
             previous = None
         )
 
     def __repr__(self):
-        return "<VariableTraceInit {variable} {version}>".format(
-            variable = self.variable,
-            version  = self.version
+        return "<ValueTraceInit of {owner}>".format(
+            owner = self.owner
         )
 
     def dump(self):
-        debug(
-            "Trace of %s %d:",
-            self.variable,
-            self.version
-        )
         debug("  Starts initialized")
 
         if self.usage_count:
@@ -273,28 +200,20 @@ class VariableTraceInit(VariableTraceBase):
         return True
 
 
-class VariableTraceUnknown(VariableTraceBase):
-    def __init__(self, owner, variable, version, previous):
-        VariableTraceBase.__init__(
+class ValueTraceUnknown(ValueTraceBase):
+    def __init__(self, owner, previous):
+        ValueTraceBase.__init__(
             self,
             owner    = owner,
-            variable = variable,
-            version  = version,
             previous = previous
         )
 
     def __repr__(self):
-        return "<VariableTraceUnknown {variable} {version}>".format(
-            variable = self.variable,
-            version  = self.version
+        return "<ValueTraceUnknown of {owner}>".format(
+            owner = self.owner
         )
 
     def dump(self):
-        debug(
-            "Trace of %s %d:",
-            self.variable,
-            self.version
-        )
         debug("  Starts unknown")
 
         if self.usage_count:
@@ -329,15 +248,13 @@ class VariableTraceUnknown(VariableTraceBase):
                 self.previous.addPotentialUsage()
 
 
-class VariableTraceAssign(VariableTraceBase):
+class ValueTraceAssign(ValueTraceBase):
     __slots__ = ("assign_node", "replace_it")
 
-    def __init__(self, owner, assign_node, variable, version, previous):
-        VariableTraceBase.__init__(
+    def __init__(self, owner, assign_node, previous):
+        ValueTraceBase.__init__(
             self,
             owner    = owner,
-            variable = variable,
-            version  = version,
             previous = previous
         )
 
@@ -345,15 +262,11 @@ class VariableTraceAssign(VariableTraceBase):
         self.replace_it = None
 
     def __repr__(self):
-        return """\
-<VariableTraceAssign {variable} {version} at {source_ref}>""".format(
-            variable   = self.variable,
-            version    = self.version,
+        return "<ValueTraceAssign at {source_ref}>".format(
             source_ref = self.assign_node.getSourceReference().getAsString()
         )
 
     def dump(self):
-        debug("Trace of %s %d:", self.variable, self.version)
         debug("  Starts assigned")
 
         if self.usage_count:
@@ -382,7 +295,7 @@ class VariableTraceAssign(VariableTraceBase):
         return self.assign_node.getAssignSource().hasShapeDictionaryExact()
 
 
-class VariableTraceMerge(VariableTraceBase):
+class ValueTraceMerge(ValueTraceBase):
     """ Merge of two or more traces.
 
         Happens at the end of conditional blocks. This is "phi" in
@@ -392,43 +305,30 @@ class VariableTraceMerge(VariableTraceBase):
 
     __slots__ = ()
 
-    def __init__(self, variable, version, traces):
-        VariableTraceBase.__init__(
+    def __init__(self, traces):
+        ValueTraceBase.__init__(
             self,
             owner    = traces[0].owner,
-            variable = variable,
-            version  = version,
             previous = tuple(traces)
         )
 
     def __repr__(self):
         return """\
-<VariableTraceMerge {variable} {version} of {previous}>""".format(
-            variable = self.variable,
-            version  = self.version,
+<ValueTraceMerge of {previous}>""".format(
             previous = tuple(previous.getVersion() for previous in self.previous)
         )
-
 
     @staticmethod
     def isMergeTrace():
         return True
 
     def dump(self):
-        debug("Trace of %s %d:", self.variable, self.version)
-
         debug(
             "  Merge of %s",
             " <-> ".join(self.previous),
         )
 
     def mustHaveValue(self):
-        # TODO: Temporarily disable far reaching of assumptions, until value
-        # escaping can be trusted.
-        if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically() is not False:
-            return False
-
         for previous in self.previous:
             if not previous.isInitTrace() and not previous.isAssignTrace():
                 return False
@@ -436,10 +336,6 @@ class VariableTraceMerge(VariableTraceBase):
         return True
 
     def mustNotHaveValue(self):
-        if self.variable.isModuleVariable() or \
-           self.variable.isSharedTechnically() is not False:
-            return False
-
         for previous in self.previous:
             if not previous.isUninitTrace():
                 return False
@@ -476,7 +372,7 @@ class VariableTraceMerge(VariableTraceBase):
         return True
 
 
-class VariableTraceLoopMerge(VariableTraceBase):
+class ValueTraceLoopMerge(ValueTraceBase):
     """ Merge of loop wrap around with loop start value.
 
         Happens at the start of loop blocks. This is for loop closed SSA, to
@@ -489,12 +385,10 @@ class VariableTraceLoopMerge(VariableTraceBase):
 
     __slots__ = ("loop_finished",)
 
-    def __init__(self, variable, version, previous):
-        VariableTraceBase.__init__(
+    def __init__(self, previous):
+        ValueTraceBase.__init__(
             self,
             owner    = previous.owner,
-            variable = variable,
-            version  = version,
             previous = previous
         )
 

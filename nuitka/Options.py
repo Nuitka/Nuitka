@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -22,11 +22,7 @@ import os
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
-from nuitka.PythonVersions import (
-    getSupportedPythonVersions,
-    getSupportedPythonVersionStr,
-    python_version_str
-)
+from nuitka.PythonVersions import getSupportedPythonVersions
 from nuitka.utils import Utils
 from nuitka.Version import getNuitkaVersion
 
@@ -82,12 +78,13 @@ parser.add_option(
     dest    = "python_version",
     choices = getSupportedPythonVersions(),
     default = None,
-    help    = """\
-Major version of Python to be used, one of %s.
-Defaults to what you run Nuitka with (currently %s)""" % (
-       getSupportedPythonVersionStr(),
-       python_version_str
-    )
+    help    = SUPPRESS_HELP
+#               """\
+# Major version of Python to be used, one of %s.
+# Defaults to what you run Nuitka with (currently %s)""" % (
+#        getSupportedPythonVersionStr(),
+#        python_version_str
+#     )
 )
 
 if os.name == "nt":
@@ -133,7 +130,7 @@ parser.add_option(
     dest    = "python_scons",
     default = None,
     help    = """\
-If using Python3.2 to Python3.4, provide the path of a Python binary to use
+If using Python3.3 or Python3.4, provide the path of a Python binary to use
 for Scons. Otherwise Nuitka can use what you run Nuitka with or a "scons"
 binary that is found in PATH, or a Python installation from Windows registry."""
 )
@@ -174,7 +171,7 @@ include_group = OptionGroup(
 include_group.add_option(
     "--include-package",
     action  = "append",
-    dest    = "include_package",
+    dest    = "include_packages",
     metavar = "PACKAGE",
     default = [],
     help    = """\
@@ -925,19 +922,45 @@ def _splitShellPattern(value):
 
 
 def getShallFollowInNoCase():
-    return sum([ _splitShellPattern(x) for x in options.recurse_not_modules ], [])
+    return sum(
+        [_splitShellPattern(x) for x in options.recurse_not_modules ],
+        []
+    )
 
 
 def getShallFollowModules():
-    return sum([ _splitShellPattern(x) for x in options.recurse_modules ], [])
+    return sum(
+        [_splitShellPattern(x) for x in options.recurse_modules + options.include_modules + options.include_packages],
+        []
+    )
 
 
 def getShallFollowExtra():
-    return sum([ x.split(',') for x in options.recurse_extra ], [])
+    return sum(
+        [_splitShellPattern(x) for x in options.recurse_extra],
+        []
+    )
 
 
 def getShallFollowExtraFilePatterns():
-    return sum([ x.split(',') for x in options.recurse_extra_files ], [])
+    return sum(
+        [_splitShellPattern(x) for x in options.recurse_extra_files],
+        []
+    )
+
+
+def getMustIncludeModules():
+    return sum(
+        [_splitShellPattern(x) for x in options.include_modules],
+        []
+    )
+
+
+def getMustIncludePackages():
+    return sum(
+        [_splitShellPattern(x) for x in options.include_packages ],
+        []
+    )
 
 
 def shallWarnImplicitRaises():
@@ -1118,26 +1141,49 @@ def shallListPlugins():
 
 
 def getPluginsEnabled():
-    if not options:
-        return ()
+    """ Return the names of plugin that were enabled.
 
-    return options.plugins_enabled
+    """
+    result = set()
+
+    if options:
+        for plugin_enabled in options.plugins_enabled:
+            result.add(plugin_enabled.split('=',1)[0])
+
+    return tuple(result)
+
+
+def getPluginOptions(plugin_name):
+    """ Return the options provided for a specific plugin.
+
+    """
+    result = []
+
+    if options:
+        for plugin_enabled in options.plugins_enabled:
+            if '=' not in plugin_enabled:
+                continue
+
+            name, args = plugin_enabled.split('=',1)
+
+            if name == plugin_name:
+                result.extend(args.split(','))
+
+    return result
 
 
 def getPluginsDisabled():
+    """ Return the names of plugin that were disabled.
+
+    """
     if not options:
         return ()
 
-    return options.plugins_disabled
+    return tuple(set(options.plugins_disabled))
 
 
 def shallDetectMissingPlugins():
     return options is not None and options.detect_missing_plugins
-
-
-def getPluginOptions(plugin_name):
-    # TODO: This should come from command line, pylint: disable=unused-argument
-    return {}
 
 
 def getPythonPathForScons():

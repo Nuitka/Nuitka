@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,10 +31,12 @@ def goHome():
         getHomePath()
     )
 
+my_abs_path = os.path.abspath(__file__)
+
 def getHomePath():
     return os.path.normpath(
         os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
+            os.path.dirname(my_abs_path),
             "..",
             ".."
         )

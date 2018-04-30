@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -21,20 +21,37 @@
 
 """
 
-from __future__ import print_function
-
 import os
 import re
 import shutil
 import sys
 
-from baron.parser import ParsingError  # @UnresolvedImport
-from redbaron import RedBaron  # @UnresolvedImport
+from baron.parser import ParsingError  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+from redbaron import RedBaron  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+from nuitka.Tracing import my_print
+
+
+def cleanupWindowsNewlines(filename):
+    """ Remove Windows new-lines from a file.
+
+        Simple enough to not depend on external binary.
+    """
+
+    source_code = open(filename, "rb").read()
+
+    updated_code = source_code.replace(b"\r\n", b'\n')
+    updated_code = updated_code.replace(b"\n\r", b'\n')
+
+    if updated_code != source_code:
+        my_print("Fixing Windows new lines for", filename)
+
+        with open(filename, "wb") as out_file:
+            out_file.write(updated_code)
 
 
 def autoformat(filename, abort = False):
     # All the complexity in one place, pylint: disable=too-many-branches,too-many-statements
-    print("Consider", filename, end = ": ")
+    my_print("Consider", filename, end = ": ")
 
     old_code = open(filename, 'r').read()
 
@@ -45,7 +62,7 @@ def autoformat(filename, abort = False):
         if abort:
             raise
 
-        print("PARSING ERROR.")
+        my_print("PARSING ERROR.")
         return 2
 
     def updateCall(call_node):
@@ -210,7 +227,7 @@ def autoformat(filename, abort = False):
         try:
             updateCall(node)
         except Exception:
-            print("Problem with", node)
+            my_print("Problem with", node)
             node.help(deep = True, with_formatting = True)
             raise
 
@@ -218,7 +235,7 @@ def autoformat(filename, abort = False):
         try:
             updateTuple(node)
         except Exception:
-            print("Problem with", node)
+            my_print("Problem with", node)
             node.help(deep = True, with_formatting = True)
             raise
 
@@ -226,7 +243,7 @@ def autoformat(filename, abort = False):
         try:
             updateTuple(node)
         except Exception:
-            print("Problem with", node)
+            my_print("Problem with", node)
             node.help(deep = True, with_formatting = True)
             raise
 
@@ -234,7 +251,7 @@ def autoformat(filename, abort = False):
         try:
             updateTuple(node)
         except Exception:
-            print("Problem with", node)
+            my_print("Problem with", node)
             node.help(deep = True, with_formatting = True)
             raise
 
@@ -242,7 +259,7 @@ def autoformat(filename, abort = False):
         try:
             updateString(node)
         except Exception:
-            print("Problem with", node)
+            my_print("Problem with", node)
             node.help(deep = True, with_formatting = True)
             raise
 
@@ -250,7 +267,7 @@ def autoformat(filename, abort = False):
         try:
             updateDefNode(node)
         except Exception:
-            print("Problem with", node)
+            my_print("Problem with", node)
             node.help(deep = True, with_formatting = True)
             raise
 
@@ -258,7 +275,7 @@ def autoformat(filename, abort = False):
         try:
             updateCommentNode(node)
         except Exception:
-            print("Problem with", node)
+            my_print("Problem with", node)
             node.help(deep = True, with_formatting = True)
             raise
 
@@ -270,6 +287,9 @@ def autoformat(filename, abort = False):
         with open(new_name, 'w') as source_code:
             source_code.write(red.dumps())
 
+        if os.name == "nt":
+            cleanupWindowsNewlines(new_name)
+
         # There is no way to safely replace a file on Windows, but lets try on Linux
         # at least.
         old_stat = os.stat(filename)
@@ -278,13 +298,14 @@ def autoformat(filename, abort = False):
             os.rename(new_name, filename)
         except OSError:
             shutil.copy(new_name, filename)
+            os.unlink(new_name)
 
         os.chmod(filename, old_stat.st_mode)
 
-        print("updated.")
+        my_print("updated.")
         changed = 1
     else:
-        print("OK.")
+        my_print("OK.")
         changed = 0
 
     return changed

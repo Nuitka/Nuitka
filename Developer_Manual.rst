@@ -1107,7 +1107,7 @@ Trace structure, there are different kinds of traces.
    to it, and it's value cannot be trusted to be unchanged. These are then
    traced as unknown.
 
-All traces have a base class ``VariableTraceBase`` which provides the interface
+All traces have a base class ``ValueTraceBase`` which provides the interface
 to query facts about the state of a variable in that trace. It's e.g. of some
 interest, if a variable must have a value or must not. This allows to e.g. omit
 checks, know what exceptions might raise.

@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -65,6 +65,10 @@ class ExpressionVariableNameRef(ExpressionBase):
 
         self.provider = provider
 
+    @staticmethod
+    def isExpressionVariableNameRef():
+        return True
+
     def getDetails(self):
         return {
             "variable_name" : self.variable_name,
@@ -77,11 +81,30 @@ class ExpressionVariableNameRef(ExpressionBase):
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
+    @staticmethod
+    def needsFallback():
+        return True
+
+
+class ExpressionVariableLocalNameRef(ExpressionVariableNameRef):
+    """ These are used before the actual variable object is known from VariableClosure.
+
+        The special thing about this as opposed to ExpressionVariableNameRef is that
+        these must remain local names and cannot fallback to outside scopes. This is
+        used for __annotations__.
+
+    """
+    kind = "EXPRESSION_VARIABLE_LOCAL_NAME_REF"
+
+    @staticmethod
+    def needsFallback():
+        return False
+
 
 class ExpressionVariableRefBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = "variable", "variable_trace"
+    __slots__ = "variable", "variable_version", "variable_trace"
 
     def __init__(self, variable, source_ref):
         ExpressionBase.__init__(
@@ -91,6 +114,7 @@ class ExpressionVariableRefBase(ExpressionBase):
 
         self.variable = variable
         self.variable_trace = None
+        self.variable_version = None
 
     def getVariableName(self):
         return self.variable.getName()
@@ -99,7 +123,10 @@ class ExpressionVariableRefBase(ExpressionBase):
         return self.variable
 
     def getVariableVersion(self):
-        return self.variable_trace.getVersion()
+        return self.variable_version
+
+    def getVariableTrace(self):
+        return self.variable_trace
 
 
 class ExpressionVariableRef(ExpressionVariableRefBase):
@@ -170,7 +197,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         variable = self.variable
         assert variable is not None
 
-        self.variable_trace = trace_collection.getVariableCurrentTrace(
+        self.variable_version, self.variable_trace = trace_collection.getVariableCurrentTraceVersion(
             variable = variable
         )
 
@@ -490,7 +517,7 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
             return ShapeUnknown
 
     def computeExpressionRaw(self, trace_collection):
-        self.variable_trace = trace_collection.getVariableCurrentTrace(
+        self.variable_version, self.variable_trace = trace_collection.getVariableCurrentTraceVersion(
             variable = self.variable
         )
 

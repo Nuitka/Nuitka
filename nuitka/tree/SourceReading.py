@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -174,6 +174,8 @@ The program you compiled wants to be run with: %s.
 
 Nuitka is currently running with Python version '%s', which seems to not
 match that. Nuitka cannot guess the Python version of your source code. You
-therefore might want to specify '--python-version=' to make it clear.
-""" % (shebang, python_version_str)
+therefore might want to specify: '%s -m nuitka'.
+
+That will make use the correct Python version for Nuitka.
+""" % (shebang, python_version_str, binary)
             )

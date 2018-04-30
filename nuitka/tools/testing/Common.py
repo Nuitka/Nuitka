@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -187,10 +187,31 @@ def convertUsing2to3(path, force = False):
     except shutil.SameFileError:  # @UndefinedVariable
         pass
 
-    command = [
-        sys.executable,
-        "-m",
-        "lib2to3",
+    # For Python2.6 and 3.2 the -m lib2to3 was not yet supported.
+    use_binary = sys.version_info[:2] in ((2,6), (3,2))
+
+    if use_binary:
+        # On Windows, we cannot rely on 2to3 to be in the path.
+        if os.name == "nt":
+            command = [
+                sys.executable,
+                os.path.join(
+                    os.path.dirname(sys.executable),
+                    "Tools/Scripts/2to3.py"
+                )
+            ]
+        else:
+            command = [
+                "2to3"
+            ]
+    else:
+        command = [
+            sys.executable,
+            "-m",
+            "lib2to3",
+        ]
+
+    command += [
         "-w",
         "-n",
         "--no-diffs",
@@ -1193,7 +1214,12 @@ def getTestingCacheDir():
 
 
 @contextmanager
-def withDirectoryChange(path):
-    old_cwd = os.chdir(path)
+def withDirectoryChange(path, allow_none = False):
+    if path is not None or not allow_none:
+        old_cwd = os.getcwd()
+        os.chdir(path)
+
     yield
-    os.chdir(old_cwd)
+
+    if path is not None or not allow_none:
+        os.chdir(old_cwd)

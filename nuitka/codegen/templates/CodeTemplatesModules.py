@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -187,6 +187,9 @@ MOD_INIT_DECL( %(module_identifier)s )
     patchTypeComparison();
 
     // Enable meta path based loader if not already done.
+#ifdef _NUITKA_TRACE
+    puts("%(module_name)s: Calling setupMetaPathBasedLoader().");
+#endif
     setupMetaPathBasedLoader();
 
 #if PYTHON_VERSION >= 300

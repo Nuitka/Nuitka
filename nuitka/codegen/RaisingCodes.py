@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -31,6 +31,21 @@ from .LineNumberCodes import (
     getErrorLineNumberUpdateCode
 )
 from .PythonAPICodes import getReferenceExportCode
+
+
+def generateReraiseCode(statement, emit, context):
+    context.markAsNeedsExceptionVariables()
+
+    old_source_ref = context.setCurrentSourceCodeReference(
+        value = statement.getCompatibleSourceReference()
+    )
+
+    getReRaiseExceptionCode(
+        emit    = emit,
+        context = context
+    )
+
+    context.setCurrentSourceCodeReference(old_source_ref)
 
 
 def generateRaiseCode(statement, emit, context):
@@ -76,20 +91,7 @@ def generateRaiseCode(statement, emit, context):
 
         context.setCurrentSourceCodeReference(old_source_ref)
     elif exception_type is None:
-        assert exception_cause is None
-        assert exception_value is None
-        assert exception_tb is None
-
-        old_source_ref = context.setCurrentSourceCodeReference(
-            value = statement.getCompatibleSourceReference()
-        )
-
-        getReRaiseExceptionCode(
-            emit    = emit,
-            context = context
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
+        assert False, statement
     elif exception_value is None and exception_tb is None:
         raise_type_name  = context.allocateTempName("raise_type")
 
@@ -139,7 +141,7 @@ def generateRaiseCode(statement, emit, context):
         getRaiseExceptionWithValueCode(
             raise_type_name  = raise_type_name,
             raise_value_name = raise_value_name,
-            implicit         = statement.isImplicit(),
+            implicit         = statement.isStatementRaiseExceptionImplicit(),
             emit             = emit,
             context          = context
         )
@@ -196,10 +198,14 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
     # Missed optimization opportunity, please report it, this should not
     # normally happen. We are supposed to propagate this upwards.
     if isDebug():
+        # TODO: Need to optimize ExpressionLocalsVariableRefORFallback once we know
+        # it handles cases where the value is not in locals dict properly.
+
         parent = expression.parent
         assert parent.isExpressionSideEffects() or \
-               parent.isExpressionConditional(), \
-               (expression, expression.parent)
+               parent.isExpressionConditional() or \
+               parent.isExpressionLocalsVariableRefORFallback(), \
+               (expression, expression.parent, expression.asXmlText())
 
     # That's how we indicate exception to the surrounding world.
     emit("%s = NULL;" % to_name)
@@ -226,7 +232,7 @@ if (unlikely( %(bool_res_name)s == false ))
 }
 """ % {
                 "bool_res_name" : context.getBoolResName(),
-                "update_code" : getErrorLineNumberUpdateCode(context)
+                "update_code"   : getErrorLineNumberUpdateCode(context)
 
             }
         )

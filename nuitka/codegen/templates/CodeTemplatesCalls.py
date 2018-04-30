@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -678,7 +678,7 @@ PyObject *CALL_METHOD_WITH_ARGS%(args_count)d( PyObject *source, PyObject *attr_
     {
         PyObject *called_object = (*type->tp_getattr)(
             source,
-            Nuitka_String_AsString_Unchecked( attr_name )
+            (char *)Nuitka_String_AsString_Unchecked( attr_name )
         );
 
         if (unlikely( called_object == NULL ))

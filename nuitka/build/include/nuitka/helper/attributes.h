@@ -1,4 +1,4 @@
-//     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -273,7 +273,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObje
     }
     else if ( type->tp_getattr != NULL )
     {
-        PyObject *result = (*type->tp_getattr)( source, Nuitka_String_AsString_Unchecked( attr_name ) );
+        PyObject *result = (*type->tp_getattr)( source, (char *)Nuitka_String_AsString_Unchecked( attr_name ) );
         return result;
     }
     else
@@ -678,7 +678,7 @@ NUITKA_MAY_BE_UNUSED static bool SET_ATTRIBUTE( PyObject *target, PyObject *attr
         }
         else if ( type->tp_setattr != NULL )
         {
-            int status = (*type->tp_setattr)( target, Nuitka_String_AsString_Unchecked( attr_name ), value );
+            int status = (*type->tp_setattr)( target, (char *)Nuitka_String_AsString_Unchecked( attr_name ), value );
 
             if (unlikely( status == -1 ))
             {

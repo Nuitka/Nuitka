@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -113,6 +113,39 @@ def createNodeTree(filename):
             pattern = pattern
         )
 
+    for package_name in Options.getMustIncludePackages():
+        package_package, package_directory, kind = Importing.findModule(
+            importing      = None,
+            module_name    = package_name,
+            parent_package = None,
+            level          = 0,
+            warn           = False
+        )
+
+        if kind != "absolute":
+            sys.exit("Error, failed to locate package %r." % package_name)
+
+        Recursion.checkPluginPath(
+            plugin_filename = package_directory,
+            module_package  = package_package
+        )
+
+    for module_name in Options.getMustIncludeModules():
+        module_package, module_filename, kind = Importing.findModule(
+            importing      = None,
+            module_name    = module_name,
+            parent_package = None,
+            level          = 0,
+            warn           = False
+        )
+
+        if kind != "absolute":
+            sys.exit("Error, failed to locate module %r." % module_name)
+
+        Recursion.checkPluginSinglePath(
+            plugin_filename = module_filename,
+            module_package  = module_package
+        )
 
     # Then optimize the tree and potentially recursed modules.
     Optimization.optimize()
@@ -706,7 +739,8 @@ def handleSyntaxError(e):
 
 Nuitka is very syntax compatible with standard Python. It is currently running
 with Python version '%s', you might want to specify more clearly with the use
-of e.g. '--python-version=%s' option, if that's not the one expected.
+of the precise Python interpreter binary and '-m nuitka', e.g. use this
+'python%s -m nuitka' option, if that's not the one the program expects.
 """ % (python_version_str, suggested_python_version_str)
 
     sys.exit(error_message)

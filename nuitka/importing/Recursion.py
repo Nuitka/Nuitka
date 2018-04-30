@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -175,13 +175,16 @@ def recurseTo(module_package, module_filename, module_relpath, module_kind,
 def decideRecursion(module_filename, module_name, module_package, module_kind,
                     extra_recursion = False):
     # Many branches, which make decisions immediately, by returning
-    # pylint: disable=too-many-return-statements
-    Plugins.onModuleEncounter(
+    # pylint: disable=too-many-branches,too-many-return-statements
+    plugin_decision = Plugins.onModuleEncounter(
         module_filename,
         module_name,
         module_package,
         module_kind
     )
+
+    if plugin_decision:
+        return plugin_decision
 
     if module_kind == "shlib":
         if Options.isStandaloneMode():
@@ -282,7 +285,7 @@ def isSameModulePath(path1, path2):
     return os.path.abspath(path1) == os.path.abspath(path2)
 
 
-def _checkPluginPath(plugin_filename, module_package):
+def checkPluginSinglePath(plugin_filename, module_package):
     # Many branches, for the decision is very complex, pylint: disable=too-many-branches
 
     debug(
@@ -370,7 +373,7 @@ def _checkPluginPath(plugin_filename, module_package):
 
                         if Importing.isPackageDir(sub_path) or \
                            sub_path.endswith(".py"):
-                            _checkPluginPath(sub_path, module.getFullName())
+                            checkPluginSinglePath(sub_path, module.getFullName())
 
                 elif module.isCompiledPythonModule():
                     ModuleRegistry.addRootModule(module)
@@ -396,14 +399,14 @@ def checkPluginPath(plugin_filename, module_package):
         # File or package makes a difference, handle that
         if os.path.isfile(plugin_info[0]) or \
            Importing.isPackageDir(plugin_info[0]):
-            _checkPluginPath(plugin_filename, module_package)
+            checkPluginSinglePath(plugin_filename, module_package)
         elif os.path.isdir(plugin_info[0]):
             for sub_path, sub_filename in listDir(plugin_info[0]):
                 assert sub_filename != "__init__.py"
 
                 if Importing.isPackageDir(sub_path) or \
                    sub_path.endswith(".py"):
-                    _checkPluginPath(sub_path, None)
+                    checkPluginSinglePath(sub_path, None)
         else:
             warning("Failed to include module from '%s'.", plugin_info[0])
     else:
@@ -429,7 +432,7 @@ def checkPluginFilenamePattern(pattern):
             continue
 
         found = True
-        _checkPluginPath(filename, None)
+        checkPluginSinglePath(filename, None)
 
     if not found:
         warning("Didn't match any files against pattern '%s'." % pattern)

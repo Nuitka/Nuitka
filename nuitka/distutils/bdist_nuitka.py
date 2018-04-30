@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -19,14 +19,14 @@
 
 """
 
-import distutils.command.build
-import distutils.command.install
+import distutils.command.build  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+import distutils.command.install  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import os
 import shutil
 import subprocess
 import sys
 
-import wheel.bdist_wheel  # @UnresolvedImport
+import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
 
 def setuptools_build_hook(dist, keyword, value):
@@ -43,9 +43,6 @@ def setuptools_build_hook(dist, keyword, value):
     dist.cmdclass["bdist_wheel"] = bdist_nuitka
 
 
-# False alarm due to distutils not being fully understood
-# pylint: disable=I0021,super-on-old-class
-
 # Class name enforced by distutils, must match the command name.
 # pylint: disable=C0103
 class build(distutils.command.build.build):
@@ -55,7 +52,8 @@ class build(distutils.command.build.build):
         self.compile_packages = self.distribution.packages
         self.main_package = self.compile_packages[0]
 
-        super(build, self).run()
+        # Python2 does not allow super on this old style class.
+        distutils.command.build.build.run(self)
 
         self._buildPackage(os.path.abspath(self.build_lib))
 
@@ -139,7 +137,7 @@ class install(distutils.command.install.install):
 
     # pylint: disable=attribute-defined-outside-init
     def finalize_options(self):
-        super(install, self).finalize_options()
+        distutils.command.install.install.finalize_options(self)
         # Ensure the purelib folder is not used
         self.install_lib = self.install_platlib
 
@@ -154,11 +152,11 @@ class bdist_nuitka(wheel.bdist_wheel.bdist_wheel):
         dist.cmdclass["build"] = build
         dist.cmdclass["install"] = install
 
-        super(bdist_nuitka, self).initialize_options()
+        wheel.bdist_wheel.bdist_wheel.initialize_options(self)
 
     # pylint: disable=attribute-defined-outside-init
     def finalize_options(self):
-        super(bdist_nuitka, self).finalize_options()
+        wheel.bdist_wheel.bdist_wheel.finalize_options(self)
         # Force module to use correct platform in name
         self.root_is_pure = False
         self.plat_name_supplied = self.plat_name is not None

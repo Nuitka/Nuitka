@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Python test originally created or extracted from other peoples work. The
 #     parts from me are licensed as below. It is at least Free Software where
@@ -162,9 +162,9 @@ os.chdir(getTempDir())
 
 if nuitka:
     nuitka_call = [
+        os.environ["PYTHON"],
         nuitka,
         "--python-flag=-S",
-        "--python-version=" + ".".join(python_version.split(".")[:2]),
         os.path.basename(test_case)
     ]
     nuitka_call.extend(os.environ.get("NUITKA_EXTRA_OPTIONS", "").split())

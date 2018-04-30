@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -146,7 +146,7 @@ def getClosureCopyCode(to_name, closure_variables, closure_type, context):
     """
     closure_copy = []
 
-    for count, (variable, version) in enumerate(closure_variables):
+    for count, (variable, version, _variable_trace) in enumerate(closure_variables):
         variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
 
         target_cell_code = "((%s)%s)->m_closure[%d]" % (

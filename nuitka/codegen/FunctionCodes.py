@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -59,7 +59,7 @@ from .VariableCodes import (
 def getClosureVariableProvisionCode(context, closure_variables):
     result = []
 
-    for variable, version in closure_variables:
+    for variable, version, _trace in closure_variables:
         result.append(
             getVariableCode(
                 context  = context,
@@ -350,7 +350,7 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
 
     suffix_args = []
 
-    for closure_variable, closure_variable_version in closure_variables:
+    for closure_variable, closure_variable_version, _variable_trace in closure_variables:
         variable_code_name, variable_c_type = getLocalVariableCodeType(
             context  = context,
             variable = closure_variable,

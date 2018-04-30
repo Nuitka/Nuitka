@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -60,9 +60,21 @@ class NuitkaPluginBase(object):
     plugin_name = None
 
     def getPluginOptionBool(self, option_name, default_value):
-        plugin_options = Options.getPluginOptions(self.plugin_name)
+        plugin_options = self.getPluginOptions()
 
-        return plugin_options.get(option_name, default_value)
+        if option_name in plugin_options and "no" + option_name in plugin_options:
+            sys.exit("Error, conflicting options values given.")
+
+        if option_name in plugin_options:
+            return True
+
+        if "no" + option_name in plugin_options:
+            return False
+
+        return default_value
+
+    def getPluginOptions(self):
+        return Options.getPluginOptions(self.plugin_name)
 
     def considerImplicitImports(self, module, signal_change):
         """ Consider module imports.

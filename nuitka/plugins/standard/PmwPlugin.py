@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -153,8 +153,8 @@ def installedversions(alpha = 0):
 
         # Set this to 0 if you do not use any of the Pmw.Color functions:
         # Set this to 0 if you do not use any of the Pmw.Blt functions:
-        needBlt = not self.getPluginOptionBool("noblt", True)
-        needColor = not self.getPluginOptionBool("nocolor", True)
+        needBlt = not self.getPluginOptionBool("blt", True)
+        needColor = not self.getPluginOptionBool("color", True)
 
         outfile = StringIO()
 

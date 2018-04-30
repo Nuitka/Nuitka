@@ -1,4 +1,4 @@
-#     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -32,6 +32,7 @@ from .FileOperations import makePath
 try:
     import appdirs
 except ImportError:
+    # Temporarily add the inline copy of appdir to the import path.
     sys.path.append(
         os.path.join(
             os.path.dirname(__file__),
@@ -44,6 +45,9 @@ except ImportError:
         import appdirs
     except ImportError:
         appdirs = None
+
+    # Do not forget to remove it again.
+    del sys.path[-1]
 
 
 def getCacheDir():

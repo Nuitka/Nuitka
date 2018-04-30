@@ -1,4 +1,4 @@
-//     Copyright 2017, Kay Hayen, mailto:kay.hayen@gmail.com
+//     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 //
 //     Part of "Nuitka", an optimizing Python compiler that is compatible and
 //     integrates with CPython, but also works on its own.
@@ -406,7 +406,7 @@ PyObject *CALL_METHOD_WITH_POSARGS( PyObject *source, PyObject *attribute, PyObj
         }
         else if ( type->tp_getattr != NULL )
         {
-            called_object = (*type->tp_getattr)( source, Nuitka_String_AsString_Unchecked( attribute ) );
+            called_object = (*type->tp_getattr)( source, (char *)Nuitka_String_AsString_Unchecked( attribute ) );
         }
         else
         {
@@ -555,7 +555,11 @@ PyObject *CALL_METHOD_NO_ARGS( PyObject *source, PyObject *attr_name )
         if ( descr != NULL )
         {
             CHECK_OBJECT( descr );
-            return CALL_FUNCTION_NO_ARGS( descr );
+
+            PyObject *result = CALL_FUNCTION_NO_ARGS( descr );
+            Py_DECREF( descr );
+
+            return result;
         }
 
 #if PYTHON_VERSION < 300
@@ -696,7 +700,7 @@ PyObject *CALL_METHOD_NO_ARGS( PyObject *source, PyObject *attr_name )
     {
         PyObject *called_object = (*type->tp_getattr)(
             source,
-            Nuitka_String_AsString_Unchecked( attr_name )
+            (char *)Nuitka_String_AsString_Unchecked( attr_name )
         );
 
         if (unlikely( called_object == NULL ))
