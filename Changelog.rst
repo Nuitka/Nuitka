@@ -1,5 +1,5 @@
-Nuitka Release 0.5.30 (Draft)
-=============================
+Nuitka Release 0.5.30
+=====================
 
 This release has improvements in all areas. Many bug fixes are accompanied
 with optimization changes towards value tracing.
