@@ -90,7 +90,7 @@ def _getPythonSconsExePathWindows():
     # registry at all unless necessary. Any Python2 will do for Scons, so it
     # might be avoided entirely.
     for search in scons_supported:
-        candidate = r"c:\Python%s\python.exe" % search.replace(".", "")
+        candidate = r"c:\Python%s\python.exe" % search.replace('.', "")
 
         if os.path.isfile(candidate):
             return candidate

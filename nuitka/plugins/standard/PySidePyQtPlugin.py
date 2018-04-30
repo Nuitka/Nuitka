@@ -120,7 +120,7 @@ if os.path.exists(guess_path):
 
             info(
                 "Copying '%s' Qt plug-ins to '%s'." % (
-                    ",".join(plugin_options),
+                    ','.join(plugin_options),
                     target_plugin_dir
                 )
             )

@@ -45,11 +45,8 @@ def cleanupWindowsNewlines(filename):
     if updated_code != source_code:
         my_print("Fixing Windows new lines for", filename)
 
-        if str is not bytes:
-            updated_code = updated_code.encode("utf8")
-
         with open(filename, "wb") as out_file:
-            out_file.write(updated_code.encode("utf8"))
+            out_file.write(updated_code)
 
 
 def autoformat(filename, abort = False):

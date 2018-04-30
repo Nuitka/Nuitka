@@ -1148,7 +1148,7 @@ def getPluginsEnabled():
 
     if options:
         for plugin_enabled in options.plugins_enabled:
-            result.add(plugin_enabled.split("=",1)[0])
+            result.add(plugin_enabled.split('=',1)[0])
 
     return tuple(result)
 
@@ -1161,13 +1161,13 @@ def getPluginOptions(plugin_name):
 
     if options:
         for plugin_enabled in options.plugins_enabled:
-            if "=" not in plugin_enabled:
+            if '=' not in plugin_enabled:
                 continue
 
-            name, args = plugin_enabled.split("=",1)
+            name, args = plugin_enabled.split('=',1)
 
             if name == plugin_name:
-                result.extend(args.split(","))
+                result.extend(args.split(','))
 
     return result
 
