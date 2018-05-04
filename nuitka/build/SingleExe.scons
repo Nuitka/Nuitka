@@ -1133,13 +1133,14 @@ if win_target:
 
 else:
     # Debian and Ubuntu distinguish the system libraries like this.
-    if python_debug and \
-       python_prefix == "/usr" and \
-       not python_version.startswith('3') and \
-       platform.dist()[0].lower() in ("debian", "ubuntu"):
-        env.Append(LIBS = ["python" + python_abi_version + "_d"])
-    else:
-        env.Append(LIBS = ["python" + python_abi_version])
+    if not module_mode:
+        if python_debug and \
+           python_prefix == "/usr" and \
+           not python_version.startswith('3') and \
+           platform.dist()[0].lower() in ("debian", "ubuntu"):
+            env.Append(LIBS = ["python" + python_abi_version + "_d"])
+        else:
+            env.Append(LIBS = ["python" + python_abi_version])
 
     if python_prefix != "/usr" and "linux" in sys.platform:
         env.Append(
