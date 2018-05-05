@@ -739,7 +739,7 @@ def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, b
 
     cache_filename = _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filename)
 
-    if os.path.exists(cache_filename):
+    if os.path.exists(cache_filename) and not Options.shallNotUseDependsExeCachedResults():
         for line in open(cache_filename):
             line = line.strip()
 
@@ -890,9 +890,10 @@ SxS
     deleteFile(binary_filename + ".depends", must_exist = True)
     deleteFile(binary_filename + ".dwp", must_exist = True)
 
-    with open(cache_filename, 'w') as cache_file:
-        for dll_filename in result:
-            print(dll_filename, file = cache_file)
+    if not Options.shallNotStoreDependsExeCachedResults():
+        with open(cache_filename, 'w') as cache_file:
+            for dll_filename in result:
+                print(dll_filename, file = cache_file)
 
     return result
 

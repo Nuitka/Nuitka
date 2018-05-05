@@ -543,6 +543,30 @@ debug_group.add_option(
     help    = SUPPRESS_HELP
 )
 
+if os.name == "nt":
+    debug_group.add_option(
+        "--disable-dll-dependency-cache",
+        action  = "store_true",
+        dest    = "no_dependency_cache",
+        default = False,
+        help    = """\
+Disable the dependency walker cache. Will result in much longer times to create
+the distribution folder, but might be used in case the cache is suspect to cause
+errors.
+"""
+    )
+
+    debug_group.add_option(
+        "--force-dll-dependency-cache-update",
+        action  = "store_true",
+        dest    = "update_dependency_cache",
+        default = False,
+        help    = """\
+For an update of the dependency walker cache. Will result in much longer times
+to create the distribution folder, but might be used in case the cache is suspect
+to cause errors or known to need an update.
+"""
+    )
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
 # we can use it to make sure it's not done unknowingly.
@@ -1134,6 +1158,14 @@ def getPythonFlags():
 
 def shallFreezeAllStdlib():
     return not shallFollowStandardLibrary()
+
+
+def shallNotUseDependsExeCachedResults():
+    return options.no_dependency_cache or options.update_dependency_cache
+
+
+def shallNotStoreDependsExeCachedResults():
+    return options.no_dependency_cache
 
 
 def shallListPlugins():
