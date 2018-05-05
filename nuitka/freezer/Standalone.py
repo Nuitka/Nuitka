@@ -731,9 +731,9 @@ def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filen
     )
 
 
-def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, binary_filename):
+def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, binary_filename, package_name):
     # This is complex, as it also includes the caching mechanism
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     result = set()
 
@@ -749,14 +749,30 @@ def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, b
 
     depends_exe = getDependsExePath()
 
+    scan_dirs = []
+
+    if package_name is not None:
+        from nuitka.importing.Importing import findModule
+
+        package_dir = findModule(None, package_name, None, 0, False)[1]
+
+        if os.path.isdir(package_dir):
+            scan_dirs.append(package_dir)
+            scan_dirs.extend(getSubDirectories(package_dir))
+
+    if original_dir is not None:
+        scan_dirs.append(original_dir)
+        scan_dirs.extend(getSubDirectories(original_dir))
+
+
     # The search order by default prefers the system directory, where a
     # wrong "PythonXX.dll" might be living.
     with open(binary_filename + ".dwp", 'w') as dwp_file:
         dwp_file.write("""\
 KnownDLLs
-SysPath
-AppDir
 {original_dirs}
+SysPath
+UserDir {python_dll_dir}
 32BitSysDir
 16BitSysDir
 OSDir
@@ -767,13 +783,12 @@ SxS
                 '\n'.join(
                     "UserDir %s" % dirname
                     for dirname in
-                    [original_dir] + getSubDirectories(original_dir)
+                    scan_dirs
                     if not os.path.basename(dirname) == "__pycache__"
                     if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
                 )
-                if original_dir is not None
-                else ""
-            )
+            ),
+            python_dll_dir = sys.prefix
         )
     )
 
@@ -899,7 +914,7 @@ SxS
 
 
 def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
-                     binary_filename):
+                     binary_filename, package_name):
     """ Detect the DLLs used by a binary.
 
         Using "ldd" (Linux), "depends.exe" (Windows), or "otool" (MacOS) the list
@@ -917,7 +932,8 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
                 is_main_executable = is_main_executable,
                 source_dir         = source_dir,
                 original_dir       = os.path.dirname(original_filename),
-                binary_filename    = binary_filename
+                binary_filename    = binary_filename,
+                package_name       = package_name
             )
     elif Utils.getOS() == "Darwin":
         return _detectBinaryPathDLLsMacOS(
@@ -932,12 +948,13 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
 def detectUsedDLLs(source_dir, standalone_entry_points):
     result = OrderedDict()
 
-    for count, (original_filename, binary_filename, _package_name) in enumerate(standalone_entry_points):
+    for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
         used_dlls = detectBinaryDLLs(
             is_main_executable = count == 0,
             source_dir         = source_dir,
             original_filename  = original_filename,
-            binary_filename    = binary_filename
+            binary_filename    = binary_filename,
+            package_name       = package_name
         )
 
         for dll_filename in used_dlls:
@@ -1049,10 +1066,18 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
 
     used_dlls = detectUsedDLLs(source_dir, standalone_entry_points)
 
+    removed_dlls = set()
+
     # Fist make checks and remove some.
     for dll_filename1, sources1 in tuple(iterItems(used_dlls)):
+        if dll_filename1 in removed_dlls:
+            continue
+
         for dll_filename2, sources2 in tuple(iterItems(used_dlls)):
             if dll_filename1 == dll_filename2:
+                continue
+
+            if dll_filename2 in removed_dlls:
                 continue
 
             # Colliding basenames are an issue to us.
@@ -1069,6 +1094,12 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
 
             dll_name = os.path.basename(dll_filename1)
 
+            if standalone_entry_points[0][0] in sources1:
+                del used_dlls[dll_filename2]
+                removed_dlls.add(dll_filename2)
+
+                continue
+
             if Options.isShowInclusion():
                 info(
                      """Colliding DLL names for %s, checking identity of \
@@ -1084,6 +1115,8 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
             import filecmp
             if filecmp.cmp(dll_filename1, dll_filename2):
                 del used_dlls[dll_filename2]
+                removed_dlls.add(dll_filename2)
+
                 continue
 
             # So we have conflicting DLLs, in which case we do not proceed.
