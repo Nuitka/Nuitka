@@ -184,7 +184,7 @@ def convertUsing2to3(path, force = False):
     # This may already be a temp file, e.g. because of construct creation.
     try:
         shutil.copy(path, new_path)
-    except shutil.SameFileError:  # @UndefinedVariable
+    except shutil.Error:
         pass
 
     # For Python2.6 and 3.2 the -m lib2to3 was not yet supported.
