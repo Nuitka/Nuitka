@@ -903,14 +903,38 @@ def simpleFunction110():
     def my_open(*args, **kwargs):
         return(args, kwargs)
 
+    orig_open = __builtins__.open
     __builtins__.open = my_open
 
     open("me", buffering = True)
+    __builtins__.open = orig_open
 
 u = u'__name__'
 
 def simpleFunction111():
     return getattr(simpleFunction111, u)
+
+def simpleFunction112():
+    TESTFN = "tmp.txt"
+    import codecs
+
+    try:
+        with open(TESTFN, 'wb') as out_file:
+            out_file.write(b'\xa1')
+        f = codecs.open(TESTFN, encoding='cp949')
+        f.read(2)
+    except UnicodeDecodeError:
+        pass
+    finally:
+        try:
+            f.close()
+        except Exception:
+            pass
+        try:
+            os.unlink(TESTFN)
+        except Exception:
+            pass
+
 
 ####################################
 
