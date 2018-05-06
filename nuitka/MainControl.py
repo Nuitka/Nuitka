@@ -36,6 +36,7 @@ from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
+    isStaticallyLinkedPython,
     isUninstalledPython,
     python_version,
     python_version_str
@@ -529,6 +530,9 @@ def runScons(main_module, quiet):
        not Options.shallMakeModule() and \
        isUninstalledPython():
         options["uninstalled_python"] = "true"
+
+    if isStaticallyLinkedPython():
+        options["static_python"] = "true"
 
     if ModuleRegistry.getUncompiledTechnicalModules():
         options["frozen_modules"] = str(
