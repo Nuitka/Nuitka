@@ -118,6 +118,9 @@ if os.path.exists(guess_path):
             if plugin_options == ["sensible"]:
                 plugin_options = ["imageformats", "iconengines", "mediaservice", "printsupport"]
 
+                if os.name == "nt":
+                    plugin_options.append("platforms")
+
             info(
                 "Copying '%s' Qt plug-ins to '%s'." % (
                     ','.join(plugin_options),
