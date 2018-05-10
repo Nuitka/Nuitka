@@ -88,10 +88,17 @@ def enableImportTracing(normalize_paths = True, show_source = False):
             print(_indentation * " " + "*" * 40)
 
             builtins.__import__ = _ourimport
-            result = original_import(name, globals, locals, fromlist, level)
-            builtins.__import__ = original_import
+            try:
+                result = original_import(name, globals, locals, fromlist, level)
+            except ImportError as e:
+                print(_indentation * " " + "EXCEPTION:", e)
+                raise
+            finally:
+                builtins.__import__ = original_import
+
             print(_indentation * " " + "RESULT:", _moduleRepr(result))
             print(_indentation * " " + "*" * 40)
+
             builtins.__import__ = _ourimport
 
             return result
