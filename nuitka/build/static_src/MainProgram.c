@@ -280,6 +280,11 @@ int main( int argc, char **argv )
     }
 #endif
 
+#if PYTHON_VERSION >= 350 && defined(DLL_EXTRA_PATH)
+    NUITKA_PRINT_TRACE("main(): Prepare DLL extra path.");
+    SetDllDirectory(DLL_EXTRA_PATH);
+#endif
+
 #endif
 
     /* Initialize CPython library environment. */
