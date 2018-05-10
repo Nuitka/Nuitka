@@ -246,6 +246,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # test/test_zipimport_support.py
         "test.test_cmd_line_script",
 
+        # test_winconsoleio.py
+        "_testconsole",
+
         # Python3: modules that no longer exist
         "commands", "dummy_thread", "_dummy_thread", "httplib", "Queue", "sets",
 
