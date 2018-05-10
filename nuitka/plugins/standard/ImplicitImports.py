@@ -123,6 +123,19 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             if full_name == "PyQt5.QtQuickWidgets":
                 yield "PyQt5.QtQuick"
 
+            if full_name == "PyQt5.Qt":
+                yield "PyQt5.QtCore"
+                yield "PyQt5.QtDBus"
+                yield "PyQt5.QtGui"
+                yield "PyQt5.QtNetwork"
+                yield "PyQt5.QtNetworkAuth"
+                yield "PyQt5.QtSensors"
+                yield "PyQt5.QtSerialPort"
+                yield "PyQt5.QtMultimedia"
+                yield "PyQt5.QtQml"
+                yield "PyQt5.QtWidgets"
+
+
         elif full_name == "PySide.QtDeclarative":
             yield "PySide.QtGui"
         elif full_name == "PySide.QtHelp":
