@@ -37,7 +37,13 @@ else:
 
 parser = OptionParser(
     usage   = usage,
-    version = getNuitkaVersion()
+    version = "\n".join(
+        (
+            getNuitkaVersion(),
+            sys.version,
+            sys.executable
+        )
+    )
 )
 
 # This option is obsolete, and module should be used.
