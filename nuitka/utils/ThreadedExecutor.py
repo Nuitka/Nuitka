@@ -38,7 +38,7 @@ except ImportError:
             return self
 
         def __exit__(self, exc_type, exc_value, exc_traceback):
-            pass
+            return False
 
         @staticmethod
         def submit(function, *args):

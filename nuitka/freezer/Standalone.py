@@ -962,6 +962,9 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
             # We want these to be absolute paths. Solve that in the parts
             # where detectBinaryDLLs is platform specific.
             assert os.path.isabs(dll_filename), dll_filename
+
+            # TODO: should use return value instead of updating. Then the
+            # outside thread would be the only one updating.
             data_lock.acquire()
             if dll_filename not in result:
                 result[dll_filename] = []

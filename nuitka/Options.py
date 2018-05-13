@@ -37,7 +37,7 @@ else:
 
 parser = OptionParser(
     usage   = usage,
-    version = "\n".join(
+    version = '\n'.join(
         (
             getNuitkaVersion(),
             sys.version,

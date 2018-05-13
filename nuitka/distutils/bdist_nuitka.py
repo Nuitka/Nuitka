@@ -29,7 +29,7 @@ import sys
 
 import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
-from nuitka.__past__ import unicode
+from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 
 
 def setuptools_build_hook(dist, keyword, value):
@@ -61,8 +61,10 @@ class build(distutils.command.build.build):
         self._buildPackage(os.path.abspath(self.build_lib))
 
     def _buildPackage(self, build_lib):
+        # High complexity, pylint: disable=too-many-branches,too-many-locals
+
         # Nuitka wants the main package by filename, probably we should stop
-        # needing that, pylint: disable=too-many-locals
+        # needing that.
         from nuitka.importing.Importing import findModule, setMainScriptDirectory
 
         old_dir = os.getcwd()
