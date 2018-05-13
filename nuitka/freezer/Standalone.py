@@ -57,13 +57,10 @@ from nuitka.utils.FileOperations import (
     listDir,
     makePath
 )
+from nuitka.utils.ThreadedExecutor import Lock, ThreadPoolExecutor
 from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import getDependsExePath
-
-if python_version >= 300:
-    from threading import Lock
-    from concurrent.futures import ThreadPoolExecutor
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -772,28 +769,27 @@ def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, b
     # The search order by default prefers the system directory, where a
     # wrong "PythonXX.dll" might be living.
     with open(binary_filename + ".dwp", 'w') as dwp_file:
-        dwp_file.write("""\
+        dwp_file.write(
+            """\
 KnownDLLs
-{original_dirs}
+%(original_dirs)s
 SysPath
-UserDir {python_dll_dir}
+UserDir %(python_dll_dir)s
 32BitSysDir
 16BitSysDir
 OSDir
 AppPath
 SxS
-""".format(
-                original_dirs  = (
-                    '\n'.join(
-                        "UserDir %s" % dirname
-                        for dirname in
-                        scan_dirs
-                        if not os.path.basename(dirname) == "__pycache__"
-                        if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
-                    )
-                ),
-                python_dll_dir = sys.prefix
-            )
+""" % {
+            "original_dirs" : '\n'.join(
+                "UserDir %s" % dirname
+                for dirname in
+                scan_dirs
+                if not os.path.basename(dirname) == "__pycache__"
+                if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
+            ),
+            "python_dll_dir" : sys.prefix
+            }
         )
 
     subprocess.call(
@@ -950,7 +946,10 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
 
 
 def detectUsedDLLs(source_dir, standalone_entry_points):
-    def GetDLL(count, source_dir, original_filename, binary_filename, package_name):
+    data_lock = Lock()
+    result = {}
+
+    def addDLLInfo(count, source_dir, original_filename, binary_filename, package_name):
         used_dlls = detectBinaryDLLs(
             is_main_executable = count == 0,
             source_dir         = source_dir,
@@ -958,30 +957,32 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
             binary_filename    = binary_filename,
             package_name       = package_name
         )
+
         for dll_filename in used_dlls:
             # We want these to be absolute paths. Solve that in the parts
             # where detectBinaryDLLs is platform specific.
             assert os.path.isabs(dll_filename), dll_filename
-            if python_version >= 300:
-                Locker.acquire()
+            data_lock.acquire()
             if dll_filename not in result:
                 result[dll_filename] = []
             result[dll_filename].append(binary_filename)
-            if python_version >= 300:
-                Locker.release()
-    result = OrderedDict()
-    if python_version >= 300:
-        Locker = Lock()
-        workers = Utils.getCoreCount() * 3
+            data_lock.release()
 
-        with ThreadPoolExecutor(max_workers = workers)  as Worker:
-            for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
-                Worker.submit(GetDLL, count, source_dir, original_filename, binary_filename, package_name)
-    else:
+    with ThreadPoolExecutor(max_workers = Utils.getCoreCount() * 3) as worker_pool:
         for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
-            GetDLL(count, source_dir, original_filename, binary_filename, package_name)
+            worker_pool.submit(
+                addDLLInfo,
+                count, source_dir, original_filename, binary_filename, package_name
+            )
 
-    return result
+    ordered = OrderedDict()
+
+    for dll_filename, binary_filenames in sorted(result.items()):
+        binary_filenames.sort()
+
+        ordered[dll_filename] = binary_filenames
+
+    return ordered
 
 
 def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map):
