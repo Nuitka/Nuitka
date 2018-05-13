@@ -677,7 +677,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
 
 
 
-        copyToGlobalCoverageData("data.coverage", "data.coverage." + suffix)
+        copyToGlobalCoverageData("data.coverage", "meta.coverage." + suffix)
 
         def makeCoverageRelative(filename):
             """ Normalize coverage data.
@@ -687,7 +687,11 @@ Make a coverage analysis, that does not really check. Default is %default."""
             with open(filename) as input_file:
                 data = input_file.read()
 
-            data = data.replace(os.path.abspath('.') + os.path.sep, "")
+            data = data.replace(
+                (os.path.abspath('.') + os.path.sep).replace("\\", "\\\\"),
+                ""
+            )
+
             if os.path.sep != '/':
                 data.replace(os.path.sep, '/')
 
@@ -697,7 +701,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
         coverage_file = os.environ.get("COVERAGE_FILE", ".coverage")
 
         makeCoverageRelative(coverage_file)
-        copyToGlobalCoverageData(coverage_file, ".coverage." + suffix)
+        copyToGlobalCoverageData(coverage_file, "data.coverage." + suffix)
 
     print("OK.")
 
