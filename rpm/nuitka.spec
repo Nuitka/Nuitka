@@ -54,7 +54,7 @@ used in the same way as pure Python objects.
 %endif
 
 %check
-./tests/run-tests --skip-reflection-test
+%{__python} ./tests/run-tests --skip-reflection-test
 
 %install
 rm -rf %{buildroot}

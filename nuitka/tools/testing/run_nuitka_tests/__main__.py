@@ -47,6 +47,9 @@ def main():
         print("Skipped all tests as per DEB_BUILD_OPTIONS environment.")
         sys.exit(0)
 
+    # Make sure our resolving of "python2" to "python" doesn't get in the way.
+    os.environ["PYTHON_DISALLOW_AMBIGUOUS_VERSION"] = "0"
+
     goHome()
 
     parser = OptionParser()
