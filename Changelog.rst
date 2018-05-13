@@ -3,6 +3,51 @@ Nuitka Release 0.5.31 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Standalone: Added missing dependencies for ``PyQt5.Qt`` module.
+
+- Python3: Fix, for uninstalled Python versions wheels that linked against
+  the ``Python3`` library as opposed to ``Python3X``, it was not found.
+
+- Standalone: Prefer DLLs used by main program binary over ones used by
+  wheels.
+
+- Standalone: For DLLs added by Nuitka plugins, add the package directory
+  to the search path for dependencies where they might live.
+
+- Plugins: The sensible plugin list for PyQt now includes that platforms
+  plugins on Windows too, as they are kind of mandatory.
+
+New Features
+------------
+
+- Added support for building extension modules against statically linked
+  Python. This aims at supporting manylinux containers, which are supposed
+  to be used for creating widely usable binary wheels for Linux. Programs
+  won't work with statically linked Python though.
+
+- Added options to allow ignoring the Windows cache for DLL dependencies or
+  force an update.
+
+Optimization
+------------
+
+- Better optimization for "must not have value", wasn't considering merge
+  traces of uninitialized values.
+
+Organizational
+--------------
+
+- For better bug reports, the ``--version`` output now entails also the Python
+  version information and the binary path being used.
+
+Summary
+-------
+
+This release is not done yet.
+
 
 Nuitka Release 0.5.30
 =====================
