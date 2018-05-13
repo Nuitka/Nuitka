@@ -61,6 +61,10 @@ from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import getDependsExePath
 
+if python_version >= 300:
+    from threading import Lock
+    from concurrent.futures import ThreadPoolExecutor
+
 
 def loadCodeObjectData(precompiled_filename):
     # Ignoring magic numbers, etc. which we don't have to care for much as
@@ -779,18 +783,18 @@ OSDir
 AppPath
 SxS
 """.format(
-            original_dirs = (
-                '\n'.join(
-                    "UserDir %s" % dirname
-                    for dirname in
-                    scan_dirs
-                    if not os.path.basename(dirname) == "__pycache__"
-                    if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
-                )
-            ),
-            python_dll_dir = sys.prefix
+                original_dirs  = (
+                    '\n'.join(
+                        "UserDir %s" % dirname
+                        for dirname in
+                        scan_dirs
+                        if not os.path.basename(dirname) == "__pycache__"
+                        if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
+                    )
+                ),
+                python_dll_dir = sys.prefix
+            )
         )
-    )
 
     subprocess.call(
         (
@@ -946,9 +950,7 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
 
 
 def detectUsedDLLs(source_dir, standalone_entry_points):
-    result = OrderedDict()
-
-    for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
+    def GetDLL(count, source_dir, original_filename, binary_filename, package_name):
         used_dlls = detectBinaryDLLs(
             is_main_executable = count == 0,
             source_dir         = source_dir,
@@ -956,16 +958,28 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
             binary_filename    = binary_filename,
             package_name       = package_name
         )
-
         for dll_filename in used_dlls:
             # We want these to be absolute paths. Solve that in the parts
             # where detectBinaryDLLs is platform specific.
             assert os.path.isabs(dll_filename), dll_filename
-
+            if python_version >= 300:
+                Locker.acquire()
             if dll_filename not in result:
                 result[dll_filename] = []
-
             result[dll_filename].append(binary_filename)
+            if python_version >= 300:
+                Locker.release()
+    result = OrderedDict()
+    if python_version >= 300:
+        Locker = Lock()
+        workers = Utils.getCoreCount() * 3
+
+        with ThreadPoolExecutor(max_workers = workers)  as Worker:
+            for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
+                Worker.submit(GetDLL, count, source_dir, original_filename, binary_filename, package_name)
+    else:
+        for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
+            GetDLL(count, source_dir, original_filename, binary_filename, package_name)
 
     return result
 
