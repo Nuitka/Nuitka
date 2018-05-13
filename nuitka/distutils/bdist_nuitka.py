@@ -19,6 +19,7 @@
 
 """
 
+import collections
 import distutils.command.build  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import distutils.command.install  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 import os
@@ -27,6 +28,8 @@ import subprocess
 import sys
 
 import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+
+from nuitka.__past__ import unicode
 
 
 def setuptools_build_hook(dist, keyword, value):
@@ -112,12 +115,28 @@ class build(distutils.command.build.build):
             "--recurse-to=%s" % self.main_package,
             "--recurse-not-to=*.tests",
             "--show-modules",
-            "--remove-output",
-            main_filename,
+            "--remove-output"
         ]
 
+        # Process any extra options from setuptools
+        if "nuitka" in self.distribution.command_options:
+            for option, details in self.distribution.command_options["nuitka"].items():
+                option = "--" + option.lstrip('-')
+                _source, value = details
+                if value is None:
+                    command.append(option)
+                elif isinstance(value, collections.Iterable) and \
+                     not isinstance(value, (unicode, bytes, str)):
+                    for val in value:
+                        command.append("%s=%s" % (option, val))
+                else:
+                    command.append("%s=%s" % (option, value))
+
+        command.append(main_filename)
+
         subprocess.check_call(
-            command
+            command,
+            cwd = build_lib
         )
         os.chdir(old_dir)
 
