@@ -36,6 +36,7 @@ from nuitka.importing.ImportCache import (
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.PythonVersions import python_version
+from nuitka.tree.SourceReading import readSourceLine
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .ValueTraces import (
@@ -633,8 +634,10 @@ class TraceCollectionBase(CollectionTracingMixin):
             return new_statement
         except Exception:
             Tracing.printError(
-                "Problem with statement at %s:" %
-                statement.getSourceReference().getAsString()
+                "Problem with statement at %s:\n-> %s" % (
+                    statement.source_ref.getAsString(),
+                    readSourceLine(statement.source_ref)
+                )
             )
             raise
 

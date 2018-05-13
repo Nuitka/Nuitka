@@ -91,11 +91,9 @@ def raiseSyntaxError(reason, source_ref, display_file = True,
     col_offset = source_ref.getColumnNumber()
 
     def readSource():
-        import linecache
-        return linecache.getline(
-            filename = source_ref.getFilename(),
-            lineno   = source_ref.getLineNumber()
-        )
+        # Cyclic dependency.
+        from .SourceReading import readSourceLine
+        return readSourceLine(source_ref)
 
     if display_file and display_line:
         source_line = readSource()
