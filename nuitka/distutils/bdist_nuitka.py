@@ -25,6 +25,8 @@ import os
 import shutil
 import subprocess
 import sys
+import collections
+from nuitka.__past__ import unicode
 
 import wheel.bdist_wheel  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 
@@ -112,12 +114,27 @@ class build(distutils.command.build.build):
             "--recurse-to=%s" % self.main_package,
             "--recurse-not-to=*.tests",
             "--show-modules",
-            "--remove-output",
-            main_filename,
+            "--remove-output"
         ]
 
+        # Process any extra options from setuptools
+        if 'nuitka' in self.distribution.command_options:
+            for option, details in self.distribution.command_options['nuitka'].items():
+                option = "--" + option.lstrip('-')
+                source, value = details
+                if value is None:
+                    command.append(option)
+                elif isinstance(value, collections.Iterable) and \
+                        not isinstance(value, (unicode, bytes, str)):
+                    for val in value:
+                        command.append('%s=%s' % (option, val))
+                else:
+                    command.append('%s=%s' % (option, value))
+
+        command.append(main_filename)
+
         subprocess.check_call(
-            command
+            command, cwd=build_lib
         )
         os.chdir(old_dir)
 
