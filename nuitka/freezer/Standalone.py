@@ -24,6 +24,7 @@ very welcome.
 
 from __future__ import print_function
 
+import contextlib
 import hashlib
 import marshal
 import os
@@ -57,7 +58,7 @@ from nuitka.utils.FileOperations import (
     listDir,
     makePath
 )
-from nuitka.utils.ThreadedExecutor import Lock, ThreadPoolExecutor
+from nuitka.utils.ThreadedExecutor import Lock, ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import getDependsExePath
@@ -732,82 +733,27 @@ def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filen
     )
 
 
-def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, binary_filename, package_name):
-    # This is complex, as it also includes the caching mechanism
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+# Locking seems to be only required for Windows currently, expressed that in the
+# lock name.
+windows_lock = None
 
-    result = set()
+@contextlib.contextmanager
+def _withLock():
+    # This is a singleton, pylint: disable=global-statement
+    global windows_lock
 
-    cache_filename = _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filename)
+    if windows_lock is None:
+        windows_lock = Lock()
 
-    if os.path.exists(cache_filename) and not Options.shallNotUseDependsExeCachedResults():
-        for line in open(cache_filename):
-            line = line.strip()
+    windows_lock.acquire()
+    yield
+    windows_lock.release()
 
-            result.add(line)
-
-        return result
-
-    depends_exe = getDependsExePath()
-
-    scan_dirs = []
-
-    if package_name is not None:
-        from nuitka.importing.Importing import findModule
-
-        package_dir = findModule(None, package_name, None, 0, False)[1]
-
-        if os.path.isdir(package_dir):
-            scan_dirs.append(package_dir)
-            scan_dirs.extend(getSubDirectories(package_dir))
-
-    if original_dir is not None:
-        scan_dirs.append(original_dir)
-        scan_dirs.extend(getSubDirectories(original_dir))
-
-
-    # The search order by default prefers the system directory, where a
-    # wrong "PythonXX.dll" might be living.
-    with open(binary_filename + ".dwp", 'w') as dwp_file:
-        dwp_file.write(
-            """\
-KnownDLLs
-%(original_dirs)s
-SysPath
-UserDir %(python_dll_dir)s
-32BitSysDir
-16BitSysDir
-OSDir
-AppPath
-SxS
-""" % {
-            "original_dirs" : '\n'.join(
-                "UserDir %s" % dirname
-                for dirname in
-                scan_dirs
-                if not os.path.basename(dirname) == "__pycache__"
-                if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
-            ),
-            "python_dll_dir" : sys.prefix
-            }
-        )
-
-    subprocess.call(
-        (
-            depends_exe,
-            "-c",
-            "-ot%s" % binary_filename + ".depends",
-            "-d:%s" % binary_filename + ".dwp",
-            "-f1",
-            "-pa1",
-            "-ps1",
-            binary_filename
-        )
-    )
-
+def _parseDependsExeOutput(filename, result):
     inside = False
     first = False
-    for line in open(binary_filename + ".depends"):
+
+    for line in open(filename):
         if "| Module Dependency Tree |" in line:
             inside = True
             first = True
@@ -902,6 +848,90 @@ SxS
             os.path.normcase(os.path.abspath(dll_filename))
         )
 
+
+def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, binary_filename, package_name):
+    # This is complex, as it also includes the caching mechanism
+    # pylint: disable=too-many-locals
+
+    result = set()
+
+    cache_filename = _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filename)
+
+    if os.path.exists(cache_filename) and not Options.shallNotUseDependsExeCachedResults():
+        for line in open(cache_filename):
+            line = line.strip()
+
+            result.add(line)
+
+        return result
+
+    # User query should only happen once if at all.
+    with _withLock():
+        depends_exe = getDependsExePath()
+
+    scan_dirs = []
+
+    if package_name is not None:
+        from nuitka.importing.Importing import findModule
+
+        package_dir = findModule(None, package_name, None, 0, False)[1]
+
+        if os.path.isdir(package_dir):
+            scan_dirs.append(package_dir)
+            scan_dirs.extend(getSubDirectories(package_dir))
+
+    if original_dir is not None:
+        scan_dirs.append(original_dir)
+        scan_dirs.extend(getSubDirectories(original_dir))
+
+    with _withLock():
+        # The search order by default prefers the system directory, where a
+        # wrong "PythonXX.dll" might be living.
+        with open(binary_filename + ".dwp", 'w') as dwp_file:
+            dwp_file.write(
+                """\
+KnownDLLs
+%(original_dirs)s
+SysPath
+UserDir %(python_dll_dir)s
+32BitSysDir
+16BitSysDir
+OSDir
+AppPath
+SxS
+""" % {
+                "original_dirs" : '\n'.join(
+                    "UserDir %s" % dirname
+                    for dirname in
+                    scan_dirs
+                    if not os.path.basename(dirname) == "__pycache__"
+                    if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
+                ),
+                "python_dll_dir" : sys.prefix
+                }
+            )
+
+        # Starting the process while locked, so file handles are not duplicated.
+        depends_exe_process = subprocess.Popen(
+            (
+                depends_exe,
+                "-c",
+                "-ot%s" % binary_filename + ".depends",
+                "-d:%s" % binary_filename + ".dwp",
+                "-f1",
+                "-pa1",
+                "-ps1",
+                binary_filename
+            )
+        )
+
+    # TODO: Exit code should be checked.
+    depends_exe_process.wait()
+
+    # Opening the result under lock, so it is not getting locked by new processes.
+    with _withLock():
+        _parseDependsExeOutput(binary_filename + ".depends", result)
+
     deleteFile(binary_filename + ".depends", must_exist = True)
     deleteFile(binary_filename + ".dwp", must_exist = True)
 
@@ -946,9 +976,6 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
 
 
 def detectUsedDLLs(source_dir, standalone_entry_points):
-    data_lock = Lock()
-    result = {}
-
     def addDLLInfo(count, source_dir, original_filename, binary_filename, package_name):
         used_dlls = detectBinaryDLLs(
             is_main_executable = count == 0,
@@ -958,34 +985,32 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
             package_name       = package_name
         )
 
-        for dll_filename in used_dlls:
-            # We want these to be absolute paths. Solve that in the parts
-            # where detectBinaryDLLs is platform specific.
-            assert os.path.isabs(dll_filename), dll_filename
+        return binary_filename, used_dlls
 
-            # TODO: should use return value instead of updating. Then the
-            # outside thread would be the only one updating.
-            data_lock.acquire()
-            if dll_filename not in result:
-                result[dll_filename] = []
-            result[dll_filename].append(binary_filename)
-            data_lock.release()
+    result = OrderedDict()
 
     with ThreadPoolExecutor(max_workers = Utils.getCoreCount() * 3) as worker_pool:
+        workers = []
+
         for count, (original_filename, binary_filename, package_name) in enumerate(standalone_entry_points):
-            worker_pool.submit(
-                addDLLInfo,
-                count, source_dir, original_filename, binary_filename, package_name
+            workers.append(
+                worker_pool.submit(
+                    addDLLInfo,
+                    count, source_dir, original_filename, binary_filename, package_name
+                )
             )
 
-    ordered = OrderedDict()
+        for binary_filename, used_dlls in waitWorkers(workers):
+            for dll_filename in used_dlls:
+                # We want these to be absolute paths. Solve that in the parts
+                # where detectBinaryDLLs is platform specific.
+                assert os.path.isabs(dll_filename), dll_filename
 
-    for dll_filename, binary_filenames in sorted(result.items()):
-        binary_filenames.sort()
+                if dll_filename not in result:
+                    result[dll_filename] = []
+                result[dll_filename].append(binary_filename)
 
-        ordered[dll_filename] = binary_filenames
-
-    return ordered
+    return result
 
 
 def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map):
