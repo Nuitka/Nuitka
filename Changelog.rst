@@ -31,17 +31,28 @@ New Features
 - Added options to allow ignoring the Windows cache for DLL dependencies or
   force an update.
 
+- Allow passing options from distutils to Nuitka compilation via setup
+  options.
+
 Optimization
 ------------
 
 - Better optimization for "must not have value", wasn't considering merge
   traces of uninitialized values.
 
+- Using threads when determining standalone mode dependencies. This will speed
+  up the un-cached case on Windows by a fair bit.
+
 Organizational
 --------------
 
-- For better bug reports, the ``--version`` output now entails also the Python
+- For better bug reports, the ``--version`` output now contains also the Python
   version information and the binary path being used.
+
+- When encountering a problem (compiler crash) in optimization, output the line
+  that is causing the issue.
+
+- Added support for Fedora 28 RPM builds.
 
 Summary
 -------
