@@ -1790,7 +1790,9 @@ Default(target) # @UndefinedVariable
 # Copy the Python DLL to the target directory, so the executable can be run.
 if uninstalled_python:
     if win_target:
-        # TODO: This should have become unnecessary by DLL_EXTRA_PATH
+        # TODO: This should have become unnecessary by DLL_EXTRA_PATH,
+        # but so far we failed to create a manifest that makes the PythonXY.DLL
+        # from there.
         shutil.copy(
             getWindowsPythonDLLPath(),
             os.path.dirname(result_basepath) or '.'

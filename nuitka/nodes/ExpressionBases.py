@@ -803,7 +803,7 @@ Compile time constant float value pre-computed."""
             return trace_collection.getCompileTimeComputationResult(
                 node        = lookup_node,
                 computation = lambda : getattr(value, attribute_name),
-                description = "Attribute lookup to '%s' pre-computed." % (
+                description = "Attribute '%s' pre-computed." % (
                     attribute_name
                 )
             )

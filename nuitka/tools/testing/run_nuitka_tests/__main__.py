@@ -48,7 +48,7 @@ def main():
         sys.exit(0)
 
     # Make sure our resolving of "python2" to "python" doesn't get in the way.
-    os.environ["PYTHON_DISALLOW_AMBIGUOUS_VERSION"] = "0"
+    os.environ["PYTHON_DISALLOW_AMBIGUOUS_VERSION"] = '0'
 
     goHome()
 
@@ -688,7 +688,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
                 data = input_file.read()
 
             data = data.replace(
-                (os.path.abspath('.') + os.path.sep).replace("\\", "\\\\"),
+                (os.path.abspath('.') + os.path.sep).replace('\\', "\\\\"),
                 ""
             )
 
