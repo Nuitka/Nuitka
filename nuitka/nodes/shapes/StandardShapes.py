@@ -55,6 +55,10 @@ class ShapeUnknown(ShapeBase):
         return None
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return None
+
+    @staticmethod
     def hasShapeSlotIter():
         return None
 

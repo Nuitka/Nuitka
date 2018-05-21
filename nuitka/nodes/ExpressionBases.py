@@ -455,6 +455,29 @@ class ExpressionBase(NodeBase):
 
         return float_node, None, None
 
+    def computeExpressionComplex(self, complex_node, trace_collection):
+        shape = self.getTypeShape()
+
+        if shape.hasShapeSlotComplex() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                    "complex() argument must be a string or a number"
+                      if isFullCompat() and python_version < 300 else
+                    "complex() argument must be a string or a number, not '%s'",
+                operation     = "complex",
+                original_node = complex_node,
+                value_node    = self
+            )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return complex_node, None, None
+
     def computeExpressionIter1(self, iter_node, trace_collection):
         shape = self.getTypeShape()
 

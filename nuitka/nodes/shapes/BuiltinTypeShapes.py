@@ -47,6 +47,10 @@ class ShapeTypeNoneType(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -86,6 +90,10 @@ class ShapeTypeBool(ShapeBase):
         return True
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return True
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -117,6 +125,10 @@ class ShapeTypeInt(ShapeBase):
 
     @staticmethod
     def hasShapeSlotFloat():
+        return True
+
+    @staticmethod
+    def hasShapeSlotComplex():
         return True
 
     @staticmethod
@@ -154,6 +166,10 @@ class ShapeTypeLong(ShapeBase):
         return True
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return True
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -182,6 +198,10 @@ if python_version < 300:
 
         @staticmethod
         def hasShapeSlotFloat():
+            return True
+
+        @staticmethod
+        def hasShapeSlotComplex():
             return True
 
         @staticmethod
@@ -221,6 +241,48 @@ class ShapeTypeFloat(ShapeBase):
         return True
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return True
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return False
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return False
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return False
+
+
+class ShapeTypeComplex(ShapeBase):
+    @staticmethod
+    def getTypeName():
+        return "complex"
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return False
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return False
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return False
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
+    def hasShapeSlotComplex():
+        return True
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -252,6 +314,10 @@ class ShapeTypeTuple(ShapeBase):
 
     @staticmethod
     def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
+    def hasShapeSlotComplex():
         return False
 
     @staticmethod
@@ -303,6 +369,10 @@ class ShapeTypeList(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return True
 
@@ -348,6 +418,10 @@ class ShapeTypeSet(ShapeBase):
 
     @staticmethod
     def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
+    def hasShapeSlotComplex():
         return False
 
     @staticmethod
@@ -399,6 +473,10 @@ class ShapeTypeFrozenset(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return False
+
+    @staticmethod
     def hasShapeSlotNext():
         return False
 
@@ -434,6 +512,10 @@ class ShapeTypeDict(ShapeBase):
 
     @staticmethod
     def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
+    def hasShapeSlotComplex():
         return False
 
     @staticmethod
@@ -482,6 +564,10 @@ class ShapeTypeStr(ShapeBase):
 
     @staticmethod
     def hasShapeSlotFloat():
+        return True
+
+    @staticmethod
+    def hasShapeSlotComplex():
         return True
 
     @staticmethod
@@ -534,6 +620,10 @@ if python_version < 300:
             return True
 
         @staticmethod
+        def hasShapeSlotComplex():
+            return True
+
+        @staticmethod
         def hasShapeSlotIter():
             return True
 
@@ -580,6 +670,10 @@ if python_version < 300:
             return True
 
         @staticmethod
+        def hasShapeSlotComplex():
+            return True
+
+        @staticmethod
         def hasShapeSlotIter():
             return True
 
@@ -614,6 +708,10 @@ if python_version >= 300:
 
         @staticmethod
         def hasShapeSlotFloat():
+            return False
+
+        @staticmethod
+        def hasShapeSlotComplex():
             return False
 
         @staticmethod
@@ -669,6 +767,10 @@ class ShapeTypeBytearray(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return True
 
@@ -717,6 +819,10 @@ class ShapeTypeEllipsisType(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -751,6 +857,10 @@ class ShapeTypeSlice(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -782,6 +892,10 @@ class ShapeTypeXrange(ShapeBase):
 
     @staticmethod
     def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
+    def hasShapeSlotComplex():
         return False
 
     @staticmethod
@@ -833,6 +947,10 @@ class ShapeTypeType(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -868,6 +986,10 @@ class ShapeTypeModule(ShapeBase):
 
     @staticmethod
     def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
+    def hasShapeSlotComplex():
         return False
 
     @staticmethod
@@ -909,6 +1031,10 @@ class ShapeTypeFile(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return True
 
@@ -943,6 +1069,10 @@ class ShapeTypeStaticmethod(ShapeBase):
         return False
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return False
+
+    @staticmethod
     def hasShapeSlotIter():
         return False
 
@@ -974,6 +1104,10 @@ class ShapeTypeClassmethod(ShapeBase):
 
     @staticmethod
     def hasShapeSlotFloat():
+        return False
+
+    @staticmethod
+    def hasShapeSlotComplex():
         return False
 
     @staticmethod

@@ -34,6 +34,10 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionBuiltinHasattr,
     ExpressionBuiltinSetattr
 )
+from nuitka.nodes.BuiltinComplexNodes import (
+    ExpressionBuiltinComplex1,
+    ExpressionBuiltinComplex2
+)
 from nuitka.nodes.BuiltinDecodingNodes import (
     ExpressionBuiltinChr,
     ExpressionBuiltinOrd
@@ -86,7 +90,6 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinBool,
     ExpressionBuiltinBytearray1,
     ExpressionBuiltinBytearray3,
-    ExpressionBuiltinComplex,
     ExpressionBuiltinFloat,
     ExpressionBuiltinFrozenset,
     ExpressionBuiltinList,
@@ -575,10 +578,32 @@ def float_extractor(node):
 
 
 def complex_extractor(node):
+    def makeComplex0(source_ref):
+        # pylint: disable=unused-argument
+
+        return makeConstantReplacementNode(
+            constant = complex(),
+            node     = node
+        )
+
+    def selectComplexBuiltin(real, imag, source_ref):
+        if imag is None:
+            return ExpressionBuiltinComplex1(
+                value      = real,
+                source_ref = source_ref
+            )
+        else:
+            return ExpressionBuiltinComplex2(
+                real       = real,
+                imag       = imag,
+                source_ref = source_ref
+            )
+
     return BuiltinOptimization.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinComplex,
-        builtin_spec  = BuiltinOptimization.builtin_complex_spec
+        node                = node,
+        builtin_class       = selectComplexBuiltin,
+        builtin_spec        = BuiltinOptimization.builtin_complex_spec,
+        empty_special_class = makeComplex0
     )
 
 

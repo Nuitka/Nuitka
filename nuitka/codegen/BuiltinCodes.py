@@ -273,10 +273,25 @@ def generateBuiltinFloatCode(to_name, expression, emit, context):
     )
 
 
-def generateBuiltinComplexCode(to_name, expression, emit, context):
+def generateBuiltinComplex1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name    = to_name,
-        capi       = "TO_COMPLEX",
+        capi       = "BUILTIN_COMPLEX1",
+        arg_desc   = (
+            ("real_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        none_null  = True,
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinComplex2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_COMPLEX2",
         arg_desc   = (
             ("real_arg", expression.getReal()),
             ("imag_arg", expression.getImag())

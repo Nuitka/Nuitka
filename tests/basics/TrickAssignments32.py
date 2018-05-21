@@ -550,6 +550,29 @@ else:
     print("Ouch.!")
 
 
+def someFunctionThatReturnsDeletedValueViaComplex():
+    class C:
+        def __complex__(self):
+            nonlocal a
+            del a
+
+            return 0j
+
+    c = C()
+
+    a = 1
+    complex(c)
+    return a
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaComplex()
+except UnboundLocalError:
+    print("OK, object complex correctly deleted an item.")
+else:
+    print("Ouch.!")
+
+
 def someFunctionThatReturnsDeletedValueViaInplaceAdd():
     class C:
         def __iadd__(self, other):
