@@ -31,16 +31,51 @@ for line in subprocess.check_output(["sfood", "nuitka"]).split('\n'):
     if line:
         values = list(eval(line))
 
-        if values[0][1] in ("nuitka/oset.py", "nuitka/odict.py"):
+        user_parts = values[0][1].split(os.path.sep)
+        used_parts = (values[1][1] or "").split(os.path.sep)
+
+        ignore_it = False
+        for ignored in "containers", "tools", "utils":
+            if ignored in user_parts:
+                ignore_it = True
+                break
+            if ignored in used_parts:
+                ignore_it = True
+                break
+
+        if ignore_it:
             continue
 
-        if values[1][1] in ("nuitka/oset.py", "nuitka/odict.py", "os.py", "re.py", "math", "signal", "sys"):
+        if values[1][1] in ("os.py", "re.py", "math", "signal", "sys",
+                            "logging", "timeit.py", "tempfile.py", "glob.py",
+                            "appdirs.py", "ast.py", "tokenize.py", "runpy.py",
+                            "imp", "multiprocessing", "threading.py",
+                            "shutil.py", "contextlib.py", "exceptions",
+                            "functools.py", "types.py", "subprocess.py",
+                            "optparse.py", "operator", "ctypes/wintypes.py",
+                            "sysconfig.py", "xml/etree/ElementTree.py",
+                            "lxml/etree.so", "warnings.py", "StringIO.py",
+                            "cStringIO", "urllib.py", "ctypes", "marshal",
+                            "struct.py", "abc.py", "hashlib.py", "copy.py",
+                            "collections.py", "itertools", "zipfile.py",
+                            "distutils/command/build.py", "filecmp.py",
+                            "distutils/command/install.py", "fnmatch.py",
+                            "wheel/bdist_wheel.py", "traceback.py", "inspect.py",
+                            "PyQt5/QtCore.x86_64-linux-gnu.so", "difflib.py",
+                            "PyQt5/QtGui.x86_64-linux-gnu.so", "PyQt5/uic",
+                            "_ctypes.x86_64-linux-gnu.so", "baron/parser.py",
+                            "linecache.py",
+                            ):
             continue
 
         if os.path.isdir(values[0][1]):
             continue
 
+        assert "python2.7" not in (values[1][0] or "").split(os.path.sep), (line, user_parts)
+
+
         print >>temp_out, line
+        print(line)
 
 temp_out.close()
 
