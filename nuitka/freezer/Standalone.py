@@ -869,7 +869,7 @@ def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, b
     with _withLock():
         depends_exe = getDependsExePath()
 
-    scan_dirs = []
+    scan_dirs = [sys.prefix]
 
     if package_name is not None:
         from nuitka.importing.Importing import findModule
@@ -893,7 +893,6 @@ def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, b
 KnownDLLs
 %(original_dirs)s
 SysPath
-UserDir %(python_dll_dir)s
 32BitSysDir
 16BitSysDir
 OSDir
@@ -907,7 +906,6 @@ SxS
                     if not os.path.basename(dirname) == "__pycache__"
                     if any(entry[1].lower().endswith(".dll") for entry in listDir(dirname))
                 ),
-                "python_dll_dir" : sys.prefix
                 }
             )
 
@@ -1136,12 +1134,6 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                 continue
 
             dll_name = os.path.basename(dll_filename1)
-
-            if standalone_entry_points[0][0] in sources1:
-                del used_dlls[dll_filename2]
-                removed_dlls.add(dll_filename2)
-
-                continue
 
             if Options.isShowInclusion():
                 info(
