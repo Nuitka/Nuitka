@@ -112,7 +112,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     __slots__ = ()
 
     def __init__(self, builtin_name, source_ref):
-
         ExpressionBuiltinRefBase.__init__(
             self,
             builtin_name = builtin_name,

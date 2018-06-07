@@ -21,6 +21,7 @@ This contains tools to compare, classify and test constants.
 """
 
 import math
+from types import BuiltinFunctionType
 
 from nuitka.Builtins import builtin_type_names
 from nuitka.PythonVersions import python_version
@@ -31,7 +32,12 @@ from .__past__ import (  # pylint: disable=I0021,redefined-builtin
     unicode,
     xrange
 )
-from .Builtins import builtin_anon_names
+from .Builtins import (
+    builtin_anon_names,
+    builtin_anon_value_list,
+    builtin_exception_values_list,
+    builtin_named_values_list
+)
 
 NoneType = type(None)
 
@@ -161,10 +167,19 @@ def isConstant(constant):
                            NoneType, range, bytes, set, frozenset, xrange,
                            bytearray):
         return True
-    elif constant in (Ellipsis, NoneType):
+    elif constant in (Ellipsis, NoneType, NotImplemented):
+        return True
+    elif constant in builtin_anon_value_list:
         return True
     elif constant_type is type:
-        return constant.__name__ in builtin_type_names
+        # Maybe pre-build this as a set for quicker testing.
+        return constant.__name__ in builtin_type_names or \
+               constant in builtin_exception_values_list
+    elif constant_type is BuiltinFunctionType and constant in builtin_named_values_list:
+        # TODO: Some others could also be usable and even interesting, but
+        # then probably should go into other node types, e.g. str.join is
+        # a candidate.
+        return True
     else:
         return False
 
@@ -181,7 +196,8 @@ def isMutable(constant):
     constant_type = type(constant)
 
     if constant_type in (str, unicode, complex, int, long, bool, float,
-                         NoneType, range, bytes, slice, xrange):
+                         NoneType, range, bytes, slice, xrange, type,
+                         BuiltinFunctionType):
         return False
     elif constant_type in (dict, list, set, bytearray):
         return True
@@ -195,11 +211,9 @@ def isMutable(constant):
             if isMutable(value):
                 return True
         return False
-    elif constant_type is type:
-        return False
     elif constant is Ellipsis:
         return False
-    elif constant is None:
+    elif constant is NotImplemented:
         return False
     else:
         assert False, repr(constant)
@@ -218,7 +232,7 @@ def isHashable(constant):
     constant_type = type(constant)
 
     if constant_type in (str, unicode, complex, int, long, bool, float,
-                         NoneType, xrange, bytes):
+                         NoneType, xrange, bytes, type, BuiltinFunctionType):
         return True
     elif constant_type in (dict, list, set, slice, bytearray):
         return False
@@ -234,8 +248,6 @@ def isHashable(constant):
         return True
     elif constant is Ellipsis:
         return True
-    elif constant_type is type:
-        return True
     else:
         assert False, constant_type
 
@@ -247,7 +259,7 @@ def getUnhashableConstant(constant):
     constant_type = type(constant)
 
     if constant_type in (str, unicode, complex, int, long, bool, float,
-                         NoneType, xrange, bytes):
+                         NoneType, xrange, bytes, type, BuiltinFunctionType):
         return None
     elif constant_type in (dict, list, set):
         return constant

@@ -27,6 +27,11 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     unicode,
     xrange
 )
+from nuitka.Builtins import (
+    builtin_anon_values,
+    builtin_exception_values_list,
+    builtin_named_values
+)
 from nuitka.Constants import (
     getConstantIterationLength,
     getUnhashableConstant,
@@ -1040,6 +1045,32 @@ def makeConstantRefNode(constant, source_ref, user_provided = False):
                 constant      = constant,
                 user_provided = user_provided
             )
+        elif constant in builtin_anon_values:
+            from .BuiltinRefNodes import ExpressionBuiltinAnonymousRef
+
+            return ExpressionBuiltinAnonymousRef(
+                source_ref   = source_ref,
+                builtin_name = builtin_anon_values[constant]
+            )
+        elif constant in builtin_named_values:
+            from .BuiltinRefNodes import ExpressionBuiltinRef
+
+            return ExpressionBuiltinRef(
+                builtin_name = builtin_named_values[constant],
+                source_ref   = source_ref
+            )
+        elif constant in builtin_exception_values_list:
+            from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+
+            if constant is NotImplemented:
+                exception_name = "NotImplemented"
+            else:
+                exception_name = constant.__name__
+
+            return ExpressionBuiltinExceptionRef(
+                exception_name = exception_name,
+                source_ref     = source_ref
+            )
         else:
             # Missing constant type, ought to not happen, please report.
-            assert False, constant_type
+            assert False, (constant, constant_type)
