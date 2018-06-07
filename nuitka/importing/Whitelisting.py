@@ -289,10 +289,13 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "unittest2", "IronPython", "clr", "compiler.consts", "new",
 
         # pkg_resources
-        "pkg_resources.extern",
+        "pkg_resources.extern", "ordereddict",
 
         # appdirs
-        "com.sun", "win32com",
+        "com", "win32com",
+
+        # gtk
+        "gdk",
 
         # six
         "six.moves",
