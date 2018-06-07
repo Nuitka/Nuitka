@@ -29,10 +29,10 @@ Milestones
    absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not target any
-   older CPython release. For CPython 3.2 up to 3.6 it also has been reached. We
+   older CPython release. For CPython 3.3 up to 3.6 it also has been reached. We
    do not target the older and practically unused CPython 3.1 and 3.0 releases.
 
-   This milestone was reached. Dropping support for Python 2.6 and 3.2 is an
+   This milestone was reached. Dropping support for Python 2.6 and 3.3 is an
    option, should this prove to be any benefit. Currently it is not, as it
    extends the test coverage only.
 
@@ -414,8 +414,6 @@ For fine grained control, it has the following options::
                         Default is False.
   --no-python2.7        Do not use Python 2.7 even if available on the system.
                         Default is False.
-  --no-python3.2        Do not use Python 3.2 even if available on the system.
-                        Default is False.
   --no-python3.3        Do not use Python 3.3 even if available on the system.
                         Default is False.
   --no-python3.4        Do not use Python 3.4 even if available on the system.
@@ -451,7 +449,7 @@ correct, if these "basic" tests pass. The most important constructs and
 built-ins are excercised.
 
 To control the Python version used for testing, you can set the ``PYTHON``
-environment variable to e.g. ``python3.2`` (can also be full path), or simply
+environment variable to e.g. ``python3.5`` (can also be full path), or simply
 execute the ``run_all.py`` script directly with the intended version, as it is
 portable across all supported Python versions, and defaults testing with the
 Python version is run with.
@@ -862,7 +860,7 @@ changed.
   to another name and that is used without arguments, it won't work unless
   ``__class__`` is taken as a closure variable.
 
-* As can be seen in the CPython3.2 code, the closure value is added after the
+* As can be seen in the CPython3 code, the closure value is added after the
   class creation is performed.
 
 * It appears, that only functions locally defined to the class are affected and

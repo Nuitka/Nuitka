@@ -19,8 +19,10 @@ requirements, credits, etc.
 
 Nuitka is **the** Python compiler. It is a seamless replacement or extension
 to the Python interpreter and compiles **every** construct that CPython 2.6,
-2.7, 3.2, 3.3, 3.4, 3.5, and 3.6 have. It then executes uncompiled code, and
-compiled code together in an extremely compatible manner.
+2.7, 3.3, 3.4, 3.5, and 3.6 have, when itself run with that Python version.
+
+It then executes uncompiled code, and compiled code together in an extremely
+compatible manner.
 
 You can use all Python library modules or and all extension modules freely. It
 translates the Python into a C level program that then uses "libpython" to
@@ -57,17 +59,18 @@ Requirements
     pack for best results (Nuitka filters away garbage outputs, but only
     for that language).
 
-- Python: Version 2.6, 2.7 or 3.2, 3.3, 3.4, 3.5, 3.6 (yes, but read below)
+- Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6 (yes, but read below)
 
-  .. admonition:: Python3, but 3.2, 3.3, and 3.4 need other Python versions as
+  .. admonition:: Python3, but 3.3, and 3.4 need other Python versions as
      a *compile time* dependency
 
-     Nuitka itself is fully compatible with all mentions version, Scons is not.
+     Nuitka itself is fully compatible with all mentioned versions, Scons as
+     as an internally used tool is not.
 
-     For these versions, you *need* a Python2 or Python3.5 installed as well,
-     but only during the compile time only. That is for use with Scons (which
-     orchestrates the C compilation), which does not support the same Python
-     versions as Nuitka.
+     For these versions, you *need* a Python2 or Python3.5 or higher installed
+     as well, but only during the compile time only. That is for use with Scons
+     (which orchestrates the C compilation), which does not support the same
+     Python versions as Nuitka.
 
   .. admonition:: Moving to other machines
 
