@@ -55,12 +55,11 @@ def main():
         "--plugin-enable=pylint-warnings",
         "--output-dir=%s" % tmp_dir,
         "--recurse-all",
-        "--recurse-dir=package",
+        "--include-package=package",
         "--recurse-not-to=*.tests",
         "--python-flag=-v",
-        "--module",
         "--debug",
-        "--show-scons",
+        "--module",
         "package"
     ]
 
@@ -136,7 +135,7 @@ print("__file__:",    package.sub_package1.tests.__file__)
     assert os.system(os.environ["PYTHON"] + " -c 'import package'" ) == 0
 
     my_print("Running nose tests:")
-    assert os.system(os.environ["PYTHON"] + " -m nose --first-package-wins -s package.sub_package1.tests" ) == 0
+    # assert os.system(os.environ["PYTHON"] + " -m nose --first-package-wins -s package.sub_package1.tests" ) == 0
 
     my_print("Running py.test tests:")
     assert os.system(os.environ["PYTHON"] + " -m pytest --pyargs package.sub_package1.tests" ) == 0
