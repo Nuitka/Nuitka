@@ -927,6 +927,8 @@ def getConstantsDeclCode(context):
             continue
         if constant_value is Ellipsis:
             continue
+        if constant_value is NotImplemented:
+            continue
         if type(constant_value) is type:
             continue
 
