@@ -77,6 +77,9 @@ class StatementAssignmentVariableName(StatementChildrenHavingBase):
 
     def computeStatement(self, trace_collection):
         # Only for abc, pylint: disable=no-self-use
+
+        # These must not enter real optimization, they only live during the
+        # tree building.
         assert False
 
     getAssignSource = StatementChildrenHavingBase.childGetter(
@@ -116,6 +119,9 @@ class StatementDelVariableName(NodeBase):
 
     def computeStatement(self, trace_collection):
         # Only for abc, pylint: disable=no-self-use
+
+        # These must not enter real optimization, they only live during the
+        # tree building.
         assert False
 
 
@@ -232,8 +238,8 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         self.variable = variable
         self.variable_version = variable.allocateTargetNumber()
 
-    def getVariableVersion(self):
-        return self.variable_version
+    def getVariableTrace(self):
+        return self.variable_trace
 
     def markAsInplaceSuspect(self):
         self.inplace_suspect = True
@@ -420,7 +426,7 @@ class StatementDelVariable(NodeBase):
     """
     kind = "STATEMENT_DEL_VARIABLE"
 
-    __slots__ = "variable", "variable_version", "variable_trace", "previous_version", "previous_trace", "tolerant"
+    __slots__ = "variable", "variable_version", "variable_trace", "previous_trace", "tolerant"
 
     def __init__(self, tolerant, source_ref, variable, version = None):
         if type(tolerant) is str:
@@ -438,8 +444,6 @@ class StatementDelVariable(NodeBase):
 
         self.variable = variable
         self.variable_version = version
-
-        self.previous_version = None
 
         self.variable_trace = None
         self.previous_trace = None
@@ -510,22 +514,23 @@ class StatementDelVariable(NodeBase):
     def getVariableName(self):
         return self.variable.getName()
 
+    def getVariableTrace(self):
+        return self.variable_trace
+
+    def getPreviousVariableTrace(self):
+        return self.previous_trace
+
     def getVariable(self):
         return self.variable
 
     def setVariable(self, variable):
-        assert self.variable_version is None
-
         self.variable = variable
         self.variable_version = variable.allocateTargetNumber()
-
-    def getVariableVersion(self):
-        return self.variable_version
 
     def computeStatement(self, trace_collection):
         variable = self.variable
 
-        self.previous_version, self.previous_trace = trace_collection.getVariableCurrentTraceVersion(variable)
+        self.previous_trace = trace_collection.getVariableCurrentTrace(variable)
 
         # First eliminate us entirely if we can.
         if self.tolerant and self.previous_trace.isUninitTrace():
@@ -591,7 +596,7 @@ class StatementReleaseVariable(NodeBase):
 
     kind = "STATEMENT_RELEASE_VARIABLE"
 
-    __slots__ = "variable", "variable_version", "variable_trace"
+    __slots__ = "variable", "variable_trace"
 
     def __init__(self, variable, source_ref):
         assert variable is not None, source_ref
@@ -602,7 +607,6 @@ class StatementReleaseVariable(NodeBase):
         )
 
         self.variable = variable
-        self.variable_version = None
 
         self.variable_trace = None
 
@@ -637,14 +641,14 @@ class StatementReleaseVariable(NodeBase):
     def getVariable(self):
         return self.variable
 
-    def getVariableVersion(self):
-        return self.variable_version
+    def getVariableTrace(self):
+        return self.variable_trace
 
     def setVariable(self, variable):
         self.variable = variable
 
     def computeStatement(self, trace_collection):
-        self.variable_version, self.variable_trace = trace_collection.getVariableCurrentTraceVersion(self.variable)
+        self.variable_trace = trace_collection.getVariableCurrentTrace(self.variable)
 
         if self.variable_trace.isUninitTrace():
             return (

@@ -55,7 +55,6 @@ class ExpressionLocalsVariableRefORFallback(ExpressionChildrenHavingBase):
         self.variable = locals_scope.getLocalsDictVariable(variable_name)
 
         self.variable_trace = None
-        self.variable_version = None
 
     def getDetails(self):
         return {
@@ -69,7 +68,7 @@ class ExpressionLocalsVariableRefORFallback(ExpressionChildrenHavingBase):
         return self.locals_scope
 
     def computeExpressionRaw(self, trace_collection):
-        self.variable_version, self.variable_trace = trace_collection.getVariableCurrentTraceVersion(
+        self.variable_trace = trace_collection.getVariableCurrentTrace(
             variable = self.variable
         )
 

@@ -54,7 +54,7 @@ class ExpressionBuiltinGlobals(ExpressionBase):
 class ExpressionBuiltinLocalsBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = ("variable_versions",)
+    __slots__ = ("variable_traces",)
 
     def __init__(self, source_ref):
         ExpressionBase.__init__(
@@ -62,7 +62,7 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
             source_ref = source_ref
         )
 
-        self.variable_versions = None
+        self.variable_traces = None
 
     def mayHaveSideEffects(self):
         if python_version < 300:
@@ -78,8 +78,8 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
     def mayRaiseException(self, exception_type):
         return self.mayHaveSideEffects()
 
-    def getVariableVersions(self):
-        return self.variable_versions
+    def getVariableTraces(self):
+        return self.variable_traces
 
 
 class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
@@ -102,7 +102,7 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
 
     def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
-        self.variable_versions = trace_collection.onLocalsUsage(self.getParentVariableProvider())
+        self.variable_traces = trace_collection.onLocalsUsage(self.getParentVariableProvider())
 
         if self.getParent().isStatementReturn():
             result = ExpressionBuiltinLocalsCopy(
@@ -146,26 +146,22 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
     def computeExpressionRaw(self, trace_collection):
         # Just inform the collection that all escaped.
 
-        self.variable_versions = trace_collection.onLocalsUsage(self.getParentVariableProvider())
+        self.variable_traces = trace_collection.onLocalsUsage(self.getParentVariableProvider())
 
         # TODO: Remove later.
         assert not self.getParentVariableProvider().isExpressionClassBody()
 
-        for variable, version in self.variable_versions:
-            trace = trace_collection.getVariableTrace(variable, version)
-
-            if not trace.mustHaveValue() and not trace.mustNotHaveValue():
+        for variable, variable_trace in self.variable_traces:
+            if not variable_trace.mustHaveValue() and not variable_trace.mustNotHaveValue():
                 return self, None, None
 
             # Other locals elsewhere.
-            if trace.getNameUsageCount() > 1:
+            if variable_trace.getNameUsageCount() > 1:
                 return self, None, None
 
         pairs = []
-        for variable, version in self.variable_versions:
-            trace = trace_collection.getVariableTrace(variable, version)
-
-            if trace.mustHaveValue():
+        for variable, variable_trace in self.variable_traces:
+            if variable_trace.mustHaveValue():
                 pairs.append(
                     ExpressionKeyValuePair(
                         key        = makeConstantRefNode(

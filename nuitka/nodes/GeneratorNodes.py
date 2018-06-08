@@ -67,11 +67,11 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
         self.variable_closure_traces = []
 
         for closure_variable in self.getGeneratorRef().getFunctionBody().getClosureVariables():
-            version, trace = trace_collection.getVariableCurrentTraceVersion(closure_variable)
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addClosureUsage()
 
             self.variable_closure_traces.append(
-                (closure_variable, version, trace)
+                (closure_variable, trace)
             )
 
         # TODO: Generator body may know something too.

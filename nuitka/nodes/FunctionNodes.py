@@ -681,11 +681,11 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         self.variable_closure_traces = []
 
         for closure_variable in self.getFunctionRef().getFunctionBody().getClosureVariables():
-            version, trace = trace_collection.getVariableCurrentTraceVersion(closure_variable)
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addClosureUsage()
 
             self.variable_closure_traces.append(
-                (closure_variable, version, trace)
+                (closure_variable, trace)
             )
 
         # TODO: Function body may know something too.
@@ -955,11 +955,11 @@ class ExpressionFunctionCall(ExpressionChildrenHavingBase):
         self.variable_closure_traces = []
 
         for closure_variable in function_body.getClosureVariables():
-            version, trace = trace_collection.getVariableCurrentTraceVersion(closure_variable)
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addClosureUsage()
 
             self.variable_closure_traces.append(
-                (closure_variable, version, trace)
+                (closure_variable, trace)
             )
 
         return self, None, None

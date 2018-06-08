@@ -278,6 +278,9 @@ class StatementLocalsDictSync(StatementChildrenHavingBase):
         self.previous_traces = None
         self.variable_traces = None
 
+    def getPreviousVariablesTraces(self):
+        return self.previous_traces
+
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection = trace_collection

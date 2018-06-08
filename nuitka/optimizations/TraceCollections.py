@@ -58,30 +58,25 @@ class CollectionTracingMixin(object):
     """
 
     def __init__(self):
-        # For functions, when we are in here, the currently active one,
+        # Currently active values in the tracing.
         self.variable_actives = {}
 
     def getVariableCurrentTrace(self, variable):
+        """ Get the current value trace associated to this variable
+
+            It is also created on the fly if necessary. We create them
+            lazy so to keep the tracing branches minimal where possible.
+        """
+
         return self.getVariableTrace(
             variable = variable,
-            version  = self.getCurrentVariableVersion(variable)
+            version  = self._getCurrentVariableVersion(variable)
         )
-
-    def getVariableCurrentTraceVersion(self, variable):
-        version = self.getCurrentVariableVersion(variable)
-
-        trace = self.getVariableTrace(
-            variable = variable,
-            version  = version
-        )
-
-        return version, trace
-
 
     def markCurrentVariableTrace(self, variable, version):
         self.variable_actives[variable] = version
 
-    def getCurrentVariableVersion(self, variable):
+    def _getCurrentVariableVersion(self, variable):
         try:
             return self.variable_actives[variable]
         except KeyError:
@@ -527,16 +522,15 @@ class TraceCollectionBase(CollectionTracingMixin):
                (variable.getOwner() is locals_owner or
                 include_closure and locals_owner.hasClosureVariable(variable)) and \
                variable.getName() != ".0":
-                version, variable_trace = self.getVariableCurrentTraceVersion(
+                variable_trace = self.getVariableCurrentTrace(
                     variable
                 )
 
                 variable_trace.addNameUsage()
-
                 result.append(
                     (
                         variable,
-                        version
+                        variable_trace
                     )
                 )
 

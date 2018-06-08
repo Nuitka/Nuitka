@@ -319,13 +319,13 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     )
 
     getVariableAssignmentCode(
-        tmp_name      = tmp_name2,
-        variable      = tried_statement.getVariable(),
-        version       = tried_statement.getVariableVersion(),
-        needs_release = None,
-        in_place      = False,
-        emit          = emit,
-        context       = context
+        tmp_name       = tmp_name2,
+        variable       = tried_statement.getVariable(),
+        variable_trace = tried_statement.getVariableTrace(),
+        needs_release  = None,
+        in_place       = False,
+        emit           = emit,
+        context        = context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)

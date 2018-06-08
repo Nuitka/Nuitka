@@ -31,8 +31,8 @@ from .ErrorCodes import (
 from .VariableCodes import getVariableAssignmentCode
 
 
-def getStoreLocalsCode(locals_name, variables, is_dict, emit, context):
-    for variable, version in variables:
+def getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
+    for variable, variable_trace in variable_traces:
         if not variable.isModuleVariable():
             key_name = context.getConstantCode(
                 constant = variable.getName()
@@ -72,13 +72,13 @@ def getStoreLocalsCode(locals_name, variables, is_dict, emit, context):
             emit('{')
 
             getVariableAssignmentCode(
-                variable      = variable,
-                version       = version,
-                tmp_name      = value_name,
-                needs_release = None, # TODO: Could be known maybe.
-                in_place      = False,
-                emit          = emit,
-                context       = context
+                variable       = variable,
+                variable_trace = variable_trace,
+                tmp_name       = value_name,
+                needs_release  = None, # TODO: Could be known maybe.
+                in_place       = False,
+                emit           = emit,
+                context        = context
             )
 
             emit('}')
@@ -429,11 +429,11 @@ def generateLocalsDictSyncCode(statement, emit, context):
     )
 
     getStoreLocalsCode(
-        locals_name = locals_name,
-        variables   = statement.previous_traces,
-        is_dict     = locals_arg.getTypeShape() is ShapeTypeDict,
-        emit        = emit,
-        context     = context
+        locals_name     = locals_name,
+        variable_traces = statement.getPreviousVariablesTraces(),
+        is_dict         = locals_arg.getTypeShape() is ShapeTypeDict,
+        emit            = emit,
+        context         = context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)

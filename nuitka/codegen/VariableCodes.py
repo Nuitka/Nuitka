@@ -45,13 +45,13 @@ def generateAssignmentVariableCode(statement, emit, context):
     )
 
     getVariableAssignmentCode(
-        tmp_name      = tmp_name,
-        variable      = statement.getVariable(),
-        version       = statement.getVariableVersion(),
-        needs_release = statement.needsReleasePreviousValue(),
-        in_place      = statement.inplace_suspect,
-        emit          = emit,
-        context       = context
+        tmp_name       = tmp_name,
+        variable       = statement.getVariable(),
+        variable_trace = statement.getVariableTrace(),
+        needs_release  = statement.needsReleasePreviousValue(),
+        in_place       = statement.inplace_suspect,
+        emit           = emit,
+        context        = context
     )
 
     # Ownership of that reference must have been transfered.
@@ -64,14 +64,14 @@ def generateDelVariableCode(statement, emit, context):
     )
 
     getVariableDelCode(
-        variable    = statement.getVariable(),
-        new_version = statement.variable_version,
-        old_version = statement.previous_version,
-        tolerant    = statement.isTolerant(),
-        needs_check = statement.isTolerant() or \
+        variable       = statement.getVariable(),
+        variable_trace = statement.variable_trace,
+        previous_trace = statement.previous_trace,
+        tolerant       = statement.isTolerant(),
+        needs_check    = statement.isTolerant() or \
                       statement.mayRaiseException(BaseException),
-        emit        = emit,
-        context     = context
+        emit           = emit,
+        context        = context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
@@ -88,22 +88,22 @@ def generateVariableReleaseCode(statement, emit, context):
         needs_check = not statement.variable_trace.mustHaveValue()
 
     getVariableReleaseCode(
-        variable    = statement.getVariable(),
-        version     = statement.getVariableVersion(),
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
+        variable       = statement.getVariable(),
+        variable_trace = statement.getVariableTrace(),
+        needs_check    = needs_check,
+        emit           = emit,
+        context        = context
     )
 
 
 def generateVariableReferenceCode(to_name, expression, emit, context):
     getVariableAccessCode(
-        to_name     = to_name,
-        variable    = expression.getVariable(),
-        version     = expression.getVariableVersion(),
-        needs_check = expression.mayRaiseException(BaseException),
-        emit        = emit,
-        context     = context
+        to_name        = to_name,
+        variable       = expression.getVariable(),
+        variable_trace = expression.getVariableTrace(),
+        needs_check    = expression.mayRaiseException(BaseException),
+        emit           = emit,
+        context        = context
     )
 
 
@@ -120,7 +120,7 @@ def getVariableCodeName(in_context, variable):
 
 enable_bool_ctype = isExperimental("enable_bool_ctype")
 
-def getPickedCType(variable, version, context):
+def getPickedCType(variable, variable_trace, context):
     """ Return type to use for specific context. """
 
     user = context.getEntryPoint()
@@ -137,7 +137,7 @@ def getPickedCType(variable, version, context):
                     return CTypePyObjectPtr
                 else:
                     # We are avoiding this for now.
-                    assert shapes, (variable, version)
+                    assert shapes, (variable, variable_trace)
 
                     return shapes.pop().getCType()
             else:
@@ -153,7 +153,7 @@ def getPickedCType(variable, version, context):
     return result
 
 
-def getLocalVariableCodeType(context, variable, version):
+def getLocalVariableCodeType(context, variable, variable_trace):
     # Now must be local or temporary variable.
 
     user = context.getOwner()
@@ -169,7 +169,7 @@ def getLocalVariableCodeType(context, variable, version):
         prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(owner)
         owner = entry_point
 
-    c_type = getPickedCType(variable, version, context)
+    c_type = getPickedCType(variable, variable_trace, context)
 
     if owner is user:
         result = getVariableCodeName(
@@ -217,7 +217,7 @@ def getLocalVariableCodeType(context, variable, version):
     return result, c_type
 
 
-def getVariableCode(context, variable, version):
+def getVariableCode(context, variable, variable_trace):
     # Modules are simple.
     if variable.isModuleVariable():
         return getVariableCodeName(
@@ -225,14 +225,14 @@ def getVariableCode(context, variable, version):
             variable   = variable
         )
 
-    variable_code_name, _variable_c_type = getLocalVariableCodeType(context, variable, version)
+    variable_code_name, _variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
     return variable_code_name
 
 
-def getLocalVariableInitCode(context, variable, version, init_from):
+def getLocalVariableInitCode(context, variable, variable_trace, init_from):
     assert not variable.isModuleVariable()
 
-    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
+    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
 
     if variable.isLocalVariable():
         context.setVariableType(variable, variable_code_name, variable_c_type)
@@ -240,7 +240,7 @@ def getLocalVariableInitCode(context, variable, version, init_from):
     return variable_c_type.getVariableInitCode(variable_code_name, init_from)
 
 
-def getVariableAssignmentCode(context, emit, variable, version,
+def getVariableAssignmentCode(context, emit, variable, variable_trace,
                               tmp_name, needs_release, in_place):
     # For transfer of ownership.
     if context.needsCleanup(tmp_name):
@@ -263,7 +263,7 @@ def getVariableAssignmentCode(context, emit, variable, version,
         if ref_count:
             context.removeCleanupTempName(tmp_name)
     else:
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
 
         if variable.isLocalVariable():
             context.setVariableType(variable, variable_code_name, variable_c_type)
@@ -309,7 +309,7 @@ def generateModuleVariableAccessCode(to_name, variable_name, needs_check,
 
 
 
-def getVariableAccessCode(to_name, variable, version, needs_check, emit, context):
+def getVariableAccessCode(to_name, variable, variable_trace, needs_check, emit, context):
     if variable.isModuleVariable():
         generateModuleVariableAccessCode(
             to_name       = to_name,
@@ -319,7 +319,7 @@ def getVariableAccessCode(to_name, variable, version, needs_check, emit, context
             context       = context
         )
     else:
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
 
         variable_c_type.getVariableObjectAccessCode(
             to_name            = to_name,
@@ -331,7 +331,7 @@ def getVariableAccessCode(to_name, variable, version, needs_check, emit, context
         )
 
 
-def getVariableDelCode(variable, old_version, new_version, tolerant,
+def getVariableDelCode(variable, variable_trace, previous_trace, tolerant,
                        needs_check, emit, context):
     if variable.isModuleVariable():
         check = not tolerant
@@ -357,8 +357,8 @@ def getVariableDelCode(variable, old_version, new_version, tolerant,
                 context       = context
             )
     elif variable.isLocalVariable():
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, old_version)
-        variable_code_name_new, variable_c_new_type = getLocalVariableCodeType(context, variable, new_version)
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, previous_trace)
+        variable_code_name_new, variable_c_new_type = getLocalVariableCodeType(context, variable, variable_trace)
 
         # TODO: We need to split this operation in two parts. Release and init
         # are not one thing.
@@ -375,8 +375,8 @@ def getVariableDelCode(variable, old_version, new_version, tolerant,
             context            = context
         )
     elif variable.isTempVariable():
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, old_version)
-        _variable_code_name, variable_c_new_type = getLocalVariableCodeType(context, variable, new_version)
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, previous_trace)
+        _variable_code_name, variable_c_new_type = getLocalVariableCodeType(context, variable, variable_trace)
 
         # TODO: We need to split this operation in two parts. Release and init
         # are not one thing.
@@ -395,10 +395,10 @@ def getVariableDelCode(variable, old_version, new_version, tolerant,
         assert False, variable
 
 
-def getVariableReleaseCode(variable, version, needs_check, emit, context):
+def getVariableReleaseCode(variable, variable_trace, needs_check, emit, context):
     assert not variable.isModuleVariable()
 
-    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
+    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
 
     variable_c_type.getReleaseCode(
         variable_code_name = variable_code_name,
