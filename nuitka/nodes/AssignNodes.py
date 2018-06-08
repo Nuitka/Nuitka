@@ -337,6 +337,8 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
         self.variable_trace = trace_collection.onVariableSet(
+            variable    = variable,
+            version     = self.variable_version,
             assign_node = self
         )
 
@@ -544,7 +546,7 @@ class StatementDelVariable(NodeBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         # Record the deletion, needs to start a new version then.
-        trace_collection.onVariableDel(
+        self.variable_trace = trace_collection.onVariableDel(
             variable = variable,
             version  = self.variable_version
         )
@@ -553,10 +555,6 @@ class StatementDelVariable(NodeBase):
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Need to fetch the potentially invalidated variable. A "del" on a
-        # or shared value, may easily assign the global variable in "__del__".
-        self.variable_trace = trace_collection.getVariableCurrentTrace(variable)
 
         return self, None, None
 
@@ -568,12 +566,10 @@ class StatementDelVariable(NodeBase):
             return False
         else:
             if self.variable_trace is not None:
-                variable = self.getVariable()
-
                 # Temporary variables deletions won't raise, just because we
                 # don't create them that way. We can avoid going through SSA in
                 # these cases.
-                if variable.isTempVariable():
+                if self.variable.isTempVariable():
                     return False
 
                 # If SSA knows, that's fine.

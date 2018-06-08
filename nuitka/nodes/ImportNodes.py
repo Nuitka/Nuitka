@@ -460,7 +460,7 @@ class StatementImportStar(StatementChildrenHavingBase):
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getSourceModule())
 
-        trace_collection.onLocalsDictEscaped()
+        trace_collection.onLocalsDictEscaped(self.locals_scope)
 
         # Need to invalidate everything, and everything could be assigned to
         # something else now.

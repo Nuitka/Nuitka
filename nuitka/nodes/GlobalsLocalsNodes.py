@@ -111,7 +111,7 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
 
             return result, "new_expression", "Locals does not escape, no write back needed."
 
-        trace_collection.onLocalsDictEscaped()
+        trace_collection.onLocalsDictEscaped(self.locals_scope)
 
         return self, None, None
 
@@ -133,9 +133,10 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
         return self.locals_scope
 
     def computeExpressionRaw(self, trace_collection):
-        # Just inform the collection that all escaped.
+        # Just inform the collection that all escaped unless it is abortative.
+        if not self.getParent().isStatementReturn():
+            trace_collection.onLocalsUsage(self.getParentVariableProvider())
 
-        self.variable_versions = trace_collection.onLocalsUsage(self.getParentVariableProvider())
         return self, None, None
 
 

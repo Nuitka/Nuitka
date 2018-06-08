@@ -338,6 +338,8 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
         )
 
 
+# TODO: No other uses of the base class, maybe ExpressionOutlineBody should be
+# moved to be so, or that level should be removed.
 class ExpressionOutlineFunction(ExpressionOutlineFunctionBodyBase):
     kind = "EXPRESSION_OUTLINE_FUNCTION"
 
@@ -350,3 +352,6 @@ class ExpressionOutlineFunction(ExpressionOutlineFunctionBodyBase):
 
     def isUnoptimized(self):
         return self.provider.isUnoptimized()
+
+    def getLocalsScope(self):
+        return self.provider.getLocalsScope()

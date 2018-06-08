@@ -52,6 +52,11 @@ signalChange = None
 
 
 class CollectionTracingMixin(object):
+    """ This contains for logic for maintaining active traces.
+
+        They are kept for "variable" and versions.
+    """
+
     def __init__(self):
         # For functions, when we are in here, the currently active one,
         self.variable_actives = {}
@@ -156,17 +161,7 @@ class CollectionStartpointMixin(object):
 
         self.outline_functions = None
 
-        self.locals_dict_shape = None
-        # TODO: This is really a value shape, isn't it.
-        self.locals_dict = None
-
-        # Dictionary of local dicts, e.g. multiple classes, nested or not, can
-        # produce that situation. The key is the locals_scope object of the
-        # locals dictionary. This stores the shape and the value traces for
-        # the keys.
-        self.locals_dict_values = {}
-
-        self.locals_dict_shapes = {}
+        self.locals_scope = None
 
     def getLoopBreakCollections(self):
         return self.break_collections
@@ -323,25 +318,12 @@ class CollectionStartpointMixin(object):
 
     @contextlib.contextmanager
     def makeLocalsDictContext(self, locals_scope):
-        old_locals_dict = self.locals_dict
-        old_locals_dict_shape = self.locals_dict_shape
-
-        self.locals_dict_shape = locals_scope.getTypeShape()
-        self.locals_dict = {}
+        old_locals_scope = self.locals_scope
+        self.locals_scope = locals_scope
 
         yield
 
-        self.locals_dict = old_locals_dict
-        self.locals_dict_shape = old_locals_dict_shape
-
-    def setLocalsDictShape(self, locals_scope, locals_dict_shape):
-        self.locals_dict_shapes[locals_scope] = locals_dict_shape
-        self.locals_dict_values[locals_scope] = {}
-
-        self.locals_dict_shape = locals_dict_shape
-
-    def getLocalsDictShape(self, locals_scope):
-        return self.locals_dict_shapes[locals_scope]
+        self.locals_scope = old_locals_scope
 
     @contextlib.contextmanager
     def makeAbortStackContext(self, catch_breaks, catch_continues,
@@ -379,6 +361,8 @@ class CollectionStartpointMixin(object):
             result = self.initVariableUnknown(variable)
         elif variable.isTempVariable():
             result = self._initVariableUninit(variable)
+        elif variable.isLocalsDictVariable():
+            result = self._initVariableUninit(variable)
         else:
             assert False, variable
 
@@ -393,41 +377,18 @@ class CollectionStartpointMixin(object):
     def getOutlineFunctions(self):
         return self.outline_functions
 
-    def onLocalsDictSet(self, variable_name, value):
-        # No real tracing of values yet, pylint: disable=unused-argument
+    def onLocalsDictEscaped(self, locals_scope):
+        # TODO: Limit to the scope.
+        if locals_scope is not None:
+            for variable in locals_scope.variables.values():
+                self.markActiveVariableAsUnknown(variable)
 
-        self.locals_dict[variable_name] = None
 
-        # TODO: For Python2 we know for a fact that it cannot happen, but for
-        # Python3 we could check current dictionary shape.
-        may_raise = python_version >= 300
+        for variable in self.getActiveVariables():
+            if variable.isTempVariable() or variable.isModuleVariable():
+                continue
 
-        if may_raise:
-            self.onExceptionRaiseExit(BaseException)
-
-        return may_raise
-
-    def onLocalsDictDel(self, variable_name):
-        self.locals_dict[variable_name] = None
-
-        # TODO: For Python2 we know for a fact that it cannot happen, but for
-        # Python3 we could check current dictionary shape.
-        may_raise = python_version >= 300
-
-        if may_raise:
-            self.onExceptionRaiseExit(BaseException)
-
-        return may_raise
-
-    def onLocalsDictGet(self, variable_name):
-        if variable_name not in self.locals_dict and None not in self.locals_dict:
-            return False
-
-        return None
-
-    def onLocalsDictEscaped(self):
-        if self.locals_dict is not None:
-            self.locals_dict[None] = None
+            self.markActiveVariableAsUnknown(variable)
 
 
 
@@ -511,11 +472,7 @@ class TraceCollectionBase(CollectionTracingMixin):
     def addVariableMergeMultipleTrace(self, variable, traces):
         return self.parent.addVariableMergeMultipleTrace(variable, traces)
 
-    def onVariableSet(self, assign_node):
-        version = assign_node.getVariableVersion()
-        variable = assign_node.getVariable()
-
-        # TODO: The variable, version and assign_node are redundant to pass.
+    def onVariableSet(self, variable, version, assign_node):
         variable_trace = ValueTraceAssign(
             owner       = self.owner,
             assign_node = assign_node,
@@ -555,8 +512,10 @@ class TraceCollectionBase(CollectionTracingMixin):
         # Make references point to it.
         self.markCurrentVariableTrace(variable, version)
 
+        return variable_trace
+
     def onLocalsUsage(self, locals_owner):
-        self.onLocalsDictEscaped()
+        self.onLocalsDictEscaped(locals_owner.getLocalsScope())
 
         result = []
 
@@ -765,26 +724,8 @@ class TraceCollectionBase(CollectionTracingMixin):
     def makeLocalsDictContext(self, locals_scope):
         return self.parent.makeLocalsDictContext(locals_scope)
 
-    def onLocalsDictSet(self, variable_name, value):
-        return self.parent.onLocalsDictSet(variable_name, value)
-
-    def onLocalsDictDel(self, variable_name):
-        return self.parent.onLocalsDictDel(variable_name)
-
-    def onLocalsDictGet(self, variable_name):
-        return self.parent.onLocalsDictGet(variable_name)
-
-    def onLocalsDictEscaped(self):
-        self.parent.onLocalsDictEscaped()
-
-    def setLocalsDictShape(self, locals_scope, locals_dict_shape):
-        self.parent.setLocalsDictShape(
-            locals_scope      = locals_scope,
-            locals_dict_shape = locals_dict_shape
-        )
-
-    def getLocalsDictShape(self):
-        return self.parent.getLocalsDictShape()
+    def onLocalsDictEscaped(self, locals_scope):
+        self.parent.onLocalsDictEscaped(locals_scope)
 
     def getCompileTimeComputationResult(self, node, computation, description):
         new_node, change_tags, message = getComputationResult(
@@ -848,15 +789,8 @@ class TraceCollectionBranch(TraceCollectionBase):
 
         return variable_trace
 
-    def onLocalsDictSet(self, variable_name, value):
-        return self.parent.onLocalsDictSet(variable_name, value)
-
-    def onLocalsDictGet(self, variable_name):
-        return self.parent.onLocalsDictGet(variable_name)
-
-    def onLocalsDictEscaped(self):
-        return self.parent.onLocalsDictEscaped()
-
+    def onLocalsDictEscaped(self, locals_scope):
+        return self.parent.onLocalsDictEscaped(locals_scope)
 
     def dumpTraces(self):
         Tracing.printSeparator()
@@ -898,6 +832,10 @@ class TraceCollectionFunction(CollectionStartpointMixin,
             self.initVariableUnknown(closure_variable)
             self.variable_actives[closure_variable] = 0
 
+        # TODO: Have special function type for exec functions stuff.
+        if function_body.locals_scope is not None:
+            for locals_dict_variable in function_body.locals_scope.variables.values():
+                self._initVariableUninit(locals_dict_variable)
 
 
 class TraceCollectionModule(CollectionStartpointMixin,

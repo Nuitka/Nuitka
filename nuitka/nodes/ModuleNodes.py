@@ -501,6 +501,10 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
                 outline.removeUserVariable(variable)
                 break
 
+    @staticmethod
+    def getLocalsScope():
+        return None
+
 
 class CompiledPythonPackage(CompiledPythonModule):
     kind = "COMPILED_PYTHON_PACKAGE"
