@@ -29,6 +29,7 @@ from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )
+from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 from .shapes.BuiltinTypeShapes import (
     ShapeTypeIntOrLong,
     ShapeTypeStr,
@@ -138,3 +139,19 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
 
     def getTypeShape(self):
         return ShapeTypeIntOrLong
+
+
+    def computeExpressionDrop(self, statement, trace_collection):
+        result = makeStatementExpressionOnlyReplacementNode(
+            expression = self.subnode_value,
+            node       = self
+        )
+
+        return result, "new_statements", """\
+Removed id taking for unused result."""
+
+    def mayHaveSideEffects(self):
+        return self.subnode_value.mayHaveSideEffects()
+
+    def extractSideEffects(self):
+        return (self.subnode_value,)
