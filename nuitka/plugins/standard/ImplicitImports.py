@@ -120,7 +120,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             if full_name in ("PyQt5.QtQuick", "PyQt5.QtQuickWidgets"):
                 yield "PyQt5.QtQml"
 
-            if full_name == "PyQt5.QtQuickWidgets":
+            if full_name in ("PyQt5.QtQuickWidgets", "PyQt5.QtQml"):
                 yield "PyQt5.QtQuick"
 
             if full_name == "PyQt5.Qt":
