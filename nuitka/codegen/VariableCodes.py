@@ -69,7 +69,7 @@ def generateDelVariableCode(statement, emit, context):
         previous_trace = statement.previous_trace,
         tolerant       = statement.isTolerant(),
         needs_check    = statement.isTolerant() or \
-                      statement.mayRaiseException(BaseException),
+                         statement.mayRaiseException(BaseException),
         emit           = emit,
         context        = context
     )
@@ -334,8 +334,6 @@ def getVariableAccessCode(to_name, variable, variable_trace, needs_check, emit, 
 def getVariableDelCode(variable, variable_trace, previous_trace, tolerant,
                        needs_check, emit, context):
     if variable.isModuleVariable():
-        check = not tolerant
-
         res_name = context.getIntResName()
 
         emit(
@@ -348,8 +346,7 @@ def getVariableDelCode(variable, variable_trace, previous_trace, tolerant,
             }
         )
 
-        # TODO: Apply needs_check for module variables too.
-        if check:
+        if needs_check and not tolerant:
             getNameReferenceErrorCode(
                 variable_name = variable.getName(),
                 condition     = "%s == -1" % res_name,
