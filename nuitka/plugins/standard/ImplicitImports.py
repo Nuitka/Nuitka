@@ -51,6 +51,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         if full_name == "gi._gobject":
             return False
 
+        # Can be built-in.
+        if full_name == "_socket":
+            return False
+
         return True
 
 
