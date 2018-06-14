@@ -455,6 +455,29 @@ class ExpressionBase(NodeBase):
 
         return float_node, None, None
 
+    def computeExpressionBytes(self, bytes_node, trace_collection):
+        shape = self.getTypeShape()
+
+        if shape.hasShapeSlotBytes() is False and \
+           shape.hasShapeSlotInt() is False and \
+           shape.hasShapeSlotIter() is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                "'%s' object is not iterable",
+                operation     = "bytes",
+                original_node = bytes_node,
+                value_node    = self
+            )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return bytes_node, None, None
+
     def computeExpressionComplex(self, complex_node, trace_collection):
         shape = self.getTypeShape()
 
@@ -587,6 +610,12 @@ class ExpressionBase(NodeBase):
 
     def mayRaiseExceptionFloat(self, exception_type):
         """ Unless we are told otherwise, everything may raise in __float__. """
+        # Virtual method, pylint: disable=no-self-use,unused-argument
+
+        return True
+
+    def mayRaiseExceptionBytes(self, exception_type):
+        """ Unless we are told otherwise, everything may raise in __bytes__. """
         # Virtual method, pylint: disable=no-self-use,unused-argument
 
         return True
@@ -805,6 +834,19 @@ Compile time constant long value pre-computed."""
 Compile time constant float value pre-computed."""
         )
 
+    def computeExpressionBytes(self, bytes_node, trace_collection):
+        constant_value = self.getCompileTimeConstant()
+
+        if type(constant_value) in (int, long):
+            if constant_value > 1000:
+                return bytes_node, None, None
+
+        return trace_collection.getCompileTimeComputationResult(
+            node        = bytes_node,
+            computation = lambda : bytes(constant_value),
+            description = """\
+Compile time constant bytes value pre-computed."""
+        )
 
     def isKnownToHaveAttribute(self, attribute_name):
         if self.computed_attribute is None:

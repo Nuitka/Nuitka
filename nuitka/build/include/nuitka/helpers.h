@@ -321,6 +321,7 @@ extern PyObject *BUILTIN_SUM2( PyObject *sequence, PyObject *start );
 
 // For built-in bytes() functionality.
 #if PYTHON_VERSION >= 300
+extern PyObject *BUILTIN_BYTES1( PyObject *value );
 extern PyObject *BUILTIN_BYTES3( PyObject *value, PyObject *encoding, PyObject *errors );
 #endif
 

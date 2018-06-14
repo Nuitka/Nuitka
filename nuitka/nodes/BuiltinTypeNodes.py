@@ -268,13 +268,41 @@ else:
         def getTypeShape(self):
             return ShapeTypeStr
 
-    class ExpressionBuiltinBytes(ExpressionBuiltinUnicodeBase):
-        kind = "EXPRESSION_BUILTIN_BYTES"
+    class ExpressionBuiltinBytes3(ExpressionBuiltinUnicodeBase):
+        kind = "EXPRESSION_BUILTIN_BYTES3"
 
         builtin_spec = BuiltinOptimization.builtin_bytes_spec
 
         def getTypeShape(self):
             return ShapeTypeBytes
+
+    class ExpressionBuiltinBytes1(ExpressionChildrenHavingBase):
+        kind = "EXPRESSION_BUILTIN_BYTES1"
+
+        named_children = ("value",)
+
+        def __init__(self, value, source_ref):
+            ExpressionChildrenHavingBase.__init__(
+                self,
+                values     = {
+                    "value" : value
+                },
+                source_ref = source_ref
+            )
+
+        def getTypeShape(self):
+            return ShapeTypeBytes
+
+        def computeExpression(self, trace_collection):
+            return self.subnode_value.computeExpressionBytes(
+                bytes_node       = self,
+                trace_collection = trace_collection
+            )
+
+        def mayRaiseException(self, exception_type):
+            return self.subnode_value.mayRaiseExceptionBytes(exception_type)
+
+        getValue = ExpressionChildrenHavingBase.childGetter("value")
 
 
 class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):

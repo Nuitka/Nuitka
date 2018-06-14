@@ -625,13 +625,39 @@ if python_version < 300:
         )
 
 else:
-    from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinBytes
+    from nuitka.nodes.BuiltinTypeNodes import (
+        ExpressionBuiltinBytes1,
+        ExpressionBuiltinBytes3
+    )
 
     def bytes_extractor(node):
+        def makeBytes0(source_ref):
+            # pylint: disable=unused-argument
+
+            return makeConstantReplacementNode(
+                constant = bytes(),
+                node     = node
+            )
+
+        def selectBytesBuiltin(string, encoding, errors, source_ref):
+            if encoding is None and errors is None:
+                return ExpressionBuiltinBytes1(
+                    value      = string,
+                    source_ref = source_ref
+                )
+            else:
+                return ExpressionBuiltinBytes3(
+                    value      = string,
+                    encoding   = encoding,
+                    errors     = errors,
+                    source_ref = source_ref
+                )
+
         return BuiltinOptimization.extractBuiltinArgs(
-            node          = node,
-            builtin_class = ExpressionBuiltinBytes,
-            builtin_spec  = BuiltinOptimization.builtin_bytes_spec
+            node                = node,
+            builtin_class       = selectBytesBuiltin,
+            builtin_spec        = BuiltinOptimization.builtin_bytes_spec,
+            empty_special_class = makeBytes0
         )
 
 

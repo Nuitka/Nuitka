@@ -240,7 +240,8 @@ from .SliceCodes import (
 )
 from .StringCodes import (
     generateBuiltinAsciiCode,
-    generateBuiltinBytesCode,
+    generateBuiltinBytes1Code,
+    generateBuiltinBytes3Code,
     generateBuiltinChrCode,
     generateBuiltinFormatCode,
     generateBuiltinOrdCode,
@@ -559,7 +560,8 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_COMPLEX2"                 : generateBuiltinComplex2Code,
         "EXPRESSION_BUILTIN_LEN"                      : generateBuiltinLenCode,
         "EXPRESSION_BUILTIN_STR"                      : generateBuiltinStrCode,
-        "EXPRESSION_BUILTIN_BYTES"                    : generateBuiltinBytesCode,
+        "EXPRESSION_BUILTIN_BYTES1"                   : generateBuiltinBytes1Code,
+        "EXPRESSION_BUILTIN_BYTES3"                   : generateBuiltinBytes3Code,
         "EXPRESSION_BUILTIN_UNICODE"                  : generateBuiltinUnicodeCode,
         "EXPRESSION_BUILTIN_CHR"                      : generateBuiltinChrCode,
         "EXPRESSION_BUILTIN_ORD"                      : generateBuiltinOrdCode,

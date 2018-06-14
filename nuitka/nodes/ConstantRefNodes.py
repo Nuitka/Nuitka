@@ -89,7 +89,7 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
 
         if not user_provided and isDebug():
             try:
-                if type(constant) in (str, unicode):
+                if type(constant) in (str, unicode, bytes):
                     max_size = 1000
                 elif type(constant) is xrange:
                     max_size = None

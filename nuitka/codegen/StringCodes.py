@@ -27,7 +27,22 @@ from .PythonAPICodes import generateCAPIObjectCode
 from .TupleCodes import getTupleCreationCode
 
 
-def generateBuiltinBytesCode(to_name, expression, emit, context):
+def generateBuiltinBytes1Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_BYTES1",
+        arg_desc   = (
+            ("bytes_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        none_null  = True,
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinBytes3Code(to_name, expression, emit, context):
     encoding = expression.getEncoding()
     errors = expression.getErrors()
 

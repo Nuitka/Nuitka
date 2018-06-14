@@ -850,5 +850,27 @@ else:
     print("Ouch.!")
 
 
+def someFunctionThatReturnsDeletedValueViaBytes():
+    class C:
+        def __bytes__(self):
+            nonlocal a
+            del a
+
+            return bytes(range(2))
+
+    c = C()
+
+    a = 1
+    bytes(c)
+    return a, x, y
+
+
+try:
+    someFunctionThatReturnsDeletedValueViaBytes()
+except UnboundLocalError:
+    print("OK, object bytes correctly deleted an item.")
+else:
+    print("Ouch.!")
+
 
 # TODO: There must be way more than these.
