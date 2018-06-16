@@ -238,8 +238,9 @@ class ValueTraceUnknown(ValueTraceBase):
 
     def addNameUsage(self):
         self.addUsage()
+        self.name_usages += 1
 
-        if self.previous is not None:
+        if self.name_usages <= 2 and self.previous is not None:
             self.previous.addNameUsage()
 
     def addPotentialUsage(self):
