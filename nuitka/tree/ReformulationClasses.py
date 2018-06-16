@@ -229,10 +229,10 @@ def _buildClassNode3(provider, node, source_ref):
     if python_version >= 360 and \
        class_creation_function.needsAnnotationsDictionary():
         statements.append(
-            StatementAssignmentVariableName(
-                provider      = class_creation_function,
+            StatementLocalsDictOperationSet(
+                locals_scope  = class_creation_function.getLocalsScope(),
                 variable_name = "__annotations__",
-                source        = makeConstantRefNode(
+                value         = makeConstantRefNode(
                     constant      = {},
                     source_ref    = source_ref,
                     user_provided = True

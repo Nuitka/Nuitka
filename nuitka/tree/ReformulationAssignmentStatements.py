@@ -58,6 +58,7 @@ from nuitka.nodes.SubscriptNodes import (
 )
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
+    ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef
 )
 from nuitka.PythonVersions import python_version
@@ -575,8 +576,7 @@ def buildAnnAssignNode(provider, node, source_ref):
 
             statements.append(
                 StatementAssignmentSubscript(
-                    # TODO: Use ExpressionVariableLocalNameRef once they work better.
-                    expression = ExpressionVariableNameRef(
+                    expression = ExpressionVariableLocalNameRef(
                         provider      = provider,
                         variable_name = "__annotations__",
                         source_ref    = source_ref
