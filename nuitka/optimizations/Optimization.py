@@ -455,17 +455,17 @@ def _checkXMLPersistence():
 
 
 
-def optimize():
+def optimize(output_filename):
     Graphs.startGraph()
 
     # First pass.
     if _progress:
         info("PASS 1:")
 
-    makeOptimizationPass(False)
+    makeOptimizationPass(initial_pass = True)
     Variables.complete = True
 
-    finished = makeOptimizationPass(False)
+    finished = makeOptimizationPass(initial_pass = False)
 
     if Options.isExperimental("check_xml_persistence"):
         _checkXMLPersistence()
@@ -482,6 +482,6 @@ def optimize():
 
     # Second, "endless" pass.
     while not finished:
-        finished = makeOptimizationPass(True)
+        finished = makeOptimizationPass(initial_pass = False)
 
-    Graphs.endGraph()
+    Graphs.endGraph(output_filename)

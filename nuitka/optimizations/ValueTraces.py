@@ -266,8 +266,9 @@ class ValueTraceAssign(ValueTraceBase):
         self.replace_it = None
 
     def __repr__(self):
-        return "<ValueTraceAssign at {source_ref}>".format(
-            source_ref = self.assign_node.getSourceReference().getAsString()
+        return "<ValueTraceAssign at {source_ref} of {value}>".format(
+            source_ref = self.assign_node.getSourceReference().getAsString(),
+            value      = self.assign_node.getAssignSource()
         )
 
     def dump(self):
@@ -319,7 +320,7 @@ class ValueTraceMerge(ValueTraceBase):
     def __repr__(self):
         return """\
 <ValueTraceMerge of {previous}>""".format(
-            previous = tuple(previous.getVersion() for previous in self.previous)
+            previous = self.previous
         )
 
     @staticmethod

@@ -1021,7 +1021,7 @@ def isProfile():
     return options.profile
 
 
-def shouldCreateGraph():
+def shallCreateGraph():
     return options.graph
 
 
