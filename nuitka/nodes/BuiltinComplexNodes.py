@@ -42,6 +42,8 @@ class ExpressionBuiltinComplex1(ExpressionChildrenHavingBase):
         )
 
     def getTypeShape(self):
+        # Note: The complex built-in will convert overloads from __complex__
+        # slot and create a new one instead.
         return ShapeTypeComplex
 
     def computeExpression(self, trace_collection):

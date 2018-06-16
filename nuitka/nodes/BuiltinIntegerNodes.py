@@ -36,6 +36,12 @@ from .ExpressionBases import (
 from .shapes.BuiltinTypeShapes import ShapeTypeIntOrLong, ShapeTypeLong
 
 
+class ShapeTypeIntOrLongDerived(ShapeTypeIntOrLong):
+    @staticmethod
+    def getTypeName():
+        return None
+
+
 class ExpressionBuiltinInt1(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_INT1"
 
@@ -51,7 +57,8 @@ class ExpressionBuiltinInt1(ExpressionChildrenHavingBase):
         )
 
     def getTypeShape(self):
-        return ShapeTypeIntOrLong
+        # TODO: Depending on input type shape and value, we should improve this.
+        return ShapeTypeIntOrLongDerived
 
     def computeExpression(self, trace_collection):
         value = self.getValue()
@@ -133,6 +140,12 @@ class ExpressionBuiltinInt2(ExpressionBuiltinIntLong2Base):
 
 
 if python_version < 300:
+    class ShapeTypeLongDerived(ShapeTypeLong):
+        @staticmethod
+        def getTypeName():
+            return None
+
+
     class ExpressionBuiltinLong1(ExpressionChildrenHavingBase):
         kind = "EXPRESSION_BUILTIN_LONG1"
 
@@ -148,8 +161,8 @@ if python_version < 300:
             )
 
         def getTypeShape(self):
-            # TODO: Is this really enforced or can a slot return otherwise?
-            return ShapeTypeLong
+            # TODO: Depending on input type shape and value, we should improve this.
+            return ShapeTypeLongDerived
 
         def computeExpression(self, trace_collection):
             return self.subnode_value.computeExpressionLong(

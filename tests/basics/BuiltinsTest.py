@@ -372,3 +372,129 @@ except TypeError as e:
     print("Open without arguments gives", repr(e))
 
 print("Type of id values:", type(id(id)))
+
+
+class OtherBytesSubclass(bytes):
+    pass
+
+class BytesOverload:
+    def __bytes__(self):
+        return OtherBytesSubclass()
+
+b = BytesOverload()
+v = bytes(b)
+
+if type(v) is bytes:
+    print("Bytes overload ineffective (expected for Python2)")
+elif isinstance(v, bytes):
+    print("Bytes overload successful.")
+else:
+    print("Oops, must not happen.")
+
+class OtherFloatSubclass(float):
+    pass
+
+class FloatOverload:
+    def __float__(self):
+        return OtherFloatSubclass()
+
+b = FloatOverload()
+v = float(b)
+
+if type(v) is float:
+    print("Float overload ineffective (must not happen)")
+elif isinstance(v, float):
+    print("Float overload successful.")
+else:
+    print("Oops, must not happen.")
+
+class OtherStrSubclass(str):
+    pass
+
+class StrOverload:
+    def __str__(self):
+        return OtherStrSubclass()
+
+b = StrOverload()
+v = str(b)
+
+if type(v) is str:
+    print("Str overload ineffective (must not happen)")
+elif isinstance(v, str):
+    print("Str overload successful.")
+else:
+    print("Oops, must not happen.")
+
+if str is bytes:
+    class OtherUnicodeSubclass(unicode):
+        pass
+
+    class UnicodeOverload:
+        def __unicode__(self):
+            return OtherUnicodeSubclass()
+
+    b = UnicodeOverload()
+
+    v = unicode(b)
+
+    if type(v) is unicode:
+        print("Unicode overload ineffective (must not happen)")
+    elif isinstance(v, unicode):
+        print("Unicode overload successful.")
+    else:
+        print("Oops, must not happen.")
+
+
+class OtherIntSubclass(int):
+    pass
+
+class IntOverload:
+    def __int__(self):
+        return OtherIntSubclass()
+
+b = IntOverload()
+v = int(b)
+
+if type(v) is int:
+    print("Int overload ineffective (must not happen)")
+elif isinstance(v, int):
+    print("Int overload successful.")
+else:
+    print("Oops, must not happen.")
+
+
+if str is bytes:
+    class OtherLongSubclass(long):
+        pass
+
+    class LongOverload:
+        def __long__(self):
+            return OtherLongSubclass()
+
+    b = LongOverload()
+    v = long(b)
+
+    if type(v) is long:
+        print("Long overload ineffective (must not happen)")
+    elif isinstance(v, long):
+        print("Long overload successful.")
+    else:
+        print("Oops, must not happen.")
+
+
+class OtherComplexSubclass(complex):
+    pass
+
+class ComplexOverload:
+    def __complex__(self):
+        return OtherComplexSubclass()
+
+b = ComplexOverload()
+v = complex(b)
+
+if type(v) is complex:
+    print("Complex overload ineffective (must happen)")
+elif isinstance(v, complex):
+    print("Oops, must not happen.")
+else:
+    print("Oops, must not happen.")

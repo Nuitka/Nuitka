@@ -115,6 +115,12 @@ class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
     builtin_spec = BuiltinOptimization.builtin_frozenset_spec
 
 
+class ShapeTypeFloatDerived(ShapeTypeFloat):
+    @staticmethod
+    def getTypeName():
+        return None
+
+
 class ExpressionBuiltinFloat(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_FLOAT"
 
@@ -130,7 +136,8 @@ class ExpressionBuiltinFloat(ExpressionChildrenHavingBase):
         )
 
     def getTypeShape(self):
-        return ShapeTypeFloat
+        # TODO: Depending on input type shape, we should improve this.
+        return ShapeTypeFloatDerived
 
     def computeExpression(self, trace_collection):
         return self.subnode_value.computeExpressionFloat(
@@ -173,6 +180,7 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
         return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
 
     def getTypeShape(self):
+        # Note: Not allowed to subclass bool.
         return ShapeTypeBool
 
 
@@ -221,6 +229,12 @@ class ExpressionBuiltinUnicodeBase(ExpressionSpecBasedComputationBase):
         )
 
 
+class ShapeTypeStrDerived(ShapeTypeStr):
+    @staticmethod
+    def getTypeName():
+        return None
+
+
 if python_version < 300:
     class ExpressionBuiltinStr(ExpressionBuiltinTypeBase):
         kind = "EXPRESSION_BUILTIN_STR"
@@ -248,7 +262,13 @@ if python_version < 300:
             return new_node, change_tags, change_desc
 
         def getTypeShape(self):
-            return ShapeTypeStr
+            return ShapeTypeStrDerived
+
+
+    class ShapeTypeUnicodeDerived(ShapeTypeUnicode):
+        @staticmethod
+        def getTypeName():
+            return None
 
 
     class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):
@@ -257,7 +277,7 @@ if python_version < 300:
         builtin_spec = BuiltinOptimization.builtin_unicode_spec
 
         def getTypeShape(self):
-            return ShapeTypeUnicode
+            return ShapeTypeUnicodeDerived
 
 else:
     class ExpressionBuiltinStr(ExpressionBuiltinUnicodeBase):
@@ -266,7 +286,7 @@ else:
         builtin_spec = BuiltinOptimization.builtin_str_spec
 
         def getTypeShape(self):
-            return ShapeTypeStr
+            return ShapeTypeStrDerived
 
     class ExpressionBuiltinBytes3(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_BYTES3"
@@ -275,6 +295,11 @@ else:
 
         def getTypeShape(self):
             return ShapeTypeBytes
+
+    class ShapeTypeBytesDerived(ShapeTypeBytes):
+        @staticmethod
+        def getTypeName():
+            return None
 
     class ExpressionBuiltinBytes1(ExpressionChildrenHavingBase):
         kind = "EXPRESSION_BUILTIN_BYTES1"
@@ -291,7 +316,8 @@ else:
             )
 
         def getTypeShape(self):
-            return ShapeTypeBytes
+            # TODO: Depending on input type shape, we should improve this.
+            return ShapeTypeBytesDerived
 
         def computeExpression(self, trace_collection):
             return self.subnode_value.computeExpressionBytes(
