@@ -8,6 +8,11 @@ Bug Fixes
 
 - Standalone: Added missing dependencies for ``PyQt5.Qt`` module.
 
+- Plugins: Added support for ``PyQt5.Qt`` module and its ``qml`` plugins.
+
+- Plugins: The sensible plugin list for PyQt now includes that platforms
+  plugins on Windows too, as they are kind of mandatory.
+
 - Python3: Fix, for uninstalled Python versions wheels that linked against
   the ``Python3`` library as opposed to ``Python3X``, it was not found.
 
@@ -17,8 +22,13 @@ Bug Fixes
 - Standalone: For DLLs added by Nuitka plugins, add the package directory
   to the search path for dependencies where they might live.
 
-- Plugins: The sensible plugin list for PyQt now includes that platforms
-  plugins on Windows too, as they are kind of mandatory.
+- Fix, the ``vars`` built-in didn't annotate its exception exit.
+
+- Python3: Fix, the ``bytes`` and ``complex`` built-ins needs to be treated as
+  a slot too.
+
+- Fix, consider if ``del`` variable must be assigned, in which case no
+  exception exit should be created. This prevented ``Tkinter`` compilation.
 
 New Features
 ------------
@@ -34,14 +44,52 @@ New Features
 - Allow passing options from distutils to Nuitka compilation via setup
   options.
 
+- Added option to disable the DLL dependency cache on Windows as it may
+  become wrong after installing new software.
+
+- Added experimental ability to provide extra options for Nuitka to setuptools.
+
 Optimization
 ------------
 
+- Apply value tracing to local dict variables too, enhancing the optimization
+  for class bodies and function with ``exec`` statements by a lot.
+
 - Better optimization for "must not have value", wasn't considering merge
-  traces of uninitialized values.
+  traces of uninitialized values, for which this is also the case.
+
+- More immediately optimize branches with known truth values, so that merges
+  are avoided and do not prevent trace based optimization before the pass after
+  the next one. In some cases, optimization stopped even early
+
+- Much faster handling for functions with a lot of ``eval`` and ``exec`` calls.
+
+- Static optimization of ``type`` with known type shapes, the value is predicted
+  at compile time.
+
+- Optimize containers for all compile time constants into constant nodes. This
+  also enables further compile time checks using them, e.g. with ``isinstance``
+  or ``in`` checks.
 
 - Using threads when determining standalone mode dependencies. This will speed
   up the un-cached case on Windows by a fair bit.
+
+- Also remove unused assignments for mutable constant values.
+
+- Python3: Also optimize calls to ``bytes``, this was so far not done.
+
+Cleanups
+--------
+
+- Don't store "version" numbers of variable traces for code generation, instead
+  directly use the references to the value traces instead, avoiding later
+  lookups.
+
+- Added dedicated module for ``complex`` built-in nodes.
+
+- Moved C helpers for integer and complex types to dedicated files, solving the
+  TODOs around them.
+
 
 Organizational
 --------------
@@ -53,6 +101,8 @@ Organizational
   that is causing the issue.
 
 - Added support for Fedora 28 RPM builds.
+
+- Remove more instances of mentions of 3.2 as supported or usable.
 
 Summary
 -------
