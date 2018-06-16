@@ -251,7 +251,7 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         return self.getAssignSource().mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        # This is very complex stuff, pylint: disable=too-many-branches
+        # This is very complex stuff, pylint: disable=too-many-branches,too-many-return-statements
 
         # TODO: Way too ugly to have global trace kinds just here, and needs to
         # be abstracted somehow. But for now we let it live here.
@@ -355,18 +355,44 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
 
             if last_trace is not None:
                 if source.isCompileTimeConstant():
-                    # Can safely forward propagate only non-mutable constants.
-                    if not source.isMutable():
-                        if not last_trace.getNameUsageCount():
-                            self.variable_trace.setReplacementNode(
-                                lambda _usage : source.makeClone()
-                            )
+                    if not variable.isModuleVariable():
 
-                            propagated = True
+                        # Can safely forward propagate only non-mutable constants.
+                        if source.isMutable():
+                            # Something might be possible still, lets check for
+                            # ununused.
+                            if not last_trace.hasPotentialUsages() and \
+                               not last_trace.hasDefiniteUsages() and \
+                               not last_trace.getNameUsageCount():
+                                if not last_trace.getPrevious().isUninitTrace():
+                                    # TODO: We could well decide, if that's even necessary, but for now
+                                    # the "StatementDelVariable" is tasked with that.
+                                    result = StatementDelVariable(
+                                        variable   = self.variable,
+                                        version    = self.variable_version,
+                                        tolerant   = True,
+                                        source_ref = self.getSourceReference()
+                                    )
+                                else:
+                                    result = None
+
+                                return (
+                                    result,
+                                    "new_statements",
+                                    "Dropped dead assignment statement to '%s'." % (
+                                       self.getVariableName()
+                                    )
+                                )
                         else:
-                            propagated = False
+                            if not last_trace.getNameUsageCount():
+                                self.variable_trace.setReplacementNode(
+                                    lambda _usage : source.makeClone()
+                                )
 
-                        if not variable.isModuleVariable():
+                                propagated = True
+                            else:
+                                propagated = False
+
                             if not last_trace.hasPotentialUsages() and not last_trace.getNameUsageCount():
                                 if not last_trace.getPrevious().isUninitTrace():
                                     # TODO: We could well decide, if that's even necessary, but for now
@@ -388,10 +414,6 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                                        self.getVariableName()
                                     )
                                 )
-                    else:
-                        # Something might be possible still.
-
-                        pass
                 else:
                     # More cases thinkable.
                     pass
