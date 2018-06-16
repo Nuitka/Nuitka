@@ -289,6 +289,14 @@ def optimizeUnusedTempVariables(provider):
         return False
 
 
+def optimizeUnusedAssignments(provider):
+    for _trace_collection in provider.getTraceCollections():
+        # TODO: Find things to do here.
+        pass
+
+    return False
+
+
 def optimizeVariables(module):
     changed = False
 
@@ -313,6 +321,11 @@ def optimizeVariables(module):
 
         if optimizeUnusedTempVariables(module):
             changed = True
+
+#        TODO: Global optimizations could go here maybe, so far we can do all
+#        the things in assign nodes themselves based on last trace.
+#        if optimizeUnusedAssignments(module):
+#            changed = True
     except Exception:
         print("Problem with", module)
         raise
