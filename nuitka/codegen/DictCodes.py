@@ -186,6 +186,8 @@ def generateDictOperationUpdateCode(statement, emit, context):
         context    = context
     )
 
+    old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
+
     res_name = context.getIntResName()
 
     emit("assert( PyDict_Check( %s ) );" % dict_arg_name)
@@ -210,6 +212,7 @@ def generateDictOperationUpdateCode(statement, emit, context):
         context     = context
     )
 
+    old_source_ref = context.setCurrentSourceCodeReference(old_source_ref)
 
 def generateDictOperationGetCode(to_name, expression, emit, context):
     dict_name, key_name = generateChildExpressionsCode(

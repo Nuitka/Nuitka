@@ -50,7 +50,8 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationGet,
-    StatementDictOperationRemove
+    StatementDictOperationRemove,
+    StatementDictOperationUpdate
 )
 from nuitka.nodes.FunctionNodes import ExpressionFunctionQualnameRef
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
@@ -324,7 +325,12 @@ def _buildClassNode3(provider, node, source_ref):
             source_ref = decorator.getSourceReference()
         )
 
-    statements = (
+    if node.keywords and node.keywords[-1].arg is None:
+        keywords = node.keywords[:-1]
+    else:
+        keywords = node.keywords
+
+    statements = [
         StatementAssignmentVariable(
             variable   = tmp_bases,
             source     = buildTupleCreationNode(
@@ -340,17 +346,32 @@ def _buildClassNode3(provider, node, source_ref):
                 keys       = [
                     keyword.arg
                     for keyword in
-                    node.keywords
+                    keywords
                 ],
                 values     = [
                     buildNode(provider, keyword.value, source_ref)
                     for keyword in
-                    node.keywords
+                    keywords
                 ],
                 source_ref = source_ref
             ),
             source_ref = source_ref
-        ),
+        )
+    ]
+
+    if node.keywords and node.keywords[-1].arg is None:
+        statements.append(
+            StatementDictOperationUpdate(
+                dict_arg = ExpressionVariableRef(
+                    variable   = tmp_class_decl_dict,
+                    source_ref = source_ref
+                ),
+                value    = buildNode(provider, node.keywords[-1].value, source_ref),
+                source_ref = source_ref
+            )
+        )
+
+    statements += [
         StatementAssignmentVariable(
             variable   = tmp_metaclass,
             source     = ExpressionSelectMetaclass(
@@ -504,7 +525,7 @@ def _buildClassNode3(provider, node, source_ref):
             source        = decorated_body,
             source_ref    = source_ref
         )
-    )
+    ]
 
     if python_version >= 340:
         class_creation_function.qualname_setup = node.name, qualname_assign
