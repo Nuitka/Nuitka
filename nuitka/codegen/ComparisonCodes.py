@@ -51,13 +51,13 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
     comparator  = expression.getComparator()
 
-    if comparator in OperatorCodes.normal_comparison_codes:
+    if comparator in OperatorCodes.containing_comparison_codes:
         needs_check = expression.getRight().mayRaiseExceptionIn(
             BaseException,
             expression.getLeft()
         )
 
-        helper = OperatorCodes.normal_comparison_codes[ comparator ]
+        helper = OperatorCodes.containing_comparison_codes[ comparator ]
         assert helper.startswith("SEQUENCE_CONTAINS")
 
         emit(
@@ -182,7 +182,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
 def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_check,
                                     emit, context):
-    if comparator in OperatorCodes.normal_comparison_codes:
+    if comparator in OperatorCodes.containing_comparison_codes:
         operator_res_name = context.allocateTempName("cmp_" + comparator, "int")
 
         emit(

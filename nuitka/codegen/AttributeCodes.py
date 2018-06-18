@@ -254,6 +254,7 @@ def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
         context   = context
     )
 
+    # TODO: Make sure we release before we error exit, to keep it small.
     getReleaseCodes(
         release_names = (value_name, target_name),
         emit          = emit,

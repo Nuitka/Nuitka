@@ -169,7 +169,7 @@ branches."""
                     old_node = condition
                 ),
                 "new_expression",
-                "Conditional expression predicted to yes case"
+                "Conditional expression predicted to yes case."
             )
         elif truth_value is False:
             return (
@@ -178,7 +178,7 @@ branches."""
                     old_node = condition
                 ),
                 "new_expression",
-                "Conditional expression predicted to no case"
+                "Conditional expression predicted to no case."
             )
         else:
             return self, None, None
