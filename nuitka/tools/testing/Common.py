@@ -60,17 +60,20 @@ def check_result(*popenargs, **kwargs):
         return True
 
 
-_python_version = None
-_python_arch = None
-_python_executable = None
-
-def setup(needs_io_encoding = False, silent = False):
+def goMainDir():
     # Go its own directory, to have it easy with path knowledge.
     os.chdir(
         os.path.dirname(
             os.path.abspath(sys.modules[ "__main__" ].__file__)
         )
     )
+
+_python_version = None
+_python_arch = None
+_python_executable = None
+
+def setup(needs_io_encoding = False, silent = False):
+    goMainDir()
 
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
