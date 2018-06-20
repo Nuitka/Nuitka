@@ -40,11 +40,11 @@ class ExpressionLocalsVariableRefORFallback(ExpressionChildrenHavingBase):
 
     named_children = ("fallback",)
 
-    def __init__(self, locals_scope, variable_name, fallback_node, source_ref):
+    def __init__(self, locals_scope, variable_name, fallback, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "fallback" : fallback_node
+                "fallback" : fallback
             },
             source_ref = source_ref
         )
@@ -58,6 +58,7 @@ class ExpressionLocalsVariableRefORFallback(ExpressionChildrenHavingBase):
 
     def getDetails(self):
         return {
+            "locals_scope"  : self.locals_scope,
             "variable_name" : self.getVariableName(),
         }
 
@@ -271,6 +272,7 @@ class ExpressionLocalsVariableCheck(ExpressionBase):
 
     def getDetails(self):
         return {
+            "locals_scope"  : self.locals_scope,
             "variable_name" : self.variable_name,
         }
 

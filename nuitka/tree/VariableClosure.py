@@ -213,7 +213,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         ExpressionLocalsVariableRefORFallback(
                             locals_scope  = provider.getLocalsScope(),
                             variable_name = node.getVariableName(),
-                            fallback_node = ExpressionVariableRef(
+                            fallback      = ExpressionVariableRef(
                                 variable   = variable,
                                 source_ref = node.source_ref
                             ),
@@ -370,7 +370,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
                     ExpressionLocalsVariableRefORFallback(
                         locals_scope  = provider.getLocalsScope(),
                         variable_name = variable_name,
-                        fallback_node = ExpressionVariableRef(
+                        fallback      = ExpressionVariableRef(
                             variable   = node.getParentModule().getVariableForReference(variable_name),
                             source_ref = node.source_ref
                         ),
