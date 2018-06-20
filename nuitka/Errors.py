@@ -25,7 +25,8 @@ issue when output.
 class NuitkaErrorBase(Exception):
     pass
 
-class NuitkaOptimizationError(NuitkaErrorBase):
+
+class NuitkaNodeError(NuitkaErrorBase):
 
     # Try to output more information about nodes passed.
     def __str__(self):
@@ -43,3 +44,7 @@ class NuitkaOptimizationError(NuitkaErrorBase):
         parts.append("The above information should be included in a bug report.")
 
         return '\n'.join(parts)
+
+
+class NuitkaOptimizationError(NuitkaNodeError):
+    pass

@@ -26,6 +26,7 @@ expression only stuff.
 
 from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import iterItems
+from nuitka.Errors import NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
 from nuitka.utils.InstanceCounters import counted_del, counted_init
@@ -105,9 +106,7 @@ class NodeBase(NodeMetaClassBase):
                 **self.getDetails()
             )
         except TypeError:
-            print("Problem cloning", self.__class__)
-
-            raise
+            raise NuitkaNodeError("Problem cloning node", self)
 
         effective_source_ref = self.getCompatibleSourceReference()
 
@@ -702,9 +701,7 @@ class ChildrenHavingMixin(object):
                 **values
             )
         except TypeError:
-            print("Problem cloning", self.__class__)
-
-            raise
+            raise NuitkaNodeError("Problem cloning", self)
 
         effective_source_ref = self.getCompatibleSourceReference()
 
