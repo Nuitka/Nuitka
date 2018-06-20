@@ -52,14 +52,9 @@ def generateBuiltinNext1Code(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCode(
-        release_name = value_name,
-        emit         = emit,
-        context      = context
-    )
-
     getErrorExitCode(
         check_name      = to_name,
+        release_name    = value_name,
         quick_exception = "StopIteration",
         emit            = emit,
         context         = context
@@ -134,15 +129,10 @@ def getUnpackNextCode(to_name, value, expected, count, emit, context):
 
     getErrorExitCode(
         check_name      = to_name,
+        release_name    = value,
         quick_exception = "StopIteration",
         emit            = emit,
         context         = context
-    )
-
-    getReleaseCode(
-        release_name = value,
-        emit         = emit,
-        context      = context
     )
 
     context.addCleanupTempName(to_name)

@@ -21,7 +21,7 @@ This is generic stuff.
 """
 
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getErrorExitCode
 
 
 def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, may_raise, ref_count,
@@ -96,22 +96,17 @@ def getCAPIObjectCode(to_name, capi, arg_names, may_raise, ref_count, emit,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (
             arg_name
             for arg_name in
             arg_names
             if arg_name != "NULL"
         ),
+        needs_check   = may_raise,
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = may_raise,
-        emit        = emit,
-        context     = context
     )
 
     if ref_count:

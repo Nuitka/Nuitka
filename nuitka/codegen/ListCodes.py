@@ -23,9 +23,7 @@ Right now only the creation is done here. But more should be added later on.
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes
+    getErrorExitCode
 )
 from .PythonAPICodes import generateCAPIObjectCode
 
@@ -96,16 +94,11 @@ def generateListOperationAppendCode(statement, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == -1" % res_name,
         release_names = (list_arg_name, value_arg_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == -1" % res_name,
-        emit      = emit,
-        context   = context
     )
 
 
@@ -125,16 +118,11 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (list_arg_name, value_arg_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -156,16 +144,11 @@ def generateListOperationPopCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCode(
+    getErrorExitCode(
+        check_name   = to_name,
         release_name = list_arg_name,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)

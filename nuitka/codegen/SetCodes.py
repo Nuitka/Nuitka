@@ -24,7 +24,7 @@ added later on.
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
-from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
+from .ErrorCodes import getErrorExitBoolCode
 from .PythonAPICodes import generateCAPIObjectCode
 
 
@@ -167,16 +167,11 @@ def generateSetOperationAddCode(statement, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == -1" % res_name,
         release_names = (set_arg_name, value_arg_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == -1" % res_name,
-        emit      = emit,
-        context   = context
     )
 
 
@@ -198,16 +193,11 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == -1" % res_name,
         release_names = (set_arg_name, value_arg_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == -1" % res_name,
-        emit      = emit,
-        context   = context
     )
 
     # Only assign if necessary.

@@ -23,7 +23,7 @@ from nuitka import Options
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 
 
 def generateBuiltinDictCode(to_name, expression, emit, context):
@@ -74,16 +74,11 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
             )
         )
 
-        getReleaseCodes(
+        getErrorExitCode(
+            check_name    = to_name,
             release_names = (seq_name, dict_name),
             emit          = emit,
             context       = context
-        )
-
-        getErrorExitCode(
-            check_name = to_name,
-            emit       = emit,
-            context    = context
         )
 
         context.addCleanupTempName(to_name)
@@ -199,17 +194,12 @@ def generateDictOperationUpdateCode(statement, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s != 0" % res_name,
         release_names = (dict_arg_name, value_arg_name),
+        needs_check   = statement.mayRaiseException(BaseException),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition   = "%s != 0" % res_name,
-        needs_check = statement.mayRaiseException(BaseException),
-        emit        = emit,
-        context     = context
     )
 
     old_source_ref = context.setCurrentSourceCodeReference(old_source_ref)
@@ -229,17 +219,12 @@ def generateDictOperationGetCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (dict_name, key_name),
+        needs_check   = expression.mayRaiseException(BaseException),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = expression.mayRaiseException(BaseException),
-        emit        = emit,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -265,17 +250,12 @@ def generateDictOperationInCode(to_name, expression, emit, context):
     )
 
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == -1" % res_name,
         release_names = (dict_name, key_name),
+        needs_check   = expression.mayRaiseException(BaseException),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition   = "%s == -1" % res_name,
-        needs_check = expression.mayRaiseException(BaseException),
-        emit        = emit,
-        context     = context
     )
 
     emit(
@@ -324,17 +304,12 @@ def generateDictOperationSetCode(statement, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s != 0" % res_name,
         release_names = (value_arg_name, dict_arg_name, key_arg_name),
         emit          = emit,
+        needs_check   = not statement.getKey().isKnownToBeHashable(),
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition   = "%s != 0" % res_name,
-        emit        = emit,
-        needs_check = not statement.getKey().isKnownToBeHashable(),
-        context     = context
     )
 
 
@@ -371,17 +346,12 @@ def generateDictOperationRemoveCode(statement, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == false" % res_name,
         release_names = (dict_arg_name, key_arg_name),
+        needs_check   = statement.mayRaiseException(BaseException),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition   = "%s == false" % res_name,
-        needs_check = statement.mayRaiseException(BaseException),
-        emit        = emit,
-        context     = context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)

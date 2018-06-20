@@ -26,7 +26,6 @@ from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
-    getReleaseCode,
     getReleaseCodes
 )
 from .LabelCodes import getBranchingCode
@@ -69,22 +68,12 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             )
         )
 
-        getReleaseCode(
-            release_name = left_name,
-            emit         = emit,
-            context      = context
-        )
-        getReleaseCode(
-            release_name = right_name,
-            emit         = emit,
-            context      = context
-        )
-
         getErrorExitCode(
-            check_name  = to_name,
-            needs_check = needs_check,
-            emit        = emit,
-            context     = context
+            check_name    = to_name,
+            release_names = (left_name, right_name),
+            needs_check   = needs_check,
+            emit          = emit,
+            context       = context
         )
     elif comparator in OperatorCodes.rich_comparison_codes:
         needs_check = expression.mayRaiseExceptionBool(BaseException)
@@ -105,17 +94,12 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             )
         )
 
-        getReleaseCodes(
+        getErrorExitCode(
+            check_name    = to_name,
             release_names = (left_name, right_name),
+            needs_check   = needs_check,
             emit          = emit,
             context       = context
-        )
-
-        getErrorExitCode(
-            check_name  = to_name,
-            needs_check = needs_check,
-            emit        = emit,
-            context     = context
         )
 
         context.addCleanupTempName(to_name)
@@ -164,10 +148,11 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         )
 
         getErrorExitBoolCode(
-            condition   = "%s == -1" % operator_res_name,
-            needs_check = needs_check,
-            emit        = emit,
-            context     = context
+            condition     = "%s == -1" % operator_res_name,
+            release_names = (left_name, right_name),
+            needs_check   = needs_check,
+            emit          = emit,
+            context       = context
         )
 
         emit(
@@ -188,16 +173,17 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_che
         emit(
              "%s = PySequence_Contains( %s, %s );" % (
                 operator_res_name,
-                right_name, # sequence goes first.
+                right_name, # sequence goes first in the API.
                 left_name
             )
         )
 
         getErrorExitBoolCode(
-            condition   = "%s == -1" % operator_res_name,
-            emit        = emit,
-            needs_check = needs_check,
-            context     = context
+            condition     = "%s == -1" % operator_res_name,
+            release_names = (left_name, right_name),
+            needs_check   = needs_check,
+            emit          = emit,
+            context       = context
         )
 
         condition = "%s == %d" % (
@@ -221,10 +207,11 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_che
         )
 
         getErrorExitBoolCode(
-            condition   = "%s == -1" % operator_res_name,
-            needs_check = needs_check,
-            emit        = emit,
-            context     = context
+            condition     = "%s == -1" % operator_res_name,
+            release_names = (left_name, right_name),
+            needs_check   = needs_check,
+            emit          = emit,
+            context       = context
         )
 
         condition = "%s == 1" % (
@@ -241,6 +228,12 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_che
             )
         )
 
+        getReleaseCodes(
+            release_names = (left_name, right_name),
+            emit          = emit,
+            context       = context
+        )
+
         condition = operator_res_name
     elif comparator == "IsNot":
         operator_res_name = context.allocateTempName("isnot", "bool")
@@ -251,6 +244,12 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_che
                 left_name,
                 right_name
             )
+        )
+
+        getReleaseCodes(
+            release_names = (left_name, right_name),
+            emit          = emit,
+            context       = context
         )
 
         condition = operator_res_name
@@ -266,10 +265,11 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_che
         )
 
         getErrorExitBoolCode(
-            condition   = "%s == -1" % operator_res_name,
-            needs_check = needs_check,
-            emit        = emit,
-            context     = context
+            condition     = "%s == -1" % operator_res_name,
+            release_names = (left_name, right_name),
+            needs_check   = needs_check,
+            emit          = emit,
+            context       = context
         )
 
         condition = "%s == 1" % (
@@ -277,17 +277,6 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_che
         )
     else:
         assert False, comparator
-
-    getReleaseCode(
-        release_name = left_name,
-        emit         = emit,
-        context      = context
-    )
-    getReleaseCode(
-        release_name = right_name,
-        emit         = emit,
-        context      = context
-    )
 
     getBranchingCode(condition, emit, context)
 
@@ -303,16 +292,11 @@ def getBuiltinIsinstanceBoolCode(inst_name, cls_name, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == -1" % res_name,
         release_names = (inst_name, cls_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == -1" % res_name,
-        emit      = emit,
-        context   = context
     )
 
     getBranchingCode(

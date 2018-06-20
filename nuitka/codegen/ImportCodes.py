@@ -24,8 +24,6 @@ from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes
 )
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
@@ -85,17 +83,12 @@ def getCountedArgumentsHelperCallCode(helper_prefix, to_name, args, min_args,
             )
         )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = args,
+        needs_check   = needs_check,
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -229,16 +222,11 @@ def generateImportStarCode(statement, emit, context):
 
         context.addLocalsDictName(locals_dict_name)
 
-    getReleaseCode(
+    getErrorExitBoolCode(
+        condition    = "%s == false" % res_name,
         release_name = module_name,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
@@ -264,17 +252,12 @@ def generateImportNameCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCode(
+    getErrorExitCode(
+        check_name   = to_name,
         release_name = from_arg_name,
+        needs_check  = expression.mayRaiseException(BaseException),
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = expression.mayRaiseException(BaseException),
-        emit        = emit,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)

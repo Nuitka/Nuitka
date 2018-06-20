@@ -22,7 +22,7 @@
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
+from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .TupleCodes import getTupleCreationCode
 
@@ -166,18 +166,13 @@ def generateStringContenationCode(to_name, expression, emit, context):
     )
 
     getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
-
-    context.addCleanupTempName(to_name)
-
-    getReleaseCode(
+        check_name   = to_name,
         release_name = tuple_temp_name,
         emit         = emit,
         context      = context
     )
+
+    context.addCleanupTempName(to_name)
 
 
 def generateBuiltinFormatCode(to_name, expression, emit, context):
@@ -218,18 +213,13 @@ def generateBuiltinFormatCode(to_name, expression, emit, context):
     )
 
     getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
-
-    context.addCleanupTempName(to_name)
-
-    getReleaseCodes(
+        check_name    = to_name,
         release_names = (value_name, format_spec_name),
         emit          = emit,
         context       = context
     )
+
+    context.addCleanupTempName(to_name)
 
 
 def generateBuiltinAsciiCode(to_name, expression, emit, context):

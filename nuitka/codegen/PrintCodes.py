@@ -24,7 +24,7 @@ happening in the C helper functions.
 """
 
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import getErrorExitBoolCode, getReleaseCode, getReleaseCodes
+from .ErrorCodes import getErrorExitBoolCode
 
 
 def generatePrintValueCode(statement, emit, context):
@@ -54,23 +54,24 @@ def generatePrintValueCode(statement, emit, context):
 
     old_source_ref = context.setCurrentSourceCodeReference(statement.getSourceReference())
 
+    res_name = context.getBoolResName()
+
     if dest_name is not None:
-        print_code = "PRINT_ITEM_TO( %s, %s ) == false" % (
+        print_code = "%s = PRINT_ITEM_TO( %s, %s );" % (
+            res_name,
             dest_name,
             value_name
         )
     else:
-        print_code = "PRINT_ITEM( %s ) == false" % (
+        print_code = "%s = PRINT_ITEM( %s );" % (
+            res_name,
             value_name,
         )
 
-    getErrorExitBoolCode(
-        condition = print_code,
-        emit      = emit,
-        context   = context
-    )
+    emit(print_code)
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == false" % res_name,
         release_names = (dest_name, value_name),
         emit          = emit,
         context       = context
@@ -104,12 +105,7 @@ def generatePrintNewlineCode(statement, emit, context):
         print_code = "PRINT_NEW_LINE() == false"
 
     getErrorExitBoolCode(
-        condition = print_code,
-        emit      = emit,
-        context   = context
-    )
-
-    getReleaseCode(
+        condition    = print_code,
         release_name = dest_name,
         emit         = emit,
         context      = context

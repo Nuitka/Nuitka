@@ -25,8 +25,7 @@ from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes
+    getReleaseCode
 )
 from .VariableCodes import getVariableAssignmentCode
 
@@ -190,17 +189,18 @@ def getBuiltinCompileCode(to_name, source_name, filename_name, mode_name,
         )
     )
 
-    getReleaseCodes(
-        release_names = (source_name, filename_name, mode_name, flags_name,
-                         dont_inherit_name, optimize_name),
+    getErrorExitCode(
+        check_name    = to_name,
+        release_names = (
+            source_name,
+            filename_name,
+            mode_name,
+            flags_name,
+            dont_inherit_name,
+            optimize_name
+        ),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -231,16 +231,11 @@ def getBuiltinEvalCode(to_name, source_name, filename_name, globals_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (compiled_name, globals_name, locals_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -321,19 +316,15 @@ def generateExecCode(statement, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (compiled_name, globals_name, locals_name),
         emit          = emit,
         context       = context
     )
 
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
-
-    # Immediately release the exec result.
+    # Immediately release the exec result, no point in keeping it, it's a
+    # statement.
     context.addCleanupTempName(to_name)
     getReleaseCode(
         release_name = to_name,

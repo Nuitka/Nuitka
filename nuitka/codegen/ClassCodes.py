@@ -24,7 +24,7 @@ of the metaclass remains as specific.
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateChildExpressionsCode
-from .ErrorCodes import getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode0
 
 
@@ -52,12 +52,7 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
     )
 
     getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
-
-    getReleaseCodes(
+        check_name    = to_name,
         release_names = args,
         emit          = emit,
         context       = context
@@ -81,16 +76,11 @@ def generateBuiltinSuperCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (type_name, object_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)

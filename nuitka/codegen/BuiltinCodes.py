@@ -24,7 +24,7 @@ from nuitka import Builtins
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateChildExpressionsCode
-from .ErrorCodes import getAssertionCode, getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getAssertionCode, getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
 
@@ -94,16 +94,11 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
         ),
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (type_name, bases_name, dict_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)

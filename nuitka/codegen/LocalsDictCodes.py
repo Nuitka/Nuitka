@@ -28,8 +28,7 @@ from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
-    getNameReferenceErrorCode,
-    getReleaseCodes
+    getNameReferenceErrorCode
 )
 from .Indentation import indented
 from .PythonAPICodes import getReferenceExportCode
@@ -120,17 +119,12 @@ def generateLocalsDictSetCode(statement, emit, context):
             )
         )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s != 0" % res_name,
         release_names = (value_arg_name, dict_arg_name),
+        needs_check   = statement.mayRaiseException(BaseException),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition   = "%s != 0" % res_name,
-        emit        = emit,
-        needs_check = statement.mayRaiseException(BaseException),
-        context     = context
     )
 
 

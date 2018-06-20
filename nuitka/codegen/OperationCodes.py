@@ -24,7 +24,7 @@ in-place assignments, which have other operation variants.
 
 from . import OperatorCodes
 from .CodeHelpers import generateChildExpressionsCode
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 
 
 def generateOperationBinaryCode(to_name, expression, emit, context):
@@ -154,17 +154,11 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
             )
         )
 
-        for arg_name in arg_names:
-            getReleaseCode(
-                arg_name,
-                emit,
-                context
-            )
-
         getErrorExitBoolCode(
-            condition = "%s == false" % res_name,
-            emit      = emit,
-            context   = context
+            condition     = "%s == false" % res_name,
+            release_names = arg_names,
+            emit          = emit,
+            context       = context
         )
 
         if ref_count:
@@ -179,17 +173,11 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
             )
         )
 
-        for arg_name in arg_names:
-            getReleaseCode(
-                arg_name,
-                emit,
-                context
-            )
-
         getErrorExitCode(
-            check_name = to_name,
-            emit       = emit,
-            context    = context
+            check_name    = to_name,
+            release_names = arg_names,
+            emit          = emit,
+            context       = context
         )
 
         if ref_count:
