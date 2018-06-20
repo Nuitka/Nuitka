@@ -41,7 +41,6 @@ from nuitka.nodes.ClassNodes import (
     ExpressionSelectMetaclass
 )
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIn
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
@@ -50,6 +49,7 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationGet,
+    ExpressionDictOperationIn,
     StatementDictOperationRemove,
     StatementDictOperationUpdate
 )
@@ -362,11 +362,11 @@ def _buildClassNode3(provider, node, source_ref):
     if node.keywords and node.keywords[-1].arg is None:
         statements.append(
             StatementDictOperationUpdate(
-                dict_arg = ExpressionVariableRef(
+                dict_arg   = ExpressionVariableRef(
                     variable   = tmp_class_decl_dict,
                     source_ref = source_ref
                 ),
-                value    = buildNode(provider, node.keywords[-1].value, source_ref),
+                value      = buildNode(provider, node.keywords[-1].value, source_ref),
                 source_ref = source_ref
             )
         )
@@ -376,13 +376,13 @@ def _buildClassNode3(provider, node, source_ref):
             variable   = tmp_metaclass,
             source     = ExpressionSelectMetaclass(
                 metaclass  = ExpressionConditional(
-                    condition      = ExpressionComparisonIn(
-                        left       = makeConstantRefNode(
+                    condition      = ExpressionDictOperationIn(
+                        key        = makeConstantRefNode(
                             constant      = "metaclass",
                             source_ref    = source_ref,
                             user_provided = True
                         ),
-                        right      = ExpressionTempVariableRef(
+                        dict_arg   = ExpressionTempVariableRef(
                             variable   = tmp_class_decl_dict,
                             source_ref = source_ref
                         ),
@@ -437,13 +437,13 @@ def _buildClassNode3(provider, node, source_ref):
             source_ref = source_ref_orig
         ),
         StatementConditional(
-            condition  = ExpressionComparisonIn(
-                left       = makeConstantRefNode(
+            condition  = ExpressionDictOperationIn(
+                key        = makeConstantRefNode(
                     constant      = "metaclass",
                     source_ref    = source_ref,
                     user_provided = True
                 ),
-                right      = ExpressionTempVariableRef(
+                dict_arg   = ExpressionTempVariableRef(
                     variable   = tmp_class_decl_dict,
                     source_ref = source_ref
                 ),
@@ -795,13 +795,13 @@ def _buildClassNode2(provider, node, source_ref):
         StatementAssignmentVariable(
             variable   = tmp_metaclass,
             source     = ExpressionConditional(
-                condition      =  ExpressionComparisonIn(
-                    left       = makeConstantRefNode(
+                condition      =  ExpressionDictOperationIn(
+                    key        = makeConstantRefNode(
                         constant      = "__metaclass__",
                         source_ref    = source_ref,
                         user_provided = True
                     ),
-                    right      = ExpressionTempVariableRef(
+                    dict_arg   = ExpressionTempVariableRef(
                         variable   = tmp_class_dict,
                         source_ref = source_ref
                     ),
