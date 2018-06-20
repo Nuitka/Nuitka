@@ -35,6 +35,7 @@ from nuitka.importing.ImportCache import (
 )
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
+from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceLine
 from nuitka.utils.InstanceCounters import counted_del, counted_init
@@ -357,7 +358,10 @@ class CollectionStartpointMixin(object):
         elif variable.isTempVariable():
             result = self._initVariableUninit(variable)
         elif variable.isLocalsDictVariable():
-            result = self._initVariableUninit(variable)
+            if variable.getOwner().getTypeShape() is ShapeTypeDict:
+                result = self._initVariableUninit(variable)
+            else:
+                result = self.initVariableUnknown(variable)
         else:
             assert False, variable
 

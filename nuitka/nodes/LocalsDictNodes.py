@@ -28,7 +28,6 @@ from nuitka import Variables
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
 
-from .CallNodes import ExpressionCallEmpty
 from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
@@ -145,32 +144,35 @@ class ExpressionLocalsVariableRefORFallback(ExpressionChildrenHavingBase):
 
         if self.subnode_fallback.isExpressionBuiltinRef() or \
            self.subnode_fallback.isExpressionConstantTypeRef():
-            if call_node.isExpressionCallEmpty():
-                variable_name = self.variable.getName()
+            variable_name = self.variable.getName()
 
-                result = ExpressionConditional(
-                    condition      = ExpressionLocalsVariableCheck(
-                        locals_scope  = self.locals_scope,
-                        variable_name = variable_name,
-                        source_ref    = self.source_ref
-
-                    ),
-                    expression_yes = ExpressionCallEmpty(
-                        called     = ExpressionLocalsVariableRef(
-                            locals_scope  = self.locals_scope,
-                            variable_name = variable_name,
-                            source_ref    = self.source_ref
-                        ),
-                        source_ref = call_node.source_ref
-                    ),
-                    expression_no  = ExpressionCallEmpty(
-                        called     = self.subnode_fallback,
-                        source_ref = call_node.source_ref
-                    ),
-                    source_ref     = self.source_ref
+            # Create a cloned node with the locals variable.
+            call_node_clone = call_node.makeClone()
+            call_node_clone.setCalled(
+                ExpressionLocalsVariableRef(
+                    locals_scope  = self.locals_scope,
+                    variable_name = variable_name,
+                    source_ref    = self.source_ref
                 )
+            )
 
-                return result, "new_expression", "Moved empty call of uncertain dict variable to inside."
+            # Make the original one for the fallback
+            call_node = call_node.makeClone()
+            call_node.setCalled(self.subnode_fallback)
+
+            result = ExpressionConditional(
+                condition      = ExpressionLocalsVariableCheck(
+                    locals_scope  = self.locals_scope,
+                    variable_name = variable_name,
+                    source_ref    = self.source_ref
+
+                ),
+                expression_yes = call_node_clone,
+                expression_no  = call_node,
+                source_ref     = self.source_ref
+            )
+
+            return result, "new_expression", "Moved call of uncertain dict variable to inside."
 
         return call_node, None, None
 
