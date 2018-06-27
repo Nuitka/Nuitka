@@ -9,7 +9,7 @@ selection method.
 """
 
 #
-# Copyright (c) 2001 - 2014 The SCons Foundation
+# Copyright (c) 2001 - 2017 The SCons Foundation
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -31,7 +31,7 @@ selection method.
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-__revision__ = "src/engine/SCons/Tool/mingw.py  2014/07/05 09:42:21 garyo"
+__revision__ = "src/engine/SCons/Tool/mingw.py 74b2c53bc42290e911b334a6b44f187da698a668 2017/11/14 13:16:53 bdbaddog"
 
 import os
 import os.path
@@ -42,11 +42,12 @@ import SCons.Defaults
 import SCons.Tool
 import SCons.Util
 
+# This is what we search for to find mingw:
+# Nuitka: Check for MinGW64.
+# key_program = 'mingw32-gcc'
+key_program = 'g++'
 
 def find(env):
-    # Nuitka: Check for MinGW64.
-    key_program = 'g++'
-
     # First search in the SCons path
     path=env.WhereIs(key_program)
     if (path):
@@ -57,28 +58,15 @@ def find(env):
         return path
 
     # If that doesn't work try default location for mingw
-    save_path = env['ENV']['PATH']
-
-    # This should allow installing both into the same place and picking arch
-    # just automatically.
-    if env["TARGET_ARCH"] == "x86_64":
-        env.AppendENVPath('PATH',r'c:\MinGW64\mingw64\bin')
-        env.AppendENVPath('PATH',r'\MinGW64\mingw64\bin')
-    else:
-        env.AppendENVPath('PATH',r'c:\MinGW64\mingw32\bin')
-        env.AppendENVPath('PATH',r'\MinGW64\mingw32\bin')
-
-    # Older versions of MinGW just has this.
-    env.AppendENVPath('PATH',r'c:\MinGW64\bin')
-    env.AppendENVPath('PATH',r'\MinGW64\bin')
-
+    save_path=env['ENV']['PATH']
+    env.AppendENVPath('PATH',r'c:\MinGW\bin')
     path =env.WhereIs(key_program)
     if not path:
-        env['ENV']['PATH'] = save_path
+        env['ENV']['PATH']=save_path
     return path
 
 def shlib_generator(target, source, env, for_signature):
-    cmd = SCons.Util.CLVar(['$SHLINK', '$SHLINKFLAGS'])
+    cmd = SCons.Util.CLVar(['$SHLINK', '$SHLINKFLAGS']) 
 
     dll = env.FindIxes(target, 'SHLIBPREFIX', 'SHLIBSUFFIX')
     if dll: cmd.extend(['-o', dll])
@@ -100,16 +88,17 @@ def shlib_emitter(target, source, env):
     no_import_lib = env.get('no_import_lib', 0)
 
     if not dll:
-        raise SCons.Errors.UserError("A shared library should have exactly one target with the suffix: %s" % env.subst("$SHLIBSUFFIX"))
-
+        raise SCons.Errors.UserError("A shared library should have exactly one target with the suffix: %s Target(s) are:%s" %  \
+            (env.subst("$SHLIBSUFFIX"), ",".join([str(t) for t in target])))
+    
     if not no_import_lib and \
        not env.FindIxes(target, 'LIBPREFIX', 'LIBSUFFIX'):
 
         # Create list of target libraries as strings
-        targetStrings=env.ReplaceIxes(dll,
+        targetStrings=env.ReplaceIxes(dll,  
                                       'SHLIBPREFIX', 'SHLIBSUFFIX',
                                       'LIBPREFIX', 'LIBSUFFIX')
-
+        
         # Now add file nodes to target list
         target.append(env.fs.File(targetStrings))
 
@@ -121,15 +110,15 @@ def shlib_emitter(target, source, env):
     skip_def_insert = env.subst("$WINDOWS_INSERT_DEF") in ['', '0', 0]
     if not def_source and not def_target and not skip_def_insert:
         # Create list of target libraries and def files as strings
-        targetStrings=env.ReplaceIxes(dll,
+        targetStrings=env.ReplaceIxes(dll,  
                                       'SHLIBPREFIX', 'SHLIBSUFFIX',
                                       'WINDOWSDEFPREFIX', 'WINDOWSDEFSUFFIX')
-
+        
         # Now add file nodes to target list
         target.append(env.fs.File(targetStrings))
 
     return (target, source)
-
+                         
 
 shlib_action = SCons.Action.Action(shlib_generator, generator=1)
 
@@ -144,9 +133,11 @@ def generate(env):
     if mingw:
         dir = os.path.dirname(mingw)
         env.PrependENVPath('PATH', dir )
-
+        
 
     # Most of mingw is the same as gcc and friends...
+    # Nuitka: We need less than these:
+    # gnu_tools = ['gcc', 'g++', 'gnulink', 'ar', 'gas', 'gfortran', 'm4']
     gnu_tools = ['gcc', 'g++', 'gnulink']
     for tool in gnu_tools:
         SCons.Tool.Tool(tool)(env)
@@ -160,6 +151,7 @@ def generate(env):
     env['SHLINKCOM']   = shlib_action
     env['LDMODULECOM'] = shlib_action
     env.Append(SHLIBEMITTER = [shlib_emitter])
+    env.Append(LDMODULEEMITTER = [shlib_emitter])
     env['AS'] = 'as'
 
     env['WIN32DEFPREFIX']        = ''
@@ -177,7 +169,7 @@ def generate(env):
     env['RCINCSUFFIX'] = ''
     env['RCCOM'] = '$RC $_CPPDEFFLAGS $RCINCFLAGS ${RCINCPREFIX} ${SOURCE.dir} $RCFLAGS -i $SOURCE -o $TARGET'
     env['BUILDERS']['RES'] = res_builder
-
+    
     # Some setting from the platform also have to be overridden:
     env['OBJSUFFIX'] = '.o'
     env['LIBPREFIX'] = 'lib'

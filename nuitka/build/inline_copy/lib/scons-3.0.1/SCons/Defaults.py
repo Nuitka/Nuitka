@@ -10,7 +10,7 @@ from distutils.msvccompiler.
 """
 
 #
-# Copyright (c) 2001 - 2014 The SCons Foundation
+# Copyright (c) 2001 - 2017 The SCons Foundation
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -33,7 +33,7 @@ from distutils.msvccompiler.
 #
 from __future__ import division
 
-__revision__ = "src/engine/SCons/Defaults.py  2014/07/05 09:42:21 garyo"
+__revision__ = "src/engine/SCons/Defaults.py 74b2c53bc42290e911b334a6b44f187da698a668 2017/11/14 13:16:53 bdbaddog"
 
 
 import os
@@ -167,32 +167,110 @@ def get_paths_str(dest):
     else:
         return '"' + str(dest) + '"'
 
+permission_dic = {
+    'u':{
+        'r':stat.S_IRUSR,
+        'w':stat.S_IWUSR,
+        'x':stat.S_IXUSR
+    },
+    'g':{
+        'r':stat.S_IRGRP,
+        'w':stat.S_IWGRP,
+        'x':stat.S_IXGRP
+    },
+    'o':{
+        'r':stat.S_IROTH,
+        'w':stat.S_IWOTH,
+        'x':stat.S_IXOTH
+    }
+}
+
 def chmod_func(dest, mode):
+    import SCons.Util
+    from string import digits
     SCons.Node.FS.invalidate_node_memos(dest)
     if not SCons.Util.is_List(dest):
         dest = [dest]
-    for element in dest:
-        os.chmod(str(element), mode)
+    if SCons.Util.is_String(mode) and not 0 in [i in digits for i in mode]:
+        mode = int(mode, 8)
+    if not SCons.Util.is_String(mode):
+        for element in dest:
+            os.chmod(str(element), mode)
+    else:
+        mode = str(mode)
+        for operation in mode.split(","):
+            if "=" in operation:
+                operator = "="
+            elif "+" in operation:
+                operator = "+"
+            elif "-" in operation:
+                operator = "-"
+            else:
+                raise SyntaxError("Could not find +, - or =")
+            operation_list = operation.split(operator)
+            if len(operation_list) is not 2:
+                raise SyntaxError("More than one operator found")
+            user = operation_list[0].strip().replace("a", "ugo")
+            permission = operation_list[1].strip()
+            new_perm = 0
+            for u in user:
+                for p in permission:
+                    try:
+                        new_perm = new_perm | permission_dic[u][p]
+                    except KeyError:
+                        raise SyntaxError("Unrecognized user or permission format")
+            for element in dest:
+                curr_perm = os.stat(str(element)).st_mode
+                if operator == "=":
+                    os.chmod(str(element), new_perm)
+                elif operator == "+":
+                    os.chmod(str(element), curr_perm | new_perm)
+                elif operator == "-":
+                    os.chmod(str(element), curr_perm & ~new_perm)
 
 def chmod_strfunc(dest, mode):
-    return 'Chmod(%s, 0%o)' % (get_paths_str(dest), mode)
+    import SCons.Util
+    if not SCons.Util.is_String(mode):
+        return 'Chmod(%s, 0%o)' % (get_paths_str(dest), mode)
+    else:
+        return 'Chmod(%s, "%s")' % (get_paths_str(dest), str(mode))
 
 Chmod = ActionFactory(chmod_func, chmod_strfunc)
 
-def copy_func(dest, src):
+def copy_func(dest, src, symlinks=True):
+    """
+    If symlinks (is true), then a symbolic link will be
+    shallow copied and recreated as a symbolic link; otherwise, copying
+    a symbolic link will be equivalent to copying the symbolic link's
+    final target regardless of symbolic link depth.
+    """
+
+    dest = str(dest)
+    src = str(src)
+
     SCons.Node.FS.invalidate_node_memos(dest)
     if SCons.Util.is_List(src) and os.path.isdir(dest):
         for file in src:
             shutil.copy2(file, dest)
         return 0
+    elif os.path.islink(src):
+        if symlinks:
+            return os.symlink(os.readlink(src), dest)
+        else:
+            return copy_func(dest, os.path.realpath(src))
     elif os.path.isfile(src):
-        return shutil.copy2(src, dest)
+        shutil.copy2(src, dest)
+        return 0
     else:
-        return shutil.copytree(src, dest, 1)
+        shutil.copytree(src, dest, symlinks)
+        # copytree returns None in python2 and destination string in python3
+        # A error is raised in both cases, so we can just return 0 for success
+        return 0
 
-Copy = ActionFactory(copy_func,
-                     lambda dest, src: 'Copy("%s", "%s")' % (dest, src),
-                     convert=str)
+Copy = ActionFactory(
+    copy_func,
+    lambda dest, src, symlinks=True: 'Copy("%s", "%s")' % (dest, src)
+)
 
 def delete_func(dest, must_exist=0):
     SCons.Node.FS.invalidate_node_memos(dest)
@@ -222,7 +300,7 @@ def mkdir_func(dest):
     for entry in dest:
         try:
             os.makedirs(str(entry))
-        except os.error, e:
+        except os.error as e:
             p = str(entry)
             if (e.args[0] == errno.EEXIST or
                     (sys.platform=='win32' and e.args[0]==183)) \
@@ -382,7 +460,7 @@ def processDefines(defs):
                 else:
                     l.append(str(d[0]))
             elif SCons.Util.is_Dict(d):
-                for macro,value in d.iteritems():
+                for macro,value in d.items():
                     if value is not None:
                         l.append(str(macro) + '=' + str(value))
                     else:
@@ -408,12 +486,14 @@ def processDefines(defs):
         l = [str(defs)]
     return l
 
+
 def _defines(prefix, defs, suffix, env, c=_concat_ixes):
     """A wrapper around _concat_ixes that turns a list or string
     into a list of C preprocessor command-line definitions.
     """
 
     return c(prefix, env.subst_path(processDefines(defs)), suffix, env)
+
 
 class NullCmdGenerator(object):
     """This is a callable class that can be used in place of other
@@ -432,6 +512,7 @@ class NullCmdGenerator(object):
 
     def __call__(self, target, source, env, for_signature=None):
         return self.cmd
+
 
 class Variable_Method_Caller(object):
     """A class for finding a construction variable on the stack and
@@ -464,9 +545,18 @@ class Variable_Method_Caller(object):
             frame = frame.f_back
         return None
 
+# if $version_var is not empty, returns env[flags_var], otherwise returns None
+def __libversionflags(env, version_var, flags_var):
+    try:
+        if env.subst('$'+version_var):
+            return env[flags_var]
+    except KeyError:
+        pass
+    return None
+
 ConstructionEnvironment = {
     'BUILDERS'      : {},
-    'SCANNERS'      : [],
+    'SCANNERS'      : [ SCons.Tool.SourceFileScanner ],
     'CONFIGUREDIR'  : '#/.sconf_temp',
     'CONFIGURELOG'  : '#/config.log',
     'CPPSUFFIXES'   : SCons.Tool.CSuffixes,
@@ -481,6 +571,12 @@ ConstructionEnvironment = {
     '_LIBDIRFLAGS'  : '$( ${_concat(LIBDIRPREFIX, LIBPATH, LIBDIRSUFFIX, __env__, RDirs, TARGET, SOURCE)} $)',
     '_CPPINCFLAGS'  : '$( ${_concat(INCPREFIX, CPPPATH, INCSUFFIX, __env__, RDirs, TARGET, SOURCE)} $)',
     '_CPPDEFFLAGS'  : '${_defines(CPPDEFPREFIX, CPPDEFINES, CPPDEFSUFFIX, __env__)}',
+
+    '__libversionflags'      : __libversionflags,
+    '__SHLIBVERSIONFLAGS'    : '${__libversionflags(__env__,"SHLIBVERSION","_SHLIBVERSIONFLAGS")}',
+    '__LDMODULEVERSIONFLAGS' : '${__libversionflags(__env__,"LDMODULEVERSION","_LDMODULEVERSIONFLAGS")}',
+    '__DSHLIBVERSIONFLAGS'   : '${__libversionflags(__env__,"DSHLIBVERSION","_DSHLIBVERSIONFLAGS")}',
+
     'TEMPFILE'      : NullCmdGenerator,
     'Dir'           : Variable_Method_Caller('TARGET', 'Dir'),
     'Dirs'          : Variable_Method_Caller('TARGET', 'Dirs'),

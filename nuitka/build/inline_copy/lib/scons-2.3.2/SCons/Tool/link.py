@@ -40,11 +40,10 @@ import SCons.Tool
 import SCons.Util
 import SCons.Warnings
 
-from SCons.Tool.FortranCommon import isfortran
-
-from SCons.Tool.DCommon import isD
-
 cplusplus = __import__('c++', globals(), locals(), [])
+
+def isfortran(env, source): return False
+def isD(env,source): return False
 
 issued_mixed_link_warning = False
 
