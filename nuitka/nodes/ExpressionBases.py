@@ -1007,6 +1007,235 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
         )
 
 
+class ExpressionChildHavingBase(ExpressionBase):
+    checker = None
+
+    def __init__(self, value, source_ref):
+        ExpressionBase.__init__(
+            self,
+            source_ref = source_ref
+        )
+
+        assert type(self.named_child) is str and self.named_child
+
+        if self.checker is not None:
+            value = self.checker(value) # False alarm, pylint: disable=not-callable
+
+        assert type(value) is not list, self.named_child
+
+        if type(value) is tuple:
+            assert None not in value, self.named_child
+
+            for val in value:
+                val.parent = self
+        elif value is not None:
+            value.parent = self
+        elif value is None:
+            pass
+        else:
+            assert False, type(value)
+
+        attr_name = "subnode_" + self.named_child
+        setattr(self, attr_name, value)
+
+
+    # TODO: De-duplicate this with multiple child variant.
+    def computeExpressionRaw(self, trace_collection):
+        """ Compute an expression.
+
+            Default behavior is to just visit the child expressions first, and
+            then the node "computeExpression". For a few cases this needs to
+            be overloaded, e.g. conditional expressions.
+        """
+        # First apply the sub-expressions, as they are evaluated before.
+        sub_expressions = self.getVisitableNodes()
+
+        for count, sub_expression in enumerate(sub_expressions):
+            assert sub_expression.isExpression(), (self, sub_expression)
+
+            expression = trace_collection.onExpression(
+                expression = sub_expression
+            )
+
+            if expression.willRaiseException(BaseException):
+                wrapped_expression = wrapExpressionWithSideEffects(
+                    side_effects = sub_expressions[:count],
+                    old_node     = sub_expression,
+                    new_node     = expression
+                )
+
+                return (
+                    wrapped_expression,
+                    "new_raise",
+                    lambda : "For '%s' the expression '%s' will raise." % (
+                        self.getChildNameNice(),
+                        expression.getChildNameNice()
+                    )
+                )
+
+        # Then ask ourselves to work on it.
+        return self.computeExpression(
+            trace_collection = trace_collection
+        )
+
+    def setChild(self, name, value):
+        """ Set a child value.
+
+            Do not overload, provider self.checkers instead.
+        """
+        # Only accept legal child names
+        assert name  == self.named_child, name
+
+        # Lists as inputs are OK, but turn them into tuples.
+        if type(value) is list:
+            value = tuple(value)
+
+        if self.checker is not None:
+            value = self.checker(value) # False alarm, pylint: disable=not-callable
+        # Re-parent value to us.
+        if type(value) is tuple:
+            for val in value:
+                val.parent = self
+        elif value is not None:
+            value.parent = self
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about loosing its parent.
+        old_value = getattr(self, attr_name)
+
+        assert old_value is not value, value
+
+        setattr(self, attr_name, value)
+
+    def getChild(self, name):
+        # Only accept legal child names
+        attr_name = "subnode_" + name
+        return getattr(self, attr_name)
+
+    @staticmethod
+    def childGetter(name):
+        attr_name = "subnode_" + name
+
+        def getter(self):
+            return getattr(self, attr_name)
+
+        return getter
+
+    @staticmethod
+    def childSetter(name):
+        def setter(self, value):
+            self.setChild(name, value)
+
+        return setter
+
+    def getVisitableNodes(self):
+        # TODO: Consider if a generator would be faster.
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        if value is None:
+            return ()
+        elif type(value) is tuple:
+            return value
+        elif isinstance(value, NodeBase):
+            return (value,)
+        else:
+            raise AssertionError(
+                self,
+                "has illegal child", value, value.__class__
+            )
+
+    def getVisitableNodesNamed(self):
+        """ Named children dictionary.
+
+            For use in debugging and XML output.
+        """
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        yield self.named_child, value
+
+    def replaceChild(self, old_node, new_node):
+        if new_node is not None and not isinstance(new_node, NodeBase):
+            raise AssertionError(
+                "Cannot replace with", new_node, "old", old_node, "in", self
+            )
+
+        # Find the replaced node, as an added difficulty, what might be
+        # happening, is that the old node is an element of a tuple, in which we
+        # may also remove that element, by setting it to None.
+        key = self.named_child
+        value = self.getChild(key)
+
+        if value is None:
+            pass
+        elif type(value) is tuple:
+            if old_node in value:
+                if new_node is not None:
+                    self.setChild(
+                        key,
+                        tuple(
+                            (val if val is not old_node else new_node)
+                            for val in
+                            value
+                        )
+                    )
+                else:
+                    self.setChild(
+                        key,
+                        tuple(
+                            val
+                            for val in
+                            value
+                            if val is not old_node
+                        )
+                    )
+
+                return key
+        elif isinstance(value, NodeBase):
+            if old_node is value:
+                self.setChild(key, new_node)
+
+                return key
+        else:
+            assert False, (key, value, value.__class__)
+
+        raise AssertionError(
+            "Didn't find child",
+            old_node,
+            "in",
+            self
+        )
+
+    def getCloneArgs(self):
+        # Make clones of child nodes too.
+        values = {}
+        key = self.named_child
+
+        value = self.getChild(key)
+
+        assert type(value) is not list, key
+
+        if value is None:
+            values[key] = None
+        elif type(value) is tuple:
+            values[key] = tuple(
+                v.makeClone()
+                for v in
+                value
+            )
+        else:
+            values[key] = value.makeClone()
+
+        values.update(
+            self.getDetails()
+        )
+
+        return values
+
+
+
 class ExpressionSpecBasedComputationBase(ExpressionChildrenHavingBase):
     builtin_spec = None
 

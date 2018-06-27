@@ -213,9 +213,6 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
 
         self.temp_scope = None
 
-    getBody = ExpressionFunctionBodyBase.childGetter("body")
-    setBody = ExpressionFunctionBodyBase.childSetter("body")
-
     def isExpressionOutlineFunctionBodyBase(self):
         return True
 
@@ -342,10 +339,6 @@ class ExpressionOutlineFunctionBodyBase(ExpressionFunctionBodyBase):
 # moved to be so, or that level should be removed.
 class ExpressionOutlineFunction(ExpressionOutlineFunctionBodyBase):
     kind = "EXPRESSION_OUTLINE_FUNCTION"
-
-    named_children = (
-        "body",
-    )
 
     def isEarlyClosure(self):
         return self.provider.isEarlyClosure()

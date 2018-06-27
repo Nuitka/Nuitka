@@ -22,7 +22,6 @@ whose implementation lives here. The creation itself also lives here.
 
 """
 
-from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 
@@ -90,15 +89,6 @@ class ExpressionMakeCoroutineObject(ExpressionChildrenHavingBase):
 
 class ExpressionCoroutineObjectBody(ExpressionFunctionEntryPointBase):
     kind = "EXPRESSION_COROUTINE_OBJECT_BODY"
-
-    named_children = (
-        "body",
-    )
-
-    checkers = {
-        # TODO: Is "None" really an allowed value.
-        "body" : checkStatementsSequenceOrNone
-    }
 
     qualname_setup = None
 

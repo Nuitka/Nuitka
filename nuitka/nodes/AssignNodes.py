@@ -32,32 +32,31 @@ the traces.
 
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .NodeBases import StatementBase, StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode
 )
 
 
-class StatementAssignmentVariableName(StatementChildrenHavingBase):
+class StatementAssignmentVariableName(StatementChildHavingBase):
     """ Precursor of StatementAssignmentVariable used during tree building phase
 
     """
 
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_NAME"
 
-    named_children = (
-        "source",
-    )
+    named_child = "source"
+    nice_child = "assignment source"
+
+    __slots__ = ("variable_name", "provider")
 
     def __init__(self, provider, variable_name, source, source_ref):
         assert source is not None, source_ref
 
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "source"       : source,
-            },
+            value      = source,
             source_ref = source_ref
         )
 
@@ -82,12 +81,13 @@ class StatementAssignmentVariableName(StatementChildrenHavingBase):
         # tree building.
         assert False
 
-    getAssignSource = StatementChildrenHavingBase.childGetter(
-        "source"
-    )
+    def getStatementNiceName(self):
+        return "variable assignment statement"
+
+    getAssignSource = StatementChildHavingBase.childGetter("source")
 
 
-class StatementDelVariableName(NodeBase):
+class StatementDelVariableName(StatementBase):
     """ Precursor of StatementDelVariable used during tree building phase
 
     """
@@ -97,7 +97,7 @@ class StatementDelVariableName(NodeBase):
     __slots__ = "variable_name", "provider", "tolerant"
 
     def __init__(self, provider, variable_name, tolerant, source_ref):
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -125,7 +125,7 @@ class StatementDelVariableName(NodeBase):
         assert False
 
 
-class StatementAssignmentVariable(StatementChildrenHavingBase):
+class StatementAssignmentVariable(StatementChildHavingBase):
     """ Assignment to a variable from an expression.
 
         All assignment forms that are not to attributes, slices, subscripts
@@ -141,11 +141,10 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
 
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
 
-    named_children = (
-        "source",
-    )
+    named_child = "source"
+    nice_child = "assignment source"
 
-    inplace_suspect = None
+    __slots__ = ("variable", "variable_version", "variable_trace", "inplace_suspect")
 
     def __init__(self, source, variable, source_ref, version = None):
         assert source is not None, source_ref
@@ -157,15 +156,14 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         self.variable = variable
         self.variable_version = version
 
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "source"       : source,
-            },
+            value      = source,
             source_ref = source_ref
         )
 
         self.variable_trace = None
+        self.inplace_suspect = None
 
     def getDetail(self):
         if self.variable is not None:
@@ -221,10 +219,10 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
             source_ref = self.source_ref
         )
 
-    getAssignSource = StatementChildrenHavingBase.childGetter(
+    getAssignSource = StatementChildHavingBase.childGetter(
         "source"
     )
-    setAssignSource = StatementChildrenHavingBase.childSetter(
+    setAssignSource = StatementChildHavingBase.childSetter(
         "source"
     )
 
@@ -430,8 +428,11 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
         else:
             return None
 
+    def getStatementNiceName(self):
+        return "variable assignment statement"
 
-class StatementDelVariable(NodeBase):
+
+class StatementDelVariable(StatementBase):
     """ Deleting a variable.
 
         All del forms that are not to attributes, slices, subscripts
@@ -459,7 +460,7 @@ class StatementDelVariable(NodeBase):
             if version is None:
                 version = variable.allocateTargetNumber()
 
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -607,7 +608,7 @@ class StatementDelVariable(NodeBase):
             return True
 
 
-class StatementReleaseVariable(NodeBase):
+class StatementReleaseVariable(StatementBase):
     """ Releasing a variable.
 
         Just release the value, which of course is not to be used afterwards.
@@ -623,7 +624,7 @@ class StatementReleaseVariable(NodeBase):
     def __init__(self, variable, source_ref):
         assert variable is not None, source_ref
 
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )

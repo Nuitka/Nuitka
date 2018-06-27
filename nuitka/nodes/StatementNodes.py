@@ -19,7 +19,7 @@
 
 """
 
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .NodeBases import StatementBase, StatementChildHavingBase
 
 
 def checkStatements(value):
@@ -39,28 +39,22 @@ def checkStatements(value):
     return tuple(value)
 
 
-class StatementsSequence(StatementChildrenHavingBase):
+class StatementsSequence(StatementChildHavingBase):
     kind = "STATEMENTS_SEQUENCE"
 
-    named_children = (
-        "statements",
-    )
+    named_child = "statements"
 
-    checkers = {
-        "statements" : checkStatements
-    }
+    checker = checkStatements
 
     def __init__(self, statements, source_ref):
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "statements" : statements
-            },
+            value      = tuple(statements),
             source_ref = source_ref
         )
 
-    getStatements = StatementChildrenHavingBase.childGetter("statements")
-    setStatements = StatementChildrenHavingBase.childSetter("statements")
+    getStatements = StatementChildHavingBase.childGetter("statements")
+    setStatements = StatementChildHavingBase.childSetter("statements")
 
     # Overloading name based automatic check, so that derived ones know it too.
     def isStatementsSequence(self):
@@ -200,22 +194,21 @@ class StatementsSequence(StatementChildrenHavingBase):
         else:
             return self
 
+    def getStatementNiceName(self):
+        return "statements sequence"
 
-class StatementExpressionOnly(StatementChildrenHavingBase):
+
+class StatementExpressionOnly(StatementChildHavingBase):
     kind = "STATEMENT_EXPRESSION_ONLY"
 
-    named_children = (
-        "expression",
-    )
+    named_child = "expression"
 
     def __init__(self, expression, source_ref):
         assert expression.isExpression()
 
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "expression" : expression
-            },
+            value      = expression,
             source_ref = source_ref
         )
 
@@ -228,9 +221,7 @@ class StatementExpressionOnly(StatementChildrenHavingBase):
     def mayRaiseException(self, exception_type):
         return self.getExpression().mayRaiseException(exception_type)
 
-    getExpression = StatementChildrenHavingBase.childGetter(
-        "expression"
-    )
+    getExpression = StatementChildHavingBase.childGetter("expression")
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(
@@ -251,14 +242,17 @@ class StatementExpressionOnly(StatementChildrenHavingBase):
 
         return self, None, None
 
+    def getStatementNiceName(self):
+        return "expression only statement"
 
-class StatementPreserveFrameException(NodeBase):
+
+class StatementPreserveFrameException(StatementBase):
     kind = "STATEMENT_PRESERVE_FRAME_EXCEPTION"
 
     __slots__ = ("preserver_id",)
 
     def __init__(self, preserver_id, source_ref):
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -293,13 +287,13 @@ class StatementPreserveFrameException(NodeBase):
         return True
 
 
-class StatementRestoreFrameException(NodeBase):
+class StatementRestoreFrameException(StatementBase):
     kind = "STATEMENT_RESTORE_FRAME_EXCEPTION"
 
     __slots__ = ("preserver_id",)
 
     def __init__(self, preserver_id, source_ref):
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -321,11 +315,11 @@ class StatementRestoreFrameException(NodeBase):
         return False
 
 
-class StatementPublishException(NodeBase):
+class StatementPublishException(StatementBase):
     kind = "STATEMENT_PUBLISH_EXCEPTION"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )

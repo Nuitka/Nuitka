@@ -880,6 +880,10 @@ Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" %
         sys.exit("Error, no such Python2 binary '%s'." % scons_python)
 
 
+def isVerbose():
+    return options.verbose
+
+
 def shallTraceExecution():
     return options.trace_execution
 

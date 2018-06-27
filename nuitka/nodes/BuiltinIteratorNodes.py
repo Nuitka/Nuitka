@@ -31,7 +31,7 @@ from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
     wrapExpressionWithSideEffects
@@ -147,19 +147,17 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         pass
 
 
-class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
+class StatementSpecialUnpackCheck(StatementChildHavingBase):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
 
-    named_children = (
-        "iterator",
-    )
+    named_child = "iterator"
+
+    __slots__ = ("count",)
 
     def __init__(self, iterator, count, source_ref):
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "iterator" : iterator
-            },
+            value      = iterator,
             source_ref = source_ref
         )
 
@@ -173,7 +171,7 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
     def getCount(self):
         return self.count
 
-    getIterator = StatementChildrenHavingBase.childGetter("iterator")
+    getIterator = StatementChildHavingBase.childGetter("iterator")
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getIterator())
@@ -234,6 +232,9 @@ Determined iteration end check to always raise."""
         )
 
         return self, None, None
+
+    def getStatementNiceName(self):
+        return "iteration check statement"
 
 
 class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):

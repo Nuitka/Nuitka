@@ -26,7 +26,7 @@ from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     convertNoneConstantToNone,
     makeStatementOnlyNodesFromExpressions
@@ -258,20 +258,18 @@ Exec statement raises implicitly when determining locals argument."""
         return self, None, None
 
 
-class StatementLocalsDictSync(StatementChildrenHavingBase):
+class StatementLocalsDictSync(StatementChildHavingBase):
     kind = "STATEMENT_LOCALS_DICT_SYNC"
 
-    named_children = (
-        "locals",
-    )
+    named_child = "locals"
+
+    __slots__ = ("previous_traces", "variable_traces")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, locals_arg, source_ref):
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "locals" : locals_arg,
-            },
+            value      = locals_arg,
             source_ref = source_ref,
         )
 
@@ -298,7 +296,7 @@ class StatementLocalsDictSync(StatementChildrenHavingBase):
 
         return self, None, None
 
-    getLocals = ExpressionChildrenHavingBase.childGetter("locals")
+    getLocals = StatementChildHavingBase.childGetter("locals")
 
     def mayRaiseException(self, exception_type):
         return False

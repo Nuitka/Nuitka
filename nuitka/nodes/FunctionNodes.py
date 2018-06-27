@@ -38,6 +38,7 @@ from .CodeObjectSpecs import CodeObjectSpec
 from .ExpressionBases import (
     CompileTimeConstantExpressionBase,
     ExpressionBase,
+    ExpressionChildHavingBase,
     ExpressionChildrenHavingBase
 )
 from .FutureSpecs import fromFlags
@@ -47,7 +48,6 @@ from .IndicatorMixins import (
 )
 from .LocalsScopes import LocalsDictHandle
 from .NodeBases import (
-    ChildrenHavingMixin,
     ClosureGiverNodeMixin,
     ClosureTakerMixin,
     SideEffectsFromChildrenMixin
@@ -65,17 +65,19 @@ class MaybeLocalVariableUsage(Exception):
 
 
 class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
-                                 ExpressionChildrenHavingBase):
+                                 ExpressionChildHavingBase):
+
+    named_child = "body"
+
+    checker = checkStatementsSequenceOrNone
 
     def __init__(self, provider, name, code_prefix, flags, source_ref, body):
         while provider.isExpressionOutlineBody():
             provider = provider.getParentVariableProvider()
 
-        ExpressionChildrenHavingBase.__init__(
+        ExpressionChildHavingBase.__init__(
             self,
-            values     = {
-                "body" : body # Might be None initially in some cases.
-            },
+            value      = body, # Might be None initially in some cases.
             source_ref = source_ref
         )
 
@@ -105,7 +107,6 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
         # Non-local declarations.
         self.non_local_declarations = []
-
 
     @staticmethod
     def isExpressionFunctionBodyBase():
@@ -350,6 +351,9 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
         else:
             return self.getBody().mayRaiseException(exception_type)
 
+    getBody = ExpressionChildHavingBase.childGetter("body")
+    setBody = ExpressionChildHavingBase.childSetter("body")
+
 
 class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBase):
     def __init__(self, provider, name, code_prefix, flags, source_ref):
@@ -375,9 +379,6 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             self.locals_scope = LocalsDictHandle(locals_dict_name)
         else:
             self.locals_scope = None
-
-    getBody = ChildrenHavingMixin.childGetter("body")
-    setBody = ChildrenHavingMixin.childSetter("body")
 
     def computeFunctionRaw(self, trace_collection):
         from nuitka.optimizations.TraceCollections import \
@@ -412,9 +413,6 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
 
 class ExpressionFunctionBody(MarkUnoptimizedFunctionIndicatorMixin,
                              ExpressionFunctionEntryPointBase):
-    # We really want these many ancestors, as per design, we add properties via
-    # base class mix-ins a lot, leading to many methods, pylint: disable=R0901
-
     kind = "EXPRESSION_FUNCTION_BODY"
 
     named_children = (

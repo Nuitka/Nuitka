@@ -52,10 +52,11 @@ def checkFrameStatements(value):
 
 
 class StatementsFrameBase(StatementsSequence):
-
     checkers = {
         "statements" : checkFrameStatements
     }
+
+    __slots__ = ("guard_mode", "code_object", "needs_frame_exception_preserve")
 
     def __init__(self, statements, guard_mode, code_object, source_ref):
         StatementsSequence.__init__(

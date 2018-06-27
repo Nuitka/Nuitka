@@ -23,28 +23,25 @@ This one exits functions. The only other exit is the default exit of functions w
 from abc import abstractmethod
 
 from .ExpressionBases import ExpressionBase
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .NodeBases import StatementBase, StatementChildHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
 
 
-class StatementReturn(StatementChildrenHavingBase):
+class StatementReturn(StatementChildHavingBase):
     kind = "STATEMENT_RETURN"
 
-    named_children = ("expression",)
-    nice_children = ("return value",)
+    named_child = "expression"
+
+    nice_child = "return value"
 
     def __init__(self, expression, source_ref):
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "expression" : expression
-            },
+            value      = expression,
             source_ref = source_ref
         )
 
-    getExpression = StatementChildrenHavingBase.childGetter(
-        "expression"
-    )
+    getExpression = StatementChildHavingBase.childGetter("expression")
 
     def isStatementAborting(self):
         return True
@@ -84,11 +81,11 @@ Return value is always constant."""
         return self, None, None
 
 
-class StatementReturnConstantBase(NodeBase):
+class StatementReturnConstantBase(StatementBase):
     __slots__ = ()
 
     def __init__(self, source_ref):
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -119,6 +116,9 @@ class StatementReturnConstantBase(NodeBase):
             node     = self,
             constant = self.getConstant()
         )
+
+    def getStatementNiceName(self):
+        return "return statement"
 
 
 class StatementReturnNone(StatementReturnConstantBase):

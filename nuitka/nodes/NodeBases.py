@@ -23,9 +23,13 @@ expression only stuff.
 
 """
 
+# from abc import abstractmethod
 
 from nuitka import Options, Tracing, TreeXML, Variables
-from nuitka.__past__ import iterItems
+from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
+    intern,
+    iterItems
+)
 from nuitka.Errors import NuitkaNodeError
 from nuitka.PythonVersions import python_version
 from nuitka.SourceCodeReferences import SourceCodeReference
@@ -37,7 +41,11 @@ from .NodeMetaClasses import NodeCheckMetaClass, NodeMetaClassBase
 
 
 class NodeBase(NodeMetaClassBase):
-    __slots__ = "parent", "source_ref", "effective_source_ref"
+    __slots__ = "parent", "source_ref"
+
+    # Avoid the attribute unless it's really necessary.
+    if Options.isFullCompat():
+        __slots__ += ("effective_source_ref",)
 
     # String to identify the node class, to be consistent with its name.
     kind = None
@@ -98,12 +106,15 @@ class NodeBase(NodeMetaClassBase):
         """
         return str(self.getDetails())[1:-1]
 
+    def getCloneArgs(self):
+        return self.getDetails()
+
     def makeClone(self):
         try:
             # Using star dictionary arguments here for generic use.
             result = self.__class__(
                 source_ref = self.source_ref,
-                **self.getDetails()
+                **self.getCloneArgs()
             )
         except TypeError:
             raise NuitkaNodeError("Problem cloning node", self)
@@ -113,11 +124,6 @@ class NodeBase(NodeMetaClassBase):
         if effective_source_ref is not self.source_ref:
             result.setCompatibleSourceReference(effective_source_ref)
 
-        return result
-
-    def makeCloneAt(self, source_ref):
-        result = self.makeClone()
-        result.source_ref = source_ref
         return result
 
     def getParent(self):
@@ -137,9 +143,7 @@ class NodeBase(NodeMetaClassBase):
         """
         parent = self.getParent()
 
-        for key in parent.named_children:
-            value = parent.getChild(key)
-
+        for key, value in parent.getVisitableNodesNamed():
             if self is value:
                 return key
 
@@ -147,7 +151,6 @@ class NodeBase(NodeMetaClassBase):
                 if self in value:
                     return key, value.index(self)
 
-        # TODO: Not checking tuples yet
         return None
 
     def getChildNameNice(self):
@@ -155,6 +158,8 @@ class NodeBase(NodeMetaClassBase):
 
         if hasattr(self.parent, "nice_children"):
             return self.parent.nice_children[self.parent.named_children.index(child_name)]
+        elif hasattr(self.parent, "nice_child"):
+            return self.parent.nice_child
         else:
             return child_name
 
@@ -505,6 +510,9 @@ class ChildrenHavingMixin(object):
     def __init__(self, values):
         assert type(self.named_children) is tuple and self.named_children
 
+        # TODO: Make this true.
+        # assert len(self.named_children) > 1, self.kind
+
         # Check for completeness of given values, everything should be there
         # but of course, might be put to None.
         assert set(values.keys()) == set(self.named_children)
@@ -562,13 +570,12 @@ class ChildrenHavingMixin(object):
         setattr(self, attr_name, value)
 
     def getChild(self, name):
-        # Only accept legal child names
         attr_name = "subnode_" + name
         return getattr(self, attr_name)
 
     @staticmethod
     def childGetter(name):
-        attr_name = "subnode_" + name
+        attr_name = intern("subnode_" + name)
 
         def getter(self):
             return getattr(self, attr_name)
@@ -612,7 +619,6 @@ class ChildrenHavingMixin(object):
         """
         for name in self.named_children:
             attr_name = "subnode_" + name
-
             value = getattr(self, attr_name)
 
             yield name, value
@@ -670,7 +676,7 @@ class ChildrenHavingMixin(object):
             self
         )
 
-    def makeClone(self):
+    def getCloneArgs(self):
         values = {}
 
         for key in self.named_children:
@@ -693,22 +699,7 @@ class ChildrenHavingMixin(object):
             self.getDetails()
         )
 
-        try:
-            # Using star dictionary arguments here for generic use,
-            # pylint: disable=E1123
-            result = self.__class__(
-                source_ref = self.source_ref,
-                **values
-            )
-        except TypeError:
-            raise NuitkaNodeError("Problem cloning", self)
-
-        effective_source_ref = self.getCompatibleSourceReference()
-
-        if effective_source_ref is not self.source_ref:
-            result.setCompatibleSourceReference(effective_source_ref)
-
-        return result
+        return values
 
 
 class ClosureGiverNodeMixin(CodeNodeMixin):
@@ -888,14 +879,16 @@ class ClosureTakerMixin(object):
         return None
 
 
-class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
-    def __init__(self, values, source_ref):
-        NodeBase.__init__(self, source_ref = source_ref)
+class StatementBase(NodeBase):
+    """ Base class for all statements.
 
-        ChildrenHavingMixin.__init__(
-            self,
-            values = values
-        )
+    """
+
+    # TODO: Have them all.
+    # @abstractmethod
+    def getStatementNiceName(self):
+        # Virtual method, pylint: disable=no-self-use
+        return "undescribed statement"
 
     def computeStatementSubExpressions(self, trace_collection):
         """ Compute a statement.
@@ -931,10 +924,203 @@ class StatementChildrenHavingBase(ChildrenHavingMixin, NodeBase):
 
         return self, None, None
 
-    def getStatementNiceName(self):
-        # Virtual method, pylint: disable=no-self-use
-        return "undescribed statement"
 
+class StatementChildrenHavingBase(ChildrenHavingMixin, StatementBase):
+    def __init__(self, values, source_ref):
+        StatementBase.__init__(self, source_ref = source_ref)
+
+        ChildrenHavingMixin.__init__(
+            self,
+            values = values
+        )
+
+
+class StatementChildHavingBase(StatementBase):
+    named_child = ""
+
+    checker = None
+
+    def __init__(self, value, source_ref):
+        StatementBase.__init__(self, source_ref = source_ref)
+
+        assert type(self.named_child) is str and self.named_child
+
+        if self.checker is not None:
+            value = self.checker(value)  # False alarm, pylint: disable=not-callable
+
+        assert type(value) is not list, self.named_child
+
+        if type(value) is tuple:
+            assert None not in value, self.named_child
+
+            for val in value:
+                val.parent = self
+        elif value is not None:
+            value.parent = self
+        elif value is None:
+            pass
+        else:
+            assert False, type(value)
+
+        attr_name = "subnode_" + self.named_child
+        setattr(self, attr_name, value)
+
+    def setChild(self, name, value):
+        """ Set a child value.
+
+            Do not overload, provider self.checkers instead.
+        """
+        # Only accept legal child names
+        assert name == self.named_child, name
+
+        # Lists as inputs are OK, but turn them into tuples.
+        if type(value) is list:
+            value = tuple(value)
+
+        if self.checker is not None:
+            value = self.checker(value)  # False alarm, pylint: disable=not-callable
+
+        # Re-parent value to us.
+        if type(value) is tuple:
+            for val in value:
+                val.parent = self
+        elif value is not None:
+            value.parent = self
+
+        attr_name = "subnode_" + name
+
+        # Determine old value, and inform it about loosing its parent.
+        old_value = getattr(self, attr_name)
+
+        assert old_value is not value, value
+
+        setattr(self, attr_name, value)
+
+    def getChild(self, name):
+        # Only accept legal child names
+        attr_name = "subnode_" + name
+        return getattr(self, attr_name)
+
+    @staticmethod
+    def childGetter(name):
+        attr_name = "subnode_" + name
+
+        def getter(self):
+            return getattr(self, attr_name)
+
+        return getter
+
+    @staticmethod
+    def childSetter(name):
+        def setter(self, value):
+            self.setChild(name, value)
+
+        return setter
+
+    def getVisitableNodes(self):
+        # TODO: Consider if a generator would be faster.
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        if value is None:
+            return ()
+        elif type(value) is tuple:
+            return value
+        elif isinstance(value, NodeBase):
+            return (value,)
+        else:
+            raise AssertionError(
+                self,
+                "has illegal child", value, value.__class__
+            )
+
+    def getVisitableNodesNamed(self):
+        """ Named children dictionary.
+
+            For use in debugging and XML output.
+        """
+        attr_name = "subnode_" + self.named_child
+        value = getattr(self, attr_name)
+
+        yield self.named_child, value
+
+    def replaceChild(self, old_node, new_node):
+        if new_node is not None and not isinstance(new_node, NodeBase):
+            raise AssertionError(
+                "Cannot replace with", new_node, "old", old_node, "in", self
+            )
+
+        # Find the replaced node, as an added difficulty, what might be
+        # happening, is that the old node is an element of a tuple, in which we
+        # may also remove that element, by setting it to None.
+        key = self.named_child
+        value = self.getChild(key)
+
+        if value is None:
+            pass
+        elif type(value) is tuple:
+            if old_node in value:
+                if new_node is not None:
+                    self.setChild(
+                        key,
+                        tuple(
+                            (val if val is not old_node else new_node)
+                            for val in
+                            value
+                        )
+                    )
+                else:
+                    self.setChild(
+                        key,
+                        tuple(
+                            val
+                            for val in
+                            value
+                            if val is not old_node
+                        )
+                    )
+
+                return key
+        elif isinstance(value, NodeBase):
+            if old_node is value:
+                self.setChild(key, new_node)
+
+                return key
+        else:
+            assert False, (key, value, value.__class__)
+
+        raise AssertionError(
+            "Didn't find child",
+            old_node,
+            "in",
+            self
+        )
+
+    def getCloneArgs(self):
+        # Make clones of child nodes too.
+        values = {}
+        key = self.named_child
+
+        value = self.getChild(key)
+
+        assert type(value) is not list, key
+
+        if value is None:
+            values[key] = None
+        elif type(value) is tuple:
+            values[key] = tuple(
+                v.makeClone()
+                for v in
+                value
+            )
+        else:
+            values[key] = value.makeClone()
+
+        values.update(
+            self.getDetails()
+        )
+
+        return values
 
 
 class SideEffectsFromChildrenMixin(object):

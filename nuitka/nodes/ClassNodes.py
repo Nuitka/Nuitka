@@ -23,7 +23,6 @@ The classes are are at the core of the language and have their complexities.
 
 from nuitka.PythonVersions import python_version
 
-from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
 from .LocalsScopes import LocalsDictHandle, LocalsMappingHandle
@@ -32,19 +31,8 @@ from .OutlineNodes import ExpressionOutlineFunction
 
 class ExpressionClassBody(MarkNeedsAnnotationsMixin,
                           ExpressionOutlineFunction):
-    # We really want these many ancestors, as per design, we add properties via
-    # base class mix-ins a lot, pylint: disable=R0901
 
     kind = "EXPRESSION_CLASS_BODY"
-
-    named_children = (
-        "body",
-    )
-
-    checkers = {
-        # TODO: Is "None" really an allowed value.
-        "body" : checkStatementsSequenceOrNone
-    }
 
     def __init__(self, provider, name, doc, source_ref):
         ExpressionOutlineFunction.__init__(

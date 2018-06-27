@@ -25,7 +25,7 @@ Predicting the behavior of 'print' is not trivial at all, due to many special
 cases.
 """
 
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode,
@@ -155,25 +155,19 @@ Side effects printed item promoted to statements."""
         return True
 
 
-class StatementPrintNewline(StatementChildrenHavingBase):
+class StatementPrintNewline(StatementChildHavingBase):
     kind = "STATEMENT_PRINT_NEWLINE"
 
-    named_children = (
-        "dest",
-    )
+    named_child = "dest"
 
     def __init__(self, dest, source_ref):
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "dest" : dest
-            },
+            value      = dest,
             source_ref = source_ref
         )
 
-    getDestination = StatementChildrenHavingBase.childGetter(
-        "dest"
-    )
+    getDestination = StatementChildHavingBase.childGetter("dest")
 
     def computeStatement(self, trace_collection):
         # TODO: Reactivate below optimizations for prints.

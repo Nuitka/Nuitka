@@ -732,3 +732,6 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
             return True
 
         return False
+
+    def getStatementNiceName(self):
+        return "branch statement"

@@ -22,8 +22,6 @@ fallback can be optimized to no fallback variants.
 
 """
 
-
-
 from nuitka import Variables
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
@@ -31,7 +29,7 @@ from nuitka.PythonVersions import python_version
 from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .NodeBases import StatementBase, StatementChildHavingBase
 
 
 class ExpressionLocalsVariableRefORFallback(ExpressionChildrenHavingBase):
@@ -288,12 +286,12 @@ class ExpressionLocalsVariableCheck(ExpressionBase):
         return self, None, None
 
 
-class StatementLocalsDictOperationSet(StatementChildrenHavingBase):
+class StatementLocalsDictOperationSet(StatementChildHavingBase):
     kind = "STATEMENT_LOCALS_DICT_OPERATION_SET"
 
-    named_children = (
-        "value",
-    )
+    named_child = "value"
+
+    __slots__ = ("variable", "variable_version", "variable_trace", "locals_scope")
 
     # TODO: Specialize for Python3 maybe to save attribute for Python2.
     may_raise_set = python_version >= 300
@@ -302,11 +300,9 @@ class StatementLocalsDictOperationSet(StatementChildrenHavingBase):
         assert type(variable_name) is str
         assert value is not None
 
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "value" : value
-            },
+            value      = value,
             source_ref = source_ref
         )
 
@@ -355,8 +351,11 @@ class StatementLocalsDictOperationSet(StatementChildrenHavingBase):
     def mayRaiseException(self, exception_type):
         return self.may_raise_set or self.subnode_value.mayRaiseException(exception_type)
 
+    def getStatementNiceName(self):
+        return "locals dictionary value set statement"
 
-class StatementLocalsDictOperationDel(NodeBase):
+
+class StatementLocalsDictOperationDel(StatementBase):
     kind = "STATEMENT_LOCALS_DICT_OPERATION_DEL"
 
     __slots__ = "variable", "variable_version", "previous_trace", "locals_scope"
@@ -368,7 +367,7 @@ class StatementLocalsDictOperationDel(NodeBase):
     def __init__(self, locals_scope, variable_name, source_ref):
         assert type(variable_name) is str
 
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -421,21 +420,21 @@ class StatementLocalsDictOperationDel(NodeBase):
     def mayRaiseException(self, exception_type):
         return self.may_raise_del
 
+    def getStatementNiceName(self):
+        return "locals dictionary value del statement"
 
 
-class StatementSetLocals(StatementChildrenHavingBase):
+class StatementSetLocals(StatementChildHavingBase):
     kind = "STATEMENT_SET_LOCALS"
 
-    named_children = (
-        "new_locals",
-    )
+    named_child = "new_locals"
+
+    __slots__ = ("locals_scope",)
 
     def __init__(self, locals_scope, new_locals, source_ref):
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "new_locals" : new_locals,
-            },
+            value      = new_locals,
             source_ref = source_ref
         )
 
@@ -457,7 +456,7 @@ class StatementSetLocals(StatementChildrenHavingBase):
     def mayRaiseException(self, exception_type):
         return self.getNewLocals().mayRaiseException(exception_type)
 
-    getNewLocals = StatementChildrenHavingBase.childGetter("new_locals")
+    getNewLocals = StatementChildHavingBase.childGetter("new_locals")
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getNewLocals())
@@ -477,6 +476,9 @@ Setting locals already raises implicitly building new locals."""
 
         return self, None, None
 
+    def getStatementNiceName(self):
+        return "locals mapping init statement"
+
 
 class StatementSetLocalsDictionary(StatementSetLocals):
     kind = "STATEMENT_SET_LOCALS_DICTIONARY"
@@ -494,14 +496,17 @@ class StatementSetLocalsDictionary(StatementSetLocals):
     def mayRaiseException(self, exception_type):
         return False
 
+    def getStatementNiceName(self):
+        return "locals dictionary init statement"
 
-class StatementReleaseLocals(NodeBase):
+
+class StatementReleaseLocals(StatementBase):
     kind = "STATEMENT_RELEASE_LOCALS"
 
     __slots__ = ("locals_scope",)
 
     def __init__(self, locals_scope, source_ref):
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -521,3 +526,6 @@ class StatementReleaseLocals(NodeBase):
 
     def mayRaiseException(self, exception_type):
         return False
+
+    def getStatementNiceName(self):
+        return "locals dictionary release statement"
