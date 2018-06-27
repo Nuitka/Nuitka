@@ -37,6 +37,7 @@ from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
 
 _progress = Options.isShowProgress()
+_is_verbose = Options.isVerbose()
 
 def _attemptRecursion(module):
     new_modules = module.attemptRecursion()
@@ -58,13 +59,16 @@ def signalChange(tags, source_ref, message):
 
     """
     if message is not None:
-        debug(
-            "{source_ref} : {tags} : {message}".format(
-                source_ref = source_ref.getAsString(),
-                tags       = tags,
-                message    = message() if inspect.isfunction(message) else message
+        # Try hard to not call a delayed evaluation of node descriptions.
+
+        if _is_verbose:
+            debug(
+                "{source_ref} : {tags} : {message}".format(
+                    source_ref = source_ref.getAsString(),
+                    tags       = tags,
+                    message    = message() if inspect.isfunction(message) else message
+                )
             )
-        )
 
     tag_set.onSignal(tags)
 

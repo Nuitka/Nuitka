@@ -995,7 +995,7 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
                 return (
                     wrapped_expression,
                     "new_raise",
-                    "For '%s' the expression '%s' will raise." % (
+                    lambda : "For '%s' the expression '%s' will raise." % (
                         self.getChildNameNice(),
                         expression.getChildNameNice()
                     )
