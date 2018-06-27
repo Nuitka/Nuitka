@@ -21,10 +21,7 @@ Right now only the creation is done here. But more should be added later on.
 """
 
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode
-)
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode
 
 

@@ -22,11 +22,7 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCode
-)
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .VariableCodes import getVariableAssignmentCode
 
 

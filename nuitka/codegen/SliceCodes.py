@@ -31,10 +31,7 @@ from .CodeHelpers import (
     generateExpressionCode,
     generateExpressionsCode
 )
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-)
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .IndexCodes import (
     getIndexCode,
     getIndexValueCode,

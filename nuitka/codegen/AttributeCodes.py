@@ -23,10 +23,7 @@ Attribute lookup, setting.
 from nuitka import Options
 
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-)
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .LabelCodes import getBranchingCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
