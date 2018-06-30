@@ -92,7 +92,8 @@ from .TreeHelpers import (
 
 def _buildClassNode3(provider, node, source_ref):
     # Many variables, due to the huge re-formulation that is going on here,
-    # which just has the complexity, pylint: disable=too-many-locals
+    # which just has the complexity and optimization checks:
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # This function is the Python3 special case with special re-formulation as
     # according to developer manual.
@@ -371,6 +372,31 @@ def _buildClassNode3(provider, node, source_ref):
             )
         )
 
+    # Check if there are bases, and if there are, go with the type of the
+    # first base class as a metaclass unless it was specified in the class
+    # decl dict of course.
+    if node.bases:
+        unspecified_metaclass_expression = ExpressionBuiltinType1(
+            value      = ExpressionSubscriptLookup(
+                subscribed = ExpressionTempVariableRef(
+                    variable   = tmp_bases,
+                    source_ref = source_ref
+                ),
+                subscript  = makeConstantRefNode(
+                    constant      = 0,
+                    source_ref    = source_ref,
+                    user_provided = True
+                ),
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
+    else:
+        unspecified_metaclass_expression = makeExpressionBuiltinRef(
+            builtin_name = "type",
+            source_ref   = source_ref
+        )
+
     statements += [
         StatementAssignmentVariable(
             variable   = tmp_metaclass,
@@ -400,32 +426,7 @@ def _buildClassNode3(provider, node, source_ref):
                         ),
                         source_ref = source_ref
                     ),
-                    expression_no  = ExpressionConditional(
-                        condition      = ExpressionTempVariableRef(
-                            variable   = tmp_bases,
-                            source_ref = source_ref
-                        ),
-                        expression_no  = makeExpressionBuiltinRef(
-                            builtin_name = "type",
-                            source_ref   = source_ref
-                        ),
-                        expression_yes = ExpressionBuiltinType1(
-                            value      = ExpressionSubscriptLookup(
-                                subscribed = ExpressionTempVariableRef(
-                                    variable   = tmp_bases,
-                                    source_ref = source_ref
-                                ),
-                                subscript  = makeConstantRefNode(
-                                    constant      = 0,
-                                    source_ref    = source_ref,
-                                    user_provided = True
-                                ),
-                                source_ref = source_ref
-                            ),
-                            source_ref = source_ref
-                        ),
-                        source_ref     = source_ref
-                    ),
+                    expression_no  = unspecified_metaclass_expression,
                     source_ref     = source_ref
                 ),
                 bases      = ExpressionTempVariableRef(
