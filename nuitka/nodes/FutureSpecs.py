@@ -111,7 +111,7 @@ class FutureSpec(object):
         if python_version >= 300 and self.barry_bdfl:
             result.append("CO_FUTURE_BARRY_AS_BDFL")
 
-        if python_version >= 350 and self.generator_stop:
+        if python_version >= 350 and python_version < 370 and self.generator_stop:
             result.append("CO_FUTURE_GENERATOR_STOP")
 
         return tuple(result)
