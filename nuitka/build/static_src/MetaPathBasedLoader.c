@@ -881,7 +881,11 @@ static PyObject *_path_unfreezer_repr_module( PyObject *self, PyObject *args, Py
         return NULL;
     }
 
-    return PyUnicode_FromFormat("<module '%s' from '%s'>", PyModule_GetName( module ), PyModule_GetFilename( module ));
+    return PyUnicode_FromFormat(
+        "<module '%s' from %R>",
+        PyModule_GetName( module ),
+        PyModule_GetFilenameObject( module )
+    );
 
 }
 

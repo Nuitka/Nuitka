@@ -350,9 +350,12 @@ static void Nuitka_Frame_tp_dealloc( struct Nuitka_FrameObject *nuitka_frame )
     Py_DECREF( frame->f_builtins );
     Py_DECREF( frame->f_globals );
     Py_XDECREF( frame->f_locals );
+
+#if PYTHON_VERSION < 370
     Py_XDECREF( frame->f_exc_type );
     Py_XDECREF( frame->f_exc_value );
     Py_XDECREF( frame->f_exc_traceback );
+#endif
 
     Nuitka_Frame_tp_clear( nuitka_frame );
 
@@ -379,9 +382,12 @@ static int Nuitka_Frame_tp_traverse( struct Nuitka_FrameObject *frame, visitproc
     Py_VISIT( frame->m_frame.f_globals );
     // Py_VISIT( frame->f_locals );
     // TODO: Traverse attached locals too.
+
+#if PYTHON_VERSION < 370
     Py_VISIT( frame->m_frame.f_exc_type );
     Py_VISIT( frame->m_frame.f_exc_value );
     Py_VISIT( frame->m_frame.f_exc_traceback );
+#endif
 
     return 0;
 }
@@ -496,8 +502,8 @@ void _initCompiledFrameType( void )
 
     // These are to be used interchangably. Make sure that's true.
     assert(
-        offsetof(struct Nuitka_FrameObject, m_frame.f_exc_type) ==
-        offsetof(PyFrameObject, f_exc_type)
+        offsetof(struct Nuitka_FrameObject, m_frame.f_localsplus) ==
+        offsetof(PyFrameObject, f_localsplus)
     );
 }
 
@@ -529,9 +535,11 @@ static struct Nuitka_FrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *modu
 
     frame->f_trace = Py_None;
 
+#if PYTHON_VERSION < 370
     frame->f_exc_type = NULL;
     frame->f_exc_value = NULL;
     frame->f_exc_traceback = NULL;
+#endif
 
     Py_INCREF( dict_builtin );
     frame->f_builtins = (PyObject *)dict_builtin;

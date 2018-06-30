@@ -68,7 +68,7 @@ def generateExceptionCaughtTypeCode(to_name, expression, emit, context):
 
     if keeper_variables[0] is None:
         emit(
-            "%s = PyThreadState_GET()->exc_type;" % (
+            "%s = EXC_TYPE(PyThreadState_GET());" % (
                 to_name,
             )
         )
@@ -89,7 +89,7 @@ def generateExceptionCaughtValueCode(to_name, expression, emit, context):
 
     if keeper_variables[1] is None:
         emit(
-            "%s = PyThreadState_GET()->exc_value;" % (
+            "%s = EXC_VALUE(PyThreadState_GET());" % (
                 to_name,
             )
         )
@@ -119,7 +119,7 @@ def generateExceptionCaughtTracebackCode(to_name, expression, emit, context):
 
     if keeper_variables[2] is None:
         emit(
-            "%s = PyThreadState_GET()->exc_traceback;" % (
+            "%s = EXC_TRACEBACK(PyThreadState_GET());" % (
                 to_name,
             )
         )

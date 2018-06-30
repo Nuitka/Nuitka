@@ -73,6 +73,10 @@ struct Nuitka_GeneratorObject {
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
 
+#if PYTHON_VERSION >= 370
+    _PyErr_StackItem m_exc_state;
+#endif
+
 #if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     int m_yield_return_index;
 #else
@@ -158,8 +162,12 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
 
     generator->m_yielded = value;
 
-    /* When yielding from an exception handler in Python3, the exception
-     * preserved to the frame is restore, while the current one is put there.
+    /* Before Python3.7: When yielding from an exception handler in Python3,
+     * the exception preserved to the frame is restored, while the current one
+     * is put as there.
+     *
+     * Python3.7: The exception is preserved in the generator object itself
+     * which has a new "m_exc_state" structure just for that.
      */
     PyThreadState *thread_state = PyThreadState_GET();
 
@@ -167,18 +175,30 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
     PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
+#if PYTHON_VERSION < 370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
     EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
+#else
+    EXC_TYPE(thread_state) = generator->m_exc_state.exc_type;
+    EXC_VALUE(thread_state) = generator->m_exc_state.exc_value;
+    EXC_TRACEBACK(thread_state) = generator->m_exc_state.exc_traceback;
+#endif
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("YIELD exit:\n");
     PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
 #endif
 
+#if PYTHON_VERSION < 370
     thread_state->frame->f_exc_type = saved_exception_type;
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
+#else
+    generator->m_exc_state.exc_type = saved_exception_type;
+    generator->m_exc_state.exc_value = saved_exception_value;;
+    generator->m_exc_state.exc_traceback = saved_exception_traceback;
+#endif
 
     Nuitka_Frame_MarkAsNotExecuting( generator->m_frame );
 
@@ -191,22 +211,32 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
     // the one that enters should be there.
     thread_state = PyThreadState_GET();
 
-    saved_exception_type = thread_state->exc_type;
-    saved_exception_value = thread_state->exc_value;
-    saved_exception_traceback = thread_state->exc_traceback;
+    saved_exception_type = EXC_TYPE(thread_state);
+    saved_exception_value = EXC_VALUE(thread_state);
+    saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("YIELD return:\n");
     PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
 #endif
 
-    thread_state->exc_type = thread_state->frame->f_exc_type;
-    thread_state->exc_value = thread_state->frame->f_exc_value;
-    thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
+#if PYTHON_VERSION < 370
+    EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
+    EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
+    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
 
     thread_state->frame->f_exc_type = saved_exception_type;
     thread_state->frame->f_exc_value = saved_exception_value;
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
+#else
+    EXC_TYPE(thread_state) = generator->m_exc_state.exc_type;
+    EXC_VALUE(thread_state) = generator->m_exc_state.exc_value;
+    EXC_TRACEBACK(thread_state) = generator->m_exc_state.exc_traceback;
+
+    generator->m_exc_state.exc_type = saved_exception_type;
+    generator->m_exc_state.exc_value = saved_exception_value;
+    generator->m_exc_state.exc_traceback = saved_exception_traceback;
+#endif
 
     // Check for thrown exception.
     if (unlikely( generator->m_exception_type ))

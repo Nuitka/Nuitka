@@ -1030,6 +1030,10 @@ PyObject *PyGen_Send( PyGenObject *generator, PyObject *arg )
 
     if ( result == NULL || frame->f_stacktop == NULL )
     {
+// TODO: Check how this should be changed for 3.7 where the generator owns
+// things.
+
+#if PYTHON_VERSION < 370
         // Generator is finished, remove exception from frame before releasing
         // it.
         PyObject *type = frame->f_exc_type;
@@ -1041,6 +1045,7 @@ PyObject *PyGen_Send( PyGenObject *generator, PyObject *arg )
         Py_XDECREF( type );
         Py_XDECREF( value );
         Py_XDECREF( traceback );
+#endif
 
         // Now release frame.
         generator->gi_frame = NULL;
@@ -1444,17 +1449,27 @@ static PyObject *_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generato
             // preserved to the frame is restore, while the current one is put there.
             PyThreadState *thread_state = PyThreadState_GET();
 
-            PyObject *saved_exception_type = thread_state->exc_type;
-            PyObject *saved_exception_value = thread_state->exc_value;
-            PyObject *saved_exception_traceback = thread_state->exc_traceback;
+            PyObject *saved_exception_type = EXC_TYPE(thread_state);
+            PyObject *saved_exception_value = EXC_VALUE(thread_state);
+            PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
-            thread_state->exc_type = thread_state->frame->f_exc_type;
-            thread_state->exc_value = thread_state->frame->f_exc_value;
-            thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
+#if PYTHON_VERSION < 370
+            EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
+            EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
+            EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
 
             thread_state->frame->f_exc_type = saved_exception_type;
             thread_state->frame->f_exc_value = saved_exception_value;
             thread_state->frame->f_exc_traceback = saved_exception_traceback;
+#else
+            EXC_TYPE(thread_state) = generator->m_exc_state.exc_type;
+            EXC_VALUE(thread_state) = generator->m_exc_state.exc_value;
+            EXC_TRACEBACK(thread_state) = generator->m_exc_state.exc_traceback;
+
+            generator->m_exc_state.exc_type = saved_exception_type;
+            generator->m_exc_state.exc_value = saved_exception_value;
+            generator->m_exc_state.exc_traceback = saved_exception_traceback;
+#endif
 
 #if PYTHON_VERSION >= 350
             generator->m_yieldfrom = value;
@@ -1469,17 +1484,28 @@ static PyObject *_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generato
             // the one that enters should be there.
             thread_state = PyThreadState_GET();
 
-            saved_exception_type = thread_state->exc_type;
-            saved_exception_value = thread_state->exc_value;
-            saved_exception_traceback = thread_state->exc_traceback;
 
-            thread_state->exc_type = thread_state->frame->f_exc_type;
-            thread_state->exc_value = thread_state->frame->f_exc_value;
-            thread_state->exc_traceback = thread_state->frame->f_exc_traceback;
+            saved_exception_type = EXC_TYPE(thread_state);
+            saved_exception_value = EXC_VALUE(thread_state);
+            saved_exception_traceback = EXC_TRACEBACK(thread_state);
+
+#if PYTHON_VERSION < 370
+            EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
+            EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
+            EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
 
             thread_state->frame->f_exc_type = saved_exception_type;
             thread_state->frame->f_exc_value = saved_exception_value;
             thread_state->frame->f_exc_traceback = saved_exception_traceback;
+#else
+            EXC_TYPE(thread_state) = generator->m_exc_state.exc_type;
+            EXC_VALUE(thread_state) = generator->m_exc_state.exc_value;
+            EXC_TRACEBACK(thread_state) = generator->m_exc_state.exc_traceback;
+
+            generator->m_exc_state.exc_type = saved_exception_type;
+            generator->m_exc_state.exc_value = saved_exception_value;
+            generator->m_exc_state.exc_traceback = saved_exception_traceback;
+#endif
 
             send_value = generator->m_yielded;
 
