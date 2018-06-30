@@ -222,9 +222,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION( PyObject *excepti
 #endif
 }
 
-#if PYTHON_VERSION < 370
-// TODO: This will be needed but initially it is unclear where to put exceptions now.
-
+#if PYTHON_VERSION < 300
 
 // Preserve the current exception as the frame to restore.
 NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION( struct Nuitka_FrameObject *frame_object )

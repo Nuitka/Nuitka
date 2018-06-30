@@ -140,7 +140,7 @@ of '--recurse-directory'.""" % (
                         if assign_source.isInplaceSuspect():
                             node.markAsInplaceSuspect()
 
-        if node.isStatementPublishException():
+        if python_version < 300 and node.isStatementPublishException():
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()
 
         if python_version >= 300:

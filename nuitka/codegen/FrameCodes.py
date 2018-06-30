@@ -414,7 +414,9 @@ def generateFramePreserveExceptionCode(statement, emit, context):
     else:
         preserver_id = statement.getPreserverId()
 
-        if preserver_id == 0 and python_version < 300:
+        if preserver_id == 0:
+            assert False
+
             emit(
                 "PRESERVE_FRAME_EXCEPTION( %(frame_identifier)s );" % {
                     "frame_identifier" : context.getFrameHandle()
@@ -423,13 +425,14 @@ def generateFramePreserveExceptionCode(statement, emit, context):
         else:
             context.addExceptionPreserverVariables(preserver_id)
 
+            # TODO: Multiple thread state calls should be avoided.
             emit(
                 """\
-exception_preserved_type_%(preserver_id)d = PyThreadState_GET()->exc_type;
+exception_preserved_type_%(preserver_id)d = EXC_TYPE(PyThreadState_GET());
 Py_XINCREF( exception_preserved_type_%(preserver_id)d );
-exception_preserved_value_%(preserver_id)d = PyThreadState_GET()->exc_value;
+exception_preserved_value_%(preserver_id)d = EXC_VALUE(PyThreadState_GET());
 Py_XINCREF( exception_preserved_value_%(preserver_id)d );
-exception_preserved_tb_%(preserver_id)d = (PyTracebackObject *)PyThreadState_GET()->exc_traceback;
+exception_preserved_tb_%(preserver_id)d = (PyTracebackObject *)EXC_TRACEBACK(PyThreadState_GET());
 Py_XINCREF( exception_preserved_tb_%(preserver_id)d );
 """ % {
                     "preserver_id"  : preserver_id,
@@ -449,18 +452,11 @@ def generateFrameRestoreExceptionCode(statement, emit, context):
     else:
         preserver_id = statement.getPreserverId()
 
-        if preserver_id == 0  and python_version < 300:
-            emit(
-                "RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );" % {
-                    "frame_identifier" : context.getFrameHandle()
-                }
-            )
-        else:
-            emit(
-                """\
+        emit(
+            """\
 SET_CURRENT_EXCEPTION( exception_preserved_type_%(preserver_id)d, \
 exception_preserved_value_%(preserver_id)d, \
 exception_preserved_tb_%(preserver_id)d );""" % {
                     "preserver_id" : preserver_id,
-                }
-            )
+            }
+        )
