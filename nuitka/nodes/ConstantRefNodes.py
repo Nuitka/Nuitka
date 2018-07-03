@@ -46,6 +46,7 @@ from nuitka.Options import isDebug
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
 from .NodeMakingHelpers import (
+    getComputationResult,
     makeRaiseExceptionReplacementExpression,
     wrapExpressionWithSideEffects
 )
@@ -364,8 +365,16 @@ Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
             )
 
         if not isIterableConstant(self.constant):
-            # Any exception may be raised.
+            # An exception may be raised.
             trace_collection.onExceptionRaiseExit(TypeError)
+
+            return getComputationResult(
+                node        = iter_node,
+                computation = lambda : iter_node.simulator(self.constant),
+                description = "Iteration of non-iterable constant."
+            )
+
+
 
         return iter_node, None, None
 
