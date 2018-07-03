@@ -48,3 +48,7 @@ class NuitkaNodeError(NuitkaErrorBase):
 
 class NuitkaOptimizationError(NuitkaNodeError):
     pass
+
+
+class NuitkaAssumptionError(AssertionError):
+    pass

@@ -31,6 +31,11 @@ classes.
 
 from nuitka import Options, Variables
 from nuitka.PythonVersions import python_version
+from nuitka.specs.ParameterSpecs import (
+    ParameterSpec,
+    TooManyArguments,
+    matchCall
+)
 from nuitka.tree.Extractions import updateVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
@@ -57,7 +62,6 @@ from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementExpressionFromInstance,
     wrapExpressionWithSideEffects
 )
-from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
 
 class MaybeLocalVariableUsage(Exception):
@@ -749,6 +753,7 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
                 star_list_arg = call_spec.getStarListArgumentName(),
                 star_dict_arg = call_spec.getStarDictArgumentName(),
                 num_defaults  = call_spec.getDefaultCount(),
+                num_posonly   = call_spec.getPositionalOnlyCount(),
                 positional    = args_tuple,
                 pairs         = ()
             )

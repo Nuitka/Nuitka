@@ -23,12 +23,9 @@ from __future__ import print_function
 import math
 import sys
 
-from nuitka.nodes.ParameterSpecs import (
-    ParameterSpec,
-    TooManyArguments,
-    matchCall
-)
 from nuitka.PythonVersions import python_version
+
+from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
 
 class BuiltinParameterSpec(ParameterSpec):
@@ -69,7 +66,7 @@ class BuiltinParameterSpec(ParameterSpec):
 
     def simulateCall(self, given_values):
         # Using star dict call for simulation and catch any exception as really
-        # fatal, pylint: disable=broad-except
+        # fatal, pylint: disable=broad-except,too-many-branches
 
         try:
             given_normal_args = given_values[:len(self.normal_args)]
@@ -100,16 +97,27 @@ class BuiltinParameterSpec(ParameterSpec):
 
                     arg_dict[arg_name] = arg_value
 
+            arg_list = []
+
+            for arg_name in self.normal_args[:self.getPositionalOnlyCount()]:
+                if arg_name in arg_dict:
+                    arg_list.append(arg_dict[arg_name])
+                    del arg_dict[arg_name]
+
         except Exception as e:
             sys.exit("Fatal problem: %r" % e)
 
+
         if given_list_star_args:
             return self.builtin(
-                *(value.getCompileTimeConstant() for value in given_list_star_args),
+                *(arg_list + list(value.getCompileTimeConstant() for value in given_list_star_args)),
                 **arg_dict
             )
         else:
-            return self.builtin(**arg_dict)
+            return self.builtin(
+                *arg_list,
+                **arg_dict
+            )
 
 
 class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
@@ -174,6 +182,28 @@ class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
         return "exceptions." + self.getName()
 
 
+class BuiltinParameterSpecPosArgs(BuiltinParameterSpec):
+    __slots__ = ("positional_only",)
+
+    def __init__(self, name, arg_names, default_count, positional_only,
+                 list_star_arg = None, dict_star_arg = None, ):
+        BuiltinParameterSpec.__init__(
+            self,
+            name          = name,
+            arg_names     = arg_names,
+            default_count = default_count,
+            list_star_arg = list_star_arg,
+            dict_star_arg = dict_star_arg
+        )
+
+        # Kind of the point of this class.
+        assert positional_only
+        self.positional_only = positional_only
+
+    def getPositionalOnlyCount(self):
+        return self.positional_only
+
+
 def makeBuiltinExceptionParameterSpec(exception_name):
     if exception_name == "ImportError" and python_version >= 330:
         # TODO: Create this beast, needs keyword only arguments to be supported,
@@ -184,7 +214,11 @@ def makeBuiltinExceptionParameterSpec(exception_name):
         exception_name = exception_name
     )
 
-builtin_int_spec = BuiltinParameterSpec("int", ('x', "base"), 2)
+if python_version < 370:
+    builtin_int_spec = BuiltinParameterSpec("int", ('x', "base"), 2)
+else:
+    builtin_int_spec = BuiltinParameterSpecPosArgs("int", ('x', "base"), 2, 1)
+
 
 # These builtins are only available for Python2
 if python_version < 300:
@@ -212,7 +246,12 @@ builtin_xrange_spec = BuiltinParameterSpecNoKeywords(
 
 
 builtin_bool_spec = BuiltinParameterSpec("bool", ('x',), 1)
-builtin_float_spec = BuiltinParameterSpec("float", ('x',), 1)
+
+if python_version < 370:
+    builtin_float_spec = BuiltinParameterSpec("float", ('x',), 1)
+else:
+    builtin_float_spec = BuiltinParameterSpecNoKeywords("float", ('x',), 1)
+
 builtin_complex_spec = BuiltinParameterSpec("complex", ("real", "imag"), 2)
 
 # This built-in have variable parameters for Python2/3
@@ -224,8 +263,14 @@ else:
 builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), 0)
 builtin_dict_spec = BuiltinParameterSpec("dict", (), 0, "list_args", "dict_args")
 builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), 0)
-builtin_tuple_spec = BuiltinParameterSpec("tuple", ("sequence",), 1)
-builtin_list_spec = BuiltinParameterSpec("list", ("sequence",), 1)
+
+if python_version < 370:
+    builtin_tuple_spec = BuiltinParameterSpec("tuple", ("sequence",), 1)
+    builtin_list_spec = BuiltinParameterSpec("list", ("sequence",), 1)
+else:
+    builtin_tuple_spec = BuiltinParameterSpecNoKeywords("tuple", ("sequence",), 1)
+    builtin_list_spec = BuiltinParameterSpecNoKeywords("list", ("sequence",), 1)
+
 builtin_set_spec = BuiltinParameterSpecNoKeywords("set", ("iterable",), 1)
 builtin_frozenset_spec = BuiltinParameterSpecNoKeywords("frozenset", ("iterable",), 1)
 
@@ -452,6 +497,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
             star_list_arg = builtin_spec.getStarListArgumentName(),
             star_dict_arg = builtin_spec.getStarDictArgumentName(),
             num_defaults  = builtin_spec.getDefaultCount(),
+            num_posonly   = builtin_spec.getPositionalOnlyCount(),
             positional    = positional,
             pairs         = pairs
         )

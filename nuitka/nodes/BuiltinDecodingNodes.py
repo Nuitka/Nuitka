@@ -23,7 +23,7 @@ answer quite a few questions at compile time.
 
 """
 
-from nuitka.optimizations import BuiltinOptimization
+from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
 
@@ -31,7 +31,7 @@ from .ExpressionBases import ExpressionBuiltinSingleArgBase
 class ExpressionBuiltinOrd(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ORD"
 
-    builtin_spec = BuiltinOptimization.builtin_ord_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_ord_spec
 
     def isKnownToBeIterable(self, count):
         return False
@@ -40,7 +40,7 @@ class ExpressionBuiltinOrd(ExpressionBuiltinSingleArgBase):
 class ExpressionBuiltinChr(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_CHR"
 
-    builtin_spec = BuiltinOptimization.builtin_chr_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_chr_spec
 
     def isKnownToBeIterable(self, count):
         if self.mayRaiseException(BaseException):

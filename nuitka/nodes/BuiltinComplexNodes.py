@@ -18,7 +18,7 @@
 """ Node for the calls to the 'complex' built-in.
 
 """
-from nuitka.optimizations import BuiltinOptimization
+from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import (
     ExpressionChildrenHavingBase,
@@ -62,7 +62,7 @@ class ExpressionBuiltinComplex2(ExpressionSpecBasedComputationBase):
 
     named_children = ("real", "imag")
 
-    builtin_spec = BuiltinOptimization.builtin_complex_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_complex_spec
 
     def __init__(self, real, imag, source_ref):
         ExpressionSpecBasedComputationBase.__init__(

@@ -21,8 +21,8 @@ These are all very simple and have predictable properties, because we know their
 that should allow some important optimizations.
 """
 
-from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
+from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
@@ -94,25 +94,25 @@ class ExpressionBuiltinContainerBase(ExpressionSpecBasedComputationBase):
 class ExpressionBuiltinTuple(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_TUPLE"
 
-    builtin_spec = BuiltinOptimization.builtin_tuple_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_tuple_spec
 
 
 class ExpressionBuiltinList(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_LIST"
 
-    builtin_spec = BuiltinOptimization.builtin_list_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_list_spec
 
 
 class ExpressionBuiltinSet(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_SET"
 
-    builtin_spec = BuiltinOptimization.builtin_set_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_set_spec
 
 
 class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
     kind = "EXPRESSION_BUILTIN_FROZENSET"
 
-    builtin_spec = BuiltinOptimization.builtin_frozenset_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_frozenset_spec
 
 
 class ShapeTypeFloatDerived(ShapeTypeFloat):
@@ -154,7 +154,7 @@ class ExpressionBuiltinFloat(ExpressionChildrenHavingBase):
 class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
     kind = "EXPRESSION_BUILTIN_BOOL"
 
-    builtin_spec = BuiltinOptimization.builtin_bool_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_bool_spec
 
     def computeExpression(self, trace_collection):
         value = self.getValue()
@@ -239,7 +239,7 @@ if python_version < 300:
     class ExpressionBuiltinStr(ExpressionBuiltinTypeBase):
         kind = "EXPRESSION_BUILTIN_STR"
 
-        builtin_spec = BuiltinOptimization.builtin_str_spec
+        builtin_spec = BuiltinParameterSpecs.builtin_str_spec
 
         def computeExpression(self, trace_collection):
             new_node, change_tags, change_desc = ExpressionBuiltinTypeBase.computeExpression(
@@ -274,7 +274,7 @@ if python_version < 300:
     class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_UNICODE"
 
-        builtin_spec = BuiltinOptimization.builtin_unicode_spec
+        builtin_spec = BuiltinParameterSpecs.builtin_unicode_spec
 
         def getTypeShape(self):
             return ShapeTypeUnicodeDerived
@@ -283,7 +283,7 @@ else:
     class ExpressionBuiltinStr(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_STR"
 
-        builtin_spec = BuiltinOptimization.builtin_str_spec
+        builtin_spec = BuiltinParameterSpecs.builtin_str_spec
 
         def getTypeShape(self):
             return ShapeTypeStrDerived
@@ -291,7 +291,7 @@ else:
     class ExpressionBuiltinBytes3(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_BYTES3"
 
-        builtin_spec = BuiltinOptimization.builtin_bytes_spec
+        builtin_spec = BuiltinParameterSpecs.builtin_bytes_spec
 
         def getTypeShape(self):
             return ShapeTypeBytes
@@ -334,7 +334,7 @@ else:
 class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):
     kind = "EXPRESSION_BUILTIN_BYTEARRAY1"
 
-    builtin_spec = BuiltinOptimization.builtin_bytearray_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_bytearray_spec
 
     def __init__(self, value, source_ref):
         ExpressionBuiltinTypeBase.__init__(
@@ -352,7 +352,7 @@ class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
 
     named_children = ("string", "encoding", "errors")
 
-    builtin_spec = BuiltinOptimization.builtin_bytearray_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_bytearray_spec
 
     def __init__(self, string, encoding, errors, source_ref):
         ExpressionChildrenHavingBase.__init__(

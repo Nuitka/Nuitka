@@ -193,6 +193,10 @@ class ParameterSpec(object):
     def getDefaultCount(self):
         return self.default_count
 
+    def getPositionalOnlyCount(self):
+        # Virtual method, pylint: disable=no-self-use
+        return 0
+
     def hasDefaultParameters(self):
         return self.getDefaultCount() > 0
 
@@ -259,7 +263,7 @@ class ParameterSpec(object):
 
 # Note: Based loosely on "inspect.getcallargs" with corrections.
 def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
-              positional, pairs, improved = False):
+              num_posonly, positional, pairs, improved = False):
     # This is of incredible code complexity, but there really is no other way to
     # express this with less statements, branches, or variables.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -326,12 +330,31 @@ def matchCall(func_name, args, star_list_arg, star_dict_arg, num_defaults,
     # Python3 does this check earlier.
     if python_version >= 300 and not star_dict_arg:
         for pair in pairs:
-            if pair[0] not in args:
-                message = "'%s' is an invalid keyword argument for this function" % pair[0]
+            try:
+                arg_index = args.index(pair[0])
+            except ValueError:
+                if improved or python_version >= 370:
+                    message = "'%s' is an invalid keyword argument for %s()" % (
+                        pair[0],
+                        func_name
+                    )
+                else:
+                    message = "'%s' is an invalid keyword argument for this function" % pair[0]
 
                 raise TooManyArguments(
                     TypeError(message)
                 )
+            else:
+                if arg_index < num_posonly:
+                    message = "'%s' is an invalid keyword argument for %s()" % (
+                        pair[0],
+                        func_name
+                    )
+
+                    raise TooManyArguments(
+                        TypeError(message)
+                    )
+
 
     if star_list_arg:
         if num_pos > num_args:

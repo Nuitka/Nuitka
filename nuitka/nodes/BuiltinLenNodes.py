@@ -24,7 +24,7 @@ The length of things is an important optimization issue for these to be
 good.
 """
 
-from nuitka.optimizations import BuiltinOptimization
+from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionBuiltinSingleArgBase
 from .shapes.BuiltinTypeShapes import ShapeTypeIntOrLong
@@ -33,7 +33,7 @@ from .shapes.BuiltinTypeShapes import ShapeTypeIntOrLong
 class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_LEN"
 
-    builtin_spec = BuiltinOptimization.builtin_len_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_len_spec
 
     def getIntegerValue(self):
         value = self.getValue()

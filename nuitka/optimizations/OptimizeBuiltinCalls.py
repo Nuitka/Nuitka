@@ -24,6 +24,7 @@ types, and then specialize for the ones, where it makes sense.
 from logging import warning
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
+from nuitka.Errors import NuitkaAssumptionError
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable
@@ -141,6 +142,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
+from nuitka.specs import BuiltinParameterSpecs
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
 from nuitka.tree.ReformulationTryFinallyStatements import (
     makeTryFinallyStatement
@@ -151,8 +153,6 @@ from nuitka.tree.TreeHelpers import (
     makeStatementsSequence,
     makeStatementsSequenceFromStatement
 )
-
-from . import BuiltinOptimization
 
 
 def dir_extractor(node):
@@ -182,10 +182,10 @@ def dir_extractor(node):
         return result
 
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinDir1,
-        builtin_spec        = BuiltinOptimization.builtin_dir_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_dir_spec,
         empty_special_class = buildDirEmptyCase
     )
 
@@ -197,19 +197,19 @@ def vars_extractor(node):
             source_ref = source_ref
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinVars,
-        builtin_spec        = BuiltinOptimization.builtin_vars_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_vars_spec,
         empty_special_class = selectVarsEmptyClass
     )
 
 
 def import_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinImport,
-        builtin_spec  = BuiltinOptimization.builtin_import_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_import_spec
     )
 
 
@@ -222,16 +222,16 @@ def type_extractor(node):
         iter_length = args.getIterationLength()
 
     if iter_length == 1:
-        return BuiltinOptimization.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinType1,
-            builtin_spec  = BuiltinOptimization.builtin_type1_spec
+            builtin_spec  = BuiltinParameterSpecs.builtin_type1_spec
         )
     elif iter_length == 3:
-        return BuiltinOptimization.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinType3,
-            builtin_spec  = BuiltinOptimization.builtin_type3_spec
+            builtin_spec  = BuiltinParameterSpecs.builtin_type3_spec
         )
     else:
         return makeRaiseExceptionReplacementExpressionFromInstance(
@@ -254,10 +254,10 @@ def iter_extractor(node):
                 source_ref   = source_ref
             )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = wrapIterCreation,
-        builtin_spec  = BuiltinOptimization.builtin_iter_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_iter_spec
     )
 
 
@@ -277,10 +277,10 @@ def next_extractor(node):
                 source_ref = source_ref
             )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = selectNextBuiltinClass,
-        builtin_spec  = BuiltinOptimization.builtin_next_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_next_spec
     )
 
 
@@ -308,10 +308,10 @@ def sum_extractor(node):
         )
 
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = selectSumBuiltinClass,
-        builtin_spec        = BuiltinOptimization.builtin_sum_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_sum_spec,
         empty_special_class = makeSum0
     )
 
@@ -353,18 +353,18 @@ def dict_extractor(node):
             source_ref = source_ref
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = wrapExpressionBuiltinDictCreation,
-        builtin_spec  = BuiltinOptimization.builtin_dict_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_dict_spec
     )
 
 
 def chr_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinChr,
-        builtin_spec  = BuiltinOptimization.builtin_chr_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_chr_spec
     )
 
 
@@ -377,43 +377,43 @@ def ord_extractor(node):
             exception  = TypeError("ord() takes exactly one argument (0 given)")
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinOrd,
-        builtin_spec        = BuiltinOptimization.builtin_ord_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_ord_spec,
         empty_special_class = makeOrd0
     )
 
 
 def bin_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinBin,
-        builtin_spec  = BuiltinOptimization.builtin_bin_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_bin_spec
     )
 
 
 def oct_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinOct,
-        builtin_spec  = BuiltinOptimization.builtin_oct_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_oct_spec
     )
 
 
 def hex_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinHex,
-        builtin_spec  = BuiltinOptimization.builtin_hex_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_hex_spec
     )
 
 
 def id_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinId,
-        builtin_spec  = BuiltinOptimization.builtin_id_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_id_spec
     )
 
 
@@ -425,19 +425,19 @@ def repr_extractor(node):
             source_ref = source_ref
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = makeReprOperator,
-        builtin_spec  = BuiltinOptimization.builtin_repr_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_repr_spec
     )
 
 
 if python_version >= 300:
     def ascii_extractor(node):
-        return BuiltinOptimization.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinAscii,
-            builtin_spec  = BuiltinOptimization.builtin_repr_spec
+            builtin_spec  = BuiltinParameterSpecs.builtin_repr_spec
         )
 
 
@@ -470,10 +470,10 @@ def range_extractor(node):
             exception  = TypeError("range expected at least 1 arguments, got 0")
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = selectRangeBuiltin,
-        builtin_spec        = BuiltinOptimization.builtin_range_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_range_spec,
         empty_special_class = makeRange0
     )
 
@@ -512,51 +512,51 @@ def xrange_extractor(node):
             )
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = selectXrangeBuiltin,
-        builtin_spec        = BuiltinOptimization.builtin_xrange_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_xrange_spec,
         empty_special_class = makeXrange0
     )
 
 
 def len_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinLen,
-        builtin_spec  = BuiltinOptimization.builtin_len_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_len_spec
     )
 
 
 def tuple_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinTuple,
-        builtin_spec  = BuiltinOptimization.builtin_tuple_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_tuple_spec
     )
 
 
 def list_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinList,
-        builtin_spec  = BuiltinOptimization.builtin_list_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_list_spec
     )
 
 
 def set_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinSet,
-        builtin_spec  = BuiltinOptimization.builtin_set_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_set_spec
     )
 
 
 def frozenset_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinFrozenset,
-        builtin_spec  = BuiltinOptimization.builtin_frozenset_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_frozenset_spec
     )
 
 
@@ -569,10 +569,10 @@ def float_extractor(node):
             node     = node
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinFloat,
-        builtin_spec        = BuiltinOptimization.builtin_float_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_float_spec,
         empty_special_class = makeFloat0
     )
 
@@ -599,29 +599,29 @@ def complex_extractor(node):
                 source_ref = source_ref
             )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = selectComplexBuiltin,
-        builtin_spec        = BuiltinOptimization.builtin_complex_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_complex_spec,
         empty_special_class = makeComplex0
     )
 
 
 def str_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinStr,
-        builtin_spec  = BuiltinOptimization.builtin_str_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_str_spec
     )
 
 if python_version < 300:
     from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinUnicode
 
     def unicode_extractor(node):
-        return BuiltinOptimization.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinUnicode,
-            builtin_spec  = BuiltinOptimization.builtin_unicode_spec
+            builtin_spec  = BuiltinParameterSpecs.builtin_unicode_spec
         )
 
 else:
@@ -653,19 +653,19 @@ else:
                     source_ref = source_ref
                 )
 
-        return BuiltinOptimization.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgs(
             node                = node,
             builtin_class       = selectBytesBuiltin,
-            builtin_spec        = BuiltinOptimization.builtin_bytes_spec,
+            builtin_spec        = BuiltinParameterSpecs.builtin_bytes_spec,
             empty_special_class = makeBytes0
         )
 
 
 def bool_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinBool,
-        builtin_spec  = BuiltinOptimization.builtin_bool_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_bool_spec
     )
 
 
@@ -691,10 +691,10 @@ def int_extractor(node):
                 source_ref = source_ref
             )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = selectIntBuiltin,
-        builtin_spec        = BuiltinOptimization.builtin_int_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_int_spec,
         empty_special_class = makeInt0
     )
 
@@ -724,19 +724,19 @@ if python_version < 300:
                     source_ref = source_ref
                 )
 
-        return BuiltinOptimization.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgs(
             node                = node,
             builtin_class       = selectIntBuiltin,
-            builtin_spec        = BuiltinOptimization.builtin_int_spec,
+            builtin_spec        = BuiltinParameterSpecs.builtin_int_spec,
             empty_special_class = makeLong0
         )
 
 
 def globals_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinGlobals,
-        builtin_spec  = BuiltinOptimization.builtin_globals_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_globals_spec
     )
 
 
@@ -751,16 +751,16 @@ def locals_extractor(node):
         )
 
     if provider.isCompiledPythonModule():
-        return BuiltinOptimization.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgs(
             node          = node,
             builtin_class = ExpressionBuiltinGlobals,
-            builtin_spec  = BuiltinOptimization.builtin_globals_spec
+            builtin_spec  = BuiltinParameterSpecs.builtin_globals_spec
         )
     else:
-        return BuiltinOptimization.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgs(
             node          = node,
             builtin_class = makeLocalsNode,
-            builtin_spec  = BuiltinOptimization.builtin_locals_spec
+            builtin_spec  = BuiltinParameterSpecs.builtin_locals_spec
         )
 
 if python_version < 300:
@@ -829,10 +829,10 @@ if python_version < 300:
 
             return outline_body
 
-        return BuiltinOptimization.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgs(
             node          = node,
             builtin_class = wrapExpressionBuiltinExecfileCreation,
-            builtin_spec  = BuiltinOptimization.builtin_execfile_spec
+            builtin_spec  = BuiltinParameterSpecs.builtin_execfile_spec
         )
 
 
@@ -1009,10 +1009,10 @@ def eval_extractor(node):
 
         return outline_body
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = wrapEvalBuiltin,
-        builtin_spec  = BuiltinOptimization.builtin_eval_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_eval_spec
     )
 
 
@@ -1072,10 +1072,10 @@ if python_version >= 300:
 
             return outline_body
 
-        return BuiltinOptimization.extractBuiltinArgs(
+        return BuiltinParameterSpecs.extractBuiltinArgs(
             node          = node,
             builtin_class = wrapExpressionBuiltinExecCreation,
-            builtin_spec  = BuiltinOptimization.builtin_eval_spec
+            builtin_spec  = BuiltinParameterSpecs.builtin_eval_spec
         )
 
 
@@ -1093,30 +1093,30 @@ def compile_extractor(node):
             source_ref   = source_ref
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = wrapExpressionBuiltinCompileCreation,
-        builtin_spec  = BuiltinOptimization.builtin_compile_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_compile_spec
     )
 
 
 def open_extractor(node):
     def makeOpen0(source_ref):
         # pylint: disable=unused-argument
-
-        return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression = node,
-            exception  = TypeError(
-                "Required argument 'name' (pos 1) not found"
-                  if python_version < 300 else
-                "Required argument 'file' (pos 1) not found"
+        try:
+            open()
+        except Exception as e:  # We want to broad here, pylint: disable=broad-except
+            return makeRaiseExceptionReplacementExpressionFromInstance(
+                expression = node,
+                exception  = e
             )
-        )
+        else:
+            raise NuitkaAssumptionError("open without argument is expected to raise")
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinOpen,
-        builtin_spec        = BuiltinOptimization.builtin_open_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_open_spec,
         empty_special_class = makeOpen0
     )
 
@@ -1210,42 +1210,42 @@ def super_extractor(node):
     if not provider.isCompiledPythonModule():
         provider.discardFlag("has_super")
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = wrapSuperBuiltin,
-        builtin_spec  = BuiltinOptimization.builtin_super_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_super_spec
     )
 
 
 def hasattr_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinHasattr,
-        builtin_spec  = BuiltinOptimization.builtin_hasattr_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_hasattr_spec
     )
 
 
 def getattr_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinGetattr,
-        builtin_spec  = BuiltinOptimization.builtin_getattr_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_getattr_spec
     )
 
 
 def setattr_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinSetattr,
-        builtin_spec  = BuiltinOptimization.builtin_setattr_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_setattr_spec
     )
 
 
 def isinstance_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinIsinstance,
-        builtin_spec  = BuiltinOptimization.builtin_isinstance_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_isinstance_spec
     )
 
 
@@ -1271,10 +1271,10 @@ def bytearray_extractor(node):
             )
 
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = selectNextBuiltinClass,
-        builtin_spec        = BuiltinOptimization.builtin_bytearray_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_bytearray_spec,
         empty_special_class = makeBytearray0
     )
 
@@ -1294,17 +1294,17 @@ def slice_extractor(node):
             source_ref = source_ref
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = wrapSlice,
-        builtin_spec  = BuiltinOptimization.builtin_slice_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_slice_spec
     )
 
 def hash_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionBuiltinHash,
-        builtin_spec  = BuiltinOptimization.builtin_hash_spec
+        builtin_spec  = BuiltinParameterSpecs.builtin_hash_spec
     )
 
 def format_extractor(node):
@@ -1316,10 +1316,10 @@ def format_extractor(node):
             exception  = TypeError("format() takes at least 1 argument (0 given)")
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinFormat,
-        builtin_spec        = BuiltinOptimization.builtin_format_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_format_spec,
         empty_special_class = makeFormat0
     )
 
@@ -1333,10 +1333,10 @@ def staticmethod_extractor(node):
             exception  = TypeError("staticmethod expected 1 arguments, got 0")
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinStaticmethod,
-        builtin_spec        = BuiltinOptimization.builtin_staticmethod_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_staticmethod_spec,
         empty_special_class = makeStaticmethod0
     )
 
@@ -1350,19 +1350,19 @@ def classmethod_extractor(node):
             exception  = TypeError("classmethod expected 1 arguments, got 0")
         )
 
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node                = node,
         builtin_class       = ExpressionBuiltinClassmethod,
-        builtin_spec        = BuiltinOptimization.builtin_classmethod_spec,
+        builtin_spec        = BuiltinParameterSpecs.builtin_classmethod_spec,
         empty_special_class = makeStaticmethod0
     )
 
 
 def divmod_extractor(node):
-    return BuiltinOptimization.extractBuiltinArgs(
+    return BuiltinParameterSpecs.extractBuiltinArgs(
         node          = node,
         builtin_class = ExpressionOperationBinaryDivmod,
-        builtin_spec  = BuiltinOptimization.builtin_divmod_spec,
+        builtin_spec  = BuiltinParameterSpecs.builtin_divmod_spec,
     )
 
 

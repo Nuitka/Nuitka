@@ -48,7 +48,6 @@ from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionRef
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.ParameterSpecs import ParameterSpec
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import (
@@ -56,6 +55,7 @@ from nuitka.nodes.VariableRefNodes import (
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
+from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from . import SyntaxErrors
 from .InternalModule import (

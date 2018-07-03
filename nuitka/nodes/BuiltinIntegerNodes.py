@@ -25,8 +25,8 @@ largely depend on the arguments slot.
 """
 
 from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
-from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
+from nuitka.specs import BuiltinParameterSpecs
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
@@ -132,7 +132,7 @@ class ExpressionBuiltinIntLong2Base(ExpressionSpecBasedComputationBase):
 class ExpressionBuiltinInt2(ExpressionBuiltinIntLong2Base):
     kind = "EXPRESSION_BUILTIN_INT2"
 
-    builtin_spec = BuiltinOptimization.builtin_int_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_int_spec
     builtin = int
 
     def getTypeShape(self):
@@ -179,7 +179,7 @@ if python_version < 300:
     class ExpressionBuiltinLong2(ExpressionBuiltinIntLong2Base):
         kind = "EXPRESSION_BUILTIN_LONG2"
 
-        builtin_spec = BuiltinOptimization.builtin_long_spec
+        builtin_spec = BuiltinParameterSpecs.builtin_long_spec
         builtin = long
 
         def getTypeShape(self):
