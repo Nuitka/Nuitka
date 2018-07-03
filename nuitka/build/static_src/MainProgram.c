@@ -306,6 +306,9 @@ int main( int argc, char **argv )
 #if _NUITKA_SYSFLAG_BYTES_WARNING
     Py_HashRandomizationFlag = 1;
 #endif
+#if PYTHON_VERSION >= 370
+    Py_UTF8Mode = _NUITKA_SYSFLAG_UTF8;
+#endif
 
     /* This suppresses warnings from getpath.c */
     Py_FrozenFlag = 1;

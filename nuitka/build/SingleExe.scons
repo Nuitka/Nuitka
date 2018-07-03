@@ -182,6 +182,8 @@ python_sysflag_no_site = getBoolOption("python_sysflag_no_site", False)
 python_sysflag_verbose = getBoolOption("python_sysflag_verbose", False)
 # python_sysflag_unicode
 python_sysflag_unicode = getBoolOption("python_sysflag_unicode", False)
+# python_sysflag_utf8
+python_sysflag_utf8 = getBoolOption("python_sysflag_utf8", False)
 
 
 # Amount of jobs to use.
@@ -862,6 +864,9 @@ env.Append(
     CPPDEFINES = ["_NUITKA_SYSFLAG_VERBOSE=%d" % (1 if python_sysflag_verbose else 0)]
 )
 
+env.Append(
+    CPPDEFINES = ["_NUITKA_SYSFLAG_UTF8=%d" % (1 if python_sysflag_utf8 else 0)]
+)
 
 
 if win_target:

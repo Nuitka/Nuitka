@@ -584,6 +584,9 @@ def runScons(main_module, quiet):
     if python_version < 300 and sys.flags.unicode:
         options["python_sysflag_unicode"] = "true"
 
+    if python_version >= 370 and sys.flags.utf8_mode:
+        options["python_sysflag_utf8"] = "true"
+
     if abiflags:
         options["abiflags"] = abiflags
 
