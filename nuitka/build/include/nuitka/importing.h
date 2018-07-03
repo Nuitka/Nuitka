@@ -35,6 +35,8 @@ extern bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *modu
 
 extern PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, char const *name );
 
+extern PyObject *const_str_plain___name__;
+
 NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *import_name )
 {
     CHECK_OBJECT( module );
@@ -46,7 +48,25 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
     {
         if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
         {
-#if PYTHON_VERSION >= 340 || !defined(_NUITKA_FULL_COMPAT)
+#if PYTHON_VERSION >= 370
+            PyObject *filename = PyModule_GetFilenameObject( module );
+            if ( filename == NULL )
+            {
+                filename = PyUnicode_FromString("unknown location");
+            }
+
+            PyObject *name = LOOKUP_ATTRIBUTE( module, const_str_plain___name__ );
+
+            if ( name == NULL )
+            {
+                name = PyUnicode_FromString("<unknown module name>");
+            }
+
+            PyErr_Format( PyExc_ImportError, "cannot import name %R from %R (%S)", import_name, name, filename );
+
+            Py_DECREF( filename );
+            Py_DECREF( name );
+#elif PYTHON_VERSION >= 340 || !defined(_NUITKA_FULL_COMPAT)
             PyErr_Format( PyExc_ImportError, "cannot import name '%s'", Nuitka_String_AsString( import_name ));
 #else
             PyErr_Format( PyExc_ImportError, "cannot import name %s", Nuitka_String_AsString( import_name ));
