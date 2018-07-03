@@ -236,6 +236,35 @@ static int Nuitka_Frame_settrace( PyFrameObject *frame, PyObject* v, void *closu
     return -1;
 }
 
+#if PYTHON_VERSION >= 370
+static PyObject *Nuitka_Frame_gettracelines( PyFrameObject *frame, void *closure )
+{
+    PyObject *result = Py_False;
+    Py_INCREF( result );
+    return result;
+}
+
+static int Nuitka_Frame_settracelines( PyFrameObject *frame, PyObject* v, void *closure )
+{
+    PyErr_Format( PyExc_RuntimeError, "f_trace_lines is not writable in Nuitka" );
+    return -1;
+}
+
+static PyObject *Nuitka_Frame_gettraceopcodes( PyFrameObject *frame, void *closure )
+{
+    PyObject *result = Py_False;
+    Py_INCREF( result );
+    return result;
+}
+
+static int Nuitka_Frame_settraceopcodes( PyFrameObject *frame, PyObject* v, void *closure )
+{
+    PyErr_Format( PyExc_RuntimeError, "f_trace_opcodes is not writable in Nuitka" );
+    return -1;
+}
+
+#endif
+
 static PyGetSetDef Nuitka_Frame_getsetlist[] = {
     { (char *)"f_locals", (getter)Nuitka_Frame_getlocals, NULL, NULL },
     { (char *)"f_lineno", (getter)Nuitka_Frame_getlineno, NULL, NULL },
@@ -245,6 +274,10 @@ static PyGetSetDef Nuitka_Frame_getsetlist[] = {
     { (char *)"f_exc_traceback", (getter)Nuitka_Frame_get_exc_traceback, (setter)Nuitka_Frame_set_exc_traceback, NULL },
     { (char *)"f_exc_type", (getter)Nuitka_Frame_get_exc_type, (setter)Nuitka_Frame_set_exc_type, NULL },
     { (char *)"f_exc_value", (getter)Nuitka_Frame_get_exc_value, (setter)Nuitka_Frame_set_exc_value, NULL },
+#endif
+#if PYTHON_VERSION >= 370
+    { (char *)"f_trace_lines", (getter)Nuitka_Frame_gettracelines, (setter)Nuitka_Frame_settracelines, NULL },
+    { (char *)"f_trace_opcodes", (getter)Nuitka_Frame_gettraceopcodes, (setter)Nuitka_Frame_settraceopcodes, NULL },
 #endif
     { NULL }
 };
@@ -539,6 +572,9 @@ static struct Nuitka_FrameObject *MAKE_FRAME( PyCodeObject *code, PyObject *modu
     frame->f_exc_type = NULL;
     frame->f_exc_value = NULL;
     frame->f_exc_traceback = NULL;
+#else
+    frame->f_trace_lines = 0;
+    frame->f_trace_opcodes = 0;
 #endif
 
     Py_INCREF( dict_builtin );
