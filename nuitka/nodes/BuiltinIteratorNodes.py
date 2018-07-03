@@ -42,6 +42,8 @@ from .shapes.StandardShapes import ShapeIterator
 class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ITER1"
 
+    simulator = iter
+
     def computeExpression(self, trace_collection):
         trace_collection.initIteratorValue(self)
         value = self.getValue()
@@ -145,6 +147,21 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     def onRelease(self, trace_collection):
         # print "onRelease", self
         pass
+
+
+class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
+    kind = "EXPRESSION_BUILTIN_ITER_FOR_UNPACK"
+
+    @staticmethod
+    def simulator(value):
+        try:
+            return iter(value)
+        except TypeError:
+            raise TypeError(
+                "cannot unpack non-iterable %s object" % (
+                    type(value).__name__
+                )
+            )
 
 
 class StatementSpecialUnpackCheck(StatementChildHavingBase):

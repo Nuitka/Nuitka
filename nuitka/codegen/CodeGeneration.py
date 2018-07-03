@@ -170,6 +170,7 @@ from .IntegerCodes import (
 from .IteratorCodes import (
     generateBuiltinIter1Code,
     generateBuiltinIter2Code,
+    generateBuiltinIterForUnpackCode,
     generateBuiltinLenCode,
     generateBuiltinNext1Code,
     generateBuiltinNext2Code,
@@ -539,6 +540,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_EXECFILE"                 : generateExecfileCode,
         "EXPRESSION_BUILTIN_EVAL"                     : generateEvalCode,
         "EXPRESSION_BUILTIN_EXEC"                     : generateEvalCode,
+        "EXPRESSION_BUILTIN_ITER_FOR_UNPACK"          : generateBuiltinIterForUnpackCode,
         "EXPRESSION_BUILTIN_ITER1"                    : generateBuiltinIter1Code,
         "EXPRESSION_BUILTIN_ITER2"                    : generateBuiltinIter2Code,
         "EXPRESSION_BUILTIN_NEXT1"                    : generateBuiltinNext1Code,

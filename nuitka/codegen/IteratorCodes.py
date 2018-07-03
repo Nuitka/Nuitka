@@ -233,6 +233,20 @@ def generateBuiltinIter1Code(to_name, expression, emit, context):
     )
 
 
+def generateBuiltinIterForUnpackCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "MAKE_UNPACK_ITERATOR",
+        arg_desc   = (
+            ("iter_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
 def generateBuiltinIter2Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name    = to_name,
