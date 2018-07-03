@@ -376,6 +376,7 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
     if frame_return_exit is not None:
         emit(
             template_frame_guard_generator_return_handler % {
+                "context_identifier" : context_identifier,
                 "frame_identifier"   : "%s->m_frame" % context_identifier,
                 "return_exit"        : parent_return_exit,
                 "frame_return_exit"  : frame_return_exit,
@@ -385,6 +386,7 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
     if frame_exception_exit is not None:
         emit(
             template_frame_guard_generator_exception_handler % {
+                "context_identifier"     : context_identifier,
                 "frame_identifier"       : "%s->m_frame" % context_identifier,
                 "frame_cache_identifier" : "cache_frame_" + context_identifier,
                 "tb_making"              : getTracebackMakingIdentifier(
