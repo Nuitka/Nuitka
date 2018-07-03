@@ -824,10 +824,10 @@ def checkReferenceCount(checked_function, max_rounds = 10):
             for key in m1:
                 if key not in m2:
                     print('*' * 80)
-                    print(key)
+                    print("extra", key)
                 elif m1[key] != m2[key]:
                     print('*' * 80)
-                    print(key)
+                    print(m1[key], "->", m2[key], key)
                 else:
                     pass
                     # print m1[key]

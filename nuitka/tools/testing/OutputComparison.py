@@ -26,6 +26,7 @@ an example.
 import difflib
 import os
 import re
+import sys
 
 from nuitka.Tracing import my_print
 
@@ -53,10 +54,6 @@ traceback_re                 = re.compile(
     r'(F|f)ile "(.*?)", line (\d+)'
 )
 
-tempfile_re                  = re.compile(
-    r'/tmp/tmp[a-z0-9_]*'
-)
-
 def traceback_re_callback(match):
     return r'%sile "%s", line %s' % (
         match.group(1),
@@ -64,10 +61,27 @@ def traceback_re_callback(match):
         match.group(3)
     )
 
+importerror_re               = re.compile(
+    r"""(ImportError\("cannot import name '\w+' from '.*?' )\((.*?)\)"""
+)
+
+def import_re_callback(match):
+#    print (match.groups(), os.path.abspath(match.group(2)))
+
+    return r'%s( >> %s)' % (
+        match.group(1),
+        os.path.realpath(os.path.abspath(match.group(2)))
+    )
+
+
+tempfile_re                  = re.compile(
+    r'/tmp/tmp[a-z0-9_]*'
+)
 
 
 def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
-    # Of course many cases to deal with, pylint: disable=too-many-branches
+    # Of course many cases to deal with,
+    # pylint: disable=too-many-branches,too-many-statements
 
     result = []
 
@@ -131,6 +145,8 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
 
         line = traceback_re.sub(traceback_re_callback, line)
 
+        line = importerror_re.sub(import_re_callback, line)
+
         line = tempfile_re.sub(r"/tmp/tmpxxxxxxx", line)
 
         # This is a bug potentially, occurs only for CPython when re-directed,
@@ -139,6 +155,10 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
 Exception RuntimeError: 'maximum recursion depth \
 exceeded while calling a Python object' in \
 <type 'exceptions.AttributeError'> ignored""":
+            continue
+
+        # TODO: Harmonize exception ignored in function or method.
+        if "Exception ignored in:" in line and sys.version_info >= (3,7):
             continue
 
         # This is also a bug potentially, but only visible under
