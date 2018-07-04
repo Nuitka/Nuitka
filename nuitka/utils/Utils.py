@@ -21,7 +21,6 @@ Here the small things that fit nowhere else and don't deserve their own module.
 
 """
 
-import imp
 import os
 import sys
 
@@ -48,16 +47,29 @@ def getArchitecture():
 
 
 def getSharedLibrarySuffix():
-    result = None
+    if python_version < 300:
+        import imp
 
-    for suffix, _mode, module_type in imp.get_suffixes():
-        if module_type != imp.C_EXTENSION:
-            continue
+        result = None
 
-        if result is None or len(suffix) < len(result):
-            result = suffix
+        for suffix, _mode, module_type in imp.get_suffixes():
+            if module_type != imp.C_EXTENSION:
+                continue
 
-    return result
+            if result is None or len(suffix) < len(result):
+                result = suffix
+
+        return result
+    else:
+        import importlib.machinery  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+
+        result = None
+
+        for suffix in importlib.machinery.EXTENSION_SUFFIXES:
+            if result is None or len(suffix) < len(result):
+                result = suffix
+
+        return result
 
 
 def getCoreCount():
