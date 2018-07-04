@@ -57,15 +57,6 @@ def getTupleCreationCode(to_name, elements, emit, context):
             context  = context
         )
     else:
-        emit(
-            "%s = PyTuple_New( %d );" % (
-                to_name,
-                len(elements)
-            )
-        )
-
-        context.addCleanupTempName(to_name)
-
         element_name = context.allocateTempName("tuple_element")
 
         for count, element in enumerate(elements):
@@ -75,6 +66,16 @@ def getTupleCreationCode(to_name, elements, emit, context):
                 emit       = emit,
                 context    = context
             )
+
+            if count == 0:
+                emit(
+                    "%s = PyTuple_New( %d );" % (
+                        to_name,
+                        len(elements)
+                    )
+                )
+
+                context.addCleanupTempName(to_name)
 
             if not context.needsCleanup(element_name):
                 emit("Py_INCREF( %s );" % element_name)

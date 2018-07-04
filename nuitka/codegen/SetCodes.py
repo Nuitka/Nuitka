@@ -29,17 +29,9 @@ from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generateSetCreationCode(to_name, expression, emit, context):
-    emit(
-        "%s = PySet_New( NULL );" % (
-            to_name,
-        )
-    )
-
-    context.addCleanupTempName(to_name)
-
     element_name = context.allocateTempName("set_element")
 
-    for element in expression.getElements():
+    for count, element in enumerate(expression.getElements()):
         generateExpressionCode(
             to_name    = element_name,
             expression = element,
@@ -47,29 +39,31 @@ def generateSetCreationCode(to_name, expression, emit, context):
             context    = context
         )
 
-        if element.isKnownToBeHashable():
+        if count == 0:
             emit(
-                "PySet_Add( %s, %s );" % (
+                "%s = PySet_New( NULL );" % (
                     to_name,
-                    element_name
-                )
-            )
-        else:
-            res_name = context.getIntResName()
-
-            emit(
-                "%s = PySet_Add( %s, %s );" % (
-                    res_name,
-                    to_name,
-                    element_name
                 )
             )
 
-            getErrorExitBoolCode(
-                condition = "%s != 0" % res_name,
-                emit      = emit,
-                context   = context
+            context.addCleanupTempName(to_name)
+
+        res_name = context.getIntResName()
+
+        emit(
+            "%s = PySet_Add( %s, %s );" % (
+                res_name,
+                to_name,
+                element_name
             )
+        )
+
+        getErrorExitBoolCode(
+            condition   = "%s != 0" % res_name,
+            needs_check = not element.isKnownToBeHashable(),
+            emit        = emit,
+            context     = context
+        )
 
         if context.needsCleanup(element_name):
             emit("Py_DECREF( %s );" % element_name)

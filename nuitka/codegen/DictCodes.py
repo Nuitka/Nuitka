@@ -94,16 +94,6 @@ def generateDictionaryCreationCode(to_name, expression, emit, context):
 
 
 def getDictionaryCreationCode(to_name, pairs, emit, context):
-
-    emit(
-        "%s = _PyDict_NewPresized( %d );" % (
-            to_name,
-            len(pairs)
-        )
-    )
-
-    context.addCleanupTempName(to_name)
-
     def generateValueCode(dict_value_name, pair):
         generateExpressionCode(
             to_name    = dict_value_name,
@@ -120,13 +110,14 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
             context    = context
         )
 
+    assert pairs
 
-    # Strange as it is, CPython evaluates the key/value pairs strictly in order,
-    # but for each pair, the value first.
-    for pair in pairs:
+    for count, pair in enumerate(pairs):
         dict_key_name = context.allocateTempName("dict_key")
         dict_value_name = context.allocateTempName("dict_value")
 
+        # Strange as it is, CPython 3.5 and before evaluated the key/value pairs
+        # strictly in order, but for each pair, the value first.
         if python_version < 350:
             generateValueCode(dict_value_name, pair)
             generateKeyCode(dict_key_name, pair)
@@ -134,8 +125,17 @@ def getDictionaryCreationCode(to_name, pairs, emit, context):
             generateKeyCode(dict_key_name, pair)
             generateValueCode(dict_value_name, pair)
 
-        needs_check = not pair.getKey().isKnownToBeHashable()
+        if count == 0:
+            emit(
+                "%s = _PyDict_NewPresized( %d );" % (
+                    to_name,
+                    len(pairs)
+                )
+            )
 
+            context.addCleanupTempName(to_name)
+
+        needs_check = not pair.getKey().isKnownToBeHashable()
         res_name = context.getIntResName()
 
         emit(

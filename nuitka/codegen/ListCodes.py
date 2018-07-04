@@ -28,14 +28,7 @@ from .PythonAPICodes import generateCAPIObjectCode
 def generateListCreationCode(to_name, expression, emit, context):
     elements = expression.getElements()
 
-    emit(
-        "%s = PyList_New( %d );" % (
-            to_name,
-            len(elements)
-        )
-    )
-
-    context.addCleanupTempName(to_name)
+    assert elements
 
     element_name = context.allocateTempName("list_element")
 
@@ -46,6 +39,17 @@ def generateListCreationCode(to_name, expression, emit, context):
             emit       = emit,
             context    = context
         )
+
+        # Delayed allocation of the list to store in.
+        if count == 0:
+            emit(
+                "%s = PyList_New( %d );" % (
+                    to_name,
+                    len(elements)
+                )
+            )
+
+            context.addCleanupTempName(to_name)
 
         if not context.needsCleanup(element_name):
             emit("Py_INCREF( %s );" % element_name)
