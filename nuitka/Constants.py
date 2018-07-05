@@ -281,7 +281,7 @@ def getUnhashableConstant(constant):
 
 def isIterableConstant(constant):
     return type(constant) in (
-        str, unicode, list, tuple, set, frozenset, dict, xrange, bytes
+        str, unicode, list, tuple, set, frozenset, dict, xrange, bytes, bytearray
     )
 
 
