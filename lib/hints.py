@@ -68,7 +68,7 @@ def enableImportTracing(normalize_paths = True, show_source = False):
         try:
             _indentation += 1
 
-            print(_indentation * " " + "called with: name=%r level=%d" % (name, level))
+            print(_indentation * " " + "called with: name=%r level=%d fromlist=%s" % (name, level, fromlist))
 
             for entry in traceback.extract_stack()[:-1]:
                 if entry[2] == "_ourimport":
