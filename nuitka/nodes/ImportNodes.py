@@ -490,9 +490,9 @@ class ExpressionImportName(ExpressionChildHavingBase):
 
     named_child = "module"
 
-    __slots__ = ("import_name",)
+    __slots__ = ("import_name", "level")
 
-    def __init__(self, module, import_name, source_ref):
+    def __init__(self, module, import_name, level, source_ref):
         ExpressionChildHavingBase.__init__(
             self,
             value      = module,
@@ -500,15 +500,20 @@ class ExpressionImportName(ExpressionChildHavingBase):
         )
 
         self.import_name = import_name
+        self.level = level
 
         assert module is not None
 
     def getImportName(self):
         return self.import_name
 
+    def getImportLevel(self):
+        return self.level
+
     def getDetails(self):
         return {
-            "import_name" : self.getImportName()
+            "import_name" : self.getImportName(),
+            "level"       : self.level
         }
 
     def getDetail(self):

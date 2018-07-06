@@ -20,6 +20,8 @@
 That is import as expression, and star import.
 """
 
+from nuitka.PythonVersions import python_version
+
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
@@ -239,15 +241,46 @@ def generateImportNameCode(to_name, expression, emit, context):
         context    = context
     )
 
-    emit(
-        "%s = IMPORT_NAME( %s, %s );" % (
-            to_name,
-            from_arg_name,
-            context.getConstantCode(
-                constant = expression.getImportName()
+    level = expression.getImportLevel()
+
+    if level and python_version >= 300:
+        emit(
+            """\
+if ( PyModule_Check( %(from_arg_name)s ) )
+{
+   %(to_name)s = IMPORT_NAME_OR_MODULE(
+        %(from_arg_name)s,
+        (PyObject *)MODULE_DICT(%(from_arg_name)s),
+        %(import_name)s,
+        %(import_level)s
+    );
+}
+else
+{
+   %(to_name)s = IMPORT_NAME( %(from_arg_name)s, %(import_name)s );
+}
+""" % {
+                "to_name"       : to_name,
+                "from_arg_name" : from_arg_name,
+                "import_name"   : context.getConstantCode(
+                    constant = expression.getImportName()
+                ),
+                "import_level"   : context.getConstantCode(
+                    constant = expression.getImportLevel()
+                )
+            }
+        )
+    else:
+        emit(
+            "%s = IMPORT_NAME( %s, %s );" % (
+                to_name,
+                from_arg_name,
+                context.getConstantCode(
+                    constant = expression.getImportName()
+                )
             )
         )
-    )
+
 
     getErrorExitCode(
         check_name   = to_name,

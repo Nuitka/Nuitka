@@ -79,4 +79,50 @@ NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME( PyObject *module, PyObject *i
     return result;
 }
 
+
+extern PyObject *const_str_empty;
+
+NUITKA_MAY_BE_UNUSED static PyObject *IMPORT_NAME_OR_MODULE( PyObject *module, PyObject *globals, PyObject *import_name, PyObject *level )
+{
+    CHECK_OBJECT( module );
+    CHECK_OBJECT( import_name );
+
+    PyObject *result = PyObject_GetAttr( module, import_name );
+
+    if (unlikely( result == NULL ))
+    {
+        if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
+        {
+            CLEAR_ERROR_OCCURRED();
+
+            PyObject *fromlist = PyTuple_New(1);
+            PyTuple_SetItem( fromlist, 0, import_name );
+
+            result = IMPORT_MODULE5( const_str_empty, globals, globals, fromlist, level );
+
+            Py_DECREF( fromlist );
+
+            if ( result != NULL )
+            {
+                // Look up in "sys.modules", because we will have returned the
+                // package of it from IMPORT_MODULE5.
+                PyObject *name = PyUnicode_FromFormat("%s.%S", PyModule_GetName( result ), import_name );
+                Py_DECREF( result );
+
+                result = PyDict_GetItem( PyImport_GetModuleDict(), name );
+            }
+
+            if ( result == NULL )
+            {
+                CLEAR_ERROR_OCCURRED();
+
+                result = IMPORT_NAME( module, import_name );
+            }
+        }
+    }
+
+    return result;
+}
+
+
 #endif
