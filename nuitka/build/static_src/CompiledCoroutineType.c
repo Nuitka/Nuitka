@@ -162,6 +162,18 @@ static void Nuitka_Coroutine_entry_point( struct Nuitka_CoroutineObject *corouti
 
 static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutine, PyObject *value, bool closing )
 {
+#if _DEBUG_COROUTINE
+    PRINT_STRING("_Nuitka_Coroutine_send: ");
+    PRINT_ITEM( value );
+    PRINT_STRING(" ");
+    if ( coroutine->m_status == status_Finished ) PRINT_STRING("(finished)");
+    if ( coroutine->m_status == status_Running ) PRINT_STRING("(running)");
+    if ( coroutine->m_status == status_Unused ) PRINT_STRING("(unused)");
+    PRINT_STRING(" ");
+    PRINT_STRING(closing ? "closing" : "not closing");
+    PRINT_NEW_LINE();
+#endif
+
     if ( coroutine->m_status == status_Unused && value != NULL && value != Py_None )
     {
         PyErr_Format( PyExc_TypeError, "can't send non-None value to a just-started coroutine" );
@@ -339,6 +351,10 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
          */
         if ( closing == false )
         {
+#if _DEBUG_COROUTINE
+            PRINT_STRING("Finished coroutine not being closed -> RuntimeError\n");
+#endif
+
             PyErr_Format(
                 PyExc_RuntimeError,
                 "cannot reuse already awaited coroutine"
@@ -403,6 +419,9 @@ PyObject *Nuitka_Coroutine_close( struct Nuitka_CoroutineObject *coroutine, PyOb
 extern PyObject *const_str_plain_close;
 
 /* Also used for asyncgen. */
+#if PYTHON_VERSION < 360
+static
+#endif
 bool Nuitka_gen_close_iter( PyObject *yieldfrom )
 {
     PyObject *meth = PyObject_GetAttr( yieldfrom, const_str_plain_close );
@@ -438,6 +457,15 @@ extern PyObject *const_str_plain_throw;
 
 static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *coroutine, bool close_on_genexit )
 {
+#if _DEBUG_COROUTINE
+    PRINT_STRING("_Nuitka_Coroutine_throw2: yielding from: ");
+    PRINT_ITEM( coroutine->m_yieldfrom );
+    if ( coroutine->m_status == status_Finished ) PRINT_STRING("(finished)");
+    if ( coroutine->m_status == status_Running ) PRINT_STRING("(running)");
+    if ( coroutine->m_status == status_Unused ) PRINT_STRING("(unused)");
+    PRINT_NEW_LINE();
+#endif
+
     if ( coroutine->m_yieldfrom != NULL )
     {
         if ( close_on_genexit )
@@ -481,6 +509,14 @@ static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *corout
         if (unlikely( ret == NULL ))
         {
             PyObject *val;
+
+#if _DEBUG_COROUTINE
+            PRINT_STRING("Sending value into ourselves:");
+            if ( coroutine->m_status == status_Finished ) PRINT_STRING("(finished)");
+            if ( coroutine->m_status == status_Running ) PRINT_STRING("(running)");
+            if ( coroutine->m_status == status_Unused ) PRINT_STRING("(unused)");
+            PRINT_NEW_LINE();
+#endif
 
             if ( _PyGen_FetchStopIterationValue( &val ) == 0 )
             {
@@ -578,6 +614,9 @@ throw_here:
         coroutine->m_exception_tb = NULL;
 
 #if PYTHON_VERSION >= 352 || !defined(_NUITKA_FULL_COMPAT)
+#if _DEBUG_COROUTINE
+            PRINT_STRING("Finished coroutine thrown into -> RuntimeError\n");
+#endif
         /* This check got added in Python 3.5.2 only. It's good to do it, but
          * not fully compatible, therefore guard it.
          */
@@ -608,8 +647,22 @@ static PyObject *Nuitka_Coroutine_throw( struct Nuitka_CoroutineObject *coroutin
         return NULL;
     }
 
-    return _Nuitka_Coroutine_throw2( coroutine, true );
+#if _DEBUG_COROUTINE
+    PRINT_STRING("Nuitka_Coroutine_throw:");
 
+    if ( coroutine->m_exception_type ) {
+        PRINT_STRING("TYPE:");
+        PRINT_ITEM((PyObject *)Py_TYPE(coroutine->m_exception_type));
+    }
+    PRINT_ITEM(coroutine->m_exception_type );
+    PRINT_STRING("-");
+    PRINT_ITEM(coroutine->m_exception_value);
+    PRINT_STRING("-");
+    PRINT_ITEM((PyObject *)coroutine->m_exception_tb);
+    PRINT_NEW_LINE();
+#endif
+
+    return _Nuitka_Coroutine_throw2( coroutine, true );
 }
 
 static void Nuitka_Coroutine_tp_del( struct Nuitka_CoroutineObject *coroutine )
@@ -1240,8 +1293,6 @@ PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *a
 {
 #if _DEBUG_COROUTINE
     PRINT_STRING("COROUTINE_AWAIT entry:");
-    PRINT_NEW_LINE();
-
     PRINT_ITEM( awaitable );
     PRINT_NEW_LINE();
 #endif
@@ -1284,7 +1335,6 @@ PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *a
 
 #if _DEBUG_COROUTINE
     PRINT_STRING("COROUTINE_AWAIT exit: ");
-
     if ( retval )
     {
         PRINT_ITEM( retval );
@@ -1294,7 +1344,6 @@ PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *a
         PRINT_CURRENT_EXCEPTION();
     }
 
-    PRINT_REFCOUNT( (PyObject *)coroutine );
     PRINT_NEW_LINE();
 #endif
 
@@ -1560,8 +1609,8 @@ PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutin
 {
 #if _DEBUG_COROUTINE
     PRINT_STRING("AITER entry:");
-
     PRINT_ITEM( value );
+
     PRINT_NEW_LINE();
 #endif
 
@@ -1631,8 +1680,9 @@ PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutin
     Py_DECREF( awaitable_iter );
 
 #if _DEBUG_COROUTINE
-    PRINT_STRING("AITER exit");
+    PRINT_STRING("AITER exit:");
     PRINT_ITEM( retval );
+
     PRINT_NEW_LINE();
 #endif
 
@@ -1643,8 +1693,8 @@ PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutin
 {
 #if _DEBUG_COROUTINE
     PRINT_STRING("ANEXT entry:");
-
     PRINT_ITEM( value );
+
     PRINT_NEW_LINE();
 #endif
 
@@ -1699,8 +1749,9 @@ PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutin
     Py_DECREF( awaitable_iter );
 
 #if _DEBUG_COROUTINE
-PRINT_STRING("ANEXT exit");
+PRINT_STRING("ANEXT exit:");
 PRINT_ITEM( retval );
+
 PRINT_NEW_LINE();
 #endif
 

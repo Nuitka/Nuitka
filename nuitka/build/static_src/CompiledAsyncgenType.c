@@ -1887,7 +1887,7 @@ extern PyObject *Nuitka_AIterWrapper_New( PyObject *aiter );
 
 PyObject *ASYNCGEN_ASYNC_MAKE_ITERATOR( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
 {
-#if _DEBUG_COROUTINE
+#if _DEBUG_ASYNCGEN
     PRINT_STRING("AITER entry:");
 
     PRINT_ITEM( value );
@@ -1953,7 +1953,7 @@ PyObject *ASYNCGEN_ASYNC_MAKE_ITERATOR( struct Nuitka_AsyncgenObject *asyncgen, 
 
     Py_DECREF( awaitable_iter );
 
-#if _DEBUG_COROUTINE
+#if _DEBUG_ASYNCGEN
     PRINT_STRING("AITER exit");
     PRINT_ITEM( retval );
     PRINT_NEW_LINE();
@@ -1964,7 +1964,7 @@ PyObject *ASYNCGEN_ASYNC_MAKE_ITERATOR( struct Nuitka_AsyncgenObject *asyncgen, 
 
 PyObject *ASYNCGEN_ASYNC_ITERATOR_NEXT( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
 {
-#if _DEBUG_COROUTINE
+#if _DEBUG_ASYNCGEN
     PRINT_STRING("ANEXT entry:");
 
     PRINT_ITEM( value );
@@ -2017,7 +2017,7 @@ PyObject *ASYNCGEN_ASYNC_ITERATOR_NEXT( struct Nuitka_AsyncgenObject *asyncgen, 
 
     Py_DECREF( awaitable_iter );
 
-#if _DEBUG_COROUTINE
+#if _DEBUG_ASYNCGEN
 PRINT_STRING("ANEXT exit");
 PRINT_ITEM( retval );
 PRINT_NEW_LINE();
