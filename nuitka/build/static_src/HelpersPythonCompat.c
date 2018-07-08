@@ -21,7 +21,8 @@
  * workarounds for them.
  */
 
-#if PYTHON_VERSION < 330
+// TODO: Seems dead now that 3.2 is not supported anymore.
+#if 0
 
 #define Py_MIN(x, y) (((x) > (y)) ? (y) : (x))
 
