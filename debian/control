@@ -23,7 +23,7 @@ Vcs-browser: http://nuitka.net/gitweb/?p=Nuitka.git;a=summary
 Homepage: http://nuitka.net
 Standards-Version: 3.9.8
 X-Python-Version: >= 2.6
-X-Python3-Version: >= 3.2
+X-Python3-Version: >= 3.3
 
 Package: nuitka
 Architecture: all
