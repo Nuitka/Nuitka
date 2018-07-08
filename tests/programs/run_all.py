@@ -63,7 +63,7 @@ for filename in sorted(os.listdir('.')):
     ]
 
     # After Python3 those have been made to work.
-    if python_version < "3":
+    if python_version < "3.5":
         expected_errors.append("cyclic_imports")
 
     # Allowed with Python3, packages need no more "__init__.py"

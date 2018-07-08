@@ -243,7 +243,7 @@ def generateImportNameCode(to_name, expression, emit, context):
 
     level = expression.getImportLevel()
 
-    if level and python_version >= 300:
+    if level and python_version >= 350:
         emit(
             """\
 if ( PyModule_Check( %(from_arg_name)s ) )
