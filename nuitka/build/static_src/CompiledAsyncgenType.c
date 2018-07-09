@@ -1703,21 +1703,32 @@ static PyObject *yieldFromAsyncgen( struct Nuitka_AsyncgenObject *asyncgen, PyOb
 }
 
 
-PyObject *ASYNCGEN_AWAIT( struct Nuitka_AsyncgenObject *asyncgen, PyObject *awaitable )
-{
-#if _DEBUG_ASYNCGEN
-    PRINT_STRING("AWAIT entry:");
-
-    PRINT_ITEM( awaitable );
-    PRINT_NEW_LINE();
+#if PYTHON_VERSION >= 370
+extern void FORMAT_AWAIT_ERROR(PyObject *value, int await_kind);
 #endif
 
+static PyObject *AWAIT_COMMON( struct Nuitka_AsyncgenObject *asyncgen, PyObject *awaitable, int await_kind )
+{
     PyObject *awaitable_iter = PyCoro_GetAwaitableIter( awaitable );
 
     if (unlikely( awaitable_iter == NULL ))
     {
+#if PYTHON_VERSION >= 370
+        FORMAT_AWAIT_ERROR( awaitable, await_kind );
+#endif
         return NULL;
     }
+
+#if PYTHON_VERSION >= 370
+    if ( await_kind != await_normal && Py_TYPE( awaitable_iter ) != &Nuitka_CoroutineWrapper_Type )
+    {
+        if (unlikely( Py_TYPE(awaitable_iter)->tp_as_async == NULL || Py_TYPE(awaitable_iter)->tp_as_async->am_await == NULL ))
+        {
+            FORMAT_AWAIT_ERROR( awaitable_iter, await_kind );
+            return NULL;
+        }
+    }
+#endif
 
     if ( Nuitka_Coroutine_Check( awaitable ) )
     {
@@ -1735,6 +1746,22 @@ PyObject *ASYNCGEN_AWAIT( struct Nuitka_AsyncgenObject *asyncgen, PyObject *awai
             return NULL;
         }
     }
+
+    return awaitable_iter;
+
+}
+
+
+PyObject *ASYNCGEN_AWAIT( struct Nuitka_AsyncgenObject *asyncgen, PyObject *awaitable, int await_kind )
+{
+#if _DEBUG_ASYNCGEN
+    PRINT_STRING("AWAIT entry:");
+
+    PRINT_ITEM( awaitable );
+    PRINT_NEW_LINE();
+#endif
+    PyObject *awaitable_iter = AWAIT_COMMON( asyncgen, awaitable, await_kind );
+    if (awaitable_iter == NULL) return NULL;
 
     asyncgen->m_awaiting = true;
     PyObject *retval = yieldFromAsyncgen( asyncgen, awaitable_iter );
@@ -1752,7 +1779,7 @@ PyObject *ASYNCGEN_AWAIT( struct Nuitka_AsyncgenObject *asyncgen, PyObject *awai
     return retval;
 }
 
-PyObject *ASYNCGEN_AWAIT_IN_HANDLER( struct Nuitka_AsyncgenObject *asyncgen, PyObject *awaitable )
+PyObject *ASYNCGEN_AWAIT_IN_HANDLER( struct Nuitka_AsyncgenObject *asyncgen, PyObject *awaitable, int await_kind )
 {
 #if _DEBUG_ASYNCGEN
     PRINT_STRING("AWAIT entry:");
@@ -1761,29 +1788,8 @@ PyObject *ASYNCGEN_AWAIT_IN_HANDLER( struct Nuitka_AsyncgenObject *asyncgen, PyO
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *awaitable_iter = PyCoro_GetAwaitableIter( awaitable );
-
-    if (unlikely( awaitable_iter == NULL ))
-    {
-        return NULL;
-    }
-
-    if ( Nuitka_Coroutine_Check( awaitable ) )
-    {
-        struct Nuitka_CoroutineObject *awaited_coroutine = (struct Nuitka_CoroutineObject *)awaitable;
-
-        if ( awaited_coroutine->m_awaiting )
-        {
-            Py_DECREF( awaitable_iter );
-
-            PyErr_Format(
-                PyExc_RuntimeError,
-                "coroutine is being awaited already"
-            );
-
-            return NULL;
-        }
-    }
+    PyObject *awaitable_iter = AWAIT_COMMON( asyncgen, awaitable, await_kind );
+    if (awaitable_iter == NULL) return NULL;
 
     /* When yielding from an exception handler in Python3, the exception
      * preserved to the frame is restore, while the current one is put there.
@@ -1918,6 +1924,20 @@ PyObject *ASYNCGEN_ASYNC_MAKE_ITERATOR( struct Nuitka_AsyncgenObject *asyncgen, 
     {
         return NULL;
     }
+
+#if PYTHON_VERSION >= 370
+    if (unlikely( Py_TYPE(iter)->tp_as_async == NULL || Py_TYPE(iter)->tp_as_async->am_anext == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async for' received an object from __aiter__ that does not implement __anext__: %s",
+            Py_TYPE(iter)->tp_name
+        );
+
+        Py_DECREF( iter );
+        return NULL;
+    }
+#endif
 
     /* Starting with Python 3.5.2 it is acceptable to return an async iterator
      * directly, instead of an awaitable.

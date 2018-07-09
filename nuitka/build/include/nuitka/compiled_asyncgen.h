@@ -87,8 +87,8 @@ static inline bool Nuitka_Asyncgen_Check( PyObject *object )
     return Py_TYPE( object ) == &Nuitka_Asyncgen_Type;
 }
 
-extern PyObject *ASYNCGEN_AWAIT( struct Nuitka_AsyncgenObject *asyngen, PyObject *awaitable );
-extern PyObject *ASYNCGEN_AWAIT_IN_HANDLER( struct Nuitka_AsyncgenObject *asyngen, PyObject *awaitable );
+extern PyObject *ASYNCGEN_AWAIT( struct Nuitka_AsyncgenObject *asyngen, PyObject *awaitable, int await_kind  );
+extern PyObject *ASYNCGEN_AWAIT_IN_HANDLER( struct Nuitka_AsyncgenObject *asyngen, PyObject *awaitable, int await_kind );
 
 extern PyObject *ASYNCGEN_ASYNC_MAKE_ITERATOR( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value );
 extern PyObject *ASYNCGEN_ASYNC_ITERATOR_NEXT( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value );

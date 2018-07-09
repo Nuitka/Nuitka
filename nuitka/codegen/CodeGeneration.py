@@ -686,6 +686,8 @@ setExpressionDispatchDict(
         "EXPRESSION_YIELD_FROM"                      : generateYieldFromCode,
         "EXPRESSION_SELECT_METACLASS"                : generateSelectMetaclassCode,
         "EXPRESSION_ASYNC_WAIT"                      : generateAsyncWaitCode,
+        "EXPRESSION_ASYNC_WAIT_ENTER"                : generateAsyncWaitCode,
+        "EXPRESSION_ASYNC_WAIT_EXIT"                 : generateAsyncWaitCode,
         "EXPRESSION_ASYNC_ITER"                      : generateAsyncIterCode,
         "EXPRESSION_ASYNC_NEXT"                      : generateAsyncNextCode,
         "EXPRESSION_STRING_CONCATENATION"            : generateStringContenationCode,

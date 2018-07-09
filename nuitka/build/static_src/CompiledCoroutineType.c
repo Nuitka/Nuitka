@@ -1060,6 +1060,12 @@ static
 #endif
 PyObject *PyCoro_GetAwaitableIter( PyObject *value )
 {
+#if _DEBUG_COROUTINE
+    PRINT_STRING("PyCoro_GetAwaitableIter:");
+    PRINT_ITEM( value );
+    PRINT_NEW_LINE();
+#endif
+
     unaryfunc getter = NULL;
 
     if ( PyCoro_CheckExact( value ) || gen_is_coroutine( value ) )
@@ -1288,21 +1294,52 @@ static PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *coroutine, P
     }
 }
 
-
-PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable )
+#if PYTHON_VERSION >= 370
+void FORMAT_AWAIT_ERROR( PyObject *value, int await_kind )
 {
-#if _DEBUG_COROUTINE
-    PRINT_STRING("COROUTINE_AWAIT entry:");
-    PRINT_ITEM( awaitable );
-    PRINT_NEW_LINE();
+    if ( await_kind == await_enter )
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async with' received an object from __aenter__ that does not implement __await__: %s",
+            Py_TYPE(value)->tp_name
+        );
+    }
+    else if ( await_kind == await_exit )
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async with' received an object from __aexit__ that does not implement __await__: %s",
+            Py_TYPE(value)->tp_name
+        );
+    }
+
+    assert(ERROR_OCCURRED());
+}
 #endif
 
+static PyObject *AWAIT_COMMON( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind )
+{
     PyObject *awaitable_iter = PyCoro_GetAwaitableIter( awaitable );
 
     if (unlikely( awaitable_iter == NULL ))
     {
+#if PYTHON_VERSION >= 370
+        FORMAT_AWAIT_ERROR( awaitable, await_kind );
+#endif
         return NULL;
     }
+
+#if PYTHON_VERSION >= 370
+    if ( await_kind != await_normal && Py_TYPE( awaitable_iter ) != &Nuitka_CoroutineWrapper_Type )
+    {
+        if (unlikely( Py_TYPE(awaitable_iter)->tp_as_async == NULL || Py_TYPE(awaitable_iter)->tp_as_async->am_await == NULL ))
+        {
+            FORMAT_AWAIT_ERROR( awaitable_iter, await_kind );
+            return NULL;
+        }
+    }
+#endif
 
 #if PYTHON_VERSION >= 352 || !defined(_NUITKA_FULL_COMPAT)
     /* This check got added in Python 3.5.2 only. It's good to do it, but
@@ -1326,6 +1363,20 @@ PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *a
         }
     }
 #endif
+
+    return awaitable_iter;
+}
+
+PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind )
+{
+#if _DEBUG_COROUTINE
+    PRINT_STRING("COROUTINE_AWAIT entry:");
+    PRINT_ITEM( awaitable );
+    PRINT_NEW_LINE();
+#endif
+
+    PyObject *awaitable_iter = AWAIT_COMMON( coroutine, awaitable, await_kind );
+    if (awaitable_iter == NULL) return NULL;
 
     coroutine->m_awaiting = true;
     PyObject *retval = yieldFromCoroutine( coroutine, awaitable_iter );
@@ -1350,7 +1401,7 @@ PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *a
     return retval;
 }
 
-PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable )
+PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind )
 {
 #if _DEBUG_COROUTINE
     PRINT_STRING("AWAIT entry:");
@@ -1359,36 +1410,8 @@ PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, 
     PRINT_NEW_LINE();
 #endif
 
-    PyObject *awaitable_iter = PyCoro_GetAwaitableIter( awaitable );
-
-    if (unlikely( awaitable_iter == NULL ))
-    {
-        return NULL;
-    }
-
-#if PYTHON_VERSION >= 352 || !defined(_NUITKA_FULL_COMPAT)
-    /* This check got added in Python 3.5.2 only. It's good to do it, but
-     * not fully compatible, therefore guard it.
-     */
-
-    if ( Nuitka_Coroutine_Check( awaitable ) )
-    {
-        struct Nuitka_CoroutineObject *awaited_coroutine = (struct Nuitka_CoroutineObject *)awaitable;
-
-        if ( awaited_coroutine->m_awaiting )
-        {
-            Py_DECREF( awaitable_iter );
-
-            PyErr_Format(
-                PyExc_RuntimeError,
-                "coroutine is being awaited already"
-            );
-
-            return NULL;
-        }
-    }
-#endif
-
+    PyObject *awaitable_iter = AWAIT_COMMON( coroutine, awaitable, await_kind );
+    if (awaitable_iter == NULL) return NULL;
 
     /* When yielding from an exception handler in Python3, the exception
      * preserved to the frame is restore, while the current one is put there.
@@ -1638,6 +1661,20 @@ PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutin
     {
         return NULL;
     }
+
+#if PYTHON_VERSION >= 370
+    if (unlikely( Py_TYPE(iter)->tp_as_async == NULL || Py_TYPE(iter)->tp_as_async->am_anext == NULL ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "'async for' received an object from __aiter__ that does not implement __anext__: %s",
+            Py_TYPE(iter)->tp_name
+        );
+
+        Py_DECREF( iter );
+        return NULL;
+    }
+#endif
 
 #if PYTHON_VERSION >= 352
     /* Starting with Python 3.5.2 it is acceptable to return an async iterator

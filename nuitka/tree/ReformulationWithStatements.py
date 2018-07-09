@@ -39,7 +39,10 @@ from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
-from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
+from nuitka.nodes.CoroutineNodes import (
+    ExpressionAsyncWaitEnter,
+    ExpressionAsyncWaitExit
+)
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTracebackRef,
     ExpressionCaughtExceptionTypeRef,
@@ -183,15 +186,15 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
 
     # For "async with", await the entered value and exit value must be awaited.
     if not sync:
-        enter_value = ExpressionAsyncWait(
+        enter_value = ExpressionAsyncWaitEnter(
             expression = enter_value,
             source_ref = source_ref
         )
-        exit_value_exception = ExpressionAsyncWait(
+        exit_value_exception = ExpressionAsyncWaitExit(
             expression = exit_value_exception,
             source_ref = source_ref
         )
-        exit_value_no_exception = ExpressionAsyncWait(
+        exit_value_no_exception = ExpressionAsyncWaitExit(
             expression = exit_value_no_exception,
             source_ref = source_ref
         )
