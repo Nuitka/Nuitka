@@ -59,12 +59,12 @@ from .VariableCodes import (
 def getClosureVariableProvisionCode(context, closure_variables):
     result = []
 
-    for variable, version, _trace in closure_variables:
+    for variable, variable_trace in closure_variables:
         result.append(
             getVariableCode(
-                context  = context,
-                variable = variable,
-                version  = version
+                context        = context,
+                variable       = variable,
+                variable_trace = variable_trace
             )
         )
 
@@ -350,11 +350,13 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
 
     suffix_args = []
 
-    for closure_variable, closure_variable_version, _variable_trace in closure_variables:
+    # TODO: Does this still have to be a tripple, we are stopping to use
+    # versions later in the game.
+    for closure_variable, variable_trace in closure_variables:
         variable_code_name, variable_c_type = getLocalVariableCodeType(
-            context  = context,
-            variable = closure_variable,
-            version  = closure_variable_version
+            context        = context,
+            variable       = closure_variable,
+            variable_trace = variable_trace
         )
 
         suffix_args.append(
@@ -421,9 +423,9 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
 
     for closure_variable in closure_variables:
         variable_code_name, variable_c_type = getLocalVariableCodeType(
-            context  = context,
-            variable = closure_variable,
-            version  = 0
+            context        = context,
+            variable       = closure_variable,
+            variable_trace = None # TODO: See other uses of None
         )
 
         parameter_objects_decl.append(
@@ -449,20 +451,20 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
         for count, variable in enumerate(parameters.getAllVariables()):
             function_locals.append(
                 getLocalVariableInitCode(
-                    context   = context,
-                    variable  = variable,
-                    version   = 0,
-                    init_from = "python_pars[ %d ]" % count
+                    context        = context,
+                    variable       = variable,
+                    variable_trace = None,
+                    init_from      = "python_pars[ %d ]" % count
                 )
             )
 
     # User local variable initializations
     function_locals += [
         getLocalVariableInitCode(
-            context   = context,
-            variable  = variable,
-            version   = 0,
-            init_from = None
+            context        = context,
+            variable       = variable,
+            variable_trace = None,
+            init_from      = None
         )
         for variable in
         user_variables + tuple(
@@ -481,9 +483,9 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
             continue
 
         variable_code_name, variable_c_type = getLocalVariableCodeType(
-            context  = context,
-            variable = closure_variable,
-            version  = 0
+            context        = context,
+            variable       = closure_variable,
+            variable_trace = None # TODO: Not used currently anyway but should
         )
 
         if variable_c_type in (CTypeCellObject, CTypePyObjectPtrPtr):
@@ -605,9 +607,9 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
     if context.isForDirectCall():
         for closure_variable in closure_variables:
             variable_code_name, variable_c_type = getLocalVariableCodeType(
-                context  = context,
-                variable = closure_variable,
-                version  = 0
+                context        = context,
+                variable       = closure_variable,
+                variable_trace = None # TODO: See other uses of None.
             )
 
             parameter_objects_decl.append(

@@ -85,9 +85,8 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
 
                 return result, "new_raise", "Sequence creation raises exception"
 
-        # TODO: CompileTimeConstant should be good enough.
         for element in elements:
-            if not element.isExpressionConstantRef():
+            if not element.isCompileTimeConstant():
                 return self, None, None
 
         simulator = self.getSimulator()
@@ -97,9 +96,9 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
         return getComputationResult(
             node        = self,
             computation = lambda : simulator(
-                element.getConstant()
+                element.getCompileTimeConstant()
                 for element in
-                self.getElements()
+                elements
             ),
             description = "%s with constant arguments." % simulator.__name__.title()
         )

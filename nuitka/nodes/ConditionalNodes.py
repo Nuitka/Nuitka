@@ -55,8 +55,6 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-        self.merge_traces = None
-
     def getBranches(self):
         return (
             self.getExpressionYes(),
@@ -75,6 +73,8 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
     )
 
     def computeExpressionRaw(self, trace_collection):
+        # This is rather complex stuff, pylint: disable=too-many-branches
+
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
         trace_collection.onExpression(
@@ -151,11 +151,16 @@ branches."""
         else:
             branch_no_collection = None
 
-        # Merge into parent execution.
-        self.merge_traces = trace_collection.mergeBranches(
-            branch_yes_collection,
-            branch_no_collection
-        )
+        if truth_value is True:
+            trace_collection.replaceBranch(branch_yes_collection)
+        elif truth_value is False:
+            trace_collection.replaceBranch(branch_no_collection)
+        else:
+            # Merge into parent execution.
+            trace_collection.mergeBranches(
+                branch_yes_collection,
+                branch_no_collection
+            )
 
         if truth_value is True:
             return (
@@ -164,7 +169,7 @@ branches."""
                     old_node = condition
                 ),
                 "new_expression",
-                "Conditional expression predicted to yes case"
+                "Conditional expression predicted to yes case."
             )
         elif truth_value is False:
             return (
@@ -173,7 +178,7 @@ branches."""
                     old_node = condition
                 ),
                 "new_expression",
-                "Conditional expression predicted to no case"
+                "Conditional expression predicted to no case."
             )
         else:
             return self, None, None
@@ -244,8 +249,6 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-        self.merge_traces = None
-
     getLeft = ExpressionChildrenHavingBase.childGetter(
         "left"
     )
@@ -313,12 +316,10 @@ branches.""" % self.conditional_kind
 
         if branch_yes_collection:
             # Merge into parent execution.
-            self.merge_traces = trace_collection.mergeBranches(
+            trace_collection.mergeBranches(
                 branch_yes_collection,
                 None
             )
-        else:
-            self.merge_traces = None
 
         if truth_value is truth_value_use_left:
             return (
@@ -426,7 +427,6 @@ class StatementConditional(StatementChildrenHavingBase):
             source_ref = source_ref
         )
 
-        self.merge_traces = None
 
     getCondition = StatementChildrenHavingBase.childGetter("condition")
     getBranchYes = StatementChildrenHavingBase.childGetter("yes_branch")
@@ -532,7 +532,6 @@ branches."""
                 BaseException
             )
 
-
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
         truth_value = condition.getTruthValue()
@@ -612,11 +611,17 @@ branches."""
         else:
             branch_no_collection = None
 
-        # Merge into parent execution.
-        self.merge_traces = trace_collection.mergeBranches(
-            branch_yes_collection,
-            branch_no_collection
-        )
+        if truth_value is True:
+            if branch_yes_collection is not None:
+                trace_collection.replaceBranch(branch_yes_collection)
+        elif truth_value is False:
+            if branch_no_collection is not None:
+                trace_collection.replaceBranch(branch_no_collection)
+        else:
+            trace_collection.mergeBranches(
+                branch_yes_collection,
+                branch_no_collection
+            )
 
         # Both branches may have become empty, which case, the statement needs
         # not remain.
@@ -727,3 +732,6 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
             return True
 
         return False
+
+    def getStatementNiceName(self):
+        return "branch statement"

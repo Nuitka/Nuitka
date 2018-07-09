@@ -178,6 +178,7 @@ extern PyObject *const_str_plain_exc_type, *const_str_plain_exc_value, *const_st
 #define EXC_TYPE(x) (x->exc_state.exc_type)
 #define EXC_VALUE(x) (x->exc_state.exc_value)
 #define EXC_TRACEBACK(x) (x->exc_state.exc_traceback)
+#define EXC_STATE(x) (x->m_exc_state)
 #endif
 
 
@@ -222,9 +223,7 @@ NUITKA_MAY_BE_UNUSED inline static void SET_CURRENT_EXCEPTION( PyObject *excepti
 #endif
 }
 
-#if PYTHON_VERSION < 370
-// TODO: This will be needed but initially it is unclear where to put exceptions now.
-
+#if PYTHON_VERSION < 300
 
 // Preserve the current exception as the frame to restore.
 NUITKA_MAY_BE_UNUSED static inline void PRESERVE_FRAME_EXCEPTION( struct Nuitka_FrameObject *frame_object )

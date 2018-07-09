@@ -280,6 +280,11 @@ int main( int argc, char **argv )
     }
 #endif
 
+#if PYTHON_VERSION >= 350 && defined(DLL_EXTRA_PATH)
+    NUITKA_PRINT_TRACE("main(): Prepare DLL extra path.");
+    SetDllDirectory(DLL_EXTRA_PATH);
+#endif
+
 #endif
 
     /* Initialize CPython library environment. */
@@ -300,6 +305,9 @@ int main( int argc, char **argv )
     Py_BytesWarningFlag = _NUITKA_SYSFLAG_BYTES_WARNING;
 #if _NUITKA_SYSFLAG_BYTES_WARNING
     Py_HashRandomizationFlag = 1;
+#endif
+#if PYTHON_VERSION >= 370
+    Py_UTF8Mode = _NUITKA_SYSFLAG_UTF8;
 #endif
 
     /* This suppresses warnings from getpath.c */

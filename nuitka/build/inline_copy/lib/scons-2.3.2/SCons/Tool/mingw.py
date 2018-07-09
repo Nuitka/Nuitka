@@ -147,7 +147,7 @@ def generate(env):
 
 
     # Most of mingw is the same as gcc and friends...
-    gnu_tools = ['gcc', 'g++', 'gnulink', 'ar', 'gas', 'gfortran', 'm4']
+    gnu_tools = ['gcc', 'g++', 'gnulink']
     for tool in gnu_tools:
         SCons.Tool.Tool(tool)(env)
 

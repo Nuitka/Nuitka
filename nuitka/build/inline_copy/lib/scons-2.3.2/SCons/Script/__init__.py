@@ -172,7 +172,6 @@ Touch                   = SCons.Defaults.Touch
 
 # Pre-made, public scanners.
 CScanner                = SCons.Tool.CScanner
-DScanner                = SCons.Tool.DScanner
 DirScanner              = SCons.Defaults.DirScanner
 ProgramScanner          = SCons.Tool.ProgramScanner
 SourceFileScanner       = SCons.Tool.SourceFileScanner

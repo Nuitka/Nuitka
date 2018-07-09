@@ -586,14 +586,53 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_HASATTR( PyObject *source, PyObjec
     CHECK_OBJECT( source );
     CHECK_OBJECT( attr_name );
 
-    int res = PyObject_HasAttr( source, attr_name );
+#if PYTHON_VERSION < 300
 
-    if (unlikely( res == -1 ))
+    if ( PyUnicode_Check( attr_name ) )
     {
+        attr_name = _PyUnicode_AsDefaultEncodedString( attr_name, NULL );
+
+        if (unlikely( attr_name == NULL ))
+        {
+            return NULL;
+        }
+    }
+
+    if (unlikely( !PyString_Check( attr_name ) ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "hasattr(): attribute name must be string"
+        );
+
+        return NULL;
+    }
+#else
+    if (unlikely( !PyUnicode_Check( attr_name ) ))
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "hasattr(): attribute name must be string"
+        );
+
+        return NULL;
+    }
+#endif
+
+    PyObject *value = PyObject_GetAttr( source, attr_name );
+
+    if ( value == NULL )
+    {
+        if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
+        {
+            CLEAR_ERROR_OCCURRED();
+            return Py_False;
+        }
+
         return NULL;
     }
 
-    return BOOL_FROM(res == 1);
+    return Py_True;
 }
 
 #if PYTHON_VERSION < 300

@@ -25,7 +25,7 @@ able to execute them without creating the argument dictionary at all.
 
 from .CodeHelpers import generateChildExpressionCode, generateExpressionCode
 from .ConstantCodes import getConstantAccess
-from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
+from .ErrorCodes import getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesCalls import (
     template_call_function_with_args_decl,
@@ -335,17 +335,12 @@ def getCallCodeNoArgs(to_name, called_name, needs_check, emit, context):
         )
     )
 
-    getReleaseCode(
+    getErrorExitCode(
+        check_name   = to_name,
         release_name = called_name,
         emit         = emit,
+        needs_check  = needs_check,
         context      = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        emit        = emit,
-        needs_check = needs_check,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -363,20 +358,15 @@ def getInstanceCallCodeNoArgs(to_name, called_name, called_attribute_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (
             called_name,
             called_attribute_name
         ),
         emit          = emit,
+        needs_check   = needs_check,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        emit        = emit,
-        needs_check = needs_check,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -412,17 +402,12 @@ def getInstanceCallCodePosArgsQuick(to_name, called_name, called_attribute_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = [called_name] + arg_names,
+        needs_check   = needs_check,
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -453,17 +438,12 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = [called_name] + arg_names,
+        needs_check   = needs_check,
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -490,20 +470,15 @@ def getInstanceCallCodeFromTuple(to_name, called_name, called_attribute_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (
             called_name,
             called_attribute_name
         ),
+        needs_check   = needs_check,
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -529,17 +504,12 @@ def getCallCodeFromTuple(to_name, called_name, arg_tuple, arg_size,
         )
     )
 
-    getReleaseCode(
+    getErrorExitCode(
+        check_name   = to_name,
         release_name = called_name,
+        needs_check  = needs_check,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -558,17 +528,12 @@ def getInstanceCallCodePosArgs(to_name, called_name, called_attribute_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (called_name, args_name),
+        needs_check   = needs_check,
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -586,17 +551,12 @@ def getCallCodePosArgs(to_name, called_name, args_name, needs_check, emit,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (called_name, args_name),
+        needs_check   = needs_check,
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -613,16 +573,11 @@ def _getCallCodeKeywordArgs(to_name, called_name, call_kw_name, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (called_name, call_kw_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -641,16 +596,11 @@ def getCallCodePosKeywordArgs(to_name, called_name, call_args_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (called_name, call_args_name, call_kw_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)

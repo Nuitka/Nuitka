@@ -32,8 +32,8 @@ from nuitka.Builtins import (
     builtin_names,
     builtin_type_names
 )
-from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
+from nuitka.specs import BuiltinParameterSpecs
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExceptionNodes import ExpressionBuiltinMakeException
@@ -112,7 +112,6 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     __slots__ = ()
 
     def __init__(self, builtin_name, source_ref):
-
         ExpressionBuiltinRefBase.__init__(
             self,
             builtin_name = builtin_name,
@@ -234,10 +233,10 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
                 source_ref     = source_ref
             )
 
-        new_node = BuiltinOptimization.extractBuiltinArgs(
+        new_node = BuiltinParameterSpecs.extractBuiltinArgs(
             node          = call_node,
             builtin_class = createBuiltinMakeException,
-            builtin_spec  = BuiltinOptimization.makeBuiltinExceptionParameterSpec(
+            builtin_spec  = BuiltinParameterSpecs.makeBuiltinExceptionParameterSpec(
                 exception_name = exception_name
             )
         )

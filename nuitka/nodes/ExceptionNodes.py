@@ -20,7 +20,7 @@
 """
 
 from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .NodeBases import StatementBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import makeStatementOnlyNodesFromExpressions
 
 
@@ -161,16 +161,19 @@ Explicit raise already raises implicitly building exception cause."""
     def needsFrame(self):
         return True
 
+    def getStatementNiceName(self):
+        return "exception raise statement"
+
 
 class StatementRaiseExceptionImplicit(StatementRaiseException):
     kind = "STATEMENT_RAISE_EXCEPTION_IMPLICIT"
 
+    def getStatementNiceName(self):
+        return "implicit exception raise statement"
 
-class StatementReraiseException(StatementRaiseExceptionMixin, NodeBase):
+
+class StatementReraiseException(StatementRaiseExceptionMixin, StatementBase):
     kind = "STATEMENT_RERAISE_EXCEPTION"
-
-    def __init__(self, source_ref):
-        NodeBase.__init__(self, source_ref = source_ref)
 
     def computeStatement(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
@@ -179,6 +182,9 @@ class StatementReraiseException(StatementRaiseExceptionMixin, NodeBase):
 
     def needsFrame(self):
         return False
+
+    def getStatementNiceName(self):
+        return "exception re-raise statement"
 
 
 class ExpressionRaiseException(ExpressionChildrenHavingBase):

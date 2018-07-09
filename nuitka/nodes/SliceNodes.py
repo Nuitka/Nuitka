@@ -23,8 +23,8 @@ achieve more compact code, or predict results at compile time.
 There will be a method "computeExpressionSlice" to aid predicting them.
 """
 
-from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
+from nuitka.specs import BuiltinParameterSpecs
 
 from .ConstantRefNodes import ExpressionConstantNoneRef
 from .ExpressionBases import (
@@ -273,7 +273,7 @@ class ExpressionBuiltinSlice(ExpressionSpecBasedComputationBase):
         "step"
     )
 
-    builtin_spec = BuiltinOptimization.builtin_slice_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_slice_spec
 
     def __init__(self, start, stop, step, source_ref):
         if start is None:

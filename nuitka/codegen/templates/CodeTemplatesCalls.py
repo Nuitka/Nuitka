@@ -315,7 +315,11 @@ PyObject *CALL_FUNCTION_WITH_ARGS%(args_count)d( PyObject *called, PyObject **ar
             }
             else if ( flags == METH_FASTCALL )
             {
+#if PYTHON_VERSION < 370
                 result = (*(_PyCFunctionFast)method)( self, &PyTuple_GET_ITEM( pos_args, 0 ), %(args_count)d, NULL );;
+#else
+                result = (*(_PyCFunctionFast)method)( self, &pos_args, %(args_count)d );;
+#endif
             }
             else
             {

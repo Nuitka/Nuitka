@@ -20,13 +20,10 @@
 That is import as expression, and star import.
 """
 
+from nuitka.PythonVersions import python_version
+
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes
-)
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
 
@@ -85,17 +82,12 @@ def getCountedArgumentsHelperCallCode(helper_prefix, to_name, args, min_args,
             )
         )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = args,
+        needs_check   = needs_check,
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -229,16 +221,11 @@ def generateImportStarCode(statement, emit, context):
 
         context.addLocalsDictName(locals_dict_name)
 
-    getReleaseCode(
+    getErrorExitBoolCode(
+        condition    = "%s == false" % res_name,
         release_name = module_name,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
@@ -254,27 +241,53 @@ def generateImportNameCode(to_name, expression, emit, context):
         context    = context
     )
 
-    emit(
-        "%s = IMPORT_NAME( %s, %s );" % (
-            to_name,
-            from_arg_name,
-            context.getConstantCode(
-                constant = expression.getImportName()
+    level = expression.getImportLevel()
+
+    if level and python_version >= 350:
+        emit(
+            """\
+if ( PyModule_Check( %(from_arg_name)s ) )
+{
+   %(to_name)s = IMPORT_NAME_OR_MODULE(
+        %(from_arg_name)s,
+        (PyObject *)MODULE_DICT(%(from_arg_name)s),
+        %(import_name)s,
+        %(import_level)s
+    );
+}
+else
+{
+   %(to_name)s = IMPORT_NAME( %(from_arg_name)s, %(import_name)s );
+}
+""" % {
+                "to_name"       : to_name,
+                "from_arg_name" : from_arg_name,
+                "import_name"   : context.getConstantCode(
+                    constant = expression.getImportName()
+                ),
+                "import_level"   : context.getConstantCode(
+                    constant = expression.getImportLevel()
+                )
+            }
+        )
+    else:
+        emit(
+            "%s = IMPORT_NAME( %s, %s );" % (
+                to_name,
+                from_arg_name,
+                context.getConstantCode(
+                    constant = expression.getImportName()
+                )
             )
         )
-    )
 
-    getReleaseCode(
-        release_name = from_arg_name,
-        emit         = emit,
-        context      = context
-    )
 
     getErrorExitCode(
-        check_name  = to_name,
-        needs_check = expression.mayRaiseException(BaseException),
-        emit        = emit,
-        context     = context
+        check_name   = to_name,
+        release_name = from_arg_name,
+        needs_check  = expression.mayRaiseException(BaseException),
+        emit         = emit,
+        context      = context
     )
 
     context.addCleanupTempName(to_name)

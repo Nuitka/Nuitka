@@ -140,9 +140,17 @@ except TypeError as e:
     print("Gives exception:", e)
 
 print("List from iterable", list("abc"), list())
-print("List from sequence", list(sequence = (0, 1, 2)))
+try:
+    print("List from sequence", end = ' ')
+    print(list(sequence = (0, 1, 2)))
+except TypeError as e:
+    print("Gives exception:", e)
 print("Tuple from iterable", tuple("cda"), tuple())
-print("Tuple from sequence", tuple(sequence = (0, 1, 2)))
+try:
+    print("Tuple from sequence", end = ' ')
+    print(tuple(sequence = (0, 1, 2)))
+except TypeError as e:
+    print("Gives exception:", e)
 
 print("Dictionary from iterable and keywords", displayDict(dict(("ab", (1, 2)), f = 1, g = 1)))
 print("More constant dictionaries", {"two": 2, "one": 1}, {}, dict())
@@ -150,8 +158,13 @@ g = {"two": 2, "one": 1}
 print("Variable dictionary", dict(g))
 print("Found during optimization", dict(dict({"le": 2, "la": 1}), fu = 3), dict(named = dict({"le": 2, "la": 1})))
 
-print("Floats from constants", float("3.0"), float(x = 9.0), float())
-print("Found during optimization", float(float("3.2")), float(x = float(11.0)))
+print("Floats from constants", float("3.0"), float())
+try:
+    print("Float keyword arg", end = ' ')
+except TypeError as e:
+    print(float(x = 9.0))
+
+print("Found during optimization", float(float("3.2")), float(float(11.0)))
 
 print("Complex from constants", complex("3.0j"), complex(real = 9.0), complex(imag = 9.0), complex(1,2), complex())
 print("Found during optimization", complex(float("3.2")), complex(real = float(11.0)), complex(imag = float(11.0)))
@@ -159,11 +172,17 @@ print("Found during optimization", complex(float("3.2")), complex(real = float(1
 print("Strs from constants", str("3.3"), str(object = 9.1), str())
 print("Found during optimization", str(float("3.3")), str(object = float(12.0)))
 
-print("Bools from constants", bool("3.3"), bool(x = 9.1), bool(0), bool())
-print("Found during optimization", bool(float("3.3")), bool(x = float(0.0)))
+print("Bools from constants", bool("3.3"), bool(0), bool())
+print("Found during optimization", bool(float("3.3")), bool(range(0)))
 
-print("Ints from constants", int('3'), int(x = '9'), int('f', 16), int(x = 'e', base = 16), int("0101", base = 2), int(0), int())
-print("Found ints during optimization", int(int('3')), int(x = int(0.0)))
+print("Ints from constants", int('3'), int('f', 16), int("0101", base = 2), int(0), int())
+try:
+    print("Int keyword arg1", end = ' ')
+    print(int(x = '9'))
+    print(int(x = 'e', base = 16))
+except TypeError as e:
+    print("Gives exception:", e)
+print("Found ints during optimization", int(int('3')), int(int(0.0)))
 
 try:
     print("Longs from constants", long('3'), long(x = '9'), long('f', 16), long(x = 'e', base = 16), long("0101", base = 2), long(0), long())
@@ -218,9 +237,12 @@ except Exception as e:
 f = 3
 print("Unoptimized call of int", int('0' * f, base = 16))
 
-d = { 'x' : "12", "base" : 8 }
-print("Dict star argument call of int", int(**d))
-
+try:
+    d = { 'x' : "12", "base" : 8 }
+    print("Dict star argument call of int", end = ' ')
+    print(int(**d))
+except TypeError as e:
+    print("Gives exception:", e)
 
 base = 16
 
@@ -372,3 +394,129 @@ except TypeError as e:
     print("Open without arguments gives", repr(e))
 
 print("Type of id values:", type(id(id)))
+
+
+class OtherBytesSubclass(bytes):
+    pass
+
+class BytesOverload:
+    def __bytes__(self):
+        return OtherBytesSubclass()
+
+b = BytesOverload()
+v = bytes(b)
+
+if type(v) is bytes:
+    print("Bytes overload ineffective (expected for Python2)")
+elif isinstance(v, bytes):
+    print("Bytes overload successful.")
+else:
+    print("Oops, must not happen.")
+
+class OtherFloatSubclass(float):
+    pass
+
+class FloatOverload:
+    def __float__(self):
+        return OtherFloatSubclass()
+
+b = FloatOverload()
+v = float(b)
+
+if type(v) is float:
+    print("Float overload ineffective (must not happen)")
+elif isinstance(v, float):
+    print("Float overload successful.")
+else:
+    print("Oops, must not happen.")
+
+class OtherStrSubclass(str):
+    pass
+
+class StrOverload:
+    def __str__(self):
+        return OtherStrSubclass()
+
+b = StrOverload()
+v = str(b)
+
+if type(v) is str:
+    print("Str overload ineffective (must not happen)")
+elif isinstance(v, str):
+    print("Str overload successful.")
+else:
+    print("Oops, must not happen.")
+
+if str is bytes:
+    class OtherUnicodeSubclass(unicode):
+        pass
+
+    class UnicodeOverload:
+        def __unicode__(self):
+            return OtherUnicodeSubclass()
+
+    b = UnicodeOverload()
+
+    v = unicode(b)
+
+    if type(v) is unicode:
+        print("Unicode overload ineffective (must not happen)")
+    elif isinstance(v, unicode):
+        print("Unicode overload successful.")
+    else:
+        print("Oops, must not happen.")
+
+
+class OtherIntSubclass(int):
+    pass
+
+class IntOverload:
+    def __int__(self):
+        return OtherIntSubclass()
+
+b = IntOverload()
+v = int(b)
+
+if type(v) is int:
+    print("Int overload ineffective (must not happen)")
+elif isinstance(v, int):
+    print("Int overload successful.")
+else:
+    print("Oops, must not happen.")
+
+
+if str is bytes:
+    class OtherLongSubclass(long):
+        pass
+
+    class LongOverload:
+        def __long__(self):
+            return OtherLongSubclass()
+
+    b = LongOverload()
+    v = long(b)
+
+    if type(v) is long:
+        print("Long overload ineffective (must not happen)")
+    elif isinstance(v, long):
+        print("Long overload successful.")
+    else:
+        print("Oops, must not happen.")
+
+
+class OtherComplexSubclass(complex):
+    pass
+
+class ComplexOverload:
+    def __complex__(self):
+        return OtherComplexSubclass()
+
+b = ComplexOverload()
+v = complex(b)
+
+if type(v) is complex:
+    print("Complex overload ineffective (must happen)")
+elif isinstance(v, complex):
+    print("Oops, must not happen.")
+else:
+    print("Oops, must not happen.")

@@ -24,19 +24,8 @@ of the metaclass remains as specific.
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateChildExpressionsCode
-from .ErrorCodes import getErrorExitCode, getReleaseCode, getReleaseCodes
+from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode0
-
-
-def _getMetaclassVariableCode(context):
-    assert python_version < 300
-
-    return "GET_STRING_DICT_VALUE( moduledict_%s, (Nuitka_StringObject *)%s )" % (
-        context.getModuleCodeName(),
-        context.getConstantCode(
-            constant = "__metaclass__"
-        )
-    )
 
 
 def generateSelectMetaclassCode(to_name, expression, emit, context):
@@ -46,18 +35,13 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
         context    = context
     )
 
-    if python_version < 300:
-        assert metaclass_name is None
+    # This is used for Python3 only.
+    assert python_version >= 300
 
-        args = [
-            bases_name,
-            _getMetaclassVariableCode(context = context)
-        ]
-    else:
-        args = [
-            metaclass_name,
-            bases_name
-        ]
+    args = [
+        metaclass_name,
+        bases_name
+    ]
 
 
     emit(
@@ -67,25 +51,12 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
         )
     )
 
-    # Can only fail with Python3.
-    if python_version >= 300:
-        getErrorExitCode(
-            check_name = to_name,
-            emit       = emit,
-            context    = context
-        )
-
-        getReleaseCodes(
-            release_names = args,
-            emit          = emit,
-            context       = context
-        )
-    else:
-        getReleaseCode(
-            release_name = bases_name,
-            emit         = emit,
-            context      = context
-        )
+    getErrorExitCode(
+        check_name    = to_name,
+        release_names = args,
+        emit          = emit,
+        context       = context
+    )
 
     context.addCleanupTempName(to_name)
 
@@ -105,16 +76,11 @@ def generateBuiltinSuperCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (type_name, object_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)

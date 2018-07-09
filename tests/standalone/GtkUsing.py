@@ -25,3 +25,5 @@ import gtk
 
 import pygtk
 pygtk.require("2.0")
+
+print("OK")

@@ -179,3 +179,11 @@ therefore might want to specify: '%s -m nuitka'.
 That will make use the correct Python version for Nuitka.
 """ % (shebang, python_version_str, binary)
             )
+
+
+def readSourceLine(source_ref):
+    import linecache
+    return linecache.getline(
+        filename = source_ref.getFilename(),
+        lineno   = source_ref.getLineNumber()
+    )

@@ -22,7 +22,7 @@
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateChildExpressionsCode
-from .ErrorCodes import getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode
 
 
@@ -61,16 +61,11 @@ def generateBuiltinLong2Code(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (value_name, base_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -107,16 +102,11 @@ def generateBuiltinInt2Code(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (value_name, base_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)

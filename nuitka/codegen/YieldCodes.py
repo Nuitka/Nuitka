@@ -23,7 +23,7 @@ The normal "yield", and the Python 3.3 or higher "yield from" variant.
 from nuitka import Options
 
 from .CodeHelpers import generateChildExpressionsCode
-from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import getReferenceExportCode
 
 
@@ -115,16 +115,11 @@ def generateYieldFromCode(to_name, expression, emit, context):
     if not context.needsCleanup(value_name):
         context.addCleanupTempName(value_name)
 
-    getReleaseCode(
+    getErrorExitCode(
+        check_name   = to_name,
         release_name = value_name,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)

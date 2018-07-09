@@ -17,6 +17,7 @@
 #
 """ This module maintains the locals dict handles. """
 
+from nuitka import Variables
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .shapes.BuiltinTypeShapes import ShapeTypeDict
@@ -24,11 +25,14 @@ from .shapes.StandardShapes import ShapeUnknown
 
 
 class LocalsDictHandle(object):
-    __slots__ = ("locals_name",)
+    __slots__ = ("locals_name", "variables")
 
     @counted_init
     def __init__(self, locals_name):
         self.locals_name = locals_name
+
+        # For locals dict variables in this scope.
+        self.variables = {}
 
     __del__ = counted_del()
 
@@ -38,12 +42,27 @@ class LocalsDictHandle(object):
             self.locals_name
         )
 
+    def getName(self):
+        return self.locals_name
+
     @staticmethod
     def getTypeShape():
         return ShapeTypeDict
 
     def getCodeName(self):
         return self.locals_name
+
+    def getLocalsDictVariable(self, variable_name):
+        if variable_name not in self.variables:
+            result = Variables.LocalsDictVariable(
+                owner         = self,
+                variable_name = variable_name
+            )
+
+            self.variables[variable_name] = result
+
+        return self.variables[variable_name]
+
 
 
 class LocalsMappingHandle(LocalsDictHandle):

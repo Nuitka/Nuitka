@@ -48,16 +48,11 @@ import SCons.Errors
 import SCons.Node.FS
 import SCons.Scanner
 import SCons.Scanner.C
-import SCons.Scanner.D
-import SCons.Scanner.LaTeX
 import SCons.Scanner.Prog
 
 DefaultToolpath=[]
 
 CScanner = SCons.Scanner.C.CScanner()
-DScanner = SCons.Scanner.D.DScanner()
-LaTeXScanner = SCons.Scanner.LaTeX.LaTeXScanner()
-PDFLaTeXScanner = SCons.Scanner.LaTeX.PDFLaTeXScanner()
 ProgramScanner = SCons.Scanner.Prog.ProgramScanner()
 SourceFileScanner = SCons.Scanner.Base({}, name='SourceFileScanner')
 
@@ -75,17 +70,6 @@ LaTeXSuffixes = [".tex", ".ltx", ".latex"]
 
 for suffix in CSuffixes:
     SourceFileScanner.add_scanner(suffix, CScanner)
-
-for suffix in DSuffixes:
-    SourceFileScanner.add_scanner(suffix, DScanner)
-
-# FIXME: what should be done here? Two scanners scan the same extensions,
-# but look for different files, e.g., "picture.eps" vs. "picture.pdf".
-# The builders for DVI and PDF explicitly reference their scanners
-# I think that means this is not needed???
-for suffix in LaTeXSuffixes:
-    SourceFileScanner.add_scanner(suffix, LaTeXScanner)
-    SourceFileScanner.add_scanner(suffix, PDFLaTeXScanner)
 
 class Tool(object):
     def __init__(self, name, toolpath=[], **kw):
@@ -705,7 +689,7 @@ def tool_list(platform, env):
         assemblers = ['masm', 'nasm', 'gas', '386asm' ]
         fortran_compilers = ['gfortran', 'g77', 'ifl', 'cvf', 'f95', 'f90', 'fortran']
         ars = ['mslib', 'ar', 'tlib']
-        other_plat_tools = ['msvs', 'midl']
+        other_plat_tools = ['msvs']
     elif str(platform) == 'os2':
         "prefer IBM tools on OS/2"
         linkers = ['ilink', 'gnulink', ]#'mslink']

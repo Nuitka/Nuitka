@@ -811,7 +811,7 @@ static PyObject *_path_unfreezer_load_module( PyObject *self, PyObject *args, Py
     assert( module_name );
     assert( Nuitka_String_Check( module_name ) );
 
-    char *const name = Nuitka_String_AsString( module_name );
+    char const *name = Nuitka_String_AsString( module_name );
 
     if ( isVerbose() )
     {
@@ -841,7 +841,7 @@ static PyObject *_path_unfreezer_is_package( PyObject *self, PyObject *args, PyO
     assert( module_name );
     assert( Nuitka_String_Check( module_name ) );
 
-    char *name = Nuitka_String_AsString( module_name );
+    char const *name = Nuitka_String_AsString( module_name );
 
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
 
@@ -881,7 +881,11 @@ static PyObject *_path_unfreezer_repr_module( PyObject *self, PyObject *args, Py
         return NULL;
     }
 
-    return PyUnicode_FromFormat("<module '%s' from '%s'>", PyModule_GetName( module ), PyModule_GetFilename( module ));
+    return PyUnicode_FromFormat(
+        "<module '%s' from %R>",
+        PyModule_GetName( module ),
+        PyModule_GetFilenameObject( module )
+    );
 
 }
 
@@ -897,7 +901,7 @@ static PyObject *createModuleSpec( PyObject *module_name )
     assert( module_name );
     assert( Nuitka_String_Check( module_name ) );
 
-    char *name = Nuitka_String_AsString( module_name );
+    char const *name = Nuitka_String_AsString( module_name );
 
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
 

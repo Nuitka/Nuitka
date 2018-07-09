@@ -28,12 +28,15 @@ from nuitka.Builtins import builtin_names
 
 from .BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
+    ExpressionBuiltinRef,
     makeExpressionBuiltinRef
 )
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )
+from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
+from .shapes.BuiltinTypeShapes import ShapeTypeType
 
 
 class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
@@ -42,7 +45,32 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
     def computeExpression(self, trace_collection):
         value = self.getValue()
 
+        type_shape = value.getTypeShape()
+
+        if type_shape is not None:
+            type_name = type_shape.getTypeName()
+
+            if type_name is not None and type_name in __builtins__:
+                result = ExpressionBuiltinRef(
+                    builtin_name = type_name,
+                    source_ref   = value.getSourceReference(),
+                )
+
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node = result,
+                    old_node = value
+                )
+
+                return (
+                    result,
+                    "new_builtin",
+                    "Replaced predictable type lookup with builtin type '%s'." % (
+                        type_name
+                    )
+                )
+
         if value.isCompileTimeConstant():
+            # The above code is supposed to catch these in a better way.
             value = value.getCompileTimeConstant()
 
             type_name = value.__class__.__name__
@@ -68,6 +96,9 @@ class ExpressionBuiltinType1(ExpressionBuiltinSingleArgBase):
             )
 
         return self, None, None
+
+    def getTypeShape(self):
+        return ShapeTypeType
 
     def computeExpressionDrop(self, statement, trace_collection):
         from .NodeMakingHelpers import \

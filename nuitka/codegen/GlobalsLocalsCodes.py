@@ -48,7 +48,7 @@ def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
 def generateBuiltinLocalsCode(to_name, expression, emit, context):
     provider = expression.getParentVariableProvider()
 
-    variables = expression.getVariableVersions()
+    variable_traces = expression.getVariableTraces()
     updated   = expression.isExpressionBuiltinLocalsUpdated()
 
     # Locals is sorted of course.
@@ -124,15 +124,15 @@ if (%(locals_dict)s == NULL) %(locals_dict)s = PyDict_New();
 
         is_dict = True
 
-    for local_var, version in _sorted(variables):
+    for local_var, variable_trace in _sorted(variable_traces):
         _getVariableDictUpdateCode(
-            target_name = to_name,
-            variable    = local_var,
-            version     = version,
-            is_dict     = is_dict,
-            initial     = initial,
-            emit        = emit,
-            context     = context
+            target_name    = to_name,
+            variable       = local_var,
+            variable_trace = variable_trace,
+            is_dict        = is_dict,
+            initial        = initial,
+            emit           = emit,
+            context        = context
         )
 
 
@@ -175,12 +175,12 @@ def _getLocalVariableList(provider):
     ]
 
 
-def _getVariableDictUpdateCode(target_name, variable, version, initial, is_dict,
-                               emit, context):
+def _getVariableDictUpdateCode(target_name, variable, variable_trace, initial,
+                               is_dict, emit, context):
     # TODO: Variable could known to be set here, get a hand at that
     # information.
 
-    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
+    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
 
     test_code = variable_c_type.getLocalVariableInitTestCode(variable_code_name)
     access_code = variable_c_type.getLocalVariableObjectAccessCode(variable_code_name)

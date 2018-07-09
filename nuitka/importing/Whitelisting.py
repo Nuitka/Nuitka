@@ -246,6 +246,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
         # test/test_zipimport_support.py
         "test.test_cmd_line_script",
 
+        # test_winconsoleio.py
+        "_testconsole",
+
         # Python3: modules that no longer exist
         "commands", "dummy_thread", "_dummy_thread", "httplib", "Queue", "sets",
 
@@ -286,10 +289,13 @@ areallylongpackageandmodulenametotestreprtruncation""",
         "unittest2", "IronPython", "clr", "compiler.consts", "new",
 
         # pkg_resources
-        "pkg_resources.extern",
+        "pkg_resources.extern", "ordereddict",
 
         # appdirs
-        "com.sun", "win32com",
+        "com", "win32com",
+
+        # gtk
+        "gdk",
 
         # six
         "six.moves",

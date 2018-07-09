@@ -27,12 +27,14 @@ import hashlib
 import math
 import re
 from logging import warning
+from types import BuiltinFunctionType
 
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     long,
     unicode,
     xrange
 )
+from nuitka.Builtins import builtin_anon_values, builtin_named_values_list
 
 
 class ExceptionCannotNamify(Exception):
@@ -168,10 +170,18 @@ def namifyConstant(constant):
             namifyConstant(constant.stop),
             namifyConstant(constant.step)
         )
+    elif constant in builtin_anon_values:
+        return "anon_%s" % builtin_anon_values[constant]
     elif type(constant) is type:
         return "type_%s" % constant.__name__
+    elif type(constant) is BuiltinFunctionType:
+        assert constant in builtin_named_values_list
 
-    raise ExceptionCannotNamify("%r" % constant, type(constant))
+        return "builtin_%s" % constant.__name__
+    elif constant is NotImplemented:
+        return "type_notimplemented"
+    else:
+        raise ExceptionCannotNamify("%r" % constant, type(constant))
 
 _re_str_needs_no_digest = re.compile(r"^([a-z]|[A-Z]|[0-9]|_){1,40}$", re.S)
 

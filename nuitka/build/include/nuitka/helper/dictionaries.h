@@ -108,13 +108,20 @@ typedef PyDictKeyEntry *(*dict_lookup_func)(
     Py_hash_t hash,
     PyObject ***value_addr
 );
-#else
+#elif PYTHON_VERSION < 370
 typedef Py_ssize_t (*dict_lookup_func)(
     PyDictObject *mp,
     PyObject *key,
     Py_hash_t hash,
     PyObject ***value_addr,
     Py_ssize_t *hashpos
+);
+#else
+typedef Py_ssize_t (*dict_lookup_func)(
+    PyDictObject *mp,
+    PyObject *key,
+    Py_hash_t hash,
+    PyObject **value_addr
 );
 #endif
 
@@ -185,15 +192,20 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_
         key->_base._base.hash = hash;
     }
 
+#if PYTHON_VERSION < 360
     PyObject **value_addr;
 
-#if PYTHON_VERSION < 360
     PyDictKeyEntry *entry = dict->ma_keys->dk_lookup( dict, (PyObject *)key, hash, &value_addr );
 
     // The "entry" cannot be NULL, it can only be empty for a string dict lookup, but at
     // least assert it.
     assert( entry != NULL );
-#else
+
+    return value_addr;
+
+#elif PYTHON_VERSION < 370
+    PyObject **value_addr;
+
     // TODO: Find out what the returned Py_ssize_t "ix" might be good for.
     dict->ma_keys->dk_lookup(
         dict,
@@ -202,9 +214,32 @@ static Nuitka_DictEntryHandle GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_
         &value_addr,
         NULL // hashpos, TODO: Find out what we could use it for.
     );
-#endif
 
     return value_addr;
+#else
+    PyObject *value;
+
+    Py_ssize_t ix = dict->ma_keys->dk_lookup(
+        dict,
+        (PyObject *)key,
+        hash,
+        &value
+    );
+
+    if ( value == NULL )
+    {
+        return NULL;
+    }
+    else if ( _PyDict_HasSplitTable( dict ) )
+    {
+        return &dict->ma_values[ix];
+    }
+    else
+    {
+        return &DK_ENTRIES(dict->ma_keys)[ix].me_value;
+    }
+
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *GET_DICT_ENTRY_VALUE( Nuitka_DictEntryHandle handle )

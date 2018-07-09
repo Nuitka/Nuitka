@@ -158,6 +158,7 @@ def createPython3NamespacePath(package, package_name, module_relpath, source_ref
                     source_ref  = source_ref
                 ),
                 import_name = "_NamespacePath",
+                level       = None,
                 source_ref  = source_ref
             ),
             args       = makeConstantRefNode(

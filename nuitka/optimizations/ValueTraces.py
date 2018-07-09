@@ -129,8 +129,9 @@ class ValueTraceBase(object):
 
         return self.isInitTrace() or self.isAssignTrace()
 
-    def mustNotHaveValue(self):
-        return self.isUninitTrace()
+    @staticmethod
+    def mustNotHaveValue():
+        return False
 
     def getReplacementNode(self, usage):
         # Virtual method, pylint: disable=no-self-use,unused-argument
@@ -159,6 +160,9 @@ class ValueTraceUninit(ValueTraceBase):
 
     @staticmethod
     def isUninitTrace():
+        return True
+
+    def mustNotHaveValue(self):
         return True
 
     def dump(self):
@@ -234,8 +238,9 @@ class ValueTraceUnknown(ValueTraceBase):
 
     def addNameUsage(self):
         self.addUsage()
+        self.name_usages += 1
 
-        if self.previous is not None:
+        if self.name_usages <= 2 and self.previous is not None:
             self.previous.addNameUsage()
 
     def addPotentialUsage(self):
@@ -262,8 +267,9 @@ class ValueTraceAssign(ValueTraceBase):
         self.replace_it = None
 
     def __repr__(self):
-        return "<ValueTraceAssign at {source_ref}>".format(
-            source_ref = self.assign_node.getSourceReference().getAsString()
+        return "<ValueTraceAssign at {source_ref} of {value}>".format(
+            source_ref = self.assign_node.getSourceReference().getAsString(),
+            value      = self.assign_node.getAssignSource()
         )
 
     def dump(self):
@@ -315,7 +321,7 @@ class ValueTraceMerge(ValueTraceBase):
     def __repr__(self):
         return """\
 <ValueTraceMerge of {previous}>""".format(
-            previous = tuple(previous.getVersion() for previous in self.previous)
+            previous = self.previous
         )
 
     @staticmethod
@@ -337,7 +343,7 @@ class ValueTraceMerge(ValueTraceBase):
 
     def mustNotHaveValue(self):
         for previous in self.previous:
-            if not previous.isUninitTrace():
+            if not previous.mustNotHaveValue():
                 return False
 
         return True

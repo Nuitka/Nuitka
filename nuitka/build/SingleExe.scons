@@ -124,6 +124,10 @@ win_disable_console = getBoolOption("win_disable_console", False)
 # Windows might be running a Python whose DLL we have to use.
 uninstalled_python = getBoolOption("uninstalled_python", False)
 
+# The Python might be compiled static, in which case extension modules
+# should not try to link against the non-existant library
+static_python = getBoolOption("static_python", False)
+
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
 
@@ -178,6 +182,8 @@ python_sysflag_no_site = getBoolOption("python_sysflag_no_site", False)
 python_sysflag_verbose = getBoolOption("python_sysflag_verbose", False)
 # python_sysflag_unicode
 python_sysflag_unicode = getBoolOption("python_sysflag_unicode", False)
+# python_sysflag_utf8
+python_sysflag_utf8 = getBoolOption("python_sysflag_utf8", False)
 
 
 # Amount of jobs to use.
@@ -858,6 +864,9 @@ env.Append(
     CPPDEFINES = ["_NUITKA_SYSFLAG_VERBOSE=%d" % (1 if python_sysflag_verbose else 0)]
 )
 
+env.Append(
+    CPPDEFINES = ["_NUITKA_SYSFLAG_UTF8=%d" % (1 if python_sysflag_utf8 else 0)]
+)
 
 
 if win_target:
@@ -1108,58 +1117,59 @@ def makeWindowsMingGW64Lib(win_lib_path):
     return new_win_lib_path
 
 
-if win_target:
-    # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
-    if python_debug:
-        win_lib_name ="python" + python_abi_version.replace('.', "") + "_d"
+if not static_python:
+    if win_target:
+            # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
+            if python_debug:
+                win_lib_name ="python" + python_abi_version.replace('.', "") + "_d"
+            else:
+                win_lib_name = "python" + python_abi_version.replace('.', "")
+
+            for candidate in ("libs", "PCBuild"):
+                win_lib_path = os.path.join(python_prefix, candidate)
+
+                if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
+                    break
+            else:
+                sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
+
+            if target_arch == "x86_64" and gcc_mode:
+                win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+            elif target_arch == "x86" and python_debug and gcc_mode:
+                win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+
+            env.Append(LIBPATH = [win_lib_path])
+            env.Append(LIBS = [win_lib_name])
+
     else:
-        win_lib_name = "python" + python_abi_version.replace('.', "")
+        # Debian and Ubuntu distinguish the system libraries like this.
+        if python_debug and \
+           python_prefix == "/usr" and \
+           not python_version.startswith('3') and \
+           platform.dist()[0].lower() in ("debian", "ubuntu"):
+            env.Append(LIBS = ["python" + python_abi_version + "_d"])
+        else:
+            env.Append(LIBS = ["python" + python_abi_version])
 
-    for candidate in ("libs", "PCBuild"):
-        win_lib_path = os.path.join(python_prefix, candidate)
-
-        if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
-            break
-    else:
-        sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
-
-    if target_arch == "x86_64" and gcc_mode:
-        win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
-    elif target_arch == "x86" and python_debug and gcc_mode:
-        win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
-
-    env.Append(LIBPATH = [win_lib_path])
-    env.Append(LIBS = [win_lib_name])
-
-else:
-    # Debian and Ubuntu distinguish the system libraries like this.
-    if python_debug and \
-       python_prefix == "/usr" and \
-       not python_version.startswith('3') and \
-       platform.dist()[0].lower() in ("debian", "ubuntu"):
-        env.Append(LIBS = ["python" + python_abi_version + "_d"])
-    else:
-        env.Append(LIBS = ["python" + python_abi_version])
-
-    if python_prefix != "/usr" and "linux" in sys.platform:
-        env.Append(
-            LIBS = ["dl", "pthread", "util", 'm']
-        )
-
-        if gcc_mode and not clang_mode:
+        if python_prefix != "/usr" and "linux" in sys.platform:
             env.Append(
-                LINKFLAGS = ["-export-dynamic"]
+                LIBS = ["dl", "pthread", "util", 'm']
             )
 
-    # Add the python library path to the library path
-    python_lib_path = os.path.join(python_prefix, "lib")
-    env.Append(LIBPATH = [python_lib_path])
+            if gcc_mode and not clang_mode:
+                env.Append(
+                    LINKFLAGS = ["-export-dynamic"]
+                )
 
-    # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
-    if "netbsd" in sys.platform:
-        env.Append(
-            LINKFLAGS = ["-rpath=" + python_lib_path]
-        )
+        # Add the python library path to the library path
+        python_lib_path = os.path.join(python_prefix, "lib")
+        env.Append(LIBPATH = [python_lib_path])
+
+        # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
+        if "netbsd" in sys.platform:
+            env.Append(
+                LINKFLAGS = ["-rpath=" + python_lib_path]
+            )
 
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
@@ -1253,12 +1263,15 @@ if win_target and target_arch == "x86_64" and gcc_mode:
 if gcc_mode and sys.platform != "darwin" and not win_target:
     if standalone_mode:
         rpath = "$$ORIGIN"
-    else:
+    elif not static_python:
         rpath = python_lib_path
+    else:
+        rpath = None
 
-    env.Append(
-        LINKFLAGS = ["-Wl,-R,'%s'" % rpath]
-    )
+    if rpath is not None:
+        env.Append(
+            LINKFLAGS = ["-Wl,-R,'%s'" % rpath]
+        )
 
     # The rpath is no longer used unless we do this on modern Linux. The
     # option name is not very revealing, but basically without this, the
@@ -1782,7 +1795,9 @@ Default(target) # @UndefinedVariable
 # Copy the Python DLL to the target directory, so the executable can be run.
 if uninstalled_python:
     if win_target:
-        # TODO: This should have become unnecessary by DLL_EXTRA_PATH
+        # TODO: This should have become unnecessary by DLL_EXTRA_PATH,
+        # but so far we failed to create a manifest that makes the PythonXY.DLL
+        # from there.
         shutil.copy(
             getWindowsPythonDLLPath(),
             os.path.dirname(result_basepath) or '.'

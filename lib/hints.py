@@ -68,7 +68,7 @@ def enableImportTracing(normalize_paths = True, show_source = False):
         try:
             _indentation += 1
 
-            print(_indentation * " " + "called with: name=%r level=%d" % (name, level))
+            print(_indentation * " " + "called with: name=%r level=%d fromlist=%s" % (name, level, fromlist))
 
             for entry in traceback.extract_stack()[:-1]:
                 if entry[2] == "_ourimport":
@@ -88,10 +88,17 @@ def enableImportTracing(normalize_paths = True, show_source = False):
             print(_indentation * " " + "*" * 40)
 
             builtins.__import__ = _ourimport
-            result = original_import(name, globals, locals, fromlist, level)
-            builtins.__import__ = original_import
+            try:
+                result = original_import(name, globals, locals, fromlist, level)
+            except ImportError as e:
+                print(_indentation * " " + "EXCEPTION:", e)
+                raise
+            finally:
+                builtins.__import__ = original_import
+
             print(_indentation * " " + "RESULT:", _moduleRepr(result))
             print(_indentation * " " + "*" * 40)
+
             builtins.__import__ = _ourimport
 
             return result

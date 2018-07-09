@@ -104,7 +104,7 @@ class ExpressionVariableLocalNameRef(ExpressionVariableNameRef):
 class ExpressionVariableRefBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = "variable", "variable_version", "variable_trace"
+    __slots__ = "variable", "variable_trace"
 
     def __init__(self, variable, source_ref):
         ExpressionBase.__init__(
@@ -114,7 +114,6 @@ class ExpressionVariableRefBase(ExpressionBase):
 
         self.variable = variable
         self.variable_trace = None
-        self.variable_version = None
 
     def getVariableName(self):
         return self.variable.getName()
@@ -122,11 +121,123 @@ class ExpressionVariableRefBase(ExpressionBase):
     def getVariable(self):
         return self.variable
 
-    def getVariableVersion(self):
-        return self.variable_version
-
     def getVariableTrace(self):
         return self.variable_trace
+
+    def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
+        tags = None
+        message = None
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(in_node)
+
+        if self.variable_trace.hasShapeDictionaryExact():
+            tags = "new_expression"
+            message = """\
+Check '%s' on dictionary lowered to dictionary '%s'.""" % (
+                in_node.comparator,
+                in_node.comparator
+            )
+
+            if in_node.comparator == "In":
+                in_node = ExpressionDictOperationIn(
+                    key        = value_node,
+                    dict_arg   = self,
+                    source_ref = in_node.getSourceReference()
+                )
+            else:
+                in_node = ExpressionDictOperationNOTIn(
+                    key        = value_node,
+                    dict_arg   = self,
+                    source_ref = in_node.getSourceReference()
+                )
+
+
+        # Any exception may be raised.
+        if in_node.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return in_node, tags, message
+
+    def computeExpressionSetSubscript(self, set_node, subscript, value_node,
+                                      trace_collection):
+        tags = None
+        message = None
+
+        # By default, an subscript may change everything about the lookup
+        # source.
+        if self.variable_trace.hasShapeDictionaryExact():
+            set_node = StatementDictOperationSet(
+                dict_arg   = self,
+                key        = subscript,
+                value      = value_node,
+                source_ref = set_node.getSourceReference()
+            )
+
+            tags = "new_statements"
+            message = """\
+Subscript assignment to dictionary lowered to dictionary assignment."""
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception might be raised.
+        if set_node.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return set_node, tags, message
+
+    def computeExpressionDelSubscript(self, del_node, subscript,
+                                      trace_collection):
+        tags = None
+        message = None
+
+        # By default, an subscript may change everything about the lookup
+        # source.
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        if self.variable_trace.hasShapeDictionaryExact():
+            del_node = StatementDictOperationRemove(
+                dict_arg   = self,
+                key        = subscript,
+                source_ref = del_node.getSourceReference()
+            )
+
+            tags = "new_statements"
+            message = """\
+Subscript del to dictionary lowered to dictionary del."""
+
+
+        # Any exception might be raised.
+        if del_node.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return del_node, tags, message
+
+    def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
+        tags = None
+        message = None
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        if self.variable_trace.hasShapeDictionaryExact():
+            lookup_node = ExpressionDictOperationGet(
+                dict_arg   = self,
+                key        = subscript,
+                source_ref = lookup_node.getSourceReference()
+            )
+
+            tags = "new_expression"
+            message = """\
+Subscript look-up to dictionary lowered to dictionary look-up."""
+
+        # Any exception might be raised.
+        if lookup_node.mayRaiseException(BaseException):
+            trace_collection.onExceptionRaiseExit(BaseException)
+
+        return lookup_node, tags, message
 
 
 class ExpressionVariableRef(ExpressionVariableRefBase):
@@ -197,7 +308,7 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         variable = self.variable
         assert variable is not None
 
-        self.variable_version, self.variable_trace = trace_collection.getVariableCurrentTraceVersion(
+        self.variable_trace = trace_collection.getVariableCurrentTrace(
             variable = variable
         )
 
@@ -332,121 +443,6 @@ local variable '%s' referenced before assignment""" % variable_name
 
         return call_node, None, None
 
-    def computeExpressionSetSubscript(self, set_node, subscript, value_node,
-                                      trace_collection):
-        tags = None
-        message = None
-
-        # By default, an subscript may change everything about the lookup
-        # source.
-        if self.variable_trace.hasShapeDictionaryExact():
-            set_node = StatementDictOperationSet(
-                dict_arg   = self,
-                key        = subscript,
-                value      = value_node,
-                source_ref = set_node.getSourceReference()
-            )
-
-            tags = "new_statements"
-            message = """\
-Subscript assignment to dictionary lowered to dictionary assignment."""
-
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
-        # Any exception might be raised.
-        if set_node.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        return set_node, tags, message
-
-    def computeExpressionDelSubscript(self, del_node, subscript,
-                                      trace_collection):
-        tags = None
-        message = None
-
-        # By default, an subscript may change everything about the lookup
-        # source.
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
-        if self.variable_trace.hasShapeDictionaryExact():
-            del_node = StatementDictOperationRemove(
-                dict_arg   = self,
-                key        = subscript,
-                source_ref = del_node.getSourceReference()
-            )
-
-            tags = "new_statements"
-            message = """\
-Subscript del to dictionary lowered to dictionary del."""
-
-
-        # Any exception might be raised.
-        if del_node.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        return del_node, tags, message
-
-    def computeExpressionSubscript(self, lookup_node, subscript, trace_collection):
-        tags = None
-        message = None
-
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
-
-        if self.variable_trace.hasShapeDictionaryExact():
-            lookup_node = ExpressionDictOperationGet(
-                dict_arg   = self,
-                key        = subscript,
-                source_ref = lookup_node.getSourceReference()
-            )
-
-            tags = "new_expression"
-            message = """\
-Subscript look-up to dictionary lowered to dictionary look-up."""
-
-        # Any exception might be raised.
-        if lookup_node.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        return lookup_node, tags, message
-
-    def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
-        tags = None
-        message = None
-
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(in_node)
-
-        if self.variable_trace.hasShapeDictionaryExact():
-            tags = "new_expression"
-            message = """\
-Check '%s' on dictionary lowered to dictionary '%s'.""" % (
-                in_node.comparator,
-                in_node.comparator
-            )
-
-            if in_node.comparator == "In":
-                in_node = ExpressionDictOperationIn(
-                    key        = value_node,
-                    dict_arg   = self,
-                    source_ref = in_node.getSourceReference()
-                )
-            else:
-                in_node = ExpressionDictOperationNOTIn(
-                    key        = value_node,
-                    dict_arg   = self,
-                    source_ref = in_node.getSourceReference()
-                )
-
-
-        # Any exception may be raised.
-        if in_node.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(BaseException)
-
-        return in_node, tags, message
-
     def hasShapeDictionaryExact(self):
         return self.variable_trace.hasShapeDictionaryExact()
 
@@ -517,7 +513,7 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
             return ShapeUnknown
 
     def computeExpressionRaw(self, trace_collection):
-        self.variable_version, self.variable_trace = trace_collection.getVariableCurrentTraceVersion(
+        self.variable_trace = trace_collection.getVariableCurrentTrace(
             variable = self.variable
         )
 

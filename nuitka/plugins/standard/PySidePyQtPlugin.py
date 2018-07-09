@@ -92,6 +92,15 @@ if os.path.exists(guess_path):
 
         return result
 
+    @staticmethod
+    def hasPluginFamily(plugin_dir, family):
+        if os.path.isdir(os.path.join(plugin_dir, family)):
+            return True
+
+        # TODO: Special case xxml.
+
+        return False
+
     def considerExtraDlls(self, dist_dir, module):
         full_name = module.getFullName()
 
@@ -106,23 +115,47 @@ if os.path.exists(guess_path):
                 "qt-plugins"
             )
 
+            plugin_options = self.getPluginOptions()
+            plugin_options = set(plugin_options)
+
+            if not plugin_options:
+                plugin_options.add("sensible")
+
+            if "sensible" in plugin_options:
+                # Most used ones with low dependencies.
+                plugin_options.update(
+                    tuple(
+                        family
+                        for family in (
+                            "imageformats",
+                            "iconengines",
+                            "mediaservice",
+                            "printsupport"
+                        )
+                        if self.hasPluginFamily(plugin_dir, family)
+                    )
+                )
+
+                plugin_options.remove("sensible")
+
+                # Make sure the above didn't detect nothing, which would be
+                # indicating the check to be bad.
+                assert plugin_options
+
+                # Seems platforms is required on Windows.
+                if os.name == "nt":
+                    plugin_options.add("platforms")
+
+            info(
+                "Copying Qt plug-ins '%s' to '%s'." % (
+                    ','.join(sorted(x for x in plugin_options if x != "xml")),
+                    target_plugin_dir
+                )
+            )
+
             shutil.copytree(
                 plugin_dir,
                 target_plugin_dir
-            )
-
-            plugin_options = self.getPluginOptions()
-            if not plugin_options:
-                plugin_options.append("all")
-
-            if plugin_options == ["sensible"]:
-                plugin_options = ["imageformats", "iconengines", "mediaservice", "printsupport"]
-
-            info(
-                "Copying '%s' Qt plug-ins to '%s'." % (
-                    ','.join(plugin_options),
-                    target_plugin_dir
-                )
             )
 
             if "all" not in plugin_options:
@@ -131,12 +164,13 @@ if os.path.exists(guess_path):
                         removeDirectory(plugin_candidate, ignore_errors = False)
 
                 for plugin_candidate in plugin_options:
+                    if plugin_candidate == "qml":
+                        continue
+
                     if not os.path.isdir(os.path.join(target_plugin_dir, plugin_candidate)):
                         sys.exit("Error, no such Qt plugin family: %s" % plugin_candidate)
 
-
-
-            return [
+            result = [
                 (
                     filename,
                     os.path.join(target_plugin_dir, os.path.relpath(filename, plugin_dir)),
@@ -147,6 +181,58 @@ if os.path.exists(guess_path):
                 if not filename.endswith(".qml")
                 if os.path.exists(os.path.join(target_plugin_dir, os.path.relpath(filename, plugin_dir)))
             ]
+
+            if "qml" in plugin_options or "all" in plugin_options:
+                qml_plugin_dir = os.path.normpath(
+                    os.path.join(
+                        plugin_dir,
+                        "..",
+                        "qml"
+                    )
+                )
+
+                qml_target_dir = os.path.normpath(
+                    os.path.join(
+                        target_plugin_dir,
+                        "..",
+                        "Qt",
+                        "qml"
+                    )
+                )
+
+                info(
+                    "Copying Qt plug-ins 'xml' to '%s'." % (
+                        qml_target_dir
+                    )
+                )
+
+                shutil.copytree(
+                    qml_plugin_dir,
+                    qml_target_dir
+                )
+
+                # We try to filter here, not for DLLs.
+                result += [
+                    (
+                        filename,
+                        os.path.join(qml_target_dir, os.path.relpath(filename, qml_plugin_dir)),
+                        full_name
+                    )
+                    for filename in
+                    getFileList(qml_plugin_dir)
+                    if not filename.endswith(
+                        (
+                            ".qml", ".qmlc", ".qmltypes",
+                            ".js", ".jsc",
+                            ".png", ".ttf",
+                            ".metainfo"
+                        )
+                    )
+                    if not os.path.isdir(filename)
+                    if not os.path.basename(filename) == "qmldir"
+                ]
+
+            return result
 
         return ()
 

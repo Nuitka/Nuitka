@@ -25,6 +25,11 @@ from abc import ABCMeta, abstractmethod
 
 from nuitka import Options
 from nuitka.__past__ import iterItems
+from nuitka.Builtins import (
+    builtin_anon_codes,
+    builtin_anon_values,
+    builtin_exception_values_list
+)
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
@@ -756,6 +761,8 @@ class PythonGlobalContext(object):
             key = "Py_False"
         elif constant is Ellipsis:
             key = "Py_Ellipsis"
+        elif constant is NotImplemented:
+            key = "Py_NotImplemented"
         elif type(constant) is type:
             # TODO: Maybe make this a mapping in nuitka.Builtins
 
@@ -779,6 +786,10 @@ class PythonGlobalContext(object):
                 key = "(PyObject *)&PyBaseString_Type"
             elif python_version < 300 and constant is xrange: # pylint: disable=I0021,undefined-variable
                 key = "(PyObject *)&PyRange_Type"
+            elif constant in builtin_anon_values:
+                key = "(PyObject *)" + builtin_anon_codes[builtin_anon_values[constant]]
+            elif constant in builtin_exception_values_list:
+                key = "(PyObject *)PyExc_%s" % constant.__name__
             else:
                 type_name = constant.__name__
 

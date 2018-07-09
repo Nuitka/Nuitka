@@ -123,6 +123,65 @@ NUITKA_MAY_BE_UNUSED static PyObject *MAKE_ITERATOR( PyObject *iterated )
     }
 }
 
+#if PYTHON_VERSION >= 370
+
+NUITKA_MAY_BE_UNUSED static PyObject *MAKE_UNPACK_ITERATOR( PyObject *iterated )
+{
+
+    getiterfunc tp_iter = Py_TYPE( iterated )->tp_iter;
+
+    if ( tp_iter )
+    {
+        PyObject *result = (*tp_iter)( iterated );
+
+        if (unlikely( result == NULL ))
+        {
+            return NULL;
+        }
+        else if (unlikely( !HAS_ITERNEXT( result )) )
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "iter() returned non-iterator of type '%s'",
+                Py_TYPE( result )->tp_name
+            );
+
+            Py_DECREF( result );
+
+            return NULL;
+        }
+        else
+        {
+            return result;
+        }
+    }
+    else if ( PySequence_Check( iterated ) )
+    {
+        seqiterobject *result = PyObject_GC_New( seqiterobject, &PySeqIter_Type );
+        assert( result );
+
+        result->it_index = 0;
+        Py_INCREF( iterated );
+        result->it_seq = iterated;
+
+        Nuitka_GC_Track( result );
+
+        return (PyObject *)result;
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "cannot unpack non-iterable %s object",
+            Py_TYPE( iterated )->tp_name
+        );
+
+        return NULL;
+    }
+}
+
+#endif
+
 NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 {
     CHECK_OBJECT( iterator );

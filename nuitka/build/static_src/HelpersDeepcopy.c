@@ -165,22 +165,24 @@ PyObject *DEEP_COPY( PyObject *value )
     }
     else if (
 #if PYTHON_VERSION < 300
-        PyString_Check( value )  ||
+        PyString_Check( value )    ||
 #endif
-        PyUnicode_Check( value ) ||
+        PyUnicode_Check( value )   ||
 #if PYTHON_VERSION < 300
-        PyInt_Check( value )     ||
+        PyInt_Check( value )       ||
 #endif
-        PyLong_Check( value )    ||
-        value == Py_None         ||
-        PyBool_Check( value )    ||
-        PyFloat_Check( value )   ||
-        PyBytes_Check( value )   ||
-        PyRange_Check( value )   ||
-        PyType_Check( value )    ||
-        PySlice_Check( value )   ||
-        PyComplex_Check( value ) ||
-        value == Py_Ellipsis
+        PyLong_Check( value )      ||
+        value == Py_None           ||
+        PyBool_Check( value )      ||
+        PyFloat_Check( value )     ||
+        PyBytes_Check( value )     ||
+        PyRange_Check( value )     ||
+        PyType_Check( value )      ||
+        PySlice_Check( value )     ||
+        PyComplex_Check( value )   ||
+        PyCFunction_Check( value ) ||
+        value == Py_Ellipsis       ||
+        value == Py_NotImplemented
         )
     {
         Py_INCREF( value );
@@ -410,7 +412,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
 
         return result;
     }
-    else if ( value == Py_None || value == Py_Ellipsis )
+    else if ( value == Py_None || value == Py_Ellipsis || value == Py_NotImplemented )
     {
         return DEEP_HASH_INIT( value );
     }
@@ -446,7 +448,8 @@ Py_hash_t DEEP_HASH( PyObject *value )
 #endif
         PyBool_Check( value )    ||
         PyRange_Check( value )   ||
-        PySlice_Check( value )
+        PySlice_Check( value )   ||
+        PyCFunction_Check( value )
         )
     {
         Py_hash_t result = DEEP_HASH_INIT( value );

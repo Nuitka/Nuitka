@@ -51,6 +51,7 @@ class ExpressionCall(ExpressionChildrenHavingBase):
         )
 
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
+    setCalled = ExpressionChildrenHavingBase.childSetter("called")
     getCallArgs = ExpressionChildrenHavingBase.childGetter("args")
     getCallKw = ExpressionChildrenHavingBase.childGetter("kw")
 
@@ -96,6 +97,7 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
         )
 
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
+    setCalled = ExpressionChildrenHavingBase.childSetter("called")
     getCallArgs = ExpressionChildrenHavingBase.childGetter("args")
 
     def computeExpression(self, trace_collection):
@@ -141,6 +143,7 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
         )
 
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
+    setCalled = ExpressionChildrenHavingBase.childSetter("called")
     getCallKw = ExpressionChildrenHavingBase.childGetter("kw")
 
     def computeExpression(self, trace_collection):
@@ -185,6 +188,7 @@ class ExpressionCallEmpty(ExpressionChildrenHavingBase):
         )
 
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
+    setCalled = ExpressionChildrenHavingBase.childSetter("called")
 
     def computeExpression(self, trace_collection):
         called = self.getCalled()

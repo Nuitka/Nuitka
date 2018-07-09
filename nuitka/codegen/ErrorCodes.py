@@ -71,9 +71,18 @@ def getFrameVariableTypeDescriptionCode(context):
         return ""
 
 
-def getErrorExitBoolCode(condition, emit, context,
+def getErrorExitBoolCode(condition, emit, context, release_names = (),
+                         release_name = None,
                          needs_check = True, quick_exception = None):
     assert not condition.endswith(';')
+
+    if release_names:
+        getReleaseCodes(release_names, emit, context)
+        assert not release_name
+
+    if release_name is not None:
+        getReleaseCode(release_name, emit, context)
+        assert not release_names
 
     if not needs_check:
         getAssertionCode("!(%s)" % condition, emit)
@@ -122,16 +131,18 @@ def getErrorExitBoolCode(condition, emit, context,
         )
 
 
-def getErrorExitCode(check_name, emit, context, quick_exception = None, needs_check = True):
-    if needs_check:
-        getErrorExitBoolCode(
-            condition       = "%s == NULL" % check_name,
-            quick_exception = quick_exception,
-            emit            = emit,
-            context         = context
-        )
-    else:
-        getAssertionCode("%s != NULL" % check_name, emit)
+def getErrorExitCode(check_name, emit, context, release_names = (),
+                     release_name = None, quick_exception = None,
+                     needs_check = True):
+    getErrorExitBoolCode(
+        condition       = "%s == NULL" % check_name,
+        release_names   = release_names,
+        release_name    = release_name,
+        needs_check     = needs_check,
+        quick_exception = quick_exception,
+        emit            = emit,
+        context         = context
+    )
 
 
 def getErrorFormatExitBoolCode(condition, exception, args, emit, context):

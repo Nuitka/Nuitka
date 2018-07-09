@@ -24,7 +24,6 @@ whose implementation lives here. The creation itself also lives here.
 
 from nuitka.PythonVersions import python_version
 
-from .Checkers import checkStatementsSequenceOrNone
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .FunctionNodes import ExpressionFunctionEntryPointBase
 from .IndicatorMixins import MarkUnoptimizedFunctionIndicatorMixin
@@ -67,11 +66,11 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
         self.variable_closure_traces = []
 
         for closure_variable in self.getGeneratorRef().getFunctionBody().getClosureVariables():
-            version, trace = trace_collection.getVariableCurrentTraceVersion(closure_variable)
+            trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addClosureUsage()
 
             self.variable_closure_traces.append(
-                (closure_variable, version, trace)
+                (closure_variable, trace)
             )
 
         # TODO: Generator body may know something too.
@@ -89,18 +88,7 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
 
 class ExpressionGeneratorObjectBody(MarkUnoptimizedFunctionIndicatorMixin,
                                     ExpressionFunctionEntryPointBase):
-    # We really want these many ancestors, as per design, we add properties via
-    # base class mix-ins a lot, pylint: disable=R0901
     kind = "EXPRESSION_GENERATOR_OBJECT_BODY"
-
-    named_children = (
-        "body",
-    )
-
-    checkers = {
-        # TODO: Is "None" really an allowed value.
-        "body" : checkStatementsSequenceOrNone
-    }
 
     if python_version >= 340:
         qualname_setup = None
@@ -194,6 +182,9 @@ Generator return value is always None."""
     def isStatementGeneratorReturn():
         return True
 
+    def getStatementNiceName(self):
+        return "generator return statement"
+
 
 class StatementGeneratorReturnNone(StatementReturnNone):
     kind = "STATEMENT_GENERATOR_RETURN_NONE"
@@ -209,3 +200,6 @@ class StatementGeneratorReturnNone(StatementReturnNone):
     @staticmethod
     def isStatementGeneratorReturn():
         return True
+
+    def getStatementNiceName(self):
+        return "generator return statement"

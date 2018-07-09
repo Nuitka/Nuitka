@@ -187,3 +187,14 @@ def getTargetPythonDLLPath():
             sys.exit("Error, cannot switch to debug Python, not installed.")
 
     return dll_path
+
+
+def isStaticallyLinkedPython():
+    try:
+        import sysconfig
+    except ImportError:
+        # Cannot detect this properly for Python 2.6, but we don't care much
+        # about that anyway.
+        return False
+
+    return sysconfig.get_config_var("Py_ENABLE_SHARED") == 0

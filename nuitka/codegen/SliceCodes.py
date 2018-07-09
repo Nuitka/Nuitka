@@ -31,12 +31,7 @@ from .CodeHelpers import (
     generateExpressionCode,
     generateExpressionsCode
 )
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes
-)
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .IndexCodes import (
     getIndexCode,
     getIndexValueCode,
@@ -352,17 +347,12 @@ def generateBuiltinSliceCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (lower_name, upper_name, step_name),
+        needs_check   = False, # Note: Cannot fail
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = False, # Note: Cannot fail
-        emit        = emit,
-        context     = context
     )
 
 
@@ -380,16 +370,11 @@ def getSliceLookupCode(to_name, source_name, lower_name, upper_name, emit,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (source_name, lower_name, upper_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -406,16 +391,11 @@ def getSliceLookupIndexesCode(to_name, lower_name, upper_name, source_name,
         )
     )
 
-    getReleaseCode(
+    getErrorExitCode(
+        check_name   = to_name,
         release_name = source_name,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -437,16 +417,11 @@ def getSliceAssignmentIndexesCode(target_name, lower_name, upper_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == false" % res_name,
         release_names = (value_name, target_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
     )
 
 
@@ -464,16 +439,11 @@ def getSliceAssignmentCode(target_name, lower_name, upper_name, value_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == false" % res_name,
         release_names = (target_name, lower_name, upper_name, value_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
     )
 
 
@@ -489,16 +459,11 @@ def getSliceDelIndexesCode(target_name, lower_name, upper_name, emit, context):
         )
     )
 
-    getReleaseCode(
+    getErrorExitBoolCode(
+        condition    = "%s == false" % res_name,
         release_name = target_name,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
     )
 
 
@@ -514,14 +479,9 @@ def getSliceDelCode(target_name, lower_name, upper_name, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == false" % res_name,
         release_names = (target_name, lower_name, upper_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
     )

@@ -95,6 +95,9 @@ class Variable(object):
 
     def isTempVariable(self):
         return False
+
+    def isLocalsDictVariable(self):
+        return False
     # pylint: enable=R0201
 
     def addVariableUser(self, user):
@@ -307,6 +310,26 @@ class TempVariable(Variable):
         return "temp variable '%s'" % self.variable_name
 
     def isTempVariable(self):
+        return True
+
+
+class LocalsDictVariable(Variable):
+    __slots__ = ()
+
+    def __init__(self, owner, variable_name):
+        Variable.__init__(
+            self,
+            owner         = owner,
+            variable_name = variable_name
+        )
+
+    def __repr__(self):
+        return "<LocalsDictVariable '%s' of '%s'>" % (
+            self.getName(),
+            self.getOwner().getName()
+        )
+
+    def isLocalsDictVariable(self):
         return True
 
 

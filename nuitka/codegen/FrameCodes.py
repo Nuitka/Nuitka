@@ -376,6 +376,7 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
     if frame_return_exit is not None:
         emit(
             template_frame_guard_generator_return_handler % {
+                "context_identifier" : context_identifier,
                 "frame_identifier"   : "%s->m_frame" % context_identifier,
                 "return_exit"        : parent_return_exit,
                 "frame_return_exit"  : frame_return_exit,
@@ -385,6 +386,7 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
     if frame_exception_exit is not None:
         emit(
             template_frame_guard_generator_exception_handler % {
+                "context_identifier"     : context_identifier,
                 "frame_identifier"       : "%s->m_frame" % context_identifier,
                 "frame_cache_identifier" : "cache_frame_" + context_identifier,
                 "tb_making"              : getTracebackMakingIdentifier(
@@ -414,7 +416,9 @@ def generateFramePreserveExceptionCode(statement, emit, context):
     else:
         preserver_id = statement.getPreserverId()
 
-        if preserver_id == 0 and python_version < 300:
+        if preserver_id == 0:
+            assert False
+
             emit(
                 "PRESERVE_FRAME_EXCEPTION( %(frame_identifier)s );" % {
                     "frame_identifier" : context.getFrameHandle()
@@ -423,13 +427,14 @@ def generateFramePreserveExceptionCode(statement, emit, context):
         else:
             context.addExceptionPreserverVariables(preserver_id)
 
+            # TODO: Multiple thread state calls should be avoided.
             emit(
                 """\
-exception_preserved_type_%(preserver_id)d = PyThreadState_GET()->exc_type;
+exception_preserved_type_%(preserver_id)d = EXC_TYPE(PyThreadState_GET());
 Py_XINCREF( exception_preserved_type_%(preserver_id)d );
-exception_preserved_value_%(preserver_id)d = PyThreadState_GET()->exc_value;
+exception_preserved_value_%(preserver_id)d = EXC_VALUE(PyThreadState_GET());
 Py_XINCREF( exception_preserved_value_%(preserver_id)d );
-exception_preserved_tb_%(preserver_id)d = (PyTracebackObject *)PyThreadState_GET()->exc_traceback;
+exception_preserved_tb_%(preserver_id)d = (PyTracebackObject *)EXC_TRACEBACK(PyThreadState_GET());
 Py_XINCREF( exception_preserved_tb_%(preserver_id)d );
 """ % {
                     "preserver_id"  : preserver_id,
@@ -449,18 +454,11 @@ def generateFrameRestoreExceptionCode(statement, emit, context):
     else:
         preserver_id = statement.getPreserverId()
 
-        if preserver_id == 0  and python_version < 300:
-            emit(
-                "RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );" % {
-                    "frame_identifier" : context.getFrameHandle()
-                }
-            )
-        else:
-            emit(
-                """\
+        emit(
+            """\
 SET_CURRENT_EXCEPTION( exception_preserved_type_%(preserver_id)d, \
 exception_preserved_value_%(preserver_id)d, \
 exception_preserved_tb_%(preserver_id)d );""" % {
                     "preserver_id" : preserver_id,
-                }
-            )
+            }
+        )

@@ -27,6 +27,11 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     unicode,
     xrange
 )
+from nuitka.Builtins import (
+    builtin_anon_values,
+    builtin_exception_values_list,
+    builtin_named_values
+)
 from nuitka.Constants import (
     getConstantIterationLength,
     getUnhashableConstant,
@@ -41,6 +46,7 @@ from nuitka.Options import isDebug
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
 from .NodeMakingHelpers import (
+    getComputationResult,
     makeRaiseExceptionReplacementExpression,
     wrapExpressionWithSideEffects
 )
@@ -84,7 +90,7 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
 
         if not user_provided and isDebug():
             try:
-                if type(constant) in (str, unicode):
+                if type(constant) in (str, unicode, bytes):
                     max_size = 1000
                 elif type(constant) is xrange:
                     max_size = None
@@ -359,8 +365,16 @@ Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
             )
 
         if not isIterableConstant(self.constant):
-            # Any exception may be raised.
+            # An exception may be raised.
             trace_collection.onExceptionRaiseExit(TypeError)
+
+            return getComputationResult(
+                node        = iter_node,
+                computation = lambda : iter_node.simulator(self.constant),
+                description = "Iteration of non-iterable constant."
+            )
+
+
 
         return iter_node, None, None
 
@@ -1040,6 +1054,32 @@ def makeConstantRefNode(constant, source_ref, user_provided = False):
                 constant      = constant,
                 user_provided = user_provided
             )
+        elif constant in builtin_anon_values:
+            from .BuiltinRefNodes import ExpressionBuiltinAnonymousRef
+
+            return ExpressionBuiltinAnonymousRef(
+                source_ref   = source_ref,
+                builtin_name = builtin_anon_values[constant]
+            )
+        elif constant in builtin_named_values:
+            from .BuiltinRefNodes import ExpressionBuiltinRef
+
+            return ExpressionBuiltinRef(
+                builtin_name = builtin_named_values[constant],
+                source_ref   = source_ref
+            )
+        elif constant in builtin_exception_values_list:
+            from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+
+            if constant is NotImplemented:
+                exception_name = "NotImplemented"
+            else:
+                exception_name = constant.__name__
+
+            return ExpressionBuiltinExceptionRef(
+                exception_name = exception_name,
+                source_ref     = source_ref
+            )
         else:
             # Missing constant type, ought to not happen, please report.
-            assert False, constant_type
+            assert False, (constant, constant_type)

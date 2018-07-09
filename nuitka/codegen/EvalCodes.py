@@ -22,17 +22,12 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes
-)
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .VariableCodes import getVariableAssignmentCode
 
 
-def getStoreLocalsCode(locals_name, variables, is_dict, emit, context):
-    for variable, version in variables:
+def getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
+    for variable, variable_trace in variable_traces:
         if not variable.isModuleVariable():
             key_name = context.getConstantCode(
                 constant = variable.getName()
@@ -72,13 +67,13 @@ def getStoreLocalsCode(locals_name, variables, is_dict, emit, context):
             emit('{')
 
             getVariableAssignmentCode(
-                variable      = variable,
-                version       = version,
-                tmp_name      = value_name,
-                needs_release = None, # TODO: Could be known maybe.
-                in_place      = False,
-                emit          = emit,
-                context       = context
+                variable       = variable,
+                variable_trace = variable_trace,
+                tmp_name       = value_name,
+                needs_release  = None, # TODO: Could be known maybe.
+                in_place       = False,
+                emit           = emit,
+                context        = context
             )
 
             emit('}')
@@ -190,17 +185,18 @@ def getBuiltinCompileCode(to_name, source_name, filename_name, mode_name,
         )
     )
 
-    getReleaseCodes(
-        release_names = (source_name, filename_name, mode_name, flags_name,
-                         dont_inherit_name, optimize_name),
+    getErrorExitCode(
+        check_name    = to_name,
+        release_names = (
+            source_name,
+            filename_name,
+            mode_name,
+            flags_name,
+            dont_inherit_name,
+            optimize_name
+        ),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -231,16 +227,11 @@ def getBuiltinEvalCode(to_name, source_name, filename_name, globals_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (compiled_name, globals_name, locals_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -321,19 +312,15 @@ def generateExecCode(statement, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (compiled_name, globals_name, locals_name),
         emit          = emit,
         context       = context
     )
 
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
-
-    # Immediately release the exec result.
+    # Immediately release the exec result, no point in keeping it, it's a
+    # statement.
     context.addCleanupTempName(to_name)
     getReleaseCode(
         release_name = to_name,
@@ -429,11 +416,11 @@ def generateLocalsDictSyncCode(statement, emit, context):
     )
 
     getStoreLocalsCode(
-        locals_name = locals_name,
-        variables   = statement.previous_traces,
-        is_dict     = locals_arg.getTypeShape() is ShapeTypeDict,
-        emit        = emit,
-        context     = context
+        locals_name     = locals_name,
+        variable_traces = statement.getPreviousVariablesTraces(),
+        is_dict         = locals_arg.getTypeShape() is ShapeTypeDict,
+        emit            = emit,
+        context         = context
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)

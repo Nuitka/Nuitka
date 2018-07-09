@@ -21,26 +21,14 @@ Right now only the creation is done here. But more should be added later on.
 """
 
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes
-)
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generateListCreationCode(to_name, expression, emit, context):
     elements = expression.getElements()
 
-    emit(
-        "%s = PyList_New( %d );" % (
-            to_name,
-            len(elements)
-        )
-    )
-
-    context.addCleanupTempName(to_name)
+    assert elements
 
     element_name = context.allocateTempName("list_element")
 
@@ -51,6 +39,17 @@ def generateListCreationCode(to_name, expression, emit, context):
             emit       = emit,
             context    = context
         )
+
+        # Delayed allocation of the list to store in.
+        if count == 0:
+            emit(
+                "%s = PyList_New( %d );" % (
+                    to_name,
+                    len(elements)
+                )
+            )
+
+            context.addCleanupTempName(to_name)
 
         if not context.needsCleanup(element_name):
             emit("Py_INCREF( %s );" % element_name)
@@ -96,16 +95,11 @@ def generateListOperationAppendCode(statement, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == -1" % res_name,
         release_names = (list_arg_name, value_arg_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == -1" % res_name,
-        emit      = emit,
-        context   = context
     )
 
 
@@ -125,16 +119,11 @@ def generateListOperationExtendCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (list_arg_name, value_arg_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -156,16 +145,11 @@ def generateListOperationPopCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCode(
+    getErrorExitCode(
+        check_name   = to_name,
         release_name = list_arg_name,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)

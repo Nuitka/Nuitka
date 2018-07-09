@@ -37,6 +37,7 @@ from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
 
 _progress = Options.isShowProgress()
+_is_verbose = Options.isVerbose()
 
 def _attemptRecursion(module):
     new_modules = module.attemptRecursion()
@@ -58,13 +59,16 @@ def signalChange(tags, source_ref, message):
 
     """
     if message is not None:
-        debug(
-            "{source_ref} : {tags} : {message}".format(
-                source_ref = source_ref.getAsString(),
-                tags       = tags,
-                message    = message() if inspect.isfunction(message) else message
+        # Try hard to not call a delayed evaluation of node descriptions.
+
+        if _is_verbose:
+            debug(
+                "{source_ref} : {tags} : {message}".format(
+                    source_ref = source_ref.getAsString(),
+                    tags       = tags,
+                    message    = message() if inspect.isfunction(message) else message
+                )
             )
-        )
 
     tag_set.onSignal(tags)
 
@@ -289,6 +293,14 @@ def optimizeUnusedTempVariables(provider):
         return False
 
 
+def optimizeUnusedAssignments(provider):
+    for _trace_collection in provider.getTraceCollections():
+        # TODO: Find things to do here.
+        pass
+
+    return False
+
+
 def optimizeVariables(module):
     changed = False
 
@@ -313,6 +325,11 @@ def optimizeVariables(module):
 
         if optimizeUnusedTempVariables(module):
             changed = True
+
+#        TODO: Global optimizations could go here maybe, so far we can do all
+#        the things in assign nodes themselves based on last trace.
+#        if optimizeUnusedAssignments(module):
+#            changed = True
     except Exception:
         print("Problem with", module)
         raise
@@ -455,17 +472,17 @@ def _checkXMLPersistence():
 
 
 
-def optimize():
+def optimize(output_filename):
     Graphs.startGraph()
 
     # First pass.
     if _progress:
         info("PASS 1:")
 
-    makeOptimizationPass(False)
+    makeOptimizationPass(initial_pass = True)
     Variables.complete = True
 
-    finished = makeOptimizationPass(False)
+    finished = makeOptimizationPass(initial_pass = False)
 
     if Options.isExperimental("check_xml_persistence"):
         _checkXMLPersistence()
@@ -482,6 +499,6 @@ def optimize():
 
     # Second, "endless" pass.
     while not finished:
-        finished = makeOptimizationPass(True)
+        finished = makeOptimizationPass(initial_pass = False)
 
-    Graphs.endGraph()
+    Graphs.endGraph(output_filename)

@@ -24,6 +24,8 @@ of checks, and add methods automatically.
 
 from abc import ABCMeta
 
+from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
+
 
 def _checkBases(name, bases):
     # Avoid duplicate base classes.
@@ -53,6 +55,13 @@ class NodeCheckMetaClass(ABCMeta):
 
         if "__slots__" not in dictionary:
             dictionary["__slots__"] = ()
+
+        if "named_child" in dictionary:
+            dictionary["__slots__"] += (intern("subnode_" + dictionary["named_child"]),)
+
+        # Not a method:
+        if "checker" in dictionary:
+            dictionary["checker"] = staticmethod(dictionary["checker"])
 
         return ABCMeta.__new__(cls, name, bases, dictionary)
 

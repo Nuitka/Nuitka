@@ -40,6 +40,7 @@ struct Nuitka_FrameObject
 {
     PyFrameObject m_frame;
 
+    // Our own extra stuff, attached variables.
     char const *m_type_description;
     char m_locals_storage[1];
 };

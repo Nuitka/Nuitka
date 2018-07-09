@@ -25,8 +25,8 @@ largely depend on the arguments slot.
 """
 
 from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
-from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
+from nuitka.specs import BuiltinParameterSpecs
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
@@ -34,6 +34,12 @@ from .ExpressionBases import (
     ExpressionSpecBasedComputationBase
 )
 from .shapes.BuiltinTypeShapes import ShapeTypeIntOrLong, ShapeTypeLong
+
+
+class ShapeTypeIntOrLongDerived(ShapeTypeIntOrLong):
+    @staticmethod
+    def getTypeName():
+        return None
 
 
 class ExpressionBuiltinInt1(ExpressionChildrenHavingBase):
@@ -51,7 +57,8 @@ class ExpressionBuiltinInt1(ExpressionChildrenHavingBase):
         )
 
     def getTypeShape(self):
-        return ShapeTypeIntOrLong
+        # TODO: Depending on input type shape and value, we should improve this.
+        return ShapeTypeIntOrLongDerived
 
     def computeExpression(self, trace_collection):
         value = self.getValue()
@@ -125,7 +132,7 @@ class ExpressionBuiltinIntLong2Base(ExpressionSpecBasedComputationBase):
 class ExpressionBuiltinInt2(ExpressionBuiltinIntLong2Base):
     kind = "EXPRESSION_BUILTIN_INT2"
 
-    builtin_spec = BuiltinOptimization.builtin_int_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_int_spec
     builtin = int
 
     def getTypeShape(self):
@@ -133,6 +140,12 @@ class ExpressionBuiltinInt2(ExpressionBuiltinIntLong2Base):
 
 
 if python_version < 300:
+    class ShapeTypeLongDerived(ShapeTypeLong):
+        @staticmethod
+        def getTypeName():
+            return None
+
+
     class ExpressionBuiltinLong1(ExpressionChildrenHavingBase):
         kind = "EXPRESSION_BUILTIN_LONG1"
 
@@ -148,8 +161,8 @@ if python_version < 300:
             )
 
         def getTypeShape(self):
-            # TODO: Is this really enforced or can a slot return otherwise?
-            return ShapeTypeLong
+            # TODO: Depending on input type shape and value, we should improve this.
+            return ShapeTypeLongDerived
 
         def computeExpression(self, trace_collection):
             return self.subnode_value.computeExpressionLong(
@@ -166,7 +179,7 @@ if python_version < 300:
     class ExpressionBuiltinLong2(ExpressionBuiltinIntLong2Base):
         kind = "EXPRESSION_BUILTIN_LONG2"
 
-        builtin_spec = BuiltinOptimization.builtin_long_spec
+        builtin_spec = BuiltinParameterSpecs.builtin_long_spec
         builtin = long
 
         def getTypeShape(self):

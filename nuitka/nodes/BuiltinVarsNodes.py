@@ -45,4 +45,6 @@ class ExpressionBuiltinVars(ExpressionChildrenHavingBase):
 
     def computeExpression(self, trace_collection):
         # TODO: Should be possible to predict this.
+
+        trace_collection.onExceptionRaiseExit(BaseException)
         return self, None, None

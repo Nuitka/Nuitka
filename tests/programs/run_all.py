@@ -59,11 +59,15 @@ for filename in sorted(os.listdir('.')):
         "main_raises",
         "main_raises2",
         "package_contains_main"
+
     ]
 
-    # Allowed after Python3, packages need no more "__init__.py"
+    # After Python3 those have been made to work.
+    if python_version < "3.5":
+        expected_errors.append("cyclic_imports")
 
-    if python_version < "3.3":
+    # Allowed with Python3, packages need no more "__init__.py"
+    if python_version < "3":
         expected_errors.append("package_missing_init")
 
     if filename not in expected_errors:
@@ -111,7 +115,10 @@ for filename in sorted(os.listdir('.')):
         extra_flags.append("ignore_warnings")
     elif filename == "multiprocessing_using":
         if os.name == "nt":
-            extra_flags.append("plugin_enable:multiprocessing")
+            extra_flags += [
+                "plugin_enable:multiprocessing",
+                "ignore_infos"
+            ]
     else:
         os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options
 

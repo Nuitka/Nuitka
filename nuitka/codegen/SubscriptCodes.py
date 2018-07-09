@@ -29,7 +29,7 @@ from .CodeHelpers import (
     generateExpressionCode,
     generateExpressionsCode
 )
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 
 
 def generateAssignmentSubscriptCode(statement, emit, context):
@@ -154,16 +154,11 @@ def getIntegerSubscriptLookupCode(to_name, target_name, subscript_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (target_name, subscript_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -179,16 +174,11 @@ def getSubscriptLookupCode(to_name, subscript_name, subscribed_name, emit,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (subscribed_name, subscript_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -211,16 +201,11 @@ def getIntegerSubscriptAssignmentCode(subscribed_name, subscript_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == false" % res_name,
         release_names = (subscribed_name, value_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
     )
 
 
@@ -237,16 +222,11 @@ def getSubscriptAssignmentCode(target_name, subscript_name, value_name,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == false" % res_name,
         release_names = (target_name, subscript_name, value_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
     )
 
 
@@ -261,14 +241,9 @@ def getSubscriptDelCode(target_name, subscript_name, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == false" % res_name,
         release_names = (target_name, subscript_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
     )

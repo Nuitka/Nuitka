@@ -19,7 +19,7 @@
 
 """
 
-from nuitka.optimizations.BuiltinOptimization import builtin_dict_spec
+from nuitka.specs.BuiltinParameterSpecs import builtin_dict_spec
 
 from .BuiltinIteratorNodes import ExpressionBuiltinIter1
 from .ConstantRefNodes import makeConstantRefNode

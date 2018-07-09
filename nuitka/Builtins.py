@@ -78,6 +78,8 @@ def _getBuiltinExceptionNames():
     return names, values
 
 builtin_exception_names, builtin_exception_values = _getBuiltinExceptionNames()
+builtin_exception_values_list = tuple(builtin_exception_values.values())
+
 
 # Just to make sure it's covering these cases correctly.
 assert "TypeError" in builtin_exception_names
@@ -123,6 +125,11 @@ def _getBuiltinNames():
     return names, warnings
 
 builtin_names, builtin_warnings = _getBuiltinNames()
+builtin_named_values = dict(
+    (__builtins__[x], x)
+    for x in builtin_names
+)
+builtin_named_values_list = tuple(builtin_named_values)
 
 assert "__import__" in builtin_names
 assert "int" in builtin_names
@@ -155,9 +162,9 @@ def _getAnonBuiltins():
             "function"                   : FunctionType,
             "builtin_function_or_method" : BuiltinFunctionType,
             # Can't really have it any better way.
-            "compiled_function"          : BuiltinFunctionType,
+            # "compiled_function"          : BuiltinFunctionType,
             "generator"                  : GeneratorType,
-            "compiled_generator"         : GeneratorType, # see above
+            # "compiled_generator"         : GeneratorType, # see above
             "code"                       : type(_getAnonBuiltins.__code__),
             "file"                       : type(any_file)
         }
@@ -191,6 +198,15 @@ def _getAnonBuiltins():
     return anon_names, anon_codes
 
 builtin_anon_names, builtin_anon_codes = _getAnonBuiltins()
+builtin_anon_values = dict(
+    (b, a)
+    for a, b in
+    builtin_anon_names.items()
+)
+
+# For being able to check if it's not hashable, we need something not using
+# a hash.
+builtin_anon_value_list = tuple(builtin_anon_values)
 
 def calledWithBuiltinArgumentNamesDecorator(f):
     """ Allow a function to be called with an "_arg" if a built-in name.

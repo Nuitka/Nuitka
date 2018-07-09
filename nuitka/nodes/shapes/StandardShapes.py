@@ -36,6 +36,10 @@ class ShapeBase(object):
     def getCType():
         return CTypePyObjectPtr
 
+    @staticmethod
+    def hasShapeSlotBytes():
+        return None
+
 
 class ShapeUnknown(ShapeBase):
     @staticmethod
@@ -55,6 +59,10 @@ class ShapeUnknown(ShapeBase):
         return None
 
     @staticmethod
+    def hasShapeSlotComplex():
+        return None
+
+    @staticmethod
     def hasShapeSlotIter():
         return None
 
@@ -64,6 +72,10 @@ class ShapeUnknown(ShapeBase):
 
     @staticmethod
     def hasShapeSlotContains():
+        return None
+
+    @staticmethod
+    def hasShapeSlotBytes():
         return None
 
 

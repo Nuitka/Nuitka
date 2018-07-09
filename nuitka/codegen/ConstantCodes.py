@@ -41,7 +41,13 @@ from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     unicode,
     xrange
 )
-from nuitka.Constants import compareConstants, getConstantWeight, isMutable
+from nuitka.Builtins import builtin_named_values, builtin_named_values_list
+from nuitka.Constants import (
+    NoneType,
+    compareConstants,
+    getConstantWeight,
+    isMutable
+)
 from nuitka.PythonVersions import python_version
 
 from .BlobCodes import StreamData
@@ -298,20 +304,22 @@ def _addConstantInitCode(context, emit, check, constant_type, constant_value,
         This may be module or global init. Code makes sure that nested
         constants belong into the same scope.
     """
+    # Got a couple of values to dodge, pylint: disable=too-many-return-statements
 
     if constant_value is None:
         return
-    if constant_value is False:
+    elif constant_value is False:
         return
-    if constant_value is True:
+    elif constant_value is True:
         return
-    if constant_value is Ellipsis:
+    elif constant_value is Ellipsis:
         return
-    if type(constant_value) is type:
+    elif constant_value is NotImplemented:
         return
-
-    # Do not repeat ourselves.
-    if constant_identifier in done:
+    elif type(constant_value) is type:
+        return
+    elif constant_identifier in done:
+        # Do not repeat ourselves.
         return
 
     if Options.shallTraceExecution():
@@ -321,6 +329,8 @@ def _addConstantInitCode(context, emit, check, constant_type, constant_value,
     __addConstantInitCode(context, emit, check, constant_type, constant_value,
                           constant_identifier, module_level)
 
+    # In debug mode, lets check if the constants somehow change behind our
+    # back, add those values too.
     if Options.isDebug():
         emit(
              """\
@@ -845,6 +855,30 @@ CHECK_OBJECT( const_int_pos_1 );
 
         return
 
+    if constant_value in builtin_named_values_list:
+        builtin_name = builtin_named_values[constant_value]
+        builtin_identifier = context.getConstantCode(builtin_name)
+
+        _addConstantInitCode(
+            emit                = emit,
+            check               = check,
+            constant_type       = type(builtin_name),
+            constant_value      = builtin_name,
+            constant_identifier = builtin_identifier,
+            module_level        = module_level,
+            context             = context
+        )
+
+        emit(
+            "%s = LOOKUP_BUILTIN( %s );" % (
+                constant_identifier,
+                builtin_identifier
+            )
+        )
+
+        return
+
+
     # Must not reach this, if we did, it's in error, and we need to know.
     assert False, (type(constant_value), constant_value, constant_identifier)
 
@@ -892,6 +926,8 @@ def getConstantsDeclCode(context):
         if constant_value is True:
             continue
         if constant_value is Ellipsis:
+            continue
+        if constant_value is NotImplemented:
             continue
         if type(constant_value) is type:
             continue
@@ -1098,6 +1134,8 @@ def allocateNestedConstants(module_context):
 
                     for value in parts:
                         considerForDeferral(value)
+        elif constant_value in builtin_named_values_list:
+            considerForDeferral(builtin_named_values[constant_value])
 
     for constant_identifier in set(module_context.getConstants()):
         constant_value = module_context.global_context.constants[
@@ -1108,6 +1146,10 @@ def allocateNestedConstants(module_context):
 
         if constant_type in (tuple, dict, list, set, frozenset, slice, xrange):
             considerForDeferral(constant_value)
+        elif constant_type in (str, NoneType, int, long):
+            pass
+        elif constant_value in builtin_named_values_list:
+            considerForDeferral(builtin_named_values[constant_value])
 
 
 def getConstantsDefinitionCode(context):

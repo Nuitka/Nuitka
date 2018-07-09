@@ -41,7 +41,6 @@ from nuitka.nodes.ClassNodes import (
     ExpressionSelectMetaclass
 )
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIn
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     StatementConditional
@@ -50,7 +49,9 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationGet,
-    StatementDictOperationRemove
+    ExpressionDictOperationIn,
+    StatementDictOperationRemove,
+    StatementDictOperationUpdate
 )
 from nuitka.nodes.FunctionNodes import ExpressionFunctionQualnameRef
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
@@ -91,7 +92,8 @@ from .TreeHelpers import (
 
 def _buildClassNode3(provider, node, source_ref):
     # Many variables, due to the huge re-formulation that is going on here,
-    # which just has the complexity, pylint: disable=too-many-locals
+    # which just has the complexity and optimization checks:
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # This function is the Python3 special case with special re-formulation as
     # according to developer manual.
@@ -229,10 +231,10 @@ def _buildClassNode3(provider, node, source_ref):
     if python_version >= 360 and \
        class_creation_function.needsAnnotationsDictionary():
         statements.append(
-            StatementAssignmentVariableName(
-                provider      = class_creation_function,
+            StatementLocalsDictOperationSet(
+                locals_scope  = class_creation_function.getLocalsScope(),
                 variable_name = "__annotations__",
-                source        = makeConstantRefNode(
+                value         = makeConstantRefNode(
                     constant      = {},
                     source_ref    = source_ref,
                     user_provided = True
@@ -324,7 +326,12 @@ def _buildClassNode3(provider, node, source_ref):
             source_ref = decorator.getSourceReference()
         )
 
-    statements = (
+    if node.keywords and node.keywords[-1].arg is None:
+        keywords = node.keywords[:-1]
+    else:
+        keywords = node.keywords
+
+    statements = [
         StatementAssignmentVariable(
             variable   = tmp_bases,
             source     = buildTupleCreationNode(
@@ -340,28 +347,68 @@ def _buildClassNode3(provider, node, source_ref):
                 keys       = [
                     keyword.arg
                     for keyword in
-                    node.keywords
+                    keywords
                 ],
                 values     = [
                     buildNode(provider, keyword.value, source_ref)
                     for keyword in
-                    node.keywords
+                    keywords
                 ],
                 source_ref = source_ref
             ),
             source_ref = source_ref
-        ),
+        )
+    ]
+
+    if node.keywords and node.keywords[-1].arg is None:
+        statements.append(
+            StatementDictOperationUpdate(
+                dict_arg   = ExpressionVariableRef(
+                    variable   = tmp_class_decl_dict,
+                    source_ref = source_ref
+                ),
+                value      = buildNode(provider, node.keywords[-1].value, source_ref),
+                source_ref = source_ref
+            )
+        )
+
+    # Check if there are bases, and if there are, go with the type of the
+    # first base class as a metaclass unless it was specified in the class
+    # decl dict of course.
+    if node.bases:
+        unspecified_metaclass_expression = ExpressionBuiltinType1(
+            value      = ExpressionSubscriptLookup(
+                subscribed = ExpressionTempVariableRef(
+                    variable   = tmp_bases,
+                    source_ref = source_ref
+                ),
+                subscript  = makeConstantRefNode(
+                    constant      = 0,
+                    source_ref    = source_ref,
+                    user_provided = True
+                ),
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
+    else:
+        unspecified_metaclass_expression = makeExpressionBuiltinRef(
+            builtin_name = "type",
+            source_ref   = source_ref
+        )
+
+    statements += [
         StatementAssignmentVariable(
             variable   = tmp_metaclass,
             source     = ExpressionSelectMetaclass(
                 metaclass  = ExpressionConditional(
-                    condition      = ExpressionComparisonIn(
-                        left       = makeConstantRefNode(
+                    condition      = ExpressionDictOperationIn(
+                        key        = makeConstantRefNode(
                             constant      = "metaclass",
                             source_ref    = source_ref,
                             user_provided = True
                         ),
-                        right      = ExpressionTempVariableRef(
+                        dict_arg   = ExpressionTempVariableRef(
                             variable   = tmp_class_decl_dict,
                             source_ref = source_ref
                         ),
@@ -379,32 +426,7 @@ def _buildClassNode3(provider, node, source_ref):
                         ),
                         source_ref = source_ref
                     ),
-                    expression_no  = ExpressionConditional(
-                        condition      = ExpressionTempVariableRef(
-                            variable   = tmp_bases,
-                            source_ref = source_ref
-                        ),
-                        expression_no  = makeExpressionBuiltinRef(
-                            builtin_name = "type",
-                            source_ref   = source_ref
-                        ),
-                        expression_yes = ExpressionBuiltinType1(
-                            value      = ExpressionSubscriptLookup(
-                                subscribed = ExpressionTempVariableRef(
-                                    variable   = tmp_bases,
-                                    source_ref = source_ref
-                                ),
-                                subscript  = makeConstantRefNode(
-                                    constant      = 0,
-                                    source_ref    = source_ref,
-                                    user_provided = True
-                                ),
-                                source_ref = source_ref
-                            ),
-                            source_ref = source_ref
-                        ),
-                        source_ref     = source_ref
-                    ),
+                    expression_no  = unspecified_metaclass_expression,
                     source_ref     = source_ref
                 ),
                 bases      = ExpressionTempVariableRef(
@@ -416,13 +438,13 @@ def _buildClassNode3(provider, node, source_ref):
             source_ref = source_ref_orig
         ),
         StatementConditional(
-            condition  = ExpressionComparisonIn(
-                left       = makeConstantRefNode(
+            condition  = ExpressionDictOperationIn(
+                key        = makeConstantRefNode(
                     constant      = "metaclass",
                     source_ref    = source_ref,
                     user_provided = True
                 ),
-                right      = ExpressionTempVariableRef(
+                dict_arg   = ExpressionTempVariableRef(
                     variable   = tmp_class_decl_dict,
                     source_ref = source_ref
                 ),
@@ -504,7 +526,7 @@ def _buildClassNode3(provider, node, source_ref):
             source        = decorated_body,
             source_ref    = source_ref
         )
-    )
+    ]
 
     if python_version >= 340:
         class_creation_function.qualname_setup = node.name, qualname_assign
@@ -774,13 +796,13 @@ def _buildClassNode2(provider, node, source_ref):
         StatementAssignmentVariable(
             variable   = tmp_metaclass,
             source     = ExpressionConditional(
-                condition      =  ExpressionComparisonIn(
-                    left       = makeConstantRefNode(
+                condition      =  ExpressionDictOperationIn(
+                    key        = makeConstantRefNode(
                         constant      = "__metaclass__",
                         source_ref    = source_ref,
                         user_provided = True
                     ),
-                    right      = ExpressionTempVariableRef(
+                    dict_arg   = ExpressionTempVariableRef(
                         variable   = tmp_class_dict,
                         source_ref = source_ref
                     ),

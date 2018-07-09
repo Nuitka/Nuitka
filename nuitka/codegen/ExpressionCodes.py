@@ -41,7 +41,6 @@ def getStatementOnlyCode(value, emit, context):
         unique    = True
     )
 
-    # An error of the expression is dealt inside of this, not necessary here.
     generateExpressionCode(
         expression = value,
         to_name    = tmp_name,
@@ -49,6 +48,8 @@ def getStatementOnlyCode(value, emit, context):
         context    = context
     )
 
+    # An error of the expression is dealt inside of this, not necessary here,
+    # but we have to release non-error value if it has a reference.
     getReleaseCode(
         release_name = tmp_name,
         emit         = emit,

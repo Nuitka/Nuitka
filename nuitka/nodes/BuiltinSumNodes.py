@@ -22,14 +22,14 @@ it that could be in-lined sometimes for more static analysis.
 
 """
 
-from nuitka.optimizations import BuiltinOptimization
+from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 
 
 class ExpressionBuiltinSumBase(ExpressionChildrenHavingBase):
 
-    builtin_spec = BuiltinOptimization.builtin_sum_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_sum_spec
 
     def __init__(self, values, source_ref):
         ExpressionChildrenHavingBase.__init__(

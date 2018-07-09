@@ -31,13 +31,19 @@ from nuitka.Version import getNuitkaVersion
 is_nuitka_run = os.path.basename(sys.argv[0]).lower().endswith("-run")
 
 if not is_nuitka_run:
-    usage = "usage: %prog [--module] [--execute] [options] main_module.py"
+    usage = "usage: %prog [--module] [--run] [options] main_module.py"
 else:
     usage = "usage: %prog [options] main_module.py"
 
 parser = OptionParser(
     usage   = usage,
-    version = getNuitkaVersion()
+    version = '\n'.join(
+        (
+            getNuitkaVersion(),
+            sys.version,
+            sys.executable
+        )
+    )
 )
 
 # This option is obsolete, and module should be used.
@@ -543,6 +549,30 @@ debug_group.add_option(
     help    = SUPPRESS_HELP
 )
 
+if os.name == "nt":
+    debug_group.add_option(
+        "--disable-dll-dependency-cache",
+        action  = "store_true",
+        dest    = "no_dependency_cache",
+        default = False,
+        help    = """\
+Disable the dependency walker cache. Will result in much longer times to create
+the distribution folder, but might be used in case the cache is suspect to cause
+errors.
+"""
+    )
+
+    debug_group.add_option(
+        "--force-dll-dependency-cache-update",
+        action  = "store_true",
+        dest    = "update_dependency_cache",
+        default = False,
+        help    = """\
+For an update of the dependency walker cache. Will result in much longer times
+to create the distribution folder, but might be used in case the cache is suspect
+to cause errors or known to need an update.
+"""
+    )
 
 # This is for testing framework, "coverage.py" hates to loose the process. And
 # we can use it to make sure it's not done unknowingly.
@@ -850,6 +880,10 @@ Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" %
         sys.exit("Error, no such Python2 binary '%s'." % scons_python)
 
 
+def isVerbose():
+    return options.verbose
+
+
 def shallTraceExecution():
     return options.trace_execution
 
@@ -991,7 +1025,7 @@ def isProfile():
     return options.profile
 
 
-def shouldCreateGraph():
+def shallCreateGraph():
     return options.graph
 
 
@@ -1134,6 +1168,14 @@ def getPythonFlags():
 
 def shallFreezeAllStdlib():
     return not shallFollowStandardLibrary()
+
+
+def shallNotUseDependsExeCachedResults():
+    return options.no_dependency_cache or options.update_dependency_cache
+
+
+def shallNotStoreDependsExeCachedResults():
+    return options.no_dependency_cache
 
 
 def shallListPlugins():

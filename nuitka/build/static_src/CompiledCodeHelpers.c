@@ -1157,9 +1157,11 @@ void PRINT_REFCOUNT( PyObject *object )
 
 bool PRINT_STRING( char const *str )
 {
-    int res = PyFile_WriteString( str, GET_STDOUT() );
+    PyObject *tmp = PyUnicode_FromString( str );
+    bool res = PRINT_ITEM( tmp );
+    Py_DECREF(tmp);
 
-    return res != -1;
+    return res;
 }
 
 bool PRINT_REPR( PyObject *object )

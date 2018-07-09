@@ -36,6 +36,7 @@ from nuitka.nodes.AttributeNodes import (
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
+    ExpressionBuiltinIterForUnpack,
     StatementSpecialUnpackCheck
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
@@ -58,6 +59,7 @@ from nuitka.nodes.SubscriptNodes import (
 )
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
+    ExpressionVariableLocalNameRef,
     ExpressionVariableNameRef
 )
 from nuitka.PythonVersions import python_version
@@ -272,11 +274,15 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                 )
             )
 
+        if python_version >= 370:
+            iter_creation_class = ExpressionBuiltinIterForUnpack
+        else:
+            iter_creation_class = ExpressionBuiltinIter1
 
         statements = [
             StatementAssignmentVariable(
                 variable   = source_iter_var,
-                source     = ExpressionBuiltinIter1(
+                source     = iter_creation_class(
                     value      = source,
                     source_ref = source_ref
                 ),
@@ -575,8 +581,7 @@ def buildAnnAssignNode(provider, node, source_ref):
 
             statements.append(
                 StatementAssignmentSubscript(
-                    # TODO: Use ExpressionVariableLocalNameRef once they work better.
-                    expression = ExpressionVariableNameRef(
+                    expression = ExpressionVariableLocalNameRef(
                         provider      = provider,
                         variable_name = "__annotations__",
                         source_ref    = source_ref

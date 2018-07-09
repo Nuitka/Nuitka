@@ -205,6 +205,11 @@ if ( %(to_name)s == NULL )
 }
 """
 
+template_read_locals_dict_without_fallback = """\
+%(to_name)s = PyDict_GetItem( %(locals_dict)s, %(var_name)s );
+"""
+
+
 template_read_locals_mapping_with_fallback = """\
 %(to_name)s = PyObject_GetItem( %(locals_dict)s, %(var_name)s );
 
@@ -216,6 +221,11 @@ if ( %(to_name)s == NULL )
     }
 }
 """
+
+template_read_locals_mapping_without_fallback = """\
+%(to_name)s = PyObject_GetItem( %(locals_dict)s, %(var_name)s );
+"""
+
 
 
 template_del_global_unclear = """\

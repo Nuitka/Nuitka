@@ -147,7 +147,9 @@ def buildImportFromNode(provider, node, source_ref):
         level = None
 
     if level is not None:
-        level = makeConstantRefNode(level, source_ref, True)
+        level_obj = makeConstantRefNode(level, source_ref, True)
+    else:
+        level_obj = None
 
     # Importing from "__future__" module may enable flags to the parser,
     # that we need to know about, handle that.
@@ -203,7 +205,7 @@ def buildImportFromNode(provider, node, source_ref):
                 globals_arg = import_globals,
                 locals_arg  = import_locals,
                 fromlist    = makeConstantRefNode(('*',), source_ref, True),
-                level       = level,
+                level       = level_obj,
                 source_ref  = source_ref
             ),
             source_ref    = source_ref
@@ -220,7 +222,7 @@ def buildImportFromNode(provider, node, source_ref):
                 globals_arg = ExpressionBuiltinGlobals(source_ref),
                 locals_arg  = makeConstantRefNode(None, source_ref, True),
                 fromlist    = makeConstantRefNode(tuple(import_names), source_ref, True),
-                level       = level,
+                level       = level_obj,
                 source_ref  = source_ref
             )
 
@@ -265,6 +267,7 @@ def buildImportFromNode(provider, node, source_ref):
                     source        = ExpressionImportName(
                         module      = imported_from_module,
                         import_name = import_name,
+                        level       = level,
                         source_ref  = source_ref
                     ),
                     source_ref    = source_ref
@@ -335,6 +338,7 @@ def buildImportModulesNode(provider, node, source_ref):
                 import_node = ExpressionImportName(
                     module      = import_node,
                     import_name = import_name,
+                    level       = None,
                     source_ref  = source_ref
                 )
 

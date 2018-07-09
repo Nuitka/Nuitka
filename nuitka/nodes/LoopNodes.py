@@ -26,33 +26,31 @@ from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.tree.Extractions import getVariablesWritten
 
 from .Checkers import checkStatementsSequenceOrNone
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .NodeBases import StatementBase, StatementChildHavingBase
 
 
-class StatementLoop(StatementChildrenHavingBase):
+class StatementLoop(StatementChildHavingBase):
     kind = "STATEMENT_LOOP"
 
-    named_children = (
-        "body",
+    named_child = (
+        "body"
     )
 
-    checkers = {
-        "body" : checkStatementsSequenceOrNone
-    }
+    checker = checkStatementsSequenceOrNone
+
+    __slots__ = ("loop_variables",)
 
     def __init__(self, body, source_ref):
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "body" : body
-            },
+            value      = body,
             source_ref = source_ref
         )
 
         self.loop_variables = None
 
-    getLoopBody = StatementChildrenHavingBase.childGetter("body")
-    setLoopBody = StatementChildrenHavingBase.childSetter("body")
+    getLoopBody = StatementChildHavingBase.childGetter("body")
+    setLoopBody = StatementChildHavingBase.childSetter("body")
 
     def mayReturn(self):
         loop_body = self.getLoopBody()
@@ -219,12 +217,15 @@ Removed useless loop with immediate 'break' statement."""
 
         return self, None, None
 
+    def getStatementNiceName(self):
+        return "loop statement"
 
-class StatementLoopContinue(NodeBase):
+
+class StatementLoopContinue(StatementBase):
     kind = "STATEMENT_LOOP_CONTINUE"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(self, source_ref = source_ref)
+        StatementBase.__init__(self, source_ref = source_ref)
 
     def isStatementAborting(self):
         return True
@@ -241,12 +242,15 @@ class StatementLoopContinue(NodeBase):
 
         return self, None, None
 
+    def getStatementNiceName(self):
+        return "loop continue statement"
 
-class StatementLoopBreak(NodeBase):
+
+class StatementLoopBreak(StatementBase):
     kind = "STATEMENT_LOOP_BREAK"
 
     def __init__(self, source_ref):
-        NodeBase.__init__(self, source_ref = source_ref)
+        StatementBase.__init__(self, source_ref = source_ref)
 
     def isStatementAborting(self):
         return True
@@ -262,3 +266,6 @@ class StatementLoopBreak(NodeBase):
         trace_collection.onLoopBreak()
 
         return self, None, None
+
+    def getStatementNiceName(self):
+        return "loop break statement"

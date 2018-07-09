@@ -54,7 +54,7 @@ def checkNoPermissionError(output):
             return False
 
     # These are localized it seems.
-    if re.search(b"(WindowsError|FileNotFoundError|FileExistsError):.*@test", output):
+    if re.search(b"(WindowsError|FileNotFoundError|FileExistsError):.*(@test|totest|xx)", output):
         return False
 
     return True
@@ -553,7 +553,11 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
 
         # In case of segfault, also output the call stack by entering debugger
         # without stdin forwarded.
-        if exit_code_return and exit_nuitka == -11 and sys.platform != "nt" and not module_mode:
+        if exit_code_return and \
+           exit_nuitka == -11 and \
+           sys.platform != "nt" and \
+           not module_mode and \
+           not two_step_execution:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
 
             process = subprocess.Popen(

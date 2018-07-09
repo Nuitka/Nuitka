@@ -32,32 +32,31 @@ the traces.
 
 from nuitka.ModuleRegistry import getOwnerFromCodeName
 
-from .NodeBases import NodeBase, StatementChildrenHavingBase
+from .NodeBases import StatementBase, StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeStatementExpressionOnlyReplacementNode,
     makeStatementsSequenceReplacementNode
 )
 
 
-class StatementAssignmentVariableName(StatementChildrenHavingBase):
+class StatementAssignmentVariableName(StatementChildHavingBase):
     """ Precursor of StatementAssignmentVariable used during tree building phase
 
     """
 
     kind = "STATEMENT_ASSIGNMENT_VARIABLE_NAME"
 
-    named_children = (
-        "source",
-    )
+    named_child = "source"
+    nice_child = "assignment source"
+
+    __slots__ = ("variable_name", "provider")
 
     def __init__(self, provider, variable_name, source, source_ref):
         assert source is not None, source_ref
 
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "source"       : source,
-            },
+            value      = source,
             source_ref = source_ref
         )
 
@@ -77,14 +76,18 @@ class StatementAssignmentVariableName(StatementChildrenHavingBase):
 
     def computeStatement(self, trace_collection):
         # Only for abc, pylint: disable=no-self-use
+
+        # These must not enter real optimization, they only live during the
+        # tree building.
         assert False
 
-    getAssignSource = StatementChildrenHavingBase.childGetter(
-        "source"
-    )
+    def getStatementNiceName(self):
+        return "variable assignment statement"
+
+    getAssignSource = StatementChildHavingBase.childGetter("source")
 
 
-class StatementDelVariableName(NodeBase):
+class StatementDelVariableName(StatementBase):
     """ Precursor of StatementDelVariable used during tree building phase
 
     """
@@ -94,7 +97,7 @@ class StatementDelVariableName(NodeBase):
     __slots__ = "variable_name", "provider", "tolerant"
 
     def __init__(self, provider, variable_name, tolerant, source_ref):
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )
@@ -116,10 +119,13 @@ class StatementDelVariableName(NodeBase):
 
     def computeStatement(self, trace_collection):
         # Only for abc, pylint: disable=no-self-use
+
+        # These must not enter real optimization, they only live during the
+        # tree building.
         assert False
 
 
-class StatementAssignmentVariable(StatementChildrenHavingBase):
+class StatementAssignmentVariable(StatementChildHavingBase):
     """ Assignment to a variable from an expression.
 
         All assignment forms that are not to attributes, slices, subscripts
@@ -135,11 +141,10 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
 
     kind = "STATEMENT_ASSIGNMENT_VARIABLE"
 
-    named_children = (
-        "source",
-    )
+    named_child = "source"
+    nice_child = "assignment source"
 
-    inplace_suspect = None
+    __slots__ = ("variable", "variable_version", "variable_trace", "inplace_suspect")
 
     def __init__(self, source, variable, source_ref, version = None):
         assert source is not None, source_ref
@@ -151,15 +156,14 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         self.variable = variable
         self.variable_version = version
 
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "source"       : source,
-            },
+            value      = source,
             source_ref = source_ref
         )
 
         self.variable_trace = None
+        self.inplace_suspect = None
 
     def getDetail(self):
         if self.variable is not None:
@@ -215,10 +219,10 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
             source_ref = self.source_ref
         )
 
-    getAssignSource = StatementChildrenHavingBase.childGetter(
+    getAssignSource = StatementChildHavingBase.childGetter(
         "source"
     )
-    setAssignSource = StatementChildrenHavingBase.childSetter(
+    setAssignSource = StatementChildHavingBase.childSetter(
         "source"
     )
 
@@ -232,8 +236,8 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         self.variable = variable
         self.variable_version = variable.allocateTargetNumber()
 
-    def getVariableVersion(self):
-        return self.variable_version
+    def getVariableTrace(self):
+        return self.variable_trace
 
     def markAsInplaceSuspect(self):
         self.inplace_suspect = True
@@ -245,7 +249,7 @@ class StatementAssignmentVariable(StatementChildrenHavingBase):
         return self.getAssignSource().mayRaiseException(exception_type)
 
     def computeStatement(self, trace_collection):
-        # This is very complex stuff, pylint: disable=too-many-branches
+        # This is very complex stuff, pylint: disable=too-many-branches,too-many-return-statements
 
         # TODO: Way too ugly to have global trace kinds just here, and needs to
         # be abstracted somehow. But for now we let it live here.
@@ -337,6 +341,8 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
         self.variable_trace = trace_collection.onVariableSet(
+            variable    = variable,
+            version     = self.variable_version,
             assign_node = self
         )
 
@@ -347,18 +353,44 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
 
             if last_trace is not None:
                 if source.isCompileTimeConstant():
-                    # Can safely forward propagate only non-mutable constants.
-                    if not source.isMutable():
-                        if not last_trace.getNameUsageCount():
-                            self.variable_trace.setReplacementNode(
-                                lambda _usage : source.makeClone()
-                            )
+                    if not variable.isModuleVariable():
 
-                            propagated = True
+                        # Can safely forward propagate only non-mutable constants.
+                        if source.isMutable():
+                            # Something might be possible still, lets check for
+                            # ununused.
+                            if not last_trace.hasPotentialUsages() and \
+                               not last_trace.hasDefiniteUsages() and \
+                               not last_trace.getNameUsageCount():
+                                if not last_trace.getPrevious().isUninitTrace():
+                                    # TODO: We could well decide, if that's even necessary, but for now
+                                    # the "StatementDelVariable" is tasked with that.
+                                    result = StatementDelVariable(
+                                        variable   = self.variable,
+                                        version    = self.variable_version,
+                                        tolerant   = True,
+                                        source_ref = self.getSourceReference()
+                                    )
+                                else:
+                                    result = None
+
+                                return (
+                                    result,
+                                    "new_statements",
+                                    "Dropped dead assignment statement to '%s'." % (
+                                       self.getVariableName()
+                                    )
+                                )
                         else:
-                            propagated = False
+                            if not last_trace.getNameUsageCount():
+                                self.variable_trace.setReplacementNode(
+                                    lambda _usage : source.makeClone()
+                                )
 
-                        if not variable.isModuleVariable():
+                                propagated = True
+                            else:
+                                propagated = False
+
                             if not last_trace.hasPotentialUsages() and not last_trace.getNameUsageCount():
                                 if not last_trace.getPrevious().isUninitTrace():
                                     # TODO: We could well decide, if that's even necessary, but for now
@@ -380,10 +412,6 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
                                        self.getVariableName()
                                     )
                                 )
-                    else:
-                        # Something might be possible still.
-
-                        pass
                 else:
                     # More cases thinkable.
                     pass
@@ -400,8 +428,11 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
         else:
             return None
 
+    def getStatementNiceName(self):
+        return "variable assignment statement"
 
-class StatementDelVariable(NodeBase):
+
+class StatementDelVariable(StatementBase):
     """ Deleting a variable.
 
         All del forms that are not to attributes, slices, subscripts
@@ -418,7 +449,7 @@ class StatementDelVariable(NodeBase):
     """
     kind = "STATEMENT_DEL_VARIABLE"
 
-    __slots__ = "variable", "variable_version", "variable_trace", "previous_version", "previous_trace", "tolerant"
+    __slots__ = "variable", "variable_version", "variable_trace", "previous_trace", "tolerant"
 
     def __init__(self, tolerant, source_ref, variable, version = None):
         if type(tolerant) is str:
@@ -429,15 +460,13 @@ class StatementDelVariable(NodeBase):
             if version is None:
                 version = variable.allocateTargetNumber()
 
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )
 
         self.variable = variable
         self.variable_version = version
-
-        self.previous_version = None
 
         self.variable_trace = None
         self.previous_trace = None
@@ -508,22 +537,23 @@ class StatementDelVariable(NodeBase):
     def getVariableName(self):
         return self.variable.getName()
 
+    def getVariableTrace(self):
+        return self.variable_trace
+
+    def getPreviousVariableTrace(self):
+        return self.previous_trace
+
     def getVariable(self):
         return self.variable
 
     def setVariable(self, variable):
-        assert self.variable_version is None
-
         self.variable = variable
         self.variable_version = variable.allocateTargetNumber()
-
-    def getVariableVersion(self):
-        return self.variable_version
 
     def computeStatement(self, trace_collection):
         variable = self.variable
 
-        self.previous_version, self.previous_trace = trace_collection.getVariableCurrentTraceVersion(variable)
+        self.previous_trace = trace_collection.getVariableCurrentTrace(variable)
 
         # First eliminate us entirely if we can.
         if self.tolerant and self.previous_trace.isUninitTrace():
@@ -544,7 +574,7 @@ class StatementDelVariable(NodeBase):
             trace_collection.onExceptionRaiseExit(BaseException)
 
         # Record the deletion, needs to start a new version then.
-        trace_collection.onVariableDel(
+        self.variable_trace = trace_collection.onVariableDel(
             variable = variable,
             version  = self.variable_version
         )
@@ -553,10 +583,6 @@ class StatementDelVariable(NodeBase):
 
         # Any code could be run, note that.
         trace_collection.onControlFlowEscape(self)
-
-        # Need to fetch the potentially invalidated variable. A "del" on a
-        # or shared value, may easily assign the global variable in "__del__".
-        self.variable_trace = trace_collection.getVariableCurrentTrace(variable)
 
         return self, None, None
 
@@ -568,12 +594,10 @@ class StatementDelVariable(NodeBase):
             return False
         else:
             if self.variable_trace is not None:
-                variable = self.getVariable()
-
                 # Temporary variables deletions won't raise, just because we
                 # don't create them that way. We can avoid going through SSA in
                 # these cases.
-                if variable.isTempVariable():
+                if self.variable.isTempVariable():
                     return False
 
                 # If SSA knows, that's fine.
@@ -584,7 +608,7 @@ class StatementDelVariable(NodeBase):
             return True
 
 
-class StatementReleaseVariable(NodeBase):
+class StatementReleaseVariable(StatementBase):
     """ Releasing a variable.
 
         Just release the value, which of course is not to be used afterwards.
@@ -595,18 +619,17 @@ class StatementReleaseVariable(NodeBase):
 
     kind = "STATEMENT_RELEASE_VARIABLE"
 
-    __slots__ = "variable", "variable_version", "variable_trace"
+    __slots__ = "variable", "variable_trace"
 
     def __init__(self, variable, source_ref):
         assert variable is not None, source_ref
 
-        NodeBase.__init__(
+        StatementBase.__init__(
             self,
             source_ref = source_ref
         )
 
         self.variable = variable
-        self.variable_version = None
 
         self.variable_trace = None
 
@@ -641,14 +664,14 @@ class StatementReleaseVariable(NodeBase):
     def getVariable(self):
         return self.variable
 
-    def getVariableVersion(self):
-        return self.variable_version
+    def getVariableTrace(self):
+        return self.variable_trace
 
     def setVariable(self, variable):
         self.variable = variable
 
     def computeStatement(self, trace_collection):
-        self.variable_version, self.variable_trace = trace_collection.getVariableCurrentTraceVersion(self.variable)
+        self.variable_trace = trace_collection.getVariableCurrentTrace(self.variable)
 
         if self.variable_trace.isUninitTrace():
             return (

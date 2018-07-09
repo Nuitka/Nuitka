@@ -36,6 +36,7 @@ from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import (
     getSupportedPythonVersions,
+    isStaticallyLinkedPython,
     isUninstalledPython,
     python_version,
     python_version_str
@@ -148,7 +149,7 @@ def createNodeTree(filename):
         )
 
     # Then optimize the tree and potentially recursed modules.
-    Optimization.optimize()
+    Optimization.optimize(main_module.getOutputFilename())
 
     if Options.isExperimental("check_xml_persistence"):
         for module in ModuleRegistry.getRootModules():
@@ -530,6 +531,9 @@ def runScons(main_module, quiet):
        isUninstalledPython():
         options["uninstalled_python"] = "true"
 
+    if isStaticallyLinkedPython():
+        options["static_python"] = "true"
+
     if ModuleRegistry.getUncompiledTechnicalModules():
         options["frozen_modules"] = str(
             len(ModuleRegistry.getUncompiledTechnicalModules())
@@ -579,6 +583,9 @@ def runScons(main_module, quiet):
 
     if python_version < 300 and sys.flags.unicode:
         options["python_sysflag_unicode"] = "true"
+
+    if python_version >= 370 and sys.flags.utf8_mode:
+        options["python_sysflag_utf8"] = "true"
 
     if abiflags:
         options["abiflags"] = abiflags

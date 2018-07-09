@@ -24,7 +24,7 @@ from .CodeHelpers import (
     generateStatementSequenceCode
 )
 from .Emission import SourceCodeCollector
-from .ErrorCodes import getErrorExitCode, getReleaseCode
+from .ErrorCodes import getErrorExitCode
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
     setupFunctionLocalVariables
@@ -153,16 +153,11 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
     if not context.needsCleanup(value_name):
         context.addCleanupTempName(value_name)
 
-    getReleaseCode(
+    getErrorExitCode(
+        check_name   = to_name,
         release_name = value_name,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -184,16 +179,11 @@ def generateAsyncIterCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCode(
+    getErrorExitCode(
+        check_name   = to_name,
         release_name = value_name,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -215,14 +205,9 @@ def generateAsyncNextCode(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCode(
-        release_name = value_name,
-        emit         = emit,
-        context      = context
-    )
-
     getErrorExitCode(
         check_name      = to_name,
+        release_name    = value_name,
         quick_exception = "StopAsyncIteration",
         emit            = emit,
         context         = context

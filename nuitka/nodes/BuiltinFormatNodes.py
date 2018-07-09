@@ -22,13 +22,14 @@ result prediction will help to be smarter, but generally these should not be tha
 about performance critical.
 
 """
-from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
+from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )
+from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 from .shapes.BuiltinTypeShapes import (
     ShapeTypeIntOrLong,
     ShapeTypeStr,
@@ -90,7 +91,7 @@ class ExpressionBuiltinAscii(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ASCII"
 
     if python_version >= 300:
-        builtin_spec = BuiltinOptimization.builtin_ascii_spec
+        builtin_spec = BuiltinParameterSpecs.builtin_ascii_spec
 
     def getTypeShape(self):
         return ShapeTypeStr
@@ -99,7 +100,7 @@ class ExpressionBuiltinAscii(ExpressionBuiltinSingleArgBase):
 class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_BIN"
 
-    builtin_spec = BuiltinOptimization.builtin_bin_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_bin_spec
 
     def getTypeShape(self):
         return ShapeTypeStr
@@ -108,7 +109,7 @@ class ExpressionBuiltinBin(ExpressionBuiltinSingleArgBase):
 class ExpressionBuiltinOct(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_OCT"
 
-    builtin_spec = BuiltinOptimization.builtin_oct_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_oct_spec
 
     def getTypeShape(self):
         return ShapeTypeStr
@@ -117,7 +118,7 @@ class ExpressionBuiltinOct(ExpressionBuiltinSingleArgBase):
 class ExpressionBuiltinHex(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_HEX"
 
-    builtin_spec = BuiltinOptimization.builtin_hex_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_hex_spec
 
     def getTypeShape(self):
         return ShapeTypeStr
@@ -126,7 +127,7 @@ class ExpressionBuiltinHex(ExpressionBuiltinSingleArgBase):
 class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ID"
 
-    builtin_spec = BuiltinOptimization.builtin_id_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_id_spec
 
     def computeExpression(self, trace_collection):
         # Note: Quite impossible to predict the pointer value or anything, but
@@ -138,3 +139,19 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
 
     def getTypeShape(self):
         return ShapeTypeIntOrLong
+
+
+    def computeExpressionDrop(self, statement, trace_collection):
+        result = makeStatementExpressionOnlyReplacementNode(
+            expression = self.subnode_value,
+            node       = self
+        )
+
+        return result, "new_statements", """\
+Removed id taking for unused result."""
+
+    def mayHaveSideEffects(self):
+        return self.subnode_value.mayHaveSideEffects()
+
+    def extractSideEffects(self):
+        return (self.subnode_value,)

@@ -22,6 +22,7 @@ when it returns, break, continues, or raises an exception. See Developer
 Manual for how this maps to try/finally and try/except as in Python.
 """
 
+from nuitka.Errors import NuitkaOptimizationError
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 
 from .Checkers import checkStatementsSequence, checkStatementsSequenceOrNone
@@ -158,12 +159,20 @@ class StatementTry(StatementChildrenHavingBase):
                 name   = "except handler"
             )
 
+            # When no exception exits are there, this is a problem, we just
+            # found an inconsistency that is a bug.
             if not exception_collections:
                 for statement in tried.getStatements():
                     if statement.mayRaiseException(BaseException):
-                        assert False, statement.asXmlText()
+                        raise NuitkaOptimizationError(
+                            "This statement does raise but didn't annotate an exception exit.",
+                            statement
+                        )
 
-                assert False
+                raise NuitkaOptimizationError(
+                    "Falsely assuming tried block may raise, but no statement says so.",
+                    tried
+                )
 
             collection_exception_handling.mergeMultipleBranches(exception_collections)
 
@@ -523,3 +532,6 @@ class StatementTry(StatementChildrenHavingBase):
             return True
 
         return self.getBlockTry().needsFrame()
+
+    def getStatementNiceName(self):
+        return "tried block statement"

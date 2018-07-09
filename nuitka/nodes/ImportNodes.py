@@ -41,8 +41,12 @@ from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.utils.FileOperations import relpath
 
-from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
-from .NodeBases import StatementChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionBase,
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase
+)
+from .NodeBases import StatementChildHavingBase
 from .shapes.BuiltinTypeShapes import ShapeTypeBuiltinModule, ShapeTypeModule
 
 
@@ -436,23 +440,23 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         return self.type_shape
 
 
-class StatementImportStar(StatementChildrenHavingBase):
+class StatementImportStar(StatementChildHavingBase):
     kind = "STATEMENT_IMPORT_STAR"
 
-    named_children = ("module",)
+    named_child = "module"
+
+    __slots__ = ("locals_scope",)
 
     def __init__(self, locals_scope, module_import, source_ref):
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "module" : module_import
-            },
+            value      = module_import,
             source_ref = source_ref
         )
 
         self.locals_scope = locals_scope
 
-    getSourceModule = StatementChildrenHavingBase.childGetter("module")
+    getSourceModule = StatementChildHavingBase.childGetter("module")
 
     def getLocalsDictScope(self):
         return self.locals_scope
@@ -460,7 +464,7 @@ class StatementImportStar(StatementChildrenHavingBase):
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getSourceModule())
 
-        trace_collection.onLocalsDictEscaped()
+        trace_collection.onLocalsDictEscaped(self.locals_scope)
 
         # Need to invalidate everything, and everything could be assigned to
         # something else now.
@@ -477,33 +481,39 @@ class StatementImportStar(StatementChildrenHavingBase):
         # really can be that way.
         return True
 
+    def getStatementNiceName(self):
+        return "star import statement"
 
-class ExpressionImportName(ExpressionChildrenHavingBase):
+
+class ExpressionImportName(ExpressionChildHavingBase):
     kind = "EXPRESSION_IMPORT_NAME"
 
-    named_children = (
-        "module",
-    )
+    named_child = "module"
 
-    def __init__(self, module, import_name, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+    __slots__ = ("import_name", "level")
+
+    def __init__(self, module, import_name, level, source_ref):
+        ExpressionChildHavingBase.__init__(
             self,
-            values     = {
-                "module" : module
-            },
+            value      = module,
             source_ref = source_ref
         )
 
         self.import_name = import_name
+        self.level = level
 
         assert module is not None
 
     def getImportName(self):
         return self.import_name
 
+    def getImportLevel(self):
+        return self.level
+
     def getDetails(self):
         return {
-            "import_name" : self.getImportName()
+            "import_name" : self.getImportName(),
+            "level"       : self.level
         }
 
     def getDetail(self):

@@ -364,7 +364,7 @@ static PyObject *Nuitka_Method_tp_repr( struct Nuitka_MethodObject *method )
     }
     else
     {
-        // Note: CPython uses repr ob the object, although a comment despises
+        // Note: CPython uses repr of the object, although a comment despises
         // it, we do it for compatibility.
         PyObject *object_repr = PyObject_Repr( method->m_object );
 

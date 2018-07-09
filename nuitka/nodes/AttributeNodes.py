@@ -37,7 +37,7 @@ and annotation is happening in the nodes that implement these compute slots.
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
 
@@ -107,7 +107,7 @@ class StatementAssignmentAttribute(StatementChildrenHavingBase):
         return "attribute assignment statement"
 
 
-class StatementDelAttribute(StatementChildrenHavingBase):
+class StatementDelAttribute(StatementChildHavingBase):
     """ Deletion of an attribute.
 
         Typically from code like: del source.attribute_name
@@ -118,16 +118,14 @@ class StatementDelAttribute(StatementChildrenHavingBase):
     """
     kind = "STATEMENT_DEL_ATTRIBUTE"
 
-    named_children = (
-        "expression",
-    )
+    named_child = "expression"
+
+    __slots__ = ("attribute_name",)
 
     def __init__(self, expression, attribute_name, source_ref):
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "expression" : expression
-            },
+            value      = expression,
             source_ref = source_ref
         )
 
@@ -147,7 +145,7 @@ class StatementDelAttribute(StatementChildrenHavingBase):
     def setAttributeName(self, attribute_name):
         self.attribute_name = attribute_name
 
-    getLookupSource = StatementChildrenHavingBase.childGetter("expression")
+    getLookupSource = StatementChildHavingBase.childGetter("expression")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(

@@ -428,7 +428,7 @@ class ExpressionOperationUnary(ExpressionOperationBase):
 
             return self, None, None
 
-    getOperand = ExpressionChildrenHavingBase.childGetter("operand")
+    getOperand = ExpressionOperationBase.childGetter("operand")
 
     def getOperands(self):
         return (self.getOperand(),)

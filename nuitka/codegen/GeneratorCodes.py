@@ -146,8 +146,8 @@ def getClosureCopyCode(to_name, closure_variables, closure_type, context):
     """
     closure_copy = []
 
-    for count, (variable, version, _variable_trace) in enumerate(closure_variables):
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, version)
+    for count, (variable, variable_trace) in enumerate(closure_variables):
+        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
 
         target_cell_code = "((%s)%s)->m_closure[%d]" % (
             closure_type,

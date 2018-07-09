@@ -52,14 +52,9 @@ def generateBuiltinNext1Code(to_name, expression, emit, context):
         )
     )
 
-    getReleaseCode(
-        release_name = value_name,
-        emit         = emit,
-        context      = context
-    )
-
     getErrorExitCode(
         check_name      = to_name,
+        release_name    = value_name,
         quick_exception = "StopIteration",
         emit            = emit,
         context         = context
@@ -134,15 +129,10 @@ def getUnpackNextCode(to_name, value, expected, count, emit, context):
 
     getErrorExitCode(
         check_name      = to_name,
+        release_name    = value,
         quick_exception = "StopIteration",
         emit            = emit,
         context         = context
-    )
-
-    getReleaseCode(
-        release_name = value,
-        emit         = emit,
-        context      = context
     )
 
     context.addCleanupTempName(to_name)
@@ -233,6 +223,20 @@ def generateBuiltinIter1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name    = to_name,
         capi       = "MAKE_ITERATOR",
+        arg_desc   = (
+            ("iter_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinIterForUnpackCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "MAKE_UNPACK_ITERATOR",
         arg_desc   = (
             ("iter_arg", expression.getValue()),
         ),

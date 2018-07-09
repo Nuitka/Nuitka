@@ -23,12 +23,7 @@ Attribute lookup, setting.
 from nuitka import Options
 
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
-from .ErrorCodes import (
-    getErrorExitBoolCode,
-    getErrorExitCode,
-    getReleaseCode,
-    getReleaseCodes
-)
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .LabelCodes import getBranchingCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
@@ -159,23 +154,16 @@ def getAttributeLookupCode(to_name, source_name, attribute_name, needs_check,
             "%s = LOOKUP_ATTRIBUTE( %s, %s );" % (
                 to_name,
                 source_name,
-                context.getConstantCode(
-                    constant = attribute_name
-                )
+                context.getConstantCode(attribute_name)
             )
         )
 
-    getReleaseCode(
+    getErrorExitCode(
+        check_name   = to_name,
         release_name = source_name,
+        needs_check  = needs_check,
         emit         = emit,
         context      = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)
@@ -192,17 +180,12 @@ def getAttributeCheckBoolCode(source_name, attr_name, needs_check, emit, context
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == -1" % res_name,
         release_names = (source_name, attr_name),
+        needs_check   = needs_check,
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition   = "%s == -1" % res_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
     )
 
     getBranchingCode("%s == 1" % res_name, emit, context)
@@ -222,17 +205,11 @@ def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit,
     )
 
     getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
-    )
-
-    getReleaseCodes(
+        condition     = "%s == false" % res_name,
         release_names = (value_name, target_name, attribute_name),
         emit          = emit,
         context       = context
     )
-
 
 
 def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
@@ -249,12 +226,7 @@ def getAttributeAssignmentDictSlotCode(target_name, value_name, emit, context):
     )
 
     getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
-    )
-
-    getReleaseCodes(
+        condition     = "%s == false" % res_name,
         release_names = (value_name, target_name),
         emit          = emit,
         context       = context
@@ -275,12 +247,7 @@ def getAttributeAssignmentClassSlotCode(target_name, value_name, emit, context):
     )
 
     getErrorExitBoolCode(
-        condition = "%s == false" % res_name,
-        emit      = emit,
-        context   = context
-    )
-
-    getReleaseCodes(
+        condition     = "%s == false" % res_name,
         release_names = (value_name, target_name),
         emit          = emit,
         context       = context
@@ -298,16 +265,11 @@ def getAttributeDelCode(target_name, attribute_name, emit, context):
         )
     )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s == -1" % res_name,
         release_names = (target_name, attribute_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition = "%s == -1" % res_name,
-        emit      = emit,
-        context   = context
     )
 
 
@@ -345,17 +307,12 @@ def getAttributeLookupSpecialCode(to_name, source_name, attr_name, needs_check,
         )
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (source_name, attr_name),
         emit          = emit,
+        needs_check   = needs_check,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name  = to_name,
-        emit        = emit,
-        needs_check = needs_check,
-        context     = context
     )
 
     context.addCleanupTempName(to_name)

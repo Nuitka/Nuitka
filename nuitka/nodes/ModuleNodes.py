@@ -262,45 +262,62 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
     def getFutureSpec(self):
         return self.future_spec
 
-    def asGraph(self, computation_counter):
-        from graphviz import Digraph # @UnresolvedImport pylint: disable=I0021,import-error
+    def asGraph(self, graph, desc):
+        graph = graph.add_subgraph(
+            name    = "cluster_%s" % desc,
+            comment = "Graph for %s" % self.getName()
+        )
 
-        graph = Digraph("cluster_%d" % computation_counter, comment = "Graph for %s" % self.getName())
-        graph.body.append("style=filled")
-        graph.body.append("color=lightgrey")
-        graph.body.append("label=Iteration_%d" % computation_counter)
+#        graph.body.append("style=filled")
+#        graph.body.append("color=lightgrey")
+#        graph.body.append("label=Iteration_%d" % desc)
 
 
-        def makeTraceNodeName(variable_trace):
-            return "%d/ %s %s %s" % (
-                computation_counter,
-                variable_trace.getVariable(),
-                variable_trace.getVersion(),
+        def makeTraceNodeName(variable, version, variable_trace):
+            return "%s/ %s %s %s" % (
+                desc,
+                variable.getName(),
+                version,
                 variable_trace.__class__.__name__
             )
 
         for function_body in self.active_functions:
             trace_collection = function_body.trace_collection
 
-            for (_variable, _version), variable_trace in trace_collection.getVariableTracesAll().items():
-                node = makeTraceNodeName(variable_trace)
+            node_names = {}
+
+            for (variable, version), variable_trace in trace_collection.getVariableTracesAll().items():
+                node_name = makeTraceNodeName(variable, version, variable_trace)
+
+                node_names[variable_trace] = node_name
+
+            for (variable, version), variable_trace in trace_collection.getVariableTracesAll().items():
+                node_name = node_names[variable_trace]
 
                 previous = variable_trace.getPrevious()
 
-                if variable_trace.hasDefiniteUsages():
-                    graph.attr("node", style = "filled", color = "blue")
-                elif variable_trace.hasPotentialUsages():
-                    graph.attr("node", style = "filled", color = "yellow")
-                else:
-                    graph.attr("node", style = "filled", color = "red")
+                attrs = {
+                    "style" : "filled",
+                }
 
-                graph.node(node)
+                if variable_trace.hasDefiniteUsages():
+                    attrs["color"] = "blue"
+                elif variable_trace.hasPotentialUsages():
+                    attrs["color"] = "yellow"
+                else:
+                    attrs["color"] = "red"
+
+                graph.add_node(node_name, **attrs)
 
                 if type(previous) is tuple:
-                    for previous in previous:
-                        graph.edge(makeTraceNodeName(previous), node)
+                    for prev_trace in previous:
+                        graph.add_edge(node_names[prev_trace], node_name)
+
+                        assert prev_trace is not variable_trace
+
                 elif previous is not None:
-                    graph.edge(makeTraceNodeName(previous), node)
+                    assert previous is not variable_trace
+                    graph.add_edge(node_names[previous], node_name)
 
         return graph
 
@@ -500,6 +517,10 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
             if variable in user_locals:
                 outline.removeUserVariable(variable)
                 break
+
+    @staticmethod
+    def getLocalsScope():
+        return None
 
 
 class CompiledPythonPackage(CompiledPythonModule):

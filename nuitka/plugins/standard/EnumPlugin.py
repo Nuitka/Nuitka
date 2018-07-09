@@ -31,9 +31,6 @@ class NuitkaPluginEnumWorkarounds(NuitkaPluginBase):
     """
     plugin_name = "enum_compat"
 
-    def __init__(self):
-        self.multiprocessing_added = False
-
     @staticmethod
     def createPostModuleLoadCode(module):
         full_name = module.getFullName()
@@ -49,7 +46,6 @@ except AttributeError:
 """
             return code, """\
 Monkey patching "enum" for compiled '__new__' methods."""
-
 
         return None, None
 

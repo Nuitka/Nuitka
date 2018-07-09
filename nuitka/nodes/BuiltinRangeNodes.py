@@ -25,8 +25,8 @@ result of it can be predicted still, and these are interesting for warnings.
 
 import math
 
-from nuitka.optimizations import BuiltinOptimization
 from nuitka.PythonVersions import python_version
+from nuitka.specs import BuiltinParameterSpecs
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import makeConstantReplacementNode
@@ -36,7 +36,7 @@ from .shapes.BuiltinTypeShapes import ShapeTypeList, ShapeTypeXrange
 class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
     """ Base class for range nodes with 1/2/3 arguments. """
 
-    builtin_spec = BuiltinOptimization.builtin_range_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
     def __init__(self, values, source_ref):
         ExpressionChildrenHavingBase.__init__(
@@ -232,7 +232,7 @@ class ExpressionBuiltinRange2(ExpressionBuiltinRangeBase):
     getLow  = ExpressionChildrenHavingBase.childGetter("low")
     getHigh = ExpressionChildrenHavingBase.childGetter("high")
 
-    builtin_spec = BuiltinOptimization.builtin_range_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
     def computeExpression(self, trace_collection):
         assert python_version < 300
@@ -316,7 +316,7 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
     getHigh = ExpressionChildrenHavingBase.childGetter("high")
     getStep = ExpressionChildrenHavingBase.childGetter("step")
 
-    builtin_spec = BuiltinOptimization.builtin_range_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_range_spec
 
     def computeExpression(self, trace_collection):
         assert python_version < 300
@@ -408,7 +408,7 @@ class ExpressionBuiltinRange3(ExpressionBuiltinRangeBase):
 class ExpressionBuiltinXrangeBase(ExpressionChildrenHavingBase):
     """ Base class for xrange nodes with 1/2/3 arguments. """
 
-    builtin_spec = BuiltinOptimization.builtin_xrange_spec
+    builtin_spec = BuiltinParameterSpecs.builtin_xrange_spec
 
     def __init__(self, values, source_ref):
         ExpressionChildrenHavingBase.__init__(

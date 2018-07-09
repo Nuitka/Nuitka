@@ -238,8 +238,10 @@ typedef long Py_hash_t;
 /* Due to ABI issues, it seems that on Windows the symbols used by
  * "_PyObject_GC_TRACK" are not exported and we need to use a function that does
  * it instead.
+ *
+ * TODO: Make it work for 3.7 too.
  */
-#if defined( _WIN32 )
+#if defined( _WIN32 ) || PYTHON_VERSION >= 370
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #else

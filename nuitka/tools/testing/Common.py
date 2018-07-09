@@ -60,17 +60,20 @@ def check_result(*popenargs, **kwargs):
         return True
 
 
-_python_version = None
-_python_arch = None
-_python_executable = None
-
-def setup(needs_io_encoding = False, silent = False):
+def goMainDir():
     # Go its own directory, to have it easy with path knowledge.
     os.chdir(
         os.path.dirname(
             os.path.abspath(sys.modules[ "__main__" ].__file__)
         )
     )
+
+_python_version = None
+_python_arch = None
+_python_executable = None
+
+def setup(needs_io_encoding = False, silent = False):
+    goMainDir()
 
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
@@ -184,7 +187,7 @@ def convertUsing2to3(path, force = False):
     # This may already be a temp file, e.g. because of construct creation.
     try:
         shutil.copy(path, new_path)
-    except shutil.SameFileError:  # @UndefinedVariable
+    except shutil.Error:
         pass
 
     # For Python2.6 and 3.2 the -m lib2to3 was not yet supported.
@@ -821,10 +824,10 @@ def checkReferenceCount(checked_function, max_rounds = 10):
             for key in m1:
                 if key not in m2:
                     print('*' * 80)
-                    print(key)
+                    print("extra", key)
                 elif m1[key] != m2[key]:
                     print('*' * 80)
-                    print(key)
+                    print(m1[key], "->", m2[key], key)
                 else:
                     pass
                     # print m1[key]
@@ -919,6 +922,9 @@ def executeReferenceChecked(prefix, names, tests_skipped, tests_stderr):
 def checkDebugPython():
     if not hasattr(sys, "gettotalrefcount"):
         my_print("Warning, using non-debug Python makes this test ineffective.")
+        sys.gettotalrefcount = lambda : 0
+    elif sys.version_info >= (3,7,0) and sys.version_info < (3,7,1):
+        my_print("Warning, bug of CPython 3.7.0 breaks reference counting and makes this test ineffective.")
         sys.gettotalrefcount = lambda : 0
 
 

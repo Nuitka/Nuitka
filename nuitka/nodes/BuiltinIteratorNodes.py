@@ -31,7 +31,7 @@ from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase
 )
-from .NodeBases import StatementChildrenHavingBase
+from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
     wrapExpressionWithSideEffects
@@ -41,6 +41,8 @@ from .shapes.StandardShapes import ShapeIterator
 
 class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ITER1"
+
+    simulator = iter
 
     def computeExpression(self, trace_collection):
         trace_collection.initIteratorValue(self)
@@ -147,19 +149,32 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         pass
 
 
-class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
+class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
+    kind = "EXPRESSION_BUILTIN_ITER_FOR_UNPACK"
+
+    @staticmethod
+    def simulator(value):
+        try:
+            return iter(value)
+        except TypeError:
+            raise TypeError(
+                "cannot unpack non-iterable %s object" % (
+                    type(value).__name__
+                )
+            )
+
+
+class StatementSpecialUnpackCheck(StatementChildHavingBase):
     kind = "STATEMENT_SPECIAL_UNPACK_CHECK"
 
-    named_children = (
-        "iterator",
-    )
+    named_child = "iterator"
+
+    __slots__ = ("count",)
 
     def __init__(self, iterator, count, source_ref):
-        StatementChildrenHavingBase.__init__(
+        StatementChildHavingBase.__init__(
             self,
-            values     = {
-                "iterator" : iterator
-            },
+            value      = iterator,
             source_ref = source_ref
         )
 
@@ -173,7 +188,7 @@ class StatementSpecialUnpackCheck(StatementChildrenHavingBase):
     def getCount(self):
         return self.count
 
-    getIterator = StatementChildrenHavingBase.childGetter("iterator")
+    getIterator = StatementChildHavingBase.childGetter("iterator")
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getIterator())
@@ -234,6 +249,9 @@ Determined iteration end check to always raise."""
         )
 
         return self, None, None
+
+    def getStatementNiceName(self):
+        return "iteration check statement"
 
 
 class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):

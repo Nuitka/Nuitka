@@ -25,12 +25,18 @@ from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 
 from .CodeHelpers import generateExpressionCode
 from .Emission import SourceCodeCollector
-from .ErrorCodes import getErrorExitBoolCode, getReleaseCodes
+from .ErrorCodes import (
+    getErrorExitBoolCode,
+    getErrorExitCode,
+    getNameReferenceErrorCode
+)
 from .Indentation import indented
 from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesVariables import (
     template_read_locals_dict_with_fallback,
-    template_read_locals_mapping_with_fallback
+    template_read_locals_dict_without_fallback,
+    template_read_locals_mapping_with_fallback,
+    template_read_locals_mapping_without_fallback
 )
 
 
@@ -113,17 +119,12 @@ def generateLocalsDictSetCode(statement, emit, context):
             )
         )
 
-    getReleaseCodes(
+    getErrorExitBoolCode(
+        condition     = "%s != 0" % res_name,
         release_names = (value_arg_name, dict_arg_name),
+        needs_check   = statement.mayRaiseException(BaseException),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitBoolCode(
-        condition   = "%s != 0" % res_name,
-        emit        = emit,
-        needs_check = statement.mayRaiseException(BaseException),
-        context     = context
     )
 
 
@@ -213,21 +214,32 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
     dict_arg_name = locals_scope.getCodeName()
     is_dict = locals_scope.getTypeShape() is ShapeTypeDict
 
-    # TODO: Be more special.
     if is_dict:
-        template = template_read_locals_dict_with_fallback
+        template = template_read_locals_dict_without_fallback
     else:
-        template = template_read_locals_mapping_with_fallback
+        template = template_read_locals_mapping_without_fallback
 
     emit(
         template % {
             "to_name"     : to_name,
             "locals_dict" : dict_arg_name,
-            "fallback"    : indented(""),
             "var_name"    : context.getConstantCode(
                 constant = variable_name
             )
         }
+    )
+
+    getNameReferenceErrorCode(
+        variable_name = variable_name,
+        condition     = "%s == NULL && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()" % to_name,
+        emit          = emit,
+        context       = context
+    )
+
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
     )
 
 

@@ -43,6 +43,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_BUILTIN( PyObject *name )
         Py_Exit( 1 );
     }
 
+    CHECK_OBJECT( result );
+
     return result;
 }
 

@@ -24,37 +24,47 @@ progress of optimization into images.
 from logging import warning
 
 from nuitka import Options
-from nuitka.Tracing import printLine
+from nuitka.ModuleRegistry import getDoneModules
 
 graph = None
 computation_counters = {}
+
+progressive = False
+
+def _addModuleGraph(module, desc):
+    module_graph = module.asGraph(
+        graph,
+        desc
+    )
+
+    return module_graph
 
 
 def onModuleOptimizationStep(module):
     # Update the graph if active.
     if graph is not None:
         computation_counters[module] = computation_counters.get(module, 0) + 1
-        module_graph = module.asGraph(computation_counters[module])
 
-        graph.subgraph(module_graph)
+        if progressive:
+            _addModuleGraph(module, computation_counters[module])
 
 
 def startGraph():
     # We maintain this globally to make it accessible, pylint: disable=global-statement
     global graph
 
-    if Options.shouldCreateGraph():
+    if Options.shallCreateGraph():
         try:
-            from graphviz import Digraph # pylint: disable=I0021,import-error
-            graph = Digraph('G')
+            from pygraphviz import AGraph # pylint: disable=I0021,import-error
+            graph = AGraph(name = "Optimization", directed = True)
+            graph.layout()
         except ImportError:
-            warning("Cannot import graphviz module, no graphing capability.")
+            warning("Cannot import pygraphviz module, no graphing capability.")
 
 
-def endGraph():
+def endGraph(output_filename):
     if graph is not None:
-        graph.engine = "dot"
-        graph.graph_attr["rankdir"] = "TB"
-        graph.render("something.dot")
+        for module in getDoneModules():
+            _addModuleGraph(module, "final")
 
-        printLine(graph.source)
+        graph.draw(output_filename + ".dot", prog = "dot")

@@ -24,7 +24,7 @@ from nuitka import Builtins
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateChildExpressionsCode
-from .ErrorCodes import getAssertionCode, getErrorExitCode, getReleaseCodes
+from .ErrorCodes import getAssertionCode, getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
 
@@ -94,16 +94,11 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
         ),
     )
 
-    getReleaseCodes(
+    getErrorExitCode(
+        check_name    = to_name,
         release_names = (type_name, bases_name, dict_name),
         emit          = emit,
         context       = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
@@ -273,10 +268,25 @@ def generateBuiltinFloatCode(to_name, expression, emit, context):
     )
 
 
-def generateBuiltinComplexCode(to_name, expression, emit, context):
+def generateBuiltinComplex1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name    = to_name,
-        capi       = "TO_COMPLEX",
+        capi       = "BUILTIN_COMPLEX1",
+        arg_desc   = (
+            ("real_arg", expression.getValue()),
+        ),
+        may_raise  = expression.mayRaiseException(BaseException),
+        source_ref = expression.getCompatibleSourceReference(),
+        none_null  = True,
+        emit       = emit,
+        context    = context
+    )
+
+
+def generateBuiltinComplex2Code(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name    = to_name,
+        capi       = "BUILTIN_COMPLEX2",
         arg_desc   = (
             ("real_arg", expression.getReal()),
             ("imag_arg", expression.getImag())
