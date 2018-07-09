@@ -1,5 +1,5 @@
-Nuitka Release 0.5.31 (Draft)
-=============================
+Nuitka Release 0.5.31
+=====================
 
 This release is massive in terms of fixes, but also adds a lot of refinement
 to code generation, and more importantly adds experimental support for
