@@ -321,6 +321,8 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             source_ref = source_ref
         )
 
+    function_body.qualname_provider = provider
+
     for variable in creator_function_body.getVariables():
         function_body.getVariableForReference(variable.getName())
 
