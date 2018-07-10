@@ -53,7 +53,7 @@ class AsyncIteratorWrapper:
     def __init__(self, obj):
         self._it = iter(obj)
 
-    async def __aiter__(self):
+    def __aiter__(self):
         return self
 
     async def __anext__(self):
