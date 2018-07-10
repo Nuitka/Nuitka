@@ -245,7 +245,10 @@ builtin_xrange_spec = BuiltinParameterSpecNoKeywords(
 )
 
 
-builtin_bool_spec = BuiltinParameterSpec("bool", ('x',), 1)
+if python_version < 370:
+    builtin_bool_spec = BuiltinParameterSpec("bool", ('x',), 1)
+else:
+    builtin_bool_spec = BuiltinParameterSpecNoKeywords("bool", ('x',), 1)
 
 if python_version < 370:
     builtin_float_spec = BuiltinParameterSpec("float", ('x',), 1)
