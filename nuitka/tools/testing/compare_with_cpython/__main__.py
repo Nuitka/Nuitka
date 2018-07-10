@@ -560,10 +560,11 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
            not two_step_execution:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
 
-            process = subprocess.Popen(
-                args  = nuitka_cmd,
-                stdin = subprocess.PIPE
-            )
+            with withPythonPathChange(nuitka_package_dir):
+                process = subprocess.Popen(
+                    args  = nuitka_cmd,
+                    stdin = subprocess.PIPE
+                )
 
             process.communicate()
 
