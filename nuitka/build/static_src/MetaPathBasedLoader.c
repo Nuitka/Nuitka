@@ -478,7 +478,12 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
 #endif
     assert( entrypoint );
 
+#if PYTHON_VERSION < 370
     char *old_context = _Py_PackageContext;
+#else
+    char const *old_context = _Py_PackageContext;
+#endif
+
     _Py_PackageContext = (char *)package;
 
     // Finally call into the DLL.
@@ -614,7 +619,17 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     PyObject *filename_obj = PyUnicode_DecodeFSDefault( filename );
     CHECK_OBJECT( filename_obj );
 
-    res = _PyImport_FixupExtensionObject( module, full_name_obj, filename_obj );
+
+    res = _PyImport_FixupExtensionObject(
+        module,
+        full_name_obj,
+        filename_obj
+#if PYTHON_VERSION >= 370
+        ,
+        PyImport_GetModuleDict()
+#endif
+
+    );
 
     Py_DECREF( full_name_obj );
     Py_DECREF( filename_obj );
