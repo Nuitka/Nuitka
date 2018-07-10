@@ -1917,8 +1917,9 @@ ever exists.
     list_value = _listcontr_helper(range(8))
 
 The difference is that with Python3, the function "_listcontr_helper" is really
-there and named ``<listcomp>``, whereas with Python2 the function is only an
-outline, so it can readily access the name space.
+there and named ``<listcontraction>`` (or ``<listcomp>`` as of Python3.7 or
+higher), whereas with Python2 the function is only an outline, so it can readily
+access the containing name space.
 
 
 Set Contractions
