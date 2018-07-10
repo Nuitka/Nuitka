@@ -33,7 +33,9 @@ from nuitka.Tracing import my_print
 ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
 thread_re                    = re.compile(r"[Tt]hread 0x[0-9a-fA-F]+")
-compiled_types_re            = re.compile(r"compiled_(module|function|generator|method|frame|coroutine)")
+compiled_types_re            = re.compile(
+    r"compiled_(module|function|generator|method|frame|coroutine|async_generator)"
+)
 module_repr_re               = re.compile(r"(\<module '.*?' from ').*?('\>)")
 
 global_name_error_re         = re.compile(
