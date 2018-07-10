@@ -26,8 +26,6 @@ import re
 import shutil
 import sys
 
-from baron.parser import ParsingError  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
-from redbaron import RedBaron  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 from nuitka.Tracing import my_print
 
 
@@ -50,7 +48,11 @@ def cleanupWindowsNewlines(filename):
 
 
 def autoformat(filename, abort = False):
-    # All the complexity in one place, pylint: disable=too-many-branches,too-many-statements
+    # All the complexity in one place, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+
+    from baron.parser import ParsingError  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+    from redbaron import RedBaron  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+
     my_print("Consider", filename, end = ": ")
 
     old_code = open(filename, 'r').read()
