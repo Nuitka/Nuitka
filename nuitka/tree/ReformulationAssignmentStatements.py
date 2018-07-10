@@ -41,8 +41,6 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
-from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
 from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
@@ -73,7 +71,6 @@ from .TreeHelpers import (
     makeConstantRefNode,
     makeSequenceCreationOrConstant,
     makeStatementsSequence,
-    makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     makeStatementsSequenceOrStatement,
     mangleName
@@ -759,37 +756,18 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
         source_ref = source_ref
     )
 
-    # Third, copy it over, if the reference values change, i.e. IsNot is true.
-    copy_back_from_tmp = StatementConditional(
-        condition  = ExpressionComparisonIsNOT(
-            left       = ExpressionTempVariableRef(
-                variable   = tmp_variable1,
-                source_ref = source_ref
-            ),
-            right      = ExpressionTempVariableRef(
+    # Third, copy it back.
+    copy_back_from_tmp = makeTryFinallyStatement(
+        provider   = provider,
+        tried      = StatementAssignmentAttribute(
+            expression     = lookup_source.makeClone(),
+            attribute_name = attribute_name,
+            source         = ExpressionTempVariableRef(
                 variable   = tmp_variable2,
                 source_ref = source_ref
             ),
-            source_ref = source_ref
+            source_ref     = source_ref
         ),
-        yes_branch = makeStatementsSequenceFromStatement(
-            statement = StatementAssignmentAttribute(
-                expression     = lookup_source.makeClone(),
-                attribute_name = attribute_name,
-                source         = ExpressionTempVariableRef(
-                    variable   = tmp_variable2,
-                    source_ref = source_ref
-                ),
-                source_ref     = source_ref
-            )
-        ),
-        no_branch  = None,
-        source_ref = source_ref
-    )
-
-    copy_back_from_tmp = makeTryFinallyStatement(
-        provider   = provider,
-        tried      = copy_back_from_tmp,
         final      = StatementReleaseVariable(
             variable   = tmp_variable2,
             source_ref = source_ref
