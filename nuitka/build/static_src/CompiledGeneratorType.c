@@ -204,7 +204,10 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
 #endif
 
 #if PYTHON_VERSION >= 350
-            if ( generator->m_code_object->co_flags & CO_FUTURE_GENERATOR_STOP &&
+            if (
+#if PYTHON_VERSION < 370
+                 generator->m_code_object->co_flags & CO_FUTURE_GENERATOR_STOP &&
+#endif
                  GET_ERROR_OCCURRED() == PyExc_StopIteration )
             {
                 PyObject *saved_exception_type, *saved_exception_value;
@@ -239,6 +242,31 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
                 Py_XDECREF( saved_exception_tb );
 
                 RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+
+                return NULL;
+            }
+#endif
+
+            // Create StopIteration if necessary, i.e. return value that is not "None" was
+            // given. TODO: Push this further down the user line, we might be able to avoid
+            // it for some uses, e.g. quick iteration entirely.
+#if PYTHON_VERSION >= 330
+            if ( generator->m_returned )
+            {
+                if ( generator->m_returned != Py_None )
+                {
+#if PYTHON_VERSION < 350
+                    PyObject *args[1] = { generator->m_returned };
+                    PyObject *stop_value = CALL_FUNCTION_WITH_ARGS1( PyExc_StopIteration, args );
+                    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, stop_value, NULL );
+                    Py_INCREF( PyExc_StopIteration );
+#else
+                    _PyGen_SetStopIterationValue( generator->m_returned );
+#endif
+                }
+
+                Py_DECREF( generator->m_returned );
+                generator->m_returned = NULL;
             }
 #endif
 
@@ -923,6 +951,10 @@ PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject 
     result->m_yielded = NULL;
 #else
     result->m_yield_return_index = 0;
+#endif
+
+#if PYTHON_VERSION >= 330
+    result->m_returned = NULL;
 #endif
 
     result->m_frame = NULL;

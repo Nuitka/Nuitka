@@ -83,8 +83,15 @@ struct Nuitka_GeneratorObject {
     Fiber m_yielder_context;
     Fiber m_caller_context;
 
-    // The yielded value, NULL is case of exception.
+    // The yielded value, NULL in case of exception or return.
     PyObject *m_yielded;
+
+    // Returned value if yielded value is NULL, is
+    // NULL if not a return
+#if PYTHON_VERSION >= 330
+    PyObject *m_returned;
+#endif
+
 #endif
 
     /* Closure variables given, if any, we reference cells here. The last

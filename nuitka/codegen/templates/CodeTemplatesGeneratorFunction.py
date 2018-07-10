@@ -98,17 +98,7 @@ template_generator_return_exit = """\
 
     function_return_exit:
 #if PYTHON_VERSION >= 330
-    if ( tmp_return_value != Py_None )
-    {
-        PyObject *args[1] = { tmp_return_value };
-        PyObject *stop_value = CALL_FUNCTION_WITH_ARGS1( PyExc_StopIteration, args );
-        RESTORE_ERROR_OCCURRED( PyExc_StopIteration, stop_value, NULL );
-        Py_INCREF( PyExc_StopIteration );
-    }
-    else
-    {
-        Py_DECREF( tmp_return_value );
-    }
+    generator->m_returned = tmp_return_value;
 #endif
 
 #if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
