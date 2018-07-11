@@ -113,7 +113,7 @@ def detectFunctionBodyKind(nodes, start_value = None):
 
         if node_class is ast.Yield:
             indications.add("Generator")
-        elif python_version >= 330 and node_class is ast.YieldFrom:  # @UndefinedVariable
+        elif python_version >= 300 and node_class is ast.YieldFrom:  # @UndefinedVariable
             indications.add("Generator")
         elif python_version >= 350 and node_class in (ast.Await, ast.AsyncWith):  # @UndefinedVariable
             indications.add("Coroutine")

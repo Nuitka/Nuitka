@@ -382,7 +382,7 @@ Replaced read-only module attribute '__name__' with module attribute reference."
                 change_tags = "new_expression"
                 change_desc = """\
 Replaced read-only module attribute '__package__' with module attribute reference."""
-            elif variable_name == "__loader__" and python_version >= 330:
+            elif variable_name == "__loader__" and python_version >= 300:
                 new_node = ExpressionModuleAttributeLoaderRef(
                     module     = variable.getOwner(),
                     source_ref = self.getSourceReference()

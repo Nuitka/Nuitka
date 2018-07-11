@@ -507,7 +507,7 @@ def buildReturnNode(provider, node, source_ref):
     expression = buildNode(provider, node.value, source_ref, allow_none = True)
 
     if provider.isExpressionGeneratorObjectBody():
-        if expression is not None and python_version < 330:
+        if expression is not None and python_version < 300:
             SyntaxErrors.raiseSyntaxError(
                 "'return' with argument inside generator",
                 source_ref.atColumnNumber(node.col_offset)
@@ -836,7 +836,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
         )
 
     needs__initializing__ = not provider.isMainModule() and \
-      (python_version >= 330 and python_version < 340)
+      (python_version >= 300 and python_version < 340)
 
     if needs__initializing__:
         # Set "__initializing__" at the beginning to True

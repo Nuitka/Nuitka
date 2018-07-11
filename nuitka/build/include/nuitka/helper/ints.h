@@ -95,25 +95,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_INT2( PyObject *value, PyObject *base )
 #else
     if ( PyUnicode_Check( value ) )
     {
-#if PYTHON_VERSION < 330
-        char *value_str = Nuitka_String_AsString( value );
-
-        if (unlikely( value_str == NULL ))
-        {
-            return NULL;
-        }
-
-        PyObject *result = PyInt_FromString( value_str, NULL, base_int );
-
-        if (unlikely( result == NULL ))
-        {
-            return NULL;
-        }
-
-        return result;
-#else
         return PyLong_FromUnicodeObject( value, (int)base_int );
-#endif
     }
     else if ( PyBytes_Check( value ) || PyByteArray_Check( value ) )
     {

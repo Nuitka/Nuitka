@@ -70,7 +70,7 @@ struct Nuitka_FunctionObject {
     PyObject *m_annotations;
 #endif
 
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
     PyObject *m_qualname;
 #endif
 
@@ -88,8 +88,6 @@ extern PyTypeObject Nuitka_Function_Type;
 // Make a function with context.
 #if PYTHON_VERSION < 300
 extern struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, Py_ssize_t closure_given );
-#elif PYTHON_VERSION < 330
-extern struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, Py_ssize_t closure_given );
 #else
 extern struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, Py_ssize_t closure_given );
 #endif

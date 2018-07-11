@@ -92,11 +92,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
         {
             if ( int_subscript < 0 )
             {
-#if PYTHON_VERSION < 330
-                int_subscript += PyUnicode_GET_SIZE( source );
-#else
                 int_subscript += PyUnicode_GET_LENGTH( source );
-#endif
             }
 
             result = type->tp_as_sequence->sq_item( source, int_subscript );

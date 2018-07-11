@@ -24,7 +24,6 @@ despite this difficulty.
 
 """
 from nuitka import Options
-from nuitka.PythonVersions import python_version
 
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase
@@ -98,10 +97,7 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
             provider = self.module
 
             if provider.isCompiledPythonPackage():
-                if python_version >= 300 and python_version < 330:
-                    value = None
-                else:
-                    value = provider.getFullName()
+                value = provider.getFullName()
             else:
                 value = provider.getPackage()
 

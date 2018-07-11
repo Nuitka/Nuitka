@@ -106,7 +106,7 @@ def generateReturnedValueRefCode(to_name, expression, emit, context):
 def generateGeneratorReturnValueCode(statement, emit, context):
     if context.getOwner().isExpressionAsyncgenObjectBody():
         pass
-    elif python_version >= 330:
+    elif python_version >= 300:
         return_value_name = context.getGeneratorReturnValueName()
 
         expression = statement.getExpression()
@@ -144,7 +144,7 @@ def generateGeneratorReturnValueCode(statement, emit, context):
 def generateGeneratorReturnNoneCode(statement, emit, context):
     if context.getOwner().isExpressionAsyncgenObjectBody():
         pass
-    elif python_version >= 330:
+    elif python_version >= 300:
         return_value_name = context.getGeneratorReturnValueName()
 
         if context.getReturnReleaseMode():

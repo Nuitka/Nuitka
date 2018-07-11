@@ -159,7 +159,6 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
     CHECK_OBJECT( exception_cause );
     *exception_tb = NULL;
 
-#if PYTHON_VERSION >= 330
     // None is not a cause.
     if ( exception_cause == Py_None )
     {
@@ -167,7 +166,6 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
         exception_cause = NULL;
     }
     else
-#endif
     if ( PyExceptionClass_Check( exception_cause ) )
     {
         PyObject *old_exception_cause = exception_cause;
@@ -185,11 +183,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
         }
     }
 
-#if PYTHON_VERSION >= 330
     if (unlikely( exception_cause != NULL && !PyExceptionInstance_Check( exception_cause ) ))
-#else
-    if (unlikely( !PyExceptionInstance_Check( exception_cause ) ))
-#endif
     {
         Py_DECREF( *exception_type );
         Py_XDECREF( *exception_tb );
@@ -228,9 +222,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
 
         PyException_SetCause( *exception_value, exception_cause );
 
-#if PYTHON_VERSION >= 300
         CHAIN_EXCEPTION( *exception_value );
-#endif
         return;
     }
     else if ( PyExceptionInstance_Check( *exception_type ) )
@@ -241,10 +233,7 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_CAUSE( PyObject **exceptio
 
         PyException_SetCause( *exception_value, exception_cause );
 
-#if PYTHON_VERSION >= 300
         CHAIN_EXCEPTION( *exception_value );
-#endif
-
         return;
     }
     else

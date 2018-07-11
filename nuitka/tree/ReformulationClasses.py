@@ -201,7 +201,7 @@ def _buildClassNode3(provider, node, source_ref):
         )
 
     # The "__qualname__" attribute is new in Python 3.3.
-    if python_version >= 330:
+    if python_version >= 300:
         qualname = class_creation_function.getFunctionQualname()
 
         if python_version < 340:

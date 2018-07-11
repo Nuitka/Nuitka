@@ -1188,7 +1188,7 @@ def super_extractor(node):
                         return makeRaiseExceptionReplacementExpression(
                             expression      = node,
                             exception_type  = "SystemError"
-                                                if python_version < 330 else
+                                                if python_version < 300 else
                                               "RuntimeError",
                             exception_value = "super(): __class__ cell not found",
                         )

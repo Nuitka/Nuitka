@@ -33,7 +33,7 @@ static inline PyDictObject *MODULE_DICT( PyObject *module )
     return dict;
 }
 
-#if PYTHON_VERSION < 330
+#if PYTHON_VERSION < 300
 // Quick dictionary lookup for a string value.
 
 typedef PyDictEntry *Nuitka_DictEntryHandle;
@@ -43,23 +43,14 @@ static PyDictEntry *GET_STRING_DICT_ENTRY( PyDictObject *dict, Nuitka_StringObje
     assert( PyDict_CheckExact( dict ) );
     assert( Nuitka_String_CheckExact( key ) );
 
-#if PYTHON_VERSION < 300
     Py_hash_t hash = key->ob_shash;
-#else
-    Py_hash_t hash = key->hash;
-#endif
 
     // Only improvement would be to identify how to ensure that the hash is
     // computed already. Calling hash early on could do that potentially.
     if ( hash == -1 )
     {
-#if PYTHON_VERSION < 300
         hash = PyString_Type.tp_hash( (PyObject *)key );
         key->ob_shash = hash;
-#else
-        hash = PyUnicode_Type.tp_hash( (PyObject *)key );
-        key->hash = hash;
-#endif
     }
 
     PyDictEntry *entry = dict->ma_lookup( dict, (PyObject *)key, hash );

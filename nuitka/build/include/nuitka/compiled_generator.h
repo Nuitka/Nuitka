@@ -88,7 +88,7 @@ struct Nuitka_GeneratorObject {
 
     // Returned value if yielded value is NULL, is
     // NULL if not a return
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
     PyObject *m_returned;
 #endif
 
@@ -265,7 +265,7 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
 }
 #endif
 
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
 extern PyObject *GENERATOR_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject *target );
 extern PyObject *GENERATOR_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *target );
 #endif

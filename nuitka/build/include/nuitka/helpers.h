@@ -73,18 +73,8 @@ extern void stopProfiling( void );
 #if PYTHON_VERSION >= 300
 static char const *_PyUnicode_AS_STRING( PyObject *unicode )
 {
-#if PYTHON_VERSION < 330
-    PyObject *bytes = _PyUnicode_AsDefaultEncodedString( unicode, NULL );
-
-    if (unlikely( bytes == NULL ))
-    {
-        return NULL;
-    }
-
-    return PyBytes_AS_STRING( bytes );
-#else
+    // TODO: Inline this for speed.
     return PyUnicode_AsUTF8( unicode );
-#endif
 }
 #endif
 

@@ -97,7 +97,7 @@ template_generator_return_exit = """\
     return;
 
     function_return_exit:
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
     generator->m_returned = tmp_return_value;
 #endif
 

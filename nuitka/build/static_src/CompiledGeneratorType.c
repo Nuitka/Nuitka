@@ -250,7 +250,7 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
             // Create StopIteration if necessary, i.e. return value that is not "None" was
             // given. TODO: Push this further down the user line, we might be able to avoid
             // it for some uses, e.g. quick iteration entirely.
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
             if ( generator->m_returned )
             {
                 if ( generator->m_returned != Py_None )
@@ -824,7 +824,7 @@ static PyMethodDef Nuitka_Generator_methods[] =
 static PyMemberDef Nuitka_Generator_members[] =
 {
     /* The type of "gi_running" changed in Python3. */
-#if PYTHON_VERSION < 330
+#if PYTHON_VERSION < 300
     { (char *)"gi_running", T_INT, offsetof(struct Nuitka_GeneratorObject, m_running), READONLY },
 #else
     { (char *)"gi_running", T_BOOL, offsetof(struct Nuitka_GeneratorObject, m_running), READONLY },
@@ -953,7 +953,7 @@ PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject 
     result->m_yield_return_index = 0;
 #endif
 
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
     result->m_returned = NULL;
 #endif
 
@@ -968,7 +968,7 @@ PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject 
     return (PyObject *)result;
 }
 
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
 
 // This is for CPython iterator objects, the respective code is not exported as
 // API, so we need to redo it. This is an re-implementation that closely follows

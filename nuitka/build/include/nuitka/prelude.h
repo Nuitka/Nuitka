@@ -153,11 +153,8 @@ typedef enum {false, true} bool;
 #define Nuitka_StringIntern PyUnicode_InternInPlace
 #endif
 
-#if PYTHON_VERSION < 330
-
+#if PYTHON_VERSION < 300
 #define PyUnicode_GetLength(x) (PyUnicode_GetSize(x))
-extern PyObject *PyUnicode_Substring( PyObject *self, Py_ssize_t start, Py_ssize_t end );
-
 #endif
 
 
@@ -198,7 +195,7 @@ extern PyObject *PyUnicode_Substring( PyObject *self, Py_ssize_t start, Py_ssize
  * fixed for Python 2.x only later. We could include more versions. This is
  * only a problem with debug mode and therefore not too important maybe.
  */
-#if PYTHON_VERSION >= 330 && PYTHON_VERSION < 340
+#if PYTHON_VERSION >= 300 && PYTHON_VERSION < 340
 
 #undef  PyMem_MALLOC
 #define PyMem_MALLOC(n) ((size_t)(n) > (size_t)PY_SSIZE_T_MAX ? NULL : malloc(((n) != 0) ? (n) : 1))

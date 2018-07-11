@@ -205,7 +205,7 @@ class BuiltinParameterSpecPosArgs(BuiltinParameterSpec):
 
 
 def makeBuiltinExceptionParameterSpec(exception_name):
-    if exception_name == "ImportError" and python_version >= 330:
+    if exception_name == "ImportError" and python_version >= 300:
         # TODO: Create this beast, needs keyword only arguments to be supported,
         # currently user of this function must take care to not have them.
         pass

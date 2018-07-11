@@ -192,7 +192,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
     {
         PyErr_Format(
             PyExc_TypeError,
-#if PYTHON_VERSION < 330
+#if PYTHON_VERSION < 300 && defined(_NUITKA_FULL_COMPAT)
             "%s object is not an iterator",
 #else
             "'%s' object is not an iterator",
@@ -205,7 +205,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *ITERATOR_NEXT( PyObject *iterator )
 
     PyObject *result = (*iternext)( iterator );
 
-#if PYTHON_VERSION < 330
+#if PYTHON_VERSION < 300
     if ( result == NULL )
     {
         PyObject *error = GET_ERROR_OCCURRED();
@@ -232,7 +232,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_NEXT1( PyObject *iterator )
     {
         PyErr_Format(
             PyExc_TypeError,
-#if PYTHON_VERSION < 330
+#if PYTHON_VERSION < 300 && defined(_NUITKA_FULL_COMPAT)
             "%s object is not an iterator",
 #else
             "'%s' object is not an iterator",

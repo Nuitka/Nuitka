@@ -348,7 +348,7 @@ def checkPluginSinglePath(plugin_filename, module_package):
 
                     if os.path.isdir(package_filename):
                         # Must be a namespace package.
-                        assert python_version >= 330
+                        assert python_version >= 300
 
                         package_dir = package_filename
 

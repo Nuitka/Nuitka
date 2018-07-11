@@ -48,7 +48,6 @@ from nuitka.Constants import (
     getConstantWeight,
     isMutable
 )
-from nuitka.PythonVersions import python_version
 
 from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
@@ -1092,7 +1091,7 @@ def getConstantInitCodes(module_context):
 
 
 def allocateNestedConstants(module_context):
-    # Lots of types to deal with, pylint: disable=too-many-branches
+    # Lots of types to deal with.
 
     def considerForDeferral(constant_value):
         module_context.getConstantCode(constant_value)
@@ -1115,25 +1114,10 @@ def allocateNestedConstants(module_context):
             considerForDeferral(constant_value.stop)
         elif constant_type is xrange:
             if xrange is range:
-                if python_version >= 330:
-                    # For Python2 ranges, we use C long values directly.
-                    considerForDeferral(constant_value.start)
-                    considerForDeferral(constant_value.step)
-                    considerForDeferral(constant_value.stop)
-                else:
-                    parts = [
-                        int(value)
-                        for value in
-                        str(constant_value)[6:-1].split(',')
-                    ]
-
-                    if len(parts) <= 1:
-                        parts.append(0)
-                    if len(parts) <= 2:
-                        parts.append(1)
-
-                    for value in parts:
-                        considerForDeferral(value)
+                # For Python2 ranges, we use C long values directly.
+                considerForDeferral(constant_value.start)
+                considerForDeferral(constant_value.step)
+                considerForDeferral(constant_value.stop)
         elif constant_value in builtin_named_values_list:
             considerForDeferral(builtin_named_values[constant_value])
 

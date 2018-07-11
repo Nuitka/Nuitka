@@ -23,10 +23,10 @@ PyObject *DEEP_COPY( PyObject *value )
 {
     if ( PyDict_Check( value ) )
     {
-        // For Python3.3, this can be done much faster in the same way as it is
+#if PYTHON_VERSION < 330
+        // For Python3, this can be done much faster in the same way as it is
         // done in parameter parsing.
 
-#if PYTHON_VERSION < 330
         PyObject *result = _PyDict_NewPresized( ((PyDictObject *)value)->ma_used  );
 
         for ( Py_ssize_t i = 0; i <= ((PyDictObject *)value)->ma_mask; i++ )
@@ -344,7 +344,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
 
         FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
 
-#if PYTHON_PYTHON >= 330
+#if PYTHON_VERSION >= 330
         Py_ssize_t size;
         char *s = PyUnicode_AsUTF8AndSize( value, &size );
 
@@ -352,8 +352,6 @@ Py_hash_t DEEP_HASH( PyObject *value )
         {
             DEEP_HASH_BLOB( &result, s, size );
         }
-#elif PYTHON_VERSION >= 300
-        // Not done for Python3.2 really yet.
 #else
         PyObject *str = PyUnicode_AsUTF8String( value );
 

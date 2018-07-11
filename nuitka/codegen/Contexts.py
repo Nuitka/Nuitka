@@ -641,7 +641,7 @@ def _getConstantDefaultPopulation():
         )
 
 
-    if python_version >= 330:
+    if python_version >= 300:
         # Modules have that attribute starting with 3.3
         result.append(
             "__loader__"
@@ -653,7 +653,7 @@ def _getConstantDefaultPopulation():
             "send"
         )
 
-    if python_version >= 330:
+    if python_version >= 300:
         result += (
             # YIELD_FROM uses this
             "throw",
@@ -1137,7 +1137,7 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
         return "generator"
 
     def getGeneratorReturnValueName(self):
-        if python_version >= 330:
+        if python_version >= 300:
             return self.allocateTempName(
                 "return_value",
                 "PyObject *",

@@ -374,12 +374,10 @@ int main( int argc, char **argv )
      * Debian for Python 3.3, more uses may exist.
      */
 #if _NUITKA_SYSFLAG_NO_SITE == 0
-#if PYTHON_VERSION >= 330
-    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 6, const_int_0 );
-#elif PYTHON_VERSION >= 320
-    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 7, const_int_0 );
-#elif PYTHON_VERSION >= 260
+#if PYTHON_VERSION < 300
     PyStructSequence_SET_ITEM( PySys_GetObject( (char *)"flags" ), 9, const_int_0 );
+#else
+    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 6, const_int_0 );
 #endif
 #endif
 
@@ -513,7 +511,7 @@ int main( int argc, char **argv )
 
     if ( ERROR_OCCURRED() )
     {
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
         /* Remove the frozen importlib traceback part, which would not be compatible. */
         PyThreadState *thread_state = PyThreadState_GET();
 

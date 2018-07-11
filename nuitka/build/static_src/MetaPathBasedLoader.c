@@ -40,7 +40,7 @@ extern char *getDirname( char *path );
 
 // For Python3.3, the loader is a module attribute, so we need to make it
 // accessible from this variable.
-#if PYTHON_VERSION < 330
+#if PYTHON_VERSION < 300
 static
 #endif
 PyObject *metapath_based_loader = NULL;
@@ -601,7 +601,7 @@ PyObject *callIntoShlibModule( const char *full_name, const char *filename )
     {
         return NULL;
     }
-#elif PYTHON_VERSION < 330
+#elif PYTHON_VERSION < 300
     PyObject *filename_obj = PyUnicode_DecodeFSDefault( filename );
     CHECK_OBJECT( filename_obj );
 
@@ -1080,7 +1080,7 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
     CHECK_OBJECT( loader_is_package );
     PyDict_SetItemString( method_dict, "is_package", loader_is_package );
 
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
     PyDict_SetItemString( method_dict, "__module__", Py_None );
 #endif
 
@@ -1123,7 +1123,7 @@ void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *_lo
     // Register it as a meta path loader.
     int res = PyList_Insert(
         PySys_GetObject( ( char *)"meta_path" ),
-#if PYTHON_VERSION < 330
+#if PYTHON_VERSION < 300
         0,
 #else
         2,
