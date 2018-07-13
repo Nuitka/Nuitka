@@ -693,6 +693,52 @@ def _makeStarDictArgumentToDictStatement(result, called_variable,
     )
 
 
+def _makeRaiseNoStringItem(called_variable):
+    return StatementRaiseException(
+        exception_type  = ExpressionBuiltinMakeException(
+            exception_name = "TypeError",
+            args           = (
+                makeBinaryOperationNode(
+                    operator   = "Mod",
+                    left       =  makeConstantRefNode(
+                        constant      = """\
+%s keywords must be strings""",
+                        source_ref    = internal_source_ref,
+                        user_provided = True
+                    ),
+                    right      = ExpressionFunctionCall(
+                        function   = ExpressionFunctionCreation(
+                            function_ref = ExpressionFunctionRef(
+                                function_body = getCallableNameDescBody(
+                                ),
+                                source_ref    = internal_source_ref
+                            ),
+                            code_object  = None,
+                            defaults     = (),
+                            kw_defaults  = None,
+                            annotations  = None,
+                            source_ref   = internal_source_ref
+                        ),
+                        values     = (
+                            ExpressionVariableRef(
+                                variable   = called_variable,
+                                source_ref = internal_source_ref
+                            ),
+                        ),
+                        source_ref = internal_source_ref
+                    ),
+                    source_ref = internal_source_ref
+                ),
+            ),
+            source_ref     = internal_source_ref
+        ),
+        exception_value = None,
+        exception_trace = None,
+        exception_cause = None,
+        source_ref      = internal_source_ref
+    )
+
+
 def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
     return StatementRaiseException(
         exception_type  = ExpressionBuiltinMakeException(
@@ -2490,6 +2536,30 @@ def getFunctionCallHelperDictionaryUnpacking():
     tmp_key_variable = result.allocateTempVariable(temp_scope, "dict_key")
 
     update_body = (
+
+        StatementConditional(
+            condition  = ExpressionComparisonIsNOT(
+                left       = ExpressionBuiltinType1(
+                    value      = ExpressionTempVariableRef(
+                        variable   = tmp_key_variable,
+                        source_ref = internal_source_ref
+                    ),
+                    source_ref = internal_source_ref
+                ),
+                right      = makeExpressionBuiltinRef(
+                    builtin_name = "str",
+                    source_ref   = internal_source_ref
+                ),
+                source_ref = internal_source_ref
+            ),
+            yes_branch = makeStatementsSequenceFromStatement(
+                statement = _makeRaiseNoStringItem(
+                    called_variable = called_variable,
+                )
+            ),
+            no_branch  = None,
+            source_ref = internal_source_ref
+        ),
         StatementConditional(
             condition  = ExpressionComparisonIn(
                 left       = ExpressionTempVariableRef(
