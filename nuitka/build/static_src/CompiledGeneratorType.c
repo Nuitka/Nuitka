@@ -89,6 +89,49 @@ static void Nuitka_Generator_entry_point( struct Nuitka_GeneratorObject *generat
 }
 #endif
 
+#if PYTHON_VERSION >= 300
+static void Nuitka_SetStopIterationValue( PyObject *value )
+{
+    CHECK_OBJECT( value );
+
+#if PYTHON_VERSION <= 352
+    PyObject *args[1] = { value };
+    PyObject *stop_value = CALL_FUNCTION_WITH_ARGS1( PyExc_StopIteration, args );
+
+    if (unlikely( stop_value == NULL ))
+    {
+        return;
+    }
+
+    Py_INCREF( PyExc_StopIteration );
+    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, stop_value, NULL );
+#else
+    if (likely( !PyTuple_Check(value) && !PyExceptionInstance_Check(value) ))
+    {
+        Py_INCREF( PyExc_StopIteration );
+        Py_INCREF( value );
+
+        RESTORE_ERROR_OCCURRED( PyExc_StopIteration, value, NULL );
+    }
+    else
+    {
+
+        PyObject *args[1] = { value };
+        PyObject *stop_value = CALL_FUNCTION_WITH_ARGS1( PyExc_StopIteration, args );
+
+        if (unlikely( stop_value == NULL ))
+        {
+            return;
+        }
+
+        Py_INCREF( PyExc_StopIteration );
+
+        RESTORE_ERROR_OCCURRED( PyExc_StopIteration, stop_value, NULL );
+    }
+#endif
+}
+#endif
+
 
 static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generator, PyObject *value )
 {
@@ -255,14 +298,7 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
             {
                 if ( generator->m_returned != Py_None )
                 {
-#if PYTHON_VERSION < 350
-                    PyObject *args[1] = { generator->m_returned };
-                    PyObject *stop_value = CALL_FUNCTION_WITH_ARGS1( PyExc_StopIteration, args );
-                    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, stop_value, NULL );
-                    Py_INCREF( PyExc_StopIteration );
-#else
-                    _PyGen_SetStopIterationValue( generator->m_returned );
-#endif
+                    Nuitka_SetStopIterationValue( generator->m_returned );
                 }
 
                 Py_DECREF( generator->m_returned );
