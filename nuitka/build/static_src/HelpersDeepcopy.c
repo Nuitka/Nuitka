@@ -346,7 +346,7 @@ Py_hash_t DEEP_HASH( PyObject *value )
 
 #if PYTHON_VERSION >= 330
         Py_ssize_t size;
-        char *s = PyUnicode_AsUTF8AndSize( value, &size );
+        char const *s = PyUnicode_AsUTF8AndSize( value, &size );
 
         if ( s != NULL )
         {
