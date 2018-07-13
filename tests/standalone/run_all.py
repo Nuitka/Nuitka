@@ -440,7 +440,7 @@ for filename in sorted(os.listdir('.')):
             "SECHOST.DLL", "SETTINGSYNCPOLICY.DLL", "SHCORE.DLL", "TBS.DLL",
             "TWINAPI.APPCORE.DLL", "TWINAPI.DLL", "VIRTDISK.DLL",
             "WEBSOCKET.DLL", "WEVTAPI.DLL", "WINMMBASE.DLL", "WMICLNT.DLL",
-            "UCRTBASE.DLL"):
+            "UCRTBASE.DLL", "TOKENBINDING.DLL"):
             continue
 
         # Win API can be assumed.
