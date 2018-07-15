@@ -136,13 +136,26 @@ def buildFunctionNode(provider, node, source_ref):
         source_ref    = source_ref
     )
 
-    if function_kind == "Generator":
-        code_body = ExpressionGeneratorObjectBody(
-            provider   = function_body,
-            name       = node.name,
-            flags      = flags,
-            source_ref = source_ref
-        )
+    if function_kind in ("Generator", "Coroutine"):
+        if function_kind == "Coroutine":
+            code_body = ExpressionCoroutineObjectBody(
+                provider   = function_body,
+                name       = node.name,
+                flags      = flags,
+                source_ref = source_ref
+            )
+
+            maker_class = ExpressionMakeCoroutineObject
+        else:
+            code_body = ExpressionGeneratorObjectBody(
+                provider   = function_body,
+                name       = node.name,
+                flags      = flags,
+                source_ref = source_ref
+            )
+
+            maker_class = ExpressionMakeGeneratorObject
+
         code_body.qualname_provider = provider
 
         for variable in function_body.getVariables():
@@ -151,13 +164,13 @@ def buildFunctionNode(provider, node, source_ref):
         function_body.setBody(
             makeStatementsSequenceFromStatement(
                 statement = StatementReturn(
-                    expression = ExpressionMakeGeneratorObject(
-                        generator_ref = ExpressionFunctionRef(
+                    expression = maker_class(
+                        ExpressionFunctionRef(
                             function_body = code_body,
                             source_ref    = source_ref
                         ),
-                        code_object   = code_object,
-                        source_ref    = source_ref
+                        code_object = code_object,
+                        source_ref  = source_ref
                     ),
                     source_ref = source_ref
                 )

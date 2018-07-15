@@ -257,7 +257,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         future_spec       = parent_module.getFutureSpec()
     )
 
-    is_async = sum(getattr(qual, "is_async", 0) for qual in node.generators)
+    is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
 
     if is_async:
         code_body = ExpressionAsyncgenObjectBody(

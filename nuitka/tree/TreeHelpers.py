@@ -162,10 +162,33 @@ def detectFunctionBodyKind(nodes, start_value = None):
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.GeneratorExp:
             for name, field in ast.iter_fields(node):
-                if name in ("name", "body", "comparators", "elt"):
+                if name == "name":
                     pass
+                elif name in ("body", "comparators", "elt"):
+                    if python_version >= 370:
+                        # TODO_ Clumsy code.
+
+                        old = set(indications)
+                        indications.clear()
+
+                        _check(field)
+
+                        if "Coroutine" in indications:
+                            old.add("Coroutine")
+
+                        indications.clear()
+                        indications.update(old)
+                        del old
+
                 elif name == "generators":
                     _check(field[0].iter)
+
+                    # New syntax in 3.7 allows these to be present in functions not
+                    # declared with "async def", so we need to check them.
+                    if python_version >= 370:
+                        for gen in field:
+                            if gen.is_async:
+                                indications.add("Coroutine")
                 else:
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.ListComp and python_version >= 300:
