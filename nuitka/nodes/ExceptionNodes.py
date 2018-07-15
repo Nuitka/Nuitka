@@ -228,16 +228,17 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         return self, None, None
 
     def computeExpressionDrop(self, statement, trace_collection):
-        result = StatementRaiseExceptionImplicit(
+        return self.asStatement(), "new_raise", """\
+Propagated implicit raise expression to raise statement."""
+
+    def asStatement(self):
+        return StatementRaiseExceptionImplicit(
             exception_type  = self.getExceptionType(),
             exception_value = self.getExceptionValue(),
             exception_trace = None,
             exception_cause = None,
             source_ref      = self.getSourceReference()
         )
-
-        return result, "new_raise", """\
-Propagated implicit raise expression to raise statement."""
 
 
 class ExpressionBuiltinMakeException(ExpressionChildrenHavingBase):

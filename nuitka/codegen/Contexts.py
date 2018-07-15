@@ -1090,7 +1090,8 @@ class PythonFunctionContext(FrameDeclarationsMixin,
         self.frame_handle = None
 
     def __repr__(self):
-        return "<PythonFunctionContext for %s '%s'>" % (
+        return "<%s for %s '%s'>" % (
+            self.__class__.__name__,
             "function" if not self.function.isExpressionClassBody() else "class",
             self.function.getName()
         )

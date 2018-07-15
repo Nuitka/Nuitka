@@ -33,6 +33,7 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
     wrapStatementWithSideEffects
 )
+from .StatementNodes import StatementsSequence
 
 
 class ExpressionConditional(ExpressionChildrenHavingBase):
@@ -735,3 +736,25 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
 
     def getStatementNiceName(self):
         return "branch statement"
+
+
+def makeStatementConditional(condition, yes_branch, no_branch, source_ref):
+    if yes_branch is not None and not yes_branch.isStatementsSequence():
+        yes_branch = StatementsSequence(
+            statements = (yes_branch,),
+            source_ref = source_ref
+        )
+
+    if no_branch is not None and not no_branch.isStatementsSequence():
+        no_branch = StatementsSequence(
+            statements = (no_branch,),
+            source_ref = source_ref
+        )
+
+    return StatementConditional(
+        condition  = condition,
+        yes_branch = yes_branch,
+        no_branch  = no_branch,
+        source_ref = source_ref
+
+    )

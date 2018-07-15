@@ -39,11 +39,20 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIterForUnpack,
     StatementSpecialUnpackCheck
 )
+from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
+from nuitka.nodes.ComparisonNodes import ExpressionComparison
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
-from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
+from nuitka.nodes.NodeMakingHelpers import (
+    makeRaiseExceptionExpressionFromTemplate
+)
+from nuitka.nodes.OperatorNodes import (
+    makeBinaryOperationNode,
+    makeExpressionOperationBinaryInplace
+)
 from nuitka.nodes.SliceNodes import (
     ExpressionBuiltinSlice,
     ExpressionSliceLookup,
@@ -267,6 +276,51 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                         source_ref = source_ref
                     ),
                     count      = len(detail),
+                    source_ref = source_ref
+                )
+            )
+        else:
+            statements.insert(
+                starred_index+1,
+                makeStatementConditional(
+                    condition  = ExpressionComparison(
+                        comparator = "Lt",
+                        left       = ExpressionBuiltinLen(
+                            value      = ExpressionTempVariableRef(
+                                variable   = starred_list_var,
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        ),
+                        right      = makeConstantRefNode(
+                            constant   = len(statements)-starred_index-1,
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
+
+                    ),
+                    yes_branch = makeRaiseExceptionExpressionFromTemplate(
+                        exception_type = "ValueError",
+                        template       = """\
+not enough values to unpack (expected at least %d, got %%d)""" % (len(statements) - 1),
+                        template_args  = makeBinaryOperationNode(
+                            operator   = "Add",
+                            left       = ExpressionBuiltinLen(
+                                value      = ExpressionTempVariableRef(
+                                    variable   = starred_list_var,
+                                    source_ref = source_ref
+                                ),
+                                source_ref = source_ref
+                            ),
+                            right      = makeConstantRefNode(
+                                constant   = starred_index,
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        ),
+                        source_ref     = source_ref
+                    ).asStatement(),
+                    no_branch  = None,
                     source_ref = source_ref
                 )
             )
