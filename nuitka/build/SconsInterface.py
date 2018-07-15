@@ -67,6 +67,7 @@ def _getSconsBinaryCall():
 
     return [
         _getPythonForSconsExePath(),
+        "-W", "ignore", # Disable Python warnings in case of debug Python.
         os.path.join(
             _getSconsInlinePath(),
             "bin",
