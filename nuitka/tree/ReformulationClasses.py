@@ -93,7 +93,7 @@ from .TreeHelpers import (
 def _buildClassNode3(provider, node, source_ref):
     # Many variables, due to the huge re-formulation that is going on here,
     # which just has the complexity and optimization checks:
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals
 
     # This function is the Python3 special case with special re-formulation as
     # according to developer manual.
@@ -104,10 +104,6 @@ def _buildClassNode3(provider, node, source_ref):
         name = "class_creation"
     )
 
-    tmp_bases = provider.allocateTempVariable(
-        temp_scope = temp_scope,
-        name       = "bases"
-    )
     tmp_class_decl_dict = provider.allocateTempVariable(
         temp_scope = temp_scope,
         name       = "class_decl_dict"
@@ -245,6 +241,24 @@ def _buildClassNode3(provider, node, source_ref):
 
     statements.append(body)
 
+    if node.bases:
+        tmp_bases = provider.allocateTempVariable(
+            temp_scope = temp_scope,
+            name       = "bases"
+        )
+
+        def makeBasesRef():
+            return ExpressionTempVariableRef(
+                variable   = tmp_bases,
+                source_ref = source_ref
+            )
+    else:
+        def makeBasesRef():
+            return makeConstantRefNode(
+                constant   = (),
+                source_ref = source_ref
+            )
+
     statements += [
         StatementAssignmentVariable(
             variable   = class_variable,
@@ -261,10 +275,7 @@ def _buildClassNode3(provider, node, source_ref):
                             source_ref    = source_ref,
                             user_provided = True
                         ),
-                        ExpressionTempVariableRef(
-                            variable   = tmp_bases,
-                            source_ref = source_ref
-                        ),
+                        makeBasesRef(),
                         ExpressionBuiltinLocalsRef(
                             locals_scope = class_creation_function.getLocalsScope(),
                             source_ref   = source_ref
@@ -331,16 +342,22 @@ def _buildClassNode3(provider, node, source_ref):
     else:
         keywords = node.keywords
 
-    statements = [
-        StatementAssignmentVariable(
-            variable   = tmp_bases,
-            source     = buildTupleCreationNode(
-                provider   = provider,
-                elements   = node.bases,
+    statements = []
+
+    if node.bases:
+        statements.append(
+            StatementAssignmentVariable(
+                variable   = tmp_bases,
+                source     = buildTupleCreationNode(
+                    provider   = provider,
+                    elements   = node.bases,
+                    source_ref = source_ref
+                ),
                 source_ref = source_ref
-            ),
-            source_ref = source_ref
-        ),
+            )
+        )
+
+    statements.append(
         StatementAssignmentVariable(
             variable   = tmp_class_decl_dict,
             source     = makeDictCreationOrConstant2(
@@ -358,7 +375,7 @@ def _buildClassNode3(provider, node, source_ref):
             ),
             source_ref = source_ref
         )
-    ]
+    )
 
     if node.keywords and node.keywords[-1].arg is None:
         statements.append(
@@ -429,10 +446,7 @@ def _buildClassNode3(provider, node, source_ref):
                     expression_no  = unspecified_metaclass_expression,
                     source_ref     = source_ref
                 ),
-                bases      = ExpressionTempVariableRef(
-                    variable   = tmp_bases,
-                    source_ref = source_ref
-                ),
+                bases      = makeBasesRef(),
                 source_ref = source_ref
             ),
             source_ref = source_ref_orig
@@ -503,10 +517,7 @@ def _buildClassNode3(provider, node, source_ref):
                                 source_ref    = source_ref,
                                 user_provided = True
                             ),
-                            ExpressionTempVariableRef(
-                                variable   = tmp_bases,
-                                source_ref = source_ref
-                            )
+                            makeBasesRef(),
                         ),
                         source_ref = source_ref
                     ),
@@ -531,11 +542,17 @@ def _buildClassNode3(provider, node, source_ref):
     if python_version >= 340:
         class_creation_function.qualname_setup = node.name, qualname_assign
 
-    final = (
-        StatementReleaseVariable(
-            variable   = tmp_bases,
-            source_ref = source_ref
-        ),
+    final = []
+
+    if node.bases:
+        final.append(
+            StatementReleaseVariable(
+                variable   = tmp_bases,
+                source_ref = source_ref
+            )
+        )
+
+    final += [
         StatementReleaseVariable(
             variable   = tmp_class_decl_dict,
             source_ref = source_ref
@@ -548,7 +565,7 @@ def _buildClassNode3(provider, node, source_ref):
             variable   = tmp_prepared,
             source_ref = source_ref
         )
-    )
+    ]
 
     return makeTryFinallyStatement(
         provider   = provider,
