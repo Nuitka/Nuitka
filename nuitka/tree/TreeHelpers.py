@@ -25,7 +25,6 @@ from logging import warning
 from nuitka import Constants, Options, Tracing
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeList,
@@ -36,10 +35,7 @@ from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
     ExpressionMakeDict
 )
-from nuitka.nodes.ExceptionNodes import (
-    StatementRaiseException,
-    StatementReraiseException
-)
+from nuitka.nodes.ExceptionNodes import StatementReraiseException
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
     StatementsFrameCoroutine,
@@ -50,7 +46,6 @@ from nuitka.nodes.FrameNodes import (
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
-from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.PythonVersions import (
     needsSetLiteralReverseInsertion,
@@ -694,6 +689,9 @@ def getStatementsPrepended(statement_sequence, statements):
 
 
 def makeReraiseExceptionStatement(source_ref):
+    # TODO: Remove the statement sequence packaging and have users do it themselves
+    # in factory functions instead.
+
     return StatementsSequence(
         statements = (
             StatementReraiseException(
@@ -730,34 +728,6 @@ def mangleName(variable_name, owner):
                 class_container.getName().lstrip('_'),
                 variable_name
             )
-
-
-def makeConditionalStatement(condition, yes_branch, no_branch, source_ref):
-    """ Create conditional statement, with yes_branch not being empty.
-
-        May have to invert condition to achieve that.
-    """
-
-    if yes_branch is None:
-        condition = ExpressionOperationNOT(
-            operand    = condition,
-            source_ref = condition.getSourceReference()
-        )
-
-        yes_branch, no_branch = no_branch, yes_branch
-
-    if not yes_branch.isStatementsSequence():
-        yes_branch = makeStatementsSequenceFromStatement(yes_branch)
-
-    if no_branch is not None and not no_branch.isStatementsSequence():
-        no_branch = makeStatementsSequenceFromStatement(no_branch)
-
-    return StatementConditional(
-        condition  = condition,
-        yes_branch = yes_branch,
-        no_branch  = no_branch,
-        source_ref = source_ref
-    )
 
 
 def makeCallNode(called, *args, **kwargs):

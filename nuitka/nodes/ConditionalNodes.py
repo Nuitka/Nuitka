@@ -33,6 +33,7 @@ from .NodeMakingHelpers import (
     wrapExpressionWithNodeSideEffects,
     wrapStatementWithSideEffects
 )
+from .OperatorNodes import ExpressionOperationNOT
 from .StatementNodes import StatementsSequence
 
 
@@ -679,7 +680,7 @@ Condition for branch was predicted to be always %s.""" % choice
 
             from .OperatorNodes import ExpressionOperationNOT
 
-            new_statement = StatementConditional(
+            new_statement = makeStatementConditional(
                 condition  = ExpressionOperationNOT(
                     operand    = condition,
                     source_ref = condition.getSourceReference()
@@ -739,6 +740,19 @@ Empty 'yes' branch for conditional statement treated with inverted condition che
 
 
 def makeStatementConditional(condition, yes_branch, no_branch, source_ref):
+    """ Create conditional statement, with yes_branch not being empty.
+
+        May have to invert condition to achieve that.
+    """
+
+    if yes_branch is None:
+        condition = ExpressionOperationNOT(
+            operand    = condition,
+            source_ref = condition.getSourceReference()
+        )
+
+        yes_branch, no_branch = no_branch, yes_branch
+
     if yes_branch is not None and not yes_branch.isStatementsSequence():
         yes_branch = StatementsSequence(
             statements = (yes_branch,),

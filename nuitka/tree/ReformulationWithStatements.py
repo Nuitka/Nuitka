@@ -36,7 +36,7 @@ from nuitka.nodes.CallNodes import (
     ExpressionCallNoKeywords
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import (
@@ -64,10 +64,8 @@ from .TreeHelpers import (
     buildNode,
     buildStatementsNode,
     getKind,
-    makeConditionalStatement,
     makeReraiseExceptionStatement,
-    makeStatementsSequence,
-    makeStatementsSequenceFromStatement
+    makeStatementsSequence
 )
 
 
@@ -265,7 +263,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                             ),
                             source_ref = source_ref
                         ),
-                        makeConditionalStatement(
+                        makeStatementConditional(
                             condition  = exit_value_exception,
                             no_branch  = makeReraiseExceptionStatement(
                                 source_ref = with_exit_source_ref
@@ -279,7 +277,7 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                 public_exc     = python_version >= 270,
                 source_ref     = source_ref
             ),
-            final      = StatementConditional(
+            final      = makeStatementConditional(
                 condition  = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
                         variable   = tmp_indicator_variable,
@@ -291,11 +289,9 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                     ),
                     source_ref = source_ref
                 ),
-                yes_branch = makeStatementsSequenceFromStatement(
-                    statement = StatementExpressionOnly(
-                        expression = exit_value_no_exception,
-                        source_ref = source_ref
-                    )
+                yes_branch = StatementExpressionOnly(
+                    expression = exit_value_no_exception,
+                    source_ref = source_ref
                 ),
                 no_branch  = None,
                 source_ref = source_ref

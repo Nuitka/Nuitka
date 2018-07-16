@@ -104,7 +104,7 @@ from nuitka.nodes.ClassNodes import ExpressionBuiltinType3
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
-    StatementConditional
+    makeStatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ExecEvalNodes import (
@@ -131,7 +131,6 @@ from nuitka.nodes.OperatorNodes import (
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.SliceNodes import ExpressionBuiltinSlice
-from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinSuper,
@@ -910,25 +909,23 @@ def eval_extractor(node):
 
         # Source needs some special treatment for eval, if it's a string, it
         # must be stripped.
-        string_fixup = [
-            StatementAssignmentVariable(
-                variable   = source_variable,
-                source     = makeExpressionCall(
-                    called     = ExpressionAttributeLookup(
-                        source         = ExpressionTempVariableRef(
-                            variable   = source_variable,
-                            source_ref = source_ref
-                        ),
-                        attribute_name = "strip",
-                        source_ref     = source_ref
+        string_fixup = StatementAssignmentVariable(
+            variable   = source_variable,
+            source     = makeExpressionCall(
+                called     = ExpressionAttributeLookup(
+                    source         = ExpressionTempVariableRef(
+                        variable   = source_variable,
+                        source_ref = source_ref
                     ),
-                    args       = strip_choice, # This is a tuple
-                    kw         = None,
-                    source_ref = source_ref
+                    attribute_name = "strip",
+                    source_ref     = source_ref
                 ),
+                args       = strip_choice, # This is a tuple
+                kw         = None,
                 source_ref = source_ref
-            )
-        ]
+            ),
+            source_ref = source_ref
+        )
 
         acceptable_builtin_types = [
             ExpressionBuiltinAnonymousRef(
@@ -951,7 +948,7 @@ def eval_extractor(node):
                 source     = source,
                 source_ref = source_ref,
             ),
-            StatementConditional(
+            makeStatementConditional(
                 condition  = ExpressionOperationNOT(
                     operand    = ExpressionBuiltinIsinstance(
                         instance   = ExpressionTempVariableRef(
@@ -967,10 +964,7 @@ def eval_extractor(node):
                     ),
                     source_ref = source_ref
                 ),
-                yes_branch = StatementsSequence(
-                    statements = string_fixup,
-                    source_ref = source_ref
-                ),
+                yes_branch = string_fixup,
                 no_branch  = None,
                 source_ref = source_ref
             ),

@@ -70,7 +70,7 @@ from nuitka.nodes.BuiltinFormatNodes import (
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
-    StatementConditional
+    makeStatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantEllipsisRef,
@@ -202,7 +202,7 @@ def buildConditionNode(provider, node, source_ref):
     # "elif", because that's already dealt with by module "ast", which turns it
     # into nested conditional statements.
 
-    return StatementConditional(
+    return makeStatementConditional(
         condition  = buildNode(provider, node.test, source_ref),
         yes_branch = buildStatementsNode(
             provider   = provider,

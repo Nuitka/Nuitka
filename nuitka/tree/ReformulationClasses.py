@@ -43,7 +43,7 @@ from nuitka.nodes.ClassNodes import (
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
-    StatementConditional
+    makeStatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
@@ -451,7 +451,7 @@ def _buildClassNode3(provider, node, source_ref):
             ),
             source_ref = source_ref_orig
         ),
-        StatementConditional(
+        makeStatementConditional(
             condition  = ExpressionDictOperationIn(
                 key        = makeConstantRefNode(
                     constant      = "metaclass",
@@ -465,19 +465,17 @@ def _buildClassNode3(provider, node, source_ref):
                 source_ref = source_ref
             ),
             no_branch  = None,
-            yes_branch = makeStatementsSequenceFromStatement(
-                statement = StatementDictOperationRemove(
-                    dict_arg   = ExpressionTempVariableRef(
-                        variable   = tmp_class_decl_dict,
-                        source_ref = source_ref
-                    ),
-                    key        = makeConstantRefNode(
-                        constant      = "metaclass",
-                        source_ref    = source_ref,
-                        user_provided = True
-                    ),
+            yes_branch = StatementDictOperationRemove(
+                dict_arg   = ExpressionTempVariableRef(
+                    variable   = tmp_class_decl_dict,
                     source_ref = source_ref
-                )
+                ),
+                key        = makeConstantRefNode(
+                    constant      = "metaclass",
+                    source_ref    = source_ref,
+                    user_provided = True
+                ),
+                source_ref = source_ref
             ),
             source_ref = source_ref
         ),

@@ -38,7 +38,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
@@ -534,14 +534,12 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
         if len(conditions) >= 1:
             loop_statements.append(
-                StatementConditional(
+                makeStatementConditional(
                     condition  = buildAndNode(
                         values     = conditions,
                         source_ref = source_ref
                     ),
-                    yes_branch = makeStatementsSequenceFromStatement(
-                        statement = current_body
-                    ),
+                    yes_branch = current_body,
                     no_branch  = None,
                     source_ref = source_ref
                 )

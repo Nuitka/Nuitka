@@ -27,7 +27,7 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
 from nuitka.nodes.FrameNodes import (
     StatementsFrameFunction,
@@ -137,7 +137,7 @@ def buildLambdaNode(provider, node, source_ref):
                     source     = body,
                     source_ref = source_ref
                 ),
-                StatementConditional(
+                makeStatementConditional(
                     condition  = ExpressionComparisonIsNOT(
                         left       = ExpressionTempVariableRef(
                             variable   = tmp_return_value,
@@ -148,17 +148,15 @@ def buildLambdaNode(provider, node, source_ref):
                         ),
                         source_ref = source_ref
                     ),
-                    yes_branch = makeStatementsSequenceFromStatement(
-                        statement = StatementExpressionOnly(
-                            expression = ExpressionYield(
-                                expression = ExpressionTempVariableRef(
-                                    variable   = tmp_return_value,
-                                    source_ref = source_ref,
-                                ),
-                                source_ref = source_ref
+                    yes_branch = StatementExpressionOnly(
+                        expression = ExpressionYield(
+                            expression = ExpressionTempVariableRef(
+                                variable   = tmp_return_value,
+                                source_ref = source_ref,
                             ),
                             source_ref = source_ref
-                        )
+                        ),
+                        source_ref = source_ref
                     ),
                     no_branch  = None,
                     source_ref = source_ref
