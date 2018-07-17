@@ -88,7 +88,7 @@ def main():
     two_step_execution = hasArg("two_step_execution")
     binary_python_path = hasArg("binary_python_path")
     keep_python_path   = hasArg("keep_python_path")
-    trace_command      = hasArg("trace_command") or os.environ.get("NUITKA_TRACE_COMMANDS", "0") != "0"
+    trace_command      = hasArg("trace_command") or os.environ.get("NUITKA_TRACE_COMMANDS", '0') != '0'
     remove_output      = hasArg("remove_output")
     standalone_mode    = hasArg("standalone")
     no_site            = hasArg("no_site")

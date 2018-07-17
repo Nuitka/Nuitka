@@ -84,7 +84,7 @@ from .TreeHelpers import (
 def buildClassNode3(provider, node, source_ref):
     # Many variables, due to the huge re-formulation that is going on here,
     # which just has the complexity and optimization checks:
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements,I0021
+    # pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
 
     # This function is the Python3 special case with special re-formulation as
     # according to developer manual.
@@ -539,7 +539,7 @@ def buildClassNode3(provider, node, source_ref):
         tried      = statements,
         final      = tuple(
             StatementReleaseVariable(
-                variable = variable,
+                variable   = variable,
                 source_ref = source_ref
             )
             for variable in

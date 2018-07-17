@@ -799,11 +799,11 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
     # Wrap if necessary for special nested arguments.
     if special_args:
         code_body = _wrapFunctionWithSpecialNestedArgs(
-            name = name,
-            outer_body = outer_body,
-            parameters = parameters,
+            name         = name,
+            outer_body   = outer_body,
+            parameters   = parameters,
             special_args = special_args,
-            source_ref = source_ref
+            source_ref   = source_ref
         )
 
     else:

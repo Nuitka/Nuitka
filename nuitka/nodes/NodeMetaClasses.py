@@ -48,7 +48,7 @@ class NodeCheckMetaClass(ABCMeta):
 
     # This is in conflict with either PyDev or Pylint 1.9.2 used fo Python2, it
     # should be "mcs" for one and "cls" for the other.
-    # pylint: disable=bad-mcs-classmethod-argument,I0021
+    # pylint: disable=I0021,bad-mcs-classmethod-argument
 
     def __new__(cls, name, bases, dictionary): # pylint: disable=I0021,arguments-differ
         _checkBases(name, bases)
