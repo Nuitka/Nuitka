@@ -155,7 +155,7 @@ class ExpressionLocalsVariableRefORFallback(ExpressionChildrenHavingBase):
             )
 
             # Make the original one for the fallback
-            call_node = call_node.makeClone()
+            call_node = call_node.makeCloneShallow()
             call_node.setCalled(self.subnode_fallback)
 
             result = ExpressionConditional(

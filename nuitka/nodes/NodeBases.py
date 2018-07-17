@@ -116,8 +116,28 @@ class NodeBase(NodeMetaClassBase):
                 source_ref = self.source_ref,
                 **self.getCloneArgs()
             )
-        except TypeError:
-            raise NuitkaNodeError("Problem cloning node", self)
+        except TypeError as e:
+            raise NuitkaNodeError("Problem cloning node", self, e)
+
+        effective_source_ref = self.getCompatibleSourceReference()
+
+        if effective_source_ref is not self.source_ref:
+            result.setCompatibleSourceReference(effective_source_ref)
+
+        return result
+
+    def makeCloneShallow(self):
+        args = self.getDetails()
+        args.update(self.getVisitableNodesNamed())
+
+        try:
+            # Using star dictionary arguments here for generic use.
+            result = self.__class__(
+                source_ref = self.source_ref,
+                **args
+            )
+        except TypeError as e:
+            raise NuitkaNodeError("Problem cloning node", self, e)
 
         effective_source_ref = self.getCompatibleSourceReference()
 
