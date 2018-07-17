@@ -100,7 +100,7 @@ def _makeIteratorCreation(provider, qual, source_ref):
     )
 
 
-def _makeIteratorNext(provider, qual, iterator_ref, source_ref):
+def _makeIteratorNext(qual, iterator_ref, source_ref):
     if getattr(qual, "is_async", 0):
         next_class = ExpressionAsyncNext
     else:
@@ -501,7 +501,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                 tried          = StatementAssignmentVariable(
                     variable   = tmp_value_variable,
                     source     = _makeIteratorNext(
-                        provider     = provider,
                         iterator_ref = iterator_ref,
                         qual         = qual,
                         source_ref   = source_ref

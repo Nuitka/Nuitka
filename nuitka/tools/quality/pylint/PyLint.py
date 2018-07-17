@@ -275,11 +275,13 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
         pylint_options.append("--notes=")
 
     def hasPyLintBugTrigger(filename):
-        if os.path.basename(filename) in (
-            "ReformulationContractionExpressions.py",
-            "TreeHelpers.py"
-        ):
-            return True
+        # Stack overflow core dumps with 1.9.x unfortunately.
+        if pylint_version < "2.0.0":
+            if os.path.basename(filename) in (
+                "ReformulationContractionExpressions.py",
+                "TreeHelpers.py"
+            ):
+                return True
 
         if pylint_version == "2.0.0":
             if os.path.basename(filename) in (

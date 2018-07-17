@@ -583,6 +583,7 @@ def buildAnnAssignNode(provider, node, source_ref):
     """ Python3.6 annotation assignment.
 
     """
+    # There are cases to deal with here, pylint: disable=too-many-branches
 
     if provider.isCompiledPythonModule() or provider.isExpressionClassBody():
         provider.markAsNeedsAnnotationsDictionary()
