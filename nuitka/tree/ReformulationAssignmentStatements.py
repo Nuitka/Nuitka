@@ -630,9 +630,14 @@ def buildAnnAssignNode(provider, node, source_ref):
         else:
             annotation = buildNode(provider, node.annotation, source_ref)
 
+            if python_version != 370:
+                ref_class = ExpressionVariableLocalNameRef
+            else:
+                ref_class = ExpressionVariableNameRef
+
             statements.append(
                 StatementAssignmentSubscript(
-                    expression = ExpressionVariableLocalNameRef(
+                    expression = ref_class(
                         provider      = provider,
                         variable_name = "__annotations__",
                         source_ref    = source_ref
