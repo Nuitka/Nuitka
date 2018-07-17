@@ -85,7 +85,7 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
                type(child.getConstant()) is float:
                 return True
 
-        step = self.getStep() # false alarm, pylint: disable=assignment-from-none
+        step = self.getStep()
 
         # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:
@@ -450,7 +450,7 @@ class ExpressionBuiltinXrangeBase(ExpressionChildrenHavingBase):
             if child.getIntegerValue() is None:
                 return True
 
-        step = self.getStep() # false alarm, pylint: disable=assignment-from-none
+        step = self.getStep()
 
         # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:

@@ -563,6 +563,151 @@ def buildParameterAnnotations(provider, node, source_ref):
         return None
 
 
+def _wrapFunctionWithSpecialNestedArgs(name, outer_body, parameters, special_args, source_ref):
+    inner_name = name.strip("<>") + "$inner"
+    iter_vars = []
+
+    values = []
+
+    statements = []
+
+    def unpackFrom(source, arg_names):
+        accesses = []
+
+        sub_special_index = 0
+
+        iter_var = outer_body.allocateTempVariable(None, "arg_iter_%d" % len(iter_vars))
+        iter_vars.append(iter_var)
+
+        statements.append(
+            StatementAssignmentVariable(
+                variable   = iter_var,
+                source     = ExpressionBuiltinIter1(
+                    value      = source,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+        )
+
+        for element_index, arg_name in enumerate(arg_names):
+            if getKind(arg_name) == "Name":
+                arg_var = outer_body.createProvidedVariable(arg_name.id)
+                outer_body.registerProvidedVariable(arg_var)
+
+                statements.append(
+                    StatementAssignmentVariable(
+                        variable   = arg_var,
+                        source     = ExpressionSpecialUnpack(
+                            value      = ExpressionTempVariableRef(
+                                variable   = iter_var,
+                                source_ref = source_ref
+                            ),
+                            count      = element_index + 1,
+                            expected   = len(arg_names),
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
+                    )
+                )
+
+                accesses.append(
+                    ExpressionVariableRef(
+                        variable   = arg_var,
+                        source_ref = source_ref
+                    )
+                )
+            elif getKind(arg_name) == "Tuple":
+                accesses.extend(
+                    unpackFrom(
+                        source    = ExpressionSpecialUnpack(
+                            value      = ExpressionTempVariableRef(
+                                variable   = iter_var,
+                                source_ref = source_ref
+                            ),
+                            count      = element_index + 1,
+                            expected   = len(arg_names),
+                            source_ref = source_ref
+                        ),
+                        arg_names = arg_name.elts
+                    )
+                )
+
+                sub_special_index += 1
+            else:
+                assert False, arg_name
+
+        statements.append(
+            StatementSpecialUnpackCheck(
+                iterator   = ExpressionTempVariableRef(
+                    variable   = iter_var,
+                    source_ref = source_ref
+                ),
+                count      = len(arg_names),
+                source_ref = source_ref
+            )
+        )
+
+        return accesses
+
+    for arg_name in parameters.getParameterNames():
+        if arg_name.startswith('.'):
+            source = ExpressionVariableNameRef(
+                provider      = outer_body,
+                variable_name = arg_name,
+                source_ref    = source_ref
+            )
+
+            values.extend(
+                unpackFrom(source, special_args[arg_name])
+            )
+        else:
+            values.append(
+                ExpressionVariableNameRef(
+                    provider      = outer_body,
+                    variable_name = arg_name,
+                    source_ref    = source_ref
+                )
+            )
+
+    code_body = ExpressionOutlineFunction(
+        provider   = outer_body,
+        name       = inner_name,
+        source_ref = source_ref
+    )
+
+    statements.append(
+        StatementReturn(
+            expression = code_body,
+            source_ref = source_ref
+        )
+    )
+
+    outer_body.setBody(
+        makeStatementsSequenceFromStatement(
+            statement = makeTryFinallyStatement(
+                provider   = outer_body,
+                tried      = statements,
+                final      = [
+                    StatementReleaseVariable(
+                        variable   = variable,
+                        source_ref = source_ref
+                    )
+                    for variable in
+                    sorted(
+                        outer_body.getTempVariables(),
+                        key = lambda variable: variable.getName()
+                    )
+                ],
+                source_ref = source_ref,
+                public_exc = False
+            )
+        )
+    )
+
+    return code_body
+
+
 def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
                              node, source_ref):
     # This contains a complex re-formulation for nested parameter functions.
@@ -651,147 +796,16 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
         source_ref = source_ref
     )
 
+    # Wrap if necessary for special nested arguments.
     if special_args:
-        inner_name = name.strip("<>") + "$inner"
-        iter_vars = []
-
-        values = []
-
-        statements = []
-
-        def unpackFrom(source, arg_names):
-            accesses = []
-
-            sub_special_index = 0
-
-            iter_var = outer_body.allocateTempVariable(None, "arg_iter_%d" % len(iter_vars))
-            iter_vars.append(iter_var)
-
-            statements.append(
-                StatementAssignmentVariable(
-                    variable   = iter_var,
-                    source     = ExpressionBuiltinIter1(
-                        value      = source,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
-                )
-            )
-
-            for element_index, arg_name in enumerate(arg_names):
-                if getKind(arg_name) == "Name":
-                    arg_var = outer_body.createProvidedVariable(arg_name.id)
-                    outer_body.registerProvidedVariable(arg_var)
-
-                    statements.append(
-                        StatementAssignmentVariable(
-                            variable   = arg_var,
-                            source     = ExpressionSpecialUnpack(
-                                value      = ExpressionTempVariableRef(
-                                    variable   = iter_var,
-                                    source_ref = source_ref
-                                ),
-                                count      = element_index + 1,
-                                expected   = len(arg_names),
-                                source_ref = source_ref
-                            ),
-                            source_ref = source_ref
-                        )
-                    )
-
-                    accesses.append(
-                        ExpressionVariableRef(
-                            variable   = arg_var,
-                            source_ref = source_ref
-                        )
-                    )
-                elif getKind(arg_name) == "Tuple":
-                    accesses.extend(
-                        unpackFrom(
-                            source    = ExpressionSpecialUnpack(
-                                value      = ExpressionTempVariableRef(
-                                    variable   = iter_var,
-                                    source_ref = source_ref
-                                ),
-                                count      = element_index + 1,
-                                expected   = len(arg_names),
-                                source_ref = source_ref
-                            ),
-                            arg_names = arg_name.elts
-                        )
-                    )
-
-                    sub_special_index += 1
-                else:
-                    assert False, arg_name
-
-            statements.append(
-                StatementSpecialUnpackCheck(
-                    iterator   = ExpressionTempVariableRef(
-                        variable   = iter_var,
-                        source_ref = source_ref
-                    ),
-                    count      = len(arg_names),
-                    source_ref = source_ref
-                )
-            )
-
-            return accesses
-
-        for arg_name in parameters.getParameterNames():
-            if arg_name.startswith('.'):
-                source = ExpressionVariableNameRef(
-                    provider      = outer_body,
-                    variable_name = arg_name,
-                    source_ref    = source_ref
-                )
-
-                values.extend(
-                    unpackFrom(source, special_args[arg_name])
-                )
-            else:
-                values.append(
-                    ExpressionVariableNameRef(
-                        provider      = outer_body,
-                        variable_name = arg_name,
-                        source_ref    = source_ref
-                    )
-                )
-
-        code_body = ExpressionOutlineFunction(
-            provider   = outer_body,
-            name       = inner_name,
+        code_body = _wrapFunctionWithSpecialNestedArgs(
+            name = name,
+            outer_body = outer_body,
+            parameters = parameters,
+            special_args = special_args,
             source_ref = source_ref
         )
 
-        statements.append(
-            StatementReturn(
-                expression = code_body,
-                source_ref = source_ref
-            )
-        )
-
-        outer_body.setBody(
-            makeStatementsSequenceFromStatement(
-                statement = makeTryFinallyStatement(
-                    provider   = outer_body,
-                    tried      = statements,
-                    final      = [
-                        StatementReleaseVariable(
-                            variable   = variable,
-                            source_ref = source_ref
-                        )
-                        for variable in
-                        sorted(
-                            outer_body.getTempVariables(),
-                            key = lambda variable: variable.getName()
-                        )
-                    ],
-                    source_ref = source_ref,
-                    public_exc = False
-                )
-            )
-        )
     else:
         code_body = outer_body
 

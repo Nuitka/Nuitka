@@ -51,55 +51,65 @@ from .TreeHelpers import (
 )
 
 
+def _checkCloning(final, provider):
+    final2 = final.makeClone()
+    final2.parent = provider
+
+    import nuitka.TreeXML
+    if nuitka.TreeXML.Element is not None:
+        f1 = final.asXml()
+        f2 = final2.asXml()
+
+        def compare(a, b):
+            for c1, c2 in zip(a, b):
+                compare(c1, c2)
+
+            assert a.attrib == b.attrib, (a.attrib, b.attrib)
+
+        compare(f1, f2)
+
+
 def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = False):
-    # Complex handling, due to the many variants, pylint: disable=too-many-branches,too-many-locals
+    # Complex handling, due to the many variants, pylint: disable=too-many-branches
 
     if type(tried) in (tuple, list):
-        tried = makeStatementsSequenceFromStatements(
-            *tried
-        )
+        if tried:
+            tried = makeStatementsSequenceFromStatements(
+                *tried
+            )
+        else:
+            tried = None
     if type(final) in (tuple, list):
-        final = StatementsSequence(
-            statements = mergeStatements(final, False),
-            source_ref = source_ref
-        )
+        if final:
+            final = StatementsSequence(
+                statements = mergeStatements(final, False),
+                source_ref = source_ref
+            )
+        else:
+            final = None
 
     if tried is not None and not tried.isStatementsSequence():
         tried = makeStatementsSequenceFromStatement(tried)
     if final is not None and not final.isStatementsSequence():
         final = makeStatementsSequenceFromStatement(final)
 
+    # Trivial case, nothing tried needs only do the final stuff.
     if tried is None:
         return final
 
+    # Trivial case, nothing final needs nothing but the tried stuff.
     if final is None:
         return tried
 
+    # Parent them to us already.
     if provider is not None:
         tried.parent = provider
         final.parent = provider
 
-    assert tried is not None, source_ref
-    assert final is not None, source_ref
-
     # TODO: Currently it's not possible anymore to get at XML for all codes
     # during the building phase. So this error catcher cannot work currently.
     if False and isDebug():
-        final2 = final.makeClone()
-        final2.parent = provider
-
-        import nuitka.TreeXML
-        if nuitka.TreeXML.Element is not None:
-            f1 = final.asXml()
-            f2 = final2.asXml()
-
-            def compare(a, b):
-                for c1, c2 in zip(a, b):
-                    compare(c1, c2)
-
-                assert a.attrib == b.attrib, (a.attrib, b.attrib)
-
-            compare(f1, f2)
+        _checkCloning(final, provider)
 
     def getFinal():
         # Make a clone of "final" only if necessary.
@@ -147,8 +157,6 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
             except_handler = makeStatementsSequenceFromStatement(
                 statement = except_handler
             )
-
-        except_handler.parent = provider
     else:
         except_handler = None
 
@@ -159,8 +167,6 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
                 source_ref = source_ref
             )
         )
-
-        break_handler.parent = provider
     else:
         break_handler = None
 
@@ -171,8 +177,6 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
                 source_ref = source_ref
             )
         )
-
-        continue_handler.parent = provider
     else:
         continue_handler = None
 
@@ -186,8 +190,6 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
                 source_ref = source_ref
             )
         )
-
-        return_handler.parent = provider
     else:
         return_handler = None
 

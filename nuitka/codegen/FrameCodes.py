@@ -69,10 +69,18 @@ def getFrameLocalsStorageSize(type_descriptions):
     return result
 
 
+def _searchLocalVariableByName(local_variables, variable_name):
+    for local_variable in local_variables:
+        if local_variable.getName() == variable_name:
+            return local_variable
+
+    return None
+
+
 def generateStatementsFrameCode(statement_sequence, emit, context):
     # This is a wrapper that provides also handling of frames, which got a
     # lot of variants and details, therefore lots of branches and details.
-    # pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     context.pushCleanupScope()
 
@@ -120,16 +128,9 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
     # passing however (not at all, TODO), that doesn't matter much.
     local_variables = statement_sequence.getParentVariableProvider().getLocalVariables()
 
-    def search(variable_name):
-        for local_variable in local_variables:
-            if local_variable.getName() == variable_name:
-                return local_variable
-
-        return None
-
     context.pushFrameVariables(
         tuple(
-            search(variable_name)
+            _searchLocalVariableByName(local_variables, variable_name)
             for variable_name in
             code_object.getVarNames()
         )
@@ -459,6 +460,6 @@ def generateFrameRestoreExceptionCode(statement, emit, context):
 SET_CURRENT_EXCEPTION( exception_preserved_type_%(preserver_id)d, \
 exception_preserved_value_%(preserver_id)d, \
 exception_preserved_tb_%(preserver_id)d );""" % {
-                    "preserver_id" : preserver_id,
+                "preserver_id" : preserver_id,
             }
         )

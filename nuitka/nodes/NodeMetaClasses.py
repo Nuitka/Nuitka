@@ -46,9 +46,9 @@ def _checkBases(name, bases):
 class NodeCheckMetaClass(ABCMeta):
     kinds = {}
 
-    # This is in conflict with either PyDev or Pylint, pylint: disable=C0204
-    # It should be "mcs" for one and "cls" for the other.
-
+    # This is in conflict with either PyDev or Pylint 1.9.2 used fo Python2, it
+    # should be "mcs" for one and "cls" for the other.
+    # pylint: disable=bad-mcs-classmethod-argument,I0021
 
     def __new__(cls, name, bases, dictionary): # pylint: disable=I0021,arguments-differ
         _checkBases(name, bases)

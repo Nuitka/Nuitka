@@ -374,7 +374,7 @@ def __addConstantInitCode(context, emit, check, constant_type, constant_value,
     if constant_type is long:
         # See above, same for long values. Note: These are of course not
         # existent with Python3 which would have covered it before.
-        if constant_value >= 0 and constant_value <= max_unsigned_long:
+        if 0 <= constant_value <= max_unsigned_long:
             emit (
                 "%s = PyLong_FromUnsignedLong( %sul );" % (
                     constant_identifier,
@@ -383,7 +383,7 @@ def __addConstantInitCode(context, emit, check, constant_type, constant_value,
             )
 
             return
-        elif constant_value < 0 and constant_value >= min_signed_long:
+        elif 0 > constant_value >= min_signed_long:
             emit (
                 "%s = PyLong_FromLong( %sl );" % (
                     constant_identifier,

@@ -835,8 +835,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
         )
 
-    needs__initializing__ = not provider.isMainModule() and \
-      (python_version >= 300 and python_version < 340)
+    needs__initializing__ = not provider.isMainModule() and 300 <= python_version < 340
 
     if needs__initializing__:
         # Set "__initializing__" at the beginning to True

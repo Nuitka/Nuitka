@@ -44,7 +44,7 @@ def _encodePythonStringToC(value):
             result += r'\%o' % cv
 
             octal = True
-        elif cv >= 32 and cv <= 127:
+        elif 32 <= cv <= 127:
             if octal and c in b'0123456789':
                 result += '" "'
 

@@ -678,8 +678,6 @@ Condition for branch was predicted to be always %s.""" % choice
             # either.
             assert no_branch is not None
 
-            from .OperatorNodes import ExpressionOperationNOT
-
             new_statement = makeStatementConditional(
                 condition  = ExpressionOperationNOT(
                     operand    = condition,

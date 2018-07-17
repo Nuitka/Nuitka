@@ -49,8 +49,7 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     def createPreModuleLoadCode(module):
         full_name = module.getFullName()
 
-        if full_name == "multiprocessing.forking" or \
-           full_name == "multiprocessing.spawn":
+        if full_name in ("multiprocessing.forking", "multiprocessing.spawn"):
             code = """\
 import sys
 sys.frozen = 1

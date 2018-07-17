@@ -470,9 +470,13 @@ def makeSourceDirectory(main_module):
     )
 
 
+def _asBoolStr(value):
+    return "true" if value else "false"
+
+
 def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
-    # have checks for them, leading to many branches, pylint: disable=too-many-branches
+    # have checks for them, leading to many branches, pylint: disable=too-many-branches,too-many-statements
 
     if hasattr(sys, "abiflags"):
         abiflags = sys.abiflags
@@ -484,22 +488,19 @@ def runScons(main_module, quiet):
     else:
         abiflags = None
 
-    def asBoolStr(value):
-        return "true" if value else "false"
-
     options = {
         "name"            : os.path.basename(
             getTreeFilenameWithSuffix(main_module, "")
         ),
         "result_name"     : getResultBasepath(main_module),
         "source_dir"      : getSourceDirectoryPath(main_module),
-        "debug_mode"      : asBoolStr(Options.isDebug()),
-        "python_debug"    : asBoolStr(Options.isPythonDebug()),
-        "unstripped_mode" : asBoolStr(Options.isUnstripped()),
-        "module_mode"     : asBoolStr(Options.shallMakeModule()),
-        "full_compat"     : asBoolStr(Options.isFullCompat()),
+        "debug_mode"      : _asBoolStr(Options.isDebug()),
+        "python_debug"    : _asBoolStr(Options.isPythonDebug()),
+        "unstripped_mode" : _asBoolStr(Options.isUnstripped()),
+        "module_mode"     : _asBoolStr(Options.shallMakeModule()),
+        "full_compat"     : _asBoolStr(Options.isFullCompat()),
         "experimental"    : ','.join(Options.getExperimentalIndications()),
-        "trace_mode"      : asBoolStr(Options.shallTraceExecution()),
+        "trace_mode"      : _asBoolStr(Options.shallTraceExecution()),
         "python_version"  : python_version_str,
         "target_arch"     : Utils.getArchitecture(),
         "python_prefix"   : sys.prefix,

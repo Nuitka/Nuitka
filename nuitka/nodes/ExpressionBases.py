@@ -67,11 +67,6 @@ class ExpressionBase(NodeBase):
         # Virtual method, pylint: disable=no-self-use
         return False
 
-    def getCompileTimeConstant(self):
-        assert self.isCompileTimeConstant(), self
-
-        assert False
-
     def getTruthValue(self):
         """ Return known truth value. The "None" value indicates unknown. """
 
