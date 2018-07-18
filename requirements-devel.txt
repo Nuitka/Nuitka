@@ -1,0 +1,4 @@
+# PyLint wouldn't be installable on 2.6 and not work with 3.3
+
+pylint == 1.9.2 ; python_version == '2.7'
+pylint == 2.0.0 ; python_version >= '3.4'
