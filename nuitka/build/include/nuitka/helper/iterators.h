@@ -345,6 +345,30 @@ NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT( PyObject *iterator, int seq_s
     return result;
 }
 
+#if PYTHON_VERSION >= 350
+NUITKA_MAY_BE_UNUSED static PyObject *UNPACK_NEXT_STARRED( PyObject *iterator, int seq_size_so_far, int expected )
+{
+    CHECK_OBJECT( iterator );
+    assert( HAS_ITERNEXT( iterator ) );
+
+    PyObject *result = (*Py_TYPE( iterator )->tp_iternext)( iterator );
+
+    if (unlikely( result == NULL ))
+    {
+        if (unlikely( !ERROR_OCCURRED() || EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) ))
+        {
+            PyErr_Format( PyExc_ValueError, "not enough values to unpack (expected at least %d, got %d)", expected, seq_size_so_far );
+        }
+
+        return NULL;
+    }
+
+    CHECK_OBJECT( result );
+
+    return result;
+}
+#endif
+
 
 NUITKA_MAY_BE_UNUSED static bool UNPACK_ITERATOR_CHECK( PyObject *iterator )
 {

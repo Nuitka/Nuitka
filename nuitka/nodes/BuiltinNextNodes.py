@@ -47,7 +47,7 @@ class ExpressionBuiltinNext1(ExpressionBuiltinSingleArgBase):
 class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
     kind = "EXPRESSION_SPECIAL_UNPACK"
 
-    def __init__(self, value, count, expected, source_ref):
+    def __init__(self, value, count, expected, starred, source_ref):
         ExpressionBuiltinNext1.__init__(
             self,
             value      = value,
@@ -55,13 +55,16 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
         )
 
         self.count = int(count)
+
+        # TODO: Unused before 3.5 or higher, maybe specialize for it.
         self.expected = int(expected)
+        self.starred = starred
 
     def getDetails(self):
         result = ExpressionBuiltinNext1.getDetails(self)
         result["count"] = self.getCount()
         result["expected"] = self.getExpected()
-
+        result["starred"] = self.getStarred()
         return result
 
     def getCount(self):
@@ -69,6 +72,9 @@ class ExpressionSpecialUnpack(ExpressionBuiltinNext1):
 
     def getExpected(self):
         return self.expected
+
+    def getStarred(self):
+        return self.starred
 
 
 class ExpressionBuiltinNext2(ExpressionChildrenHavingBase):

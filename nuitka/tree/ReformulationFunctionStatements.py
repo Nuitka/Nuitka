@@ -605,6 +605,7 @@ def _wrapFunctionWithSpecialNestedArgs(name, outer_body, parameters, special_arg
                             ),
                             count      = element_index + 1,
                             expected   = len(arg_names),
+                            starred    = False,
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
@@ -627,6 +628,7 @@ def _wrapFunctionWithSpecialNestedArgs(name, outer_body, parameters, special_arg
                             ),
                             count      = element_index + 1,
                             expected   = len(arg_names),
+                            starred    = False,
                             source_ref = source_ref
                         ),
                         arg_names = arg_name.elts

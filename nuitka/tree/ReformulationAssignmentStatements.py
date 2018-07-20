@@ -130,7 +130,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                                          source_ref):
     # This is using many variable names on purpose, so as to give names to the
     # unpacked detail values, and has many branches due to the many cases
-    # dealt with, pylint: disable=too-many-branches,too-many-locals
+    # dealt with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if kind == "Name":
         return StatementAssignmentVariableName(
@@ -211,15 +211,19 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
         statements = []
 
         for element_index, element in enumerate(detail):
-            element_var = element_vars[element_index]
-
-            if starred_list_var is not None:
-                if element[0] == "Starred":
+            if element[0] == "Starred":
+                if starred_index is not None:
                     raiseSyntaxError(
                         "two starred expressions in assignment",
                         source_ref.atColumnNumber(0)
                     )
 
+                starred_index = element_index
+
+        for element_index, element in enumerate(detail):
+            element_var = element_vars[element_index]
+
+            if starred_list_var is not None:
                 statements.insert(
                     starred_index+1,
                     StatementAssignmentVariable(
@@ -244,14 +248,16 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                                 source_ref = source_ref
                             ),
                             count      = element_index + 1,
-                            expected   = len(detail),
+                            expected   = starred_index or len(detail),
+                            starred    = starred_index is not None,
+
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
                     )
                 )
             else:
-                starred_index = element_index
+                assert starred_index == element_index
                 starred_list_var = element_var
 
                 statements.append(
