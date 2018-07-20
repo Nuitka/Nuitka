@@ -663,8 +663,8 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
     Py_hash_t hash = DEEP_HASH( argnames );
 #endif
 
-    // TODO: Consider using PyCode_NewEmpty
-
+    // Not using PyCode_NewEmpty, it doesn't given us much beyond this
+    // and is not available for Python2.
     PyCodeObject *result = PyCode_New(
         arg_count,           // argcount
 #if PYTHON_VERSION >= 300
