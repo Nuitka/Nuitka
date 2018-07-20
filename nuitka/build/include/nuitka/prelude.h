@@ -143,10 +143,17 @@ typedef enum {false, true} bool;
 #define Nuitka_StringIntern PyString_InternInPlace
 #else
 #define Nuitka_String_AsString _PyUnicode_AsString
-/* Note: There seems to be no variant that does it without checks, so we rolled
- * our own.
- */
-#define Nuitka_String_AsString_Unchecked _PyUnicode_AS_STRING
+
+/* Note: This is from unicodeobject.c */
+#define _PyUnicode_UTF8(op)                             \
+    (((PyCompactUnicodeObject*)(op))->utf8)
+#define PyUnicode_UTF8(op)                              \
+    (assert(PyUnicode_IS_READY(op)),                    \
+     PyUnicode_IS_COMPACT_ASCII(op) ?                   \
+         ((char*)((PyASCIIObject*)(op) + 1)) :          \
+         _PyUnicode_UTF8(op))
+#define Nuitka_String_AsString_Unchecked PyUnicode_UTF8
+
 #define Nuitka_String_Check PyUnicode_Check
 #define Nuitka_String_CheckExact PyUnicode_CheckExact
 #define Nuitka_StringObject PyUnicodeObject

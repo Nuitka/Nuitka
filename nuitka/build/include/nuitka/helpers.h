@@ -70,14 +70,6 @@ extern void stopProfiling( void );
 #include "nuitka/helper/dictionaries.h"
 #include "nuitka/helper/mappings.h"
 
-#if PYTHON_VERSION >= 300
-static char const *_PyUnicode_AS_STRING( PyObject *unicode )
-{
-    // TODO: Inline this for speed.
-    return PyUnicode_AsUTF8( unicode );
-}
-#endif
-
 #include "nuitka/helper/raising.h"
 
 #include "helper/operations.h"
