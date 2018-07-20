@@ -117,7 +117,11 @@ for filename in sorted(os.listdir('.')):
 
         needs_2to3 = python_version.startswith('3') and \
                      not filename.endswith("32.py") and \
-                     not filename.endswith("33.py")
+                     not filename.endswith("33.py") and \
+                     not filename.endswith("35.py") and \
+                     not filename.endswith("36.py")
+
+
 
         compareWithCPython(
             dirname     = None,

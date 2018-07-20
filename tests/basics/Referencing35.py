@@ -68,8 +68,12 @@ def simpleFunction3():
     async def f():
         result = []
 
-        async for letter in AsyncIteratorWrapper("abcdefg"):
-            result.append(letter)
+        # Python 3.5 before 3.2 won't allow this.
+        try:
+            async for letter in AsyncIteratorWrapper("abcdefg"):
+                result.append(letter)
+        except TypeError:
+            assert sys.version_info < (3,5,2)
 
         return result
 
