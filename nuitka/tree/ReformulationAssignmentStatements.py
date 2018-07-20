@@ -631,7 +631,11 @@ def buildAnnAssignNode(provider, node, source_ref):
         else:
             annotation = buildNode(provider, node.annotation, source_ref)
 
-            if python_version != 370:
+            # TODO: As CPython core considers this implementation detail, and it seems
+            # mostly useless to support having this as a closure taken name after a
+            # __del__ on annotations, we might do this except in full compat mode. It
+            # will produce only noise for all annotations in classes otherwise.
+            if python_version < 370:
                 ref_class = ExpressionVariableLocalNameRef
             else:
                 ref_class = ExpressionVariableNameRef
