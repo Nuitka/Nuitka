@@ -25,7 +25,7 @@ from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
-from .LocalsScopes import LocalsDictHandle, LocalsMappingHandle
+from .LocalsScopes import getLocalsDictHandle, getLocalsMappingHandle
 from .OutlineNodes import ExpressionOutlineFunction
 
 
@@ -48,15 +48,14 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin,
 
         self.doc = doc
 
-        locals_dict_name = "locals_%s_%d" % (
+        self.locals_dict_name = "locals_%s_%d" % (
             self.getName(),
             source_ref.getLineNumber()
         )
 
-        if python_version < 300:
-            self.locals_scope = LocalsDictHandle(locals_dict_name)
-        else:
-            self.locals_scope = LocalsMappingHandle(locals_dict_name)
+        # Force creation with proper type.
+        if python_version >= 300:
+            getLocalsMappingHandle(self.locals_dict_name)
 
     def getDetail(self):
         return "named %s" % self.getFunctionName()
@@ -98,12 +97,6 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin,
     def isEarlyClosure():
         return True
 
-    def computeExpressionRaw(self, trace_collection):
-        # Classes have their own locals dict scope.
-
-        with trace_collection.makeLocalsDictContext(self.locals_scope):
-            return ExpressionOutlineFunction.computeExpressionRaw(self, trace_collection)
-
     def getVariableForClosure(self, variable_name):
         # print( "getVariableForClosure", self, variable_name )
 
@@ -140,8 +133,9 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin,
         # Classes all are that.
         return True
 
-    def getLocalsScope(self):
-        return self.locals_scope
+    def getFunctionLocalsScope(self):
+        # TODO: Make the type decision something that is owned by the registry.
+        return getLocalsDictHandle(self.locals_dict_name)
 
 
 class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):

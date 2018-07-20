@@ -139,7 +139,7 @@ class CollectionTracingMixin(object):
 
 
 class CollectionStartpointMixin(object):
-    # Many things are traces, pylint: disable=too-many-instance-attributes
+    # Many things are traced
 
     def __init__(self):
         # Variable assignments performed in here, last issued number, only used
@@ -156,8 +156,6 @@ class CollectionStartpointMixin(object):
         self.exception_collections = None
 
         self.outline_functions = None
-
-        self.locals_scope = None
 
     def getLoopBreakCollections(self):
         return self.break_collections
@@ -313,15 +311,6 @@ class CollectionStartpointMixin(object):
         Variables.updateVariablesFromCollection(old_collection, self)
 
     @contextlib.contextmanager
-    def makeLocalsDictContext(self, locals_scope):
-        old_locals_scope = self.locals_scope
-        self.locals_scope = locals_scope
-
-        yield
-
-        self.locals_scope = old_locals_scope
-
-    @contextlib.contextmanager
     def makeAbortStackContext(self, catch_breaks, catch_continues,
                               catch_returns, catch_exceptions):
         if catch_breaks:
@@ -411,6 +400,9 @@ class TraceCollectionBase(CollectionTracingMixin):
             self.name,
             id(self)
         )
+
+    def getOwner(self):
+        return self.owner
 
     @staticmethod
     def signalChange(tags, source_ref, message):
@@ -514,7 +506,7 @@ class TraceCollectionBase(CollectionTracingMixin):
         return variable_trace
 
     def onLocalsUsage(self, locals_owner):
-        self.onLocalsDictEscaped(locals_owner.getLocalsScope())
+        self.onLocalsDictEscaped(locals_owner.getFunctionLocalsScope())
 
         result = []
 
@@ -719,9 +711,6 @@ class TraceCollectionBase(CollectionTracingMixin):
             catch_exceptions = catch_exceptions
         )
 
-    def makeLocalsDictContext(self, locals_scope):
-        return self.parent.makeLocalsDictContext(locals_scope)
-
     def onLocalsDictEscaped(self, locals_scope):
         self.parent.onLocalsDictEscaped(locals_scope)
 
@@ -831,8 +820,8 @@ class TraceCollectionFunction(CollectionStartpointMixin,
             self.variable_actives[closure_variable] = 0
 
         # TODO: Have special function type for exec functions stuff.
-        if function_body.locals_scope is not None:
-            for locals_dict_variable in function_body.locals_scope.variables.values():
+        if function_body.getFunctionLocalsScope() is not None:
+            for locals_dict_variable in function_body.getFunctionLocalsScope().variables.values():
                 self._initVariableUninit(locals_dict_variable)
 
 

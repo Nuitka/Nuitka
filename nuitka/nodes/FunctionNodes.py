@@ -51,7 +51,7 @@ from .IndicatorMixins import (
     EntryPointMixin,
     MarkUnoptimizedFunctionIndicatorMixin
 )
-from .LocalsScopes import LocalsDictHandle
+from .LocalsScopes import getLocalsDictHandle
 from .NodeBases import (
     ClosureGiverNodeMixin,
     ClosureTakerMixin,
@@ -376,13 +376,18 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         provider.getParentModule().addFunction(self)
 
         if "has_exec" in flags or python_version >= 300:
-            locals_dict_name = "locals_%s" % (
+            self.locals_dict_name = "locals_%s" % (
                 self.getCodeName(),
             )
-
-            self.locals_scope = LocalsDictHandle(locals_dict_name)
         else:
-            self.locals_scope = None
+            # TODO: There should be a locals scope for non-dict/mapping too.
+            self.locals_dict_name = None
+
+    def getFunctionLocalsScope(self):
+        if self.locals_dict_name is None:
+            return None
+        else:
+            return getLocalsDictHandle(self.locals_dict_name)
 
     def computeFunctionRaw(self, trace_collection):
         from nuitka.optimizations.TraceCollections import \
@@ -544,14 +549,6 @@ class ExpressionFunctionBody(MarkUnoptimizedFunctionIndicatorMixin,
 
     def markAsCrossModuleUsed(self):
         self.cross_module_use = True
-
-    def computeFunction(self, trace_collection):
-        # TODO: A different function node type seems justified due to this
-        if self.isUnoptimized():
-            with trace_collection.makeLocalsDictContext(self.locals_scope):
-                ExpressionFunctionEntryPointBase.computeFunction(self, trace_collection)
-        else:
-            ExpressionFunctionEntryPointBase.computeFunction(self, trace_collection)
 
     def computeExpressionCall(self, call_node, call_args, call_kw,
                               trace_collection):

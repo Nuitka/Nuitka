@@ -18,14 +18,42 @@
 """ This module maintains the locals dict handles. """
 
 from nuitka import Variables
+from nuitka.containers.odict import OrderedDict
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .shapes.BuiltinTypeShapes import ShapeTypeDict
 from .shapes.StandardShapes import ShapeUnknown
 
+locals_dict_handles = {}
+
+def getLocalsDictHandle(locals_dict_name):
+    assert locals_dict_name
+
+    if locals_dict_name not in locals_dict_handles:
+        locals_dict_handles[locals_dict_name] = LocalsDictHandle(locals_dict_name)
+
+    return locals_dict_handles[locals_dict_name]
+
+
+# TODO: Get rid of this, types should be assigned initially at creation time, not
+# specified at access time.
+def getLocalsMappingHandle(locals_dict_name):
+    assert locals_dict_name
+
+    if locals_dict_name not in locals_dict_handles:
+        locals_dict_handles[locals_dict_name] = LocalsMappingHandle(locals_dict_name)
+
+    return locals_dict_handles[locals_dict_name]
+
+
 
 class LocalsDictHandle(object):
-    __slots__ = ("locals_name", "variables")
+    __slots__ = (
+        "locals_name",
+        "variables",
+        "mark_for_propagation",
+        "propagation"
+    )
 
     @counted_init
     def __init__(self, locals_name):
@@ -33,6 +61,11 @@ class LocalsDictHandle(object):
 
         # For locals dict variables in this scope.
         self.variables = {}
+
+        # Can this be eliminated through replacement of temporary variables
+        self.mark_for_propagation = False
+
+        self.propagation = None
 
     __del__ = counted_del()
 
@@ -63,6 +96,37 @@ class LocalsDictHandle(object):
 
         return self.variables[variable_name]
 
+
+    def markForLocalsDictPropagation(self):
+        self.mark_for_propagation = True
+
+    def isMarkedForPropagation(self):
+        return self.mark_for_propagation
+
+    def allocateTempReplacementVariable(self, trace_collection, variable_name):
+        if self.propagation is None:
+            self.propagation = OrderedDict()
+
+        if variable_name not in self.propagation:
+            provider = trace_collection.getOwner()
+
+            self.propagation[variable_name] = provider.allocateTempVariable(
+                temp_scope = None,
+                name       = self.getCodeName() + "_key_" + variable_name
+            )
+
+        return self.propagation[variable_name]
+
+    def getPropagationVariables(self):
+        if self.propagation is None:
+            return ()
+
+        return self.propagation
+
+    def finalize(self):
+        del self.propagation
+        del self.variables
+        del self.mark_for_propagation
 
 
 class LocalsMappingHandle(LocalsDictHandle):

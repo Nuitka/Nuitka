@@ -108,12 +108,14 @@ def buildClassNode2(provider, node, source_ref):
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref.atInternal()
 
+    locals_scope = function_body.getFunctionLocalsScope()
+
     # The class body is basically a function that implicitly, at the end
     # returns its locals and cannot have other return statements contained, and
     # starts out with a variables "__module__" and potentially "__doc__" set.
     statements = [
         StatementSetLocalsDictionary(
-            locals_scope = function_body.getLocalsScope(),
+            locals_scope = locals_scope,
             source_ref   = source_ref
         ),
         StatementAssignmentVariableName(
@@ -146,7 +148,7 @@ def buildClassNode2(provider, node, source_ref):
         body,
         StatementReturn(
             expression = ExpressionBuiltinLocalsRef(
-                locals_scope = function_body.getLocalsScope(),
+                locals_scope = locals_scope,
                 source_ref   = source_ref
             ),
             source_ref = source_ref
@@ -158,7 +160,7 @@ def buildClassNode2(provider, node, source_ref):
             provider   = function_body,
             tried      = mergeStatements(statements, True),
             final      = StatementReleaseLocals(
-                locals_scope = function_body.getLocalsScope(),
+                locals_scope = locals_scope,
                 source_ref   = source_ref
             ),
             source_ref = source_ref

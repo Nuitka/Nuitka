@@ -29,7 +29,7 @@ from nuitka.PythonVersions import python_version
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
-from .VariableRefNodes import ExpressionVariableRef
+from .VariableRefNodes import ExpressionTempVariableRef, ExpressionVariableRef
 
 
 class ExpressionBuiltinGlobals(ExpressionBase):
@@ -104,13 +104,6 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
         # Just inform the collection that all escaped.
         self.variable_traces = trace_collection.onLocalsUsage(self.getParentVariableProvider())
 
-        if self.getParent().isStatementReturn():
-            result = ExpressionBuiltinLocalsCopy(
-                source_ref = self.source_ref
-            )
-
-            return result, "new_expression", "Locals does not escape, no write back needed."
-
         trace_collection.onLocalsDictEscaped(self.locals_scope)
 
         return self, None, None
@@ -147,9 +140,6 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
         # Just inform the collection that all escaped.
 
         self.variable_traces = trace_collection.onLocalsUsage(self.getParentVariableProvider())
-
-        # TODO: Remove later.
-        assert not self.getParentVariableProvider().isExpressionClassBody()
 
         for variable, variable_trace in self.variable_traces:
             if not variable_trace.mustHaveValue() and not variable_trace.mustNotHaveValue():
@@ -194,7 +184,6 @@ class ExpressionBuiltinLocalsCopy(ExpressionBuiltinLocalsBase):
         )
 
         return result, "new_expression", "Statically predicted locals dictionary."
-
 
 
 class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):

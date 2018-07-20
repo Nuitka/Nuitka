@@ -152,9 +152,11 @@ def buildClassNode3(provider, node, source_ref):
         # The frame guard has nothing to tell its line number to.
         body.source_ref = source_ref
 
+    locals_scope = class_creation_function.getFunctionLocalsScope()
+
     statements = [
         StatementSetLocals(
-            locals_scope = class_creation_function.getLocalsScope(),
+            locals_scope = locals_scope,
             new_locals   = ExpressionTempVariableRef(
                 variable   = tmp_prepared,
                 source_ref = source_ref
@@ -205,7 +207,7 @@ def buildClassNode3(provider, node, source_ref):
 
         statements.append(
             StatementLocalsDictOperationSet(
-                locals_scope  = class_creation_function.getLocalsScope(),
+                locals_scope  = locals_scope,
                 variable_name = "__qualname__",
                 value         = qualname_ref,
                 source_ref    = source_ref
@@ -219,7 +221,7 @@ def buildClassNode3(provider, node, source_ref):
        class_creation_function.needsAnnotationsDictionary():
         statements.append(
             StatementLocalsDictOperationSet(
-                locals_scope  = class_creation_function.getLocalsScope(),
+                locals_scope  = locals_scope,
                 variable_name = "__annotations__",
                 value         = makeConstantRefNode(
                     constant      = {},
@@ -268,7 +270,7 @@ def buildClassNode3(provider, node, source_ref):
                         ),
                         makeBasesRef(),
                         ExpressionBuiltinLocalsRef(
-                            locals_scope = class_creation_function.getLocalsScope(),
+                            locals_scope = locals_scope,
                             source_ref   = source_ref
                         )
                     ),
@@ -293,7 +295,7 @@ def buildClassNode3(provider, node, source_ref):
             provider   = class_creation_function,
             tried      = mergeStatements(statements, True),
             final      = StatementReleaseLocals(
-                locals_scope = class_creation_function.getLocalsScope(),
+                locals_scope = locals_scope,
                 source_ref   = source_ref
             ),
             source_ref = source_ref

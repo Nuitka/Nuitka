@@ -92,36 +92,15 @@ Py_INCREF( %(to_name)s );""" % {
 
         initial = False
     else:
-        locals_scope = provider.getLocalsScope()
-
-        if locals_scope is not None:
-            # TODO: No need to use that variable normally.
-
-            locals_dict_name = locals_scope.getCodeName()
-
-            # TODO: Many uses could avoid adding a locals dict.
-            emit(
-                """\
-if (%(locals_dict)s == NULL) %(locals_dict)s = PyDict_New();
-%(to_name)s = PyDict_Copy( %(locals_dict)s );""" % {
-                    "to_name"     : to_name,
-                    "locals_dict" : locals_dict_name,
-                }
+        emit(
+            "%s = PyDict_New();" % (
+                to_name,
             )
-
-            context.addLocalsDictName(locals_dict_name)
-            initial = False
-        else:
-            emit(
-                "%s = PyDict_New();" % (
-                    to_name,
-                )
-            )
-
-            initial = True
+        )
 
         context.addCleanupTempName(to_name)
 
+        initial = True
         is_dict = True
 
     for local_var, variable_trace in _sorted(variable_traces):

@@ -97,7 +97,7 @@ def _insertFinalReturnStatement(function_statements_body, return_statement):
 
 def _insertInitialSetLocalsDictStatement(function_body, function_statements_body):
     locals_statement = StatementSetLocalsDictionary(
-        locals_scope = function_body.getLocalsScope(),
+        locals_scope = function_body.getFunctionLocalsScope(),
         source_ref   = function_body.source_ref
     )
 

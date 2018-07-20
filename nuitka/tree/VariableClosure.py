@@ -146,7 +146,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             if self._shouldUseLocalsDict(provider, variable_name):
                 node.replaceWith(
                     StatementLocalsDictOperationSet(
-                        locals_scope  = provider.getLocalsScope(),
+                        locals_scope  = provider.getFunctionLocalsScope(),
                         variable_name = variable_name,
                         value         = node.subnode_source,
                         source_ref    = node.source_ref
@@ -172,10 +172,11 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             provider = node.provider
 
             if self._shouldUseLocalsDict(provider, variable_name):
-                # Classes always assign to locals dictionary
+                # Classes always assign to locals dictionary except for closure
+                # variables taken.
                 node.replaceWith(
                     StatementLocalsDictOperationDel(
-                        locals_scope  = provider.getLocalsScope(),
+                        locals_scope  = provider.getFunctionLocalsScope(),
                         variable_name = variable_name,
                         source_ref    = node.source_ref
                     )
@@ -211,7 +212,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
 
                     node.replaceWith(
                         ExpressionLocalsVariableRefORFallback(
-                            locals_scope  = provider.getLocalsScope(),
+                            locals_scope  = provider.getFunctionLocalsScope(),
                             variable_name = node.getVariableName(),
                             fallback      = ExpressionVariableRef(
                                 variable   = variable,
@@ -223,7 +224,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 else:
                     node.replaceWith(
                         ExpressionLocalsVariableRef(
-                            locals_scope  = provider.getLocalsScope(),
+                            locals_scope  = provider.getFunctionLocalsScope(),
                             variable_name = node.getVariableName(),
                             source_ref    = node.source_ref
                         )
@@ -368,7 +369,7 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
 
                 node.replaceWith(
                     ExpressionLocalsVariableRefORFallback(
-                        locals_scope  = provider.getLocalsScope(),
+                        locals_scope  = provider.getFunctionLocalsScope(),
                         variable_name = variable_name,
                         fallback      = ExpressionVariableRef(
                             variable   = node.getParentModule().getVariableForReference(variable_name),

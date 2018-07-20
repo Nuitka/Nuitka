@@ -519,7 +519,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
                 break
 
     @staticmethod
-    def getLocalsScope():
+    def getFunctionLocalsScope():
+        """ Modules have no locals scope. """
         return None
 
 

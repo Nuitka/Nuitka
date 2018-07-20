@@ -346,7 +346,7 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
             assign_node = self
         )
 
-        provider = self.getParentVariableProvider()
+        provider = trace_collection.getOwner()
 
         if variable.hasAccessesOutsideOf(provider) is False:
             last_trace = variable.getMatchingAssignTrace(self)
