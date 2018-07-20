@@ -15,11 +15,28 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+/** Compiled Generators.
+ *
+ * Unlike in CPython, we have one type for just generators, this doesn't do coroutines
+ * nor async.
+ *
+ * It strives to be full replacement for normal generators, while providing also an
+ * interface for quick iteration from compiled code.
+ *
+ * Unfortunately, due to implementation details of CPython, there is difficulty with
+ * interacting with generator objects from code that is not compiled with "yield from"
+ * and thrown exceptions.
+ *
+ */
+
 
 #include "nuitka/prelude.h"
 
 #include "nuitka/freelists.h"
 
+// In a separate file, code to interact with uncompiled generators, that does
+// all the quirks necessary to get those working.
+#include "CompiledGeneratorTypeUncompiledIntegration.c"
 
 static PyObject *Nuitka_Generator_tp_repr( struct Nuitka_GeneratorObject *generator )
 {
@@ -86,49 +103,6 @@ static void Nuitka_Generator_entry_point( struct Nuitka_GeneratorObject *generat
     ((generator_code)generator->m_code)( generator );
 
     swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-}
-#endif
-
-#if PYTHON_VERSION >= 300
-static void Nuitka_SetStopIterationValue( PyObject *value )
-{
-    CHECK_OBJECT( value );
-
-#if PYTHON_VERSION <= 352
-    PyObject *args[1] = { value };
-    PyObject *stop_value = CALL_FUNCTION_WITH_ARGS1( PyExc_StopIteration, args );
-
-    if (unlikely( stop_value == NULL ))
-    {
-        return;
-    }
-
-    Py_INCREF( PyExc_StopIteration );
-    RESTORE_ERROR_OCCURRED( PyExc_StopIteration, stop_value, NULL );
-#else
-    if (likely( !PyTuple_Check(value) && !PyExceptionInstance_Check(value) ))
-    {
-        Py_INCREF( PyExc_StopIteration );
-        Py_INCREF( value );
-
-        RESTORE_ERROR_OCCURRED( PyExc_StopIteration, value, NULL );
-    }
-    else
-    {
-
-        PyObject *args[1] = { value };
-        PyObject *stop_value = CALL_FUNCTION_WITH_ARGS1( PyExc_StopIteration, args );
-
-        if (unlikely( stop_value == NULL ))
-        {
-            return;
-        }
-
-        Py_INCREF( PyExc_StopIteration );
-
-        RESTORE_ERROR_OCCURRED( PyExc_StopIteration, stop_value, NULL );
-    }
-#endif
 }
 #endif
 
@@ -1004,124 +978,6 @@ PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject 
     return (PyObject *)result;
 }
 
-#if PYTHON_VERSION >= 300
-
-// This is for CPython iterator objects, the respective code is not exported as
-// API, so we need to redo it. This is an re-implementation that closely follows
-// what it does. It's unrelated to compiled generators.
-PyObject *PyGen_Send( PyGenObject *generator, PyObject *arg )
-{
-    if (unlikely( generator->gi_running ))
-    {
-        PyErr_SetString( PyExc_ValueError, "generator already executing" );
-        return NULL;
-    }
-
-    PyFrameObject *frame = generator->gi_frame;
-
-    assert( frame == NULL || PyFrame_Check( frame ));
-
-    if ( frame == NULL || frame->f_stacktop == NULL )
-    {
-        // Set exception if called from send()
-        if ( arg != NULL )
-        {
-            PyErr_SetNone( PyExc_StopIteration );
-        }
-
-        return NULL;
-    }
-
-    if ( frame->f_lasti == -1 )
-    {
-        if (unlikely( arg && arg != Py_None ))
-        {
-            PyErr_SetString(
-                PyExc_TypeError,
-                "can't send non-None value to a just-started generator"
-            );
-
-            return NULL;
-        }
-    }
-    else
-    {
-        // Put arg on top of the value stack
-        PyObject *tmp = arg ? arg : Py_None;
-
-        Py_INCREF( tmp );
-        *(frame->f_stacktop++) = tmp;
-    }
-
-    // Generators always return to their most recent caller, not necessarily
-    // their creator.
-    PyThreadState *tstate = PyThreadState_GET();
-    Py_XINCREF( tstate->frame );
-
-    assert( frame->f_back == NULL );
-    frame->f_back = tstate->frame;
-
-    generator->gi_running = 1;
-    PyObject *result = PyEval_EvalFrameEx( frame, 0 );
-    generator->gi_running = 0;
-
-    // Don't keep the reference to f_back any longer than necessary.  It
-    // may keep a chain of frames alive or it could create a reference
-    // cycle.
-    assert( frame->f_back == tstate->frame );
-    Py_CLEAR( frame->f_back );
-
-    // If the generator just returned (as opposed to yielding), signal that the
-    // generator is exhausted.
-    if ( result && frame->f_stacktop == NULL )
-    {
-        if ( result == Py_None )
-        {
-            PyErr_SetNone( PyExc_StopIteration );
-        }
-        else {
-            PyObject *e = PyObject_CallFunctionObjArgs(
-                PyExc_StopIteration,
-                result,
-                NULL
-            );
-
-            if ( e != NULL )
-            {
-                PyErr_SetObject( PyExc_StopIteration, e );
-                Py_DECREF( e );
-            }
-        }
-
-        Py_CLEAR( result );
-    }
-
-    if ( result == NULL || frame->f_stacktop == NULL )
-    {
-// TODO: Check how this should be changed for 3.7 where the generator owns
-// things.
-
-#if PYTHON_VERSION < 370
-        // Generator is finished, remove exception from frame before releasing
-        // it.
-        PyObject *type = frame->f_exc_type;
-        PyObject *value = frame->f_exc_value;
-        PyObject *traceback = frame->f_exc_traceback;
-        frame->f_exc_type = NULL;
-        frame->f_exc_value = NULL;
-        frame->f_exc_traceback = NULL;
-        Py_XDECREF( type );
-        Py_XDECREF( value );
-        Py_XDECREF( traceback );
-#endif
-
-        // Now release frame.
-        generator->gi_frame = NULL;
-        Py_DECREF( frame );
-    }
-
-    return result;
-}
 
 #if PYTHON_VERSION >= 300
 
@@ -1180,6 +1036,7 @@ extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
 
 extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
 
+
 static PyObject *_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject *value )
 {
     // This is the value, propagated back and forth the sub-generator and the
@@ -1230,45 +1087,63 @@ static PyObject *_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject
                 return NULL;
             }
 
-            PyObject *throw_method = PyObject_GetAttr( value, const_str_plain_throw );
-
-            if ( throw_method )
+#if NUITKA_UNCOMPILED_THROW_INTEGRATION
+            if ( PyGen_CheckExact( value ) || PyCoro_CheckExact( value ))
             {
-                retval = PyObject_CallFunctionObjArgs( throw_method, generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb, NULL );
-                Py_DECREF( throw_method );
+                PyGenObject *gen = (PyGenObject *)value;
 
-                if (unlikely( send_value == NULL ))
+                retval = Nuitka_UncompiledGenerator_throw(
+                    gen,
+                    0, // ??
+                    generator->m_exception_type,
+                    generator->m_exception_value,
+                    (PyObject *)generator->m_exception_tb
+                );
+            }
+            else
+#endif
+            {
+                PyObject *throw_method = PyObject_GetAttr( value, const_str_plain_throw );
+
+                if ( throw_method )
                 {
-                    if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) )
-                    {
-                        return ERROR_GET_STOP_ITERATION_VALUE();
-                    }
+                    retval = PyObject_CallFunctionObjArgs( throw_method, generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb, NULL );
+                    Py_DECREF( throw_method );
+
+                }
+                else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
+                {
+                    CLEAR_ERROR_OCCURRED();
+
+                    RAISE_GENERATOR_EXCEPTION( generator );
 
                     return NULL;
                 }
+                else
+                {
+                    assert( ERROR_OCCURRED() );
 
-                generator->m_exception_type = NULL;
-                generator->m_exception_value = NULL;
-                generator->m_exception_tb = NULL;
+                    Py_CLEAR( generator->m_exception_type );
+                    Py_CLEAR( generator->m_exception_value );
+                    Py_CLEAR( generator->m_exception_tb );
+
+                    return NULL;
+                }
             }
-            else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
-            {
-                CLEAR_ERROR_OCCURRED();
 
-                RAISE_GENERATOR_EXCEPTION( generator );
+            if (unlikely( send_value == NULL ))
+            {
+                if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) )
+                {
+                    return ERROR_GET_STOP_ITERATION_VALUE();
+                }
 
                 return NULL;
             }
-            else
-            {
-                assert( ERROR_OCCURRED() );
 
-                Py_CLEAR( generator->m_exception_type );
-                Py_CLEAR( generator->m_exception_value );
-                Py_CLEAR( generator->m_exception_tb );
-
-                return NULL;
-            }
+            generator->m_exception_type = NULL;
+            generator->m_exception_value = NULL;
+            generator->m_exception_tb = NULL;
 
         }
         else if ( PyGen_CheckExact( value ) )
@@ -1617,7 +1492,5 @@ PyObject *GENERATOR_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *genera
         return result;
     }
 }
-
-#endif
 
 #endif

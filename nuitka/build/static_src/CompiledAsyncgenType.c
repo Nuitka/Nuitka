@@ -344,6 +344,8 @@ extern bool Nuitka_gen_close_iter( PyObject *yieldfrom );
 
 extern PyObject *const_str_plain_throw;
 
+extern PyObject *Nuitka_UncompiledGenerator_throw( PyGenObject *gen, int close_on_genexit, PyObject *typ, PyObject *val, PyObject *tb);
+
 static PyObject *_Nuitka_Asyncgen_throw2( struct Nuitka_AsyncgenObject *asyncgen, bool close_on_genexit )
 {
     if ( asyncgen->m_yieldfrom != NULL )
@@ -366,23 +368,40 @@ static PyObject *_Nuitka_Asyncgen_throw2( struct Nuitka_AsyncgenObject *asyncgen
             }
         }
 
-        PyObject *meth = PyObject_GetAttr( asyncgen->m_yieldfrom, const_str_plain_throw );
-        if (unlikely( meth == NULL ))
+        PyObject *ret;
+
+        if ( PyGen_CheckExact( asyncgen->m_yieldfrom ) || PyCoro_CheckExact( asyncgen->m_yieldfrom ))
         {
-            if ( !PyErr_ExceptionMatches( PyExc_AttributeError ) )
-            {
-                return NULL;
-            }
-            CLEAR_ERROR_OCCURRED();
+            PyGenObject *gen = (PyGenObject *)asyncgen->m_yieldfrom;
 
-            goto throw_here;
+            ret = Nuitka_UncompiledGenerator_throw(
+                gen,
+                1,
+                asyncgen->m_exception_type,
+                asyncgen->m_exception_value,
+                (PyObject *)asyncgen->m_exception_tb
+            );
         }
+        else
+        {
+            PyObject *meth = PyObject_GetAttr( asyncgen->m_yieldfrom, const_str_plain_throw );
+            if (unlikely( meth == NULL ))
+            {
+                if ( !PyErr_ExceptionMatches( PyExc_AttributeError ) )
+                {
+                    return NULL;
+                }
+                CLEAR_ERROR_OCCURRED();
 
-        asyncgen->m_running = 1;
-        PyObject *ret = PyObject_CallFunctionObjArgs( meth, asyncgen->m_exception_type, asyncgen->m_exception_value, asyncgen->m_exception_tb, NULL );
-        asyncgen->m_running = 0;
+                goto throw_here;
+            }
 
-        Py_DECREF( meth );
+            asyncgen->m_running = 1;
+            ret = PyObject_CallFunctionObjArgs( meth, asyncgen->m_exception_type, asyncgen->m_exception_value, asyncgen->m_exception_tb, NULL );
+            asyncgen->m_running = 0;
+
+            Py_DECREF( meth );
+        }
 
         if (unlikely( ret == NULL ))
         {
@@ -1604,45 +1623,60 @@ static PyObject *yieldFromAsyncgen( struct Nuitka_AsyncgenObject *asyncgen, PyOb
                 return NULL;
             }
 
-            PyObject *throw_method = PyObject_GetAttr( value, const_str_plain_throw );
-
-            if ( throw_method )
+            if ( PyGen_CheckExact( value ) || PyCoro_CheckExact( value ))
             {
-                retval = PyObject_CallFunctionObjArgs( throw_method, asyncgen->m_exception_type, asyncgen->m_exception_value, asyncgen->m_exception_tb, NULL );
-                Py_DECREF( throw_method );
+                PyGenObject *gen = (PyGenObject *)value;
 
-                if (unlikely( send_value == NULL ))
-                {
-                    if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) )
-                    {
-                        return ERROR_GET_STOP_ITERATION_VALUE();
-                    }
-
-                    return NULL;
-                }
-
-                asyncgen->m_exception_type = NULL;
-                asyncgen->m_exception_value = NULL;
-                asyncgen->m_exception_tb = NULL;
-            }
-            else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
-            {
-                CLEAR_ERROR_OCCURRED();
-
-                RAISE_ASYNCGEN_EXCEPTION( asyncgen );
-
-                return NULL;
+                retval = Nuitka_UncompiledGenerator_throw(
+                    gen,
+                    0, // ??
+                    asyncgen->m_exception_type,
+                    asyncgen->m_exception_value,
+                    (PyObject *)asyncgen->m_exception_tb
+                );
             }
             else
             {
-                assert( ERROR_OCCURRED() );
+                PyObject *throw_method = PyObject_GetAttr( value, const_str_plain_throw );
 
-                Py_CLEAR( asyncgen->m_exception_type );
-                Py_CLEAR( asyncgen->m_exception_value );
-                Py_CLEAR( asyncgen->m_exception_tb );
+                if ( throw_method )
+                {
+                    retval = PyObject_CallFunctionObjArgs( throw_method, asyncgen->m_exception_type, asyncgen->m_exception_value, asyncgen->m_exception_tb, NULL );
+                    Py_DECREF( throw_method );
+                }
+                else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
+                {
+                    CLEAR_ERROR_OCCURRED();
+
+                    RAISE_ASYNCGEN_EXCEPTION( asyncgen );
+
+                    return NULL;
+                }
+                else
+                {
+                    assert( ERROR_OCCURRED() );
+
+                    Py_CLEAR( asyncgen->m_exception_type );
+                    Py_CLEAR( asyncgen->m_exception_value );
+                    Py_CLEAR( asyncgen->m_exception_tb );
+
+                    return NULL;
+                }
+            }
+
+            if (unlikely( send_value == NULL ))
+            {
+                if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) )
+                {
+                    return ERROR_GET_STOP_ITERATION_VALUE();
+                }
 
                 return NULL;
             }
+
+            asyncgen->m_exception_type = NULL;
+            asyncgen->m_exception_value = NULL;
+            asyncgen->m_exception_tb = NULL;
         }
         else if ( PyGen_CheckExact( value ) || PyCoro_CheckExact( value ) )
         {
