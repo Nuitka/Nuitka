@@ -24,8 +24,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *BUILTIN_COMPLEX1( PyObject *real )
 
     // TODO: Very lazy here, we should create the values ourselves, surely a
     // a lot of optimization can be had that way.
-    PyObject *args[] = { real };
-    return CALL_FUNCTION_WITH_ARGS1( (PyObject *)&PyComplex_Type, args );
+    return CALL_FUNCTION_WITH_SINGLE_ARG(
+        (PyObject *)&PyComplex_Type,
+        real
+    );
 }
 
 

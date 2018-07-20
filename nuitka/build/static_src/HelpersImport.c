@@ -81,15 +81,11 @@ PyObject *IMPORT_MODULE1( PyObject *module_name )
 {
     CHECK_OBJECT( module_name );
 
-    PyObject *pos_args[] = {
-        module_name
-    };
-
     NUITKA_ASSIGN_BUILTIN( __import__ );
 
-    PyObject *import_result = CALL_FUNCTION_WITH_ARGS1(
+    PyObject *import_result = CALL_FUNCTION_WITH_SINGLE_ARG(
         NUITKA_ACCESS_BUILTIN( __import__ ),
-        pos_args
+        module_name
     );
 
     return import_result;

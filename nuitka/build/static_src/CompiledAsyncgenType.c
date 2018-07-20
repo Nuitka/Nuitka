@@ -552,11 +552,7 @@ static int Nuitka_Asyncgen_init_hooks( struct Nuitka_AsyncgenObject *asyncgen )
     {
         Py_INCREF( firstiter );
 
-        PyObject *args[] =
-        {
-            (PyObject *)asyncgen
-        };
-        PyObject *res = CALL_FUNCTION_WITH_ARGS1( firstiter, args );
+        PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG( firstiter, (PyObject *)asyncgen );
 
         Py_DECREF( firstiter );
 
@@ -641,8 +637,7 @@ static void Nuitka_Asyncgen_tp_dealloc( struct Nuitka_AsyncgenObject *asyncgen )
         /* Save the current exception, if any. */
         FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
 
-        // TODO: Call with args 1 function.
-        PyObject *res = PyObject_CallFunctionObjArgs( finalizer, asyncgen, NULL );
+        PyObject *res = CALL_FUNCTION_WITH_SINGLE_ARG( finalizer, (PyObject *)asyncgen );
 
         if (unlikely( res == NULL ))
         {

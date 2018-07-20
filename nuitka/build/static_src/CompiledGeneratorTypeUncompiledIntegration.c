@@ -28,8 +28,7 @@ static void Nuitka_SetStopIterationValue( PyObject *value )
     CHECK_OBJECT( value );
 
 #if PYTHON_VERSION <= 352
-    PyObject *args[1] = { value };
-    PyObject *stop_value = CALL_FUNCTION_WITH_ARGS1( PyExc_StopIteration, args );
+    PyObject *stop_value = CALL_FUNCTION_WITH_SINGLE_ARG( PyExc_StopIteration, value );
 
     if (unlikely( stop_value == NULL ))
     {
@@ -48,9 +47,7 @@ static void Nuitka_SetStopIterationValue( PyObject *value )
     }
     else
     {
-
-        PyObject *args[1] = { value };
-        PyObject *stop_value = CALL_FUNCTION_WITH_ARGS1( PyExc_StopIteration, args );
+        PyObject *stop_value = CALL_FUNCTION_WITH_SINGLE_ARG( PyExc_StopIteration, value );
 
         if (unlikely( stop_value == NULL ))
         {

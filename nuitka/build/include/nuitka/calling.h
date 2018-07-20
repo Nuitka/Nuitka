@@ -104,4 +104,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS( PyObject *func
 // Method call variant with no arguments provided at all.
 extern PyObject *CALL_METHOD_NO_ARGS( PyObject *source, PyObject *attribute );
 
+// Convinience wrapper for single argument calls to not require an array
+// of args. TODO: Maybe fully specialize this too.
+NUITKA_MAY_BE_UNUSED static inline PyObject *CALL_FUNCTION_WITH_SINGLE_ARG( PyObject *called, PyObject *arg )
+{
+    PyObject *args[1] = { arg };
+
+    return CALL_FUNCTION_WITH_ARGS1( called, args );
+}
+
 #endif

@@ -141,13 +141,11 @@ PyObject *BUILTIN_RANGE( PyObject *boundary )
     {
         CLEAR_ERROR_OCCURRED();
 
-        PyObject *args[] = { boundary_temp };
-
         NUITKA_ASSIGN_BUILTIN( range );
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS1(
+        PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(
             NUITKA_ACCESS_BUILTIN( range ),
-            args
+            boundary_temp
         );
 
         Py_DECREF( boundary_temp );
@@ -854,11 +852,9 @@ bool PRINT_ITEM_TO( PyObject *file, PyObject *object )
 
     if (likely( file == NULL ))
     {
-        PyObject *args[] = { object };
-
-        result = CALL_FUNCTION_WITH_ARGS1(
+        result = CALL_FUNCTION_WITH_SINGLE_ARG(
             NUITKA_ACCESS_BUILTIN( print ),
-            args
+            object
         );
     }
     else
