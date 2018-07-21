@@ -164,13 +164,14 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
 {
 #if _DEBUG_COROUTINE
     PRINT_STRING("_Nuitka_Coroutine_send: ");
+    if ( coroutine->m_status == status_Finished ) PRINT_STRING("(finished) ");
+    if ( coroutine->m_status == status_Running ) PRINT_STRING("(running) ");
+    if ( coroutine->m_status == status_Unused ) PRINT_STRING("(unused) ");
+    PRINT_STRING( closing ? "(closing) " : "(not closing) ");
+    PRINT_ITEM( (PyObject *)coroutine );
+    PRINT_NEW_LINE();
+    PRINT_STRING("_Nuitka_Coroutine_send: value ");
     PRINT_ITEM( value );
-    PRINT_STRING(" ");
-    if ( coroutine->m_status == status_Finished ) PRINT_STRING("(finished)");
-    if ( coroutine->m_status == status_Running ) PRINT_STRING("(running)");
-    if ( coroutine->m_status == status_Unused ) PRINT_STRING("(unused)");
-    PRINT_STRING(" ");
-    PRINT_STRING(closing ? "closing" : "not closing");
     PRINT_NEW_LINE();
 #endif
 
@@ -352,7 +353,7 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
         if ( closing == false )
         {
 #if _DEBUG_COROUTINE
-            PRINT_STRING("Finished coroutine send it, but not for closing it -> RuntimeError\n");
+            PRINT_STRING("Finished coroutine sent into, but not for closing it -> RuntimeError\n");
 #endif
 
             PyErr_Format(
@@ -462,35 +463,40 @@ extern PyObject *const_str_plain_throw;
 extern PyObject *Nuitka_UncompiledGenerator_throw( PyGenObject *gen, int close_on_genexit, PyObject *typ, PyObject *val, PyObject *tb);
 
 
-static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *coroutine, bool close_on_genexit )
+static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *coroutine, bool closing )
 {
+    assert( Nuitka_Coroutine_Check( (PyObject *)coroutine ) );
+
 #if _DEBUG_COROUTINE
+    PRINT_STRING("_Nuitka_Coroutine_throw2: ");
+    if ( coroutine->m_status == status_Finished ) PRINT_STRING("(finished) ");
+    if ( coroutine->m_status == status_Running ) PRINT_STRING("(running) ");
+    if ( coroutine->m_status == status_Unused ) PRINT_STRING("(unused) ");
+    PRINT_STRING( closing ? "(closing) " : "(not closing) ");
+    PRINT_ITEM( (PyObject *)coroutine );
+    PRINT_NEW_LINE();
     PRINT_STRING("_Nuitka_Coroutine_throw2: yielding from: ");
     PRINT_ITEM( coroutine->m_yieldfrom );
-    if ( coroutine->m_status == status_Finished ) PRINT_STRING("(finished)");
-    if ( coroutine->m_status == status_Running ) PRINT_STRING("(running)");
-    if ( coroutine->m_status == status_Unused ) PRINT_STRING("(unused)");
     PRINT_NEW_LINE();
 #endif
 
+    CHECK_OBJECT( coroutine->m_exception_type );
+
     if ( coroutine->m_yieldfrom != NULL )
     {
-        if ( close_on_genexit )
+        if ( PyErr_GivenExceptionMatches( coroutine->m_exception_type, PyExc_GeneratorExit ) )
         {
-            if ( PyErr_GivenExceptionMatches( coroutine->m_exception_type, PyExc_GeneratorExit ) )
+            // Coroutines need to close the yield_from.
+            coroutine->m_running = 1;
+            bool res = Nuitka_gen_close_iter( coroutine->m_yieldfrom );
+            coroutine->m_running = 0;
+
+            if ( res == true )
             {
-                // Coroutines need to close the yield_from.
-                coroutine->m_running = 1;
-                bool res = Nuitka_gen_close_iter( coroutine->m_yieldfrom );
-                coroutine->m_running = 0;
-
-                if ( res == true )
-                {
-                    return _Nuitka_Coroutine_send( coroutine, Py_None, false );
-                }
-
-                goto throw_here;
+                return _Nuitka_Coroutine_send( coroutine, Py_None, false );
             }
+
+            goto throw_here;
         }
 
         PyObject *ret;
@@ -539,6 +545,7 @@ static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *corout
             if ( coroutine->m_status == status_Finished ) PRINT_STRING("(finished)");
             if ( coroutine->m_status == status_Running ) PRINT_STRING("(running)");
             if ( coroutine->m_status == status_Unused ) PRINT_STRING("(unused)");
+            PRINT_ITEM( (PyObject *)coroutine );
             PRINT_NEW_LINE();
 #endif
 
@@ -552,6 +559,14 @@ static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *corout
             {
                 ret = _Nuitka_Coroutine_send( coroutine, Py_None, false );
             }
+#if _DEBUG_COROUTINE
+            PRINT_STRING("_Nuitka_Coroutine_throw2: Returned from send into ourselves:");
+            if ( coroutine->m_status == status_Finished ) PRINT_STRING("(finished)");
+            if ( coroutine->m_status == status_Running ) PRINT_STRING("(running)");
+            if ( coroutine->m_status == status_Unused ) PRINT_STRING("(unused)");
+            PRINT_ITEM( (PyObject *)coroutine );
+            PRINT_NEW_LINE();
+#endif
         }
 
         return ret;
@@ -637,7 +652,29 @@ throw_here:
         coroutine->m_exception_value = NULL;
         coroutine->m_exception_tb = NULL;
 
-        return _Nuitka_Coroutine_send( coroutine, Py_None, false );
+        /* This check got added in Python 3.5.2 only. It's good to do it, but
+         * not fully compatible, therefore guard it.
+         */
+#if PYTHON_VERSION >= 352 || !defined(_NUITKA_FULL_COMPAT)
+        if ( closing )
+        {
+#if _DEBUG_COROUTINE
+            PRINT_STRING("Finished coroutine thrown into -> RuntimeError\n");
+            PRINT_ITEM(coroutine->m_qualname);
+            PRINT_NEW_LINE();
+#endif
+            PyErr_Format(
+                PyExc_RuntimeError,
+#if !defined(_NUITKA_FULL_COMPAT)
+                "cannot reuse already awaited compiled_coroutine"
+#else
+                "cannot reuse already awaited coroutine"
+#endif
+            );
+        }
+#endif
+
+        return NULL;
     }
 }
 
@@ -1205,7 +1242,9 @@ static PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *coroutine, P
                 return NULL;
             }
 
-            if ( PyGen_CheckExact( value ) || PyCoro_CheckExact( value ))
+            CHECK_OBJECT( coroutine->m_exception_type );
+
+            if ( PyGen_CheckExact( value ) || PyCoro_CheckExact( value ) )
             {
                 PyGenObject *gen = (PyGenObject *)value;
 
@@ -1215,6 +1254,29 @@ static PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *coroutine, P
                     coroutine->m_exception_type,
                     coroutine->m_exception_value,
                     (PyObject *)coroutine->m_exception_tb
+                );
+            }
+            else if ( Nuitka_Coroutine_Check( value ) )
+            {
+                retval = _Nuitka_Coroutine_throw2(
+                    (struct Nuitka_CoroutineObject *)value,
+                    false
+                );
+            }
+            else if ( Nuitka_CoroutineWrapper_Check( value ) )
+            {
+                struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineWrapperObject *)value)->m_coroutine;
+
+                coro->m_exception_type = coroutine->m_exception_type;
+                Py_INCREF( coroutine->m_exception_type );
+                coro->m_exception_value = coroutine->m_exception_value;
+                Py_XINCREF( coroutine->m_exception_value );
+                coro->m_exception_tb = coroutine->m_exception_tb;
+                Py_XINCREF( coroutine->m_exception_tb );
+
+                retval = _Nuitka_Coroutine_throw2(
+                    coro,
+                    false
                 );
             }
             else

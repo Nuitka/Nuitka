@@ -85,6 +85,11 @@ struct Nuitka_CoroutineWrapperObject {
 
 extern PyTypeObject Nuitka_CoroutineWrapper_Type;
 
+static inline bool Nuitka_CoroutineWrapper_Check( PyObject *object )
+{
+    return Py_TYPE( object ) == &Nuitka_CoroutineWrapper_Type;
+}
+
 #ifdef __cplusplus
 enum Await_Kind {
     await_normal,   // user provided "await"
