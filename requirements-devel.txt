@@ -2,3 +2,4 @@
 
 pylint == 1.9.2 ; python_version == '2.7'
 pylint == 2.0.0 ; python_version >= '3.4'
+astroid == 2.0.0 ; python_version >= '3.4'
