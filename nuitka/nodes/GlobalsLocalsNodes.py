@@ -29,7 +29,7 @@ from nuitka.PythonVersions import python_version
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
-from .VariableRefNodes import ExpressionTempVariableRef, ExpressionVariableRef
+from .VariableRefNodes import ExpressionVariableRef
 
 
 class ExpressionBuiltinGlobals(ExpressionBase):
