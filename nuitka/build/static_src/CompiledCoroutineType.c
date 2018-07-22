@@ -1382,7 +1382,7 @@ static PyObject *yieldFromCoroutine( struct Nuitka_CoroutineObject *coroutine, P
     }
 }
 
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 366
 void FORMAT_AWAIT_ERROR( PyObject *value, int await_kind )
 {
     if ( await_kind == await_enter )
@@ -1412,13 +1412,13 @@ static PyObject *AWAIT_COMMON( struct Nuitka_CoroutineObject *coroutine, PyObjec
 
     if (unlikely( awaitable_iter == NULL ))
     {
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 366
         FORMAT_AWAIT_ERROR( awaitable, await_kind );
 #endif
         return NULL;
     }
 
-#if PYTHON_VERSION >= 370
+#if PYTHON_VERSION >= 366
     if ( await_kind != await_normal && Py_TYPE( awaitable_iter ) != &Nuitka_CoroutineWrapper_Type )
     {
         if (unlikely( Py_TYPE(awaitable_iter)->tp_as_async == NULL || Py_TYPE(awaitable_iter)->tp_as_async->am_await == NULL ))
