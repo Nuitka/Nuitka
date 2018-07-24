@@ -77,6 +77,7 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildNode,
     buildNodeList,
+    detectFunctionBodyKind,
     getKind,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
@@ -257,7 +258,10 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         future_spec       = parent_module.getFutureSpec()
     )
 
-    is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
+    if python_version < 370:
+        is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
+    else:
+        is_async = detectFunctionBodyKind(nodes = [node])[0] in ("Asyncgen", "Coroutine")
 
     if is_async:
         code_body = ExpressionAsyncgenObjectBody(

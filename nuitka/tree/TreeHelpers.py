@@ -103,6 +103,25 @@ def detectFunctionBodyKind(nodes, start_value = None):
 
     flags = set()
 
+    def _checkCoroutine(field):
+        """ Check only for co-routine nature of the field and only update that.
+
+        """
+        # TODO: This is clumsy code, trying to achieve what non-local does for
+        # Python2 as well.
+
+        old = set(indications)
+        indications.clear()
+
+        _check(field)
+
+        if "Coroutine" in indications:
+            old.add("Coroutine")
+
+        indications.clear()
+        indications.update(old)
+        del old
+
     def _check(node):
         node_class = node.__class__
 
@@ -161,20 +180,7 @@ def detectFunctionBodyKind(nodes, start_value = None):
                     pass
                 elif name in ("body", "comparators", "elt"):
                     if python_version >= 370:
-                        # TODO_ Clumsy code.
-
-                        old = set(indications)
-                        indications.clear()
-
-                        _check(field)
-
-                        if "Coroutine" in indications:
-                            old.add("Coroutine")
-
-                        indications.clear()
-                        indications.update(old)
-                        del old
-
+                        _checkCoroutine(field)
                 elif name == "generators":
                     _check(field[0].iter)
 
@@ -184,6 +190,9 @@ def detectFunctionBodyKind(nodes, start_value = None):
                         for gen in field:
                             if gen.is_async:
                                 indications.add("Coroutine")
+                                break
+                            elif _checkCoroutine(gen):
+                                break
                 else:
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.ListComp and python_version >= 300:
