@@ -820,9 +820,14 @@ class TraceCollectionFunction(CollectionStartpointMixin,
             self.variable_actives[closure_variable] = 0
 
         # TODO: Have special function type for exec functions stuff.
-        if function_body.getFunctionLocalsScope() is not None:
-            for locals_dict_variable in function_body.getFunctionLocalsScope().variables.values():
-                self._initVariableUninit(locals_dict_variable)
+        locals_scope = function_body.getFunctionLocalsScope()
+
+        if locals_scope is not None:
+            if not locals_scope.isMarkedForPropagation():
+                for locals_dict_variable in locals_scope.variables.values():
+                    self._initVariableUninit(locals_dict_variable)
+            else:
+                function_body.locals_scope = None
 
 
 class TraceCollectionModule(CollectionStartpointMixin,

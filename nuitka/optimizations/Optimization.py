@@ -28,6 +28,7 @@ from logging import debug, info
 
 from nuitka import ModuleRegistry, Options, Variables
 from nuitka.importing import ImportCache
+from nuitka.nodes.LocalsScopes import LocalsDictHandle, getLocalsDictHandles
 from nuitka.plugins.Plugins import Plugins
 from nuitka.Tracing import printLine
 from nuitka.utils import MemoryUsage
@@ -247,6 +248,52 @@ def optimizeUnusedClosureVariables(function_body):
     return changed
 
 
+def optimizeLocalsDictsHandles():
+    changed = False
+
+    locals_scopes = getLocalsDictHandles()
+
+    for locals_scope_name, locals_scope in locals_scopes.items():
+        # Limit to Python2 classes for now:
+        if type(locals_scope) is not LocalsDictHandle:
+            continue
+
+        if locals_scope.isMarkedForPropagation():
+            locals_scope.finalize()
+
+            del locals_scopes[locals_scope_name]
+
+            assert locals_scope not in locals_scopes
+            continue
+
+        propagate = True
+
+        for variable in locals_scope.variables.values():
+            for variable_trace in variable.traces:
+                if variable_trace.isAssignTrace():
+                    # For assign traces we want the value to not have a side effect,
+                    # then we can push it down the line.
+                    if variable_trace.getAssignNode().getAssignSource().mayHaveSideEffects():
+                        propagate = False
+                        break
+                elif variable_trace.isUninitTrace():
+                    pass
+
+                elif variable_trace.isMergeTrace():
+                    propagate = False
+                    break
+                elif variable_trace.isUnknownTrace():
+                    propagate = False
+                    break
+                else:
+                    assert False, (variable, variable_trace)
+
+        if propagate:
+            locals_scope.markForLocalsDictPropagation()
+
+    return changed
+
+
 def optimizeUnusedUserVariables(function_body):
     changed = False
 
@@ -305,20 +352,20 @@ def optimizeVariables(module):
     changed = False
 
     try:
-        if Variables.complete:
-            try:
-                for function_body in module.getUsedFunctions():
+        try:
+            for function_body in module.getUsedFunctions():
+                if Variables.complete:
                     if optimizeUnusedUserVariables(function_body):
                         changed = True
 
                     if optimizeUnusedClosureVariables(function_body):
                         changed = True
 
-                    if optimizeUnusedTempVariables(function_body):
-                        changed = True
-            except Exception:
-                print("Problem with", function_body)
-                raise#
+                if optimizeUnusedTempVariables(function_body):
+                    changed = True
+        except Exception:
+            print("Problem with", function_body)
+            raise#
 
         if optimizeUnusedUserVariables(module):
             changed = True
@@ -431,6 +478,10 @@ def makeOptimizationPass(initial_pass):
             )
 
             current_module.setFunctions(used_functions)
+
+    if Variables.complete:
+        if optimizeLocalsDictsHandles():
+            finished = False
 
     return finished
 

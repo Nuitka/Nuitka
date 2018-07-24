@@ -25,11 +25,18 @@ fallback can be optimized to no fallback variants.
 from nuitka import Variables
 from nuitka.optimizations.TraceCollections import TraceCollectionBranch
 from nuitka.PythonVersions import python_version
+from nuitka.tree.TreeHelpers import makeStatementsSequence
 
+from .AssignNodes import (
+    StatementAssignmentVariable,
+    StatementDelVariable,
+    StatementReleaseVariable
+)
 from .ConditionalNodes import ExpressionConditional
 from .ConstantRefNodes import ExpressionConstantDictEmptyRef
 from .ExpressionBases import ExpressionBase, ExpressionChildrenHavingBase
 from .NodeBases import StatementBase, StatementChildHavingBase
+from .VariableRefNodes import ExpressionTempVariableRef
 
 
 class ExpressionLocalsVariableRefORFallback(ExpressionChildrenHavingBase):
@@ -218,6 +225,28 @@ class ExpressionLocalsVariableRef(ExpressionBase):
         return self.locals_scope
 
     def computeExpressionRaw(self, trace_collection):
+        if self.locals_scope.isMarkedForPropagation():
+            variable_name = self.getVariableName()
+
+            variable = self.locals_scope.allocateTempReplacementVariable(
+                trace_collection = trace_collection,
+                variable_name    = variable_name
+            )
+
+            result = ExpressionTempVariableRef(
+                variable   = variable,
+                source_ref = self.source_ref
+            )
+            result.parent = self.parent
+
+            new_result = result.computeExpressionRaw(trace_collection)
+
+            if new_result[0] is not result:
+                assert False, (new_result, result)
+
+            return result, "new_expression", "Replaced dictionary ref with temporary variable."
+
+
         self.variable_trace = trace_collection.getVariableCurrentTrace(
             variable = self.variable
         )
@@ -283,6 +312,7 @@ class ExpressionLocalsVariableCheck(ExpressionBase):
         return self.locals_scope
 
     def computeExpressionRaw(self, trace_collection):
+        assert not self.locals_scope.isMarkedForPropagation()
         return self, None, None
 
 
@@ -317,7 +347,6 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
 
         self.locals_scope = locals_scope
 
-
     def getDetails(self):
         return {
             "variable_name" : self.getVariableName()
@@ -329,7 +358,32 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
     def getLocalsDictScope(self):
         return self.locals_scope
 
+    # TODO: Child name inconsisten with accessor name.
+    getAssignSource = StatementChildHavingBase.childGetter("value")
+
     def computeStatement(self, trace_collection):
+        if self.locals_scope.isMarkedForPropagation():
+            variable_name = self.getVariableName()
+
+            variable = self.locals_scope.allocateTempReplacementVariable(
+                trace_collection = trace_collection,
+                variable_name    = variable_name
+            )
+
+            result = StatementAssignmentVariable(
+                source     = self.subnode_value,
+                variable   = variable,
+                source_ref = self.source_ref
+            )
+            result.parent = self.parent
+
+            new_result = result.computeStatement(trace_collection)
+
+            if new_result[0] is not result:
+                assert False, (new_result, result)
+
+            return result, "new_statements", "Replaced dictionary assigment with temporary variable."
+
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection = trace_collection
         )
@@ -394,6 +448,28 @@ class StatementLocalsDictOperationDel(StatementBase):
         return self.locals_scope
 
     def computeStatement(self, trace_collection):
+        if self.locals_scope.isMarkedForPropagation():
+            variable_name = self.getVariableName()
+
+            variable = self.locals_scope.allocateTempReplacementVariable(
+                trace_collection = trace_collection,
+                variable_name    = variable_name
+            )
+
+            result = StatementDelVariable(
+                variable   = variable,
+                tolerant   = False,
+                source_ref = self.source_ref
+            )
+            result.parent = self.parent
+
+            new_result = result.computeStatement(trace_collection)
+
+            if new_result[0] is not result:
+                assert False, (new_result, result)
+
+            return result, "new_statements", "Replaced dictionary del with temporary variable."
+
         self.previous_trace = trace_collection.getVariableCurrentTrace(self.variable)
 
         # The "del" is a potential use of a value. TODO: This could be made more
@@ -457,6 +533,7 @@ class StatementSetLocals(StatementChildHavingBase):
         return self.getNewLocals().mayRaiseException(exception_type)
 
     getNewLocals = StatementChildHavingBase.childGetter("new_locals")
+    getAssignSource = getNewLocals
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getNewLocals())
@@ -473,6 +550,10 @@ class StatementSetLocals(StatementChildHavingBase):
 
             return result, "new_raise", """\
 Setting locals already raises implicitly building new locals."""
+
+        if self.locals_scope.isMarkedForPropagation():
+            return None, "new_statements", """\
+Forward propagating locals."""
 
         return self, None, None
 
@@ -514,6 +595,24 @@ class StatementReleaseLocals(StatementBase):
         self.locals_scope = locals_scope
 
     def computeStatement(self, trace_collection):
+
+        if self.locals_scope.isMarkedForPropagation():
+            statements = [
+                StatementReleaseVariable(
+                    variable   = variable,
+                    source_ref = self.source_ref
+                )
+                for variable
+                in self.locals_scope.getPropagationVariables().values()
+            ]
+
+            result = makeStatementsSequence(
+                statements = statements,
+                allow_none = False,
+                source_ref = self.source_ref
+            )
+            return result, "new_statements", "Releasing temp variables instead of locals dict."
+
         return self, None, None
 
     def getDetails(self):

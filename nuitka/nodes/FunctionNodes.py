@@ -51,7 +51,7 @@ from .IndicatorMixins import (
     EntryPointMixin,
     MarkUnoptimizedFunctionIndicatorMixin
 )
-from .LocalsScopes import getLocalsDictHandle
+from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
 from .NodeBases import (
     ClosureGiverNodeMixin,
     ClosureTakerMixin,
@@ -379,6 +379,12 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             self.locals_dict_name = "locals_%s" % (
                 self.getCodeName(),
             )
+
+            if "has_exec" in flags:
+                setLocalsDictType(self.locals_dict_name, "python2_function_exec")
+            else:
+                setLocalsDictType(self.locals_dict_name, "python3_function")
+
         else:
             # TODO: There should be a locals scope for non-dict/mapping too.
             self.locals_dict_name = None

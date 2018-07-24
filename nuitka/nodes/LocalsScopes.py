@@ -26,25 +26,28 @@ from .shapes.StandardShapes import ShapeUnknown
 
 locals_dict_handles = {}
 
+def setLocalsDictType(locals_dict_name, kind):
+    assert locals_dict_name not in locals_dict_handles, locals_dict_name
+
+    if kind == "python2_function_exec":
+        locals_scope = LocalsDictExecHandle(locals_dict_name)
+    elif kind == "python3_function":
+        locals_scope = LocalsDictFunctionHandle(locals_dict_name)
+    elif kind == "python3_class":
+        locals_scope = LocalsMappingHandle(locals_dict_name)
+    elif kind == "python2_class":
+        locals_scope = LocalsDictHandle(locals_dict_name)
+    else:
+        assert False, kind
+
+    locals_dict_handles[locals_dict_name] = locals_scope
+
 def getLocalsDictHandle(locals_dict_name):
-    assert locals_dict_name
-
-    if locals_dict_name not in locals_dict_handles:
-        locals_dict_handles[locals_dict_name] = LocalsDictHandle(locals_dict_name)
-
     return locals_dict_handles[locals_dict_name]
 
 
-# TODO: Get rid of this, types should be assigned initially at creation time, not
-# specified at access time.
-def getLocalsMappingHandle(locals_dict_name):
-    assert locals_dict_name
-
-    if locals_dict_name not in locals_dict_handles:
-        locals_dict_handles[locals_dict_name] = LocalsMappingHandle(locals_dict_name)
-
-    return locals_dict_handles[locals_dict_name]
-
+def getLocalsDictHandles():
+    return locals_dict_handles
 
 
 class LocalsDictHandle(object):
@@ -127,6 +130,14 @@ class LocalsDictHandle(object):
         del self.propagation
         del self.variables
         del self.mark_for_propagation
+
+
+class LocalsDictExecHandle(LocalsDictHandle):
+    pass
+
+class LocalsDictFunctionHandle(LocalsDictHandle):
+    pass
+
 
 
 class LocalsMappingHandle(LocalsDictHandle):

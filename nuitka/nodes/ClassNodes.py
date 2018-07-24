@@ -25,7 +25,7 @@ from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .IndicatorMixins import MarkNeedsAnnotationsMixin
-from .LocalsScopes import getLocalsDictHandle, getLocalsMappingHandle
+from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
 from .OutlineNodes import ExpressionOutlineFunction
 
 
@@ -49,13 +49,15 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin,
         self.doc = doc
 
         self.locals_dict_name = "locals_%s_%d" % (
-            self.getName(),
+            self.getCodeName(),
             source_ref.getLineNumber()
         )
 
         # Force creation with proper type.
         if python_version >= 300:
-            getLocalsMappingHandle(self.locals_dict_name)
+            setLocalsDictType(self.locals_dict_name, "python3_class")
+        else:
+            setLocalsDictType(self.locals_dict_name, "python2_class")
 
     def getDetail(self):
         return "named %s" % self.getFunctionName()
@@ -134,7 +136,6 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin,
         return True
 
     def getFunctionLocalsScope(self):
-        # TODO: Make the type decision something that is owned by the registry.
         return getLocalsDictHandle(self.locals_dict_name)
 
 

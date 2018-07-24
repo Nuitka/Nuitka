@@ -29,7 +29,7 @@ from nuitka.PythonVersions import python_version
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
-from .VariableRefNodes import ExpressionVariableRef
+from .VariableRefNodes import ExpressionTempVariableRef, ExpressionVariableRef
 
 
 class ExpressionBuiltinGlobals(ExpressionBase):
@@ -126,6 +126,34 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
         return self.locals_scope
 
     def computeExpressionRaw(self, trace_collection):
+        if self.locals_scope.isMarkedForPropagation():
+            result = ExpressionMakeDict(
+                pairs      = (
+                    ExpressionKeyValuePair(
+                        key        = makeConstantRefNode(
+                            constant   = variable_name,
+                            source_ref = self.source_ref
+                        ),
+                        value      = ExpressionTempVariableRef(
+                            variable   = variable,
+                            source_ref = self.source_ref
+                        ),
+                        source_ref = self.source_ref
+                    )
+                    for variable_name, variable in
+                    self.locals_scope.getPropagationVariables().items()
+                ),
+                source_ref = self.source_ref
+            )
+
+            new_result = result.computeExpressionRaw(trace_collection)
+
+            assert new_result[0] is result
+
+
+            return result, "new_expression", "Propagated locals dictionary reference."
+
+
         # Just inform the collection that all escaped unless it is abortative.
         if not self.getParent().isStatementReturn():
             trace_collection.onLocalsUsage(self.getParentVariableProvider())
