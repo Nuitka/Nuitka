@@ -115,6 +115,9 @@ class Variable(object):
             self.shared_scopes = True
 
     def isSharedAmongScopes(self):
+        # TODO: This is only used for Python2, and could be made
+        # and optional slot.
+
         return self.shared_scopes
 
     def isSharedTechnically(self):
