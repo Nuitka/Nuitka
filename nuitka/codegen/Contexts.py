@@ -732,6 +732,11 @@ def _getConstantDefaultPopulation():
             sys.executable
         )
 
+    if python_version >= 370:
+        result.append(
+            "__class_getitem__"
+        )
+
     return result
 
 

@@ -215,8 +215,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
     return result;
 }
 
-#include "nuitka/helper/subscripts.h"
 #include "nuitka/helper/attributes.h"
+#include "nuitka/helper/subscripts.h"
 #include "nuitka/helper/iterators.h"
 #include "nuitka/helper/slices.h"
 #include "nuitka/helper/rangeobjects.h"
