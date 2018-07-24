@@ -60,6 +60,9 @@ struct Nuitka_CoroutineObject {
 
 #if PYTHON_VERSION >= 370
     _PyErr_StackItem m_exc_state;
+
+    // The cr_origin attribute.
+    PyObject *m_origin;
 #endif
 
     // Closure variables given, if any, we reference cells here.

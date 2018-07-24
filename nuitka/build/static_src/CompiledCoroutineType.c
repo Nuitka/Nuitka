@@ -879,6 +879,10 @@ static PyGetSetDef Nuitka_Coroutine_getsetlist[] =
 static PyMemberDef Nuitka_Coroutine_members[] =
 {
     { (char *)"cr_running", T_BOOL, offsetof(struct Nuitka_CoroutineObject, m_running), READONLY },
+#if PYTHON_VERSION >= 370
+    { (char *)"cr_origin", T_OBJECT, offsetof(struct Nuitka_CoroutineObject, m_origin), READONLY },
+
+#endif
     { NULL }
 };
 
@@ -1034,6 +1038,43 @@ PyTypeObject Nuitka_CoroutineWrapper_Type =
     0,                                                 /* tp_free */
 };
 
+#if PYTHON_VERSION >= 370
+static PyObject *computeCoroutineOrigin(int origin_depth)
+{
+    PyFrameObject *frame = PyEval_GetFrame();
+
+    int frame_count = 0;
+
+    while (frame != NULL && frame_count < origin_depth)
+    {
+        frame = frame->f_back;
+        frame_count += 1;
+    }
+
+    PyObject *cr_origin = PyTuple_New( frame_count );
+
+    frame = PyEval_GetFrame();
+
+    for ( int i = 0; i < frame_count; i++ )
+    {
+        PyObject *frameinfo = Py_BuildValue(
+            "OiO",
+            frame->f_code->co_filename,
+            PyFrame_GetLineNumber( frame ),
+            frame->f_code->co_name
+        );
+
+        assert( frameinfo );
+
+        PyTuple_SET_ITEM(cr_origin, i, frameinfo);
+
+        frame = frame->f_back;
+    }
+
+    return cr_origin;
+}
+#endif
+
 PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given )
 {
     struct Nuitka_CoroutineObject *result;
@@ -1078,6 +1119,20 @@ PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *q
 
     result->m_frame = NULL;
     result->m_code_object = code_object;
+
+#if PYTHON_VERSION >= 370
+    PyThreadState *tstate = PyThreadState_GET();
+    int origin_depth = tstate->coroutine_origin_tracking_depth;
+
+    if ( origin_depth == 0 )
+    {
+        result->m_origin = NULL;
+    }
+    else
+    {
+        result->m_origin = computeCoroutineOrigin(origin_depth);
+    }
+#endif
 
     initFiber( &result->m_yielder_context );
 
