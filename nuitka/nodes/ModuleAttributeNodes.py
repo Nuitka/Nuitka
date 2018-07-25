@@ -42,6 +42,10 @@ class ExpressionModuleAttributeBase(ExpressionBase):
 
         self.module = module
 
+    def finalize(self):
+        del self.parent
+        del self.module
+
     def getDetails(self):
         return {
             "module" : self.module

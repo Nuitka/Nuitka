@@ -175,6 +175,9 @@ class StatementRaiseExceptionImplicit(StatementRaiseException):
 class StatementReraiseException(StatementRaiseExceptionMixin, StatementBase):
     kind = "STATEMENT_RERAISE_EXCEPTION"
 
+    def finalize(self):
+        del self.parent
+
     def computeStatement(self, trace_collection):
         trace_collection.onExceptionRaiseExit(BaseException)
 
@@ -228,7 +231,11 @@ class ExpressionRaiseException(ExpressionChildrenHavingBase):
         return self, None, None
 
     def computeExpressionDrop(self, statement, trace_collection):
-        return self.asStatement(), "new_raise", """\
+        result = self.asStatement()
+
+        del self.parent
+
+        return result, "new_raise", """\
 Propagated implicit raise expression to raise statement."""
 
     def asStatement(self):
@@ -289,6 +296,9 @@ class ExpressionCaughtExceptionTypeRef(ExpressionBase):
             source_ref = source_ref
         )
 
+    def finalize(self):
+        del self.parent
+
     def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
@@ -307,6 +317,9 @@ class ExpressionCaughtExceptionValueRef(ExpressionBase):
             source_ref = source_ref
         )
 
+    def finalize(self):
+        del self.parent
+
     def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.
         return self, None, None
@@ -324,6 +337,9 @@ class ExpressionCaughtExceptionTracebackRef(ExpressionBase):
             self,
             source_ref = source_ref
         )
+
+    def finalize(self):
+        del self.parent
 
     def computeExpressionRaw(self, trace_collection):
         return self, None, None

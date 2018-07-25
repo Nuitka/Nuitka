@@ -65,6 +65,10 @@ class ExpressionVariableNameRef(ExpressionBase):
 
         self.provider = provider
 
+    def finalize(self):
+        del self.parent
+        del self.provider
+
     @staticmethod
     def isExpressionVariableNameRef():
         return True
@@ -114,6 +118,11 @@ class ExpressionVariableRefBase(ExpressionBase):
 
         self.variable = variable
         self.variable_trace = None
+
+    def finalize(self):
+        del self.parent
+        del self.variable
+        del self.variable_trace
 
     def getVariableName(self):
         return self.variable.getName()

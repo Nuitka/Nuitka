@@ -41,6 +41,9 @@ class ExpressionBuiltinGlobals(ExpressionBase):
             source_ref = source_ref
         )
 
+    def finalize(self):
+        del self.parent
+
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
@@ -54,15 +57,20 @@ class ExpressionBuiltinGlobals(ExpressionBase):
 class ExpressionBuiltinLocalsBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = ("variable_traces",)
+    __slots__ = ("variable_traces", "locals_scope")
 
-    def __init__(self, source_ref):
+    def __init__(self, locals_scope, source_ref):
         ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
 
         self.variable_traces = None
+        self.locals_scope = locals_scope
+
+    def finalize(self):
+        del self.locals_scope
+        del self.variable_traces
 
     def mayHaveSideEffects(self):
         if python_version < 300:
@@ -85,15 +93,12 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
 class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
     kind = "EXPRESSION_BUILTIN_LOCALS_UPDATED"
 
-    __slots__ = ("locals_scope",)
-
     def __init__(self, locals_scope, source_ref):
         ExpressionBuiltinLocalsBase.__init__(
             self,
-            source_ref = source_ref
+            locals_scope = locals_scope,
+            source_ref   = source_ref
         )
-
-        self.locals_scope = locals_scope
 
         assert locals_scope is not None
 
@@ -112,15 +117,12 @@ class ExpressionBuiltinLocalsUpdated(ExpressionBuiltinLocalsBase):
 class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
     kind = "EXPRESSION_BUILTIN_LOCALS_REF"
 
-    __slots__ = ("locals_scope",)
-
     def __init__(self, locals_scope, source_ref):
         ExpressionBuiltinLocalsBase.__init__(
             self,
-            source_ref = source_ref
+            locals_scope = locals_scope,
+            source_ref   = source_ref
         )
-
-        self.locals_scope = locals_scope
 
     def getLocalsScope(self):
         return self.locals_scope
@@ -150,6 +152,7 @@ class ExpressionBuiltinLocalsRef(ExpressionBuiltinLocalsBase):
 
             assert new_result[0] is result
 
+            self.finalize()
 
             return result, "new_expression", "Propagated locals dictionary reference."
 

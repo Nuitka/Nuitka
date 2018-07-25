@@ -140,6 +140,8 @@ class ExpressionMakeSequenceBase(SideEffectsFromChildrenMixin,
             expressions = self.getElements()
         )
 
+        del self.parent
+
         return result, "new_statements", """\
 Removed sequence creation for unused sequence."""
 
@@ -191,10 +193,11 @@ class ExpressionMakeList(ExpressionMakeSequenceBase):
             source_ref = self.source_ref
         )
 
-        self.replaceWith(result)
+        self.parent.replaceChild(self, result)
+        del self.parent
 
         return iter_node, "new_expression", """\
-Iteration over list reduced to tuple."""
+Iteration over list reduced to iteration over tuple."""
 
 
 class ExpressionMakeSet(ExpressionMakeSequenceBase):
@@ -250,10 +253,11 @@ class ExpressionMakeSet(ExpressionMakeSequenceBase):
             source_ref = self.source_ref
         )
 
-        self.replaceWith(result)
+        self.parent.replaceChild(self, result)
+        del self.parent
 
         return iter_node, "new_expression", """\
-Iteration over set reduced to tuple."""
+Iteration over set reduced to iteration over tuple."""
 
 
 class ExpressionMakeSetLiteral(ExpressionMakeSet):

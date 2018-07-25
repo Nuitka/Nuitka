@@ -53,6 +53,9 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
 
         self.builtin_name = builtin_name
 
+    def finalize(self):
+        del self.parent
+
     def getDetails(self):
         return {
             "builtin_name" : self.builtin_name

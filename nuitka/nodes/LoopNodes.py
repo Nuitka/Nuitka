@@ -180,10 +180,13 @@ class StatementLoop(StatementChildHavingBase):
             last_statement = statements[-1]
             if last_statement.isStatementLoopContinue():
                 if len(statements) == 1:
+                    self.subnode_body.finalize()
+
                     self.setLoopBody(None)
                     loop_body = None
                 else:
-                    last_statement.replaceWith(None)
+                    last_statement.parent.replaceChild(last_statement, None)
+                    last_statement.finalize()
 
                 trace_collection.signalChange(
                     "new_statements",
@@ -227,6 +230,9 @@ class StatementLoopContinue(StatementBase):
     def __init__(self, source_ref):
         StatementBase.__init__(self, source_ref = source_ref)
 
+    def finalize(self):
+        del self.parent
+
     def isStatementAborting(self):
         return True
 
@@ -251,6 +257,9 @@ class StatementLoopBreak(StatementBase):
 
     def __init__(self, source_ref):
         StatementBase.__init__(self, source_ref = source_ref)
+
+    def finalize(self):
+        del self.parent
 
     def isStatementAborting(self):
         return True

@@ -298,6 +298,8 @@ Created dictionary found to be constant."""
             expressions = expressions
         )
 
+        del self.parent
+
         return result, "new_statements", """\
 Removed sequence creation for unused sequence."""
 

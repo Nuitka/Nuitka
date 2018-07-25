@@ -856,6 +856,10 @@ class ExpressionFunctionRef(ExpressionBase):
         self.function_body = function_body
         self.code_name = code_name
 
+    def finalize(self):
+        del self.parent
+        del self.function_body
+
     def getName(self):
         return self.function_body.getName()
 
@@ -1004,6 +1008,10 @@ class ExpressionFunctionQualnameRef(CompileTimeConstantExpressionBase):
         )
 
         self.function_body = function_body
+
+    def finalize(self):
+        del self.parent
+        del self.function_body
 
     def computeExpressionRaw(self, trace_collection):
         result = makeConstantReplacementNode(

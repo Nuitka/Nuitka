@@ -56,6 +56,12 @@ class StatementsSequence(StatementChildHavingBase):
     getStatements = StatementChildHavingBase.childGetter("statements")
     setStatements = StatementChildHavingBase.childSetter("statements")
 
+    def finalize(self):
+        del self.parent
+
+        for s in self.getStatements():
+            s.finalize()
+
     # Overloading name based automatic check, so that derived ones know it too.
     def isStatementsSequence(self):
         # Virtual method, pylint: disable=no-self-use
@@ -182,6 +188,9 @@ class StatementsSequence(StatementChildHavingBase):
                         "Removed dead statements."
                     )
 
+                    for s in statements[statements.index(statement)+1:]:
+                        s.finalize()
+
                     break
 
         if statements != new_statements:
@@ -259,6 +268,9 @@ class StatementPreserveFrameException(StatementBase):
 
         self.preserver_id = preserver_id
 
+    def finalize(self):
+        del self.parent
+
     def getDetails(self):
         return {
             "preserver_id" : self.preserver_id
@@ -300,6 +312,9 @@ class StatementRestoreFrameException(StatementBase):
 
         self.preserver_id = preserver_id
 
+    def finalize(self):
+        del self.parent
+
     def getDetails(self):
         return {
             "preserver_id" : self.preserver_id
@@ -323,6 +338,9 @@ class StatementPublishException(StatementBase):
             self,
             source_ref = source_ref
         )
+
+    def finalize(self):
+        del self.parent
 
     def computeStatement(self, trace_collection):
         # TODO: Determine the need for it.

@@ -128,16 +128,19 @@ class LocalsDictHandle(object):
 
     def finalize(self):
         del self.propagation
-        del self.variables
         del self.mark_for_propagation
 
+        for variable in self.variables.values():
+            variable.finalize()
+
+        del self.variables
 
 class LocalsDictExecHandle(LocalsDictHandle):
     pass
 
+
 class LocalsDictFunctionHandle(LocalsDictHandle):
     pass
-
 
 
 class LocalsMappingHandle(LocalsDictHandle):

@@ -25,6 +25,8 @@ expression only stuff.
 
 # from abc import abstractmethod
 
+from abc import abstractmethod
+
 from nuitka import Options, Tracing, TreeXML, Variables
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     intern,
@@ -64,6 +66,10 @@ class NodeBase(NodeMetaClassBase):
         self.source_ref = source_ref
 
     __del__ = counted_del()
+
+    @abstractmethod
+    def finalize(self):
+        pass
 
     def __repr__(self):
         return "<Node %s>" % (self.getDescription())
@@ -416,12 +422,6 @@ class NodeBase(NodeMetaClassBase):
         # Virtual method, pylint: disable=no-self-use
         return ()
 
-    def replaceWith(self, new_node):
-        self.parent.replaceChild(
-            old_node = self,
-            new_node = new_node
-        )
-
     def getName(self):
         # Virtual method, pylint: disable=no-self-use
         return None
@@ -721,6 +721,12 @@ class ChildrenHavingMixin(object):
 
         return values
 
+    def finalize(self):
+        del self.parent
+
+        for c in self.getVisitableNodes():
+            c.finalize()
+
 
 class ClosureGiverNodeMixin(CodeNodeMixin):
     """ Blass class for nodes that provide variables for closure takers. """
@@ -903,6 +909,7 @@ class StatementBase(NodeBase):
     """ Base class for all statements.
 
     """
+    # Base classes can be abstract, pylint: disable=abstract-method
 
     # TODO: Have them all.
     # @abstractmethod
@@ -936,7 +943,7 @@ class StatementBase(NodeBase):
                 return (
                     wrapped_expression,
                     "new_raise",
-                    lambda : "For %s the expression '%s' will raise." % (
+                    lambda : "For %s the child expression '%s' will raise." % (
                         self.getStatementNiceName(),
                         expression.getChildNameNice()
                     )
@@ -1141,6 +1148,12 @@ class StatementChildHavingBase(StatementBase):
         )
 
         return values
+
+    def finalize(self):
+        del self.parent
+
+        for c in self.getVisitableNodes():
+            c.finalize()
 
 
 class SideEffectsFromChildrenMixin(object):

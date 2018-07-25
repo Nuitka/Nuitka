@@ -126,12 +126,13 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
                 source_ref = self.getSourceReference()
             )
 
-            self.replaceWith(result)
+            self.parent.replaceChild(self, result)
+            del self.parent
 
             return (
                 iter_node,
                 "new_expression",
-                "Replaced 'range' with 'xrange' built-in call."
+                "Replaced 'range' with 'xrange' built-in call for iteration."
             )
 
         # No exception will be raised on ranges.

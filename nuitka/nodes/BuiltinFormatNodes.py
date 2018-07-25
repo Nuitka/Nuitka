@@ -147,6 +147,8 @@ class ExpressionBuiltinId(ExpressionBuiltinSingleArgBase):
             node       = self
         )
 
+        del self.parent
+
         return result, "new_statements", """\
 Removed id taking for unused result."""
 

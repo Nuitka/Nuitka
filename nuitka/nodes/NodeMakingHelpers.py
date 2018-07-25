@@ -480,6 +480,11 @@ def makeExpressionBuiltinLocals(provider, source_ref):
                 source_ref   = source_ref
             )
         else:
+            # TODO: Make this not true, there ought to be always a locals
+            # scope.
+            assert not provider.getFunctionLocalsScope(), provider
+
             return ExpressionBuiltinLocalsCopy(
-                source_ref = source_ref
+                locals_scope = provider.getFunctionLocalsScope(),
+                source_ref   = source_ref
             )

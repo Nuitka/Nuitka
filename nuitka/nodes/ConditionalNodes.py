@@ -546,10 +546,17 @@ branches."""
         # Handle branches that became empty behind our back.
         if yes_branch is not None:
             if not yes_branch.getStatements():
+                yes_branch.finalize()
                 yes_branch = None
+
+                self.setBranchYes(None)
+
         if no_branch is not None:
             if not no_branch.getStatements():
+                no_branch.finalize()
                 no_branch = None
+
+                self.setBranchNo(None)
 
         # Consider to not remove branches that we know won't be taken.
         if yes_branch is not None and truth_value is False:
@@ -559,6 +566,7 @@ branches."""
                 message    = "Removed conditional branch not taken due to false condition value."
             )
 
+            yes_branch.finalize()
             self.setBranchYes(None)
             yes_branch = None
 
@@ -569,6 +577,7 @@ branches."""
                 message    = "Removed 'else' branch not taken due to true condition value."
             )
 
+            no_branch.finalize()
             self.setBranchNo(None)
             no_branch = None
 
@@ -643,9 +652,13 @@ branches."""
                     node       = self
                 )
 
+                del self.parent
+
                 return result, "new_statements", """\
 Both branches have no effect, reduced to evaluate condition."""
             else:
+                self.finalize()
+
                 return None, "new_statements", """\
 Removed conditional statement without effect."""
 
@@ -657,17 +670,23 @@ Removed conditional statement without effect."""
             if truth_value is True:
                 choice = "true"
 
-                new_statement = self.getBranchYes()
+                new_statement = yes_branch
+                if no_branch is not None:
+                    no_branch.finalize()
             else:
                 choice = "false"
 
-                new_statement = self.getBranchNo()
+                new_statement = no_branch
+                if yes_branch is not None:
+                    yes_branch.finalize()
 
             new_statement = wrapStatementWithSideEffects(
                 new_node   = new_statement,
                 old_node   = condition,
                 allow_none = True # surviving branch may empty
             )
+
+            del self.parent
 
             return new_statement, "new_statements", """\
 Condition for branch was predicted to be always %s.""" % choice
@@ -687,6 +706,8 @@ Condition for branch was predicted to be always %s.""" % choice
                 no_branch  = None,
                 source_ref = self.getSourceReference()
             )
+
+            del self.parent
 
             return new_statement, "new_statements", """\
 Empty 'yes' branch for conditional statement treated with inverted condition check."""

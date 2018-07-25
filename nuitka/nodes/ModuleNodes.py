@@ -50,6 +50,8 @@ from .NodeBases import (
 
 
 class PythonModuleBase(NodeBase):
+    # Base classes can be abstract, pylint: disable=abstract-method
+
     __slots__ = "name", "package_name", "package"
 
     def __init__(self, name, package_name, source_ref):
@@ -603,6 +605,10 @@ class UncompiledPythonModule(PythonModuleBase):
 
         self.used_modules = ()
 
+    def finalize(self):
+        del self.used_modules
+        del self.bytecode
+
     @staticmethod
     def isUncompiledPythonModule():
         return True
@@ -780,6 +786,9 @@ class PythonShlibModule(PythonModuleBase):
         self.avoid_duplicates.add(self.getFullName())
 
         self.used_modules = None
+
+    def finalize(self):
+        del self.used_modules
 
     def getDetails(self):
         return {

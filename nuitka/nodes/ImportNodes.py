@@ -69,6 +69,9 @@ class ExpressionImportModuleHard(ExpressionBase):
 
         self.module_name = module_name
 
+    def finalize(self):
+        del self.parent
+
     def getDetails(self):
         return {
             "module_name" : self.module_name
@@ -110,6 +113,9 @@ class ExpressionImportModuleNameHard(ExpressionBase):
 
         self.module_name = module_name
         self.import_name = import_name
+
+    def finalize(self):
+        del self.parent
 
     def getDetails(self):
         return {

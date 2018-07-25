@@ -540,7 +540,9 @@ class TraceCollectionBase(CollectionTracingMixin):
             return None
 
         assert expression.isExpression(), expression
-        assert expression.parent, expression
+
+        parent = expression.parent
+        assert parent, expression
 
         # Now compute this expression, allowing it to replace itself with
         # something else as part of a local peep hole optimization.
@@ -561,7 +563,7 @@ class TraceCollectionBase(CollectionTracingMixin):
             )
 
         if new_node is not expression:
-            expression.replaceWith(new_node)
+            parent.replaceChild(expression, new_node)
 
         return new_node
 
@@ -763,7 +765,7 @@ class TraceCollectionBranch(TraceCollectionBase):
             )
 
             if result is not branch:
-                branch.replaceWith(result)
+                branch.parent.replaceChild(branch, result)
         else:
             self.onExpression(
                 expression = branch

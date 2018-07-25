@@ -207,6 +207,11 @@ class ExpressionLocalsVariableRef(ExpressionBase):
 
         self.variable_trace = None
 
+    def finalize(self):
+        del self.parent
+        del self.locals_scope
+        del self.variable
+
     def getDetails(self):
         return {
             "variable_name" : self.getVariableName(),
@@ -238,6 +243,8 @@ class ExpressionLocalsVariableRef(ExpressionBase):
                 source_ref = self.source_ref
             )
             result.parent = self.parent
+
+            self.finalize()
 
             new_result = result.computeExpressionRaw(trace_collection)
 
@@ -299,6 +306,10 @@ class ExpressionLocalsVariableCheck(ExpressionBase):
 
         self.locals_scope = locals_scope
 
+    def finalize(self):
+        del self.parent
+        del self.locals_scope
+
     def getDetails(self):
         return {
             "locals_scope"  : self.locals_scope,
@@ -347,6 +358,11 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
 
         self.locals_scope = locals_scope
 
+    def finalize(self):
+        del self.parent
+        del self.locals_scope
+        del self.variable_trace
+
     def getDetails(self):
         return {
             "variable_name" : self.getVariableName()
@@ -382,6 +398,7 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
             if new_result[0] is not result:
                 assert False, (new_result, result)
 
+            self.finalize()
             return result, "new_statements", "Replaced dictionary assigment with temporary variable."
 
         result, change_tags, change_desc = self.computeStatementSubExpressions(
@@ -417,7 +434,6 @@ class StatementLocalsDictOperationDel(StatementBase):
     # TODO: Specialize for Python3 maybe to save attribute for Python2.
     may_raise_del = python_version >= 300
 
-
     def __init__(self, locals_scope, variable_name, source_ref):
         assert type(variable_name) is str
 
@@ -434,6 +450,12 @@ class StatementLocalsDictOperationDel(StatementBase):
         self.variable_version = self.variable.allocateTargetNumber()
 
         self.previous_trace = None
+
+    def finalize(self):
+        del self.parent
+        del self.locals_scope
+        del self.variable
+        del self.previous_trace
 
     def getDetails(self):
         return {
@@ -516,6 +538,11 @@ class StatementSetLocals(StatementChildHavingBase):
 
         self.locals_scope = locals_scope
 
+    def finalize(self):
+        del self.parent
+        del self.locals_scope
+        del self.subnode_new_locals
+
     def getDetailsForDisplay(self):
         return {
             "locals_scope" : self.locals_scope.getCodeName()
@@ -552,6 +579,8 @@ class StatementSetLocals(StatementChildHavingBase):
 Setting locals already raises implicitly building new locals."""
 
         if self.locals_scope.isMarkedForPropagation():
+            self.finalize()
+
             return None, "new_statements", """\
 Forward propagating locals."""
 
@@ -594,8 +623,11 @@ class StatementReleaseLocals(StatementBase):
 
         self.locals_scope = locals_scope
 
-    def computeStatement(self, trace_collection):
+    def finalize(self):
+        del self.parent
+        del self.locals_scope
 
+    def computeStatement(self, trace_collection):
         if self.locals_scope.isMarkedForPropagation():
             statements = [
                 StatementReleaseVariable(
@@ -611,6 +643,9 @@ class StatementReleaseLocals(StatementBase):
                 allow_none = False,
                 source_ref = self.source_ref
             )
+
+            self.finalize()
+
             return result, "new_statements", "Releasing temp variables instead of locals dict."
 
         return self, None, None
