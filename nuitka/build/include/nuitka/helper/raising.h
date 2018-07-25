@@ -123,20 +123,8 @@ NUITKA_MAY_BE_UNUSED static void RAISE_EXCEPTION_WITH_TYPE( PyObject **exception
 #if PYTHON_VERSION >= 300
         CHAIN_EXCEPTION( *exception_value );
 
-        // TODO: Ever true?
-        if ( *exception_tb )
-        {
-            PyTracebackObject *prev = (PyTracebackObject *)PyException_GetTraceback( *exception_value );
-
-            if ( prev != NULL )
-            {
-                assert( (*exception_tb)->tb_next == NULL );
-                (*exception_tb)->tb_next = prev;
-            }
-
-            PyException_SetTraceback( *exception_value, (PyObject *)(*exception_tb ? *exception_tb : (PyTracebackObject *)Py_None ) );
-        }
-
+        // Note: Cannot be assigned here.
+        assert( *exception_tb == NULL );
         *exception_tb = (PyTracebackObject *)PyException_GetTraceback( *exception_value );
 #endif
 
