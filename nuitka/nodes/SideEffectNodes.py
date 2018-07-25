@@ -73,30 +73,46 @@ class ExpressionSideEffects(ExpressionChildrenHavingBase):
     def isExpressionSideEffects(self):
         return True
 
-    def computeExpression(self, trace_collection):
-        side_effects = self.getSideEffects()
+    def computeExpressionRaw(self, trace_collection):
         new_side_effects = []
 
-        for side_effect in side_effects:
-            if side_effect.mayHaveSideEffects():
+        side_effects = self.getSideEffects()
+
+        for count, side_effect in enumerate(side_effects):
+            side_effect = trace_collection.onExpression(side_effect)
+
+            if side_effect.willRaiseException(BaseException):
+                for c in side_effects[count+1:]:
+                    c.finalize()
+
+                if new_side_effects:
+                    expression = self.getExpression()
+                    expression.finalize()
+
+                    self.setChild("expression", side_effect)
+
+                    return self, "new_expression", "Side effects caused exception raise."
+                else:
+                    del self.parent
+                    del self.subnode_side_effects
+
+                    return side_effect, "new_expression", "Side effects caused exception raise."
+
+            if side_effect.isExpressionSideEffects():
+                new_side_effects.extend(
+                    side_effect.getSideEffects()
+                )
+
+                del side_effect.parent
+                del side_effect.subnode_side_effects
+
+            if side_effect is not None and side_effect.mayHaveSideEffects():
                 new_side_effects.append(side_effect)
 
-        expression = self.getExpression()
-
-        if expression.isExpressionSideEffects():
-            new_side_effects.extend(
-                expression.getSideEffects()
-            )
-
-            expression.setSideEffects(new_side_effects)
-
-            return expression, "new_expression", "Remove nested side effects."
+        trace_collection.onExpression(self.subnode_expression)
 
         if not new_side_effects:
-            return expression, "new_expression", "Removed empty side effects."
-
-        if new_side_effects != side_effects:
-            self.setSideEffects(new_side_effects)
+            return self.subnode_expression, "new_expression", "Removed empty side effects."
 
         return self, None, None
 
