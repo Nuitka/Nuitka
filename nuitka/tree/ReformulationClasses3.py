@@ -31,7 +31,10 @@ from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
     ExpressionBuiltinHasattr
 )
+from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
+from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.BuiltinRefNodes import makeExpressionBuiltinRef
+from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinTuple
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.ClassNodes import (
     ExpressionClassBody,
@@ -44,30 +47,52 @@ from nuitka.nodes.ConditionalNodes import (
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
+from nuitka.nodes.ContainerOperationNodes import (
+    ExpressionListOperationExtend,
+    StatementListOperationAppend
+)
 from nuitka.nodes.DictionaryNodes import (
     ExpressionDictOperationGet,
     ExpressionDictOperationIn,
     StatementDictOperationRemove,
     StatementDictOperationUpdate
 )
-from nuitka.nodes.FunctionNodes import ExpressionFunctionQualnameRef
+from nuitka.nodes.FunctionNodes import (
+    ExpressionFunctionBody,
+    ExpressionFunctionCall,
+    ExpressionFunctionCreation,
+    ExpressionFunctionQualnameRef,
+    ExpressionFunctionRef
+)
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinLocalsRef
 from nuitka.nodes.LocalsDictNodes import (
     StatementLocalsDictOperationSet,
     StatementReleaseLocals,
     StatementSetLocals
 )
+from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
 from nuitka.nodes.ReturnNodes import StatementReturn
+from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
-from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
+from nuitka.nodes.TypeNodes import (
+    ExpressionBuiltinIsinstance,
+    ExpressionBuiltinType1
+)
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
     ExpressionVariableRef
 )
 from nuitka.PythonVersions import python_version
+from nuitka.specs.ParameterSpecs import ParameterSpec
 
+from .InternalModule import (
+    getInternalModule,
+    internal_source_ref,
+    once_decorator
+)
 from .ReformulationSequenceCreation import buildTupleCreationNode
+from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildFrameNode,
@@ -77,6 +102,7 @@ from .TreeHelpers import (
     makeDictCreationOrConstant2,
     makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatement,
+    makeStatementsSequenceFromStatements,
     mangleName
 )
 
@@ -349,6 +375,33 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
+        if python_version >= 3.7:
+            bases_update = ExpressionFunctionCall(
+                function   = ExpressionFunctionCreation(
+                    function_ref = ExpressionFunctionRef(
+                        function_body = getClassBasesMroConversionHelper(),
+                        source_ref    = source_ref
+                    ),
+                    code_object  = None,
+                    defaults     = (),
+                    kw_defaults  = None,
+                    annotations  = None,
+                    source_ref   = source_ref
+                ),
+                values     = (
+                    makeBasesRef(),
+                ),
+                source_ref = source_ref,
+            )
+
+            statements.append(
+                StatementAssignmentVariable(
+                    variable   = tmp_bases,
+                    source     = bases_update,
+                    source_ref = source_ref
+                )
+            )
+
     statements.append(
         StatementAssignmentVariable(
             variable   = tmp_class_decl_dict,
@@ -550,3 +603,181 @@ def buildClassNode3(provider, node, source_ref):
         ,
         source_ref = source_ref
     )
+
+
+@once_decorator
+def getClassBasesMroConversionHelper():
+    helper_name = "_mro_entries_conversion"
+
+    result = ExpressionFunctionBody(
+        provider   = getInternalModule(),
+        name       = helper_name,
+        doc        = None,
+        parameters = ParameterSpec(
+            ps_name          = helper_name,
+            ps_normal_args   = ("bases,"),
+            ps_list_star_arg = None,
+            ps_dict_star_arg = None,
+            ps_default_count = 0,
+            ps_kw_only_args  = ()
+        ),
+        flags      = set(),
+        source_ref = internal_source_ref
+    )
+
+    temp_scope = None
+
+    tmp_result_variable = result.allocateTempVariable(temp_scope, "list")
+    tmp_iter_variable = result.allocateTempVariable(temp_scope, "iter")
+    tmp_item_variable = result.allocateTempVariable(temp_scope, "base")
+
+    args_variable = result.getVariableForAssignment(
+        variable_name = "bases"
+    )
+
+    non_type_case = StatementExpressionOnly(
+        expression = ExpressionListOperationExtend(
+            list_arg   = ExpressionTempVariableRef(
+                variable   = tmp_result_variable,
+                source_ref = internal_source_ref
+            ),
+            value      = makeExpressionCall(
+                called     = ExpressionAttributeLookup(
+                    source         = ExpressionTempVariableRef(
+                        variable   = tmp_item_variable,
+                        source_ref = internal_source_ref
+                    ),
+                    attribute_name = "__mro_entries__",
+                    source_ref     = internal_source_ref
+                ),
+
+                args       = ExpressionMakeTuple(
+                    elements   = (
+                        ExpressionVariableRef(
+                            variable   = args_variable,
+                            source_ref = internal_source_ref
+                        ),
+                    ),
+                    source_ref = internal_source_ref
+                ),
+                kw         = None,
+                source_ref = internal_source_ref
+            ),
+            source_ref = internal_source_ref
+        ),
+        source_ref = internal_source_ref
+    )
+
+    type_case = StatementListOperationAppend(
+        list_arg   = ExpressionTempVariableRef(
+            variable   = tmp_result_variable,
+            source_ref = internal_source_ref
+        ),
+        value      = ExpressionTempVariableRef(
+            variable   = tmp_item_variable,
+            source_ref = internal_source_ref
+        ),
+        source_ref = internal_source_ref
+    )
+
+    loop_body = makeStatementsSequenceFromStatements(
+        makeTryExceptSingleHandlerNode(
+            tried          = StatementAssignmentVariable(
+                variable   = tmp_item_variable,
+                source     = ExpressionBuiltinNext1(
+                    value      = ExpressionTempVariableRef(
+                        variable   = tmp_iter_variable,
+                        source_ref = internal_source_ref
+                    ),
+                    source_ref = internal_source_ref
+                ),
+                source_ref = internal_source_ref
+            ),
+            exception_name = "StopIteration",
+            handler_body   = StatementLoopBreak(
+                source_ref = internal_source_ref
+            ),
+            source_ref     = internal_source_ref
+        ),
+        makeStatementConditional(
+            condition  = ExpressionBuiltinIsinstance(
+                instance   = ExpressionTempVariableRef(
+                    variable   = tmp_item_variable,
+                    source_ref = internal_source_ref
+                ),
+                classes    = makeConstantRefNode(
+                    constant   = type,
+                    source_ref = internal_source_ref
+                ),
+                source_ref = internal_source_ref
+            ),
+            yes_branch = type_case,
+            no_branch  = non_type_case,
+            source_ref = internal_source_ref
+        )
+    )
+
+
+    final = (
+        StatementReleaseVariable(
+            variable   = tmp_result_variable,
+            source_ref = internal_source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = tmp_iter_variable,
+            source_ref = internal_source_ref
+        ),
+        StatementReleaseVariable(
+            variable   = tmp_item_variable,
+            source_ref = internal_source_ref
+        ),
+    )
+
+    tried = makeStatementsSequenceFromStatements(
+        StatementAssignmentVariable(
+            variable   = tmp_iter_variable,
+            source     = ExpressionBuiltinIter1(
+                value      = ExpressionVariableRef(
+                    variable   = args_variable,
+                    source_ref = internal_source_ref
+                ),
+                source_ref = internal_source_ref
+            ),
+            source_ref = internal_source_ref
+        ),
+        StatementAssignmentVariable(
+            variable   = tmp_result_variable,
+            source     = makeConstantRefNode(
+                constant   = [],
+                source_ref = internal_source_ref
+            ),
+            source_ref = internal_source_ref
+        ),
+        StatementLoop(
+            body       = loop_body,
+            source_ref = internal_source_ref
+        ),
+        StatementReturn(
+            expression = ExpressionBuiltinTuple(
+                value      = ExpressionTempVariableRef(
+                    variable   = tmp_result_variable,
+                    source_ref = internal_source_ref
+                ),
+                source_ref = internal_source_ref
+            ),
+            source_ref = internal_source_ref
+        )
+    )
+
+    result.setBody(
+        makeStatementsSequenceFromStatement(
+            makeTryFinallyStatement(
+                provider   = result,
+                tried      = tried,
+                final      = final,
+                source_ref = internal_source_ref
+            )
+        )
+    )
+
+    return result
