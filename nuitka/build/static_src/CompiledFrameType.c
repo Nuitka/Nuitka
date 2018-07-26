@@ -290,7 +290,13 @@ static PyObject *Nuitka_Frame_tp_repr( struct Nuitka_FrameObject *nuitka_frame )
 #else
     return PyUnicode_FromFormat(
 #endif
-#if _DEBUG_FRAME || _DEBUG_REFRAME || _DEBUG_EXCEPTIONS
+#if PYTHON_VERSION >= 370
+       "<compiled_frame at %p, file %R, line %d, code %S>",
+        nuitka_frame,
+        nuitka_frame->m_frame.f_code->co_filename,
+        nuitka_frame->m_frame.f_lineno,
+        nuitka_frame->m_frame.f_code->co_name
+#elif _DEBUG_FRAME || _DEBUG_REFRAME || _DEBUG_EXCEPTIONS
         "<compiled_frame object for %s at %p>",
         Nuitka_String_AsString( nuitka_frame->m_frame.f_code->co_name ),
         nuitka_frame
