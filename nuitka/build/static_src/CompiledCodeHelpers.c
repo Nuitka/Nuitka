@@ -32,6 +32,7 @@
 #include "HelpersBuiltin.c"
 #include "HelpersStrings.c"
 #include "HelpersImport.c"
+#include "HelpersClasses.c"
 
 
 #if PYTHON_VERSION < 300
