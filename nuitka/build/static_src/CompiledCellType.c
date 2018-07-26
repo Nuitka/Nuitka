@@ -171,10 +171,26 @@ static PyObject *Nuitka_Cell_get_contents( struct Nuitka_CellObject *cell, void 
     return cell->ob_ref;
 }
 
+#if PYTHON_VERSION >= 370
+static int Nuitka_Cell_set_contents( struct Nuitka_CellObject *cell, PyObject *value )
+{
+    PyObject *old = cell->ob_ref;
+    cell->ob_ref = value;
+    Py_XINCREF( value );
+    Py_XDECREF( old );
+
+    // Cannot fail.
+    return 0;
+}
+#endif
+
 static PyGetSetDef Nuitka_Cell_getsetlist[] =
 {
+#if PYTHON_VERSION < 370
     { (char *)"cell_contents", (getter)Nuitka_Cell_get_contents, NULL, NULL },
-
+#else
+    { (char *)"cell_contents", (getter)Nuitka_Cell_get_contents, (setter)Nuitka_Cell_set_contents, NULL },
+#endif
     { NULL }
 };
 
