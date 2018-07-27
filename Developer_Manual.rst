@@ -410,6 +410,10 @@ For fine grained control, it has the following options::
                         The standard CPython3.6 test suite. Execute this for
                         all corner cases to be covered. With Python 2.x these
                         are not run. Default is True.
+  --skip-cpython37-tests
+                        The standard CPython3.7 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.x these
+                        are not run. Default is True.
   --no-python2.6        Do not use Python 2.6 even if available on the system.
                         Default is False.
   --no-python2.7        Do not use Python 2.7 even if available on the system.
@@ -421,6 +425,8 @@ For fine grained control, it has the following options::
   --no-python3.5        Do not use Python 3.5 even if available on the system.
                         Default is False.
   --no-python3.6        Do not use Python 3.6 even if available on the system.
+                        Default is False.
+  --no-python3.7        Do not use Python 3.7 even if available on the system.
                         Default is False.
   --coverage            Make a coverage analysis, that does not really check.
                         Default is False.
