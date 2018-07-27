@@ -49,12 +49,16 @@ def displayOutput(stdout, stderr):
 
 
 def checkNoPermissionError(output):
-    for candidate in (b"Permission denied:", b"PermissionError:", b"DBPermissionsError:"):
+    # Forms of permission errors.
+    for candidate in (b"Permission denied:",
+                      b"PermissionError:",
+                      b"DBPermissionsError:"):
         if candidate in output:
             return False
 
     # These are localized it seems.
-    if re.search(b"(WindowsError|FileNotFoundError|FileExistsError):.*(@test|totest|xx)", output):
+    if re.search(b"(WindowsError|FileNotFoundError|FileExistsError|WinError 145):"
+                 b".*(@test|totest|xx|Error 145)", output):
         return False
 
     return True
