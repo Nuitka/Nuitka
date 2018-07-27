@@ -41,6 +41,7 @@ from nuitka.nodes.ClassNodes import (
     ExpressionSelectMetaclass
 )
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.ComparisonNodes import ExpressionComparison
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional
@@ -266,6 +267,12 @@ def buildClassNode3(provider, node, source_ref):
             name       = "bases"
         )
 
+        if python_version >= 370:
+            tmp_bases_orig = provider.allocateTempVariable(
+                temp_scope = temp_scope,
+                name       = "bases_orig"
+            )
+
         def makeBasesRef():
             return ExpressionTempVariableRef(
                 variable   = tmp_bases,
@@ -277,6 +284,35 @@ def buildClassNode3(provider, node, source_ref):
                 constant   = (),
                 source_ref = source_ref
             )
+
+    if python_version >= 370 and node.bases:
+        statements.append(
+            makeStatementConditional(
+                condition  = ExpressionComparison(
+                    comparator = "NotEq",
+                    left       = ExpressionTempVariableRef(
+                        variable   = tmp_bases,
+                        source_ref = source_ref
+                    ),
+                    right      = ExpressionTempVariableRef(
+                        variable   = tmp_bases_orig,
+                        source_ref = source_ref
+                    ),
+                    source_ref = source_ref
+                ),
+                yes_branch = StatementLocalsDictOperationSet(
+                    locals_scope  = locals_scope,
+                    variable_name = "__orig_bases__",
+                    value         = ExpressionTempVariableRef(
+                        variable   = tmp_bases_orig,
+                        source_ref = source_ref
+                    ),
+                    source_ref    = source_ref
+                ),
+                no_branch  = None,
+                source_ref = source_ref
+            )
+        )
 
     statements += [
         StatementAssignmentVariable(
@@ -365,7 +401,7 @@ def buildClassNode3(provider, node, source_ref):
     if node.bases:
         statements.append(
             StatementAssignmentVariable(
-                variable   = tmp_bases,
+                variable   = tmp_bases if python_version < 370 else tmp_bases_orig,
                 source     = buildTupleCreationNode(
                     provider   = provider,
                     elements   = node.bases,
@@ -375,8 +411,8 @@ def buildClassNode3(provider, node, source_ref):
             )
         )
 
-        if python_version >= 3.7:
-            bases_update = ExpressionFunctionCall(
+        if python_version >= 370:
+            bases_conversion = ExpressionFunctionCall(
                 function   = ExpressionFunctionCreation(
                     function_ref = ExpressionFunctionRef(
                         function_body = getClassBasesMroConversionHelper(),
@@ -389,7 +425,10 @@ def buildClassNode3(provider, node, source_ref):
                     source_ref   = source_ref
                 ),
                 values     = (
-                    makeBasesRef(),
+                    ExpressionTempVariableRef(
+                        variable   = tmp_bases_orig,
+                        source_ref = source_ref
+                    ),
                 ),
                 source_ref = source_ref,
             )
@@ -397,7 +436,7 @@ def buildClassNode3(provider, node, source_ref):
             statements.append(
                 StatementAssignmentVariable(
                     variable   = tmp_bases,
-                    source     = bases_update,
+                    source     = bases_conversion,
                     source_ref = source_ref
                 )
             )
@@ -453,6 +492,22 @@ def buildClassNode3(provider, node, source_ref):
             ),
             source_ref = source_ref
         )
+
+        # Might become empty behind our back during conversion, therefore make the
+        # check at run time for 3.7 or higher.
+        if python_version >= 370:
+            unspecified_metaclass_expression = ExpressionConditional(
+                condition      = ExpressionTempVariableRef(
+                    variable   = tmp_bases,
+                    source_ref = source_ref
+                ),
+                expression_yes = unspecified_metaclass_expression,
+                expression_no  = makeExpressionBuiltinRef(
+                    builtin_name = "type",
+                    source_ref   = source_ref
+                ),
+                source_ref     = source_ref
+            )
     else:
         unspecified_metaclass_expression = makeExpressionBuiltinRef(
             builtin_name = "type",
@@ -615,7 +670,7 @@ def getClassBasesMroConversionHelper():
         doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
-            ps_normal_args   = ("bases,"),
+            ps_normal_args   = ("bases",),
             ps_list_star_arg = None,
             ps_dict_star_arg = None,
             ps_default_count = 0,
