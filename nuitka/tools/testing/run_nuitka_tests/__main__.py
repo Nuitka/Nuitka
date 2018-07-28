@@ -287,7 +287,7 @@ Do not use Python3.6 even if available on the system. Default is %default."""
     parser.add_option(
         "--no-python3.7",
         action  = "store_true",
-        dest    = "no36",
+        dest    = "no37",
         default = False,
         help    = """\
 Do not use Python3.6 even if available on the system. Default is %default."""
