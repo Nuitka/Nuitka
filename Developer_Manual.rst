@@ -29,7 +29,7 @@ Milestones
    absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not target any
-   older CPython release. For CPython 3.3 up to 3.6 it also has been reached. We
+   older CPython release. For CPython 3.3 up to 3.7 it also has been reached. We
    do not target the older and practically unused CPython 3.1 and 3.0 releases.
 
    This milestone was reached. Dropping support for Python 2.6 and 3.3 is an
@@ -410,6 +410,10 @@ For fine grained control, it has the following options::
                         The standard CPython3.6 test suite. Execute this for
                         all corner cases to be covered. With Python 2.x these
                         are not run. Default is True.
+  --skip-cpython37-tests
+                        The standard CPython3.7 test suite. Execute this for
+                        all corner cases to be covered. With Python 2.x these
+                        are not run. Default is True.
   --no-python2.6        Do not use Python 2.6 even if available on the system.
                         Default is False.
   --no-python2.7        Do not use Python 2.7 even if available on the system.
@@ -421,6 +425,8 @@ For fine grained control, it has the following options::
   --no-python3.5        Do not use Python 3.5 even if available on the system.
                         Default is False.
   --no-python3.6        Do not use Python 3.6 even if available on the system.
+                        Default is False.
+  --no-python3.7        Do not use Python 3.7 even if available on the system.
                         Default is False.
   --coverage            Make a coverage analysis, that does not really check.
                         Default is False.
@@ -1917,8 +1923,9 @@ ever exists.
     list_value = _listcontr_helper(range(8))
 
 The difference is that with Python3, the function "_listcontr_helper" is really
-there and named ``<listcomp>``, whereas with Python2 the function is only an
-outline, so it can readily access the name space.
+there and named ``<listcontraction>`` (or ``<listcomp>`` as of Python3.7 or
+higher), whereas with Python2 the function is only an outline, so it can readily
+access the containing name space.
 
 
 Set Contractions

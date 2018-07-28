@@ -85,7 +85,7 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
                type(child.getConstant()) is float:
                 return True
 
-        step = self.getStep() # false alarm, pylint: disable=assignment-from-none
+        step = self.getStep()
 
         # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:
@@ -126,12 +126,13 @@ class ExpressionBuiltinRangeBase(ExpressionChildrenHavingBase):
                 source_ref = self.getSourceReference()
             )
 
-            self.replaceWith(result)
+            self.parent.replaceChild(self, result)
+            del self.parent
 
             return (
                 iter_node,
                 "new_expression",
-                "Replaced 'range' with 'xrange' built-in call."
+                "Replaced 'range' with 'xrange' built-in call for iteration."
             )
 
         # No exception will be raised on ranges.
@@ -450,7 +451,7 @@ class ExpressionBuiltinXrangeBase(ExpressionChildrenHavingBase):
             if child.getIntegerValue() is None:
                 return True
 
-        step = self.getStep() # false alarm, pylint: disable=assignment-from-none
+        step = self.getStep()
 
         # A step of 0 will raise.
         if step is not None and step.getIntegerValue() == 0:

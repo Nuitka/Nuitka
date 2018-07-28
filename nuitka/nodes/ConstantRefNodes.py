@@ -107,6 +107,9 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
             except TypeError:
                 pass
 
+    def finalize(self):
+        del self.parent
+        del self.constant
 
     def __repr__(self):
         return "<Node %s value %r at %s %s>" % (
@@ -349,19 +352,22 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
                 return None
 
     def computeExpressionIter1(self, iter_node, trace_collection):
-        if type(self.constant) in (list, set, frozenset, dict):
+        constant_type = type(self.constant)
+
+        if constant_type in (list, set, frozenset, dict):
             result = makeConstantRefNode(
                 constant      = tuple(self.constant),
                 user_provided = self.user_provided,
                 source_ref    = self.getSourceReference()
             )
 
-            self.replaceWith(result)
+            self.parent.replaceChild(self, result)
+            self.finalize()
 
             return (
                 iter_node,
                 "new_constant", """\
-Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
+Iteration over constant %s changed to tuple.""" % constant_type.__name__
             )
 
         if not isIterableConstant(self.constant):
@@ -373,8 +379,6 @@ Iteration over constant %s changed to tuple.""" % type(self.constant).__name__
                 computation = lambda : iter_node.simulator(self.constant),
                 description = "Iteration of non-iterable constant."
             )
-
-
 
         return iter_node, None, None
 

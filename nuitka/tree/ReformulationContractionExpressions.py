@@ -38,7 +38,7 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
@@ -77,6 +77,7 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildNode,
     buildNodeList,
+    detectFunctionBodyKind,
     getKind,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
@@ -100,7 +101,7 @@ def _makeIteratorCreation(provider, qual, source_ref):
     )
 
 
-def _makeIteratorNext(provider, qual, iterator_ref, source_ref):
+def _makeIteratorNext(qual, iterator_ref, source_ref):
     if getattr(qual, "is_async", 0):
         next_class = ExpressionAsyncNext
     else:
@@ -193,7 +194,7 @@ def buildListContractionNode(provider, node, source_ref):
     return _buildContractionNode(
         provider    = provider,
         node        = node,
-        name        = "<listcontraction>",
+        name        = "<listcontraction>" if python_version < 370 else "<listcomp>",
         emit_class  = StatementListOperationAppend,
         start_value = [],
         source_ref  = source_ref
@@ -257,7 +258,10 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         future_spec       = parent_module.getFutureSpec()
     )
 
-    is_async = sum(getattr(qual, "is_async", 0) for qual in node.generators)
+    if python_version < 370:
+        is_async = any(getattr(qual, "is_async", 0) for qual in node.generators)
+    else:
+        is_async = detectFunctionBodyKind(nodes = [node])[0] in ("Asyncgen", "Coroutine")
 
     if is_async:
         code_body = ExpressionAsyncgenObjectBody(
@@ -501,7 +505,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                 tried          = StatementAssignmentVariable(
                     variable   = tmp_value_variable,
                     source     = _makeIteratorNext(
-                        provider     = provider,
                         iterator_ref = iterator_ref,
                         qual         = qual,
                         source_ref   = source_ref
@@ -534,14 +537,12 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
         if len(conditions) >= 1:
             loop_statements.append(
-                StatementConditional(
+                makeStatementConditional(
                     condition  = buildAndNode(
                         values     = conditions,
                         source_ref = source_ref
                     ),
-                    yes_branch = makeStatementsSequenceFromStatement(
-                        statement = current_body
-                    ),
+                    yes_branch = current_body,
                     no_branch  = None,
                     source_ref = source_ref
                 )

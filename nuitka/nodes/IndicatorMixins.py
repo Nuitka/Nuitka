@@ -41,9 +41,6 @@ class MarkUnoptimizedFunctionIndicatorMixin(object):
     def isUnqualifiedExec(self):
         return self.unoptimized_locals and self.unqualified_exec
 
-    def getLocalsScope(self):
-        return self.locals_scope
-
 
 class MarkNeedsAnnotationsMixin(object):
     def __init__(self):

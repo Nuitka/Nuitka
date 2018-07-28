@@ -266,9 +266,11 @@ NUITKA_DEFINE_BUILTIN(staticmethod)
 PyObject *BUILTIN_STATICMETHOD( PyObject *value )
 {
     NUITKA_ASSIGN_BUILTIN( staticmethod );
-    PyObject *args[] = { value };
 
-    return CALL_FUNCTION_WITH_ARGS1( NUITKA_ACCESS_BUILTIN( staticmethod ), args );
+    return CALL_FUNCTION_WITH_SINGLE_ARG(
+        NUITKA_ACCESS_BUILTIN( staticmethod ),
+        value
+    );
 }
 
 /** The "classmethod" built-in.
@@ -280,9 +282,11 @@ NUITKA_DEFINE_BUILTIN(classmethod)
 PyObject *BUILTIN_CLASSMETHOD( PyObject *value )
 {
     NUITKA_ASSIGN_BUILTIN( classmethod );
-    PyObject *args[] = { value };
 
-    return CALL_FUNCTION_WITH_ARGS1( NUITKA_ACCESS_BUILTIN( classmethod ), args );
+    return CALL_FUNCTION_WITH_SINGLE_ARG(
+        NUITKA_ACCESS_BUILTIN( classmethod ),
+        value
+    );
 }
 
 #if PYTHON_VERSION >= 300
@@ -301,13 +305,10 @@ PyObject *BUILTIN_BYTES1( PyObject *value )
 {
     NUITKA_ASSIGN_BUILTIN( bytes );
 
-    PyObject *args[] =
-    {
-        value,
-    };
-
-
-    return CALL_FUNCTION_WITH_ARGS1( NUITKA_ACCESS_BUILTIN( bytes ), args );
+    return CALL_FUNCTION_WITH_SINGLE_ARG(
+        NUITKA_ACCESS_BUILTIN( bytes ),
+        value
+    );
 }
 
 

@@ -554,6 +554,13 @@ Error, needs 'strace' on your system to scan used libraries."""
                line.startswith(b"readlink("):
                 filename = line[line.find(b"(")+2:line.find(b", ")-1]
 
+                # At least Python3.7 considers the default Python3 path.
+                if filename == b"/usr/bin/python3":
+                    continue
+
+                if filename in (b"/usr/bin/python3." + version for version in (b"5", b"6", b"7")):
+                    continue
+
                 binary_path = _python_executable
                 if str is not bytes:
                     binary_path = binary_path.encode("utf-8")

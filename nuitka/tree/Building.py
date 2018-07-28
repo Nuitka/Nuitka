@@ -70,7 +70,7 @@ from nuitka.nodes.BuiltinFormatNodes import (
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinStr
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
-    StatementConditional
+    makeStatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantEllipsisRef,
@@ -202,7 +202,7 @@ def buildConditionNode(provider, node, source_ref):
     # "elif", because that's already dealt with by module "ast", which turns it
     # into nested conditional statements.
 
-    return StatementConditional(
+    return makeStatementConditional(
         condition  = buildNode(provider, node.test, source_ref),
         yes_branch = buildStatementsNode(
             provider   = provider,
@@ -507,7 +507,7 @@ def buildReturnNode(provider, node, source_ref):
     expression = buildNode(provider, node.value, source_ref, allow_none = True)
 
     if provider.isExpressionGeneratorObjectBody():
-        if expression is not None and python_version < 330:
+        if expression is not None and python_version < 300:
             SyntaxErrors.raiseSyntaxError(
                 "'return' with argument inside generator",
                 source_ref.atColumnNumber(node.col_offset)
@@ -835,8 +835,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
         )
 
-    needs__initializing__ = not provider.isMainModule() and \
-      (python_version >= 330 and python_version < 340)
+    needs__initializing__ = not provider.isMainModule() and 300 <= python_version < 340
 
     if needs__initializing__:
         # Set "__initializing__" at the beginning to True

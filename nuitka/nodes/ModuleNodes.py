@@ -50,6 +50,8 @@ from .NodeBases import (
 
 
 class PythonModuleBase(NodeBase):
+    # Base classes can be abstract, pylint: disable=abstract-method
+
     __slots__ = "name", "package_name", "package"
 
     def __init__(self, name, package_name, source_ref):
@@ -102,12 +104,12 @@ class PythonModuleBase(NodeBase):
                 module_name    = self.package_name,
                 parent_package = None,
                 level          = 1,
-                warn           = python_version < 330
+                warn           = python_version < 300
             )
 
             # TODO: Temporary, if we can't find the package for Python3.3 that
             # is semi-OK, maybe.
-            if python_version >= 330 and not package_filename:
+            if python_version >= 300 and not package_filename:
                 return []
 
             if self.package_name == "uniconvertor.app.modules":
@@ -519,7 +521,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
                 break
 
     @staticmethod
-    def getLocalsScope():
+    def getFunctionLocalsScope():
+        """ Modules have no locals scope. """
         return None
 
 
@@ -601,6 +604,10 @@ class UncompiledPythonModule(PythonModuleBase):
         self.technical = technical
 
         self.used_modules = ()
+
+    def finalize(self):
+        del self.used_modules
+        del self.bytecode
 
     @staticmethod
     def isUncompiledPythonModule():
@@ -779,6 +786,9 @@ class PythonShlibModule(PythonModuleBase):
         self.avoid_duplicates.add(self.getFullName())
 
         self.used_modules = None
+
+    def finalize(self):
+        del self.used_modules
 
     def getDetails(self):
         return {

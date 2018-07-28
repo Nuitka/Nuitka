@@ -144,6 +144,10 @@ class ExpressionAsyncWait(ExpressionChildrenHavingBase):
 
         self.exception_preserving = False
 
+    @staticmethod
+    def isExpressionAsyncWait():
+        return True
+
     def markAsExceptionPreserving(self):
         self.exception_preserving = True
 
@@ -155,3 +159,11 @@ class ExpressionAsyncWait(ExpressionChildrenHavingBase):
         return self, None, None
 
     getValue = ExpressionChildrenHavingBase.childGetter("expression")
+
+
+class ExpressionAsyncWaitEnter(ExpressionAsyncWait):
+    kind = "EXPRESSION_ASYNC_WAIT_ENTER"
+
+
+class ExpressionAsyncWaitExit(ExpressionAsyncWait):
+    kind = "EXPRESSION_ASYNC_WAIT_EXIT"

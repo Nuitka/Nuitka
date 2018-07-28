@@ -110,7 +110,7 @@ PyObject *BUILTIN_ORD( PyObject *value )
     }
     else if ( PyUnicode_Check( value ) )
     {
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
         if (unlikely( PyUnicode_READY( value ) == -1 ))
         {
             return NULL;
@@ -123,7 +123,7 @@ PyObject *BUILTIN_ORD( PyObject *value )
 
         if (likely( size == 1 ))
         {
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
             result = (long)( PyUnicode_READ_CHAR( value, 0 ) );
 #else
             result = (long)( *PyUnicode_AS_UNICODE( value ) );

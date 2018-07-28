@@ -49,12 +49,16 @@ def displayOutput(stdout, stderr):
 
 
 def checkNoPermissionError(output):
-    for candidate in (b"Permission denied:", b"PermissionError:", b"DBPermissionsError:"):
+    # Forms of permission errors.
+    for candidate in (b"Permission denied:",
+                      b"PermissionError:",
+                      b"DBPermissionsError:"):
         if candidate in output:
             return False
 
     # These are localized it seems.
-    if re.search(b"(WindowsError|FileNotFoundError|FileExistsError):.*(@test|totest|xx)", output):
+    if re.search(b"(WindowsError|FileNotFoundError|FileExistsError|WinError 145):"
+                 b".*(@test|totest|xx|Error 145)", output):
         return False
 
     return True
@@ -88,7 +92,7 @@ def main():
     two_step_execution = hasArg("two_step_execution")
     binary_python_path = hasArg("binary_python_path")
     keep_python_path   = hasArg("keep_python_path")
-    trace_command      = hasArg("trace_command")
+    trace_command      = hasArg("trace_command") or os.environ.get("NUITKA_TRACE_COMMANDS", '0') != '0'
     remove_output      = hasArg("remove_output")
     standalone_mode    = hasArg("standalone")
     no_site            = hasArg("no_site")
@@ -560,10 +564,11 @@ Exit codes {exit_cpython:d} (CPython) != {exit_nuitka:d} (Nuitka)""".format(
            not two_step_execution:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--debugger")
 
-            process = subprocess.Popen(
-                args  = nuitka_cmd,
-                stdin = subprocess.PIPE
-            )
+            with withPythonPathChange(nuitka_package_dir):
+                process = subprocess.Popen(
+                    args  = nuitka_cmd,
+                    stdin = subprocess.PIPE
+                )
 
             process.communicate()
 

@@ -128,15 +128,6 @@ class ExpressionGeneratorObjectBody(MarkUnoptimizedFunctionIndicatorMixin,
     def needsCreation():
         return False
 
-    def computeFunction(self, trace_collection):
-        # TODO: A different function node type seems justified due to this.
-        if self.isUnoptimized():
-
-            with trace_collection.makeLocalsDictContext(self.locals_scope):
-                ExpressionFunctionEntryPointBase.computeFunction(self, trace_collection)
-        else:
-            ExpressionFunctionEntryPointBase.computeFunction(self, trace_collection)
-
 
 class StatementGeneratorReturn(StatementReturn):
     kind = "STATEMENT_GENERATOR_RETURN"

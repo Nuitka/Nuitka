@@ -53,6 +53,9 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
 
         self.builtin_name = builtin_name
 
+    def finalize(self):
+        del self.parent
+
     def getDetails(self):
         return {
             "builtin_name" : self.builtin_name
@@ -221,7 +224,7 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
 
         # TODO: Keyword only arguments of it, are not properly handled yet by
         # the built-in call code.
-        if exception_name == "ImportError" and python_version >= 330:
+        if exception_name == "ImportError" and python_version >= 300:
             if call_kw is not None and \
                (not call_kw.isExpressionConstantRef() or call_kw.getConstant() != {}):
                 return call_node, None, None

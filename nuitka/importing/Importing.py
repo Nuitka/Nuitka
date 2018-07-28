@@ -80,7 +80,7 @@ def isPackageDir(dirname):
 
     return os.path.isdir(dirname) and \
            (
-               python_version >= 330 or
+               python_version >= 300 or
                os.path.isfile(os.path.join(dirname, "__init__.py")) or
                isPreloadedPackagePath(dirname)
            )
@@ -351,7 +351,7 @@ def _findModuleInPath2(module_name, search_path):
                     )
                     break
             else:
-                if python_version >= 330:
+                if python_version >= 300:
                     candidates.add(
                         (entry, 2, package_directory)
                     )

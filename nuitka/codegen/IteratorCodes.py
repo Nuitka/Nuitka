@@ -108,36 +108,6 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
     context.addCleanupTempName(to_name)
 
 
-def getUnpackNextCode(to_name, value, expected, count, emit, context):
-    if python_version < 350:
-        emit(
-            "%s = UNPACK_NEXT( %s, %s );" % (
-                to_name,
-                value,
-                count - 1
-            )
-        )
-    else:
-        emit(
-            "%s = UNPACK_NEXT( %s, %s, %s );" % (
-                to_name,
-                value,
-                count - 1,
-                expected
-            )
-        )
-
-    getErrorExitCode(
-        check_name      = to_name,
-        release_name    = value,
-        quick_exception = "StopIteration",
-        emit            = emit,
-        context         = context
-    )
-
-    context.addCleanupTempName(to_name)
-
-
 def generateSpecialUnpackCode(to_name, expression, emit, context):
     value_name = context.allocateTempName("unpack")
 
@@ -148,14 +118,39 @@ def generateSpecialUnpackCode(to_name, expression, emit, context):
         context    = context
     )
 
-    getUnpackNextCode(
-        to_name  = to_name,
-        value    = value_name,
-        count    = expression.getCount(),
-        expected = expression.getExpected(),
-        emit     = emit,
-        context  = context
+    count = expression.getCount()
+
+    if python_version < 350:
+        emit(
+            "%s = UNPACK_NEXT( %s, %s );" % (
+                to_name,
+                value_name,
+                count - 1
+            )
+        )
+    else:
+        starred = expression.getStarred()
+        expected = expression.getExpected()
+
+        emit(
+            "%s = UNPACK_NEXT%s( %s, %s, %s );" % (
+                to_name,
+                "_STARRED" if starred else "",
+                value_name,
+                count - 1,
+                expected
+            )
+        )
+
+    getErrorExitCode(
+        check_name      = to_name,
+        release_name    = value_name,
+        quick_exception = "StopIteration",
+        emit            = emit,
+        context         = context
     )
+
+    context.addCleanupTempName(to_name)
 
 
 def generateUnpackCheckCode(statement, emit, context):

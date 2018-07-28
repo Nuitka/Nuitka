@@ -219,6 +219,8 @@ Determined values to not alias and therefore result of '%s' comparison.""" % (
             expressions = self.getOperands()
         )
 
+        del self.parent
+
         return result, "new_statements", """\
 Removed %s comparison for unused result.""" % self.comparator
 

@@ -67,11 +67,6 @@ class ExpressionBase(NodeBase):
         # Virtual method, pylint: disable=no-self-use
         return False
 
-    def getCompileTimeConstant(self):
-        assert self.isCompileTimeConstant(), self
-
-        assert False
-
     def getTruthValue(self):
         """ Return known truth value. The "None" value indicates unknown. """
 
@@ -975,17 +970,14 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
             then the node "computeExpression". For a few cases this needs to
             be overloaded, e.g. conditional expressions.
         """
-        # First apply the sub-expressions, as they are evaluated before.
-        sub_expressions = self.getVisitableNodes()
-
-        for count, sub_expression in enumerate(sub_expressions):
-            assert sub_expression.isExpression(), (self, sub_expression)
-
-            expression = trace_collection.onExpression(
-                expression = sub_expression
-            )
+        # First apply the sub-expressions, as they are evaluated before
+        # the actual operation.
+        for count, sub_expression in enumerate(self.getVisitableNodes()):
+            expression = trace_collection.onExpression(sub_expression)
 
             if expression.willRaiseException(BaseException):
+                sub_expressions = self.getVisitableNodes()
+
                 wrapped_expression = wrapExpressionWithSideEffects(
                     side_effects = sub_expressions[:count],
                     old_node     = sub_expression,
@@ -995,7 +987,7 @@ class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):
                 return (
                     wrapped_expression,
                     "new_raise",
-                    lambda : "For '%s' the expression '%s' will raise." % (
+                    lambda : "For '%s' the child expression '%s' will raise." % (
                         self.getChildNameNice(),
                         expression.getChildNameNice()
                     )
@@ -1038,6 +1030,11 @@ class ExpressionChildHavingBase(ExpressionBase):
         attr_name = "subnode_" + self.named_child
         setattr(self, attr_name, value)
 
+    def finalize(self):
+        del self.parent
+
+        for c in self.getVisitableNodes():
+            c.finalize()
 
     # TODO: De-duplicate this with multiple child variant.
     def computeExpressionRaw(self, trace_collection):
@@ -1067,7 +1064,7 @@ class ExpressionChildHavingBase(ExpressionBase):
                 return (
                     wrapped_expression,
                     "new_raise",
-                    lambda : "For '%s' the expression '%s' will raise." % (
+                    lambda : "For '%s' the child expression '%s' will raise." % (
                         self.getChildNameNice(),
                         expression.getChildNameNice()
                     )

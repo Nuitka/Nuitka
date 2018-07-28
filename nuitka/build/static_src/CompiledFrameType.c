@@ -290,7 +290,13 @@ static PyObject *Nuitka_Frame_tp_repr( struct Nuitka_FrameObject *nuitka_frame )
 #else
     return PyUnicode_FromFormat(
 #endif
-#if _DEBUG_FRAME || _DEBUG_REFRAME || _DEBUG_EXCEPTIONS
+#if PYTHON_VERSION >= 370
+       "<compiled_frame at %p, file %R, line %d, code %S>",
+        nuitka_frame,
+        nuitka_frame->m_frame.f_code->co_filename,
+        nuitka_frame->m_frame.f_lineno,
+        nuitka_frame->m_frame.f_code->co_name
+#elif _DEBUG_FRAME || _DEBUG_REFRAME || _DEBUG_EXCEPTIONS
         "<compiled_frame object for %s at %p>",
         Nuitka_String_AsString( nuitka_frame->m_frame.f_code->co_name ),
         nuitka_frame
@@ -663,8 +669,8 @@ PyCodeObject *MAKE_CODEOBJ( PyObject *filename, PyObject *function_name, int lin
     Py_hash_t hash = DEEP_HASH( argnames );
 #endif
 
-    // TODO: Consider using PyCode_NewEmpty
-
+    // Not using PyCode_NewEmpty, it doesn't given us much beyond this
+    // and is not available for Python2.
     PyCodeObject *result = PyCode_New(
         arg_count,           // argcount
 #if PYTHON_VERSION >= 300

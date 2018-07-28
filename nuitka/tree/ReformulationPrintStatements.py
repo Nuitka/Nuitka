@@ -27,7 +27,7 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable
 )
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantNoneRef
 from nuitka.nodes.ImportNodes import ExpressionImportModuleNameHard
 from nuitka.nodes.PrintNodes import StatementPrintNewline, StatementPrintValue
@@ -37,7 +37,6 @@ from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     buildNode,
     buildNodeList,
-    makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements
 )
 
@@ -73,7 +72,7 @@ def buildPrintNode(provider, node, source_ref):
                 ),
                 source_ref = source_ref
             ),
-            StatementConditional(
+            makeStatementConditional(
                 condition  = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
                         variable   = tmp_target_variable,
@@ -84,9 +83,7 @@ def buildPrintNode(provider, node, source_ref):
                     ),
                     source_ref = source_ref
                 ),
-                yes_branch = makeStatementsSequenceFromStatement(
-                    statement = target_default_statement
-                ),
+                yes_branch = target_default_statement,
                 no_branch  = None,
                 source_ref = source_ref
             )

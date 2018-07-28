@@ -42,7 +42,7 @@ from nuitka.nodes.ComparisonNodes import (
 )
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditionalOR,
-    StatementConditional
+    makeStatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
@@ -87,7 +87,6 @@ from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .TreeHelpers import (
     makeCallNode,
-    makeConditionalStatement,
     makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements
 )
@@ -232,7 +231,7 @@ def getCallableNameDescBody():
             source_ref = internal_source_ref
         )
 
-        no_branch = makeConditionalStatement(
+        no_branch = makeStatementConditional(
             condition  = ExpressionBuiltinIsinstance(
                 instance   = ExpressionVariableRef(
                     variable   = called_variable,
@@ -268,7 +267,7 @@ def getCallableNameDescBody():
             source_ref = internal_source_ref
         )
 
-        no_branch = makeConditionalStatement(
+        no_branch = makeStatementConditional(
             condition  = ExpressionBuiltinIsinstance(
                 instance   = ExpressionVariableRef(
                     variable   = called_variable,
@@ -296,7 +295,7 @@ def getCallableNameDescBody():
 
     result.setBody(
         makeStatementsSequenceFromStatement(
-            statement = makeConditionalStatement(
+            statement = makeStatementConditional(
                 condition  = ExpressionBuiltinIsinstance(
                     instance   = ExpressionVariableRef(
                         variable   = called_variable,
@@ -386,7 +385,7 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
 def _makeStarListArgumentToTupleStatement(called_variable,
                                           star_list_variable):
     if python_version >= 350:
-        non_tuple_code = makeConditionalStatement(
+        non_tuple_code = makeStatementConditional(
             condition  = ExpressionConditionalOR(
                 left       = ExpressionBuiltinHasattr(
                     object_arg = ExpressionVariableRef(
@@ -444,7 +443,7 @@ def _makeStarListArgumentToTupleStatement(called_variable,
             source_ref     = internal_source_ref
         )
 
-    return makeConditionalStatement(
+    return makeStatementConditional(
         condition  = ExpressionComparisonIsNOT(
             left       = ExpressionBuiltinType1(
                 value      = ExpressionVariableRef(
@@ -646,7 +645,7 @@ def _makeStarDictArgumentToDictStatement(result, called_variable,
         ),
     )
 
-    tried = StatementConditional(
+    tried = makeStatementConditional(
         condition  = ExpressionComparisonIsNOT(
             left       = ExpressionBuiltinType1(
                 value      = ExpressionVariableRef(
@@ -690,6 +689,52 @@ def _makeStarDictArgumentToDictStatement(result, called_variable,
         tried      = tried,
         final      = final,
         source_ref = internal_source_ref
+    )
+
+
+def _makeRaiseNoStringItem(called_variable):
+    return StatementRaiseException(
+        exception_type  = ExpressionBuiltinMakeException(
+            exception_name = "TypeError",
+            args           = (
+                makeBinaryOperationNode(
+                    operator   = "Mod",
+                    left       =  makeConstantRefNode(
+                        constant      = """\
+%s keywords must be strings""",
+                        source_ref    = internal_source_ref,
+                        user_provided = True
+                    ),
+                    right      = ExpressionFunctionCall(
+                        function   = ExpressionFunctionCreation(
+                            function_ref = ExpressionFunctionRef(
+                                function_body = getCallableNameDescBody(
+                                ),
+                                source_ref    = internal_source_ref
+                            ),
+                            code_object  = None,
+                            defaults     = (),
+                            kw_defaults  = None,
+                            annotations  = None,
+                            source_ref   = internal_source_ref
+                        ),
+                        values     = (
+                            ExpressionVariableRef(
+                                variable   = called_variable,
+                                source_ref = internal_source_ref
+                            ),
+                        ),
+                        source_ref = internal_source_ref
+                    ),
+                    source_ref = internal_source_ref
+                ),
+            ),
+            source_ref     = internal_source_ref
+        ),
+        exception_value = None,
+        exception_trace = None,
+        exception_cause = None,
+        source_ref      = internal_source_ref
     )
 
 
@@ -778,7 +823,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable
     ]
 
     mapping_loop_body = (
-        StatementConditional(
+        makeStatementConditional(
             condition  = ExpressionComparisonIn(
                 left       = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
@@ -790,11 +835,9 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable
                 ),
                 source_ref = internal_source_ref
             ),
-            yes_branch = makeStatementsSequenceFromStatement(
-                statement = _makeRaiseDuplicationItem(
-                    called_variable  = called_variable,
-                    tmp_key_variable = tmp_key_variable
-                )
+            yes_branch = _makeRaiseDuplicationItem(
+                called_variable  = called_variable,
+                tmp_key_variable = tmp_key_variable
             ),
             no_branch  = None,
             source_ref = internal_source_ref
@@ -911,7 +954,7 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable
             ),
             source_ref = internal_source_ref
         ),
-        StatementConditional(
+        makeStatementConditional(
             condition  = ExpressionComparisonIn(
                 left       = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
@@ -923,11 +966,9 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable
                 ),
                 source_ref = internal_source_ref
             ),
-            yes_branch = makeStatementsSequenceFromStatement(
-                statement = _makeRaiseDuplicationItem(
-                    called_variable  = called_variable,
-                    tmp_key_variable = tmp_key_variable
-                )
+            yes_branch = _makeRaiseDuplicationItem(
+                called_variable  = called_variable,
+                tmp_key_variable = tmp_key_variable
             ),
             no_branch  = None,
             source_ref = internal_source_ref
@@ -996,19 +1037,17 @@ def _makeStarDictArgumentMergeToKwStatement(result, called_variable, kw_variable
         ),
     )
 
-    dict_case = makeStatementsSequenceFromStatement(
-        statement = StatementConditional(
-            condition  = ExpressionVariableRef(
-                variable   = star_dict_variable,
-                source_ref = internal_source_ref
-            ),
-            yes_branch = dict_case,
-            no_branch  = None,
+    dict_case = makeStatementConditional(
+        condition  = ExpressionVariableRef(
+            variable   = star_dict_variable,
             source_ref = internal_source_ref
-        )
+        ),
+        yes_branch = dict_case,
+        no_branch  = None,
+        source_ref = internal_source_ref
     )
 
-    tried = StatementConditional(
+    tried = makeStatementConditional(
         condition  = ExpressionComparisonIsNOT(
             left       = ExpressionBuiltinType1(
                 value      = ExpressionVariableRef(
@@ -2490,7 +2529,28 @@ def getFunctionCallHelperDictionaryUnpacking():
     tmp_key_variable = result.allocateTempVariable(temp_scope, "dict_key")
 
     update_body = (
-        StatementConditional(
+        makeStatementConditional(
+            condition  = ExpressionComparisonIsNOT(
+                left       = ExpressionBuiltinType1(
+                    value      = ExpressionTempVariableRef(
+                        variable   = tmp_key_variable,
+                        source_ref = internal_source_ref
+                    ),
+                    source_ref = internal_source_ref
+                ),
+                right      = makeExpressionBuiltinRef(
+                    builtin_name = "str",
+                    source_ref   = internal_source_ref
+                ),
+                source_ref = internal_source_ref
+            ),
+            yes_branch = _makeRaiseNoStringItem(
+                called_variable = called_variable,
+            ),
+            no_branch  = None,
+            source_ref = internal_source_ref
+        ),
+        makeStatementConditional(
             condition  = ExpressionComparisonIn(
                 left       = ExpressionTempVariableRef(
                     variable   = tmp_key_variable,
@@ -2502,11 +2562,9 @@ def getFunctionCallHelperDictionaryUnpacking():
                 ),
                 source_ref = internal_source_ref
             ),
-            yes_branch = makeStatementsSequenceFromStatement(
-                statement = _makeRaiseDuplicationItem(
-                    called_variable  = called_variable,
-                    tmp_key_variable = tmp_key_variable
-                )
+            yes_branch = _makeRaiseDuplicationItem(
+                called_variable  = called_variable,
+                tmp_key_variable = tmp_key_variable
             ),
             no_branch  = None,
             source_ref = internal_source_ref
@@ -2563,43 +2621,11 @@ def getFunctionCallHelperDictionaryUnpacking():
                 )
             ),
             exception_name = "AttributeError",
-            handler_body   = StatementRaiseException(
-                exception_type  = ExpressionBuiltinMakeException(
-                    exception_name = "TypeError",
-                    args           = (
-                        makeBinaryOperationNode(
-                            operator   = "Mod",
-                            left       =  makeConstantRefNode(
-                                constant      = """\
-'%s' object is not a mapping""",
-                                source_ref    = internal_source_ref,
-                                user_provided = True
-                            ),
-                            right      = ExpressionMakeTuple(
-                                elements   = (
-                                    _makeNameAttributeLookup(
-                                        ExpressionBuiltinType1(
-                                            value      = ExpressionTempVariableRef(
-                                                variable   = tmp_item_variable,
-                                                source_ref = internal_source_ref
-                                            ),
-                                            source_ref = internal_source_ref
-                                        )
-                                    ),
-                                ),
-                                source_ref = internal_source_ref
-                            ),
-                            source_ref = internal_source_ref
-                        ),
-                    ),
-                    source_ref     = internal_source_ref
-                ),
-                exception_value = None,
-                exception_trace = None,
-                exception_cause = None,
-                source_ref      = internal_source_ref
+            handler_body   = _makeRaiseExceptionMustBeMapping(
+                called_variable = called_variable,
+                star_dict_variable = tmp_item_variable
             ),
-            source_ref     = internal_source_ref
+            source_ref = internal_source_ref
         ),
     )
 

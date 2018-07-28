@@ -22,13 +22,11 @@ has.
 
 """
 
-from __future__ import print_function
-
 import os
 import subprocess
 import sys
 
-from nuitka.tools.testing.Common import hasModule
+from nuitka.tools.testing.Common import hasModule, my_print
 from nuitka.utils import Execution
 
 pylint_version = None
@@ -54,7 +52,7 @@ def checkVersion():
     if pylint_version < "1.6.5":
         sys.exit("Error, needs PyLint 1.6.5 or higher not %r." % pylint_version)
 
-    print("Using PyLint version:", pylint_version)
+    my_print("Using PyLint version:", pylint_version)
 
 
 # Disabled globally:
@@ -112,13 +110,27 @@ def checkVersion():
 #
 # c-extension-no-member
 # Not too useful for us.
+#
+# useless-object-inheritance
+# The code is for Python2 still, where it makes a difference.
+#
+# useless-return
+# We like explicit None returns where the return value can be overloaded
+# to something else, or the function is used along others that do return
+# other things.
+
+# assignment-from-no-return
+# assignment-from-none
+# Overloaded functions are not detected, default value returns are all
+# warned about, not worth it.
 
 def getOptions():
     checkVersion()
 
     default_pylint_options = """\
 --init-hook=import sys;sys.setrecursionlimit(1024*sys.getrecursionlimit())
---disable=I0011,I0012,no-init,C0326,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,similar-code,cyclic-import,duplicate-code,deprecated-module
+--disable=I0011,I0012,no-init,C0326,C0330,E1103,W0632,W1504,C0123,C0411,C0413,R0204,\
+similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
 --enable=useless-suppression
 --msg-template="{path}:{line} {msg_id} {symbol} {obj} {msg}"
 --reports=no
@@ -137,6 +149,7 @@ def getOptions():
 --max-public-methods=100
 --max-args=11
 --max-parents=12
+--max-statements=50
 --max-nested-blocks=10
 --max-bool-expr=10\
 """.split('\n')
@@ -148,15 +161,28 @@ def getOptions():
 --disable=no-else-return\
 """.split('\n')
 
+    if pylint_version >= "1.8":
+        default_pylint_options += """\
+--disable=c-extension-no-member,inconsistent-return-statements\
+""".split('\n')
+
+    if pylint_version >= "2.0":
+        default_pylint_options += """\
+--disable=useless-object-inheritance,useless-return,assignment-from-no-return\
+""".split('\n')
+
+    # Workaround for wrong reports in that version that will hopefully be fixed
+    # in PyLint.
+    if pylint_version == "2.0.0":
+        default_pylint_options += """\
+--disable=bad-continuation,C0330,chained-comparison\
+""".split('\n')
+
     if os.name != "nt":
         default_pylint_options.append(
             "--rcfile=%s" % os.devnull
         )
 
-    if pylint_version >= "1.8":
-        default_pylint_options += """\
---disable=c-extension-no-member,inconsistent-return-statements\
-""".split('\n')
 
     return default_pylint_options
 
@@ -221,7 +247,7 @@ def _executePylint(filenames, pylint_options, extra_options):
         our_exit_code = 1
 
         for line in stderr:
-            print(line)
+            my_print(line)
 
     if stdout:
         # If we filtered everything away, remove the leading file name report.
@@ -230,7 +256,7 @@ def _executePylint(filenames, pylint_options, extra_options):
             stdout = []
 
         for line in stdout:
-            print(line)
+            my_print(line)
 
         if stdout:
             our_exit_code = 1
@@ -242,17 +268,29 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
     filenames = list(filenames)
 
     if verbose:
-        print("Checking", filenames, "...")
+        my_print("Checking", filenames, "...")
 
     pylint_options = getOptions()
     if not show_todos:
         pylint_options.append("--notes=")
 
     def hasPyLintBugTrigger(filename):
-        return os.path.basename(filename) in (
-            "ReformulationContractionExpressions.py",
-            "TreeHelpers.py"
-        )
+        # Stack overflow core dumps with 1.9.x unfortunately.
+        if pylint_version < "2.0.0":
+            if os.path.basename(filename) in (
+                "ReformulationContractionExpressions.py",
+                "TreeHelpers.py"
+            ):
+                return True
+
+        if pylint_version == "2.0.0":
+            if os.path.basename(filename) in (
+                "LocalsDictCodes.py",
+                "FrameCodes.py"
+            ):
+                return True
+
+        return False
 
     filenames = [
         filename
@@ -267,7 +305,7 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
 
     if one_by_one:
         for filename in filenames:
-            print("Checking", filename, ':')
+            my_print("Checking", filename, ':')
             _executePylint([filename], pylint_options, extra_options)
     else:
         _executePylint(filenames, pylint_options, extra_options)

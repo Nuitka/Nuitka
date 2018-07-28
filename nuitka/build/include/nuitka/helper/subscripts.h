@@ -20,6 +20,10 @@
 
 extern PyObject *STRING_FROM_CHAR( unsigned char c );
 
+#if PYTHON_VERSION >= 370
+extern PyObject *const_str_plain___class_getitem__;
+#endif
+
 NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, PyObject *const_subscript, Py_ssize_t int_subscript )
 {
     CHECK_OBJECT( source );
@@ -92,11 +96,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
         {
             if ( int_subscript < 0 )
             {
-#if PYTHON_VERSION < 330
-                int_subscript += PyUnicode_GET_SIZE( source );
-#else
                 int_subscript += PyUnicode_GET_LENGTH( source );
-#endif
             }
 
             result = type->tp_as_sequence->sq_item( source, int_subscript );
@@ -113,6 +113,23 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT_CONST( PyObject *source, 
     }
     else
     {
+#if PYTHON_VERSION >= 370
+        if ( PyType_Check( source ) )
+        {
+            PyObject *meth = LOOKUP_ATTRIBUTE( source, const_str_plain___class_getitem__ );
+
+            if ( meth )
+            {
+                PyObject *subscript = PyLong_FromSsize_t( int_subscript );
+                result = CALL_FUNCTION_WITH_SINGLE_ARG( meth, subscript );
+                Py_DECREF( meth );
+                Py_DECREF( subscript );
+
+                return result;
+            }
+        }
+#endif
+
         PyErr_Format(
             PyExc_TypeError,
 #if PYTHON_VERSION < 270
@@ -185,6 +202,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT( PyObject *source, PyObje
     }
     else
     {
+#if PYTHON_VERSION >= 370
+        if ( PyType_Check( source ) )
+        {
+            PyObject *meth = LOOKUP_ATTRIBUTE( source, const_str_plain___class_getitem__ );
+
+            if ( meth )
+            {
+                result = CALL_FUNCTION_WITH_SINGLE_ARG( meth, subscript );
+                Py_DECREF( meth );
+                return result;
+            }
+        }
+#endif
+
         PyErr_Format(
             PyExc_TypeError,
 #if PYTHON_VERSION < 270

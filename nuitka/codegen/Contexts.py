@@ -641,7 +641,7 @@ def _getConstantDefaultPopulation():
         )
 
 
-    if python_version >= 330:
+    if python_version >= 300:
         # Modules have that attribute starting with 3.3
         result.append(
             "__loader__"
@@ -653,7 +653,7 @@ def _getConstantDefaultPopulation():
             "send"
         )
 
-    if python_version >= 330:
+    if python_version >= 300:
         result += (
             # YIELD_FROM uses this
             "throw",
@@ -730,6 +730,11 @@ def _getConstantDefaultPopulation():
     if not Options.shallMakeModule():
         result.append(
             sys.executable
+        )
+
+    if python_version >= 370:
+        result.append(
+            "__class_getitem__"
         )
 
     return result
@@ -1090,7 +1095,8 @@ class PythonFunctionContext(FrameDeclarationsMixin,
         self.frame_handle = None
 
     def __repr__(self):
-        return "<PythonFunctionContext for %s '%s'>" % (
+        return "<%s for %s '%s'>" % (
+            self.__class__.__name__,
             "function" if not self.function.isExpressionClassBody() else "class",
             self.function.getName()
         )
@@ -1137,7 +1143,7 @@ class PythonGeneratorObjectContext(PythonFunctionContext):
         return "generator"
 
     def getGeneratorReturnValueName(self):
-        if python_version >= 330:
+        if python_version >= 300:
             return self.allocateTempName(
                 "return_value",
                 "PyObject *",

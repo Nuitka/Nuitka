@@ -132,7 +132,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
         closure_variables = closure_variables
     )
 
-    if python_version < 330 or function_qualname == function_name:
+    if python_version < 300 or function_qualname == function_name:
         function_qualname_obj = "NULL"
     else:
         function_qualname_obj = context.getConstantCode(

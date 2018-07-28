@@ -156,15 +156,15 @@ def checkPythonVersionFromCode(source_code):
         elif basename == "python2.6":
             result = python_version < 270
         elif basename == "python3.2":
-            result = python_version < 330 and python_version >= 300
+            result = 330 > python_version >= 300
         elif basename == "python3.3":
-            result = python_version < 340 and python_version >= 330
+            result = 340 > python_version >= 330
         elif basename == "python3.4":
-            result = python_version < 350 and python_version >= 340
+            result = 350 > python_version >= 340
         elif basename == "python3.5":
-            result = python_version < 360 and python_version >= 350
+            result = 360 > python_version >= 350
         elif basename == "python3.6":
-            result = python_version < 370 and python_version >= 360
+            result = 370 > python_version >= 360
         else:
             result = None
 

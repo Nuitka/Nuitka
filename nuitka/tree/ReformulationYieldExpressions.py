@@ -73,7 +73,7 @@ def buildYieldNode(provider, node, source_ref):
 
 
 def buildYieldFromNode(provider, node, source_ref):
-    assert python_version >= 330
+    assert python_version >= 300
 
     _checkInsideGenerator(provider, node, source_ref)
 

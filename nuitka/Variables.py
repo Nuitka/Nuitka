@@ -59,6 +59,12 @@ class Variable(object):
 
     __del__ = InstanceCounters.counted_del()
 
+    def finalize(self):
+        del self.users
+        del self.writers
+        del self.traces
+        del self.owner
+
     def getDescription(self):
         return "variable '%s'" % self.variable_name
 
@@ -115,6 +121,9 @@ class Variable(object):
             self.shared_scopes = True
 
     def isSharedAmongScopes(self):
+        # TODO: This is only used for Python2, and could be made
+        # and optional slot.
+
         return self.shared_scopes
 
     def isSharedTechnically(self):

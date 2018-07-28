@@ -113,12 +113,12 @@ extern PyObject *const_str_plain___package__;
 
 #if PYTHON_VERSION >= 300
 extern PyObject *const_str_dot;
-#endif
-#if PYTHON_VERSION >= 330
+
 extern PyObject *const_str_plain___loader__;
 extern PyObject *metapath_based_loader;
 #endif
-#if PYTHON_VERSION >= 330
+
+#if PYTHON_VERSION >= 340
 extern PyObject *const_str_plain___spec__;
 #endif
 
@@ -238,7 +238,6 @@ MOD_INIT_DECL( %(module_identifier)s )
     // Update "__package__" value to what it ought to be.
     {
 #if %(is_package)s
-#if PYTHON_VERSION < 300 || PYTHON_VERSION >= 330
         PyObject *module_name = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ );
 
         UPDATE_STRING_DICT1(
@@ -246,7 +245,6 @@ MOD_INIT_DECL( %(module_identifier)s )
             (Nuitka_StringObject *)const_str_plain___package__,
             module_name
         );
-#endif
 
 #else
 
@@ -264,12 +262,6 @@ MOD_INIT_DECL( %(module_identifier)s )
                 PyString_FromStringAndSize( module_name_cstr, last_dot - module_name_cstr )
             );
         }
-#elif PYTHON_VERSION < 330
-        UPDATE_STRING_DICT1(
-            moduledict_%(module_identifier)s,
-            (Nuitka_StringObject *)const_str_plain___package__,
-            Py_None
-        );
 #else
         PyObject *module_name = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ );
         Py_ssize_t dot_index = PyUnicode_Find( module_name, const_str_dot, 0, PyUnicode_GetLength( module_name ), -1 );
@@ -314,7 +306,7 @@ MOD_INIT_DECL( %(module_identifier)s )
         UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___builtins__, value );
     }
 
-#if PYTHON_VERSION >= 330
+#if PYTHON_VERSION >= 300
     UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, metapath_based_loader );
 #endif
 

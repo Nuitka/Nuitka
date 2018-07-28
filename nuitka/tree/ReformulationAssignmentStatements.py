@@ -39,13 +39,20 @@ from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIterForUnpack,
     StatementSpecialUnpackCheck
 )
+from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
-from nuitka.nodes.ComparisonNodes import ExpressionComparisonIsNOT
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ComparisonNodes import ExpressionComparison
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
-from nuitka.nodes.OperatorNodes import makeExpressionOperationBinaryInplace
+from nuitka.nodes.NodeMakingHelpers import (
+    makeRaiseExceptionExpressionFromTemplate
+)
+from nuitka.nodes.OperatorNodes import (
+    makeBinaryOperationNode,
+    makeExpressionOperationBinaryInplace
+)
 from nuitka.nodes.SliceNodes import (
     ExpressionBuiltinSlice,
     ExpressionSliceLookup,
@@ -73,7 +80,6 @@ from .TreeHelpers import (
     makeConstantRefNode,
     makeSequenceCreationOrConstant,
     makeStatementsSequence,
-    makeStatementsSequenceFromStatement,
     makeStatementsSequenceFromStatements,
     makeStatementsSequenceOrStatement,
     mangleName
@@ -124,7 +130,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                                          source_ref):
     # This is using many variable names on purpose, so as to give names to the
     # unpacked detail values, and has many branches due to the many cases
-    # dealt with, pylint: disable=too-many-branches,too-many-locals
+    # dealt with, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     if kind == "Name":
         return StatementAssignmentVariableName(
@@ -205,15 +211,19 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
         statements = []
 
         for element_index, element in enumerate(detail):
-            element_var = element_vars[element_index]
-
-            if starred_list_var is not None:
-                if element[0] == "Starred":
+            if element[0] == "Starred":
+                if starred_index is not None:
                     raiseSyntaxError(
                         "two starred expressions in assignment",
                         source_ref.atColumnNumber(0)
                     )
 
+                starred_index = element_index
+
+        for element_index, element in enumerate(detail):
+            element_var = element_vars[element_index]
+
+            if starred_list_var is not None:
                 statements.insert(
                     starred_index+1,
                     StatementAssignmentVariable(
@@ -238,14 +248,16 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                                 source_ref = source_ref
                             ),
                             count      = element_index + 1,
-                            expected   = len(detail),
+                            expected   = starred_index or len(detail),
+                            starred    = starred_index is not None,
+
                             source_ref = source_ref
                         ),
                         source_ref = source_ref
                     )
                 )
             else:
-                starred_index = element_index
+                assert starred_index == element_index
                 starred_list_var = element_var
 
                 statements.append(
@@ -270,6 +282,51 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
                         source_ref = source_ref
                     ),
                     count      = len(detail),
+                    source_ref = source_ref
+                )
+            )
+        else:
+            statements.insert(
+                starred_index+1,
+                makeStatementConditional(
+                    condition  = ExpressionComparison(
+                        comparator = "Lt",
+                        left       = ExpressionBuiltinLen(
+                            value      = ExpressionTempVariableRef(
+                                variable   = starred_list_var,
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        ),
+                        right      = makeConstantRefNode(
+                            constant   = len(statements)-starred_index-1,
+                            source_ref = source_ref
+                        ),
+                        source_ref = source_ref
+
+                    ),
+                    yes_branch = makeRaiseExceptionExpressionFromTemplate(
+                        exception_type = "ValueError",
+                        template       = """\
+not enough values to unpack (expected at least %d, got %%d)""" % (len(statements) - 1),
+                        template_args  = makeBinaryOperationNode(
+                            operator   = "Add",
+                            left       = ExpressionBuiltinLen(
+                                value      = ExpressionTempVariableRef(
+                                    variable   = starred_list_var,
+                                    source_ref = source_ref
+                                ),
+                                source_ref = source_ref
+                            ),
+                            right      = makeConstantRefNode(
+                                constant   = starred_index,
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        ),
+                        source_ref     = source_ref
+                    ).asStatement(),
+                    no_branch  = None,
                     source_ref = source_ref
                 )
             )
@@ -532,6 +589,7 @@ def buildAnnAssignNode(provider, node, source_ref):
     """ Python3.6 annotation assignment.
 
     """
+    # There are cases to deal with here, pylint: disable=too-many-branches
 
     if provider.isCompiledPythonModule() or provider.isExpressionClassBody():
         provider.markAsNeedsAnnotationsDictionary()
@@ -579,9 +637,18 @@ def buildAnnAssignNode(provider, node, source_ref):
         else:
             annotation = buildNode(provider, node.annotation, source_ref)
 
+            # TODO: As CPython core considers this implementation detail, and it seems
+            # mostly useless to support having this as a closure taken name after a
+            # __del__ on annotations, we might do this except in full compat mode. It
+            # will produce only noise for all annotations in classes otherwise.
+            if python_version < 370:
+                ref_class = ExpressionVariableLocalNameRef
+            else:
+                ref_class = ExpressionVariableNameRef
+
             statements.append(
                 StatementAssignmentSubscript(
-                    expression = ExpressionVariableLocalNameRef(
+                    expression = ref_class(
                         provider      = provider,
                         variable_name = "__annotations__",
                         source_ref    = source_ref
@@ -759,37 +826,18 @@ def _buildInplaceAssignAttributeNode(provider, lookup_source, attribute_name,
         source_ref = source_ref
     )
 
-    # Third, copy it over, if the reference values change, i.e. IsNot is true.
-    copy_back_from_tmp = StatementConditional(
-        condition  = ExpressionComparisonIsNOT(
-            left       = ExpressionTempVariableRef(
-                variable   = tmp_variable1,
-                source_ref = source_ref
-            ),
-            right      = ExpressionTempVariableRef(
+    # Third, copy it back.
+    copy_back_from_tmp = makeTryFinallyStatement(
+        provider   = provider,
+        tried      = StatementAssignmentAttribute(
+            expression     = lookup_source.makeClone(),
+            attribute_name = attribute_name,
+            source         = ExpressionTempVariableRef(
                 variable   = tmp_variable2,
                 source_ref = source_ref
             ),
-            source_ref = source_ref
+            source_ref     = source_ref
         ),
-        yes_branch = makeStatementsSequenceFromStatement(
-            statement = StatementAssignmentAttribute(
-                expression     = lookup_source.makeClone(),
-                attribute_name = attribute_name,
-                source         = ExpressionTempVariableRef(
-                    variable   = tmp_variable2,
-                    source_ref = source_ref
-                ),
-                source_ref     = source_ref
-            )
-        ),
-        no_branch  = None,
-        source_ref = source_ref
-    )
-
-    copy_back_from_tmp = makeTryFinallyStatement(
-        provider   = provider,
-        tried      = copy_back_from_tmp,
         final      = StatementReleaseVariable(
             variable   = tmp_variable2,
             source_ref = source_ref

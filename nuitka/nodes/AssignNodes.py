@@ -107,6 +107,10 @@ class StatementDelVariableName(StatementBase):
 
         self.tolerant = tolerant
 
+    def finalize(self):
+        del self.parent
+        del self.provider
+
     def getDetails(self):
         return {
             "variable_name" : self.variable_name,
@@ -301,6 +305,8 @@ Side effects of assignments promoted to statements."""
                 node       = self
             )
 
+            del self.parent
+
             return result, "new_raise", """\
 Assignment raises exception in assigned value, removed assignment."""
 
@@ -337,7 +343,6 @@ Reduced assignment of %s from itself to mere access of it.""" % variable.getDesc
 Removed assignment of %s from itself which is known to be defined.""" % variable.getDescription()
 
 
-
         # Set-up the trace to the trace collection, so future references will
         # find this assignment.
         self.variable_trace = trace_collection.onVariableSet(
@@ -346,7 +351,7 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
             assign_node = self
         )
 
-        provider = self.getParentVariableProvider()
+        provider = trace_collection.getOwner()
 
         if variable.hasAccessesOutsideOf(provider) is False:
             last_trace = variable.getMatchingAssignTrace(self)
@@ -472,6 +477,12 @@ class StatementDelVariable(StatementBase):
         self.previous_trace = None
 
         self.tolerant = tolerant
+
+    def finalize(self):
+        del self.parent
+        del self.variable
+        del self.variable_trace
+        del self.previous_trace
 
     def getDetail(self):
         if self.variable is not None:
@@ -632,6 +643,11 @@ class StatementReleaseVariable(StatementBase):
         self.variable = variable
 
         self.variable_trace = None
+
+    def finalize(self):
+        del self.variable
+        del self.variable_trace
+        del self.parent
 
     def getDetail(self):
         return "of variable %s" % self.variable

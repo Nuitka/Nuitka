@@ -3,17 +3,18 @@ language: python
 python:
   - "2.6"
   - "2.7"
-#  - "3.2"
   - "3.3"
   - "3.4"
   - "3.5"
   - "3.6"
+# Not available on Travis yet:
+#   - "3.7"
 # commands to install dependencies
 install:
   - "sudo apt-get install scons chrpath"
   # This will install PyLint but not where it does not work. It will fail
   # to install 2.6 and be buggy for 3.3
-  - "python -c 'import sys;exit(sys.version_info[:2] not in ((2,6), (3,3), (3,6)))' || pip install pylint"
+  - "pip install -r requirements-devel.txt"
   - "pip install ."
 # commands to run tests
 script:

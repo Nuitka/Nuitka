@@ -48,7 +48,6 @@ from nuitka.Constants import (
     getConstantWeight,
     isMutable
 )
-from nuitka.PythonVersions import python_version
 
 from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
@@ -375,7 +374,7 @@ def __addConstantInitCode(context, emit, check, constant_type, constant_value,
     if constant_type is long:
         # See above, same for long values. Note: These are of course not
         # existent with Python3 which would have covered it before.
-        if constant_value >= 0 and constant_value <= max_unsigned_long:
+        if 0 <= constant_value <= max_unsigned_long:
             emit (
                 "%s = PyLong_FromUnsignedLong( %sul );" % (
                     constant_identifier,
@@ -384,7 +383,7 @@ def __addConstantInitCode(context, emit, check, constant_type, constant_value,
             )
 
             return
-        elif constant_value < 0 and constant_value >= min_signed_long:
+        elif 0 > constant_value >= min_signed_long:
             emit (
                 "%s = PyLong_FromLong( %sl );" % (
                     constant_identifier,
@@ -1092,7 +1091,7 @@ def getConstantInitCodes(module_context):
 
 
 def allocateNestedConstants(module_context):
-    # Lots of types to deal with, pylint: disable=too-many-branches
+    # Lots of types to deal with.
 
     def considerForDeferral(constant_value):
         module_context.getConstantCode(constant_value)
@@ -1115,25 +1114,10 @@ def allocateNestedConstants(module_context):
             considerForDeferral(constant_value.stop)
         elif constant_type is xrange:
             if xrange is range:
-                if python_version >= 330:
-                    # For Python2 ranges, we use C long values directly.
-                    considerForDeferral(constant_value.start)
-                    considerForDeferral(constant_value.step)
-                    considerForDeferral(constant_value.stop)
-                else:
-                    parts = [
-                        int(value)
-                        for value in
-                        str(constant_value)[6:-1].split(',')
-                    ]
-
-                    if len(parts) <= 1:
-                        parts.append(0)
-                    if len(parts) <= 2:
-                        parts.append(1)
-
-                    for value in parts:
-                        considerForDeferral(value)
+                # For Python2 ranges, we use C long values directly.
+                considerForDeferral(constant_value.start)
+                considerForDeferral(constant_value.step)
+                considerForDeferral(constant_value.stop)
         elif constant_value in builtin_named_values_list:
             considerForDeferral(builtin_named_values[constant_value])
 

@@ -63,7 +63,7 @@ void startProfiling( void )
         abort();
     }
 
-    PyObject *result = CALL_FUNCTION_WITH_ARGS1(
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(
         PyObject_GetAttrString( vmprof_module, "enable"),
          PyInt_FromLong( fileno( tempfile_profile ) )
     );

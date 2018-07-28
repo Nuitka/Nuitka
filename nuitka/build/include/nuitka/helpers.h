@@ -23,6 +23,7 @@
 #define _DEBUG_EXCEPTIONS 0
 #define _DEBUG_COROUTINE 0
 #define _DEBUG_ASYNCGEN 0
+#define _DEBUG_CLASSES 0
 
 extern PyObject *const_tuple_empty;
 extern PyObject *const_str_plain___dict__;
@@ -69,24 +70,6 @@ extern void stopProfiling( void );
 #include "nuitka/helper/boolean.h"
 #include "nuitka/helper/dictionaries.h"
 #include "nuitka/helper/mappings.h"
-
-#if PYTHON_VERSION >= 300
-static char const *_PyUnicode_AS_STRING( PyObject *unicode )
-{
-#if PYTHON_VERSION < 330
-    PyObject *bytes = _PyUnicode_AsDefaultEncodedString( unicode, NULL );
-
-    if (unlikely( bytes == NULL ))
-    {
-        return NULL;
-    }
-
-    return PyBytes_AS_STRING( bytes );
-#else
-    return PyUnicode_AsUTF8( unicode );
-#endif
-}
-#endif
 
 #include "nuitka/helper/raising.h"
 
@@ -233,8 +216,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
     return result;
 }
 
-#include "nuitka/helper/subscripts.h"
 #include "nuitka/helper/attributes.h"
+#include "nuitka/helper/subscripts.h"
 #include "nuitka/helper/iterators.h"
 #include "nuitka/helper/slices.h"
 #include "nuitka/helper/rangeobjects.h"
@@ -406,59 +389,8 @@ extern void _initSlotCompare( void );
 #endif
 
 #if PYTHON_VERSION >= 300
-NUITKA_MAY_BE_UNUSED static PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases )
-{
-    CHECK_OBJECT( metaclass );
-    CHECK_OBJECT( bases );
-
-    if (likely( PyType_Check( metaclass ) ))
-    {
-        // Determine the proper metatype
-        Py_ssize_t nbases = PyTuple_GET_SIZE( bases );
-        PyTypeObject *winner = (PyTypeObject *)metaclass;
-
-        for ( int i = 0; i < nbases; i++ )
-        {
-            PyObject *base = PyTuple_GET_ITEM( bases, i );
-
-            PyTypeObject *base_type = Py_TYPE( base );
-
-            if ( PyType_IsSubtype( winner, base_type ) )
-            {
-                // Ignore if current winner is already a subtype.
-                continue;
-            }
-            else if ( PyType_IsSubtype( base_type, winner ) )
-            {
-                // Use if, if it's a subtype of the current winner.
-                winner = base_type;
-                continue;
-            }
-            else
-            {
-                PyErr_Format(
-                    PyExc_TypeError,
-                    "metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases"
-                );
-
-                return NULL;
-            }
-        }
-
-        if (unlikely( winner == NULL ))
-        {
-            return NULL;
-        }
-
-        Py_INCREF( winner );
-        return (PyObject *)winner;
-    }
-    else
-    {
-        Py_INCREF( metaclass );
-        return metaclass;
-    }
-}
+// Select the metaclass from specified one and given bases.
+extern PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases );
 #endif
 
 extern PyObject *const_str_plain___name__;

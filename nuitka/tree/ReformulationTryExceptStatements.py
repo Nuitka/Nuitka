@@ -31,7 +31,7 @@ from nuitka.nodes.ComparisonNodes import (
     ExpressionComparisonExceptionMatch,
     ExpressionComparisonIs
 )
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTypeRef,
@@ -107,7 +107,7 @@ def makeTryExceptNoRaise(provider, temp_scope, tried, handling, no_raise,
             return_handler   = None,
             source_ref       = source_ref
         ),
-        StatementConditional(
+        makeStatementConditional(
             condition  = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
                     variable   = tmp_handler_indicator_variable,
@@ -181,7 +181,7 @@ def _makeTryExceptSingleHandlerNode(provider, public_exc, tried, exception_name,
         )
 
     handling.append(
-        StatementConditional(
+        makeStatementConditional(
             condition  = ExpressionComparisonExceptionMatch(
                 left       = ExpressionCaughtExceptionTypeRef(
                     source_ref = source_ref
@@ -379,7 +379,7 @@ def buildTryExceptionNode(provider, node, source_ref):
         else:
             exception_handling = StatementsSequence(
                 statements = (
-                    StatementConditional(
+                    makeStatementConditional(
                         condition  = ExpressionComparisonExceptionMatch(
                             left       = ExpressionCaughtExceptionTypeRef(
                                 source_ref = exception_type.source_ref

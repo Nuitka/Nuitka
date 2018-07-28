@@ -26,3 +26,7 @@
 	path = tests/CPython36
 	url = http://git.nuitka.net/tests-Nuitka-CPython.git
 	branch = CPython36
+[submodule "tests/CPython37"]
+	path = tests/CPython37
+	url = http://git.nuitka.net/tests-Nuitka-CPython.git
+	branch = CPython37

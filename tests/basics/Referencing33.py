@@ -113,6 +113,23 @@ def simpleFunction5():
     return list( g() )
 
 
+def simpleFunction6():
+    def g():
+        yield from (2,3)
+
+        return 9
+
+    return list( g() )
+
+def simpleFunction7():
+    def g():
+        yield from (2,3)
+
+        return 9, 8
+
+    return list( g() )
+
+
 
 # These need stderr to be wrapped.
 tests_stderr = (3, 4)

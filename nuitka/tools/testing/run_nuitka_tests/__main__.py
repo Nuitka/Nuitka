@@ -39,18 +39,9 @@ from nuitka.utils.Execution import (
 )
 
 
-def main():
-    # There are freaking many options to honor, pylint: disable=too-many-branches
-
-    # Lets honor this Debian option here.
-    if "nocheck" in os.environ.get("DEB_BUILD_OPTIONS", "").split():
-        print("Skipped all tests as per DEB_BUILD_OPTIONS environment.")
-        sys.exit(0)
-
-    # Make sure our resolving of "python2" to "python" doesn't get in the way.
-    os.environ["PYTHON_DISALLOW_AMBIGUOUS_VERSION"] = '0'
-
-    goHome()
+def parseOptions():
+    # There are freaking many options to honor,
+    # pylint: disable=too-many-branches,too-many-statements
 
     parser = OptionParser()
 
@@ -197,6 +188,17 @@ covered. With Python 2.x these are not run. Default is %default."""
     )
 
     parser.add_option(
+        "--skip-cpython37-tests",
+        action  = "store_false",
+        dest    = "cpython37",
+        default = True,
+        help    = """\
+The standard CPython3.6 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default."""
+    )
+
+
+    parser.add_option(
         "--skip-other-cpython-tests",
         action  = "store_true",
         dest    = "cpython_no_other",
@@ -283,6 +285,15 @@ Do not use Python3.6 even if available on the system. Default is %default."""
     )
 
     parser.add_option(
+        "--no-python3.7",
+        action  = "store_true",
+        dest    = "no36",
+        default = False,
+        help    = """\
+Do not use Python3.6 even if available on the system. Default is %default."""
+    )
+
+    parser.add_option(
         "--coverage",
         action  = "store_true",
         dest    = "coverage",
@@ -312,6 +323,8 @@ Make a coverage analysis, that does not really check. Default is %default."""
             options.no35 = True
         if sys.version_info[0:2] != (3,6):
             options.no36 = True
+        if sys.version_info[0:2] != (3,7):
+            options.no37 = True
 
     if options.cpython_no_other:
         if sys.version_info[0:2] != (2,6):
@@ -328,6 +341,8 @@ Make a coverage analysis, that does not really check. Default is %default."""
             options.cpython35 = False
         if sys.version_info[0:2] != (3,6):
             options.cpython36 = False
+        if sys.version_info[0:2] != (3,7):
+            options.cpython37 = False
 
     if options.cpython_none:
         options.cpython26 = False
@@ -337,9 +352,94 @@ Make a coverage analysis, that does not really check. Default is %default."""
         options.cpython34 = False
         options.cpython35 = False
         options.cpython36 = False
+        options.cpython37 = False
 
     if options.coverage and os.path.exists(".coverage"):
         os.unlink(".coverage")
+
+    return options
+
+
+def publishCoverageData():
+    def copyToGlobalCoverageData(source, target):
+        coverage_dir = os.environ.get("COVERAGE_DIR", None)
+
+        if coverage_dir is None:
+            return
+
+        subprocess.check_call(
+            (
+                "scp",
+                source,
+                os.path.join(
+                    coverage_dir,
+                    target
+                )
+            )
+        )
+
+    if os.name == "nt":
+        suffix = "win"
+    else:
+        import platform
+        suffix = platform.uname()[0] + '.' + platform.uname()[4]
+
+    with open("data.coverage", 'w') as data_file:
+        source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
+        with withDirectoryChange(source_dir):
+            nuitka_id = check_output("git rev-parse HEAD".split())
+        nuitka_id = nuitka_id.strip()
+
+        if sys.version_info > (3,):
+            nuitka_id = nuitka_id.decode()
+
+        data_file.write("NUITKA_SOURCE_DIR=%r\n" % source_dir)
+        data_file.write("NUITKA_COMMIT=%r\n" % nuitka_id)
+
+
+    copyToGlobalCoverageData("data.coverage", "meta.coverage." + suffix)
+
+    def makeCoverageRelative(filename):
+        """ Normalize coverage data.
+
+        """
+
+        with open(filename) as input_file:
+            data = input_file.read()
+
+        data = data.replace(
+            (os.path.abspath('.') + os.path.sep).replace('\\', "\\\\"),
+            ""
+        )
+
+        if os.path.sep != '/':
+            data.replace(os.path.sep, '/')
+
+        with open(filename, 'w') as output_file:
+            output_file.write(data)
+
+    coverage_file = os.environ.get("COVERAGE_FILE", ".coverage")
+
+    makeCoverageRelative(coverage_file)
+    copyToGlobalCoverageData(coverage_file, "data.coverage." + suffix)
+
+
+def main():
+    # There are many cases to deal with,
+    # pylint: disable=too-many-branches,too-many-statements
+
+    # Lets honor this Debian option here.
+    if "nocheck" in os.environ.get("DEB_BUILD_OPTIONS", "").split():
+        print("Skipped all tests as per DEB_BUILD_OPTIONS environment.")
+        sys.exit(0)
+
+    # Make sure our resolving of "python2" to "python" doesn't get in the way.
+    os.environ["PYTHON_DISALLOW_AMBIGUOUS_VERSION"] = '0'
+
+    goHome()
+
+    options = parseOptions()
 
     # Add the local bin directory to search path start.
     os.environ["PATH"] = \
@@ -367,6 +467,8 @@ Make a coverage analysis, that does not really check. Default is %default."""
             return False
         if command == "python3.6" and options.no36:
             return False
+        if command == "python3.7" and options.no37:
+            return False
 
         # Shortcuts for python versions, also needed for Windows as it won't have
         # the version number in the Python binaries at all.
@@ -381,6 +483,8 @@ Make a coverage analysis, that does not really check. Default is %default."""
         if command == "python3.5" and sys.version_info[0:2] == (3,5):
             return True
         if command == "python3.6" and sys.version_info[0:2] == (3,6):
+            return True
+        if command == "python3.7" and sys.version_info[0:2] == (3,7):
             return True
 
         path = os.environ[ "PATH" ]
@@ -543,8 +647,8 @@ Make a coverage analysis, that does not really check. Default is %default."""
         if "--debug" not in flags:
             # Not running the Python 3.2 test suite with CPython2.6, as that's about
             # the same as CPython2.7 and won't have any new insights.
-            if use_python != "python2.6" and \
-               use_python != "python2.7" or not options.coverage:
+            if use_python not in ("python2.6", "python2.7") or \
+               not options.coverage:
                 if os.path.exists("./tests/CPython32/run_all.py"):
                     if options.cpython32:
                         setExtraFlags(where, "32tests", flags)
@@ -570,7 +674,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
                 else:
                     print("The CPython3.4 tests are not present, not run.")
 
-            # Running the Python 3.4 test suite only with CPython3.x.
+            # Running the Python 3.5 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
                 if os.path.exists("./tests/CPython35/run_all.py"):
                     if options.cpython35:
@@ -579,7 +683,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
                 else:
                     print("The CPython3.5 tests are not present, not run.")
 
-            # Running the Python 3.4 test suite only with CPython3.x.
+            # Running the Python 3.6 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
                 if os.path.exists("./tests/CPython36/run_all.py"):
                     if options.cpython36:
@@ -587,6 +691,15 @@ Make a coverage analysis, that does not really check. Default is %default."""
                         executeSubTest("./tests/CPython36/run_all.py search")
                 else:
                     print("The CPython3.6 tests are not present, not run.")
+
+            # Running the Python 3.7 test suite only with CPython3.x.
+            if not use_python.startswith("python2"):
+                if os.path.exists("./tests/CPython36/run_all.py"):
+                    if options.cpython36:
+                        setExtraFlags(where, "37tests", flags)
+                        executeSubTest("./tests/CPython37/run_all.py search")
+                else:
+                    print("The CPython3.7 tests are not present, not run.")
 
         if "NUITKA_EXTRA_OPTIONS" in os.environ:
             del os.environ[ "NUITKA_EXTRA_OPTIONS" ]
@@ -596,7 +709,8 @@ Make a coverage analysis, that does not really check. Default is %default."""
            checkExecutableCommand("python3.3") or \
            checkExecutableCommand("python3.4") or \
            checkExecutableCommand("python3.5") or \
-           checkExecutableCommand("python3.6")
+           checkExecutableCommand("python3.6") or \
+           checkExecutableCommand("python3.7")
 
     if checkExecutableCommand("python2.6"):
         execute_tests("python2.6-debug", "python2.6", "--debug")
@@ -638,70 +752,13 @@ Make a coverage analysis, that does not really check. Default is %default."""
     else:
         print("Cannot execute tests with Python 3.6, disabled or not installed.")
 
+    if checkExecutableCommand("python3.7"):
+        execute_tests("python3.7-nodebug", "python3.7", "")
+    else:
+        print("Cannot execute tests with Python 3.7, disabled or not installed.")
+
     if options.coverage:
-        def copyToGlobalCoverageData(source, target):
-            coverage_dir = os.environ.get("COVERAGE_DIR", None)
-
-            if coverage_dir is None:
-                return
-
-            subprocess.check_call(
-                (
-                    "scp",
-                    source,
-                    os.path.join(
-                        coverage_dir,
-                        target
-                    )
-                )
-            )
-
-        if os.name == "nt":
-            suffix = "win"
-        else:
-            import platform
-            suffix = platform.uname()[0] + '.' + platform.uname()[4]
-
-        with open("data.coverage", 'w') as data_file:
-            source_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-
-            with withDirectoryChange(source_dir):
-                nuitka_id = check_output("git rev-parse HEAD".split())
-            nuitka_id = nuitka_id.strip()
-
-            if sys.version_info > (3,):
-                nuitka_id = nuitka_id.decode()
-
-            data_file.write("NUITKA_SOURCE_DIR=%r\n" % source_dir)
-            data_file.write("NUITKA_COMMIT=%r\n" % nuitka_id)
-
-
-
-        copyToGlobalCoverageData("data.coverage", "meta.coverage." + suffix)
-
-        def makeCoverageRelative(filename):
-            """ Normalize coverage data.
-
-            """
-
-            with open(filename) as input_file:
-                data = input_file.read()
-
-            data = data.replace(
-                (os.path.abspath('.') + os.path.sep).replace('\\', "\\\\"),
-                ""
-            )
-
-            if os.path.sep != '/':
-                data.replace(os.path.sep, '/')
-
-            with open(filename, 'w') as output_file:
-                output_file.write(data)
-
-        coverage_file = os.environ.get("COVERAGE_FILE", ".coverage")
-
-        makeCoverageRelative(coverage_file)
-        copyToGlobalCoverageData(coverage_file, "data.coverage." + suffix)
+        publishCoverageData()
 
     print("OK.")
 

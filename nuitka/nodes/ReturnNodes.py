@@ -75,6 +75,8 @@ Return statement raises in returned expression, removed return."""
                 source_ref = self.source_ref
             )
 
+            del self.parent
+
             return result, "new_statements", """\
 Return value is always constant."""
 
@@ -132,6 +134,9 @@ class StatementReturnNone(StatementReturnConstantBase):
             source_ref = source_ref
         )
 
+    def finalize(self):
+        del self.parent
+
     def getConstant(self):
         return None
 
@@ -147,6 +152,9 @@ class StatementReturnFalse(StatementReturnConstantBase):
             source_ref = source_ref
         )
 
+    def finalize(self):
+        del self.parent
+
     def getConstant(self):
         return False
 
@@ -161,6 +169,9 @@ class StatementReturnTrue(StatementReturnConstantBase):
             self,
             source_ref = source_ref
         )
+
+    def finalize(self):
+        del self.parent
 
     def getConstant(self):
         return True
@@ -178,6 +189,10 @@ class StatementReturnConstant(StatementReturnConstantBase):
         )
 
         self.constant = constant
+
+    def finalize(self):
+        del self.parent
+        del self.constant
 
     def getConstant(self):
         return self.constant
@@ -216,6 +231,9 @@ class ExpressionReturnedValueRef(ExpressionBase):
             self,
             source_ref = source_ref
         )
+
+    def finalize(self):
+        del self.parent
 
     def computeExpressionRaw(self, trace_collection):
         # TODO: Might be predictable based on the exception handler this is in.

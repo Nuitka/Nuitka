@@ -138,15 +138,23 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
     # This produces AWAIT_COROUTINE or AWAIT_ASYNCGEN calls.
     getReferenceExportCode(value_name, emit, context)
 
+    if expression.isExpressionAsyncWaitEnter():
+        wait_kind = "await_enter"
+    elif expression.isExpressionAsyncWaitExit():
+        wait_kind = "await_exit"
+    else:
+        wait_kind = "await_normal"
+
     emit(
-        "%s = %s_%s( %s, %s );" % (
+        "%s = %s_%s( %s, %s, %s );" % (
             to_name,
             context_identifier.upper(),
             "AWAIT"
               if not preserve_exception else
             "AWAIT_IN_HANDLER",
             context_identifier,
-            value_name
+            value_name,
+            wait_kind
         )
     )
 

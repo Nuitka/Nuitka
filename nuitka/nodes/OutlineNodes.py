@@ -346,5 +346,5 @@ class ExpressionOutlineFunction(ExpressionOutlineFunctionBodyBase):
     def isUnoptimized(self):
         return self.provider.isUnoptimized()
 
-    def getLocalsScope(self):
-        return self.provider.getLocalsScope()
+    def getFunctionLocalsScope(self):
+        return self.provider.getFunctionLocalsScope()

@@ -73,7 +73,7 @@ def counted_del(del_func = empty_del):
         return empty_del
 
 def printStats():
-    printLine("Init/del calls:")
+    printLine("Init/del/alive calls:")
 
     for name, count in sorted(counted_inits.items()):
         dels = counted_dels.get(name, 0)

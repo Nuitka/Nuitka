@@ -467,20 +467,24 @@ def makeExpressionBuiltinLocals(provider, source_ref):
             ExpressionBuiltinLocalsUpdated
         )
 
-        # TODO: make this dependent on getLocalsScope not being None.
         if provider.isExpressionClassBody():
             return ExpressionBuiltinLocalsRef(
-                locals_scope = provider.getLocalsScope(),
+                locals_scope = provider.getFunctionLocalsScope(),
                 source_ref   = source_ref
             )
         elif python_version >= 300 or provider.isUnoptimized():
-            assert provider.getLocalsScope(), provider
+            assert provider.getFunctionLocalsScope(), provider
 
             return ExpressionBuiltinLocalsUpdated(
-                locals_scope = provider.getLocalsScope(),
+                locals_scope = provider.getFunctionLocalsScope(),
                 source_ref   = source_ref
             )
         else:
+            # TODO: Make this not true, there ought to be always a locals
+            # scope.
+            assert not provider.getFunctionLocalsScope(), provider
+
             return ExpressionBuiltinLocalsCopy(
-                source_ref = source_ref
+                locals_scope = provider.getFunctionLocalsScope(),
+                source_ref   = source_ref
             )

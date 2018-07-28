@@ -53,7 +53,7 @@ class AsyncIteratorWrapper:
     def __init__(self, obj):
         self._it = iter(obj)
 
-    async def __aiter__(self):
+    def __aiter__(self):
         return self
 
     async def __anext__(self):
@@ -68,8 +68,12 @@ def simpleFunction3():
     async def f():
         result = []
 
-        async for letter in AsyncIteratorWrapper("abcdefg"):
-            result.append(letter)
+        # Python 3.5 before 3.2 won't allow this.
+        try:
+            async for letter in AsyncIteratorWrapper("abcdefg"):
+                result.append(letter)
+        except TypeError:
+            assert sys.version_info < (3,5,2)
 
         return result
 

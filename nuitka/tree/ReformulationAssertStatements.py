@@ -22,11 +22,10 @@ source code comments with developer manual sections.
 
 """
 from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
-from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.Options import getPythonFlags
 from nuitka.PythonVersions import python_version
 
@@ -70,17 +69,12 @@ def buildAssertNode(provider, node, source_ref):
         source_ref      = source_ref
     )
 
-    return StatementConditional(
+    return makeStatementConditional(
         condition  = ExpressionOperationNOT(
             operand    = buildNode(provider, node.test, source_ref),
             source_ref = source_ref
         ),
-        yes_branch = StatementsSequence(
-            statements = (
-                raise_statement,
-            ),
-            source_ref = source_ref
-        ),
+        yes_branch = raise_statement,
         no_branch  = None,
         source_ref = source_ref
     )

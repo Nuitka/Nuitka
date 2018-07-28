@@ -35,7 +35,7 @@ from nuitka.nodes.CallNodes import ExpressionCallEmpty
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
-    StatementConditional
+    makeStatementConditional
 )
 from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantNoneRef,
@@ -145,7 +145,7 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
             source     = locals_node,
             source_ref = source_ref,
         ),
-        StatementConditional(
+        makeStatementConditional(
             condition  = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
                     variable   = locals_keeper_variable,
@@ -156,17 +156,15 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                 ),
                 source_ref = source_ref
             ),
-            yes_branch = makeStatementsSequenceFromStatement(
-                StatementAssignmentVariable(
-                    variable   = locals_keeper_variable,
-                    source     = locals_default,
-                    source_ref = source_ref,
-                )
+            yes_branch = StatementAssignmentVariable(
+                variable   = locals_keeper_variable,
+                source     = locals_default,
+                source_ref = source_ref
             ),
             no_branch  = None,
             source_ref = source_ref
         ),
-        StatementConditional(
+        makeStatementConditional(
             condition  = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
                     variable   = globals_keeper_variable,
@@ -177,14 +175,12 @@ def wrapEvalGlobalsAndLocals(provider, globals_node, locals_node,
                 ),
                 source_ref = source_ref
             ),
-            yes_branch = makeStatementsSequenceFromStatement(
-                StatementAssignmentVariable(
-                    variable   = globals_keeper_variable,
-                    source     = ExpressionBuiltinGlobals(
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref,
-                )
+            yes_branch = StatementAssignmentVariable(
+                variable   = globals_keeper_variable,
+                source     = ExpressionBuiltinGlobals(
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
             ),
             no_branch  = None,
             source_ref = source_ref
@@ -316,7 +312,7 @@ exec: arg 1 must be a string, file, or code object""",
             ),
             source_ref = source_ref
         ),
-        StatementConditional(
+        makeStatementConditional(
             condition  = ExpressionComparisonIs(
                 left       = ExpressionTempVariableRef(
                     variable   = globals_keeper_variable,
@@ -335,7 +331,7 @@ exec: arg 1 must be a string, file, or code object""",
                     ),
                     source_ref = source_ref,
                 ),
-                StatementConditional(
+                makeStatementConditional(
                     condition  = ExpressionComparisonIs(
                         left       = ExpressionTempVariableRef(
                             variable   = locals_keeper_variable,
@@ -369,7 +365,7 @@ exec: arg 1 must be a string, file, or code object""",
                 ),
             ),
             no_branch  = makeStatementsSequenceFromStatements(
-                StatementConditional(
+                makeStatementConditional(
                     condition  = ExpressionComparisonIs(
                         left       = ExpressionTempVariableRef(
                             variable   = locals_keeper_variable,
@@ -398,7 +394,7 @@ exec: arg 1 must be a string, file, or code object""",
         ),
         # Source needs some special treatment for not done for "eval", if it's a
         # file object, then  must be read.
-        StatementConditional(
+        makeStatementConditional(
             condition  = ExpressionBuiltinIsinstance(
                 instance   = ExpressionTempVariableRef(
                     variable   = source_variable,
@@ -410,22 +406,20 @@ exec: arg 1 must be a string, file, or code object""",
                 ),
                 source_ref = source_ref
             ),
-            yes_branch = makeStatementsSequenceFromStatement(
-                statement = StatementAssignmentVariable(
-                    variable   = source_variable,
-                    source     = ExpressionCallEmpty(
-                        called     = ExpressionAttributeLookup(
-                            source         = ExpressionTempVariableRef(
-                                variable   = source_variable,
-                                source_ref = source_ref
-                            ),
-                            attribute_name = "read",
-                            source_ref     = source_ref
+            yes_branch = StatementAssignmentVariable(
+                variable   = source_variable,
+                source     = ExpressionCallEmpty(
+                    called     = ExpressionAttributeLookup(
+                        source         = ExpressionTempVariableRef(
+                            variable   = source_variable,
+                            source_ref = source_ref
                         ),
-                        source_ref = source_ref
+                        attribute_name = "read",
+                        source_ref     = source_ref
                     ),
                     source_ref = source_ref
-                )
+                ),
+                source_ref = source_ref
             ),
             no_branch  = None,
             source_ref = source_ref
@@ -447,7 +441,7 @@ exec: arg 1 must be a string, file, or code object""",
                 ),
                 source_ref  = source_ref
             ),
-            final      = StatementConditional(
+            final      = makeStatementConditional(
                 condition  = ExpressionComparisonIs(
                     left       = ExpressionTempVariableRef(
                         variable   = plain_indicator_variable,
@@ -459,14 +453,12 @@ exec: arg 1 must be a string, file, or code object""",
                     ),
                     source_ref = source_ref
                 ),
-                yes_branch = makeStatementsSequenceFromStatement(
-                    statement = StatementLocalsDictSync(
-                        locals_arg = ExpressionTempVariableRef(
-                            variable   = locals_keeper_variable,
-                            source_ref = source_ref,
-                        ),
-                        source_ref = source_ref
-                    )
+                yes_branch = StatementLocalsDictSync(
+                    locals_arg = ExpressionTempVariableRef(
+                        variable   = locals_keeper_variable,
+                        source_ref = source_ref,
+                    ),
+                    source_ref = source_ref
                 ),
                 no_branch  = None,
                 source_ref = source_ref

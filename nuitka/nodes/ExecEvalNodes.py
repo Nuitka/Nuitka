@@ -89,6 +89,8 @@ if python_version >= 300:
                     source_ref  = self.getSourceReference()
                 )
 
+                del self.parent
+
                 return result, "new_statements", """\
 Replaced built-in exec call to exec statement in early closure context."""
             else:
@@ -123,6 +125,8 @@ if python_version < 300:
                     locals_arg  = self.getLocals(),
                     source_ref  = self.getSourceReference()
                 )
+
+                del self.parent
 
                 return result, "new_statements", """\
 Changed 'execfile' with unused result to 'exec' on class level."""

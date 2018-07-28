@@ -25,7 +25,6 @@ from logging import warning
 from nuitka import Constants, Options, Tracing
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
-from nuitka.nodes.ConditionalNodes import StatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import (
     ExpressionMakeList,
@@ -36,10 +35,7 @@ from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
     ExpressionMakeDict
 )
-from nuitka.nodes.ExceptionNodes import (
-    StatementRaiseException,
-    StatementReraiseException
-)
+from nuitka.nodes.ExceptionNodes import StatementReraiseException
 from nuitka.nodes.FrameNodes import (
     StatementsFrameAsyncgen,
     StatementsFrameCoroutine,
@@ -50,7 +46,6 @@ from nuitka.nodes.FrameNodes import (
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeBases import NodeBase
 from nuitka.nodes.NodeMakingHelpers import mergeStatements
-from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.PythonVersions import (
     needsSetLiteralReverseInsertion,
@@ -108,12 +103,31 @@ def detectFunctionBodyKind(nodes, start_value = None):
 
     flags = set()
 
+    def _checkCoroutine(field):
+        """ Check only for co-routine nature of the field and only update that.
+
+        """
+        # TODO: This is clumsy code, trying to achieve what non-local does for
+        # Python2 as well.
+
+        old = set(indications)
+        indications.clear()
+
+        _check(field)
+
+        if "Coroutine" in indications:
+            old.add("Coroutine")
+
+        indications.clear()
+        indications.update(old)
+        del old
+
     def _check(node):
         node_class = node.__class__
 
         if node_class is ast.Yield:
             indications.add("Generator")
-        elif python_version >= 330 and node_class is ast.YieldFrom:  # @UndefinedVariable
+        elif python_version >= 300 and node_class is ast.YieldFrom:  # @UndefinedVariable
             indications.add("Generator")
         elif python_version >= 350 and node_class in (ast.Await, ast.AsyncWith):  # @UndefinedVariable
             indications.add("Coroutine")
@@ -162,10 +176,23 @@ def detectFunctionBodyKind(nodes, start_value = None):
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.GeneratorExp:
             for name, field in ast.iter_fields(node):
-                if name in ("name", "body", "comparators", "elt"):
+                if name == "name":
                     pass
+                elif name in ("body", "comparators", "elt"):
+                    if python_version >= 370:
+                        _checkCoroutine(field)
                 elif name == "generators":
                     _check(field[0].iter)
+
+                    # New syntax in 3.7 allows these to be present in functions not
+                    # declared with "async def", so we need to check them.
+                    if python_version >= 370:
+                        for gen in field:
+                            if gen.is_async:
+                                indications.add("Coroutine")
+                                break
+                            elif _checkCoroutine(gen):
+                                break
                 else:
                     assert False, (name, field, ast.dump(node))
         elif node_class is ast.ListComp and python_version >= 300:
@@ -249,6 +276,9 @@ def setBuildingDispatchers(path_args3, path_args2, path_args1):
 def buildNode(provider, node, source_ref, allow_none = False):
     if node is None and allow_none:
         return None
+
+    # Just to disable the warning in the default handler below, we
+    # catch some and re-raise instantly, pylint: disable=try-except-raise
 
     try:
         kind = getKind(node)
@@ -671,6 +701,9 @@ def getStatementsPrepended(statement_sequence, statements):
 
 
 def makeReraiseExceptionStatement(source_ref):
+    # TODO: Remove the statement sequence packaging and have users do it themselves
+    # in factory functions instead.
+
     return StatementsSequence(
         statements = (
             StatementReraiseException(
@@ -707,34 +740,6 @@ def mangleName(variable_name, owner):
                 class_container.getName().lstrip('_'),
                 variable_name
             )
-
-
-def makeConditionalStatement(condition, yes_branch, no_branch, source_ref):
-    """ Create conditional statement, with yes_branch not being empty.
-
-        May have to invert condition to achieve that.
-    """
-
-    if yes_branch is None:
-        condition = ExpressionOperationNOT(
-            operand    = condition,
-            source_ref = condition.getSourceReference()
-        )
-
-        yes_branch, no_branch = no_branch, yes_branch
-
-    if not yes_branch.isStatementsSequence():
-        yes_branch = makeStatementsSequenceFromStatement(yes_branch)
-
-    if no_branch is not None and not no_branch.isStatementsSequence():
-        no_branch = makeStatementsSequenceFromStatement(no_branch)
-
-    return StatementConditional(
-        condition  = condition,
-        yes_branch = yes_branch,
-        no_branch  = no_branch,
-        source_ref = source_ref
-    )
 
 
 def makeCallNode(called, *args, **kwargs):

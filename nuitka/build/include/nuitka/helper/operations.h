@@ -318,7 +318,7 @@ NUITKA_MAY_BE_UNUSED static bool STRING_ADD_INCREMENTAL( PyObject **operand1, Py
 #else
 NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL( PyObject **operand1, PyObject *operand2 )
 {
-#if PYTHON_VERSION < 330
+#if PYTHON_VERSION < 300
     Py_ssize_t operand1_size = PyUnicode_GET_SIZE( *operand1 );
     Py_ssize_t operand2_size = PyUnicode_GET_SIZE( operand2 );
 

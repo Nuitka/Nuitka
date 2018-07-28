@@ -106,12 +106,14 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                     if class_variable.isModuleVariable():
                         qualname_node = qualname_assign.subnode_value
 
-                        qualname_node.replaceWith(
-                            makeConstantReplacementNode(
-                                constant = class_variable.getName(),
-                                node     = qualname_node
-                            )
+                        new_node = makeConstantReplacementNode(
+                            constant = class_variable.getName(),
+                            node     = qualname_node
                         )
+
+                        parent = qualname_node.parent
+                        qualname_node.finalize()
+                        parent.replaceChild(qualname_node, new_node)
 
                         node.qualname_provider = node.getParentModule()
             else:
@@ -144,56 +146,59 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
             # Classes always assign to locals dictionary except for closure
             # variables taken.
             if self._shouldUseLocalsDict(provider, variable_name):
-                node.replaceWith(
-                    StatementLocalsDictOperationSet(
-                        locals_scope  = provider.getLocalsScope(),
-                        variable_name = variable_name,
-                        value         = node.subnode_source,
-                        source_ref    = node.source_ref
-                    )
+                new_node = StatementLocalsDictOperationSet(
+                    locals_scope  = provider.getFunctionLocalsScope(),
+                    variable_name = variable_name,
+                    value         = node.subnode_source,
+                    source_ref    = node.source_ref
                 )
             else:
                 variable = provider.getVariableForAssignment(
                     variable_name = variable_name
                 )
 
-                node.replaceWith(
-                    StatementAssignmentVariable(
-                        variable   = variable,
-                        source     = node.subnode_source,
-                        source_ref = node.source_ref
-                    )
+                new_node = StatementAssignmentVariable(
+                    variable   = variable,
+                    source     = node.subnode_source,
+                    source_ref = node.source_ref
                 )
 
                 variable.addVariableUser(provider)
+
+            node.parent.replaceChild(node, new_node)
+
+            del node.parent
+            del node.provider
         elif node.isStatementDelVariableName():
             variable_name = node.getVariableName()
 
             provider = node.provider
 
             if self._shouldUseLocalsDict(provider, variable_name):
-                # Classes always assign to locals dictionary
-                node.replaceWith(
-                    StatementLocalsDictOperationDel(
-                        locals_scope  = provider.getLocalsScope(),
-                        variable_name = variable_name,
-                        source_ref    = node.source_ref
-                    )
+                # Classes always assign to locals dictionary except for closure
+                # variables taken.
+                new_node = StatementLocalsDictOperationDel(
+                    locals_scope  = provider.getFunctionLocalsScope(),
+                    variable_name = variable_name,
+                    source_ref    = node.source_ref
                 )
             else:
                 variable = provider.getVariableForAssignment(
                     variable_name = variable_name
                 )
 
-                node.replaceWith(
-                    StatementDelVariable(
-                        variable   = variable,
-                        tolerant   = node.tolerant,
-                        source_ref = node.source_ref
-                    )
+                new_node = StatementDelVariable(
+                    variable   = variable,
+                    tolerant   = node.tolerant,
+                    source_ref = node.source_ref
                 )
 
                 variable.addVariableUser(provider)
+
+            parent = node.parent
+            node.finalize()
+
+            parent.replaceChild(node, new_node)
 
     def onEnterNode(self, node):
         # Mighty complex code with lots of branches and statements, but it
@@ -209,25 +214,26 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         variable_name = node.getVariableName()
                     )
 
-                    node.replaceWith(
-                        ExpressionLocalsVariableRefORFallback(
-                            locals_scope  = provider.getLocalsScope(),
-                            variable_name = node.getVariableName(),
-                            fallback      = ExpressionVariableRef(
-                                variable   = variable,
-                                source_ref = node.source_ref
-                            ),
-                            source_ref    = node.source_ref
-                        )
+                    new_node = ExpressionLocalsVariableRefORFallback(
+                        locals_scope  = provider.getFunctionLocalsScope(),
+                        variable_name = node.getVariableName(),
+                        fallback      = ExpressionVariableRef(
+                            variable   = variable,
+                            source_ref = node.source_ref
+                        ),
+                        source_ref    = node.source_ref
                     )
                 else:
-                    node.replaceWith(
-                        ExpressionLocalsVariableRef(
-                            locals_scope  = provider.getLocalsScope(),
-                            variable_name = node.getVariableName(),
-                            source_ref    = node.source_ref
-                        )
+                    new_node = ExpressionLocalsVariableRef(
+                        locals_scope  = provider.getFunctionLocalsScope(),
+                        variable_name = node.getVariableName(),
+                        source_ref    = node.source_ref
                     )
+
+                parent = node.parent
+                node.finalize()
+
+                parent.replaceChild(node, new_node)
         elif node.isExpressionTempVariableRef():
             if node.getVariable().getOwner() != node.getParentVariableProvider():
                 node.getParentVariableProvider().addClosureVariable(
@@ -366,26 +372,27 @@ class VariableClosureLookupVisitorPhase2(VisitorNoopMixin):
             except MaybeLocalVariableUsage:
                 variable_name = node.getVariableName()
 
-                node.replaceWith(
-                    ExpressionLocalsVariableRefORFallback(
-                        locals_scope  = provider.getLocalsScope(),
-                        variable_name = variable_name,
-                        fallback      = ExpressionVariableRef(
-                            variable   = node.getParentModule().getVariableForReference(variable_name),
-                            source_ref = node.source_ref
-                        ),
-                        source_ref    = node.source_ref
-                    )
+                new_node = ExpressionLocalsVariableRefORFallback(
+                    locals_scope  = provider.getFunctionLocalsScope(),
+                    variable_name = variable_name,
+                    fallback      = ExpressionVariableRef(
+                        variable   = node.getParentModule().getVariableForReference(variable_name),
+                        source_ref = node.source_ref
+                    ),
+                    source_ref    = node.source_ref
                 )
             else:
-                node.replaceWith(
-                    ExpressionVariableRef(
-                        variable   = variable,
-                        source_ref = node.source_ref
-                    )
+                new_node = ExpressionVariableRef(
+                    variable   = variable,
+                    source_ref = node.source_ref
                 )
 
                 variable.addVariableUser(provider)
+
+            parent = node.parent
+            node.finalize()
+
+            parent.replaceChild(node, new_node)
 
 
 class VariableClosureLookupVisitorPhase3(VisitorNoopMixin):

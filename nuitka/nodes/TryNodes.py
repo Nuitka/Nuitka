@@ -100,7 +100,7 @@ class StatementTry(StatementChildrenHavingBase):
     )
 
     def computeStatement(self, trace_collection):
-        # This node has many children to handle, pylint: disable=too-many-branches,too-many-locals
+        # This node has many children to handle, pylint: disable=I0021,too-many-branches,too-many-locals,too-many-statements
         tried = self.getBlockTry()
 
         except_handler = self.getBlockExceptHandler()
@@ -148,6 +148,8 @@ class StatementTry(StatementChildrenHavingBase):
         # TODO: signal the change.
         if not tried_may_raise:
             if except_handler is not None:
+                except_handler.finalize()
+
                 self.setBlockExceptHandler(None)
                 except_handler = None
 
@@ -188,6 +190,8 @@ class StatementTry(StatementChildrenHavingBase):
 
         if break_handler is not None:
             if not tried.mayBreak():
+                break_handler.finalize()
+
                 self.setBlockBreakHandler(None)
                 break_handler = None
 
@@ -210,6 +214,8 @@ class StatementTry(StatementChildrenHavingBase):
 
         if continue_handler is not None:
             if not tried.mayContinue():
+                continue_handler.finalize()
+
                 self.setBlockContinueHandler(None)
                 continue_handler = None
 
@@ -232,6 +238,8 @@ class StatementTry(StatementChildrenHavingBase):
 
         if return_handler is not None:
             if not tried.mayReturn():
+                return_handler.finalize()
+
                 self.setBlockReturnHandler(None)
                 return_handler = None
 
@@ -252,9 +260,13 @@ class StatementTry(StatementChildrenHavingBase):
                 self.setBlockReturnHandler(result)
                 return_handler = result
 
+        # Check for trivial return handlers that immediately return, they can
+        # just be removed.
         if return_handler is not None:
             if return_handler.getStatements()[0].isStatementReturn() and \
                return_handler.getStatements()[0].getExpression().isExpressionReturnedValueRef():
+                return_handler.finalize()
+
                 self.setBlockReturnHandler(None)
                 return_handler = None
 
@@ -363,7 +375,6 @@ class StatementTry(StatementChildrenHavingBase):
                     )
 
                 return result
-
 
             return (
                 result,

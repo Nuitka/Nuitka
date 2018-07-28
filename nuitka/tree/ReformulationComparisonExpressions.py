@@ -26,7 +26,7 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
-from nuitka.nodes.ConditionalNodes import StatementConditional
+from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.NodeMakingHelpers import makeComparisonNode
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
@@ -126,7 +126,7 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
             source_ref = source_ref,
         )
 
-        yield StatementConditional(
+        yield makeStatementConditional(
             condition  = ExpressionOperationNOT(
                 operand    = ExpressionTempVariableRef(
                     variable   = tmp_variable,
@@ -134,14 +134,12 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
                 ),
                 source_ref = source_ref
             ),
-            yes_branch = makeStatementsSequenceFromStatement(
-                statement = StatementReturn(
-                    expression = ExpressionTempVariableRef(
-                        variable   = tmp_variable,
-                        source_ref = source_ref
-                    ),
+            yes_branch = StatementReturn(
+                expression = ExpressionTempVariableRef(
+                    variable   = tmp_variable,
                     source_ref = source_ref
-                )
+                ),
+                source_ref = source_ref
             ),
             no_branch  = None,
             source_ref = source_ref
