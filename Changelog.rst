@@ -1,5 +1,5 @@
-Nuitka Release 0.5.32 (Draft)
-=============================
+Nuitka Release 0.5.32
+=====================
 
 This release contains substantial new optimization, bug fixes, and already the
 full support for Python 3.7. Among the fixes, the enhanced coroutine work for
