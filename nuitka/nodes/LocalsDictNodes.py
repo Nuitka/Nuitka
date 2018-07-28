@@ -365,6 +365,7 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
 
     def getDetails(self):
         return {
+            "locals_scope"  : self.locals_scope,
             "variable_name" : self.getVariableName()
         }
 
