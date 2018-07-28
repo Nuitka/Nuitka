@@ -29,7 +29,7 @@ Milestones
    absolutely compatible.
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not target any
-   older CPython release. For CPython 3.3 up to 3.6 it also has been reached. We
+   older CPython release. For CPython 3.3 up to 3.7 it also has been reached. We
    do not target the older and practically unused CPython 3.1 and 3.0 releases.
 
    This milestone was reached. Dropping support for Python 2.6 and 3.3 is an

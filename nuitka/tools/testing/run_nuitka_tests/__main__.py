@@ -188,6 +188,17 @@ covered. With Python 2.x these are not run. Default is %default."""
     )
 
     parser.add_option(
+        "--skip-cpython37-tests",
+        action  = "store_false",
+        dest    = "cpython37",
+        default = True,
+        help    = """\
+The standard CPython3.6 test suite. Execute this for all corner cases to be
+covered. With Python 2.x these are not run. Default is %default."""
+    )
+
+
+    parser.add_option(
         "--skip-other-cpython-tests",
         action  = "store_true",
         dest    = "cpython_no_other",
@@ -274,6 +285,15 @@ Do not use Python3.6 even if available on the system. Default is %default."""
     )
 
     parser.add_option(
+        "--no-python3.7",
+        action  = "store_true",
+        dest    = "no36",
+        default = False,
+        help    = """\
+Do not use Python3.6 even if available on the system. Default is %default."""
+    )
+
+    parser.add_option(
         "--coverage",
         action  = "store_true",
         dest    = "coverage",
@@ -303,6 +323,8 @@ Make a coverage analysis, that does not really check. Default is %default."""
             options.no35 = True
         if sys.version_info[0:2] != (3,6):
             options.no36 = True
+        if sys.version_info[0:2] != (3,7):
+            options.no37 = True
 
     if options.cpython_no_other:
         if sys.version_info[0:2] != (2,6):
@@ -319,6 +341,8 @@ Make a coverage analysis, that does not really check. Default is %default."""
             options.cpython35 = False
         if sys.version_info[0:2] != (3,6):
             options.cpython36 = False
+        if sys.version_info[0:2] != (3,7):
+            options.cpython37 = False
 
     if options.cpython_none:
         options.cpython26 = False
@@ -328,6 +352,7 @@ Make a coverage analysis, that does not really check. Default is %default."""
         options.cpython34 = False
         options.cpython35 = False
         options.cpython36 = False
+        options.cpython37 = False
 
     if options.coverage and os.path.exists(".coverage"):
         os.unlink(".coverage")
@@ -442,6 +467,8 @@ def main():
             return False
         if command == "python3.6" and options.no36:
             return False
+        if command == "python3.7" and options.no37:
+            return False
 
         # Shortcuts for python versions, also needed for Windows as it won't have
         # the version number in the Python binaries at all.
@@ -456,6 +483,8 @@ def main():
         if command == "python3.5" and sys.version_info[0:2] == (3,5):
             return True
         if command == "python3.6" and sys.version_info[0:2] == (3,6):
+            return True
+        if command == "python3.7" and sys.version_info[0:2] == (3,7):
             return True
 
         path = os.environ[ "PATH" ]
@@ -645,7 +674,7 @@ def main():
                 else:
                     print("The CPython3.4 tests are not present, not run.")
 
-            # Running the Python 3.4 test suite only with CPython3.x.
+            # Running the Python 3.5 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
                 if os.path.exists("./tests/CPython35/run_all.py"):
                     if options.cpython35:
@@ -654,7 +683,7 @@ def main():
                 else:
                     print("The CPython3.5 tests are not present, not run.")
 
-            # Running the Python 3.4 test suite only with CPython3.x.
+            # Running the Python 3.6 test suite only with CPython3.x.
             if not use_python.startswith("python2"):
                 if os.path.exists("./tests/CPython36/run_all.py"):
                     if options.cpython36:
@@ -662,6 +691,15 @@ def main():
                         executeSubTest("./tests/CPython36/run_all.py search")
                 else:
                     print("The CPython3.6 tests are not present, not run.")
+
+            # Running the Python 3.7 test suite only with CPython3.x.
+            if not use_python.startswith("python2"):
+                if os.path.exists("./tests/CPython36/run_all.py"):
+                    if options.cpython36:
+                        setExtraFlags(where, "37tests", flags)
+                        executeSubTest("./tests/CPython37/run_all.py search")
+                else:
+                    print("The CPython3.7 tests are not present, not run.")
 
         if "NUITKA_EXTRA_OPTIONS" in os.environ:
             del os.environ[ "NUITKA_EXTRA_OPTIONS" ]
@@ -671,7 +709,8 @@ def main():
            checkExecutableCommand("python3.3") or \
            checkExecutableCommand("python3.4") or \
            checkExecutableCommand("python3.5") or \
-           checkExecutableCommand("python3.6")
+           checkExecutableCommand("python3.6") or \
+           checkExecutableCommand("python3.7")
 
     if checkExecutableCommand("python2.6"):
         execute_tests("python2.6-debug", "python2.6", "--debug")
@@ -713,8 +752,14 @@ def main():
     else:
         print("Cannot execute tests with Python 3.6, disabled or not installed.")
 
+    if checkExecutableCommand("python3.7"):
+        execute_tests("python3.7-nodebug", "python3.7", "")
+    else:
+        print("Cannot execute tests with Python 3.7, disabled or not installed.")
+
     if options.coverage:
         publishCoverageData()
+
     print("OK.")
 
 if __name__ == "__main__":
