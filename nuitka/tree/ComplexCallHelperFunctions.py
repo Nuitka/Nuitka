@@ -2621,43 +2621,11 @@ def getFunctionCallHelperDictionaryUnpacking():
                 )
             ),
             exception_name = "AttributeError",
-            handler_body   = StatementRaiseException(
-                exception_type  = ExpressionBuiltinMakeException(
-                    exception_name = "TypeError",
-                    args           = (
-                        makeBinaryOperationNode(
-                            operator   = "Mod",
-                            left       =  makeConstantRefNode(
-                                constant      = """\
-'%s' object is not a mapping""",
-                                source_ref    = internal_source_ref,
-                                user_provided = True
-                            ),
-                            right      = ExpressionMakeTuple(
-                                elements   = (
-                                    _makeNameAttributeLookup(
-                                        ExpressionBuiltinType1(
-                                            value      = ExpressionTempVariableRef(
-                                                variable   = tmp_item_variable,
-                                                source_ref = internal_source_ref
-                                            ),
-                                            source_ref = internal_source_ref
-                                        )
-                                    ),
-                                ),
-                                source_ref = internal_source_ref
-                            ),
-                            source_ref = internal_source_ref
-                        ),
-                    ),
-                    source_ref     = internal_source_ref
-                ),
-                exception_value = None,
-                exception_trace = None,
-                exception_cause = None,
-                source_ref      = internal_source_ref
+            handler_body   = _makeRaiseExceptionMustBeMapping(
+                called_variable = called_variable,
+                star_dict_variable = tmp_item_variable
             ),
-            source_ref     = internal_source_ref
+            source_ref = internal_source_ref
         ),
     )
 

@@ -19,7 +19,7 @@ requirements, credits, etc.
 
 Nuitka is **the** Python compiler. It is a seamless replacement or extension
 to the Python interpreter and compiles **every** construct that CPython 2.6,
-2.7, 3.3, 3.4, 3.5, and 3.6 have, when itself run with that Python version.
+2.7, 3.3, 3.4, 3.5, 3.6, and 3.7 have, when itself run with that Python version.
 
 It then executes uncompiled code, and compiled code together in an extremely
 compatible manner.
@@ -59,15 +59,15 @@ Requirements
     pack for best results (Nuitka filters away garbage outputs, but only
     for that language).
 
-- Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6 (yes, but read below)
+- Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7
 
-  .. admonition:: Python3, but 3.3, and 3.4 need other Python versions as
-     a *compile time* dependency
+  .. admonition:: Python3, but for 3.3, and 3.4 and only those versions,
+     we need other Python versions as a *compile time* dependency
 
      Nuitka itself is fully compatible with all mentioned versions, Scons as
      as an internally used tool is not.
 
-     For these versions, you *need* a Python2 or Python3.5 or higher installed
+     For these versions, you *need* a Python2 or Python 3.5 or higher installed
      as well, but only during the compile time only. That is for use with Scons
      (which orchestrates the C compilation), which does not support the same
      Python versions as Nuitka.
@@ -77,13 +77,13 @@ Requirements
      The created binaries can be made executable independent of the Python
      installation, with ``--standalone`` option.
 
-  .. admonition:: Binary filename suffix ".exe" even on Linux
+  .. admonition:: Binary filename suffix ``.exe`` even on Linux
 
-     The created binaries have an ".exe" suffix, that you are free to remove
+     The created binaries have an ``.exe`` suffix, that you are free to remove
      that and yes, they are still Linux binaries. The suffix is just to be sure
-     that the original script name and the binary name do not collide.
+     that the original script name and the binary name do not ever collide.
 
-  .. admonition:: It has to be CPython or AnaConda
+  .. admonition:: It has to be CPython or AnaConda Python.
 
      You need the standard Python implementation, called "CPython", to execute
      Nuitka, because it is closely tied to using it.
@@ -91,7 +91,7 @@ Requirements
      On Windows, the so called "WinPython" and "AnaConda" distributions work,
      but will cause issues for acceleration mode. Standalone mode and creating
      extension modules or packages will work. For acceleration mode, you need
-     to copy the "PythonXX.DLL" alongside of it.
+     to copy the ``PythonXX.DLL`` alongside of it.
 
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
 
@@ -105,21 +105,22 @@ Requirements
   and known to be good. Feedback is welcome. Generally the architectures that
   Debian supports can be considered good and tested too.
 
-.. [#] Support for this C11 is given with gcc 5 or higher or clang. The MSVC
-       compiler doesn't do it yet. But as a workaround, the C++03 language
-       standard is very overlapping with C11 and is used instead where the
-       C compiler is too old. Nuitka used to require a C++ compiler in
-       the past, but it changed.
+.. [#] Support for this C11 is given with gcc 5 or higher or basically any
+       clang version. The MSVC compiler doesn't do it yet. But as a workaround,
+       as the C++03 language standard is very overlapping with C11, it is then
+       used instead where the C compiler is too old. Nuitka used to require a
+       C++ compiler in the past, but it changed.
 
 .. [#] Download MinGW64 from here http://mingw-w64.org/ and choose 64 or 32
        bits matching your Python. Use both MinGW64 and 64 bits Python if you
-       have the choice of which Python to use. Install it to "C:\MinGW64" or
-       "\MinGW64" (same disk root) to find it automatically.
+       have the choice of which Python to use. Install it to ``C:\MinGW64`` or
+       ``\MinGW64`` (same disk root as Nuitka running) to find it automatically.
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
-       (the Express editions work just fine). The latest version is recommend.
-       There is no need to use older versions, they might in fact not work.
+       (the Express editions work just fine). The latest version is recommended
+       if not required. There is no need to use older versions, they might in
+       fact not work.
 
 
 Command Line

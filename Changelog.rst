@@ -1,5 +1,9 @@
-Nuitka Release 0.5.32 (Draft)
-=============================
+Nuitka Release 0.5.32
+=====================
+
+This release contains substantial new optimization, bug fixes, and already the
+full support for Python 3.7. Among the fixes, the enhanced coroutine work for
+compatiblity with uncompiled ones is most important.
 
 Bug Fixes
 ---------
@@ -34,7 +38,7 @@ Bug Fixes
 New Features
 ------------
 
-- Added support for Python 3.7.
+- Support for Python 3.7 with only some corner cases not supported yet.
 
 Optimization
 ------------
@@ -98,7 +102,24 @@ Organizational
 - There are now ``requirements-devel.txt`` and ``requirements.txt`` files aimed
   at usage with scons and by users, but they are not used in installation.
 
-This release is not done yet.
+Summary
+-------
+
+This releases has this important step to add conversion of locals dictionary
+usages to temporary variables. It is not yet done everywhere it is possible,
+and the resulting temporary variables are not yet propagated in the all the
+cases, where it clearly is possible. Upcoming releases ought to achieve that
+most Python2 classes will become to use a direct dictionary creation.
+
+Adding support for Python 3.7 is of course also a huge step. And also this
+happened fairly quickly and soon after its release. The generic classes it
+adds were the only real major new feature. It breaking the internals for
+exception handling was what was holding back initially, but past that, it
+was really easy.
+
+Expect more optimization to come in the next releases, aiming at both the
+ability to predict Python3 metaclasses ``__prepare__`` results, and at more
+optimization applied to variables after they became temporary variables.
 
 
 Nuitka Release 0.5.31
@@ -156,7 +177,7 @@ Bug Fixes
   and behave compatible. Previously in this case we were falling back to the
   module variable for annotations used after that which is wrong.
 
-- Fix, some built-in type coversions are allowed to return derived types,
+- Fix, some built-in type conversions are allowed to return derived types,
   but Nuitka assumed the excact type, this affected ``bytes``, ``int``,
   ``long``, ``unicode``.
 

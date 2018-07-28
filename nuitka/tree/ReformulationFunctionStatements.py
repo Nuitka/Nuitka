@@ -115,8 +115,25 @@ def _insertInitialSetLocalsDictStatement(function_body, function_statements_body
     return function_statements_body
 
 
+def _injectDecorator(decorators, inject, acceptable, source_ref):
+    assert type(inject) is str
+    assert type(acceptable) is tuple
+
+    for decorator in decorators:
+        if decorator.isExpressionVariableNameRef() and \
+           decorator.getVariableName() in acceptable:
+            break
+    else:
+        decorators.append(
+            makeExpressionBuiltinRef(
+                builtin_name = inject,
+                source_ref   = source_ref
+            )
+        )
+
+
 def buildFunctionNode(provider, node, source_ref):
-    # Functions have way too many details, pylint: disable=too-many-branches,too-many-locals
+    # Functions have way too many details, pylint: disable=too-many-locals
 
     assert getKind(node) == "FunctionDef"
 
@@ -247,34 +264,18 @@ def buildFunctionNode(provider, node, source_ref):
     # "class __new__".  We add them earlier, so our optimization will see it.
     if node.name == "__new__" and \
        provider.isExpressionClassBody():
+        _injectDecorator(decorators, "staticmethod", ("staticmethod", "classmethod"), source_ref)
 
-        for decorator in decorators:
-            if decorator.isExpressionVariableNameRef() and \
-               decorator.getVariableName() in ("staticmethod", "classmethod"):
-                break
-        else:
-            decorators.append(
-                makeExpressionBuiltinRef(
-                    builtin_name = "staticmethod",
-                    source_ref   = source_ref
-                )
-            )
-
+    # Add the "classmethod" decorator to __init_subclass__ methods if not provided.
     if python_version >= 360 and \
        node.name == "__init_subclass__" and \
        provider.isExpressionClassBody():
+        _injectDecorator(decorators, "classmethod", ("classmethod",), source_ref)
 
-        for decorator in decorators:
-            if decorator.isExpressionVariableNameRef() and \
-               decorator.getVariableName() == "classmethod":
-                break
-        else:
-            decorators.append(
-                makeExpressionBuiltinRef(
-                    builtin_name = "classmethod",
-                    source_ref   = source_ref
-                )
-            )
+    if python_version >= 370 and \
+       node.name == "__class_getitem__" and \
+       provider.isExpressionClassBody():
+        _injectDecorator(decorators, "classmethod", ("classmethod",), source_ref)
 
     decorated_function = function_creation
     for decorator in decorators:

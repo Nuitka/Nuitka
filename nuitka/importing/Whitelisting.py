@@ -145,6 +145,9 @@ def getModuleWhiteList():
         # test_macostools.py
         "macostools",
 
+        # test_msilib.py
+        "msilib",
+
         # test_namespace_pkgs.py
         "foo.one", "foo.two", "parent.child.one", "parent.child.two",
         "parent.child.three", "bar.two", "a_test", "parent.child", "parent",
