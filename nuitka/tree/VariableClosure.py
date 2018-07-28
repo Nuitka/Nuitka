@@ -223,6 +223,8 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                         ),
                         source_ref    = node.source_ref
                     )
+
+                    variable.addVariableUser(provider)
                 else:
                     new_node = ExpressionLocalsVariableRef(
                         locals_scope  = provider.getFunctionLocalsScope(),
