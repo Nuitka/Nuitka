@@ -108,7 +108,8 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
             local_reals.append(decl)
             continue
 
-        if decl in ("char const *type_description;", "PyObject *tmp_unused;"):
+        if decl.startswith("char const *type_description_") or \
+           decl in ("PyObject *tmp_unused;",):
             local_reals.append(decl)
             continue
 
@@ -121,7 +122,7 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
             var_name = type_decl.split('*')[-1]
             var_name = var_name.split(' ')[-1]
 
-            local_type_decl.append(type_decl)
+            local_type_decl.append(type_decl + ";")
             local_type_init.append(
                 "local_variables->" + var_name + " =" + parts[1]
             )

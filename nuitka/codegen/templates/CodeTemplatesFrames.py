@@ -20,12 +20,10 @@
 """
 
 template_frame_guard_cache_decl = """\
-static struct Nuitka_FrameObject *cache_%(frame_identifier)s = NULL;
-"""
+static struct Nuitka_FrameObject *cache_%(frame_identifier)s = NULL;"""
 
 template_frame_guard_frame_decl = """\
-struct Nuitka_FrameObject *%(frame_identifier)s;
-"""
+struct Nuitka_FrameObject *%(frame_identifier)s;"""
 
 # Frame in a function
 template_frame_guard_full_block = """\
