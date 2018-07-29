@@ -57,6 +57,13 @@ def getModuleValues(context, module_name, module_identifier, codes,
 
     finalizeFunctionLocalVariables(context, local_var_inits, cleanup)
 
+    local_var_inits = [
+        variable_declaration.makeCFunctionLevelDeclaration()
+        for variable_declaration in
+        local_var_inits
+    ]
+
+
     if context.needsExceptionVariables():
         module_exit = template_module_exception_exit
     else:

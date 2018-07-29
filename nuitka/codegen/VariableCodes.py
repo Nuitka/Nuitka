@@ -229,17 +229,6 @@ def getVariableCode(context, variable, variable_trace):
     return variable_code_name
 
 
-def getLocalVariableInitCode(context, variable, variable_trace, init_from):
-    assert not variable.isModuleVariable()
-
-    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
-
-    if variable.isLocalVariable():
-        context.setVariableType(variable, variable_code_name, variable_c_type)
-
-    return variable_c_type.getVariableInitCode(variable_code_name, init_from)
-
-
 def getVariableAssignmentCode(context, emit, variable, variable_trace,
                               tmp_name, needs_release, in_place):
     # For transfer of ownership.

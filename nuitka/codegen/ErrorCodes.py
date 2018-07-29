@@ -39,6 +39,7 @@ from .templates.CodeTemplatesExceptions import (
     template_error_catch_quick_exception,
     template_error_format_string_exception
 )
+from .VariableDeclarations import VariableDeclaration
 
 
 def getErrorExitReleaseCode(context):
@@ -209,13 +210,17 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
     )
 
 
+_errorVariableDeclarations = (
+    VariableDeclaration("PyObject *", "exception_type", "NULL"),
+    VariableDeclaration("PyObject *", "exception_value", "NULL"),
+    VariableDeclaration("PyTracebackObject *", "exception_tb", "NULL"),
+    VariableDeclaration("NUITKA_MAY_BE_UNUSED int", "exception_lineno", '0')
+)
+
+
 def getErrorVariableDeclarations():
-    return (
-        "PyObject *exception_type = NULL;",
-        "PyObject *exception_value = NULL;",
-        "PyTracebackObject *exception_tb = NULL;",
-        "NUITKA_MAY_BE_UNUSED int exception_lineno = 0;"
-    )
+    return _errorVariableDeclarations
+
 
 def getExceptionKeeperVariableNames(keeper_index):
     # For finally handlers of Python3, which have conditions on assign and
@@ -223,26 +228,30 @@ def getExceptionKeeperVariableNames(keeper_index):
     debug = Options.isDebug() and python_version >= 300
 
     if debug:
-        keeper_obj_init = " = NULL"
+        keeper_obj_init = "NULL"
     else:
-        keeper_obj_init = ""
+        keeper_obj_init = None
 
     return (
-        "PyObject *exception_keeper_type_%d%s;" % (
-            keeper_index,
+        VariableDeclaration(
+            "PyObject *",
+            "exception_keeper_type_%d" % keeper_index,
             keeper_obj_init
         ),
-        "PyObject *exception_keeper_value_%d%s;" % (
-            keeper_index,
+        VariableDeclaration(
+            "PyObject *",
+            "exception_keeper_value_%d" % keeper_index,
             keeper_obj_init
         ),
-        "PyTracebackObject *exception_keeper_tb_%d%s;" % (
-            keeper_index,
+        VariableDeclaration(
+            "PyTracebackObject *",
+            "exception_keeper_tb_%d" % keeper_index,
             keeper_obj_init
         ),
-        "NUITKA_MAY_BE_UNUSED int exception_keeper_lineno_%d%s;" % (
-            keeper_index,
-            " = 0" if debug else ""
+        VariableDeclaration(
+            "NUITKA_MAY_BE_UNUSED int",
+            "exception_keeper_lineno_%d" % keeper_index,
+            '0' if debug else None
         )
     )
 
@@ -253,23 +262,26 @@ def getExceptionPreserverVariableNames(preserver_id):
     debug = Options.isDebug() and python_version >= 300
 
     if debug:
-        preserver_obj_init = " = NULL"
+        preserver_obj_init = "NULL"
     else:
-        preserver_obj_init = ""
+        preserver_obj_init = None
 
     return (
-        "PyObject *exception_preserved_type_%d%s;" % (
-            preserver_id,
+        VariableDeclaration(
+            "PyObject *",
+            "exception_preserved_type_%d" % preserver_id,
             preserver_obj_init
         ),
-        "PyObject *exception_preserved_value_%d%s;" % (
-            preserver_id,
+        VariableDeclaration(
+            "PyObject *",
+            "exception_preserved_value_%d" % preserver_id,
             preserver_obj_init
         ),
-        "PyTracebackObject *exception_preserved_tb_%d%s;" % (
-            preserver_id,
+        VariableDeclaration(
+            "PyTracebackObject *",
+            "exception_preserved_tb_%d" % preserver_id,
             preserver_obj_init
-        ),
+        )
     )
 
 

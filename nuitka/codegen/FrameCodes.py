@@ -32,8 +32,6 @@ from .LabelCodes import getGotoCode, getLabelCode
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesFrames import (
     template_frame_attach_locals,
-    template_frame_guard_cache_decl,
-    template_frame_guard_frame_decl,
     template_frame_guard_full_block,
     template_frame_guard_full_exception_handler,
     template_frame_guard_full_return_handler,
@@ -42,6 +40,7 @@ from .templates.CodeTemplatesFrames import (
     template_frame_guard_generator_return_handler,
     template_frame_guard_once
 )
+from .VariableDeclarations import VariableDeclaration
 
 
 def getFrameLocalsStorageSize(type_descriptions):
@@ -258,14 +257,18 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
     context.addFrameDeclaration(
-        template_frame_guard_cache_decl % {
-            "frame_identifier" : frame_identifier,
-        }
+        VariableDeclaration(
+            "static struct Nuitka_FrameObject *",
+            "cache_%s" % frame_identifier,
+            "NULL"
+        )
     )
     context.addFrameDeclaration(
-        template_frame_guard_frame_decl % {
-            "frame_identifier" : frame_identifier,
-        }
+        VariableDeclaration(
+            "struct Nuitka_FrameObject *",
+            frame_identifier,
+            None
+        )
     )
 
     emit(
@@ -319,9 +322,11 @@ def getFrameGuardOnceCode(frame_identifier, code_identifier,
     assert parent_return_exit is None and frame_return_exit is None
 
     context.addFrameDeclaration(
-        template_frame_guard_frame_decl % {
-            "frame_identifier" : frame_identifier,
-        }
+        VariableDeclaration(
+            "struct Nuitka_FrameObject *",
+            frame_identifier,
+            None
+        )
     )
 
     emit(
@@ -353,9 +358,11 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
     context_identifier = context.getContextObjectName()
 
     context.addFrameDeclaration(
-        template_frame_guard_cache_decl % {
-            "frame_identifier" : "frame_" + context_identifier,
-        }
+        VariableDeclaration(
+            "static struct Nuitka_FrameObject *",
+            "cache_frame_%s" % context_identifier,
+            "NULL"
+        )
     )
 
     no_exception_exit = context.allocateLabel("frame_no_exception")

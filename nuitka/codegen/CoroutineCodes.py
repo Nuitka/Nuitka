@@ -86,6 +86,12 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
     if needs_generator_return:
         generator_exit += template_coroutine_return_exit % {}
 
+    function_locals = [
+        variable_declaration.makeCFunctionLevelDeclaration()
+        for variable_declaration in
+        function_locals
+    ]
+
     return template_coroutine_object_body_template % {
         "function_identifier" : function_identifier,
         "function_body"       : indented(function_codes.codes),

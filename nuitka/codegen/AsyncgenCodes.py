@@ -80,6 +80,12 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
     if needs_generator_return:
         generator_exit += template_asyncgen_return_exit % {}
 
+    function_locals = [
+        variable_declaration.makeCFunctionLevelDeclaration()
+        for variable_declaration in
+        function_locals
+    ]
+
     return template_asyncgen_object_body_template % {
         "function_identifier" : function_identifier,
         "function_body"       : indented(function_codes.codes),

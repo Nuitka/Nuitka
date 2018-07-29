@@ -34,6 +34,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .Namify import namifyConstant
+from .VariableDeclarations import VariableDeclaration
 
 
 class ContextMetaClass(ABCMeta):
@@ -123,10 +124,19 @@ class TempMixin(object):
     def forgetTempName(self, tmp_name):
         self.forgotten_names.add(tmp_name)
 
-    def getTempNameInfos(self):
+    def getTempNameDeclarations(self):
         result  = []
 
         for base_name, count in sorted(iterItems(self.tmp_names)):
+            if base_name == "outline_return_value":
+                init_value = "NULL"
+            elif base_name == "return_value":
+                init_value = "NULL"
+            elif base_name == "generator_return":
+                init_value = "false"
+            else:
+                init_value = None
+
             if count is not None:
                 for number in range(1,count+1):
                     tmp_name = self.formatTempName(
@@ -136,9 +146,10 @@ class TempMixin(object):
 
                     if tmp_name not in self.forgotten_names:
                         result.append(
-                            (
+                            VariableDeclaration(
+                                self.tmp_types[base_name],
                                 tmp_name,
-                                self.tmp_types[base_name]
+                                init_value
                             )
                         )
             else:
@@ -149,9 +160,10 @@ class TempMixin(object):
 
                 if tmp_name not in self.forgotten_names:
                     result.append(
-                        (
+                        VariableDeclaration(
+                            self.tmp_types[base_name],
                             tmp_name,
-                            self.tmp_types[base_name]
+                            init_value
                         )
                     )
 
@@ -412,7 +424,7 @@ class PythonContextBase(ContextMetaClassBase):
         pass
 
     @abstractmethod
-    def getTempNameInfos(self):
+    def getTempNameDeclarations(self):
         pass
 
     @abstractmethod
@@ -871,7 +883,11 @@ class FrameDeclarationsMixin(object):
 
     def getFrameDeclarations(self):
         return self.frame_declarations + [
-            "NUITKA_MAY_BE_UNUSED char const *type_description_%d = NULL;" % (i+1)
+            VariableDeclaration(
+                "NUITKA_MAY_BE_UNUSED char const *",
+                "type_description_%d" % (i+1),
+                "NULL"
+            )
             for i in
             range(self.getFramesCount())
         ]
@@ -1305,8 +1321,8 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
     def addExceptionPreserverVariables(self, count):
         self.parent.addExceptionPreserverVariables(count)
 
-    def getTempNameInfos(self):
-        return self.parent.getTempNameInfos()
+    def getTempNameDeclarations(self):
+        return self.parent.getTempNameDeclarations()
 
     def forgetTempName(self, tmp_name):
         self.parent.forgetTempName(tmp_name)

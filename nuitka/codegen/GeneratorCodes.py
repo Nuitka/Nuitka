@@ -101,34 +101,42 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
     local_reals = []
 
     for decl in function_locals:
-        if decl.startswith("NUITKA_MAY_BE_UNUSED "):
-            decl = decl[21:]
+        assert type(decl) is not str, decl
 
-        if decl.startswith("static"):
+        if decl.code_name.startswith("outline_return_value"):
+            local_type_decl.append(decl.code_name)
+
+        c_type = decl.c_type
+
+        # TODO: Make this a VariableDescription flag?
+        if c_type.startswith("NUITKA_MAY_BE_UNUSED "):
+            c_type = c_type[21:]
+
+        if c_type.startswith("static"):
             local_reals.append(decl)
             continue
 
-        if decl.startswith("char const *type_description_") or \
-           decl in ("PyObject *tmp_unused;",):
+        if decl.code_name.startswith("type_description_") or \
+           decl.code_name in ("tmp_unused",):
             local_reals.append(decl)
             continue
 
-        parts = decl.split('=')
-
-        if len(parts) == 1:
-            local_type_decl.append(decl)
-        else:
-            type_decl = parts[0].strip()
-            var_name = type_decl.split('*')[-1]
-            var_name = var_name.split(' ')[-1]
-
-            local_type_decl.append(type_decl + ";")
+        local_type_decl.append(
+            c_type + ("" if c_type.endswith('*') else ' ') + decl.code_name + ';'
+        )
+        if decl.init_value is not None:
             local_type_init.append(
-                "local_variables->" + var_name + " =" + parts[1]
+                "local_variables->" + decl.code_name + " =" + decl.init_value
             )
 
     if Options.isExperimental("generator_goto"):
         function_locals = local_reals + local_type_init
+    else:
+        function_locals = [
+            variable_declaration.makeCFunctionLevelDeclaration()
+            for variable_declaration in
+            function_locals
+        ]
 
     return template_genfunc_yielder_body_template % {
         "function_identifier"  : function_identifier,

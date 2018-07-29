@@ -50,10 +50,10 @@ from .templates.CodeTemplatesFunction import (
 from .TupleCodes import getTupleCreationCode
 from .VariableCodes import (
     getLocalVariableCodeType,
-    getLocalVariableInitCode,
     getVariableCode,
     getVariableCodeName
 )
+from .VariableDeclarations import VariableDeclaration
 
 
 def getClosureVariableProvisionCode(context, closure_variables):
@@ -441,41 +441,52 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
     return result
 
 
+def _makeVariableDescriptionForLocalVariable(context, variable, init_from):
+    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, None)
+
+    if variable.isLocalVariable():
+        context.setVariableType(variable, variable_code_name, variable_c_type)
+
+    return VariableDeclaration(
+        variable_c_type.c_type,
+        variable_code_name,
+        variable_c_type.getInitValue(init_from)
+    )
+
+
 def setupFunctionLocalVariables(context, parameters, closure_variables,
                                 user_variables, temp_variables):
 
     function_locals = []
     function_cleanup = []
 
+    # Parameter variable initializations
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
             function_locals.append(
-                getLocalVariableInitCode(
-                    context        = context,
-                    variable       = variable,
-                    variable_trace = None,
-                    init_from      = "python_pars[ %d ]" % count
+                _makeVariableDescriptionForLocalVariable(
+                    context   = context,
+                    variable  = variable,
+                    init_from = "python_pars[ %d ]" % count
                 )
             )
 
     # User local variable initializations
-    function_locals += [
-        getLocalVariableInitCode(
-            context        = context,
-            variable       = variable,
-            variable_trace = None,
-            init_from      = None
-        )
+    for variable in user_variables + tuple(
+        variable
         for variable in
-        user_variables + tuple(
-            variable
-            for variable in
-            sorted(
-                temp_variables,
-                key = lambda variable: variable.getName()
+        sorted(
+            temp_variables,
+            key = lambda variable: variable.getName()
+        )
+    ):
+        function_locals.append(
+            _makeVariableDescriptionForLocalVariable(
+                context   = context,
+                variable  = variable,
+                init_from = None
             )
         )
-    ]
 
     for closure_variable in closure_variables:
         # Temporary variable closures are to be ignored.
@@ -506,33 +517,17 @@ def finalizeFunctionLocalVariables(context, function_locals, function_cleanup):
     for preserver_id in context.getExceptionPreserverCounts():
         function_locals.extend(getExceptionPreserverVariableNames(preserver_id))
 
-    tmp_infos = context.getTempNameInfos()
+    function_locals.extend(context.getTempNameDeclarations())
 
-    function_locals += [
-        "%s%s%s;" % (
-            tmp_type,
-            ' ' if not tmp_type.endswith('*') else "",
-            tmp_name
-        )
-        for tmp_name, tmp_type in
-        tmp_infos
-    ]
-
-    function_locals += context.getFrameDeclarations()
-
-    # TODO: Could avoid this unless try/except or try/finally with returns
-    # occur.
-    if context.hasTempName("return_value"):
-        function_locals.append("tmp_return_value = NULL;")
-    if context.hasTempName("generator_return"):
-        function_locals.append("tmp_generator_return = false;")
-    for tmp_name, _tmp_type in tmp_infos:
-        if tmp_name.startswith("tmp_outline_return_value_"):
-            function_locals.append("%s = NULL;" % tmp_name)
+    function_locals.extend(context.getFrameDeclarations())
 
     for locals_dict_name in context.getLocalsDictNames():
         function_locals.append(
-            "PyObject *%s = NULL;" % locals_dict_name
+            VariableDeclaration(
+                "PyObject *",
+                locals_dict_name,
+                "NULL"
+            )
         )
 
         function_cleanup.append(
@@ -567,6 +562,13 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
     )
 
     finalizeFunctionLocalVariables(context, function_locals, function_cleanup)
+
+    function_locals = [
+        variable_declaration.makeCFunctionLevelDeclaration()
+        for variable_declaration in
+        function_locals
+    ]
+
 
     function_doc = context.getConstantCode(
         constant = function_doc
