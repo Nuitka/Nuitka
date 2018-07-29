@@ -84,7 +84,7 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
         "function_identifier" : function_identifier,
         "function_body"       : indented(function_codes.codes),
         "function_var_inits"  : indented(function_locals),
-        "asyncgen_exit"      : generator_exit
+        "asyncgen_exit"       : generator_exit
     }
 
 

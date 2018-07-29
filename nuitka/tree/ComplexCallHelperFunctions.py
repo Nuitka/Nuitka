@@ -2622,10 +2622,10 @@ def getFunctionCallHelperDictionaryUnpacking():
             ),
             exception_name = "AttributeError",
             handler_body   = _makeRaiseExceptionMustBeMapping(
-                called_variable = called_variable,
+                called_variable    = called_variable,
                 star_dict_variable = tmp_item_variable
             ),
-            source_ref = internal_source_ref
+            source_ref     = internal_source_ref
         ),
     )
 
