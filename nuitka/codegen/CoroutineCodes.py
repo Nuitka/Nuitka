@@ -53,7 +53,7 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
                            user_variables, outline_variables,
                            temp_variables, needs_exception_exit,
                            needs_generator_return):
-    function_locals, function_cleanup = setupFunctionLocalVariables(
+    setupFunctionLocalVariables(
         context           = context,
         parameters        = None,
         closure_variables = closure_variables,
@@ -70,7 +70,9 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
         context            = context
     )
 
-    finalizeFunctionLocalVariables(context, function_locals, function_cleanup)
+    function_cleanup = finalizeFunctionLocalVariables(context)
+
+    function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
     if needs_exception_exit:
         generator_exit = template_coroutine_exception_exit % {
@@ -85,12 +87,6 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
 
     if needs_generator_return:
         generator_exit += template_coroutine_return_exit % {}
-
-    function_locals = [
-        variable_declaration.makeCFunctionLevelDeclaration()
-        for variable_declaration in
-        function_locals
-    ]
 
     return template_coroutine_object_body_template % {
         "function_identifier" : function_identifier,

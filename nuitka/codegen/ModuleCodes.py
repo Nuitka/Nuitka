@@ -19,8 +19,11 @@
 
 """
 
+from nuitka.__past__ import iterItems
+from nuitka.codegen import Emission
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
+from .CodeHelpers import generateStatementSequenceCode
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import allocateNestedConstants, getConstantInitCodes
 from .Indentation import indented
@@ -37,17 +40,17 @@ def getModuleAccessCode(context):
     return "module_%s" % context.getModuleCodeName()
 
 
-def getModuleValues(context, module_name, module_identifier, codes,
-                    function_decl_codes, function_body_codes, outline_variables,
-                    temp_variables, is_main_module, is_internal_module,
-                    is_package):
+def getModuleValues(context, module_name, module_identifier, function_decl_codes,
+                    function_body_codes, outline_variables, temp_variables,
+                    is_main_module, is_internal_module, is_package):
     # For the module code, lots of arguments and attributes come together.
     # pylint: disable=too-many-locals
 
     # Temporary variable initializations
     # TODO: Move that to a place outside of functions.
     from .FunctionCodes import setupFunctionLocalVariables, finalizeFunctionLocalVariables
-    local_var_inits, cleanup = setupFunctionLocalVariables(
+
+    setupFunctionLocalVariables(
         context           = context,
         parameters        = None,
         closure_variables = (),
@@ -55,14 +58,30 @@ def getModuleValues(context, module_name, module_identifier, codes,
         temp_variables    = temp_variables
     )
 
-    finalizeFunctionLocalVariables(context, local_var_inits, cleanup)
+    module_codes = Emission.SourceCodeCollector()
 
-    local_var_inits = [
-        variable_declaration.makeCFunctionLevelDeclaration()
-        for variable_declaration in
-        local_var_inits
-    ]
+    generateStatementSequenceCode(
+        statement_sequence = context.getOwner().getBody(),
+        emit               = module_codes,
+        allow_none         = True,
+        context            = context,
+    )
 
+    for _identifier, code in sorted(iterItems(context.getHelperCodes())):
+        function_body_codes.append(code)
+
+    for _identifier, code in sorted(iterItems(context.getDeclarations())):
+        function_decl_codes.append(code)
+
+    function_body_codes = "\n\n".join(function_body_codes)
+    function_decl_codes = "\n\n".join(function_decl_codes)
+
+    _cleanup = finalizeFunctionLocalVariables(context)
+
+    # TODO: Seems like a bug, classes could produce those.
+    # assert not _cleanup, _cleanup
+
+    local_var_inits = context.variable_storage.makeCFunctionLevelDeclarations()
 
     if context.needsExceptionVariables():
         module_exit = template_module_exception_exit
@@ -80,7 +99,7 @@ def getModuleValues(context, module_name, module_identifier, codes,
         "module_functions_decl"    : function_decl_codes,
         "module_functions_code"    : function_body_codes,
         "temps_decl"               : indented(local_var_inits),
-        "module_code"              : indented(codes),
+        "module_code"              : indented(module_codes.codes),
         "module_exit"              : module_exit,
         "module_code_objects_decl" : indented(
             getCodeObjectsDeclCode(context),

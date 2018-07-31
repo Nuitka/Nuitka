@@ -34,7 +34,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .Namify import namifyConstant
-from .VariableDeclarations import VariableDeclaration
+from .VariableDeclarations import VariableDeclaration, VariableStorage
 
 
 class ContextMetaClass(ABCMeta):
@@ -101,16 +101,46 @@ class TempMixin(object):
 
         self.tmp_names[base_name] = number
 
+        needs_description_added = not unique or base_name not in self.tmp_types
+
         if base_name not in self.tmp_types:
             self.tmp_types[base_name] = type_name
         else:
             assert self.tmp_types[base_name] == type_name, \
                 (self.tmp_types[base_name], type_name)
 
-        return self.formatTempName(
+        formatted_name = self.formatTempName(
             base_name = base_name,
             number    = number
         )
+
+        if needs_description_added:
+            # TODO: Allocating people should tell this.
+
+            if base_name == "outline_return_value":
+                init_value = "NULL"
+            elif base_name == "return_value":
+                init_value = "NULL"
+            elif base_name == "generator_return":
+                init_value = "false"
+            else:
+                init_value = None
+
+            self.variable_storage.add(
+                VariableDeclaration(
+                    type_name,
+                    formatted_name,
+                    init_value
+                ),
+                top_level = unique
+            )
+
+        return formatted_name
+
+    def skipTempName(self, base_name):
+        number = self.tmp_names.get(base_name, 0)
+        number += 1
+        self.tmp_names[base_name] = number
 
     def getIntResName(self):
         return self.allocateTempName("res", "int", unique = True)
@@ -123,51 +153,6 @@ class TempMixin(object):
 
     def forgetTempName(self, tmp_name):
         self.forgotten_names.add(tmp_name)
-
-    def getTempNameDeclarations(self):
-        result  = []
-
-        for base_name, count in sorted(iterItems(self.tmp_names)):
-            if base_name == "outline_return_value":
-                init_value = "NULL"
-            elif base_name == "return_value":
-                init_value = "NULL"
-            elif base_name == "generator_return":
-                init_value = "false"
-            else:
-                init_value = None
-
-            if count is not None:
-                for number in range(1,count+1):
-                    tmp_name = self.formatTempName(
-                        base_name = base_name,
-                        number    = number
-                    )
-
-                    if tmp_name not in self.forgotten_names:
-                        result.append(
-                            VariableDeclaration(
-                                self.tmp_types[base_name],
-                                tmp_name,
-                                init_value
-                            )
-                        )
-            else:
-                tmp_name = self.formatTempName(
-                    base_name = base_name,
-                    number    = None
-                )
-
-                if tmp_name not in self.forgotten_names:
-                    result.append(
-                        VariableDeclaration(
-                            self.tmp_types[base_name],
-                            tmp_name,
-                            init_value
-                        )
-                    )
-
-        return result
 
     def getExceptionEscape(self):
         return self.exception_escape
@@ -408,6 +393,10 @@ class PythonContextBase(ContextMetaClassBase):
         pass
 
     @abstractmethod
+    def skipTempName(self, base_name):
+        pass
+
+    @abstractmethod
     def getIntResName(self):
         pass
 
@@ -421,10 +410,6 @@ class PythonContextBase(ContextMetaClassBase):
 
     @abstractmethod
     def forgetTempName(self, tmp_name):
-        pass
-
-    @abstractmethod
-    def getTempNameDeclarations(self):
         pass
 
     @abstractmethod
@@ -1017,6 +1002,8 @@ class PythonModuleContext(TempMixin, CodeObjectsMixin,
 
         self.needs_module_filename_object = False
 
+        self.variable_storage = VariableStorage()
+
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.filename
 
@@ -1109,6 +1096,8 @@ class PythonFunctionContext(FrameDeclarationsMixin,
         self.setReturnTarget("function_return_exit")
 
         self.frame_handle = None
+
+        self.variable_storage = VariableStorage()
 
     def __repr__(self):
         return "<%s for %s '%s'>" % (
@@ -1204,6 +1193,8 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
 
         self.outline = outline
 
+        self.variable_storage = parent.variable_storage
+
     def getOwner(self):
         return self.outline
 
@@ -1216,6 +1207,9 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
     def allocateTempName(self, base_name, type_name = "PyObject *",
                          unique = False):
         return self.parent.allocateTempName(base_name, type_name, unique)
+
+    def skipTempName(self, base_name):
+        return self.parent.skipTempName(base_name)
 
     def hasTempName(self, base_name):
         return self.parent.hasTempName(base_name)
@@ -1320,9 +1314,6 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
 
     def addExceptionPreserverVariables(self, count):
         self.parent.addExceptionPreserverVariables(count)
-
-    def getTempNameDeclarations(self):
-        return self.parent.getTempNameDeclarations()
 
     def forgetTempName(self, tmp_name):
         self.parent.forgetTempName(tmp_name)

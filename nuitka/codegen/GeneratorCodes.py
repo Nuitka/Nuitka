@@ -19,7 +19,6 @@
 
 """
 
-from nuitka import Options
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateStatementSequenceCode
@@ -51,9 +50,7 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
                            user_variables, outline_variables,
                            temp_variables, needs_exception_exit,
                            needs_generator_return):
-    # Due to the current experimental code, pylint: disable=too-many-locals
-
-    function_locals, function_cleanup = setupFunctionLocalVariables(
+    setupFunctionLocalVariables(
         context           = context,
         parameters        = None,
         closure_variables = closure_variables,
@@ -70,7 +67,7 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
         context            = context
     )
 
-    finalizeFunctionLocalVariables(context, function_locals, function_cleanup)
+    function_cleanup = finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
         generator_exit = template_generator_exception_exit % {
@@ -96,47 +93,10 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
         function_dispatch.insert(0, "switch(generator->m_yield_return_index) {")
         function_dispatch.append('}')
 
-    local_type_decl = []
-    local_type_init = []
-    local_reals = []
 
-    for decl in function_locals:
-        assert type(decl) is not str, decl
-
-        if decl.code_name.startswith("outline_return_value"):
-            local_type_decl.append(decl.code_name)
-
-        c_type = decl.c_type
-
-        # TODO: Make this a VariableDescription flag?
-        if c_type.startswith("NUITKA_MAY_BE_UNUSED "):
-            c_type = c_type[21:]
-
-        if c_type.startswith("static"):
-            local_reals.append(decl)
-            continue
-
-        if decl.code_name.startswith("type_description_") or \
-           decl.code_name in ("tmp_unused",):
-            local_reals.append(decl)
-            continue
-
-        local_type_decl.append(
-            c_type + ("" if c_type.endswith('*') else ' ') + decl.code_name + ';'
-        )
-        if decl.init_value is not None:
-            local_type_init.append(
-                "local_variables->" + decl.code_name + " =" + decl.init_value
-            )
-
-    if Options.isExperimental("generator_goto"):
-        function_locals = local_reals + local_type_init
-    else:
-        function_locals = [
-            variable_declaration.makeCFunctionLevelDeclaration()
-            for variable_declaration in
-            function_locals
-        ]
+    # TODO: Have generator storage put there.
+    function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
+    local_type_decl = context.variable_storage.makeCStructDeclarations()
 
     return template_genfunc_yielder_body_template % {
         "function_identifier"  : function_identifier,

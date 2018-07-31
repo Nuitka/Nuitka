@@ -36,3 +36,57 @@ class VariableDeclaration(VariableDeclarationBase):
             self.code_name,
             "" if self.init_value is None else " = %s" % self.init_value
         )
+
+    def makeCStructDeclaration(self):
+        return "%s%s%s;" % (
+            self.c_type,
+            ' ' if self.c_type[-1] != '*' else "",
+            self.code_name
+        )
+
+
+class VariableStorage(object):
+    def __init__(self):
+        self.variable_declarations = []
+
+    def add(self, variable_declaration, top_level):
+        # This is top level, pylint: disable=unused-argument
+        self.variable_declarations.append(variable_declaration)
+
+    def remove(self, code_name):
+        self.variable_declarations = [
+            variable_declaration
+            for variable_declaration in self.variable_declarations
+            if variable_declaration.code_name != code_name
+        ]
+
+    def extend(self, iterable):
+        self.variable_declarations.extend(iterable)
+
+    def makeCFunctionLevelDeclarations(self):
+        return [
+            variable_declaration.makeCFunctionLevelDeclaration()
+            for variable_declaration in
+            self.variable_declarations
+        ]
+
+    def makeCStructDeclarations(self):
+        return [
+            variable_declaration.makeCStructDeclaration()
+            for variable_declaration in
+            self.variable_declarations
+        ]
+
+
+
+class VariableSubStorage(VariableStorage):
+    def __init__(self, parent):
+        VariableStorage.__init__(self)
+
+        self.parent = parent
+
+    def add(self, variable_declaration, top_level):
+        if top_level:
+            self.parent.add(variable_declaration, True)
+        else:
+            self.variable_declarations.append(variable_declaration)

@@ -457,18 +457,16 @@ def _makeVariableDescriptionForLocalVariable(context, variable, init_from):
 def setupFunctionLocalVariables(context, parameters, closure_variables,
                                 user_variables, temp_variables):
 
-    function_locals = []
-    function_cleanup = []
-
     # Parameter variable initializations
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
-            function_locals.append(
+            context.variable_storage.add(
                 _makeVariableDescriptionForLocalVariable(
                     context   = context,
                     variable  = variable,
                     init_from = "python_pars[ %d ]" % count
-                )
+                ),
+                True
             )
 
     # User local variable initializations
@@ -480,12 +478,13 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
             key = lambda variable: variable.getName()
         )
     ):
-        function_locals.append(
+        context.variable_storage.add(
             _makeVariableDescriptionForLocalVariable(
                 context   = context,
                 variable  = variable,
                 init_from = None
-            )
+            ),
+            True
         )
 
     for closure_variable in closure_variables:
@@ -504,30 +503,29 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
         else:
             assert False, (variable_code_name, variable_c_type)
 
-    return function_locals, function_cleanup
 
-
-def finalizeFunctionLocalVariables(context, function_locals, function_cleanup):
+def finalizeFunctionLocalVariables(context):
     if context.needsExceptionVariables():
-        function_locals.extend(getErrorVariableDeclarations())
+        context.variable_storage.extend(getErrorVariableDeclarations())
 
     for keeper_index in range(1, context.getKeeperVariableCount()+1):
-        function_locals.extend(getExceptionKeeperVariableNames(keeper_index))
+        context.variable_storage.extend(getExceptionKeeperVariableNames(keeper_index))
 
     for preserver_id in context.getExceptionPreserverCounts():
-        function_locals.extend(getExceptionPreserverVariableNames(preserver_id))
+        context.variable_storage.extend(getExceptionPreserverVariableNames(preserver_id))
 
-    function_locals.extend(context.getTempNameDeclarations())
+    context.variable_storage.extend(context.getFrameDeclarations())
 
-    function_locals.extend(context.getFrameDeclarations())
+    function_cleanup = []
 
     for locals_dict_name in context.getLocalsDictNames():
-        function_locals.append(
+        context.variable_storage.add(
             VariableDeclaration(
                 "PyObject *",
                 locals_dict_name,
                 "NULL"
-            )
+            ),
+            True
         )
 
         function_cleanup.append(
@@ -535,6 +533,8 @@ def finalizeFunctionLocalVariables(context, function_locals, function_cleanup):
                 "locals_dict" : locals_dict_name
             }
         )
+
+    return function_cleanup
 
 
 def getFunctionCode(context, function_identifier, parameters, closure_variables,
@@ -544,7 +544,7 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=too-many-locals
 
-    function_locals, function_cleanup = setupFunctionLocalVariables(
+    setupFunctionLocalVariables(
         context           = context,
         parameters        = parameters,
         closure_variables = closure_variables,
@@ -561,14 +561,9 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
         context            = context
     )
 
-    finalizeFunctionLocalVariables(context, function_locals, function_cleanup)
+    function_cleanup = finalizeFunctionLocalVariables(context = context)
 
-    function_locals = [
-        variable_declaration.makeCFunctionLevelDeclaration()
-        for variable_declaration in
-        function_locals
-    ]
-
+    function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
     function_doc = context.getConstantCode(
         constant = function_doc

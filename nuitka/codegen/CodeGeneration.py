@@ -26,9 +26,7 @@ branches and make a code block out of it. But it doesn't contain any target
 language syntax.
 """
 
-from nuitka.__past__ import iterItems
-
-from . import Contexts, Emission
+from . import Contexts
 from .AsyncgenCodes import (
     generateMakeAsyncgenObjectCode,
     getAsyncgenObjectCode,
@@ -76,11 +74,7 @@ from .ClassCodes import (
     generateBuiltinSuperCode,
     generateSelectMetaclassCode
 )
-from .CodeHelpers import (
-    generateStatementSequenceCode,
-    setExpressionDispatchDict,
-    setStatementDispatchDict
-)
+from .CodeHelpers import setExpressionDispatchDict, setStatementDispatchDict
 from .ComparisonCodes import generateComparisonExpressionCode
 from .ConditionalCodes import (
     generateConditionalAndOrCode,
@@ -429,17 +423,6 @@ def prepareModuleCode(global_context, module, module_name):
 
     context.setExceptionEscape("module_exception_exit")
 
-    statement_sequence = module.getBody()
-
-    codes = Emission.SourceCodeCollector()
-
-    generateStatementSequenceCode(
-        statement_sequence = statement_sequence,
-        emit               = codes,
-        allow_none         = True,
-        context            = context,
-    )
-
     function_decl_codes = []
     function_body_codes = []
 
@@ -482,19 +465,9 @@ def prepareModuleCode(global_context, module, module_name):
 
         function_decl_codes.append(function_decl)
 
-    for _identifier, code in sorted(iterItems(context.getHelperCodes())):
-        function_body_codes.append(code)
-
-    for _identifier, code in sorted(iterItems(context.getDeclarations())):
-        function_decl_codes.append(code)
-
-    function_body_codes = "\n\n".join(function_body_codes)
-    function_decl_codes = "\n\n".join(function_decl_codes)
-
     template_values = getModuleValues(
         module_name         = module_name,
         module_identifier   = module.getCodeName(),
-        codes               = codes.codes,
         function_decl_codes = function_decl_codes,
         function_body_codes = function_body_codes,
         temp_variables      = module.getTempVariables(),

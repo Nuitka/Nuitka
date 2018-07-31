@@ -26,7 +26,9 @@ from nuitka.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
 
+from .Emission import SourceCodeCollector
 from .LabelCodes import getStatementTrace
+from .VariableDeclarations import VariableSubStorage
 
 expression_dispatch_dict = {}
 
@@ -120,10 +122,10 @@ def generateChildExpressionsCode(expression, emit, context):
     for child_name in expression.named_children:
         child_value = expression.getChild(child_name)
 
-        # Allocate anyway, so names are aligned.
-        value_name = context.allocateTempName(child_name + "_name")
-
         if child_value is not None:
+            # Allocate anyway, so names are aligned.
+            value_name = context.allocateTempName(child_name + "_name")
+
             generateExpressionCode(
                 to_name    = value_name,
                 expression = child_value,
@@ -133,7 +135,7 @@ def generateChildExpressionsCode(expression, emit, context):
 
             value_names.append(value_name)
         else:
-            context.forgetTempName(value_name)
+            context.skipTempName(child_name + "_value")
 
             value_names.append(None)
 
@@ -225,11 +227,30 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
                 context            = context
             )
         else:
+            context.pushCleanupScope()
+
+            context.variable_storage = VariableSubStorage(
+                context.variable_storage
+            )
+
+            statement_codes = SourceCodeCollector()
+
             generateStatementCode(
                 statement = statement,
-                emit      = emit,
+                emit      = statement_codes,
                 context   = context
             )
+
+            emit('{')
+            for s in context.variable_storage.makeCFunctionLevelDeclarations():
+                emit(s)
+
+            statement_codes.emitTo(emit)
+            emit('}')
+
+            context.variable_storage = context.variable_storage.parent
+
+            context.popCleanupScope()
 
 
 def generateStatementSequenceCode(statement_sequence, emit, context,
@@ -240,12 +261,8 @@ def generateStatementSequenceCode(statement_sequence, emit, context,
 
     assert statement_sequence.kind == "STATEMENTS_SEQUENCE", statement_sequence
 
-    context.pushCleanupScope()
-
     _generateStatementSequenceCode(
         statement_sequence = statement_sequence,
         emit               = emit,
         context            = context
     )
-
-    context.popCleanupScope()
