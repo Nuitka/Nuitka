@@ -3,6 +3,55 @@ Nuitka Release 0.5.33 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Fix, nested functions with local classes using outside function closure
+  variables were not registering their usage, which could lead to errors
+  at C compile time. Fixed in 0.5.32.1 already.
+
+- Fix, usage of built-in calls on class level could crash the compiler if
+  a class variable was updated. Fixed in 0.5.32.1 already.
+
+- Python 3.7: The handling of non-type bases classes was not fully compatible
+  and wrong usages were giving ``AttributeError`` instead of ``TypeError``.
+
+- Python 3.5: Fix, await expressions didn't annotate their exception exit.
+
+Optimization
+------------
+
+- Put all statement related code and declarations for it in a dedicated C
+  block, making things slightly more easy for the C compiler to re-use the
+  stack space.
+
+Cleanups
+--------
+
+- Frame object and their cache declarations are now handled by the way of
+  allocated variable descriptions, avoid special handling for them.
+
+- The interface to "forget" a temporary variable has been replaced with a new
+  method that skips a number for it. This is done to keep expression use the
+  same indexes for all their child expressions, but this is more explicit.
+
+- Instead of passing around C variables names for temporary values, we now
+  have full descriptions, with C type, code name, storage location, and the
+  init value to use. This makes the information more immediately available
+  where it is needed.
+
+- Variable declarations are now created when needed and stored in dedicated
+  variable storage objects, which then in can generate the code as necessary.
+
+- Module code generation has been enhanced to be closer to the pattern used
+  by functions, generators, etc.
+
+- There is now only one spot that creates variable declaration, instead of
+  previous code duplications.
+
+
+This release is not done yet.
+
 
 Nuitka Release 0.5.32
 =====================
