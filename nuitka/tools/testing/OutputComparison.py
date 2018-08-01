@@ -26,7 +26,6 @@ an example.
 import difflib
 import os
 import re
-import sys
 
 from nuitka.Tracing import my_print
 
@@ -160,7 +159,7 @@ exceeded while calling a Python object' in \
             continue
 
         # TODO: Harmonize exception ignored in function or method.
-        if "Exception ignored in:" in line and sys.version_info >= (3,7):
+        if re.match("Exception ignored in:.*__del__", line):
             continue
 
         # This is also a bug potentially, but only visible under
