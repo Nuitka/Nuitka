@@ -60,8 +60,10 @@ def getModuleValues(context, module_name, module_identifier, function_decl_codes
 
     module_codes = Emission.SourceCodeCollector()
 
+    module_body = context.getOwner().getBody()
+
     generateStatementSequenceCode(
-        statement_sequence = context.getOwner().getBody(),
+        statement_sequence = module_body,
         emit               = module_codes,
         allow_none         = True,
         context            = context,
@@ -83,7 +85,7 @@ def getModuleValues(context, module_name, module_identifier, function_decl_codes
 
     local_var_inits = context.variable_storage.makeCFunctionLevelDeclarations()
 
-    if context.needsExceptionVariables():
+    if module_body is not None and module_body.mayRaiseException(BaseException):
         module_exit = template_module_exception_exit
     else:
         module_exit = template_module_noexception_exit

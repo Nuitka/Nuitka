@@ -40,7 +40,6 @@ from .templates.CodeTemplatesFrames import (
     template_frame_guard_generator_return_handler,
     template_frame_guard_once
 )
-from .VariableDeclarations import VariableDeclaration
 
 
 def getFrameLocalsStorageSize(type_descriptions):
@@ -256,20 +255,8 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
 
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
-    context.addFrameDeclaration(
-        VariableDeclaration(
-            "static struct Nuitka_FrameObject *",
-            "cache_%s" % frame_identifier,
-            "NULL"
-        )
-    )
-    context.addFrameDeclaration(
-        VariableDeclaration(
-            "struct Nuitka_FrameObject *",
-            frame_identifier,
-            None
-        )
-    )
+    context.variable_storage.addFrameDeclaration(frame_identifier)
+    context.variable_storage.addFrameCacheDeclaration(frame_identifier)
 
     emit(
         template_frame_guard_full_block % {
@@ -321,13 +308,7 @@ def getFrameGuardOnceCode(frame_identifier, code_identifier,
     # Used for modules only currently, but that ought to change.
     assert parent_return_exit is None and frame_return_exit is None
 
-    context.addFrameDeclaration(
-        VariableDeclaration(
-            "struct Nuitka_FrameObject *",
-            frame_identifier,
-            None
-        )
-    )
+    context.variable_storage.addFrameDeclaration(frame_identifier)
 
     emit(
         template_frame_guard_once % {
@@ -357,13 +338,7 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
 
     context_identifier = context.getContextObjectName()
 
-    context.addFrameDeclaration(
-        VariableDeclaration(
-            "static struct Nuitka_FrameObject *",
-            "cache_frame_%s" % context_identifier,
-            "NULL"
-        )
-    )
+    context.variable_storage.addFrameCacheDeclaration("frame_%s" % context_identifier)
 
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
@@ -424,20 +399,12 @@ def generateFramePreserveExceptionCode(statement, emit, context):
     else:
         preserver_id = statement.getPreserverId()
 
-        if preserver_id == 0:
-            assert False
+        assert preserver_id != 0, statement
+        context.addExceptionPreserverVariables(preserver_id)
 
-            emit(
-                "PRESERVE_FRAME_EXCEPTION( %(frame_identifier)s );" % {
-                    "frame_identifier" : context.getFrameHandle()
-                }
-            )
-        else:
-            context.addExceptionPreserverVariables(preserver_id)
-
-            # TODO: Multiple thread state calls should be avoided.
-            emit(
-                """\
+        # TODO: Multiple thread state calls should be avoided.
+        emit(
+            """\
 exception_preserved_type_%(preserver_id)d = EXC_TYPE(PyThreadState_GET());
 Py_XINCREF( exception_preserved_type_%(preserver_id)d );
 exception_preserved_value_%(preserver_id)d = EXC_VALUE(PyThreadState_GET());
@@ -445,9 +412,9 @@ Py_XINCREF( exception_preserved_value_%(preserver_id)d );
 exception_preserved_tb_%(preserver_id)d = (PyTracebackObject *)EXC_TRACEBACK(PyThreadState_GET());
 Py_XINCREF( exception_preserved_tb_%(preserver_id)d );
 """ % {
-                    "preserver_id"  : preserver_id,
-                }
-            )
+                "preserver_id"  : preserver_id,
+            }
+        )
 
 
 def generateFrameRestoreExceptionCode(statement, emit, context):

@@ -34,7 +34,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .Namify import namifyConstant
-from .VariableDeclarations import VariableDeclaration, VariableStorage
+from .VariableDeclarations import VariableStorage
 
 
 class ContextMetaClass(ABCMeta):
@@ -59,12 +59,10 @@ class TempMixin(object):
     def __init__(self):
         self.tmp_names = {}
         self.tmp_types = {}
-        self.forgotten_names = set()
 
         self.labels = {}
 
-        # For exception handling
-        self.needs_exception_variables = False
+        # For exception and loop handling
         self.exception_escape = None
         self.loop_continue = None
         self.loop_break = None
@@ -76,7 +74,7 @@ class TempMixin(object):
         self.keeper_variable_count = 0
         self.exception_keepers = (None, None, None, None)
 
-        self.preserver_variable_counts = set()
+        self.preserver_variable_declaration = {}
 
         self.cleanup_names = []
 
@@ -126,12 +124,10 @@ class TempMixin(object):
             else:
                 init_value = None
 
-            self.variable_storage.add(
-                VariableDeclaration(
-                    type_name,
-                    formatted_name,
-                    init_value
-                ),
+            self.variable_storage.addVariableDeclaration(
+                type_name,
+                formatted_name,
+                init_value,
                 top_level = unique
             )
 
@@ -150,9 +146,6 @@ class TempMixin(object):
 
     def hasTempName(self, base_name):
         return base_name in self.tmp_names
-
-    def forgetTempName(self, tmp_name):
-        self.forgotten_names.add(tmp_name)
 
     def getExceptionEscape(self):
         return self.exception_escape
@@ -191,24 +184,48 @@ class TempMixin(object):
     def getLabelCount(self, label):
         return self.labels.get(label, 0)
 
-    def needsExceptionVariables(self):
-        return self.needs_exception_variables
-
     def markAsNeedsExceptionVariables(self):
-        self.needs_exception_variables = True
+        # TODO: Change users to using return value of this called here:
+        self.variable_storage.getExceptionVariableDescriptions()
 
     def allocateExceptionKeeperVariables(self):
         self.keeper_variable_count += 1
 
-        return (
-            "exception_keeper_type_%d" % self.keeper_variable_count,
-            "exception_keeper_value_%d" % self.keeper_variable_count,
-            "exception_keeper_tb_%d" % self.keeper_variable_count,
-            "exception_keeper_lineno_%s" % self.keeper_variable_count
-        )
+        # For finally handlers of Python3, which have conditions on assign and
+        # use, the NULL init is needed.
+        debug = Options.isDebug() and python_version >= 300
 
-    def getKeeperVariableCount(self):
-        return self.keeper_variable_count
+        if debug:
+            keeper_obj_init = "NULL"
+        else:
+            keeper_obj_init = None
+
+        return (
+            self.variable_storage.addVariableDeclaration(
+                "PyObject *",
+                "exception_keeper_type_%d" % self.keeper_variable_count,
+                keeper_obj_init,
+                top_level = True
+            ),
+            self.variable_storage.addVariableDeclaration(
+                "PyObject *",
+                "exception_keeper_value_%d" % self.keeper_variable_count,
+                keeper_obj_init,
+                top_level = True
+            ),
+            self.variable_storage.addVariableDeclaration(
+                "PyTracebackObject *",
+                "exception_keeper_tb_%d" % self.keeper_variable_count,
+                keeper_obj_init,
+                top_level = True
+            ),
+            self.variable_storage.addVariableDeclaration(
+                "NUITKA_MAY_BE_UNUSED int",
+                "exception_keeper_lineno_%d" % self.keeper_variable_count,
+                '0' if debug else None,
+                top_level = True
+            )
+        )
 
     def getExceptionKeeperVariables(self):
         return self.exception_keepers
@@ -218,12 +235,40 @@ class TempMixin(object):
         self.exception_keepers = tuple(keeper_vars)
         return result
 
-    def getExceptionPreserverCounts(self):
-        return self.preserver_variable_counts
+    def addExceptionPreserverVariables(self, preserver_id):
+        # For finally handlers of Python3, which have conditions on assign and
+        # use.
+        if preserver_id not in self.preserver_variable_declaration:
 
-    def addExceptionPreserverVariables(self, count):
-        assert count != 0
-        self.preserver_variable_counts.add(count)
+            debug = Options.isDebug() and python_version >= 300
+
+            if debug:
+                preserver_obj_init = "NULL"
+            else:
+                preserver_obj_init = None
+
+            self.preserver_variable_declaration[preserver_id] = (
+                self.variable_storage.addVariableDeclaration(
+                    "PyObject *",
+                    "exception_preserved_type_%d" % preserver_id,
+                    preserver_obj_init,
+                    top_level = True
+                ),
+                self.variable_storage.addVariableDeclaration(
+                    "PyObject *",
+                    "exception_preserved_value_%d" % preserver_id,
+                    preserver_obj_init,
+                    top_level = True
+                ),
+                self.variable_storage.addVariableDeclaration(
+                    "PyTracebackObject *",
+                    "exception_preserved_tb_%d" % preserver_id,
+                    preserver_obj_init,
+                    top_level = True
+                )
+            )
+
+        return self.preserver_variable_declaration[preserver_id]
 
     def getTrueBranchTarget(self):
         return self.true_target
@@ -334,10 +379,10 @@ class PythonContextBase(ContextMetaClassBase):
         return result
 
     def isUsed(self, tmp_name):
-        if tmp_name.startswith("tmp_unused_"):
-            return False
+        if type(tmp_name) is str:
+            return tmp_name.startswith("tmp_unused")
         else:
-            return True
+            return tmp_name.code_name == "tmp_unused"
 
     @abstractmethod
     def getConstantCode(self, constant):
@@ -409,10 +454,6 @@ class PythonContextBase(ContextMetaClassBase):
         pass
 
     @abstractmethod
-    def forgetTempName(self, tmp_name):
-        pass
-
-    @abstractmethod
     def getExceptionEscape(self):
         pass
 
@@ -438,10 +479,6 @@ class PythonContextBase(ContextMetaClassBase):
 
     @abstractmethod
     def allocateLabel(self, label):
-        pass
-
-    @abstractmethod
-    def needsExceptionVariables(self):
         pass
 
     @abstractmethod
@@ -749,8 +786,6 @@ class PythonGlobalContext(object):
             self.countConstantUse(code)
             self.countConstantUse(code)
 
-        self.needs_exception_variables = False
-
     def getConstantCode(self, constant):
         # Use in user code, or for constants building code itself, many
         # constant types get special code immediately.
@@ -824,8 +859,6 @@ class PythonGlobalContext(object):
 
 class FrameDeclarationsMixin(object):
     def __init__(self):
-        self.frame_declarations = []
-
         # Frame is active or not, default not.
         self.frame_variables_stack = [""]
         # Type descriptions of the current frame.
@@ -851,6 +884,13 @@ class FrameDeclarationsMixin(object):
         if self.frames_used > 1:
             frame_handle += "_%d" % self.frames_used
 
+        self.variable_storage.addVariableDeclaration(
+            "NUITKA_MAY_BE_UNUSED char const *",
+            "type_description_%d" % self.frames_used,
+            "NULL",
+            top_level = True
+        )
+
         self.frame_stack.append(frame_handle)
         return self.frame_stack[-1]
 
@@ -862,20 +902,6 @@ class FrameDeclarationsMixin(object):
 
     def getFramesCount(self):
         return self.frames_used
-
-    def addFrameDeclaration(self, frame_decl):
-        self.frame_declarations.append(frame_decl)
-
-    def getFrameDeclarations(self):
-        return self.frame_declarations + [
-            VariableDeclaration(
-                "NUITKA_MAY_BE_UNUSED char const *",
-                "type_description_%d" % (i+1),
-                "NULL"
-            )
-            for i in
-            range(self.getFramesCount())
-        ]
 
     def pushFrameVariables(self, frame_variables):
         """ Set current the frame variables. """
@@ -1289,17 +1315,11 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
     def getBoolResName(self):
         return self.parent.getBoolResName()
 
-    def needsExceptionVariables(self):
-        return self.parent.needsExceptionVariables()
-
     def markAsNeedsExceptionVariables(self):
         self.parent.markAsNeedsExceptionVariables()
 
     def allocateExceptionKeeperVariables(self):
         return self.parent.allocateExceptionKeeperVariables()
-
-    def addFrameDeclaration(self, frame_decl):
-        self.parent.addFrameDeclaration(frame_decl)
 
     def isForDirectCall(self):
         return self.parent.isForDirectCall()
@@ -1314,9 +1334,6 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
 
     def addExceptionPreserverVariables(self, count):
         self.parent.addExceptionPreserverVariables(count)
-
-    def forgetTempName(self, tmp_name):
-        self.parent.forgetTempName(tmp_name)
 
     def getContextObjectName(self):
         return self.parent.getContextObjectName()

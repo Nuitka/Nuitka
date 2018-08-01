@@ -20,15 +20,14 @@
 Holds the information necessary to make C code declarations related to a variable.
 """
 
-from collections import namedtuple
+class VariableDeclaration(object):
+    __slots__ = ("c_type", "code_name", "init_value")
 
-# TODO: Maybe have another place for this to live in.
-VariableDeclarationBase = namedtuple(
-    "VariableDeclaration",
-    field_names = ("c_type", "code_name", "init_value")
-)
+    def __init__(self, c_type, code_name, init_value):
+        self.c_type = c_type
+        self.code_name = code_name
+        self.init_value = init_value
 
-class VariableDeclaration(VariableDeclarationBase):
     def makeCFunctionLevelDeclaration(self):
         return "%s%s%s%s;" % (
             self.c_type,
@@ -44,14 +43,57 @@ class VariableDeclaration(VariableDeclarationBase):
             self.code_name
         )
 
+    def __str__(self):
+        return self.code_name
+
+    def __repr__(self):
+        return "<VariableDeclaration %s %s = %r>" % (
+            self.c_type,
+            self.code_name,
+            self.init_value
+        )
+
 
 class VariableStorage(object):
     def __init__(self):
         self.variable_declarations = []
 
+        self.exception_variable_declarations = None
+
     def add(self, variable_declaration, top_level):
         # This is top level, pylint: disable=unused-argument
         self.variable_declarations.append(variable_declaration)
+
+    def addVariableDeclaration(self, c_type, code_name, init_value, top_level):
+        result = VariableDeclaration(
+            c_type,
+            code_name,
+            init_value
+        )
+
+        self.add(
+            result,
+            top_level = top_level
+        )
+
+        return result
+
+    def addFrameDeclaration(self, frame_identifier):
+        self.addVariableDeclaration(
+            "struct Nuitka_FrameObject *",
+            frame_identifier,
+            None,
+            top_level = True
+        )
+
+    def addFrameCacheDeclaration(self, frame_identifier):
+        self.addVariableDeclaration(
+            "static struct Nuitka_FrameObject *",
+            "cache_%s" % frame_identifier,
+            "NULL",
+            top_level = True
+        )
+
 
     def remove(self, code_name):
         self.variable_declarations = [
@@ -77,6 +119,16 @@ class VariableStorage(object):
             self.variable_declarations
         ]
 
+    def getExceptionVariableDescriptions(self):
+        if self.exception_variable_declarations is None:
+            self.exception_variable_declarations = (
+                self.addVariableDeclaration("PyObject *", "exception_type", "NULL", True),
+                self.addVariableDeclaration("PyObject *", "exception_value", "NULL", True),
+                self.addVariableDeclaration("PyTracebackObject *", "exception_tb", "NULL", True),
+                self.addVariableDeclaration("NUITKA_MAY_BE_UNUSED int", "exception_lineno", '0', True)
+            )
+
+        return self.exception_variable_declarations
 
 
 class VariableSubStorage(VariableStorage):
@@ -90,3 +142,6 @@ class VariableSubStorage(VariableStorage):
             self.parent.add(variable_declaration, True)
         else:
             self.variable_declarations.append(variable_declaration)
+
+    def getExceptionVariableDescriptions(self):
+        return self.parent.getExceptionVariableDescriptions()

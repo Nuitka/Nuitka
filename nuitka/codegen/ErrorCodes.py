@@ -28,7 +28,6 @@ And releasing of values, as this is what the error case commonly does.
 
 """
 
-from nuitka import Options
 from nuitka.PythonVersions import python_version
 
 from .ExceptionCodes import getExceptionIdentifier
@@ -39,7 +38,6 @@ from .templates.CodeTemplatesExceptions import (
     template_error_catch_quick_exception,
     template_error_format_string_exception
 )
-from .VariableDeclarations import VariableDeclaration
 
 
 def getErrorExitReleaseCode(context):
@@ -149,28 +147,41 @@ def getErrorExitCode(check_name, emit, context, release_names = (),
 def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
     assert not condition.endswith(';')
 
-    context.markAsNeedsExceptionVariables()
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
 
     if len(args) == 1 and type(args[0]) is str:
         from .ConstantCodes import getModuleConstantCode
 
         set_exception = [
-            "exception_type = %s;" % exception,
-            "Py_INCREF( exception_type );",
-            "exception_value = %s;" % getModuleConstantCode(
-                constant = args[0],
+            "%s = %s;" % (
+                exception_type,
+                exception
             ),
-            "exception_tb = NULL;"
+            "Py_INCREF( %s );" % exception_type,
+            "%s = %s;" % (
+                exception_value,
+                getModuleConstantCode(constant = args[0]),
+            ),
+            "%s = NULL;" % exception_tb,
         ]
     else:
         set_exception = [
-            "exception_type = %s;" % exception,
-            "Py_INCREF( exception_type );",
-            "exception_value = Py%s_FromFormat( %s );" % (
-                "String" if python_version < 300 else "Unicode",
-                ", ".join( '"%s"' % arg for arg in args )
+            "%s = %s;" % (
+                exception_type,
+                exception
             ),
-            "exception_tb = NULL;"
+            "Py_INCREF( %s );" % exception_type,
+            "%s = Py%s_FromFormat( %s );" % (
+                exception_value,
+                "String" if python_version < 300 else "Unicode",
+                ", ".join(
+                    '"%s"' % arg
+                    for arg in
+                    args
+                )
+            ),
+            "%s = NULL;" % exception_tb,
         ]
 
 
@@ -207,91 +218,6 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
                 getErrorLineNumberUpdateCode(context)
             )
         }
-    )
-
-
-_errorVariableDeclarations = (
-    VariableDeclaration("PyObject *", "exception_type", "NULL"),
-    VariableDeclaration("PyObject *", "exception_value", "NULL"),
-    VariableDeclaration("PyTracebackObject *", "exception_tb", "NULL"),
-    VariableDeclaration("NUITKA_MAY_BE_UNUSED int", "exception_lineno", '0')
-)
-
-
-def getErrorVariableDeclarations():
-    return _errorVariableDeclarations
-
-
-def getExceptionKeeperVariableNames(keeper_index):
-    # For finally handlers of Python3, which have conditions on assign and
-    # use.
-    debug = Options.isDebug() and python_version >= 300
-
-    if debug:
-        keeper_obj_init = "NULL"
-    else:
-        keeper_obj_init = None
-
-    return (
-        VariableDeclaration(
-            "PyObject *",
-            "exception_keeper_type_%d" % keeper_index,
-            keeper_obj_init
-        ),
-        VariableDeclaration(
-            "PyObject *",
-            "exception_keeper_value_%d" % keeper_index,
-            keeper_obj_init
-        ),
-        VariableDeclaration(
-            "PyTracebackObject *",
-            "exception_keeper_tb_%d" % keeper_index,
-            keeper_obj_init
-        ),
-        VariableDeclaration(
-            "NUITKA_MAY_BE_UNUSED int",
-            "exception_keeper_lineno_%d" % keeper_index,
-            '0' if debug else None
-        )
-    )
-
-
-def getExceptionPreserverVariableNames(preserver_id):
-    # For finally handlers of Python3, which have conditions on assign and
-    # use.
-    debug = Options.isDebug() and python_version >= 300
-
-    if debug:
-        preserver_obj_init = "NULL"
-    else:
-        preserver_obj_init = None
-
-    return (
-        VariableDeclaration(
-            "PyObject *",
-            "exception_preserved_type_%d" % preserver_id,
-            preserver_obj_init
-        ),
-        VariableDeclaration(
-            "PyObject *",
-            "exception_preserved_value_%d" % preserver_id,
-            preserver_obj_init
-        ),
-        VariableDeclaration(
-            "PyTracebackObject *",
-            "exception_preserved_tb_%d" % preserver_id,
-            preserver_obj_init
-        )
-    )
-
-
-def getErrorFormatExitCode(check_name, exception, args, emit, context):
-    getErrorFormatExitBoolCode(
-        condition = "%s == NULL" % check_name,
-        exception = exception,
-        args      = args,
-        emit      = emit,
-        context   = context
     )
 
 

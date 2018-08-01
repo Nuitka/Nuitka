@@ -25,14 +25,7 @@ from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import generateExpressionCode, generateStatementSequenceCode
 from .Contexts import PythonFunctionOutlineContext
 from .Emission import SourceCodeCollector
-from .ErrorCodes import (
-    getErrorExitCode,
-    getErrorVariableDeclarations,
-    getExceptionKeeperVariableNames,
-    getExceptionPreserverVariableNames,
-    getMustNotGetHereCode,
-    getReleaseCode
-)
+from .ErrorCodes import getErrorExitCode, getMustNotGetHereCode, getReleaseCode
 from .Indentation import indented
 from .LabelCodes import getGotoCode, getLabelCode
 from .LineNumberCodes import emitErrorLineNumberUpdateCode
@@ -441,16 +434,17 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
     return result
 
 
-def _makeVariableDescriptionForLocalVariable(context, variable, init_from):
+def _addVariableDescriptionForLocalVariable(context, variable, init_from):
     variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, None)
 
     if variable.isLocalVariable():
         context.setVariableType(variable, variable_code_name, variable_c_type)
 
-    return VariableDeclaration(
+    context.variable_storage.addVariableDeclaration(
         variable_c_type.c_type,
         variable_code_name,
-        variable_c_type.getInitValue(init_from)
+        variable_c_type.getInitValue(init_from),
+        top_level = True
     )
 
 
@@ -460,13 +454,10 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
     # Parameter variable initializations
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
-            context.variable_storage.add(
-                _makeVariableDescriptionForLocalVariable(
-                    context   = context,
-                    variable  = variable,
-                    init_from = "python_pars[ %d ]" % count
-                ),
-                True
+            _addVariableDescriptionForLocalVariable(
+                context   = context,
+                variable  = variable,
+                init_from = "python_pars[ %d ]" % count
             )
 
     # User local variable initializations
@@ -478,13 +469,10 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
             key = lambda variable: variable.getName()
         )
     ):
-        context.variable_storage.add(
-            _makeVariableDescriptionForLocalVariable(
-                context   = context,
-                variable  = variable,
-                init_from = None
-            ),
-            True
+        _addVariableDescriptionForLocalVariable(
+            context   = context,
+            variable  = variable,
+            init_from = None
         )
 
     for closure_variable in closure_variables:
@@ -505,17 +493,6 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
 
 
 def finalizeFunctionLocalVariables(context):
-    if context.needsExceptionVariables():
-        context.variable_storage.extend(getErrorVariableDeclarations())
-
-    for keeper_index in range(1, context.getKeeperVariableCount()+1):
-        context.variable_storage.extend(getExceptionKeeperVariableNames(keeper_index))
-
-    for preserver_id in context.getExceptionPreserverCounts():
-        context.variable_storage.extend(getExceptionPreserverVariableNames(preserver_id))
-
-    context.variable_storage.extend(context.getFrameDeclarations())
-
     function_cleanup = []
 
     for locals_dict_name in context.getLocalsDictNames():

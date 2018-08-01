@@ -199,8 +199,6 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
         emit(
             "%s = Py_None;" % to_name
         )
-    else:
-        context.forgetTempName(to_name)
 
 
 def generateBuiltinSetCode(to_name, expression, emit, context):
