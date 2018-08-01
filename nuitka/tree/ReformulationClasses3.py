@@ -659,7 +659,8 @@ def buildClassNode3(provider, node, source_ref):
         source_ref = source_ref
     )
 
-
+# Note: This emulates Python/bltinmodule.c/update_bases function. We have it
+# here, so we can hope to statically optimize it later on.
 @once_decorator
 def getClassBasesMroConversionHelper():
     helper_name = "_mro_entries_conversion"
@@ -690,32 +691,56 @@ def getClassBasesMroConversionHelper():
         variable_name = "bases"
     )
 
-    non_type_case = StatementExpressionOnly(
-        expression = ExpressionListOperationExtend(
+    non_type_case = makeStatementConditional(
+        condition  = ExpressionBuiltinHasattr(
+            object_arg = ExpressionTempVariableRef(
+                variable   = tmp_item_variable,
+                source_ref = internal_source_ref
+            ),
+            name       = makeConstantRefNode(
+                constant   = "__mro_entries__",
+                source_ref = internal_source_ref
+            ),
+            source_ref = internal_source_ref
+        ),
+        yes_branch = StatementExpressionOnly(
+            expression = ExpressionListOperationExtend(
+                list_arg   = ExpressionTempVariableRef(
+                    variable   = tmp_result_variable,
+                    source_ref = internal_source_ref
+                ),
+                value      = makeExpressionCall(
+                    called     = ExpressionAttributeLookup(
+                        source         = ExpressionTempVariableRef(
+                            variable   = tmp_item_variable,
+                            source_ref = internal_source_ref
+                        ),
+                        attribute_name = "__mro_entries__",
+                        source_ref     = internal_source_ref
+                    ),
+                    args       = ExpressionMakeTuple(
+                        elements   = (
+                            ExpressionVariableRef(
+                                variable   = args_variable,
+                                source_ref = internal_source_ref
+                            ),
+                        ),
+                        source_ref = internal_source_ref
+                    ),
+                    kw         = None,
+                    source_ref = internal_source_ref
+                ),
+                source_ref = internal_source_ref
+            ),
+            source_ref = internal_source_ref
+        ),
+        no_branch  = StatementListOperationAppend(
             list_arg   = ExpressionTempVariableRef(
                 variable   = tmp_result_variable,
                 source_ref = internal_source_ref
             ),
-            value      = makeExpressionCall(
-                called     = ExpressionAttributeLookup(
-                    source         = ExpressionTempVariableRef(
-                        variable   = tmp_item_variable,
-                        source_ref = internal_source_ref
-                    ),
-                    attribute_name = "__mro_entries__",
-                    source_ref     = internal_source_ref
-                ),
-
-                args       = ExpressionMakeTuple(
-                    elements   = (
-                        ExpressionVariableRef(
-                            variable   = args_variable,
-                            source_ref = internal_source_ref
-                        ),
-                    ),
-                    source_ref = internal_source_ref
-                ),
-                kw         = None,
+            value      = ExpressionTempVariableRef(
+                variable   = tmp_item_variable,
                 source_ref = internal_source_ref
             ),
             source_ref = internal_source_ref

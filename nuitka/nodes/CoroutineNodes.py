@@ -156,6 +156,9 @@ class ExpressionAsyncWait(ExpressionChildrenHavingBase):
 
     def computeExpression(self, trace_collection):
         # TODO: Might be predictable based awaitable analysis or for constants.
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
     getValue = ExpressionChildrenHavingBase.childGetter("expression")
