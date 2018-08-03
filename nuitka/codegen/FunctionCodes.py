@@ -46,7 +46,6 @@ from .VariableCodes import (
     getVariableCode,
     getVariableCodeName
 )
-from .VariableDeclarations import VariableDeclaration
 
 
 def getClosureVariableProvisionCode(context, closure_variables):
@@ -322,7 +321,11 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
         "%s = MAKE_FUNCTION_%s( %s );" % (
             to_name,
             function_identifier,
-            ", ".join(args)
+            ", ".join(
+                str(arg)
+                for arg in
+                args
+            )
         )
     )
 
@@ -375,6 +378,8 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
     %s = %s( dir_call_args%s%s );
 }""" % (
                 ", ".join(
+                    str(arg_name)
+                    for arg_name in
                     arg_names
                 ),
                 to_name,
@@ -444,7 +449,7 @@ def _addVariableDescriptionForLocalVariable(context, variable, init_from):
         variable_c_type.c_type,
         variable_code_name,
         variable_c_type.getInitValue(init_from),
-        top_level = True
+        level = "top"
     )
 
 
@@ -496,13 +501,11 @@ def finalizeFunctionLocalVariables(context):
     function_cleanup = []
 
     for locals_dict_name in context.getLocalsDictNames():
-        context.variable_storage.add(
-            VariableDeclaration(
-                "PyObject *",
-                locals_dict_name,
-                "NULL"
-            ),
-            True
+        context.variable_storage.addVariableDeclaration(
+            "PyObject *",
+            locals_dict_name,
+            "NULL",
+            level = "top"
         )
 
         function_cleanup.append(

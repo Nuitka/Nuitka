@@ -239,10 +239,9 @@ def getFrameAttachLocalsCode(context, frame_identifier):
     if frame_variable_codes:
         frame_variable_codes = ",\n    " + frame_variable_codes
 
-
     return template_frame_attach_locals % {
         "frame_identifier"      : frame_identifier,
-        "type_description"      : context.getFrameVariableTypeDescriptionName(),
+        "type_description"      : context.getFrameTypeDescriptionDeclaration(),
         "frame_variable_refs"   : frame_variable_codes
     }
 
@@ -251,12 +250,16 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
                            type_descriptions, needs_preserve, parent_exception_exit,
                            parent_return_exit, frame_exception_exit,
                            frame_return_exit, emit, context):
-    # We really need this many parameters here.
+    # We really need this many parameters here and it gets very
+    # detail rich, pylint: disable=too-many-locals
 
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
     context.variable_storage.addFrameDeclaration(frame_identifier)
     context.variable_storage.addFrameCacheDeclaration(frame_identifier)
+
+    _exception_type, _exception_value, _exception_tb, exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
         template_frame_guard_full_block % {
@@ -287,7 +290,7 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
                 "frame_identifier"      : frame_identifier,
                 "tb_making"             : getTracebackMakingIdentifier(
                                               context     = context,
-                                              lineno_name = "exception_lineno"
+                                              lineno_name = exception_lineno
                                           ),
                 "parent_exception_exit" : parent_exception_exit,
                 "frame_exception_exit"  : frame_exception_exit,
@@ -310,6 +313,9 @@ def getFrameGuardOnceCode(frame_identifier, code_identifier,
 
     context.variable_storage.addFrameDeclaration(frame_identifier)
 
+    _exception_type, _exception_value, _exception_tb, exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
+
     emit(
         template_frame_guard_once % {
             "frame_identifier"      : frame_identifier,
@@ -318,7 +324,7 @@ def getFrameGuardOnceCode(frame_identifier, code_identifier,
             "module_identifier"     : getModuleAccessCode(context),
             "tb_making"             : getTracebackMakingIdentifier(
                                          context     = context,
-                                         lineno_name = "exception_lineno"
+                                         lineno_name = exception_lineno
                                       ),
             "parent_exception_exit" : parent_exception_exit,
             "frame_exception_exit"  : frame_exception_exit,
@@ -331,10 +337,13 @@ def getFrameGuardOnceCode(frame_identifier, code_identifier,
 
 
 def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
-                           type_descriptions,
-                           parent_return_exit, frame_exception_exit,
-                           frame_return_exit, emit, context):
-    context.markAsNeedsExceptionVariables()
+                           type_descriptions, parent_return_exit,
+                           frame_exception_exit, frame_return_exit,
+                           emit, context):
+    # We really need this many parameters here and it gets very
+    # detail rich, pylint: disable=too-many-locals
+    exception_type, _exception_value, exception_tb, exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
 
     context_identifier = context.getContextObjectName()
 
@@ -372,9 +381,12 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
                 "context_identifier"     : context_identifier,
                 "frame_identifier"       : "%s->m_frame" % context_identifier,
                 "frame_cache_identifier" : "cache_frame_" + context_identifier,
+                "exception_type"         : exception_type,
+                "exception_tb"           : exception_tb,
+                "exception_lineno"       : exception_lineno,
                 "tb_making"              : getTracebackMakingIdentifier(
                                                context     = context,
-                                               lineno_name = "exception_lineno"
+                                               lineno_name = exception_lineno
                                            ),
                 "attach_locals"          : indented(
                     getFrameAttachLocalsCode(context, frame_identifier)

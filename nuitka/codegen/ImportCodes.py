@@ -63,7 +63,7 @@ def getCountedArgumentsHelperCallCode(helper_prefix, to_name, args, min_args,
                 to_name,
                 helper_prefix,
                 ", ".join(
-                    "NULL" if arg is None else arg
+                    "NULL" if arg is None else str(arg)
                     for arg in
                     orig_args
                 )
@@ -78,7 +78,11 @@ def getCountedArgumentsHelperCallCode(helper_prefix, to_name, args, min_args,
                 to_name,
                 helper_prefix,
                 len(args),
-                ", ".join(args)
+                ", ".join(
+                    str(arg)
+                    for arg in
+                    args
+                )
             )
         )
 

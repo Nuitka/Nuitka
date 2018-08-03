@@ -63,7 +63,7 @@ def getFrameVariableTypeDescriptionCode(context):
 
     if type_description:
         return '%s = "%s";' % (
-            context.getFrameVariableTypeDescriptionName(),
+            context.getFrameTypeDescriptionDeclaration(),
             type_description,
         )
     else:
@@ -87,13 +87,17 @@ def getErrorExitBoolCode(condition, emit, context, release_names = (),
         getAssertionCode("!(%s)" % condition, emit)
         return
 
-    context.markAsNeedsExceptionVariables()
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
 
     if quick_exception:
         emit(
             indented(
                 template_error_catch_quick_exception % {
                     "condition"            : condition,
+                    "exception_type"      : exception_type,
+                    "exception_value"     : exception_value,
+                    "exception_tb"        : exception_tb,
                     "exception_exit"       : context.getExceptionEscape(),
                     "quick_exception"      : getExceptionIdentifier(quick_exception),
                     "release_temps"        : indented(
@@ -113,9 +117,12 @@ def getErrorExitBoolCode(condition, emit, context, release_names = (),
         emit(
             indented(
                 template_error_catch_exception % {
-                    "condition"        : condition,
-                    "exception_exit"   : context.getExceptionEscape(),
-                    "release_temps"    : indented(
+                    "condition"           : condition,
+                    "exception_type"      : exception_type,
+                    "exception_value"     : exception_value,
+                    "exception_tb"        : exception_tb,
+                    "exception_exit"      : context.getExceptionEscape(),
+                    "release_temps"       : indented(
                         getErrorExitReleaseCode(context)
                     ),
                     "var_description_code": indented(
@@ -222,8 +229,6 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
 
 
 def getReleaseCode(release_name, emit, context):
-    assert release_name is None or len(release_name) > 2
-
     if context.needsCleanup(release_name):
         emit("Py_DECREF( %s );" % release_name)
         context.removeCleanupTempName(release_name)

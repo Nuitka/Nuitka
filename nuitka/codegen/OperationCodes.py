@@ -169,7 +169,11 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
             "%s = %s( %s );" % (
                 to_name,
                 helper,
-                ", ".join(prefix_args + arg_names)
+                ", ".join(
+                    str(arg_name)
+                    for arg_name in
+                    prefix_args + arg_names
+                )
             )
         )
 

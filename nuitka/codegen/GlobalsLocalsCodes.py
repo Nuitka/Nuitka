@@ -127,8 +127,6 @@ def generateBuiltinGlobalsCode(to_name, expression, emit, context):
 
 
 def getLoadGlobalsCode(to_name, emit, context):
-    assert type(to_name) is str
-
     emit(
         "%(to_name)s = (PyObject *)moduledict_%(module_identifier)s;" % {
             "to_name"           : to_name,

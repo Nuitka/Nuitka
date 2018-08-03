@@ -47,10 +47,14 @@ def getLineNumberUpdateCode(context):
 
 
 def getErrorLineNumberUpdateCode(context):
+    _exception_type, _exception_value, _exception_tb, exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
+
     lineno_value = getCurrentLineNumberCode(context)
 
     if lineno_value:
-        return "exception_lineno = %s;" % (
+        return "%s = %s;" % (
+            exception_lineno,
             lineno_value
         )
     else:

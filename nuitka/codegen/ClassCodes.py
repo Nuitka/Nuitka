@@ -38,7 +38,7 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
     # This is used for Python3 only.
     assert python_version >= 300
 
-    args = [
+    arg_names = [
         metaclass_name,
         bases_name
     ]
@@ -47,13 +47,17 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
     emit(
         "%s = SELECT_METACLASS( %s );" % (
             to_name,
-            ", ".join(args)
+            ", ".join(
+                str(arg_name)
+                for arg_name in
+                arg_names
+            )
         )
     )
 
     getErrorExitCode(
         check_name    = to_name,
-        release_names = args,
+        release_names = arg_names,
         emit          = emit,
         context       = context
     )

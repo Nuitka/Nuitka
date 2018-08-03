@@ -236,15 +236,15 @@ template_frame_guard_generator_exception_handler = """\
 %(frame_exception_exit)s:;
 
 // If it's not an exit exception, consider and create a traceback for it.
-if ( !EXCEPTION_MATCH_GENERATOR( exception_type ) )
+if ( !EXCEPTION_MATCH_GENERATOR( %(exception_type)s ) )
 {
-    if ( exception_tb == NULL )
+    if ( %(exception_tb)s == NULL )
     {
-        exception_tb = %(tb_making)s;
+        %(exception_tb)s = %(tb_making)s;
     }
-    else if ( exception_tb->tb_frame != &%(frame_identifier)s->m_frame )
+    else if ( %(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame )
     {
-        exception_tb = ADD_TRACEBACK( exception_tb, %(frame_identifier)s, exception_lineno );
+        %(exception_tb)s = ADD_TRACEBACK( %(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s );
     }
 
 %(attach_locals)s

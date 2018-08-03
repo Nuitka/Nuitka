@@ -28,11 +28,9 @@ static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *gene
 """
 
 template_genfunc_yielder_body_template = """
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
-#endif
 
 #if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 static PyObject *%(function_identifier)s_context( struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value )
@@ -42,6 +40,10 @@ static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *gene
 {
     CHECK_OBJECT( (PyObject *)generator );
     assert( Nuitka_Generator_Check( (PyObject *)generator ) );
+
+#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
+    struct %(function_identifier)s_locals *generator_heap = (struct %(function_identifier)s_locals *)PyMem_Malloc(sizeof(struct %(function_identifier)s_locals));
+#endif
 
     // Local variable initialization
 %(function_var_inits)s
@@ -68,7 +70,7 @@ template_generator_exception_exit = """\
     function_exception_exit:
 %(function_cleanup)s\
     assert( exception_type );
-    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+    RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
 
 #if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;

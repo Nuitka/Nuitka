@@ -50,6 +50,8 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
                            user_variables, outline_variables,
                            temp_variables, needs_exception_exit,
                            needs_generator_return):
+    # A bit of details going on here, pylint: disable=too-many-locals
+
     setupFunctionLocalVariables(
         context           = context,
         parameters        = None,
@@ -70,8 +72,14 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
     function_cleanup = finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
+        exception_type, exception_value, exception_tb, _exception_lineno = \
+          context.variable_storage.getExceptionVariableDescriptions()
+
         generator_exit = template_generator_exception_exit % {
-            "function_cleanup" : indented(function_cleanup)
+            "function_cleanup" : indented(function_cleanup),
+            "exception_type"   : exception_type,
+            "exception_value"  : exception_value,
+            "exception_tb"     : exception_tb
         }
     else:
         generator_exit = template_generator_noexception_exit % {
@@ -96,7 +104,13 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
 
     # TODO: Have generator storage put there.
     function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
-    local_type_decl = context.variable_storage.makeCStructDeclarations()
+
+    # TODO: Heap storage or not, this check can later be removed.
+    if context.variable_storage.parent is not None:
+        local_type_decl = context.variable_storage.parent.makeCStructDeclarations()
+        function_locals += context.variable_storage.parent.makeCStringInits()
+    else:
+        local_type_decl = ()
 
     return template_genfunc_yielder_body_template % {
         "function_identifier"  : function_identifier,
