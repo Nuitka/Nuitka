@@ -15,8 +15,28 @@ Bug Fixes
 
 - Python 3.7: The handling of non-type bases classes was not fully compatible
   and wrong usages were giving ``AttributeError`` instead of ``TypeError``.
+  Fixed in 0.5.32.2 already.
 
 - Python 3.5: Fix, await expressions didn't annotate their exception exit.
+  Fixed in 0.5.32.2 already.
+
+- Python3: The ``enum`` module usages with ``__new__`` in derived classes
+  were not working, due to our automatic ``staticmethod`` decoration. Turns
+  out, that was only needed for Python2 and can be removed, making enum work
+  all the way. Fixed in 0.5.32.3 already.
+
+- Fix, recursion into ``__main__`` was done and could lead to compiler crashes
+  if the main module was named like that. This is not prevented. Fixed in
+  0.5.32.3 already.
+
+- Python3: The name for list contraction's frames was wrong all along and not
+  just changed for 3.7, so drop that version check on it. Fixed in 0.5.32.3
+  already.
+
+- Fix, the hashing of code objects has creating a key that could produce more
+  overlaps for the hash than necessary. Using a ``C1`` on line 29 and ``C`` on
+  line 129, was considered the same. And that is what actually happened. Fixed
+  in 0.5.32.3 already.
 
 Optimization
 ------------
