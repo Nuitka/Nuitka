@@ -277,9 +277,8 @@ def buildNode(provider, node, source_ref, allow_none = False):
     if node is None and allow_none:
         return None
 
-    # Just to disable the warning in the default handler below, we
-    # catch some and re-raise instantly, pylint: disable=try-except-raise
-
+    # We catch some and re-raise instantly, both syntax and runtime error
+    # are dealt with on the outside.
     try:
         kind = getKind(node)
 
