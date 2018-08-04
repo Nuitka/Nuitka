@@ -296,14 +296,14 @@ class CodeObjectsMixin(object):
     if python_version < 300:
         def _calcHash(self, key):
             hash_value = hashlib.md5(
-                "%s%s%d%s%d%d%s%s%s%s%s%s%s" % key
+                "%s-%s-%d-%s-%d-%d-%s-%s-%s-%s-%s-%s-%s" % key
             )
 
             return hash_value.hexdigest()
     else:
         def _calcHash(self, key):
             hash_value = hashlib.md5(
-                ("%s%s%d%s%d%d%s%s%s%s%s%s%s" % key).encode("utf-8")
+                ("%s-%s-%d-%s-%d-%d-%s-%s-%s-%s-%s-%s-%s" % key).encode("utf-8")
             )
 
             return hash_value.hexdigest()
