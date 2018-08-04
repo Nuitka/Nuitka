@@ -262,7 +262,8 @@ def buildFunctionNode(provider, node, source_ref):
 
     # CPython made these optional, but secretly applies them when it does
     # "class __new__".  We add them earlier, so our optimization will see it.
-    if node.name == "__new__" and \
+    if python_version < 300 and \
+       node.name == "__new__" and \
        provider.isExpressionClassBody():
         _injectDecorator(decorators, "staticmethod", ("staticmethod", "classmethod"), source_ref)
 

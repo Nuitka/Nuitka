@@ -194,7 +194,7 @@ def buildListContractionNode(provider, node, source_ref):
     return _buildContractionNode(
         provider    = provider,
         node        = node,
-        name        = "<listcontraction>" if python_version < 370 else "<listcomp>",
+        name        = "<listcomp>",
         emit_class  = StatementListOperationAppend,
         start_value = [],
         source_ref  = source_ref
