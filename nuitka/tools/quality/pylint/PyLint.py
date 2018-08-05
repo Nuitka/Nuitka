@@ -283,6 +283,13 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
             ):
                 return True
 
+        if pylint_version == "2.0.0":
+            if os.path.basename(filename) in (
+                "LocalsDictCodes.py",
+                "FrameCodes.py"
+            ):
+                return True
+
         return False
 
     filenames = [
