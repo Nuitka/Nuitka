@@ -126,7 +126,7 @@ def getFunctionMakerCode(function_body, function_identifier, code_identifier,
                          closure_variables, defaults_name, kw_defaults_name,
                          annotations_name, function_doc, context):
     # We really need this many parameters here and functions have many details,
-    # that we express as variables, pylint: disable=too-many-locals
+    # that we express as variables
     function_creation_args = _getFunctionCreationArgs(
         defaults_name     = defaults_name,
         kw_defaults_name  = kw_defaults_name,

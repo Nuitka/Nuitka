@@ -19,8 +19,6 @@
 
 """
 
-from nuitka.PythonVersions import python_version
-
 from .CodeHelpers import generateStatementSequenceCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
