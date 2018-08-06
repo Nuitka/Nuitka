@@ -152,23 +152,30 @@ def generateTryCode(statement, emit, context):
 
         assert keeper_type is not None
 
+        exception_type, exception_value, exception_tb, exception_lineno = \
+          context.variable_storage.getExceptionVariableDescriptions()
+
         # TODO: That normalization and chaining is only necessary if the
         # exception is published.
         emit(
             """\
-%(keeper_type)s = exception_type;
-%(keeper_value)s = exception_value;
-%(keeper_tb)s = exception_tb;
-%(keeper_lineno)s = exception_lineno;
-exception_type = NULL;
-exception_value = NULL;
-exception_tb = NULL;
-exception_lineno = 0;
+%(keeper_type)s = %(exception_type)s;
+%(keeper_value)s = %(exception_value)s;
+%(keeper_tb)s = %(exception_tb)s;
+%(keeper_lineno)s = %(exception_lineno)s;
+%(exception_type)s = NULL;
+%(exception_value)s = NULL;
+%(exception_tb)s = NULL;
+%(exception_lineno)s = 0;
 """ %  {
-            "keeper_type"        : keeper_type,
-            "keeper_value"       : keeper_value,
-            "keeper_tb"          : keeper_tb,
-            "keeper_lineno"      : keeper_lineno
+            "keeper_type"      : keeper_type,
+            "keeper_value"     : keeper_value,
+            "keeper_tb"        : keeper_tb,
+            "keeper_lineno"    : keeper_lineno,
+            "exception_type"   : exception_type,
+            "exception_value"  : exception_value,
+            "exception_tb"     : exception_tb,
+            "exception_lineno" : exception_lineno
             }
         )
 
@@ -178,7 +185,6 @@ exception_lineno = 0;
             allow_none         = True,
             context            = context
         )
-
 
         if except_handler is None or not except_handler.isStatementAborting():
             getExceptionUnpublishedReleaseCode(emit, context)

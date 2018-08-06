@@ -130,10 +130,10 @@ class TempMixin(object):
 
             if result is None:
                 result = self.variable_storage.addVariableDeclaration(
-                    type_name,
-                    formatted_name,
-                    init_value,
-                    level = level
+                    c_type     = type_name,
+                    code_name  = formatted_name,
+                    init_value = init_value,
+                    level      = level
                 )
             else:
                 assert result.c_type == type_name
@@ -141,10 +141,10 @@ class TempMixin(object):
 
         else:
             result = self.variable_storage.addVariableDeclaration(
-                type_name,
-                formatted_name,
-                init_value,
-                level = level
+                c_type     = type_name,
+                code_name  = formatted_name,
+                init_value = init_value,
+                level      = level
             )
 
         return result

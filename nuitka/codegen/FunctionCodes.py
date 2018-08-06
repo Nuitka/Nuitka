@@ -41,24 +41,16 @@ from .templates.CodeTemplatesFunction import (
     template_make_function_template
 )
 from .TupleCodes import getTupleCreationCode
-from .VariableCodes import (
-    getLocalVariableCodeType,
-    getVariableCode,
-    getVariableCodeName
-)
+from .VariableCodes import getLocalVariableCodeType, getVariableCodeName
 
 
 def getClosureVariableProvisionCode(context, closure_variables):
     result = []
 
     for variable, variable_trace in closure_variables:
-        result.append(
-            getVariableCode(
-                context        = context,
-                variable       = variable,
-                variable_trace = variable_trace
-            )
-        )
+        variable_code_name, _variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
+
+        result.append(variable_code_name)
 
     return result
 

@@ -217,18 +217,6 @@ def getLocalVariableCodeType(context, variable, variable_trace):
     return result, c_type
 
 
-def getVariableCode(context, variable, variable_trace):
-    # Modules are simple.
-    if variable.isModuleVariable():
-        return getVariableCodeName(
-            in_context = False,
-            variable   = variable
-        )
-
-    variable_code_name, _variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
-    return variable_code_name
-
-
 def getVariableAssignmentCode(context, emit, variable, variable_trace,
                               tmp_name, needs_release, in_place):
     # For transfer of ownership.
