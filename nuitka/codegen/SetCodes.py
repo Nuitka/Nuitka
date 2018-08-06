@@ -194,11 +194,9 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
         context       = context
     )
 
-    # Only assign if necessary.
-    if context.isUsed(to_name):
-        emit(
-            "%s = Py_None;" % to_name
-        )
+    emit(
+        "%s = Py_None;" % to_name
+    )
 
 
 def generateBuiltinSetCode(to_name, expression, emit, context):

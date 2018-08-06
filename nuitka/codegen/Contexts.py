@@ -394,12 +394,6 @@ class PythonContextBase(ContextMetaClassBase):
         # self.last_source_ref = None
         return result
 
-    def isUsed(self, tmp_name):
-        if type(tmp_name) is str:
-            return tmp_name.startswith("tmp_unused")
-        else:
-            return tmp_name.code_name == "unused"
-
     @abstractmethod
     def getConstantCode(self, constant):
         pass
