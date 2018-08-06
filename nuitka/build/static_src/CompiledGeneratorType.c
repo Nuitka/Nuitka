@@ -603,7 +603,7 @@ static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generato
 }
 
 #if PYTHON_VERSION >= 340
-static void Nuitka_Generator_tp_del( struct Nuitka_GeneratorObject *generator )
+static void Nuitka_Generator_tp_finalizer( struct Nuitka_GeneratorObject *generator )
 {
     if ( generator->m_status != status_Running )
     {
@@ -625,6 +625,12 @@ static void Nuitka_Generator_tp_del( struct Nuitka_GeneratorObject *generator )
     {
         Py_DECREF( close_result );
     }
+
+#if PYTHON_VERSION >= 370
+    Py_XDECREF( generator->m_exc_state.exc_type );
+    Py_XDECREF( generator->m_exc_state.exc_value );
+    Py_XDECREF( generator->m_exc_state.exc_traceback );
+#endif
 
     /* Restore the saved exception if any. */
     RESTORE_ERROR_OCCURRED( error_type, error_value, error_traceback );
@@ -897,7 +903,7 @@ PyTypeObject Nuitka_Generator_Type =
     0,                                               /* tp_del */
     0                                                /* tp_version_tag */
 #if PYTHON_VERSION >= 340
-    ,(destructor)Nuitka_Generator_tp_del             /* tp_finalizer */
+    ,(destructor)Nuitka_Generator_tp_finalizer       /* tp_finalizer */
 #endif
 };
 
