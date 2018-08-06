@@ -181,7 +181,7 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
                                        "NULL",
         "annotations"                : "annotations"
                                          if annotations_name else
-                                       context.getConstantCode({}),
+                                       "NULL",
         "closure_count"              : len(closure_variables),
         "module_identifier"          : getModuleAccessCode(
             context = context
