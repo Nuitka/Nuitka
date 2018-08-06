@@ -360,7 +360,8 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
 
 class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBase):
-    def __init__(self, provider, name, code_prefix, flags, source_ref):
+    def __init__(self, provider, name, code_object, code_prefix, flags,
+                 source_ref):
         ExpressionFunctionBodyBase.__init__(
             self,
             provider    = provider,
@@ -372,6 +373,8 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         )
 
         EntryPointMixin.__init__(self)
+
+        self.code_object = code_object
 
         provider.getParentModule().addFunction(self)
 
@@ -394,6 +397,9 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             return None
         else:
             return getLocalsDictHandle(self.locals_dict_name)
+
+    def getCodeObject(self):
+        return self.code_object
 
     def computeFunctionRaw(self, trace_collection):
         from nuitka.optimizations.TraceCollections import \
@@ -442,11 +448,13 @@ class ExpressionFunctionBody(MarkUnoptimizedFunctionIndicatorMixin,
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, doc, parameters, flags, source_ref):
+    def __init__(self, provider, name, code_object, doc, parameters, flags,
+                 source_ref):
         ExpressionFunctionEntryPointBase.__init__(
             self,
             provider    = provider,
             name        = name,
+            code_object = code_object,
             code_prefix = "function",
             flags       = flags,
             source_ref  = source_ref

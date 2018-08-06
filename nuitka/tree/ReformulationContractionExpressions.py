@@ -265,19 +265,21 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
     if is_async:
         code_body = ExpressionAsyncgenObjectBody(
-            provider   = provider,
-            name       = "<genexpr>",
-            flags      = set(),
-            source_ref = source_ref
+            provider    = provider,
+            name        = "<genexpr>",
+            code_object = code_object,
+            flags       = set(),
+            source_ref  = source_ref
         )
 
         maker_class = ExpressionMakeAsyncgenObject
     else:
         code_body = ExpressionGeneratorObjectBody(
-            provider   = provider,
-            name       = "<genexpr>",
-            flags      = set(),
-            source_ref = source_ref
+            provider    = provider,
+            name        = "<genexpr>",
+            code_object = code_object,
+            flags       = set(),
+            source_ref  = source_ref
         )
 
         maker_class = ExpressionMakeGeneratorObject
@@ -298,8 +300,7 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
                             function_body = code_body,
                             source_ref    = source_ref
                         ),
-                        code_object = code_object,
-                        source_ref  = source_ref
+                        source_ref = source_ref
                     ),
                     source_ref = source_ref
                 ),

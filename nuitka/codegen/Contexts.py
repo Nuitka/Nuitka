@@ -91,6 +91,10 @@ class TempMixin(object):
 
     def allocateTempName(self, base_name, type_name = "PyObject *",
                          unique = False):
+        # We might be hard coding too many details for special temps
+        # here, pylint: disable=too-many-branches
+
+
         if unique:
             number = None
         else:
@@ -114,6 +118,14 @@ class TempMixin(object):
             init_value = None
 
         if unique:
+            if base_name == "unused":
+                level = "function"
+            else:
+                level = "top"
+        else:
+            level = "local"
+
+        if unique:
             result = self.variable_storage.getVariableDeclaration(formatted_name)
 
             if result is None:
@@ -121,7 +133,7 @@ class TempMixin(object):
                     type_name,
                     formatted_name,
                     init_value,
-                    level = "top" if unique else "local"
+                    level = level
                 )
             else:
                 assert result.c_type == type_name
@@ -132,7 +144,7 @@ class TempMixin(object):
                 type_name,
                 formatted_name,
                 init_value,
-                level = "top" if unique else "local"
+                level = level
             )
 
         return result
@@ -386,7 +398,7 @@ class PythonContextBase(ContextMetaClassBase):
         if type(tmp_name) is str:
             return tmp_name.startswith("tmp_unused")
         else:
-            return tmp_name.code_name == "tmp_unused"
+            return tmp_name.code_name == "unused"
 
     @abstractmethod
     def getConstantCode(self, constant):
@@ -1175,7 +1187,7 @@ class PythonFunctionDirectContext(PythonFunctionContext):
 
 class PythonGeneratorObjectContext(PythonFunctionContext):
     if isExperimental("generator_heap"):
-        def makeVariableStorage(self):
+        def _makeVariableStorage(self):
             return VariableStorage(
                 parent = VariableHeapStorage("generator_heap")
             )

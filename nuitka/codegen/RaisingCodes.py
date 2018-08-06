@@ -274,22 +274,31 @@ exception_lineno = %(keeper_lineno)s;
 
 def getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit,
                                    context):
-    context.markAsNeedsExceptionVariables()
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
-        "exception_type = %s;" % raise_type_name
+        "%s = %s;" % (
+            exception_type,
+            raise_type_name
+        )
     )
     getReferenceExportCode(raise_type_name, emit, context)
 
-    emit("exception_value = NULL;")
+    emit(
+        "%s = NULL;" % exception_value
+    )
 
     getReferenceExportCode(raise_cause_name, emit, context)
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        """\
-RAISE_EXCEPTION_WITH_CAUSE( &exception_type, &exception_value, &exception_tb, \
-%s );""" % raise_cause_name
+        "RAISE_EXCEPTION_WITH_CAUSE( &%s, &%s, &%s, %s );" % (
+            exception_type,
+            exception_value,
+            exception_tb,
+            raise_cause_name
+        )
     )
 
     emit(
@@ -305,16 +314,24 @@ RAISE_EXCEPTION_WITH_CAUSE( &exception_type, &exception_value, &exception_tb, \
 
 
 def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
-    context.markAsNeedsExceptionVariables()
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
-        "exception_type = %s;" % raise_type_name
+        "%s = %s;" % (
+            exception_type,
+            raise_type_name
+        )
     )
     getReferenceExportCode(raise_type_name, emit, context)
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_WITH_TYPE( &exception_type, &exception_value, &exception_tb );"
+        "RAISE_EXCEPTION_WITH_TYPE( &%s, &%s, &%s );" % (
+            exception_type,
+            exception_value,
+            exception_tb
+        )
     )
 
     emit(
@@ -329,19 +346,31 @@ def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
 
 def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
                                    emit, context):
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
+
     emit(
-        "exception_type = %s;" % raise_type_name
+        "%s = %s;" % (
+            exception_type,
+            raise_type_name
+        )
     )
     getReferenceExportCode(raise_type_name, emit, context)
     emit(
-        "exception_value = %s;" % raise_value_name
+        "%s = %s;" % (
+            exception_value,
+            raise_value_name
+        )
     )
     getReferenceExportCode(raise_value_name, emit, context)
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_%s( &exception_type, &exception_value, &exception_tb );" % (
-            ("IMPLICIT" if implicit else "WITH_VALUE")
+        "RAISE_EXCEPTION_%s( &%s, &%s, &%s );" % (
+            ("IMPLICIT" if implicit else "WITH_VALUE"),
+            exception_type,
+            exception_value,
+            exception_tb
         )
     )
 
@@ -359,21 +388,38 @@ def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
 
 def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
                                        raise_tb_name, emit, context):
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
+
     emit(
-        "exception_type = %s;" % raise_type_name
+        "%s = %s;" % (
+            exception_type,
+            raise_type_name
+        )
     )
     getReferenceExportCode(raise_type_name, emit, context)
     emit(
-        "exception_value = %s;" % raise_value_name
+        "%s = %s;" % (
+            exception_value,
+            raise_value_name
+        )
     )
     getReferenceExportCode(raise_value_name, emit, context)
+
     emit(
-        "exception_tb = (PyTracebackObject *)%s;" % raise_tb_name
+        "%s = (PyTracebackObject *)%s;" % (
+            exception_tb,
+            raise_tb_name
+        )
     )
     getReferenceExportCode(raise_tb_name, emit, context)
 
     emit(
-        "RAISE_EXCEPTION_WITH_TRACEBACK( &exception_type, &exception_value, &exception_tb);"
+        "RAISE_EXCEPTION_WITH_TRACEBACK( &%s, &%s, &%s);" % (
+            exception_type,
+            exception_value,
+            exception_tb
+        )
     )
 
     # If anything is wrong, that will be used.

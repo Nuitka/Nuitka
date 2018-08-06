@@ -19,12 +19,8 @@
 
 """
 
-template_genfunc_yielder_decl_template = """\
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
-static PyObject *%(function_identifier)s_context( struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value );
-#else
-static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *generator );
-#endif
+template_genfunc_yielder_maker_template = """\
+static PyObject *%(function_identifier)s_maker( void );
 """
 
 template_genfunc_yielder_body_template = """
@@ -42,7 +38,7 @@ static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *gene
     assert( Nuitka_Generator_Check( (PyObject *)generator ) );
 
 #if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
-    struct %(function_identifier)s_locals *generator_heap = (struct %(function_identifier)s_locals *)PyMem_Malloc(sizeof(struct %(function_identifier)s_locals));
+    struct %(function_identifier)s_locals *generator_heap = (struct %(function_identifier)s_locals *)generator->m_heap_storage;
 #endif
 
     // Local variable initialization
@@ -56,7 +52,28 @@ static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *gene
 
 %(generator_exit)s
 }
+
+static PyObject *%(function_identifier)s_maker( void )
+{
+    return Nuitka_Generator_New(
+        %(function_identifier)s_context,
+        %(generator_module)s,
+        %(generator_name_obj)s,
+#if PYTHON_VERSION >= 350
+        %(generator_qualname_obj)s,
+#endif
+        %(code_identifier)s,
+        %(closure_count)d,
+        sizeof(struct %(function_identifier)s_locals)
+    );
+}
 """
+
+template_generator_making = """\
+%(to_name)s = %(generator_identifier)s_maker();
+%(closure_copy)s
+"""
+
 
 template_generator_exception_exit = """\
 %(function_cleanup)s\
@@ -111,19 +128,6 @@ template_generator_return_exit = """\
 #endif
 """
 
-template_generator_making = """\
-%(to_name)s = Nuitka_Generator_New(
-    %(generator_identifier)s_context,
-    %(generator_module)s,
-    %(generator_name_obj)s,
-#if PYTHON_VERSION >= 350
-    %(generator_qualname_obj)s,
-#endif
-    %(code_identifier)s,
-    %(closure_count)d
-);
-%(closure_copy)s
-"""
 
 
 from . import TemplateDebugWrapper # isort:skip

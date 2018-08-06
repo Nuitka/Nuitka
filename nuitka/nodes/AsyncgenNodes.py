@@ -35,7 +35,7 @@ class ExpressionMakeAsyncgenObject(ExpressionChildrenHavingBase):
 
     getAsyncgenRef = ExpressionChildrenHavingBase.childGetter("asyncgen_ref")
 
-    def __init__(self, asyncgen_ref, code_object, source_ref):
+    def __init__(self, asyncgen_ref, source_ref):
         assert asyncgen_ref.getFunctionBody().isExpressionAsyncgenObjectBody()
 
         ExpressionChildrenHavingBase.__init__(
@@ -46,17 +46,7 @@ class ExpressionMakeAsyncgenObject(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-        self.code_object = code_object
-
         self.variable_closure_traces = []
-
-    def getDetails(self):
-        return {
-            "code_object" : self.code_object
-        }
-
-    def getCodeObject(self):
-        return self.code_object
 
     def getDetailsForDisplay(self):
         return {
@@ -92,11 +82,12 @@ class ExpressionAsyncgenObjectBody(ExpressionFunctionEntryPointBase):
 
     qualname_setup = None
 
-    def __init__(self, provider, name, flags, source_ref):
+    def __init__(self, provider, name, code_object, flags, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
             self,
             provider    = provider,
             name        = name,
+            code_object = code_object,
             code_prefix = "asyncgen",
             flags       = flags,
             source_ref  = source_ref

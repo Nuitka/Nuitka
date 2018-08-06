@@ -19,12 +19,12 @@
 
 """
 
-template_asyncgen_object_decl_template = """\
-static void %(function_identifier)s( struct Nuitka_AsyncgenObject *asyncgen );
+template_asyncgen_object_maker_template = """\
+static PyObject *%(function_identifier)s_maker( void );
 """
 
 template_asyncgen_object_body_template = """
-static void %(function_identifier)s( struct Nuitka_AsyncgenObject *asyncgen )
+static void %(function_identifier)s_context( struct Nuitka_AsyncgenObject *asyncgen )
 {
     CHECK_OBJECT( (PyObject *)asyncgen );
     assert( Nuitka_Asyncgen_Check( (PyObject *)asyncgen ) );
@@ -37,6 +37,27 @@ static void %(function_identifier)s( struct Nuitka_AsyncgenObject *asyncgen )
 
 %(asyncgen_exit)s
 }
+
+static PyObject *%(function_identifier)s_maker( void )
+{
+    return Nuitka_Asyncgen_New(
+        %(function_identifier)s_context,
+        %(asyncgen_name_obj)s,
+        %(asyncgen_qualname_obj)s,
+        %(code_identifier)s,
+        %(closure_count)d,
+#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
+        sizeof(struct %(function_identifier)s_locals)
+#else
+        0
+#endif
+    );
+}
+"""
+
+template_make_asyncgen_template = """
+%(to_name)s = %(asyncgen_identifier)s_maker();
+%(closure_copy)s
 """
 
 template_asyncgen_exception_exit = """\
@@ -67,17 +88,6 @@ template_asyncgen_return_exit = """\
     return;
 """
 
-
-template_make_asyncgen_template = """
-%(to_name)s = Nuitka_Asyncgen_New(
-    %(asyncgen_identifier)s,
-    %(asyncgen_name_obj)s,
-    %(asyncgen_qualname_obj)s,
-    %(code_identifier)s,
-    %(closure_count)d
-);
-%(closure_copy)s
-"""
 
 from . import TemplateDebugWrapper # isort:skip
 TemplateDebugWrapper.checkDebug(globals())

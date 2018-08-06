@@ -912,21 +912,35 @@ void _initCompiledGeneratorType( void )
     PyType_Ready( &Nuitka_Generator_Type );
 }
 
-#if PYTHON_VERSION < 350
-PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject *name, PyCodeObject *code_object, Py_ssize_t closure_given )
-#else
-PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given )
+PyObject *Nuitka_Generator_New(
+    generator_code code,
+    PyObject *module,
+    PyObject *name,
+#if PYTHON_VERSION >= 350
+    PyObject *qualname,
 #endif
+    PyCodeObject *code_object,
+    Py_ssize_t closure_given,
+    Py_ssize_t heap_storage_size
+)
 {
     struct Nuitka_GeneratorObject *result;
+
+    // TODO: Change the var part of the type to 1 maybe
+    Py_ssize_t full_size = closure_given + (heap_storage_size + sizeof(void *) - 1) / sizeof(void *);
 
     // Macro to assign result memory from GC or free list.
     allocateFromFreeList(
         free_list_generators,
         struct Nuitka_GeneratorObject,
         Nuitka_Generator_Type,
-        closure_given
+        full_size
     );
+
+#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
+    // For quicker access of generator heap.
+    result->m_heap_storage = &result->m_closure[ closure_given ];
+#endif
 
     assert( result != NULL );
     CHECK_OBJECT( result );

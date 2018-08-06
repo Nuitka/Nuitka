@@ -39,7 +39,7 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
 
     getGeneratorRef = ExpressionChildrenHavingBase.childGetter("generator_ref")
 
-    def __init__(self, generator_ref, code_object, source_ref):
+    def __init__(self, generator_ref, source_ref):
         assert generator_ref.getFunctionBody().isExpressionGeneratorObjectBody(), generator_ref
 
         ExpressionChildrenHavingBase.__init__(
@@ -50,14 +50,7 @@ class ExpressionMakeGeneratorObject(ExpressionChildrenHavingBase):
             source_ref = source_ref
         )
 
-        self.code_object = code_object
-
         self.variable_closure_traces = None
-
-    def getDetails(self):
-        return {
-            "code_object" : self.code_object
-        }
 
     def getCodeObject(self):
         return self.code_object
@@ -93,11 +86,12 @@ class ExpressionGeneratorObjectBody(MarkUnoptimizedFunctionIndicatorMixin,
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, flags, source_ref):
+    def __init__(self, provider, name, code_object, flags, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
             self,
             provider    = provider,
             name        = name,
+            code_object = code_object,
             code_prefix = "genexpr" if name == "<genexpr>" else "genobj",
             flags       = flags,
             source_ref  = source_ref

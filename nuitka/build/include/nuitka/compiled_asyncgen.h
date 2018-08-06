@@ -71,6 +71,11 @@ struct Nuitka_AsyncgenObject {
     // It is closed.
     bool m_closed;
 
+#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
+    /* The heap of generator objects at run time. */
+    void *m_heap_storage;
+#endif
+
     // Closure variables given, if any, we reference cells here.
     Py_ssize_t m_closure_given;
     struct Nuitka_CellObject *m_closure[1];
@@ -80,7 +85,14 @@ extern PyTypeObject Nuitka_Asyncgen_Type;
 
 typedef void (*asyncgen_code)( struct Nuitka_AsyncgenObject * );
 
-extern PyObject *Nuitka_Asyncgen_New( asyncgen_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Asyncgen_New(
+    asyncgen_code code,
+    PyObject *name,
+    PyObject *qualname,
+    PyCodeObject *code_object,
+    Py_ssize_t closure_given,
+    Py_ssize_t heap_storage_size
+);
 
 static inline bool Nuitka_Asyncgen_Check( PyObject *object )
 {

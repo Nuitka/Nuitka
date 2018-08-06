@@ -31,14 +31,14 @@ from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_exception_exit,
     template_asyncgen_noexception_exit,
     template_asyncgen_object_body_template,
-    template_asyncgen_object_decl_template,
+    template_asyncgen_object_maker_template,
     template_asyncgen_return_exit,
     template_make_asyncgen_template
 )
 
 
 def getAsyncgenObjectDeclCode(function_identifier):
-    return template_asyncgen_object_decl_template % {
+    return template_asyncgen_object_maker_template % {
         "function_identifier" : function_identifier,
     }
 
@@ -57,8 +57,10 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
 
     function_codes = SourceCodeCollector()
 
+    asyncgen_object_body = context.getOwner()
+
     generateStatementSequenceCode(
-        statement_sequence = context.getOwner().getBody(),
+        statement_sequence = asyncgen_object_body.getBody(),
         allow_none         = True,
         emit               = function_codes,
         context            = context
@@ -86,7 +88,17 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
         "function_identifier" : function_identifier,
         "function_body"       : indented(function_codes.codes),
         "function_var_inits"  : indented(function_locals),
-        "asyncgen_exit"       : generator_exit
+        "asyncgen_exit"       : generator_exit,
+        "asyncgen_name_obj"     : context.getConstantCode(
+            constant = asyncgen_object_body.getFunctionName()
+        ),
+        "asyncgen_qualname_obj" : context.getConstantCode(
+            constant = asyncgen_object_body.getFunctionQualname()
+        ),
+        "code_identifier"       : context.getCodeObjectHandle(
+            code_object = asyncgen_object_body.getCodeObject(),
+        ),
+        "closure_count"         : len(closure_variables)
     }
 
 
@@ -104,19 +116,9 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
 
     emit(
         template_make_asyncgen_template % {
-            "closure_copy"          : indented(closure_copy, 0, True),
             "to_name"               : to_name,
             "asyncgen_identifier"   : asyncgen_object_body.getCodeName(),
-            "asyncgen_name_obj"     : context.getConstantCode(
-                constant = asyncgen_object_body.getFunctionName()
-            ),
-            "asyncgen_qualname_obj" : context.getConstantCode(
-                constant = asyncgen_object_body.getFunctionQualname()
-            ),
-            "code_identifier"       : context.getCodeObjectHandle(
-                code_object = expression.getCodeObject(),
-            ),
-            "closure_count"         : len(closure_variables)
+            "closure_copy"          : indented(closure_copy, 0, True),
         }
     )
 

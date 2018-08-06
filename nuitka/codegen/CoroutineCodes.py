@@ -37,14 +37,14 @@ from .templates.CodeTemplatesCoroutines import (
     template_coroutine_exception_exit,
     template_coroutine_noexception_exit,
     template_coroutine_object_body_template,
-    template_coroutine_object_decl_template,
+    template_coroutine_object_maker_template,
     template_coroutine_return_exit,
     template_make_coroutine_template
 )
 
 
 def getCoroutineObjectDeclCode(function_identifier):
-    return template_coroutine_object_decl_template % {
+    return template_coroutine_object_maker_template % {
         "function_identifier" : function_identifier,
     }
 
@@ -63,8 +63,10 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
 
     function_codes = SourceCodeCollector()
 
+    coroutine_object_body = context.getOwner()
+
     generateStatementSequenceCode(
-        statement_sequence = context.getOwner().getBody(),
+        statement_sequence = coroutine_object_body.getBody(),
         allow_none         = True,
         emit               = function_codes,
         context            = context
@@ -89,10 +91,20 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
         generator_exit += template_coroutine_return_exit % {}
 
     return template_coroutine_object_body_template % {
-        "function_identifier" : function_identifier,
-        "function_body"       : indented(function_codes.codes),
-        "function_var_inits"  : indented(function_locals),
-        "coroutine_exit"      : generator_exit
+        "function_identifier"    : function_identifier,
+        "function_body"          : indented(function_codes.codes),
+        "function_var_inits"     : indented(function_locals),
+        "coroutine_exit"         : generator_exit,
+        "coroutine_name_obj"     : context.getConstantCode(
+            constant = coroutine_object_body.getFunctionName()
+        ),
+        "coroutine_qualname_obj" : context.getConstantCode(
+            constant = coroutine_object_body.getFunctionQualname()
+        ),
+        "code_identifier"        : context.getCodeObjectHandle(
+            code_object = coroutine_object_body.getCodeObject(),
+        ),
+        "closure_count"          : len(closure_variables)
     }
 
 
@@ -110,13 +122,9 @@ def generateMakeCoroutineObjectCode(to_name, expression, emit, context):
 
     emit(
         template_make_coroutine_template % {
-            "closure_copy"         : indented(closure_copy, 0, True),
-            "coroutine_identifier" : coroutine_object_body.getCodeName(),
             "to_name"              : to_name,
-            "code_identifier"      : context.getCodeObjectHandle(
-                code_object = expression.getCodeObject(),
-            ),
-            "closure_count"        : len(closure_variables)
+            "coroutine_identifier" : coroutine_object_body.getCodeName(),
+            "closure_copy"         : indented(closure_copy, 0, True),
         }
     )
 

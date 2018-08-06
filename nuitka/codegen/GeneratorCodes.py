@@ -35,13 +35,13 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_generator_noexception_exit,
     template_generator_return_exit,
     template_genfunc_yielder_body_template,
-    template_genfunc_yielder_decl_template
+    template_genfunc_yielder_maker_template
 )
 from .VariableCodes import getLocalVariableCodeType
 
 
 def getGeneratorObjectDeclCode(function_identifier):
-    return template_genfunc_yielder_decl_template % {
+    return template_genfunc_yielder_maker_template % {
         "function_identifier" : function_identifier,
     }
 
@@ -101,8 +101,6 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
         function_dispatch.insert(0, "switch(generator->m_yield_return_index) {")
         function_dispatch.append('}')
 
-
-    # TODO: Have generator storage put there.
     function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
     # TODO: Heap storage or not, this check can later be removed.
@@ -112,13 +110,33 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
     else:
         local_type_decl = ()
 
+    generator_object_body = context.getOwner()
+
+    generator_name_obj = context.getConstantCode(
+        constant = generator_object_body.getFunctionName()
+    )
+
+    if python_version < 350:
+        generator_qualname_obj = "NULL"
+    else:
+        generator_qualname_obj = context.getConstantCode(
+            constant = generator_object_body.getFunctionQualname()
+        )
+
     return template_genfunc_yielder_body_template % {
         "function_identifier"  : function_identifier,
         "function_body"        : indented(function_codes.codes),
         "function_local_types" : indented(local_type_decl),
         "function_var_inits"   : indented(function_locals),
         "function_dispatch"    : indented(function_dispatch),
-        "generator_exit"       : generator_exit
+        "generator_exit"       : generator_exit,
+        "generator_module"       : getModuleAccessCode(context),
+        "generator_name_obj"     : generator_name_obj,
+        "generator_qualname_obj" : generator_qualname_obj,
+        "code_identifier"        : context.getCodeObjectHandle(
+            code_object = generator_object_body.getCodeObject()
+        ),
+        "closure_count"          : len(closure_variables)
     }
 
 
@@ -157,16 +175,6 @@ def getClosureCopyCode(to_name, closure_variables, closure_type, context):
 def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     generator_object_body = expression.getGeneratorRef().getFunctionBody()
 
-    generator_name_obj = context.getConstantCode(
-        constant = generator_object_body.getFunctionName()
-    )
-
-    if python_version < 350:
-        generator_qualname_obj = "NULL"
-    else:
-        generator_qualname_obj = context.getConstantCode(
-            constant = generator_object_body.getFunctionQualname()
-        )
 
     closure_variables = expression.getClosureVariableVersions()
 
@@ -182,13 +190,6 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
             "closure_copy"           : indented(closure_copy, 0, True),
             "to_name"                : to_name,
             "generator_identifier"   : generator_object_body.getCodeName(),
-            "generator_module"       : getModuleAccessCode(context),
-            "generator_name_obj"     : generator_name_obj,
-            "generator_qualname_obj" : generator_qualname_obj,
-            "code_identifier"        : context.getCodeObjectHandle(
-                code_object = expression.getCodeObject()
-            ),
-            "closure_count"          : len(closure_variables)
         }
     )
 

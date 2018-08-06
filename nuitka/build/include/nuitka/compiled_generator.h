@@ -94,6 +94,11 @@ struct Nuitka_GeneratorObject {
 
 #endif
 
+#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
+    /* The heap of generator objects at run time. */
+    void *m_heap_storage;
+#endif
+
     /* Closure variables given, if any, we reference cells here. The last
      * part is dynamically allocated, the array size differs per generator.
      */
@@ -109,11 +114,17 @@ typedef PyObject *(*generator_code)( struct Nuitka_GeneratorObject *, PyObject *
 typedef void (*generator_code)( struct Nuitka_GeneratorObject * );
 #endif
 
-#if PYTHON_VERSION < 350
-extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject *name, PyCodeObject *code_object, Py_ssize_t closure_given );
-#else
-extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Generator_New(
+    generator_code code,
+    PyObject *module,
+    PyObject *name,
+#if PYTHON_VERSION >= 350
+    PyObject *qualname,
 #endif
+    PyCodeObject *code_object,
+    Py_ssize_t closure_given,
+    Py_ssize_t heap_storage_size
+);
 
 extern PyObject *Nuitka_Generator_qiter( struct Nuitka_GeneratorObject *generator, bool *finished );
 

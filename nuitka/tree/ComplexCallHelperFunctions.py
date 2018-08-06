@@ -52,7 +52,6 @@ from nuitka.nodes.ExceptionNodes import (
     StatementRaiseException
 )
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionBody,
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
     ExpressionFunctionRef
@@ -79,8 +78,8 @@ from nuitka.PythonVersions import (
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .InternalModule import (
-    getInternalModule,
     internal_source_ref,
+    makeInternalHelperFunctionBody,
     once_decorator
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
@@ -140,10 +139,8 @@ def getCallableNameDescBody():
     # else:
     #     return called_type.__name__ + " object"
 
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = (
@@ -153,9 +150,7 @@ def getCallableNameDescBody():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1096,10 +1091,8 @@ def getFunctionCallHelperStarList():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = (
@@ -1109,9 +1102,7 @@ def getFunctionCallHelperStarList():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1189,10 +1180,8 @@ def getFunctionCallHelperKeywordsStarList():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = orderArgs(
@@ -1202,9 +1191,7 @@ def getFunctionCallHelperKeywordsStarList():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1294,10 +1281,8 @@ def getFunctionCallHelperPosStarList():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = (
@@ -1307,9 +1292,7 @@ def getFunctionCallHelperPosStarList():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1403,10 +1386,8 @@ def getFunctionCallHelperPosKeywordsStarList():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = orderArgs(
@@ -1416,9 +1397,7 @@ def getFunctionCallHelperPosKeywordsStarList():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1537,10 +1516,8 @@ def getFunctionCallHelperStarDict():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = (
@@ -1550,9 +1527,7 @@ def getFunctionCallHelperStarDict():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1646,10 +1621,8 @@ def getFunctionCallHelperPosStarDict():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = (
@@ -1659,9 +1632,7 @@ def getFunctionCallHelperPosStarDict():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1791,10 +1762,8 @@ def getFunctionCallHelperKeywordsStarDict():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = (
@@ -1804,9 +1773,7 @@ def getFunctionCallHelperKeywordsStarDict():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -1934,10 +1901,8 @@ def getFunctionCallHelperPosKeywordsStarDict():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = (
@@ -1947,9 +1912,7 @@ def getFunctionCallHelperPosKeywordsStarDict():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2067,10 +2030,8 @@ def getFunctionCallHelperStarListStarDict():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = (
@@ -2080,9 +2041,7 @@ def getFunctionCallHelperStarListStarDict():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2161,10 +2120,8 @@ def getFunctionCallHelperPosStarListStarDict():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = (
@@ -2174,9 +2131,7 @@ def getFunctionCallHelperPosStarListStarDict():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2274,10 +2229,8 @@ def getFunctionCallHelperKeywordsStarListStarDict():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = orderArgs(
@@ -2287,9 +2240,7 @@ def getFunctionCallHelperKeywordsStarListStarDict():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2376,10 +2327,8 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
 
     # Only need to check if the star argument value is a sequence and then
     # convert to tuple.
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = orderArgs(
@@ -2389,9 +2338,7 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     called_variable = result.getVariableForAssignment(
@@ -2495,10 +2442,8 @@ def getFunctionCallHelperPosKeywordsStarListStarDict():
 def getFunctionCallHelperDictionaryUnpacking():
     helper_name = "complex_call_helper_dict_unpacking_checks"
 
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = (
@@ -2508,9 +2453,7 @@ def getFunctionCallHelperDictionaryUnpacking():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     args_variable = result.getVariableForAssignment(

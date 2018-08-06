@@ -19,12 +19,12 @@
 
 """
 
-template_coroutine_object_decl_template = """\
-static void %(function_identifier)s( struct Nuitka_CoroutineObject *coroutine );
+template_coroutine_object_maker_template = """\
+static PyObject *%(function_identifier)s_maker( void );
 """
 
 template_coroutine_object_body_template = """
-static void %(function_identifier)s( struct Nuitka_CoroutineObject *coroutine )
+static void %(function_identifier)s_context( struct Nuitka_CoroutineObject *coroutine )
 {
     CHECK_OBJECT( (PyObject *)coroutine );
     assert( Nuitka_Coroutine_Check( (PyObject *)coroutine ) );
@@ -37,6 +37,28 @@ static void %(function_identifier)s( struct Nuitka_CoroutineObject *coroutine )
 
 %(coroutine_exit)s
 }
+
+static PyObject *%(function_identifier)s_maker( void )
+{
+    return Nuitka_Coroutine_New(
+        %(function_identifier)s_context,
+        %(coroutine_name_obj)s,
+        %(coroutine_qualname_obj)s,
+        %(code_identifier)s,
+        %(closure_count)d,
+#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
+        sizeof(struct %(function_identifier)s_locals)
+#else
+        0
+#endif
+    );
+}
+
+"""
+
+template_make_coroutine_template = """
+%(to_name)s = %(coroutine_identifier)s_maker();
+%(closure_copy)s
 """
 
 template_coroutine_exception_exit = """\
@@ -68,16 +90,6 @@ template_coroutine_return_exit = """\
 """
 
 
-template_make_coroutine_template = """
-%(to_name)s = Nuitka_Coroutine_New(
-    %(coroutine_identifier)s,
-    self->m_name,
-    self->m_qualname,
-    %(code_identifier)s,
-    %(closure_count)d
-);
-%(closure_copy)s
-"""
 
 from . import TemplateDebugWrapper # isort:skip
 TemplateDebugWrapper.checkDebug(globals())

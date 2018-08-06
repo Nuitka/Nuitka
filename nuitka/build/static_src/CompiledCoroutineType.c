@@ -1075,17 +1075,32 @@ static PyObject *computeCoroutineOrigin(int origin_depth)
 }
 #endif
 
-PyObject *Nuitka_Coroutine_New( coroutine_code code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given )
+PyObject *Nuitka_Coroutine_New(
+    coroutine_code code,
+    PyObject *name,
+    PyObject *qualname,
+    PyCodeObject *code_object,
+    Py_ssize_t closure_given,
+    Py_ssize_t heap_storage_size
+)
 {
     struct Nuitka_CoroutineObject *result;
+
+    // TODO: Change the var part of the type to 1 maybe
+    Py_ssize_t full_size = closure_given + (heap_storage_size + sizeof(void *) - 1) / sizeof(void *);
 
     // Macro to assign result memory from GC or free list.
     allocateFromFreeList(
         free_list_coros,
         struct Nuitka_CoroutineObject,
         Nuitka_Coroutine_Type,
-        closure_given
+        full_size
     );
+
+#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
+    // For quicker access of generator heap.
+    result->m_heap_storage = &result->m_closure[ closure_given ];
+#endif
 
     result->m_code = (void *)code;
 
