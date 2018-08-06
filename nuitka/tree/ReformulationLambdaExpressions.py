@@ -209,7 +209,6 @@ def buildLambdaNode(provider, node, source_ref):
             function_body = outer_body,
             source_ref    = source_ref
         ),
-        code_object  = code_object,
         defaults     = defaults,
         kw_defaults  = kw_defaults,
         annotations  = annotations,

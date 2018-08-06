@@ -252,7 +252,6 @@ def buildFunctionNode(provider, node, source_ref):
             function_body = function_body,
             source_ref    = source_ref
         ),
-        code_object  = code_object,
         defaults     = defaults,
         kw_defaults  = kw_defaults,
         annotations  = annotations,
@@ -420,7 +419,6 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             function_body = creator_function_body,
             source_ref    = source_ref
         ),
-        code_object  = code_object,
         defaults     = defaults,
         kw_defaults  = kw_defaults,
         annotations  = annotations,

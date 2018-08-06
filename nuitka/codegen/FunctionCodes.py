@@ -122,9 +122,9 @@ def getFunctionQualnameObj(owner, context):
         )
 
 
-def getFunctionMakerCode(function_body, function_identifier, code_identifier,
-                         closure_variables, defaults_name, kw_defaults_name,
-                         annotations_name, function_doc, context):
+def getFunctionMakerCode(function_body, function_identifier, closure_variables,
+                         defaults_name, kw_defaults_name, annotations_name,
+                         function_doc, context):
     # We really need this many parameters here and functions have many details,
     # that we express as variables
     function_creation_args = _getFunctionCreationArgs(
@@ -162,7 +162,9 @@ def getFunctionMakerCode(function_body, function_identifier, code_identifier,
         "function_creation_args"     : ", ".join(
             function_creation_args
         ),
-        "code_identifier"            : code_identifier,
+        "code_identifier"            : context.getCodeObjectHandle(
+                code_object = function_body.getCodeObject(),
+        ),
         "closure_copy"               : indented(closure_copy, 0, True),
         "function_doc"               : context.getConstantCode(
             constant = function_doc
@@ -190,7 +192,6 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     # pylint: disable=too-many-locals
 
     function_body  = expression.getFunctionRef().getFunctionBody()
-    code_object    = expression.getCodeObject()
     defaults       = expression.getDefaults()
     kw_defaults    = expression.getKwDefaults()
     annotations    = expression.getAnnotations()
@@ -257,9 +258,6 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
         maker_code = getFunctionMakerCode(
             function_body       = function_body,
             function_identifier = function_identifier,
-            code_identifier     = context.getCodeObjectHandle(
-                code_object = code_object,
-            ),
             closure_variables   = function_body.getClosureVariables(),
             defaults_name       = defaults_name,
             kw_defaults_name    = kw_defaults_name,

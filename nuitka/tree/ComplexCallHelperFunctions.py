@@ -339,7 +339,6 @@ def makeStarListArgumentErrorRaise(called_variable, star_list_variable):
                                         function_body = getCallableNameDescBody(),
                                         source_ref    = internal_source_ref
                                     ),
-                                    code_object  = None,
                                     defaults     = (),
                                     kw_defaults  = None,
                                     annotations  = None,
@@ -481,7 +480,6 @@ def _makeRaiseExceptionMustBeMapping(called_variable,
                                         function_body = getCallableNameDescBody(),
                                         source_ref    = internal_source_ref
                                     ),
-                                    code_object  = None,
                                     defaults     = (),
                                     kw_defaults  = None,
                                     annotations  = None,
@@ -707,7 +705,6 @@ def _makeRaiseNoStringItem(called_variable):
                                 ),
                                 source_ref    = internal_source_ref
                             ),
-                            code_object  = None,
                             defaults     = (),
                             kw_defaults  = None,
                             annotations  = None,
@@ -755,7 +752,6 @@ def _makeRaiseDuplicationItem(called_variable, tmp_key_variable):
                                         ),
                                         source_ref    = internal_source_ref
                                     ),
-                                    code_object  = None,
                                     defaults     = (),
                                     kw_defaults  = None,
                                     annotations  = None,

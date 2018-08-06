@@ -133,7 +133,6 @@ def buildCallNode(provider, node, source_ref):
                         function_body = getFunctionCallHelperDictionaryUnpacking(),
                         source_ref    = source_ref
                     ),
-                    code_object  = None,
                     defaults     = (),
                     kw_defaults  = None,
                     annotations  = None,
@@ -316,7 +315,6 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
                     function_body = get_helper(),
                     source_ref    = source_ref
                 ),
-                code_object  = None,
                 defaults     = (),
                 kw_defaults  = None,
                 annotations  = None,
