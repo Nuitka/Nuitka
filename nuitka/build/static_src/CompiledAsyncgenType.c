@@ -836,6 +836,11 @@ PyObject *Nuitka_Asyncgen_New(
     result->m_name = name;
     Py_INCREF( name );
 
+    // The "qualname" defaults to NULL for most compact C code.
+    if ( qualname == NULL )
+    {
+        qualname = name;
+    }
     CHECK_OBJECT( qualname );
 
     result->m_qualname = qualname;

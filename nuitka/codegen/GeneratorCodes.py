@@ -25,6 +25,7 @@ from .CodeHelpers import generateStatementSequenceCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
+    getFunctionQualnameObj,
     setupFunctionLocalVariables
 )
 from .Indentation import indented
@@ -112,27 +113,18 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
 
     generator_object_body = context.getOwner()
 
-    generator_name_obj = context.getConstantCode(
-        constant = generator_object_body.getFunctionName()
-    )
-
-    if python_version < 350:
-        generator_qualname_obj = "NULL"
-    else:
-        generator_qualname_obj = context.getConstantCode(
-            constant = generator_object_body.getFunctionQualname()
-        )
-
     return template_genfunc_yielder_body_template % {
-        "function_identifier"  : function_identifier,
-        "function_body"        : indented(function_codes.codes),
-        "function_local_types" : indented(local_type_decl),
-        "function_var_inits"   : indented(function_locals),
-        "function_dispatch"    : indented(function_dispatch),
-        "generator_exit"       : generator_exit,
+        "function_identifier"    : function_identifier,
+        "function_body"          : indented(function_codes.codes),
+        "function_local_types"   : indented(local_type_decl),
+        "function_var_inits"     : indented(function_locals),
+        "function_dispatch"      : indented(function_dispatch),
+        "generator_exit"         : generator_exit,
         "generator_module"       : getModuleAccessCode(context),
-        "generator_name_obj"     : generator_name_obj,
-        "generator_qualname_obj" : generator_qualname_obj,
+        "generator_name_obj"     : context.getConstantCode(
+            constant = generator_object_body.getFunctionName()
+        ),
+        "generator_qualname_obj" : getFunctionQualnameObj(generator_object_body, context),
         "code_identifier"        : context.getCodeObjectHandle(
             code_object = generator_object_body.getCodeObject()
         ),

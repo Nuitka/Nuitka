@@ -957,6 +957,11 @@ PyObject *Nuitka_Generator_New(
     Py_INCREF( name );
 
 #if PYTHON_VERSION >= 350
+    // The "qualname" defaults to NULL for most compact C code.
+    if ( qualname == NULL )
+    {
+        qualname = name;
+    }
     CHECK_OBJECT( qualname );
 
     result->m_qualname = qualname;

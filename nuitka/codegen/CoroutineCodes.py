@@ -27,6 +27,7 @@ from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
+    getFunctionQualnameObj,
     setupFunctionLocalVariables
 )
 from .GeneratorCodes import getClosureCopyCode
@@ -98,9 +99,7 @@ def getCoroutineObjectCode(context, function_identifier, closure_variables,
         "coroutine_name_obj"     : context.getConstantCode(
             constant = coroutine_object_body.getFunctionName()
         ),
-        "coroutine_qualname_obj" : context.getConstantCode(
-            constant = coroutine_object_body.getFunctionQualname()
-        ),
+        "coroutine_qualname_obj" : getFunctionQualnameObj(coroutine_object_body, context),
         "code_identifier"        : context.getCodeObjectHandle(
             code_object = coroutine_object_body.getCodeObject(),
         ),

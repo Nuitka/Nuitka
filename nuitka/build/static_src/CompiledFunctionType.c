@@ -696,6 +696,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, Py
     {
         qualname = name;
     }
+    CHECK_OBJECT( qualname );
 
     Py_INCREF( qualname );
     result->m_qualname = qualname;

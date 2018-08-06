@@ -23,6 +23,7 @@ from .CodeHelpers import generateStatementSequenceCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
+    getFunctionQualnameObj,
     setupFunctionLocalVariables
 )
 from .GeneratorCodes import getClosureCopyCode
@@ -85,16 +86,14 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
         generator_exit += template_asyncgen_return_exit % {}
 
     return template_asyncgen_object_body_template % {
-        "function_identifier" : function_identifier,
-        "function_body"       : indented(function_codes.codes),
-        "function_var_inits"  : indented(function_locals),
-        "asyncgen_exit"       : generator_exit,
+        "function_identifier"   : function_identifier,
+        "function_body"         : indented(function_codes.codes),
+        "function_var_inits"    : indented(function_locals),
+        "asyncgen_exit"         : generator_exit,
         "asyncgen_name_obj"     : context.getConstantCode(
             constant = asyncgen_object_body.getFunctionName()
         ),
-        "asyncgen_qualname_obj" : context.getConstantCode(
-            constant = asyncgen_object_body.getFunctionQualname()
-        ),
+        "asyncgen_qualname_obj" : getFunctionQualnameObj(asyncgen_object_body, context),
         "code_identifier"       : context.getCodeObjectHandle(
             code_object = asyncgen_object_body.getCodeObject(),
         ),

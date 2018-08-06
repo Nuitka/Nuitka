@@ -111,10 +111,28 @@ def getFunctionEntryPointIdentifier(function_identifier):
     return "impl_" + function_identifier
 
 
-def getFunctionMakerCode(function_name, function_qualname, function_identifier,
-                         code_identifier, closure_variables, defaults_name,
-                         kw_defaults_name, annotations_name, function_doc,
-                         context):
+def getFunctionQualnameObj(owner, context):
+    if owner.isExpressionFunctionBody():
+        min_version = 300
+    else:
+        min_version = 350
+
+    if python_version < min_version:
+        return "NULL"
+
+    function_qualname = owner.getFunctionQualname()
+
+    if function_qualname == owner.getFunctionName():
+        return "NULL"
+    else:
+        return context.getConstantCode(
+            constant = function_qualname
+        )
+
+
+def getFunctionMakerCode(function_body, function_identifier, code_identifier,
+                         closure_variables, defaults_name, kw_defaults_name,
+                         annotations_name, function_doc, context):
     # We really need this many parameters here and functions have many details,
     # that we express as variables, pylint: disable=too-many-locals
     function_creation_args = _getFunctionCreationArgs(
@@ -124,19 +142,11 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
         closure_variables = closure_variables
     )
 
-    if python_version < 300 or function_qualname == function_name:
-        function_qualname_obj = "NULL"
-    else:
-        function_qualname_obj = context.getConstantCode(
-            constant = function_qualname
-        )
-
     closure_copy = []
 
     for count, closure_variable in enumerate(closure_variables):
         closure_copy.append(
             "result->m_closure[%d] = %s;" % (
-
                 count,
                 getVariableCodeName(
                     True,
@@ -150,9 +160,9 @@ def getFunctionMakerCode(function_name, function_qualname, function_identifier,
 
     result = template_make_function_template % {
         "function_name_obj"          : context.getConstantCode(
-            constant = function_name
+            constant = function_body.getFunctionName(),
         ),
-        "function_qualname_obj"      : function_qualname_obj,
+        "function_qualname_obj"      : getFunctionQualnameObj(function_body, context),
         "function_identifier"        : function_identifier,
         "function_impl_identifier"   : getFunctionEntryPointIdentifier(
             function_identifier = function_identifier,
@@ -253,8 +263,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     # Creation code needs to be done only once.
     if not context.hasHelperCode(function_identifier):
         maker_code = getFunctionMakerCode(
-            function_name       = function_body.getFunctionName(),
-            function_qualname   = function_body.getFunctionQualname(),
+            function_body       = function_body,
             function_identifier = function_identifier,
             code_identifier     = context.getCodeObjectHandle(
                 code_object = code_object,
