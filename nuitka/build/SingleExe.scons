@@ -124,10 +124,6 @@ win_disable_console = getBoolOption("win_disable_console", False)
 # Windows might be running a Python whose DLL we have to use.
 uninstalled_python = getBoolOption("uninstalled_python", False)
 
-# The Python might be compiled static, in which case extension modules
-# should not try to link against the non-existant library
-static_python = getBoolOption("static_python", False)
-
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
 
@@ -1114,62 +1110,61 @@ def makeWindowsMingGW64Lib(win_lib_path):
     if result != 0:
         sys.exit("Error, call to 'dlltool.exe' failed.")
 
+
     return new_win_lib_path
 
 
-if not static_python:
-    if win_target:
-            # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
-            if python_debug:
-                win_lib_name ="python" + python_abi_version.replace('.', "") + "_d"
-            else:
-                win_lib_name = "python" + python_abi_version.replace('.', "")
-
-            for candidate in ("libs", "PCBuild"):
-                win_lib_path = os.path.join(python_prefix, candidate)
-
-                if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
-                    break
-            else:
-                sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
-
-            if target_arch == "x86_64" and gcc_mode:
-                win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
-            elif target_arch == "x86" and python_debug and gcc_mode:
-                win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
-
-            env.Append(LIBPATH = [win_lib_path])
-            env.Append(LIBS = [win_lib_name])
-
-    else:
-        # Debian and Ubuntu distinguish the system libraries like this.
-        if python_debug and \
-           python_prefix == "/usr" and \
-           not python_version.startswith('3') and \
-           platform.dist()[0].lower() in ("debian", "ubuntu"):
-            env.Append(LIBS = ["python" + python_abi_version + "_d"])
+if win_target:
+        # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
+        if python_debug:
+            win_lib_name ="python" + python_abi_version.replace('.', "") + "_d"
         else:
-            env.Append(LIBS = ["python" + python_abi_version])
+            win_lib_name = "python" + python_abi_version.replace('.', "")
 
-        if python_prefix != "/usr" and "linux" in sys.platform:
+        for candidate in ("libs", "PCBuild"):
+            win_lib_path = os.path.join(python_prefix, candidate)
+
+            if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
+                break
+        else:
+            sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
+
+        if target_arch == "x86_64" and gcc_mode:
+            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+        elif target_arch == "x86" and python_debug and gcc_mode:
+            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+
+        env.Append(LIBPATH = [win_lib_path])
+        env.Append(LIBS = [win_lib_name])
+elif not module_mode:
+    # Debian and Ubuntu distinguish the system libraries like this.
+    if python_debug and \
+       python_prefix == "/usr" and \
+       not python_version.startswith('3') and \
+       platform.dist()[0].lower() in ("debian", "ubuntu"):
+        env.Append(LIBS = ["python" + python_abi_version + "_d"])
+    else:
+        env.Append(LIBS = ["python" + python_abi_version])
+
+    if python_prefix != "/usr" and "linux" in sys.platform:
+        env.Append(
+            LIBS = ["dl", "pthread", "util", 'm']
+        )
+
+        if gcc_mode and not clang_mode:
             env.Append(
-                LIBS = ["dl", "pthread", "util", 'm']
+                LINKFLAGS = ["-export-dynamic"]
             )
 
-            if gcc_mode and not clang_mode:
-                env.Append(
-                    LINKFLAGS = ["-export-dynamic"]
-                )
+    # Add the python library path to the library path
+    python_lib_path = os.path.join(python_prefix, "lib")
+    env.Append(LIBPATH = [python_lib_path])
 
-        # Add the python library path to the library path
-        python_lib_path = os.path.join(python_prefix, "lib")
-        env.Append(LIBPATH = [python_lib_path])
-
-        # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
-        if "netbsd" in sys.platform:
-            env.Append(
-                LINKFLAGS = ["-rpath=" + python_lib_path]
-            )
+    # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
+    if "netbsd" in sys.platform:
+        env.Append(
+            LINKFLAGS = ["-rpath=" + python_lib_path]
+        )
 
 # The static include files reside in Nuitka installation, which may be where
 # the "nuitka.build" package lives.
@@ -1260,18 +1255,15 @@ if win_target and target_arch == "x86_64" and gcc_mode:
     )
 
 # Set load libpython from binary directory default
-if gcc_mode and sys.platform != "darwin" and not win_target:
+if gcc_mode and sys.platform != "darwin" and not win_target and not module_mode:
     if standalone_mode:
         rpath = "$$ORIGIN"
-    elif not static_python:
-        rpath = python_lib_path
     else:
-        rpath = None
+        rpath = python_lib_path
 
-    if rpath is not None:
-        env.Append(
-            LINKFLAGS = ["-Wl,-R,'%s'" % rpath]
-        )
+    env.Append(
+        LINKFLAGS = ["-Wl,-R,'%s'" % rpath]
+    )
 
     # The rpath is no longer used unless we do this on modern Linux. The
     # option name is not very revealing, but basically without this, the
@@ -1700,7 +1692,6 @@ if module_mode:
         source_files  + source_targets
     )
 else:
-
     target = env.Program(
         result_basepath + ".exe",
         source_files + source_targets
@@ -1790,6 +1781,9 @@ createBuildDefinitionsFile()
 
 # env["CFLAGS"] = env["CCFLAGS"]
 
+if show_scons_mode:
+    print("Scons: Launching target:", target)
+
 Default(target) # @UndefinedVariable
 
 # Copy the Python DLL to the target directory, so the executable can be run.
@@ -1802,7 +1796,7 @@ if uninstalled_python:
             getWindowsPythonDLLPath(),
             os.path.dirname(result_basepath) or '.'
         )
-    elif sys.platform == "darwin" and not static_python:
+    elif sys.platform == "darwin" and not module_mode:
         # TODO: Move this to where we do it for Linux already.
 
         python_dll_filename = "libpython" + python_abi_version + ".dylib"

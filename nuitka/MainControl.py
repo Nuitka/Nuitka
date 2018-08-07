@@ -37,7 +37,6 @@ from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import (
     getPythonABI,
     getSupportedPythonVersions,
-    isStaticallyLinkedPython,
     isUninstalledPython,
     python_version,
     python_version_str
@@ -477,7 +476,7 @@ def _asBoolStr(value):
 
 def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
-    # have checks for them, leading to many branches, pylint: disable=too-many-branches,too-many-statements
+    # have checks for them, leading to many branches, pylint: disable=too-many-branches
 
     options = {
         "name"            : os.path.basename(
@@ -522,12 +521,6 @@ def runScons(main_module, quiet):
        not Options.shallMakeModule() and \
        isUninstalledPython():
         options["uninstalled_python"] = "true"
-
-    if isStaticallyLinkedPython():
-        options["static_python"] = "true"
-
-        if not Options.shallMakeModule():
-            sys.exit("Error, cannot make binaries with statically linked Python.")
 
     if ModuleRegistry.getUncompiledTechnicalModules():
         options["frozen_modules"] = str(
