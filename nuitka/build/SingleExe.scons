@@ -651,9 +651,6 @@ if "clang" in the_compiler:
     env.Append(
         CPPDEFINES = ["_XOPEN_SOURCE"]
     )
-    env.Append(
-        LINKFLAGS = ["-lstdc++" ]
-    )
 
     # Don't export anything by default, this should create smaller executables.
     env.Append(
