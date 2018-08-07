@@ -38,12 +38,31 @@ Bug Fixes
   line 129, was considered the same. And that is what actually happened. Fixed
   in 0.5.32.3 already.
 
+- MacOS: Various fixes for newer Xcode versions to work as well.
+
+- Python3: Fix, the default ``__annotations__`` was the empty dict and could
+  be modified, leading to severe corruption potentially. Fixed in 0.5.32.4
+  already.
+
+New Features
+------------
+
+- Added support for MiniConda Python.
+
 Optimization
 ------------
 
 - Put all statement related code and declarations for it in a dedicated C
   block, making things slightly more easy for the C compiler to re-use the
   stack space.
+
+- Avoid linking against ``libpython`` in module mode on everything but Windows
+  where it is really needed. No longer check for static Python, not needed
+  anymore.
+
+- More compact function, generator, and asyncgen creation code for the normal
+  cases, avoid qualname if identical to name for all of them.
+
 
 Cleanups
 --------
@@ -69,6 +88,9 @@ Cleanups
 - There is now only one spot that creates variable declaration, instead of
   previous code duplications.
 
+- Code objects are now attached to functions, generators, coroutines, and
+  asyncgen bodies, and not anymore to the creation of these objects. This
+  allows for simpler code generation.
 
 This release is not done yet.
 
