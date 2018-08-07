@@ -1802,7 +1802,7 @@ if uninstalled_python:
             getWindowsPythonDLLPath(),
             os.path.dirname(result_basepath) or '.'
         )
-    elif sys.platform == "darwin":
+    elif sys.platform == "darwin" and not static_python:
         # TODO: Move this to where we do it for Linux already.
 
         python_dll_filename = "libpython" + python_abi_version + ".dylib"
