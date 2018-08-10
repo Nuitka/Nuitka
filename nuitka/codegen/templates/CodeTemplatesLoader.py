@@ -21,16 +21,16 @@
 
 
 template_metapath_loader_compiled_module_entry = """\
-{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), 0, 0, NUITKA_COMPILED_MODULE },"""
+{ "%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), 0, 0, NUITKA_COMPILED_MODULE },"""
 
 template_metapath_loader_compiled_package_entry = """\
-{ (char *)"%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), 0, 0, NUITKA_PACKAGE_FLAG },"""
+{ "%(module_name)s", MOD_INIT_NAME( %(module_identifier)s ), 0, 0, NUITKA_PACKAGE_FLAG },"""
 
 template_metapath_loader_shlib_module_entry = """\
-{ (char *)"%(module_name)s", NULL, 0, 0, NUITKA_SHLIB_FLAG },"""
+{ "%(module_name)s", NULL, 0, 0, NUITKA_SHLIB_FLAG },"""
 
 template_metapath_loader_bytecode_module_entry = """\
-{ (char *)"%(module_name)s", NULL, %(bytecode)s, %(size)d, %(flags)s },"""
+{ "%(module_name)s", NULL, %(bytecode)s, %(size)d, %(flags)s },"""
 
 
 template_metapath_loader_body = """\
