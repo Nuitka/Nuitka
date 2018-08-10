@@ -332,6 +332,8 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
         context.removeCleanupTempName(defaults_name)
     if context.needsCleanup(kw_defaults_name):
         context.removeCleanupTempName(kw_defaults_name)
+    if context.needsCleanup(annotations_name):
+        context.removeCleanupTempName(annotations_name)
 
     # No error checks, this supposedly, cannot fail.
     context.addCleanupTempName(to_name)

@@ -718,7 +718,7 @@ struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, Py
     assert( kwdefaults == NULL || ( PyDict_Check( kwdefaults ) && DICT_SIZE( kwdefaults ) > 0 ) );
     result->m_kwdefaults = kwdefaults;
 
-    Py_XINCREF( annotations );
+    assert( annotations == NULL || ( PyDict_Check( annotations ) && DICT_SIZE( annotations ) > 0 ) );
     result->m_annotations = annotations;
 #endif
 

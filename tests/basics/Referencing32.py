@@ -132,6 +132,13 @@ def simpleFunction9():
     # Make sure xranges work nicely
     return range(range_high)
 
+def simpleFunction10():
+    def f(x : int ) -> int:
+        pass
+
+    return f
+
+
 
 # These need stderr to be wrapped.
 tests_stderr = ()
