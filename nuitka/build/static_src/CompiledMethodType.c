@@ -25,6 +25,12 @@
 static PyObject *Nuitka_Method_get__doc__( struct Nuitka_MethodObject *method, void *closure )
 {
     PyObject *result = method->m_function->m_doc;
+
+    if ( result == NULL )
+    {
+        result = Py_None;
+    }
+
     Py_INCREF( result );
     return result;
 }

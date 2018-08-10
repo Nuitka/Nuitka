@@ -198,6 +198,12 @@ static int Nuitka_Function_set_qualname( struct Nuitka_FunctionObject *object, P
 static PyObject *Nuitka_Function_get_doc( struct Nuitka_FunctionObject *object )
 {
     PyObject *result = object->m_doc;
+
+    if ( result == NULL )
+    {
+        result = Py_None;
+    }
+
     Py_INCREF( result );
     return result;
 }
@@ -206,15 +212,10 @@ static int Nuitka_Function_set_doc( struct Nuitka_FunctionObject *object, PyObje
 {
     PyObject *old = object->m_doc;
 
-    if ( value == NULL )
-    {
-        value = Py_None;
-    }
-
     object->m_doc = value;
-    Py_INCREF( value );
+    Py_XINCREF( value );
 
-    Py_DECREF( old );
+    Py_XDECREF( old );
 
     return 0;
 }
@@ -566,7 +567,7 @@ static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
     Py_XDECREF( function->m_dict );
     Py_DECREF( function->m_defaults );
 
-    Py_DECREF( function->m_doc );
+    Py_XDECREF( function->m_doc );
 
 #if PYTHON_VERSION >= 300
     Py_XDECREF( function->m_kwdefaults );
@@ -766,8 +767,8 @@ struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, Py
 
     result->m_module = module;
 
-    Py_INCREF( doc );
-    result->m_doc    = doc;
+    Py_XINCREF( doc );
+    result->m_doc = doc;
 
     result->m_dict   = NULL;
     result->m_weakrefs = NULL;
