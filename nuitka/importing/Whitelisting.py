@@ -302,6 +302,9 @@ areallylongpackageandmodulenametotestreprtruncation""",
 
         # six
         "six.moves",
+
+        # Python3 namespace packages.
+        "_frozen_importlib_external",
     )
 
 
