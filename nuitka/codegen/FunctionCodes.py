@@ -41,22 +41,10 @@ from .templates.CodeTemplatesFunction import (
     template_make_function_template
 )
 from .TupleCodes import getTupleCreationCode
-from .VariableCodes import getLocalVariableCodeType, getVariableCodeName
+from .VariableCodes import getLocalVariableCodeType
 
 
-def getClosureVariableProvisionCode(context, closure_variables):
-    result = []
-
-    for variable, variable_trace in closure_variables:
-        variable_code_name, _variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
-
-        result.append(variable_code_name)
-
-    return result
-
-
-def _getFunctionCreationArgs(defaults_name, kw_defaults_name,
-                             annotations_name, closure_variables):
+def _getFunctionCreationArgs(defaults_name, kw_defaults_name, annotations_name):
     result = []
 
     if defaults_name is not None:
@@ -68,27 +56,16 @@ def _getFunctionCreationArgs(defaults_name, kw_defaults_name,
     if annotations_name is not None:
         result.append("PyObject *annotations")
 
-    for closure_variable in closure_variables:
-        result.append(
-            "struct Nuitka_CellObject *%s" % (
-                getVariableCodeName(
-                    variable   = closure_variable,
-                    in_context = True
-                )
-            )
-        )
-
     return result
 
 
 def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
-                         annotations_name, closure_variables):
+                         annotations_name):
 
     function_creation_arg_spec = _getFunctionCreationArgs(
-        defaults_name     = defaults_name,
-        kw_defaults_name  = kw_defaults_name,
-        annotations_name  = annotations_name,
-        closure_variables = closure_variables
+        defaults_name    = defaults_name,
+        kw_defaults_name = kw_defaults_name,
+        annotations_name = annotations_name
     )
 
     return template_function_make_declaration % {
@@ -128,26 +105,18 @@ def getFunctionMakerCode(function_body, function_identifier, closure_variables,
     # We really need this many parameters here and functions have many details,
     # that we express as variables
     function_creation_args = _getFunctionCreationArgs(
-        defaults_name     = defaults_name,
-        kw_defaults_name  = kw_defaults_name,
-        annotations_name  = annotations_name,
-        closure_variables = closure_variables
+        defaults_name    = defaults_name,
+        kw_defaults_name = kw_defaults_name,
+        annotations_name = annotations_name
     )
 
     closure_copy = []
 
-    for count, closure_variable in enumerate(closure_variables):
-        closure_copy.append(
-            "result->m_closure[%d] = %s;" % (
-                count,
-                getVariableCodeName(
-                    True,
-                    closure_variable
-                )
-            )
-        )
-        closure_copy.append(
-            "Py_INCREF( result->m_closure[%d] );" %count
+    if function_doc is None:
+        function_doc = "NULL"
+    else:
+        function_doc = context.getConstantCode(
+            constant = function_doc
         )
 
     result = template_make_function_template % {
@@ -166,9 +135,7 @@ def getFunctionMakerCode(function_body, function_identifier, closure_variables,
                 code_object = function_body.getCodeObject(),
         ),
         "closure_copy"               : indented(closure_copy, 0, True),
-        "function_doc"               : context.getConstantCode(
-            constant = function_doc
-        ),
+        "function_doc"               : function_doc,
         "defaults"                   : "defaults"
                                          if defaults_name else
                                        "NULL",
@@ -272,8 +239,7 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
             function_identifier = function_body.getCodeName(),
             defaults_name       = defaults_name,
             kw_defaults_name    = kw_defaults_name,
-            annotations_name    = annotations_name,
-            closure_variables   = function_body.getClosureVariables()
+            annotations_name    = annotations_name
         )
 
         context.addDeclaration(function_identifier, function_decl)
@@ -311,11 +277,6 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
     if annotations_name is not None:
         args.append(annotations_name)
 
-    args += getClosureVariableProvisionCode(
-        context           = context,
-        closure_variables = closure_variables
-    )
-
     emit(
         "%s = MAKE_FUNCTION_%s( %s );" % (
             to_name,
@@ -327,6 +288,23 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
             )
         )
     )
+
+    for count, (variable, variable_trace) in enumerate(closure_variables):
+        variable_code_name, _variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
+
+        emit(
+            "((struct Nuitka_FunctionObject *)%s)->m_closure[%d] = %s;" % (
+                to_name,
+                count,
+                variable_code_name
+            )
+        )
+        emit(
+            "Py_INCREF( ((struct Nuitka_FunctionObject *)%s)->m_closure[%d] );" % (
+                to_name,
+                count
+            )
+        )
 
     if context.needsCleanup(defaults_name):
         context.removeCleanupTempName(defaults_name)
@@ -460,42 +438,70 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
     # Parameter variable initializations
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
-            _addVariableDescriptionForLocalVariable(
-                context   = context,
-                variable  = variable,
-                init_from = "python_pars[ %d ]" % count
+            variable_code_name, variable_c_type = getLocalVariableCodeType(
+                context        = context,
+                variable       = variable,
+                variable_trace = None
             )
 
+            context.variable_storage.addVariableDeclaration(
+                variable_c_type.c_type,
+                variable_code_name,
+                variable_c_type.getInitValue("python_pars[ %d ]" % count),
+                level = "top"
+            )
+
+            context.setVariableType(variable, variable_code_name, variable_c_type)
+
     # User local variable initializations
-    for variable in user_variables + tuple(
-        variable
-        for variable in
-        sorted(
-            temp_variables,
-            key = lambda variable: variable.getName()
+    for variable in user_variables:
+        variable_code_name, variable_c_type = getLocalVariableCodeType(
+            context        = context,
+            variable       = variable,
+            variable_trace = None
         )
-    ):
-        _addVariableDescriptionForLocalVariable(
-            context   = context,
-            variable  = variable,
-            init_from = None
+
+        context.variable_storage.addVariableDeclaration(
+            variable_c_type.c_type,
+            variable_code_name,
+            variable_c_type.getInitValue(None),
+            level = "top"
+        )
+
+        context.setVariableType(variable, variable_code_name, variable_c_type)
+
+    for variable in sorted(temp_variables, key = lambda variable: variable.getName()):
+        variable_code_name, variable_c_type = getLocalVariableCodeType(
+            context        = context,
+            variable       = variable,
+            variable_trace = None
+        )
+
+        context.variable_storage.addVariableDeclaration(
+            variable_c_type.c_type,
+            variable_code_name,
+            variable_c_type.getInitValue(None),
+            level = "top"
         )
 
     for closure_variable in closure_variables:
-        # Temporary variable closures are to be ignored.
-        if closure_variable.isTempVariable():
-            continue
-
         variable_code_name, variable_c_type = getLocalVariableCodeType(
             context        = context,
             variable       = closure_variable,
             variable_trace = None # TODO: Not used currently anyway but should
         )
 
-        if variable_c_type in (CTypeCellObject, CTypePyObjectPtrPtr):
+        context.variable_storage.addVariableDeclaration(
+            variable_c_type.c_type,
+            variable_code_name,
+            None,
+            level = "closure"
+        )
+
+        assert variable_c_type in (CTypeCellObject, CTypePyObjectPtrPtr), variable_c_type
+
+        if not closure_variable.isTempVariable():
             context.setVariableType(closure_variable, variable_code_name, variable_c_type)
-        else:
-            assert False, (variable_code_name, variable_c_type)
 
 
 def finalizeFunctionLocalVariables(context):

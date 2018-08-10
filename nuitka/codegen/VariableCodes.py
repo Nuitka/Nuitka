@@ -107,7 +107,7 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
     )
 
 
-def getVariableCodeName(in_context, variable):
+def _getVariableCodeName(in_context, variable):
     if in_context:
         # Closure case:
         return "closure_" + variable.getCodeName()
@@ -172,7 +172,7 @@ def getLocalVariableCodeType(context, variable, variable_trace):
     c_type = getPickedCType(variable, variable_trace, context)
 
     if owner is user:
-        result = getVariableCodeName(
+        result = _getVariableCodeName(
             in_context = False,
             variable   = variable
         )
@@ -193,7 +193,7 @@ def getLocalVariableCodeType(context, variable, variable_trace):
 
             result = "asyncgen->m_closure[%d]" % closure_index
         else:
-            result = getVariableCodeName(
+            result = _getVariableCodeName(
                 in_context = True,
                 variable   = variable
             )

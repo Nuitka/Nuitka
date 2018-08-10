@@ -78,7 +78,7 @@ class VariableDeclaration(object):
         )
 
 
-class VariableStorage(object):
+class VariableStorageBase(object):
     __slots__ = ("variable_declarations", "exception_variable_declarations", "parent")
 
     heap_name = None
@@ -103,23 +103,6 @@ class VariableStorage(object):
         else:
             return None
 
-    def addVariableDeclaration(self, c_type, code_name, init_value, level):
-        if self.parent is not None and level != "function":
-            result = self.parent.addVariableDeclaration(c_type, code_name, init_value, level)
-        else:
-            result = VariableDeclaration(
-                c_type,
-                code_name,
-                init_value,
-                self.heap_name
-            )
-
-            self.add(
-                result,
-            )
-
-        return result
-
     def addFrameDeclaration(self, frame_identifier):
         self.addVariableDeclaration(
             "struct Nuitka_FrameObject *",
@@ -135,7 +118,6 @@ class VariableStorage(object):
             "NULL",
             level = "function"
         )
-
 
     def remove(self, code_name):
         self.variable_declarations = [
@@ -181,7 +163,59 @@ class VariableStorage(object):
         return self.exception_variable_declarations
 
 
-class VariableSubStorage(VariableStorage):
+class VariableStorage(VariableStorageBase):
+    __slots__ = ("closure_storage",)
+
+    def __init__(self, parent):
+        VariableStorageBase.__init__(self, parent)
+
+        self.closure_storage = None
+
+    def addVariableDeclaration(self, c_type, code_name, init_value, level):
+        if self.parent is not None and level == "top":
+            result = self.parent.addVariableDeclaration(c_type, code_name, init_value, level)
+        elif level == "closure":
+            if self.closure_storage is None:
+                self.closure_storage = VariableClosureStorage(self)
+
+            result = self.closure_storage.addVariableDeclaration(c_type, code_name, init_value, level)
+        else:
+            result = VariableDeclaration(
+                c_type,
+                code_name,
+                init_value,
+                self.heap_name
+            )
+
+            self.add(
+                result,
+            )
+
+        return result
+
+
+class VariableClosureStorage(VariableStorageBase):
+    def __init__(self, parent):
+        VariableStorageBase.__init__(self, parent)
+
+    def addVariableDeclaration(self, c_type, code_name, init_value, level):
+        assert level == "closure"
+
+        result = VariableDeclaration(
+            c_type,
+            code_name,
+            init_value,
+            self.heap_name
+        )
+
+        self.add(
+            result,
+        )
+
+        return result
+
+
+class VariableSubStorage(VariableStorageBase):
     """ Storage per statement or per expression.
 
         Keeps declarations that are within that scope only.
@@ -190,7 +224,7 @@ class VariableSubStorage(VariableStorage):
     __slots__ = ()
 
     def __init__(self, parent):
-        VariableStorage.__init__(
+        VariableStorageBase.__init__(
             self,
             parent = parent
         )
@@ -216,11 +250,11 @@ class VariableSubStorage(VariableStorage):
         return self.parent.getExceptionVariableDescriptions()
 
 
-class VariableHeapStorage(VariableStorage):
+class VariableHeapStorage(VariableStorageBase):
     __slots__ = ("heap_name",)
 
     def __init__(self, heap_name):
-        VariableStorage.__init__(
+        VariableStorageBase.__init__(
             self,
             parent = None
         )
