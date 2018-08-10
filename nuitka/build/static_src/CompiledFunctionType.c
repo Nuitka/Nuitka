@@ -361,7 +361,13 @@ static int Nuitka_Function_set_defaults( struct Nuitka_FunctionObject *object, P
 #if PYTHON_VERSION >= 300
 static PyObject *Nuitka_Function_get_kwdefaults( struct Nuitka_FunctionObject *object )
 {
-    PyObject *result = (PyObject *)object->m_kwdefaults;
+    PyObject *result = object->m_kwdefaults;
+
+    if ( result == NULL )
+    {
+        result = Py_None;
+    }
+
     Py_INCREF( result );
     return result;
 }
@@ -379,36 +385,40 @@ static int Nuitka_Function_set_kwdefaults( struct Nuitka_FunctionObject *object,
         return -1;
     }
 
+    if ( value == Py_None )
+    {
+        value = NULL;
+    }
+
     PyObject *old = object->m_kwdefaults;
-    Py_INCREF( value );
+    Py_XINCREF( value );
     object->m_kwdefaults = value;
-    Py_DECREF( old );
+    Py_XDECREF( old );
 
     return 0;
 }
+
 static PyObject *Nuitka_Function_get_annotations( struct Nuitka_FunctionObject *object )
 {
-    PyObject *result = (PyObject *)object->m_annotations;
-    Py_INCREF( result );
-    return result;
+    if ( object->m_annotations == NULL )
+    {
+        object->m_annotations = PyDict_New();
+    }
+
+    Py_INCREF( object->m_annotations );
+    return object->m_annotations;
 }
 
 static int Nuitka_Function_set_annotations( struct Nuitka_FunctionObject *object, PyObject *value )
 {
-    // CPython silently converts None to empty dictionary.
-    if ( value == Py_None || value == NULL )
-    {
-        value = PyDict_New();
-    }
-
-    if (unlikely( PyDict_Check( value ) == false ))
+    if (unlikely( value != NULL && PyDict_Check( value ) == false ))
     {
         PyErr_Format( PyExc_TypeError, "__annotations__ must be set to a dict object" );
         return -1;
     }
 
     PyObject *old = object->m_annotations;
-    Py_INCREF( value );
+    Py_XINCREF( value );
     object->m_annotations = value;
     Py_XDECREF( old );
 
@@ -559,8 +569,8 @@ static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
     Py_DECREF( function->m_doc );
 
 #if PYTHON_VERSION >= 300
-    Py_DECREF( function->m_kwdefaults );
-    Py_DECREF( function->m_annotations );
+    Py_XDECREF( function->m_kwdefaults );
+    Py_XDECREF( function->m_annotations );
 #endif
 
     for( Py_ssize_t i = 0; i < function->m_closure_given; i++ )
@@ -703,16 +713,10 @@ struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, Py
     onUpdatedDefaultsValue( result );
 
 #if PYTHON_VERSION >= 300
-    if ( kwdefaults == NULL )
-    {
-        Py_INCREF( Py_None );
-        kwdefaults = Py_None;
-    }
-    assert( kwdefaults == Py_None || ( PyDict_Check( kwdefaults ) && DICT_SIZE( kwdefaults ) > 0 ) );
+    assert( kwdefaults == NULL || ( PyDict_Check( kwdefaults ) && DICT_SIZE( kwdefaults ) > 0 ) );
     result->m_kwdefaults = kwdefaults;
 
-    assert( annotations == Py_None || PyDict_Check( annotations ) );
-    Py_INCREF( annotations );
+    Py_XINCREF( annotations );
     result->m_annotations = annotations;
 #endif
 
@@ -1962,11 +1966,14 @@ bool parseArgumentsPos( struct Nuitka_FunctionObject const *function, PyObject *
 
     for( Py_ssize_t i = function->m_args_positional_count; i < function->m_args_keywords_count; i++ )
     {
-        if ( python_pars[ i ] == NULL )
+        if ( python_pars[ i ] == NULL  )
         {
             PyObject *arg_name = function->m_varnames[ i ];
 
-            python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+            if ( function->m_kwdefaults != NULL )
+            {
+                python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+            }
 
             if ( python_pars[ i ] == NULL )
             {
@@ -2025,7 +2032,10 @@ bool parseArgumentsMethodPos( struct Nuitka_FunctionObject const *function, PyOb
         {
             PyObject *arg_name = function->m_varnames[ i ];
 
-            python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+            if ( function->m_kwdefaults != NULL )
+            {
+                python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+            }
 
             if ( python_pars[ i ] == NULL )
             {
@@ -2140,7 +2150,10 @@ static bool parseArgumentsFull( struct Nuitka_FunctionObject const *function, Py
         {
             PyObject *arg_name = function->m_varnames[ i ];
 
-            python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+            if ( function->m_kwdefaults != NULL )
+            {
+                python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+            }
 
             if ( python_pars[ i ] == NULL )
             {
@@ -2210,7 +2223,10 @@ PyObject *Nuitka_CallMethodFunctionNoArgs( struct Nuitka_FunctionObject const *f
         {
             PyObject *arg_name = function->m_varnames[ i ];
 
-            python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+            if ( function->m_kwdefaults != NULL )
+            {
+                python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+            }
 
             if ( python_pars[ i ] == NULL )
             {
@@ -2273,7 +2289,10 @@ PyObject *Nuitka_CallMethodFunctionPosArgs( struct Nuitka_FunctionObject const *
         {
             PyObject *arg_name = function->m_varnames[ i ];
 
-            python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+            if ( function->m_kwdefaults != NULL )
+            {
+                python_pars[ i ] = PyDict_GetItem( function->m_kwdefaults, arg_name );
+            }
 
             if ( python_pars[ i ] == NULL )
             {

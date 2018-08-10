@@ -1045,7 +1045,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
 
     gendef_tool = os.path.join(
         os.path.dirname(
-            getExecutablePath(env["CXX"], initial = False)
+            getExecutablePath(env["CC"], initial = False)
         ),
         "gendef"
     )
@@ -1095,7 +1095,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
 
     dll_tool = os.path.join(
         os.path.dirname(
-            getExecutablePath(env["CXX"], initial = False)
+            getExecutablePath(env["CC"], initial = False)
         ),
         "dlltool"
     )
@@ -1810,7 +1810,7 @@ if uninstalled_python:
         result = subprocess.call(
             (
                 "install_name_tool",
-                "--change",
+                "-change",
                 python_dll_filename,
                 os.path.join(python_lib_path, python_dll_filename),
                 result_basepath + ".exe"

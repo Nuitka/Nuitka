@@ -45,7 +45,7 @@ import SCons.Util
 
 def find(env):
     # Nuitka: Check for MinGW64.
-    key_program = 'g++'
+    key_program = 'gcc'
 
     # First search in the SCons path
     path=env.WhereIs(key_program)

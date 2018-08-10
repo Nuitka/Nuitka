@@ -45,7 +45,7 @@ import SCons.Util
 # This is what we search for to find mingw:
 # Nuitka: Check for MinGW64.
 # key_program = 'mingw32-gcc'
-key_program = 'g++'
+key_program = 'gcc'
 
 def find(env):
     # First search in the SCons path
