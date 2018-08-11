@@ -77,36 +77,37 @@ Requirements
      The created binaries can be made executable independent of the Python
      installation, with ``--standalone`` option.
 
-  .. admonition:: Binary filename suffix ``.exe`` even on Linux
+  .. admonition:: Binary filename suffix ``.exe`` even on non-Windows
 
      The created binaries have an ``.exe`` suffix, that you are free to remove
-     that and yes, they are still Linux binaries. The suffix is just to be sure
+     that and yes, they are still native binaries. The suffix is just to be sure
      that the original script name and the binary name do not ever collide.
 
-  .. admonition:: It has to be CPython or AnaConda Python.
+  .. admonition:: It **has to** be CPython, AnaConda or MiniConda Python.
 
      You need the standard Python implementation, called "CPython", to execute
-     Nuitka, because it is closely tied to using it.
+     Nuitka, because it is closely tied to implementation details of it.
 
-     On Windows, the so called "WinPython" and "AnaConda" distributions work,
-     but will cause issues for acceleration mode. Standalone mode and creating
-     extension modules or packages will work. For acceleration mode, you need
-     to copy the ``PythonXX.DLL`` alongside of it.
+     On Windows, for Python not installed system wide and acceleration mode, you
+     need to copy the ``PythonXX.DLL`` alongside of it, something Nuitka does
+     automatically.
+
+     It is known that MacOS "pyenv" does **not** work.
 
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
 
   Others may work as well. The portability is expected to be generally good, but
   the e.g. Scons usage may have to be adapted.
 
-- Architectures: x86, x86_64 (amd64), and arm, likely more
+- Architectures: x86, x86_64 (amd64), and arm, likely many more
 
   Other architectures are expected to also work, out of the box, as Nuitka is
   generally not using any hardware specifics. These are just the ones tested
   and known to be good. Feedback is welcome. Generally the architectures that
   Debian supports can be considered good and tested too.
 
-.. [#] Support for this C11 is given with gcc 5 or higher or basically any
-       clang version. The MSVC compiler doesn't do it yet. But as a workaround,
+.. [#] Support for this C11 is a given with gcc 5 or higher or any clang
+       version. The MSVC compiler doesn't do it yet. But as a workaround,
        as the C++03 language standard is very overlapping with C11, it is then
        used instead where the C compiler is too old. Nuitka used to require a
        C++ compiler in the past, but it changed.
