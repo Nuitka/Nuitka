@@ -35,7 +35,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .Namify import namifyConstant
-from .VariableDeclarations import VariableHeapStorage, VariableStorage
+from .VariableDeclarations import VariableStorage
 
 
 class ContextMetaClass(ABCMeta):
@@ -92,7 +92,7 @@ class TempMixin(object):
     def allocateTempName(self, base_name, type_name = "PyObject *",
                          unique = False):
         # We might be hard coding too many details for special temps
-        # here, pylint: disable=too-many-branches
+        # here.
 
 
         if unique:
@@ -108,43 +108,38 @@ class TempMixin(object):
             number    = number
         )
 
-        if base_name == "outline_return_value":
-            init_value = "NULL"
-        elif base_name == "return_value":
-            init_value = "NULL"
-        elif base_name == "generator_return":
-            init_value = "false"
-        else:
-            init_value = None
-
         if unique:
-            if base_name == "unused":
-                level = "function"
-            else:
-                level = "top"
-        else:
-            level = "local"
-
-        if unique:
-            result = self.variable_storage.getVariableDeclaration(formatted_name)
+            result = self.variable_storage.getVariableDeclarationTop(formatted_name)
 
             if result is None:
-                result = self.variable_storage.addVariableDeclaration(
-                    c_type     = type_name,
-                    code_name  = formatted_name,
-                    init_value = init_value,
-                    level      = level
-                )
+                if base_name == "outline_return_value":
+                    init_value = "NULL"
+                elif base_name == "return_value":
+                    init_value = "NULL"
+                elif base_name == "generator_return":
+                    init_value = "false"
+                else:
+                    init_value = None
+
+                if base_name == "unused":
+                    result = self.variable_storage.addVariableDeclarationFunction(
+                        c_type     = type_name,
+                        code_name  = formatted_name,
+                        init_value = init_value
+                    )
+                else:
+                    result = self.variable_storage.addVariableDeclarationTop(
+                        c_type     = type_name,
+                        code_name  = formatted_name,
+                        init_value = init_value
+                    )
             else:
                 assert result.c_type == type_name
-                assert result.init_value == init_value
 
         else:
-            result = self.variable_storage.addVariableDeclaration(
-                c_type     = type_name,
-                code_name  = formatted_name,
-                init_value = init_value,
-                level      = level
+            result = self.variable_storage.addVariableDeclarationLocal(
+                c_type    = type_name,
+                code_name = formatted_name
             )
 
         return result
@@ -217,29 +212,25 @@ class TempMixin(object):
             keeper_obj_init = None
 
         return (
-            self.variable_storage.addVariableDeclaration(
+            self.variable_storage.addVariableDeclarationFunction(
                 "PyObject *",
                 "exception_keeper_type_%d" % self.keeper_variable_count,
-                keeper_obj_init,
-                level = "function"
+                keeper_obj_init
             ),
-            self.variable_storage.addVariableDeclaration(
+            self.variable_storage.addVariableDeclarationFunction(
                 "PyObject *",
                 "exception_keeper_value_%d" % self.keeper_variable_count,
-                keeper_obj_init,
-                level = "function"
+                keeper_obj_init
             ),
-            self.variable_storage.addVariableDeclaration(
+            self.variable_storage.addVariableDeclarationFunction(
                 "PyTracebackObject *",
                 "exception_keeper_tb_%d" % self.keeper_variable_count,
-                keeper_obj_init,
-                level = "function"
+                keeper_obj_init
             ),
-            self.variable_storage.addVariableDeclaration(
+            self.variable_storage.addVariableDeclarationFunction(
                 "NUITKA_MAY_BE_UNUSED int",
                 "exception_keeper_lineno_%d" % self.keeper_variable_count,
-                '0' if debug else None,
-                level = "function"
+                '0' if debug else None
             )
         )
 
@@ -264,23 +255,20 @@ class TempMixin(object):
                 preserver_obj_init = None
 
             self.preserver_variable_declaration[preserver_id] = (
-                self.variable_storage.addVariableDeclaration(
+                self.variable_storage.addVariableDeclarationTop(
                     "PyObject *",
                     "exception_preserved_type_%d" % preserver_id,
-                    preserver_obj_init,
-                    level = "top"
+                    preserver_obj_init
                 ),
-                self.variable_storage.addVariableDeclaration(
+                self.variable_storage.addVariableDeclarationTop(
                     "PyObject *",
                     "exception_preserved_value_%d" % preserver_id,
-                    preserver_obj_init,
-                    level = "top"
+                    preserver_obj_init
                 ),
-                self.variable_storage.addVariableDeclaration(
+                self.variable_storage.addVariableDeclarationTop(
                     "PyTracebackObject *",
                     "exception_preserved_tb_%d" % preserver_id,
-                    preserver_obj_init,
-                    level = "top"
+                    preserver_obj_init
                 )
             )
 
@@ -894,11 +882,10 @@ class FrameDeclarationsMixin(object):
         if self.frames_used > 1:
             frame_handle += "_%d" % self.frames_used
 
-        self.variable_storage.addVariableDeclaration(
+        self.variable_storage.addVariableDeclarationTop(
             "NUITKA_MAY_BE_UNUSED char const *",
             "type_description_%d" % self.frames_used,
-            "NULL",
-            level = "top"
+            "NULL"
         )
 
         self.frame_stack.append(frame_handle)
@@ -932,7 +919,7 @@ class FrameDeclarationsMixin(object):
         return self.frame_type_descriptions[-1]
 
     def getFrameTypeDescriptionDeclaration(self):
-        return self.variable_storage.getVariableDeclaration(
+        return self.variable_storage.getVariableDeclarationTop(
             "type_description_%d" % (len(self.frame_stack) - 1)
         )
 
@@ -1041,7 +1028,7 @@ class PythonModuleContext(TempMixin, CodeObjectsMixin,
         self.needs_module_filename_object = False
 
         self.variable_storage = VariableStorage(
-            parent = None
+            heap_name = None
         )
 
     def __repr__(self):
@@ -1141,7 +1128,7 @@ class PythonFunctionContext(FrameDeclarationsMixin,
 
     def _makeVariableStorage(self):
         return VariableStorage(
-            parent = None
+            heap_name = None
         )
 
     def __repr__(self):
@@ -1182,9 +1169,7 @@ class PythonFunctionDirectContext(PythonFunctionContext):
 class PythonGeneratorObjectContext(PythonFunctionContext):
     if isExperimental("generator_heap"):
         def _makeVariableStorage(self):
-            return VariableStorage(
-                parent = VariableHeapStorage("generator_heap")
-            )
+            return VariableStorage(heap_name = "generator_heap")
 
     def isForDirectCall(self):
         return False

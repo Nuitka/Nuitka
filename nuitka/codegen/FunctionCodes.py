@@ -418,20 +418,6 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
     return result
 
 
-def _addVariableDescriptionForLocalVariable(context, variable, init_from):
-    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, None)
-
-    if variable.isLocalVariable():
-        context.setVariableType(variable, variable_code_name, variable_c_type)
-
-    context.variable_storage.addVariableDeclaration(
-        variable_c_type.c_type,
-        variable_code_name,
-        variable_c_type.getInitValue(init_from),
-        level = "top"
-    )
-
-
 def setupFunctionLocalVariables(context, parameters, closure_variables,
                                 user_variables, temp_variables):
 
@@ -444,11 +430,10 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
                 variable_trace = None
             )
 
-            context.variable_storage.addVariableDeclaration(
+            context.variable_storage.addVariableDeclarationTop(
                 variable_c_type.c_type,
                 variable_code_name,
-                variable_c_type.getInitValue("python_pars[ %d ]" % count),
-                level = "top"
+                variable_c_type.getInitValue("python_pars[ %d ]" % count)
             )
 
             context.setVariableType(variable, variable_code_name, variable_c_type)
@@ -461,11 +446,10 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
             variable_trace = None
         )
 
-        context.variable_storage.addVariableDeclaration(
+        context.variable_storage.addVariableDeclarationTop(
             variable_c_type.c_type,
             variable_code_name,
-            variable_c_type.getInitValue(None),
-            level = "top"
+            variable_c_type.getInitValue(None)
         )
 
         context.setVariableType(variable, variable_code_name, variable_c_type)
@@ -477,11 +461,10 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
             variable_trace = None
         )
 
-        context.variable_storage.addVariableDeclaration(
+        context.variable_storage.addVariableDeclarationTop(
             variable_c_type.c_type,
             variable_code_name,
-            variable_c_type.getInitValue(None),
-            level = "top"
+            variable_c_type.getInitValue(None)
         )
 
     for closure_variable in closure_variables:
@@ -491,11 +474,9 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
             variable_trace = None # TODO: Not used currently anyway but should
         )
 
-        context.variable_storage.addVariableDeclaration(
+        context.variable_storage.addVariableDeclarationClosure(
             variable_c_type.c_type,
-            variable_code_name,
-            None,
-            level = "closure"
+            variable_code_name
         )
 
         assert variable_c_type in (CTypeCellObject, CTypePyObjectPtrPtr), variable_c_type
@@ -508,16 +489,15 @@ def finalizeFunctionLocalVariables(context):
     function_cleanup = []
 
     for locals_dict_name in context.getLocalsDictNames():
-        context.variable_storage.addVariableDeclaration(
+        locals_decl = context.variable_storage.addVariableDeclarationTop(
             "PyObject *",
             locals_dict_name,
-            "NULL",
-            level = "top"
+            "NULL"
         )
 
         function_cleanup.append(
             "Py_XDECREF( %(locals_dict)s );\n" % {
-                "locals_dict" : locals_dict_name
+                "locals_dict" : locals_decl
             }
         )
 

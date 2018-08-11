@@ -19,6 +19,8 @@
 
 Holds the information necessary to make C code declarations related to a variable.
 """
+from contextlib import contextmanager
+
 
 class VariableDeclaration(object):
     __slots__ = ("c_type", "code_name", "init_value", "heap_name")
@@ -78,129 +80,130 @@ class VariableDeclaration(object):
         )
 
 
-class VariableStorageBase(object):
-    __slots__ = ("variable_declarations", "exception_variable_declarations", "parent")
+class VariableStorage(object):
+    __slots__ = (
+        "heap_name",
+        "variable_declarations_heap",
+        "variable_declarations_main",
+        "variable_declarations_closure",
+        "variable_declarations_local",
+        "exception_variable_declarations"
+    )
 
-    heap_name = None
+    def __init__(self, heap_name):
+        self.heap_name = heap_name
 
-    def __init__(self, parent):
-        self.parent = parent
-
-        self.variable_declarations = []
+        self.variable_declarations_heap = []
+        self.variable_declarations_main = []
+        self.variable_declarations_closure = []
+        self.variable_declarations_local = None
 
         self.exception_variable_declarations = None
 
-    def add(self, variable_declaration):
-        self.variable_declarations.append(variable_declaration)
+    @contextmanager
+    def withLocalStorage(self):
+        """ Local storage for only just during context usage.
 
-    def getVariableDeclaration(self, code_name):
-        for variable_declaration in self.variable_declarations:
+            This is for automatic removal of that scope. These are supposed
+            to be nestable eventually.
+
+        """
+
+        old_variable_declarations_local = self.variable_declarations_local
+        self.variable_declarations_local = []
+
+        yield
+
+        self.variable_declarations_local = old_variable_declarations_local
+
+    def getVariableDeclarationTop(self, code_name):
+        for variable_declaration in self.variable_declarations_main:
             if variable_declaration.code_name == code_name:
                 return variable_declaration
 
-        if self.parent is not None:
-            return self.parent.getVariableDeclaration(code_name)
-        else:
-            return None
+        for variable_declaration in self.variable_declarations_heap:
+            if variable_declaration.code_name == code_name:
+                return variable_declaration
+
+        return None
 
     def addFrameDeclaration(self, frame_identifier):
-        self.addVariableDeclaration(
+        self.addVariableDeclarationTop(
             "struct Nuitka_FrameObject *",
             frame_identifier,
-            None,
-            level = "top"
+            None
         )
 
     def addFrameCacheDeclaration(self, frame_identifier):
-        self.addVariableDeclaration(
+        self.addVariableDeclarationFunction(
             "static struct Nuitka_FrameObject *",
             "cache_%s" % frame_identifier,
-            "NULL",
-            level = "function"
+            "NULL"
         )
 
-    def remove(self, code_name):
-        self.variable_declarations = [
-            variable_declaration
-            for variable_declaration in self.variable_declarations
-            if variable_declaration.code_name != code_name
-        ]
-
-    def extend(self, iterable):
-        self.variable_declarations.extend(iterable)
-
-    def makeCFunctionLevelDeclarations(self):
-        return [
-            variable_declaration.makeCFunctionLevelDeclaration()
-            for variable_declaration in
-            self.variable_declarations
-        ]
-
-    def makeCStructDeclarations(self):
+    def makeCStructLevelDeclarations(self):
         return [
             variable_declaration.makeCStructDeclaration()
             for variable_declaration in
-            self.variable_declarations
+            self.variable_declarations_heap
         ]
 
-    def makeCStringInits(self):
+    def makeCStructInits(self):
         return [
             variable_declaration.makeCStructInit()
             for variable_declaration in
-            self.variable_declarations
+            self.variable_declarations_heap
             if variable_declaration.init_value is not None
         ]
 
     def getExceptionVariableDescriptions(self):
         if self.exception_variable_declarations is None:
             self.exception_variable_declarations = (
-                self.addVariableDeclaration("PyObject *", "exception_type", "NULL", True),
-                self.addVariableDeclaration("PyObject *", "exception_value", "NULL", True),
-                self.addVariableDeclaration("PyTracebackObject *", "exception_tb", "NULL", True),
-                self.addVariableDeclaration("NUITKA_MAY_BE_UNUSED int", "exception_lineno", '0', True)
+                self.addVariableDeclarationTop("PyObject *", "exception_type", "NULL"),
+                self.addVariableDeclarationTop("PyObject *", "exception_value", "NULL"),
+                self.addVariableDeclarationTop("PyTracebackObject *", "exception_tb", "NULL"),
+                self.addVariableDeclarationTop("NUITKA_MAY_BE_UNUSED int", "exception_lineno", '0')
             )
 
         return self.exception_variable_declarations
 
+    def addVariableDeclarationLocal(self, c_type, code_name):
+        result = VariableDeclaration(
+            c_type,
+            code_name,
+            None,
+            None
+        )
 
-class VariableStorage(VariableStorageBase):
-    __slots__ = ("closure_storage",)
-
-    def __init__(self, parent):
-        VariableStorageBase.__init__(self, parent)
-
-        self.closure_storage = None
-
-    def addVariableDeclaration(self, c_type, code_name, init_value, level):
-        if self.parent is not None and level == "top":
-            result = self.parent.addVariableDeclaration(c_type, code_name, init_value, level)
-        elif level == "closure":
-            if self.closure_storage is None:
-                self.closure_storage = VariableClosureStorage(self)
-
-            result = self.closure_storage.addVariableDeclaration(c_type, code_name, init_value, level)
-        else:
-            result = VariableDeclaration(
-                c_type,
-                code_name,
-                init_value,
-                self.heap_name
-            )
-
-            self.add(
-                result,
-            )
+        self.variable_declarations_local.append(result)
 
         return result
 
+    def addVariableDeclarationClosure(self, c_type, code_name):
+        result = VariableDeclaration(
+            c_type,
+            code_name,
+            None,
+            None
+        )
 
-class VariableClosureStorage(VariableStorageBase):
-    def __init__(self, parent):
-        VariableStorageBase.__init__(self, parent)
+        self.variable_declarations_closure.append(result)
 
-    def addVariableDeclaration(self, c_type, code_name, init_value, level):
-        assert level == "closure"
+        return result
 
+    def addVariableDeclarationFunction(self, c_type, code_name, init_value):
+        result = VariableDeclaration(
+            c_type,
+            code_name,
+            init_value,
+            None
+        )
+
+        self.variable_declarations_main.append(result)
+
+        return result
+
+    def addVariableDeclarationTop(self, c_type, code_name, init_value):
         result = VariableDeclaration(
             c_type,
             code_name,
@@ -208,55 +211,23 @@ class VariableClosureStorage(VariableStorageBase):
             self.heap_name
         )
 
-        self.add(
-            result,
-        )
-
-        return result
-
-
-class VariableSubStorage(VariableStorageBase):
-    """ Storage per statement or per expression.
-
-        Keeps declarations that are within that scope only.
-    """
-
-    __slots__ = ()
-
-    def __init__(self, parent):
-        VariableStorageBase.__init__(
-            self,
-            parent = parent
-        )
-
-    def addVariableDeclaration(self, c_type, code_name, init_value, level):
-        if level != "local":
-            result = self.parent.addVariableDeclaration(c_type, code_name, init_value, level)
+        if self.heap_name is not None:
+            self.variable_declarations_heap.append(result)
         else:
-            result = VariableDeclaration(
-                c_type,
-                code_name,
-                init_value,
-                self.heap_name
-            )
-
-            self.add(
-                result,
-            )
+            self.variable_declarations_main.append(result)
 
         return result
 
-    def getExceptionVariableDescriptions(self):
-        return self.parent.getExceptionVariableDescriptions()
+    def makeCLocalDeclarations(self):
+        return [
+            variable_declaration.makeCFunctionLevelDeclaration()
+            for variable_declaration in
+            self.variable_declarations_local
+        ]
 
-
-class VariableHeapStorage(VariableStorageBase):
-    __slots__ = ("heap_name",)
-
-    def __init__(self, heap_name):
-        VariableStorageBase.__init__(
-            self,
-            parent = None
-        )
-
-        self.heap_name = heap_name
+    def makeCFunctionLevelDeclarations(self):
+        return [
+            variable_declaration.makeCFunctionLevelDeclaration()
+            for variable_declaration in
+            self.variable_declarations_main
+        ]
