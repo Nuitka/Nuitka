@@ -16,10 +16,16 @@
 #     limitations under the License.
 #
 """ Variable declarations
-
 Holds the information necessary to make C code declarations related to a variable.
+
 """
 from contextlib import contextmanager
+
+from .c_types.CTypePyObjectPtrs import (
+    CTypeCellObject,
+    CTypePyObjectPtr,
+    CTypePyObjectPtrPtr
+)
 
 
 class VariableDeclaration(object):
@@ -62,6 +68,22 @@ class VariableDeclaration(object):
             self.code_name,
             self.init_value
         )
+
+    def getCType(self):
+        c_type = self.c_type
+
+        if c_type.startswith("NUITKA_MAY_BE_UNUSED"):
+            c_type = c_type[21:]
+
+        if c_type == "PyObject *":
+            return CTypePyObjectPtr
+        elif c_type == "struct Nuitka_CellObject *":
+            return CTypeCellObject
+        elif c_type == "PyObject **":
+            return CTypePyObjectPtrPtr
+
+        assert False, c_type
+
 
     def __str__(self):
         if self.heap_name:
@@ -126,6 +148,9 @@ class VariableStorage(object):
                 return variable_declaration
 
         return None
+
+    def getVariableDeclarationClosure(self, closure_index):
+        return self.variable_declarations_closure[closure_index]
 
     def addFrameDeclaration(self, frame_identifier):
         self.addVariableDeclarationTop(

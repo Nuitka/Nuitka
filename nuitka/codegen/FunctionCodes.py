@@ -38,10 +38,14 @@ from .templates.CodeTemplatesFunction import (
     template_function_exception_exit,
     template_function_make_declaration,
     template_function_return_exit,
-    template_make_function_template
+    template_make_function,
+    template_make_function_body
 )
 from .TupleCodes import getTupleCreationCode
-from .VariableCodes import getLocalVariableCodeType
+from .VariableCodes import (
+    decideLocalVariableCodeType,
+    getLocalVariableDeclaration
+)
 
 
 def _getFunctionCreationArgs(defaults_name, kw_defaults_name, annotations_name):
@@ -110,8 +114,6 @@ def getFunctionMakerCode(function_body, function_identifier, closure_variables,
         annotations_name = annotations_name
     )
 
-    closure_copy = []
-
     if function_doc is None:
         function_doc = "NULL"
     else:
@@ -119,7 +121,7 @@ def getFunctionMakerCode(function_body, function_identifier, closure_variables,
             constant = function_doc
         )
 
-    result = template_make_function_template % {
+    result = template_make_function_body % {
         "function_name_obj"          : context.getConstantCode(
             constant = function_body.getFunctionName(),
         ),
@@ -134,7 +136,6 @@ def getFunctionMakerCode(function_body, function_identifier, closure_variables,
         "code_identifier"            : context.getCodeObjectHandle(
                 code_object = function_body.getCodeObject(),
         ),
-        "closure_copy"               : indented(closure_copy, 0, True),
         "function_doc"               : function_doc,
         "defaults"                   : "defaults"
                                          if defaults_name else
@@ -262,6 +263,33 @@ def generateFunctionCreationCode(to_name, expression, emit, context):
     )
 
 
+def getClosureCopyCode(to_name, closure_variables, closure_type, context):
+    """ Get code to copy closure variables storage.
+
+    This gets used by generator/coroutine/asyncgen with varying "closure_type".
+    """
+    closure_copy = []
+
+    for count, (variable, variable_trace) in enumerate(closure_variables):
+        variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
+
+        target_cell_code = "((%s)%s)->m_closure[%d]" % (
+            closure_type,
+            to_name,
+            count
+        )
+
+        variable_c_type = variable_declaration.getCType()
+
+        variable_c_type.getCellObjectAssignmentCode(
+            target_cell_code   = target_cell_code,
+            variable_code_name = variable_declaration,
+            emit               = closure_copy.append
+        )
+
+    return closure_copy
+
+
 def getFunctionCreationCode(to_name, function_identifier, defaults_name,
                             kw_defaults_name, annotations_name,
                             closure_variables, emit, context):
@@ -277,34 +305,26 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
     if annotations_name is not None:
         args.append(annotations_name)
 
+
+    closure_copy = getClosureCopyCode(
+        to_name           = to_name,
+        closure_type      = "struct Nuitka_FunctionObject *",
+        closure_variables = closure_variables,
+        context           = context
+    )
+
     emit(
-        "%s = MAKE_FUNCTION_%s( %s );" % (
-            to_name,
-            function_identifier,
-            ", ".join(
+        template_make_function % {
+            "to_name"             : to_name,
+            "function_identifier" : function_identifier,
+            "args"                : ", ".join(
                 str(arg)
                 for arg in
                 args
-            )
-        )
+            ),
+            "closure_copy"        : indented(closure_copy, 0, True),
+        }
     )
-
-    for count, (variable, variable_trace) in enumerate(closure_variables):
-        variable_code_name, _variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
-
-        emit(
-            "((struct Nuitka_FunctionObject *)%s)->m_closure[%d] = %s;" % (
-                to_name,
-                count,
-                variable_code_name
-            )
-        )
-        emit(
-            "Py_INCREF( ((struct Nuitka_FunctionObject *)%s)->m_closure[%d] );" % (
-                to_name,
-                count
-            )
-        )
 
     if context.needsCleanup(defaults_name):
         context.removeCleanupTempName(defaults_name)
@@ -328,14 +348,16 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
     # TODO: Does this still have to be a tripple, we are stopping to use
     # versions later in the game.
     for closure_variable, variable_trace in closure_variables:
-        variable_code_name, variable_c_type = getLocalVariableCodeType(
+        variable_declaration = getLocalVariableDeclaration(
             context        = context,
             variable       = closure_variable,
             variable_trace = variable_trace
         )
 
+        variable_c_type = variable_declaration.getCType()
+
         suffix_args.append(
-            variable_c_type.getVariableArgReferencePassingCode(variable_code_name)
+            variable_c_type.getVariableArgReferencePassingCode(variable_declaration)
         )
 
     # TODO: We ought to not assume references for direct calls, or make a
@@ -364,7 +386,7 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
                 to_name,
                 function_identifier,
                 ", " if suffix_args else "",
-                ", ".join(suffix_args)
+                ", ".join(str(arg) for arg in suffix_args)
             )
         )
     else:
@@ -373,7 +395,7 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
                 to_name,
                 function_identifier,
                 ", " if suffix_args else "",
-                ", ".join(suffix_args)
+                ", ".join(str(arg) for arg in suffix_args)
             )
         )
 
@@ -399,14 +421,16 @@ def getFunctionDirectDecl(function_identifier, closure_variables, file_scope, co
     ]
 
     for closure_variable in closure_variables:
-        variable_code_name, variable_c_type = getLocalVariableCodeType(
+        variable_declaration = getLocalVariableDeclaration(
             context        = context,
             variable       = closure_variable,
             variable_trace = None # TODO: See other uses of None
         )
 
+        variable_c_type = variable_declaration.getCType()
+
         parameter_objects_decl.append(
-            variable_c_type.getVariableArgDeclarationCode(variable_code_name)
+            variable_c_type.getVariableArgDeclarationCode(variable_declaration)
         )
 
     result = template_function_direct_declaration % {
@@ -424,38 +448,38 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
     # Parameter variable initializations
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
-            variable_code_name, variable_c_type = getLocalVariableCodeType(
+            variable_code_name, variable_c_type = decideLocalVariableCodeType(
                 context        = context,
                 variable       = variable,
                 variable_trace = None
             )
 
-            context.variable_storage.addVariableDeclarationTop(
+            variable_declaration = context.variable_storage.addVariableDeclarationTop(
                 variable_c_type.c_type,
                 variable_code_name,
                 variable_c_type.getInitValue("python_pars[ %d ]" % count)
             )
 
-            context.setVariableType(variable, variable_code_name, variable_c_type)
+            context.setVariableType(variable, variable_declaration)
 
     # User local variable initializations
     for variable in user_variables:
-        variable_code_name, variable_c_type = getLocalVariableCodeType(
+        variable_code_name, variable_c_type = decideLocalVariableCodeType(
             context        = context,
             variable       = variable,
             variable_trace = None
         )
 
-        context.variable_storage.addVariableDeclarationTop(
+        variable_declaration = context.variable_storage.addVariableDeclarationTop(
             variable_c_type.c_type,
             variable_code_name,
             variable_c_type.getInitValue(None)
         )
 
-        context.setVariableType(variable, variable_code_name, variable_c_type)
+        context.setVariableType(variable, variable_declaration)
 
     for variable in sorted(temp_variables, key = lambda variable: variable.getName()):
-        variable_code_name, variable_c_type = getLocalVariableCodeType(
+        variable_code_name, variable_c_type = decideLocalVariableCodeType(
             context        = context,
             variable       = variable,
             variable_trace = None
@@ -468,13 +492,13 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
         )
 
     for closure_variable in closure_variables:
-        variable_code_name, variable_c_type = getLocalVariableCodeType(
+        variable_code_name, variable_c_type = decideLocalVariableCodeType(
             context        = context,
             variable       = closure_variable,
             variable_trace = None # TODO: Not used currently anyway but should
         )
 
-        context.variable_storage.addVariableDeclarationClosure(
+        variable_declaration = context.variable_storage.addVariableDeclarationClosure(
             variable_c_type.c_type,
             variable_code_name
         )
@@ -482,22 +506,17 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
         assert variable_c_type in (CTypeCellObject, CTypePyObjectPtrPtr), variable_c_type
 
         if not closure_variable.isTempVariable():
-            context.setVariableType(closure_variable, variable_code_name, variable_c_type)
+            context.setVariableType(closure_variable, variable_declaration)
 
 
 def finalizeFunctionLocalVariables(context):
     function_cleanup = []
 
-    for locals_dict_name in context.getLocalsDictNames():
-        locals_decl = context.variable_storage.addVariableDeclarationTop(
-            "PyObject *",
-            locals_dict_name,
-            "NULL"
-        )
-
+    # TODO: Many times this will not be necessary.
+    for locals_declaration in context.getLocalsDictNames():
         function_cleanup.append(
             "Py_XDECREF( %(locals_dict)s );\n" % {
-                "locals_dict" : locals_decl
+                "locals_dict" : locals_declaration
             }
         )
 
@@ -550,8 +569,14 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
     del emit
 
     if needs_exception_exit:
+        exception_type, exception_value, exception_tb, _exception_lineno = \
+          context.variable_storage.getExceptionVariableDescriptions()
+
         function_exit += template_function_exception_exit % {
             "function_cleanup" : indented(function_cleanup),
+            "exception_type"   : exception_type,
+            "exception_value"  : exception_value,
+            "exception_tb"     : exception_tb
         }
 
     if context.hasTempName("return_value"):
@@ -570,14 +595,16 @@ def getFunctionCode(context, function_identifier, parameters, closure_variables,
 
     if context.isForDirectCall():
         for closure_variable in closure_variables:
-            variable_code_name, variable_c_type = getLocalVariableCodeType(
+            variable_declaration = getLocalVariableDeclaration(
                 context        = context,
                 variable       = closure_variable,
                 variable_trace = None # TODO: See other uses of None.
             )
 
+            variable_c_type = variable_declaration.getCType()
+
             parameter_objects_decl.append(
-                variable_c_type.getVariableArgDeclarationCode(variable_code_name)
+                variable_c_type.getVariableArgDeclarationCode(variable_declaration)
             )
 
         result += function_direct_body_template % {

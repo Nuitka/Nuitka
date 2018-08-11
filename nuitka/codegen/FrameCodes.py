@@ -412,19 +412,22 @@ def generateFramePreserveExceptionCode(statement, emit, context):
         preserver_id = statement.getPreserverId()
 
         assert preserver_id != 0, statement
-        context.addExceptionPreserverVariables(preserver_id)
+        exception_preserved_type, exception_preserved_value, exception_preserved_tb = \
+          context.addExceptionPreserverVariables(preserver_id)
 
         # TODO: Multiple thread state calls should be avoided.
         emit(
             """\
-exception_preserved_type_%(preserver_id)d = EXC_TYPE(PyThreadState_GET());
-Py_XINCREF( exception_preserved_type_%(preserver_id)d );
-exception_preserved_value_%(preserver_id)d = EXC_VALUE(PyThreadState_GET());
-Py_XINCREF( exception_preserved_value_%(preserver_id)d );
-exception_preserved_tb_%(preserver_id)d = (PyTracebackObject *)EXC_TRACEBACK(PyThreadState_GET());
-Py_XINCREF( exception_preserved_tb_%(preserver_id)d );
+%(exception_preserved_type)s = EXC_TYPE(PyThreadState_GET());
+Py_XINCREF( %(exception_preserved_type)s );
+%(exception_preserved_value)s = EXC_VALUE(PyThreadState_GET());
+Py_XINCREF( %(exception_preserved_value)s );
+%(exception_preserved_tb)s = (PyTracebackObject *)EXC_TRACEBACK(PyThreadState_GET());
+Py_XINCREF( %(exception_preserved_tb)s );
 """ % {
-                "preserver_id"  : preserver_id,
+                "exception_preserved_type"  : exception_preserved_type,
+                "exception_preserved_value" : exception_preserved_value,
+                "exception_preserved_tb"    : exception_preserved_tb
             }
         )
 
@@ -441,11 +444,13 @@ def generateFrameRestoreExceptionCode(statement, emit, context):
     else:
         preserver_id = statement.getPreserverId()
 
+        exception_preserved_type, exception_preserved_value, exception_preserved_tb = \
+          context.addExceptionPreserverVariables(preserver_id)
+
         emit(
-            """\
-SET_CURRENT_EXCEPTION( exception_preserved_type_%(preserver_id)d, \
-exception_preserved_value_%(preserver_id)d, \
-exception_preserved_tb_%(preserver_id)d );""" % {
-                "preserver_id" : preserver_id,
-            }
+            "SET_CURRENT_EXCEPTION( %s, %s, %s );" % (
+                exception_preserved_type,
+                exception_preserved_value,
+                exception_preserved_tb
+            )
         )

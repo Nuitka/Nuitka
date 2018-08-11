@@ -24,10 +24,18 @@ static PyObject *%(function_identifier)s_maker( void );
 """
 
 template_asyncgen_object_body_template = """
+struct %(function_identifier)s_locals {
+%(function_local_types)s
+};
+
 static void %(function_identifier)s_context( struct Nuitka_AsyncgenObject *asyncgen )
 {
     CHECK_OBJECT( (PyObject *)asyncgen );
     assert( Nuitka_Asyncgen_Check( (PyObject *)asyncgen ) );
+
+#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
+    struct %(function_identifier)s_locals *generator_heap = (struct %(function_identifier)s_locals *)asyncgen->m_heap_storage;
+#endif
 
     // Local variable initialization
 %(function_var_inits)s
@@ -46,16 +54,12 @@ static PyObject *%(function_identifier)s_maker( void )
         %(asyncgen_qualname_obj)s,
         %(code_identifier)s,
         %(closure_count)d,
-#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
         sizeof(struct %(function_identifier)s_locals)
-#else
-        0
-#endif
     );
 }
 """
 
-template_make_asyncgen_template = """
+template_make_asyncgen = """\
 %(to_name)s = %(asyncgen_identifier)s_maker();
 %(closure_copy)s
 """
@@ -66,8 +70,8 @@ template_asyncgen_exception_exit = """\
 
     function_exception_exit:
 %(function_cleanup)s\
-    assert( exception_type );
-    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+    assert( %(exception_type)s );
+    RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
     asyncgen->m_yielded = NULL;
     return;
 """

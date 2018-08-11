@@ -578,6 +578,9 @@ static void Nuitka_Function_tp_dealloc( struct Nuitka_FunctionObject *function )
     {
         assert( function->m_closure[i] );
         Py_DECREF( function->m_closure[i] );
+
+        // Note: No need to set to NULL, each function creation makes
+        // a full copy, doing the init.
     }
 
     /* Put the object into freelist or release to GC */
