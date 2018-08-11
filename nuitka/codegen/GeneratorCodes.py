@@ -19,10 +19,13 @@
 
 """
 
+from nuitka.PythonVersions import python_version
+
 from .CodeHelpers import generateStatementSequenceCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
+    getClosureCopyCode,
     getFunctionQualnameObj,
     setupFunctionLocalVariables
 )
@@ -30,17 +33,16 @@ from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesGeneratorFunction import (
     template_generator_exception_exit,
-    template_generator_making,
     template_generator_noexception_exit,
     template_generator_return_exit,
     template_genfunc_yielder_body_template,
-    template_genfunc_yielder_maker_template
+    template_genfunc_yielder_maker_decl,
+    template_make_generator
 )
-from .VariableCodes import getLocalVariableCodeType
 
 
 def getGeneratorObjectDeclCode(function_identifier):
-    return template_genfunc_yielder_maker_template % {
+    return template_genfunc_yielder_maker_decl % {
         "function_identifier" : function_identifier,
     }
 
@@ -86,7 +88,11 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
         }
 
     if needs_generator_return:
-        generator_exit += template_generator_return_exit % {}
+        generator_exit += template_generator_return_exit % {
+            "return_value" : context.getReturnValueName()
+                               if python_version >= 300 else
+                             None
+        }
 
     function_dispatch = [
         "case %(index)d: goto yield_return_%(index)d;" % {
@@ -126,38 +132,6 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
     }
 
 
-def getClosureCopyCode(to_name, closure_variables, closure_type, context):
-    """ Get code to copy closure variables storage.
-
-    This gets used by generator/coroutine/asyncgen with varying "closure_type".
-    """
-    closure_copy = []
-
-    for count, (variable, variable_trace) in enumerate(closure_variables):
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
-
-        target_cell_code = "((%s)%s)->m_closure[%d]" % (
-            closure_type,
-            to_name,
-            count
-        )
-
-        variable_c_type.getCellObjectAssignmentCode(
-            target_cell_code   = target_cell_code,
-            variable_code_name = variable_code_name,
-            emit               = closure_copy.append
-        )
-
-    closure_copy.append(
-        "assert( Py_SIZE( %s ) >= %s ); " % (
-            to_name,
-            len(closure_variables)
-        )
-    )
-
-    return closure_copy
-
-
 def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     generator_object_body = expression.getGeneratorRef().getFunctionBody()
 
@@ -172,7 +146,7 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     )
 
     emit(
-        template_generator_making % {
+        template_make_generator % {
             "closure_copy"           : indented(closure_copy, 0, True),
             "to_name"                : to_name,
             "generator_identifier"   : generator_object_body.getCodeName(),

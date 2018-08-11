@@ -24,10 +24,18 @@ static PyObject *%(function_identifier)s_maker( void );
 """
 
 template_coroutine_object_body_template = """
+struct %(function_identifier)s_locals {
+%(function_local_types)s
+};
+
 static void %(function_identifier)s_context( struct Nuitka_CoroutineObject *coroutine )
 {
     CHECK_OBJECT( (PyObject *)coroutine );
     assert( Nuitka_Coroutine_Check( (PyObject *)coroutine ) );
+
+#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
+    struct %(function_identifier)s_locals *generator_heap = (struct %(function_identifier)s_locals *)coroutine->m_heap_storage;
+#endif
 
     // Local variable initialization
 %(function_var_inits)s
@@ -46,17 +54,13 @@ static PyObject *%(function_identifier)s_maker( void )
         %(coroutine_qualname_obj)s,
         %(code_identifier)s,
         %(closure_count)d,
-#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
         sizeof(struct %(function_identifier)s_locals)
-#else
-        0
-#endif
     );
 }
 
 """
 
-template_make_coroutine_template = """
+template_make_coroutine = """\
 %(to_name)s = %(coroutine_identifier)s_maker();
 %(closure_copy)s
 """
@@ -67,8 +71,8 @@ template_coroutine_exception_exit = """\
 
     function_exception_exit:
 %(function_cleanup)s\
-    assert( exception_type );
-    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+    assert( %(exception_type)s );
+    RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
     coroutine->m_yielded = NULL;
     return;
 """
@@ -85,7 +89,7 @@ template_coroutine_noexception_exit = """\
 template_coroutine_return_exit = """\
     function_return_exit:;
     coroutine->m_yielded = NULL;
-    coroutine->m_returned = tmp_return_value;
+    coroutine->m_returned = %(return_value)s;
     return;
 """
 

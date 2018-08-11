@@ -34,8 +34,6 @@ from .PythonAPICodes import getReferenceExportCode
 
 
 def generateReraiseCode(statement, emit, context):
-    context.markAsNeedsExceptionVariables()
-
     old_source_ref = context.setCurrentSourceCodeReference(
         value = statement.getCompatibleSourceReference()
     )
@@ -53,8 +51,6 @@ def generateRaiseCode(statement, emit, context):
     exception_value = statement.getExceptionValue()
     exception_tb    = statement.getExceptionTrace()
     exception_cause = statement.getExceptionCause()
-
-    context.markAsNeedsExceptionVariables()
 
     # Exception cause is only possible with simple raise form.
     if exception_cause is not None:
@@ -220,19 +216,25 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
 
 
 def getReRaiseExceptionCode(emit, context):
+    exception_type, exception_value, exception_tb, exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
+
     keeper_variables = context.getExceptionKeeperVariables()
 
     if keeper_variables[0] is None:
         emit(
             """\
-%(bool_res_name)s = RERAISE_EXCEPTION( &exception_type, &exception_value, &exception_tb );
+%(bool_res_name)s = RERAISE_EXCEPTION( &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s );
 if (unlikely( %(bool_res_name)s == false ))
 {
     %(update_code)s
 }
 """ % {
-                "bool_res_name" : context.getBoolResName(),
-                "update_code"   : getErrorLineNumberUpdateCode(context)
+                "exception_type"  : exception_type,
+                "exception_value" : exception_value,
+                "exception_tb"    : exception_tb,
+                "bool_res_name"   : context.getBoolResName(),
+                "update_code"     : getErrorLineNumberUpdateCode(context)
 
             }
         )
@@ -242,8 +244,9 @@ if (unlikely( %(bool_res_name)s == false ))
         if frame_handle:
             emit(
                 """\
-if (exception_tb && exception_tb->tb_frame == &%(frame_identifier)s->m_frame) \
-%(frame_identifier)s->m_frame.f_lineno = exception_tb->tb_lineno;""" % {
+if (%(exception_tb)s && %(exception_tb)s->tb_frame == &%(frame_identifier)s->m_frame) \
+%(frame_identifier)s->m_frame.f_lineno = %(exception_tb)s->tb_lineno;""" % {
+                    "exception_tb"     : exception_tb,
                     "frame_identifier" : context.getFrameHandle()
                 }
             )
@@ -257,15 +260,19 @@ if (exception_tb && exception_tb->tb_frame == &%(frame_identifier)s->m_frame) \
         emit(
             """\
 // Re-raise.
-exception_type = %(keeper_type)s;
-exception_value = %(keeper_value)s;
-exception_tb = %(keeper_tb)s;
-exception_lineno = %(keeper_lineno)s;
+%(exception_type)s = %(keeper_type)s;
+%(exception_value)s = %(keeper_value)s;
+%(exception_tb)s = %(keeper_tb)s;
+%(exception_lineno)s = %(keeper_lineno)s;
 """ %  {
-            "keeper_type"        : keeper_type,
-            "keeper_value"       : keeper_value,
-            "keeper_tb"          : keeper_tb,
-            "keeper_lineno"      : keeper_lineno
+            "exception_type"   : exception_type,
+            "exception_value"  : exception_value,
+            "exception_tb"     : exception_tb,
+            "exception_lineno" : exception_lineno,
+            "keeper_type"      : keeper_type,
+            "keeper_value"     : keeper_value,
+            "keeper_tb"        : keeper_tb,
+            "keeper_lineno"    : keeper_lineno
             }
         )
 

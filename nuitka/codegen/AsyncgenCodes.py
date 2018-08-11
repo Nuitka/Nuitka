@@ -23,10 +23,10 @@ from .CodeHelpers import generateStatementSequenceCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
+    getClosureCopyCode,
     getFunctionQualnameObj,
     setupFunctionLocalVariables
 )
-from .GeneratorCodes import getClosureCopyCode
 from .Indentation import indented
 from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_exception_exit,
@@ -34,7 +34,7 @@ from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_object_body_template,
     template_asyncgen_object_maker_template,
     template_asyncgen_return_exit,
-    template_make_asyncgen_template
+    template_make_asyncgen
 )
 
 
@@ -48,6 +48,8 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
                           user_variables, outline_variables,
                           temp_variables, needs_exception_exit,
                           needs_generator_return):
+    # A bit of details going on here, pylint: disable=too-many-locals
+
     setupFunctionLocalVariables(
         context           = context,
         parameters        = None,
@@ -69,12 +71,16 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
 
     function_cleanup = finalizeFunctionLocalVariables(context)
 
-    function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
-
     if needs_exception_exit:
+        exception_type, exception_value, exception_tb, _exception_lineno = \
+          context.variable_storage.getExceptionVariableDescriptions()
+
         generator_exit = template_asyncgen_exception_exit % {
             "function_identifier" : function_identifier,
-            "function_cleanup"    : indented(function_cleanup)
+            "function_cleanup"    : indented(function_cleanup),
+            "exception_type"      : exception_type,
+            "exception_value"     : exception_value,
+            "exception_tb"        : exception_tb
         }
     else:
         generator_exit = template_asyncgen_noexception_exit % {
@@ -85,9 +91,15 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
     if needs_generator_return:
         generator_exit += template_asyncgen_return_exit % {}
 
+    function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
+
+    local_type_decl = context.variable_storage.makeCStructLevelDeclarations()
+    function_locals += context.variable_storage.makeCStructInits()
+
     return template_asyncgen_object_body_template % {
         "function_identifier"   : function_identifier,
         "function_body"         : indented(function_codes.codes),
+        "function_local_types"   : indented(local_type_decl),
         "function_var_inits"    : indented(function_locals),
         "asyncgen_exit"         : generator_exit,
         "asyncgen_name_obj"     : context.getConstantCode(
@@ -114,7 +126,7 @@ def generateMakeAsyncgenObjectCode(to_name, expression, emit, context):
     )
 
     emit(
-        template_make_asyncgen_template % {
+        template_make_asyncgen % {
             "to_name"               : to_name,
             "asyncgen_identifier"   : asyncgen_object_body.getCodeName(),
             "closure_copy"          : indented(closure_copy, 0, True),

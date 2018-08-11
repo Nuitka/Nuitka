@@ -204,10 +204,14 @@ def getErrorFormatExitBoolCode(condition, exception, args, emit, context):
             )
         else:
             set_exception.append(
-                "NORMALIZE_EXCEPTION( &exception_type, &exception_value, &exception_tb );"
+                "NORMALIZE_EXCEPTION( &%s, &%s, &%s );" % (
+                    exception_type,
+                    exception_value,
+                    exception_tb
+                )
             )
             set_exception.append(
-                "CHAIN_EXCEPTION( exception_value );"
+                "CHAIN_EXCEPTION( %s );" % exception_value
             )
 
     emit(

@@ -153,7 +153,7 @@ def getPickedCType(variable, variable_trace, context):
     return result
 
 
-def getLocalVariableCodeType(context, variable, variable_trace):
+def decideLocalVariableCodeType(context, variable, variable_trace):
     # Now must be local or temporary variable.
 
     user = context.getOwner()
@@ -217,6 +217,43 @@ def getLocalVariableCodeType(context, variable, variable_trace):
     return result, c_type
 
 
+def getLocalVariableDeclaration(context, variable, variable_trace):
+    # TODO: Decide if we will use variable trace, pylint: disable=unused-argument
+
+    # Now must be local or temporary variable.
+
+    user = context.getOwner()
+    owner = variable.getOwner()
+
+    user = user.getEntryPoint()
+
+    prefix = ""
+
+    if owner.isExpressionOutlineFunction() or owner.isExpressionClassBody():
+        entry_point = owner.getEntryPoint()
+
+        prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(owner)
+        owner = entry_point
+
+    if owner is user:
+        result = _getVariableCodeName(
+            in_context = False,
+            variable   = variable
+        )
+
+        result = prefix + result
+
+        result = context.variable_storage.getVariableDeclarationTop(result)
+
+        assert result is not None, variable
+
+        return result
+    else:
+        closure_index = user.getClosureVariableIndex(variable)
+
+        return context.variable_storage.getVariableDeclarationClosure(closure_index)
+
+
 def getVariableAssignmentCode(context, emit, variable, variable_trace,
                               tmp_name, needs_release, in_place):
     # For transfer of ownership.
@@ -240,18 +277,22 @@ def getVariableAssignmentCode(context, emit, variable, variable_trace,
         if ref_count:
             context.removeCleanupTempName(tmp_name)
     else:
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
+        variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
+
+        assert variable_declaration, (variable, context)
 
         if variable.isLocalVariable():
-            context.setVariableType(variable, variable_code_name, variable_c_type)
+            context.setVariableType(variable, variable_declaration)
 
-        # TODO: this was not handled previously, do not overlook when it
+        # TODO: If this was not handled previously, do not overlook when it
         # occurs.
         assert not in_place or not variable.isTempVariable()
 
+        variable_c_type = variable_declaration.getCType()
+
         emit(
             variable_c_type.getLocalVariableAssignCode(
-                variable_code_name = variable_code_name,
+                variable_code_name = variable_declaration,
                 needs_release      = needs_release,
                 tmp_name           = tmp_name,
                 ref_count          = ref_count,
@@ -296,11 +337,12 @@ def getVariableAccessCode(to_name, variable, variable_trace, needs_check, emit, 
             context       = context
         )
     else:
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
+        variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
+        variable_c_type = variable_declaration.getCType()
 
         variable_c_type.getVariableObjectAccessCode(
             to_name            = to_name,
-            variable_code_name = variable_code_name,
+            variable_code_name = variable_declaration,
             variable           = variable,
             needs_check        = needs_check,
             emit               = emit,
@@ -330,52 +372,38 @@ def getVariableDelCode(variable, variable_trace, previous_trace, tolerant,
                 emit          = emit,
                 context       = context
             )
-    elif variable.isLocalVariable():
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, previous_trace)
-        variable_code_name_new, variable_c_new_type = getLocalVariableCodeType(context, variable, variable_trace)
-
-        # TODO: We need to split this operation in two parts. Release and init
-        # are not one thing.
-        assert variable_c_type == variable_c_new_type
-
-        context.setVariableType(variable, variable_code_name_new, variable_c_new_type)
-
-        variable_c_type.getDeleteObjectCode(
-            variable_code_name = variable_code_name,
-            tolerant           = tolerant,
-            needs_check        = needs_check,
-            variable           = variable,
-            emit               = emit,
-            context            = context
-        )
-    elif variable.isTempVariable():
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, previous_trace)
-        _variable_code_name, variable_c_new_type = getLocalVariableCodeType(context, variable, variable_trace)
-
-        # TODO: We need to split this operation in two parts. Release and init
-        # are not one thing.
-        assert variable_c_type is variable_c_new_type
-
-        variable_c_type.getDeleteObjectCode(
-            variable_code_name = variable_code_name,
-            tolerant           = tolerant,
-            needs_check        = needs_check,
-            variable           = variable,
-            emit               = emit,
-            context            = context
-        )
-
     else:
-        assert False, variable
+        variable_declaration_old = getLocalVariableDeclaration(context, variable, previous_trace)
+        variable_declaration_new = getLocalVariableDeclaration(context, variable, variable_trace)
+
+        # TODO: We need to split this operation in two parts. Release and init
+        # are not one thing, until then require this.
+        assert variable_declaration_old == variable_declaration_new
+
+        if variable.isLocalVariable():
+            context.setVariableType(variable, variable_declaration_new)
+
+        variable_c_type = variable_declaration_new.getCType()
+
+        variable_c_type.getDeleteObjectCode(
+            variable_code_name = variable_declaration_old,
+            tolerant           = tolerant,
+            needs_check        = needs_check,
+            variable           = variable,
+            emit               = emit,
+            context            = context
+        )
 
 
 def getVariableReleaseCode(variable, variable_trace, needs_check, emit, context):
     assert not variable.isModuleVariable()
 
-    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
+    variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
+
+    variable_c_type = variable_declaration.getCType()
 
     variable_c_type.getReleaseCode(
-        variable_code_name = variable_code_name,
+        variable_code_name = variable_declaration,
         needs_check        = needs_check,
         emit               = emit
     )

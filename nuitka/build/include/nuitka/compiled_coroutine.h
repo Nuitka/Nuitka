@@ -125,6 +125,8 @@ extern PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coro
 extern PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
 extern PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
 static inline PyObject *COROUTINE_YIELD( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
 {
     CHECK_OBJECT( value );
@@ -258,6 +260,8 @@ static inline PyObject *COROUTINE_YIELD_IN_HANDLER( struct Nuitka_CoroutineObjec
 
     return coroutine->m_yielded;
 }
+
+#endif
 
 #if PYTHON_VERSION >= 360
 extern PyObject *PyCoro_GetAwaitableIter( PyObject *value );

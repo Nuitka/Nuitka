@@ -19,7 +19,7 @@
 
 """
 
-template_genfunc_yielder_maker_template = """\
+template_genfunc_yielder_maker_decl = """\
 static PyObject *%(function_identifier)s_maker( void );
 """
 
@@ -69,7 +69,7 @@ static PyObject *%(function_identifier)s_maker( void )
 }
 """
 
-template_generator_making = """\
+template_make_generator = """\
 %(to_name)s = %(generator_identifier)s_maker();
 %(closure_copy)s
 """
@@ -86,7 +86,7 @@ template_generator_exception_exit = """\
 
     function_exception_exit:
 %(function_cleanup)s\
-    assert( exception_type );
+    assert( %(exception_type)s );
     RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
 
 #if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
@@ -117,7 +117,7 @@ template_generator_return_exit = """\
 
     function_return_exit:
 #if PYTHON_VERSION >= 300
-    generator->m_returned = tmp_return_value;
+    generator->m_returned = %(return_value)s;
 #endif
 
 #if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO

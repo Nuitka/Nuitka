@@ -195,10 +195,6 @@ class TempMixin(object):
     def getLabelCount(self, label):
         return self.labels.get(label, 0)
 
-    def markAsNeedsExceptionVariables(self):
-        # TODO: Change users to using return value of this called here:
-        self.variable_storage.getExceptionVariableDescriptions()
-
     def allocateExceptionKeeperVariables(self):
         self.keeper_variable_count += 1
 
@@ -477,10 +473,6 @@ class PythonContextBase(ContextMetaClassBase):
 
     @abstractmethod
     def allocateLabel(self, label):
-        pass
-
-    @abstractmethod
-    def markAsNeedsExceptionVariables(self):
         pass
 
     @abstractmethod
@@ -910,10 +902,14 @@ class FrameDeclarationsMixin(object):
         del self.frame_variables_stack[-1]
         del self.frame_type_descriptions[-1]
 
-    def setVariableType(self, variable, variable_code_name, variable_c_type):
+    def setVariableType(self, variable, variable_declaration):
         assert variable.isLocalVariable(), variable
 
-        self.frame_variable_types[variable] = variable_code_name, variable_c_type.getTypeIndicator()
+        # TODO: Change value of that dict to take advantage of declaration.
+        self.frame_variable_types[variable] = (
+            str(variable_declaration),
+            variable_declaration.getCType().getTypeIndicator()
+        )
 
     def getFrameVariableTypeDescriptions(self):
         return self.frame_type_descriptions[-1]
@@ -952,8 +948,18 @@ class FrameDeclarationsMixin(object):
         return self.locals_dict_names
 
     def addLocalsDictName(self, locals_dict_name):
-        self.locals_dict_names.add(locals_dict_name)
+        result = self.variable_storage.getVariableDeclarationTop(locals_dict_name)
 
+        if result is None:
+            result = self.variable_storage.addVariableDeclarationTop(
+                "PyObject *",
+                locals_dict_name,
+                "NULL"
+            )
+
+        self.locals_dict_names.add(result)
+
+        return result
 
 class ReturnReleaseModeMixin(object):
     def __init__(self):
@@ -1316,17 +1322,14 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
     def setExceptionKeeperVariables(self, keeper_vars):
         return self.parent.setExceptionKeeperVariables(keeper_vars)
 
-    def setVariableType(self, variable, variable_code_name, variable_c_type):
-        self.parent.setVariableType(variable, variable_code_name, variable_c_type)
+    def setVariableType(self, variable, variable_declaration):
+        self.parent.setVariableType(variable, variable_declaration)
 
     def getIntResName(self):
         return self.parent.getIntResName()
 
     def getBoolResName(self):
         return self.parent.getBoolResName()
-
-    def markAsNeedsExceptionVariables(self):
-        self.parent.markAsNeedsExceptionVariables()
 
     def allocateExceptionKeeperVariables(self):
         return self.parent.allocateExceptionKeeperVariables()
@@ -1340,10 +1343,10 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
         return True
 
     def addLocalsDictName(self, locals_dict_name):
-        self.parent.addLocalsDictName(locals_dict_name)
+        return self.parent.addLocalsDictName(locals_dict_name)
 
     def addExceptionPreserverVariables(self, count):
-        self.parent.addExceptionPreserverVariables(count)
+        return self.parent.addExceptionPreserverVariables(count)
 
     def getContextObjectName(self):
         return self.parent.getContextObjectName()

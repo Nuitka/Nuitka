@@ -211,19 +211,19 @@ def generateImportStarCode(statement, emit, context):
             )
         )
     else:
-        locals_dict_name = statement.getLocalsDictScope().getCodeName()
+        locals_declaration = context.addLocalsDictName(
+            statement.getLocalsDictScope().getCodeName()
+        )
 
         emit(
             """
 %(res_name)s = IMPORT_MODULE_STAR( %(locals_dict)s, false, %(module_name)s );
 """ % {
                 "res_name"    : res_name,
-                "locals_dict" : locals_dict_name,
+                "locals_dict" : locals_declaration,
                 "module_name" : module_name
             }
         )
-
-        context.addLocalsDictName(locals_dict_name)
 
     getErrorExitBoolCode(
         condition    = "%s == false" % res_name,

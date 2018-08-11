@@ -41,7 +41,7 @@ from .templates.CodeTemplatesVariables import (
 
 
 def generateSetLocalsDictCode(statement, emit, context):
-    new_locals_name = context.allocateTempName("set_locals", unique = True)
+    new_locals_name = context.allocateTempName("set_locals")
 
     generateExpressionCode(
         to_name    = new_locals_name,
@@ -50,13 +50,12 @@ def generateSetLocalsDictCode(statement, emit, context):
         context    = context
     )
 
-    locals_dict_name = statement.getLocalsScope().getCodeName()
-    context.addLocalsDictName(locals_dict_name)
+    locals_declaration = context.addLocalsDictName(statement.getLocalsScope().getCodeName())
 
     emit(
         """\
 %(locals_dict)s = %(locals_value)s;""" % {
-            "locals_dict"  : locals_dict_name,
+            "locals_dict"  : locals_declaration,
             "locals_value" : new_locals_name
         }
     )
@@ -69,15 +68,13 @@ def generateSetLocalsDictCode(statement, emit, context):
 
 
 def generateReleaseLocalsDictCode(statement, emit, context):
-    # The statement has it all, pylint: disable=unused-argument
-
-    locals_dict_name = statement.getLocalsScope().getCodeName()
+    locals_declaration = context.addLocalsDictName(statement.getLocalsScope().getCodeName())
 
     emit(
         """\
 Py_DECREF( %(locals_dict)s );
 %(locals_dict)s = NULL;""" % {
-            "locals_dict"  : locals_dict_name,
+            "locals_dict"  : locals_declaration,
         }
     )
 
@@ -95,7 +92,8 @@ def generateLocalsDictSetCode(statement, emit, context):
 
     locals_scope = statement.getLocalsDictScope()
 
-    dict_arg_name = locals_scope.getCodeName()
+    locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
+
     is_dict = locals_scope.getTypeShape() is ShapeTypeDict
 
     res_name = context.getIntResName()
@@ -104,7 +102,7 @@ def generateLocalsDictSetCode(statement, emit, context):
         emit(
             "%s = PyDict_SetItem( %s, %s, %s );" % (
                 res_name,
-                dict_arg_name,
+                locals_declaration,
                 context.getConstantCode(statement.getVariableName()),
                 value_arg_name
             )
@@ -113,18 +111,18 @@ def generateLocalsDictSetCode(statement, emit, context):
         emit(
             "%s = PyObject_SetItem( %s, %s, %s );" % (
                 res_name,
-                dict_arg_name,
+                locals_declaration,
                 context.getConstantCode(statement.getVariableName()),
                 value_arg_name
             )
         )
 
     getErrorExitBoolCode(
-        condition     = "%s != 0" % res_name,
-        release_names = (value_arg_name, dict_arg_name),
-        needs_check   = statement.mayRaiseException(BaseException),
-        emit          = emit,
-        context       = context
+        condition    = "%s != 0" % res_name,
+        release_name = value_arg_name,
+        needs_check  = statement.mayRaiseException(BaseException),
+        emit         = emit,
+        context      = context
     )
 
 
@@ -185,8 +183,8 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
     )
 
     locals_scope = expression.getLocalsDictScope()
+    locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    dict_arg_name = locals_scope.getCodeName()
     is_dict = locals_scope.getTypeShape() is ShapeTypeDict
 
     if is_dict:
@@ -197,7 +195,7 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
     emit(
         template % {
             "to_name"     : to_name,
-            "locals_dict" : dict_arg_name,
+            "locals_dict" : locals_declaration,
             "fallback"    : indented(fallback_emit.codes),
             "var_name"    : context.getConstantCode(
                 constant = variable_name
@@ -211,7 +209,8 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
 
     locals_scope = expression.getLocalsDictScope()
 
-    dict_arg_name = locals_scope.getCodeName()
+    locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
+
     is_dict = locals_scope.getTypeShape() is ShapeTypeDict
 
     if is_dict:
@@ -222,7 +221,7 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
     emit(
         template % {
             "to_name"     : to_name,
-            "locals_dict" : dict_arg_name,
+            "locals_dict" : locals_declaration,
             "var_name"    : context.getConstantCode(
                 constant = variable_name
             )

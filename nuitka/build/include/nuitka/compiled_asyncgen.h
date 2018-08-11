@@ -107,6 +107,8 @@ extern PyObject *ASYNCGEN_ASYNC_ITERATOR_NEXT( struct Nuitka_AsyncgenObject *asy
 
 extern PyObject *Nuitka_AsyncGenValueWrapperNew( PyObject *value );
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
 static inline PyObject *ASYNCGEN_YIELD( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
 {
     CHECK_OBJECT( value );
@@ -249,6 +251,8 @@ static inline PyObject *ASYNCGEN_YIELD_IN_HANDLER( struct Nuitka_AsyncgenObject 
 
     return asyncgen->m_yielded;
 }
+
+#endif
 
 #endif
 
