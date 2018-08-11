@@ -102,12 +102,8 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
 
     function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
-    # TODO: Heap storage or not, this check can later be removed.
-    if context.variable_storage.parent is not None:
-        local_type_decl = context.variable_storage.parent.makeCStructDeclarations()
-        function_locals += context.variable_storage.parent.makeCStringInits()
-    else:
-        local_type_decl = ()
+    local_type_decl = context.variable_storage.makeCStructLevelDeclarations()
+    function_locals += context.variable_storage.makeCStructInits()
 
     generator_object_body = context.getOwner()
 

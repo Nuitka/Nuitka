@@ -28,7 +28,6 @@ from nuitka.Tracing import printError
 
 from .Emission import SourceCodeCollector
 from .LabelCodes import getStatementTrace
-from .VariableDeclarations import VariableSubStorage
 
 expression_dispatch_dict = {}
 
@@ -229,26 +228,21 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
         else:
             context.pushCleanupScope()
 
-            context.variable_storage = VariableSubStorage(
-                context.variable_storage
-            )
+            with context.variable_storage.withLocalStorage():
+                statement_codes = SourceCodeCollector()
 
-            statement_codes = SourceCodeCollector()
+                generateStatementCode(
+                    statement = statement,
+                    emit      = statement_codes,
+                    context   = context
+                )
 
-            generateStatementCode(
-                statement = statement,
-                emit      = statement_codes,
-                context   = context
-            )
+                emit('{')
+                for s in context.variable_storage.makeCLocalDeclarations():
+                    emit(s)
 
-            emit('{')
-            for s in context.variable_storage.makeCFunctionLevelDeclarations():
-                emit(s)
-
-            statement_codes.emitTo(emit)
-            emit('}')
-
-            context.variable_storage = context.variable_storage.parent
+                statement_codes.emitTo(emit)
+                emit('}')
 
             context.popCleanupScope()
 
