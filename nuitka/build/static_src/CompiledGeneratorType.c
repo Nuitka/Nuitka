@@ -109,6 +109,8 @@ static void Nuitka_Generator_entry_point( struct Nuitka_GeneratorObject *generat
 
 static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generator, PyObject *value )
 {
+    CHECK_OBJECT( generator );
+
     if ( generator->m_status != status_Finished )
     {
         PyThreadState *thread_state = PyThreadState_GET();
@@ -137,7 +139,6 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
         if ( generator->m_status == status_Unused )
         {
 #ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
-
             // Prepare the generator context to run.
             int res = prepareFiber( &generator->m_yielder_context, (void *)Nuitka_Generator_entry_point, (uintptr_t)generator );
 
@@ -179,9 +180,32 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
         generator->m_running = true;
 
 #if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
-        Nuitka_Frame_MarkAsExecuting( generator->m_frame );
+        // Check for thrown exception.
+        if (unlikely( generator->m_exception_type ))
+        {
+            assert( value == NULL );
+
+            RESTORE_ERROR_OCCURRED(
+                generator->m_exception_type,
+                generator->m_exception_value,
+                generator->m_exception_tb
+            );
+
+            generator->m_exception_type = NULL;
+            generator->m_exception_value = NULL;
+            generator->m_exception_tb = NULL;
+        }
+
+        if ( generator->m_frame )
+        {
+            Nuitka_Frame_MarkAsExecuting( generator->m_frame );
+        }
         PyObject *yielded = ((generator_code)generator->m_code)( generator, value );
-        Nuitka_Frame_MarkAsNotExecuting( generator->m_frame );
+
+        if ( generator->m_frame )
+        {
+            Nuitka_Frame_MarkAsNotExecuting( generator->m_frame );
+        }
 #else
         generator->m_yielded = value;
         swapFiber( &generator->m_caller_context, &generator->m_yielder_context );
@@ -419,8 +443,11 @@ PyObject *Nuitka_Generator_close( struct Nuitka_GeneratorObject *generator, PyOb
         generator->m_exception_value = NULL;
         generator->m_exception_tb = NULL;
 
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+        PyObject *result = Nuitka_Generator_send2( generator, NULL );
+#else
         PyObject *result = Nuitka_Generator_send2( generator, Py_None );
-
+#endif
         if (unlikely( result ))
         {
             Py_DECREF( result );
@@ -539,8 +566,11 @@ static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generato
 
     if ( generator->m_status == status_Running )
     {
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+        PyObject *result = Nuitka_Generator_send2( generator, NULL );
+#else
         PyObject *result = Nuitka_Generator_send2( generator, Py_None );
-
+#endif
         if ( result == NULL )
         {
             if ( GET_ERROR_OCCURRED() == NULL )
@@ -1043,6 +1073,8 @@ PyObject *ERROR_GET_STOP_ITERATION_VALUE()
     return value;
 }
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
 static void RAISE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *generator )
 {
     CHECK_OBJECT( generator->m_exception_type );
@@ -1535,4 +1567,5 @@ PyObject *GENERATOR_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *genera
     }
 }
 
+#endif
 #endif
