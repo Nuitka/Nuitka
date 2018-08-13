@@ -71,11 +71,12 @@ def generateYieldCode(to_name, expression, emit, context):
                 )
             )
 
+        if preserve_exception:
+            emit("SAVE_GENERATOR_EXCEPTION( generator );")
 
         emit(
             """
 %(context_object_name)s->m_yield_return_index = %(yield_return_index)s;
-// Py_INCREF( %(yielded_value)s );
 return %(yielded_value)s;
 %(yield_return_label)s:
 """ % {
@@ -102,31 +103,14 @@ return %(yielded_value)s;
                 )
             )
 
-            emit("""
-    // Check for thrown exception.
-    if (unlikely( generator->m_exception_type ))
-    {
-        RESTORE_ERROR_OCCURRED(
-            generator->m_exception_type,
-            generator->m_exception_value,
-            generator->m_exception_tb
-        );
-
-        generator->m_exception_type = NULL;
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
-    }
-    else
-    {
-        CHECK_OBJECT( yield_return_value );
-    }
-""")
-
         emit(
             "%(to_name)s = yield_return_value;" % {
                 "to_name" : to_name
             }
         )
+
+        if preserve_exception:
+            emit("RESTORE_GENERATOR_EXCEPTION( generator );")
 
     else:
         emit(

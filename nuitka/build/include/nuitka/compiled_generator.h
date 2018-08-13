@@ -86,13 +86,14 @@ struct Nuitka_GeneratorObject {
     // The yielded value, NULL in case of exception or return.
     PyObject *m_yielded;
 
+#endif
+
     // Returned value if yielded value is NULL, is
     // NULL if not a return
 #if PYTHON_VERSION >= 300
     PyObject *m_returned;
 #endif
 
-#endif
 
 #if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
     /* The heap of generator objects at run time. */
@@ -138,6 +139,78 @@ static inline PyObject *Nuitka_Generator_GetName( PyObject *object )
     return ((struct Nuitka_GeneratorObject *)object)->m_name;
 }
 
+static inline void SAVE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *generator )
+{
+    /* Before Python3.7: When yielding from an exception handler in Python3,
+     * the exception preserved to the frame is restored, while the current one
+     * is put as there.
+     *
+     * Python3.7: The exception is preserved in the generator object itself
+     * which has a new "m_exc_state" structure just for that.
+     */
+
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    PyObject *saved_exception_type = EXC_TYPE(thread_state);
+    PyObject *saved_exception_value = EXC_VALUE(thread_state);
+    PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
+
+#if PYTHON_VERSION < 370
+    // TODO: When not go via generator->m_frame, ought to be the same.
+    EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
+    EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
+    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
+#else
+    EXC_TYPE(thread_state) = generator->m_exc_state.exc_type;
+    EXC_VALUE(thread_state) = generator->m_exc_state.exc_value;
+    EXC_TRACEBACK(thread_state) = generator->m_exc_state.exc_traceback;
+#endif
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("YIELD exit:\n");
+    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
+#endif
+
+#if PYTHON_VERSION < 370
+    thread_state->frame->f_exc_type = saved_exception_type;
+    thread_state->frame->f_exc_value = saved_exception_value;
+    thread_state->frame->f_exc_traceback = saved_exception_traceback;
+#else
+    generator->m_exc_state.exc_type = saved_exception_type;
+    generator->m_exc_state.exc_value = saved_exception_value;;
+    generator->m_exc_state.exc_traceback = saved_exception_traceback;
+#endif
+}
+
+static inline void RESTORE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *generator )
+{
+    // When returning from yield, the exception of the frame is preserved, and
+    // the one that enters should be there.
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    PyObject *saved_exception_type = EXC_TYPE(thread_state);
+    PyObject *saved_exception_value = EXC_VALUE(thread_state);
+    PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
+
+#if PYTHON_VERSION < 370
+    EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
+    EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
+    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
+
+    thread_state->frame->f_exc_type = saved_exception_type;
+    thread_state->frame->f_exc_value = saved_exception_value;
+    thread_state->frame->f_exc_traceback = saved_exception_traceback;
+#else
+    EXC_TYPE(thread_state) = generator->m_exc_state.exc_type;
+    EXC_VALUE(thread_state) = generator->m_exc_state.exc_value;
+    EXC_TRACEBACK(thread_state) = generator->m_exc_state.exc_traceback;
+
+    generator->m_exc_state.exc_type = saved_exception_type;
+    generator->m_exc_state.exc_value = saved_exception_value;
+    generator->m_exc_state.exc_traceback = saved_exception_traceback;
+#endif
+}
+
 #ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 
 static inline PyObject *GENERATOR_YIELD( struct Nuitka_GeneratorObject *generator, PyObject *value )
@@ -180,42 +253,13 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
 
     generator->m_yielded = value;
 
-    /* Before Python3.7: When yielding from an exception handler in Python3,
-     * the exception preserved to the frame is restored, while the current one
-     * is put as there.
-     *
-     * Python3.7: The exception is preserved in the generator object itself
-     * which has a new "m_exc_state" structure just for that.
-     */
-    PyThreadState *thread_state = PyThreadState_GET();
-
-    PyObject *saved_exception_type = EXC_TYPE(thread_state);
-    PyObject *saved_exception_value = EXC_VALUE(thread_state);
-    PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
-
-#if PYTHON_VERSION < 370
-    EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
-    EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
-    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
-#else
-    EXC_TYPE(thread_state) = generator->m_exc_state.exc_type;
-    EXC_VALUE(thread_state) = generator->m_exc_state.exc_value;
-    EXC_TRACEBACK(thread_state) = generator->m_exc_state.exc_traceback;
-#endif
+    SAVE_GENERATOR_EXCEPTION( generator );
 
 #if _DEBUG_EXCEPTIONS
+    PyThreadState *thread_state = PyThreadState_GET();
+
     PRINT_STRING("YIELD exit:\n");
     PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
-#endif
-
-#if PYTHON_VERSION < 370
-    thread_state->frame->f_exc_type = saved_exception_type;
-    thread_state->frame->f_exc_value = saved_exception_value;
-    thread_state->frame->f_exc_traceback = saved_exception_traceback;
-#else
-    generator->m_exc_state.exc_type = saved_exception_type;
-    generator->m_exc_state.exc_value = saved_exception_value;;
-    generator->m_exc_state.exc_traceback = saved_exception_traceback;
 #endif
 
     Nuitka_Frame_MarkAsNotExecuting( generator->m_frame );
@@ -225,36 +269,12 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
 
     Nuitka_Frame_MarkAsExecuting( generator->m_frame );
 
-    // When returning from yield, the exception of the frame is preserved, and
-    // the one that enters should be there.
-    thread_state = PyThreadState_GET();
-
-    saved_exception_type = EXC_TYPE(thread_state);
-    saved_exception_value = EXC_VALUE(thread_state);
-    saved_exception_traceback = EXC_TRACEBACK(thread_state);
-
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("YIELD return:\n");
     PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
 #endif
 
-#if PYTHON_VERSION < 370
-    EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
-    EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
-    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
-
-    thread_state->frame->f_exc_type = saved_exception_type;
-    thread_state->frame->f_exc_value = saved_exception_value;
-    thread_state->frame->f_exc_traceback = saved_exception_traceback;
-#else
-    EXC_TYPE(thread_state) = generator->m_exc_state.exc_type;
-    EXC_VALUE(thread_state) = generator->m_exc_state.exc_value;
-    EXC_TRACEBACK(thread_state) = generator->m_exc_state.exc_traceback;
-
-    generator->m_exc_state.exc_type = saved_exception_type;
-    generator->m_exc_state.exc_value = saved_exception_value;
-    generator->m_exc_state.exc_traceback = saved_exception_traceback;
-#endif
+    RESTORE_GENERATOR_EXCEPTION( generator );
 
     // Check for thrown exception.
     if (unlikely( generator->m_exception_type ))
