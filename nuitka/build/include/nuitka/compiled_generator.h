@@ -283,4 +283,7 @@ extern PyObject *GENERATOR_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject 
 
 #endif
 
+extern void Nuitka_PreserveHeap( void *dest, ... );
+extern void Nuitka_RestoreHeap( void *source, ... );
+
 #endif
