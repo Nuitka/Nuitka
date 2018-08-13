@@ -37,7 +37,6 @@ def generateYieldCode(to_name, expression, emit, context):
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
-    # This will produce GENERATOR_YIELD, COROUTINE_YIELD or ASYNCGEN_YIELD.
     getReferenceExportCode(value_name, emit, context)
 
     if Options.isExperimental("generator_goto"):
@@ -45,6 +44,15 @@ def generateYieldCode(to_name, expression, emit, context):
         yield_return_index = yield_return_label.split('_')[-1]
 
         locals_preserved = context.variable_storage.getLocalPreservationDeclarations()
+
+        # Need not preserve it, if we are not going to use it for the purpose
+        # of releasing it.
+        if not context.needsCleanup(value_name):
+            locals_preserved.remove(value_name)
+
+        # Target name is not assigned, no need to preserve it.
+        if to_name in locals_preserved:
+            locals_preserved.remove(to_name)
 
         if locals_preserved:
             yield_tmp_storage = context.variable_storage.getVariableDeclarationTop("yield_tmps")
@@ -113,6 +121,7 @@ return %(yielded_value)s;
             emit("RESTORE_GENERATOR_EXCEPTION( generator );")
 
     else:
+        # This will produce GENERATOR_YIELD, COROUTINE_YIELD or ASYNCGEN_YIELD.
         emit(
             "%s = %s_%s( %s, %s );" % (
                 to_name,
