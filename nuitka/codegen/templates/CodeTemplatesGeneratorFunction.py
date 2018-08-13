@@ -41,11 +41,11 @@ static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *gene
     struct %(function_identifier)s_locals *generator_heap = (struct %(function_identifier)s_locals *)generator->m_heap_storage;
 #endif
 
-    // Local variable initialization
-%(function_var_inits)s
-
     // Dispatch to yield based on return label index:
 %(function_dispatch)s
+
+    // Local variable initialization
+%(function_var_inits)s
 
     // Actual function code.
 %(function_body)s
@@ -109,11 +109,16 @@ template_generator_noexception_exit = """\
 #endif
 """
 
+# TODO: Clarify if cannot get here function is to be used.
 template_generator_return_exit = """\
     // The above won't return, but we need to make it clear to the compiler
     // as well, or else it will complain and/or generate inferior code.
     assert(false);
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    return NULL;
+#else
     return;
+#endif
 
     function_return_exit:
 #if PYTHON_VERSION >= 300

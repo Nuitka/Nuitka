@@ -44,20 +44,88 @@ def generateYieldCode(to_name, expression, emit, context):
         yield_return_label = context.allocateLabel("yield_return")
         yield_return_index = yield_return_label.split('_')[-1]
 
+        locals_preserved = context.variable_storage.getLocalPreservationDeclarations()
+
+        if locals_preserved:
+            yield_tmp_storage = context.variable_storage.getVariableDeclarationTop("yield_tmps")
+
+            if yield_tmp_storage is None:
+                yield_tmp_storage = context.variable_storage.addVariableDeclarationTop(
+                    "char[1024]",
+                    "yield_tmps",
+                    None
+                )
+
+            emit(
+                "Nuitka_PreserveHeap( %s, %s, NULL );" % (
+                    yield_tmp_storage,
+                    ", ".join(
+                        "&%s, sizeof(%s)" % (
+                            local_preserved,
+                            local_preserved.c_type
+                        )
+                        for local_preserved in
+                        locals_preserved
+
+                    )
+                )
+            )
+
 
         emit(
             """
 %(context_object_name)s->m_yield_return_index = %(yield_return_index)s;
+// Py_INCREF( %(yielded_value)s );
 return %(yielded_value)s;
 %(yield_return_label)s:
-%(to_name)s = yield_return_value;
 """ % {
                 "context_object_name" : context.getContextObjectName(),
                 "yield_return_index"  : yield_return_index,
                 "yielded_value"       : value_name,
                 "yield_return_label"  : yield_return_label,
-                "to_name"             : to_name
     }
+        )
+
+        if locals_preserved:
+            emit(
+                "Nuitka_RestoreHeap( %s, %s, NULL );" % (
+                    yield_tmp_storage,
+                    ", ".join(
+                        "&%s, sizeof(%s)" % (
+                            local_preserved,
+                            local_preserved.c_type
+                        )
+                        for local_preserved in
+                        locals_preserved
+
+                    )
+                )
+            )
+
+            emit("""
+    // Check for thrown exception.
+    if (unlikely( generator->m_exception_type ))
+    {
+        RESTORE_ERROR_OCCURRED(
+            generator->m_exception_type,
+            generator->m_exception_value,
+            generator->m_exception_tb
+        );
+
+        generator->m_exception_type = NULL;
+        generator->m_exception_value = NULL;
+        generator->m_exception_tb = NULL;
+    }
+    else
+    {
+        CHECK_OBJECT( yield_return_value );
+    }
+""")
+
+        emit(
+            "%(to_name)s = yield_return_value;" % {
+                "to_name" : to_name
+            }
         )
 
     else:

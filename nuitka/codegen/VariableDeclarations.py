@@ -51,10 +51,17 @@ class VariableDeclaration(object):
         if c_type.startswith("NUITKA_MAY_BE_UNUSED"):
             c_type = c_type[21:]
 
-        return "%s%s%s;" % (
+        if '[' in c_type:
+            array_decl = c_type[c_type.find('['):]
+            c_type = c_type[:c_type.find('[')]
+        else:
+            array_decl = ""
+
+        return "%s%s%s%s;" % (
             c_type,
             ' ' if self.c_type[-1] != '*' else "",
-            self.code_name
+            self.code_name,
+            array_decl
         )
 
     def makeCStructInit(self):
@@ -108,7 +115,7 @@ class VariableStorage(object):
         "variable_declarations_heap",
         "variable_declarations_main",
         "variable_declarations_closure",
-        "variable_declarations_local",
+        "variable_declarations_locals",
         "exception_variable_declarations"
     )
 
@@ -118,7 +125,8 @@ class VariableStorage(object):
         self.variable_declarations_heap = []
         self.variable_declarations_main = []
         self.variable_declarations_closure = []
-        self.variable_declarations_local = None
+
+        self.variable_declarations_locals = []
 
         self.exception_variable_declarations = None
 
@@ -131,12 +139,11 @@ class VariableStorage(object):
 
         """
 
-        old_variable_declarations_local = self.variable_declarations_local
-        self.variable_declarations_local = []
+        self.variable_declarations_locals.append([])
 
         yield
 
-        self.variable_declarations_local = old_variable_declarations_local
+        self.variable_declarations_locals.pop()
 
     def getVariableDeclarationTop(self, code_name):
         for variable_declaration in self.variable_declarations_main:
@@ -200,7 +207,7 @@ class VariableStorage(object):
             None
         )
 
-        self.variable_declarations_local.append(result)
+        self.variable_declarations_locals[-1].append(result)
 
         return result
 
@@ -247,7 +254,7 @@ class VariableStorage(object):
         return [
             variable_declaration.makeCFunctionLevelDeclaration()
             for variable_declaration in
-            self.variable_declarations_local
+            self.variable_declarations_locals[-1]
         ]
 
     def makeCFunctionLevelDeclarations(self):
@@ -256,3 +263,11 @@ class VariableStorage(object):
             for variable_declaration in
             self.variable_declarations_main
         ]
+
+    def getLocalPreservationDeclarations(self):
+        result = []
+
+        for variable_declarations_local in self.variable_declarations_locals:
+            result.extend(variable_declarations_local)
+
+        return result

@@ -179,8 +179,9 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
         generator->m_running = true;
 
 #if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
-
+        Nuitka_Frame_MarkAsExecuting( generator->m_frame );
         PyObject *yielded = ((generator_code)generator->m_code)( generator, value );
+        Nuitka_Frame_MarkAsNotExecuting( generator->m_frame );
 #else
         generator->m_yielded = value;
         swapFiber( &generator->m_caller_context, &generator->m_yielder_context );

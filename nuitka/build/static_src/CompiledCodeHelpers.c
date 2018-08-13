@@ -33,6 +33,7 @@
 #include "HelpersStrings.c"
 #include "HelpersImport.c"
 #include "HelpersClasses.c"
+#include "HelpersHeapStorage.c"
 
 
 #if PYTHON_VERSION < 300
