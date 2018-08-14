@@ -125,40 +125,48 @@ def hasFilenameExtension(path, extensions):
 
 
 def removeDirectory(path, ignore_errors):
-    """ Remove a directory recursively.
+	""" Remove a directory recursively.
 
-        On Windows, it happens that operations fail, and succeed when reried,
-        so added a retry and small delay, then another retry. Should make it
-        much more stable during tests.
+		On Windows, it happens that operations fail, and succeed when reried,
+		so added a retry and small delay, then another retry. Should make it
+		much more stable during tests.
 
-        All kinds of programs that scan files might cause this, but they do
-        it hopefully only briefly.
-    """
+		All kinds of programs that scan files might cause this, but they do
+		it hopefully only briefly.
+	"""
 
-    def onError(func, path, exc_info):
-        # Try again immediately, ignore what happened, pylint: disable=unused-argument
-        try:
-            func(path)
-        except OSError:
-            time.sleep(0.1)
+	def onError(func, path, exc_info):
+		# Try again immediately, ignore what happened, pylint: disable=unused-argument
+		try:
+			func(path)
+		except OSError:
+			counter = 0
+			while counter != 5:
+				time.sleep(0.2)
+				try:			
+					info("Trying " + str(counter) + ". time to delete file: " + os.path.basename(path))
+					func(path)
+					break
+				except OSError:
+					try:
+						info("Trying " + str(counter) + ". time to change file atrributes: " + os.path.basename(path))
+						os.chmod(path, 128)
+						func(path)
+						break
+					except:
+						counter += 1
+						if counter == 5:
+							warning("Can't delete " + os.path.basename(path))
 
-        func(path)
-
-    if os.path.exists(path):
-        try:
-            shutil.rmtree(
-                path,
-                ignore_errors = False,
-                onerror       = onError
-            )
-        except OSError:
-            if ignore_errors:
-                shutil.rmtree(
-                    path,
-                    ignore_errors = ignore_errors
-                )
-            else:
-                raise
+	if os.path.exists(path):
+		try:
+			shutil.rmtree(
+				path,
+				ignore_errors = False,
+				onerror		  = onError
+			)
+		except OSError:
+			raise
 
 @contextmanager
 def withTemporaryFilename():
