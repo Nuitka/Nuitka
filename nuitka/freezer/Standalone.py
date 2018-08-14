@@ -1107,7 +1107,7 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
 
 
     used_dlls = detectUsedDLLs(source_dir, standalone_entry_points)
-
+	
     removed_dlls = set()
 
     # Fist make checks and remove some.
@@ -1135,7 +1135,6 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                 continue
 
             dll_name = os.path.basename(dll_filename1)
-
             if Options.isShowInclusion():
                 info(
                      """Colliding DLL names for %s, checking identity of \
@@ -1182,7 +1181,7 @@ different from
         )
         # Check if dll is already existing.
         if not os.path.isfile(target_path):
-		    shutil.copy(
+            shutil.copy(
                 dll_filename,
                 target_path
             )
