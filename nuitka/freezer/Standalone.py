@@ -1173,7 +1173,7 @@ different from
 
     dll_map = []
 
-   for dll_filename, sources in iterItems(used_dlls):
+    for dll_filename, sources in iterItems(used_dlls):
         dll_name = os.path.basename(dll_filename)
 
         target_path = os.path.join(
