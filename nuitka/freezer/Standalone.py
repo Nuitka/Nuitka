@@ -1173,30 +1173,31 @@ different from
 
     dll_map = []
 
-    for dll_filename, sources in iterItems(used_dlls):
+   for dll_filename, sources in iterItems(used_dlls):
         dll_name = os.path.basename(dll_filename)
 
         target_path = os.path.join(
             dist_dir,
             dll_name
         )
-
-        shutil.copy(
-            dll_filename,
-            target_path
-        )
-
-        dll_map.append(
-            (dll_filename, dll_name)
-        )
-
-        if Options.isShowInclusion():
-            info(
-                 "Included used shared library '%s' (used by %s)." % (
-                    dll_filename,
-                    ", ".join(sources)
-                 )
+        # Check if dll is already existing.
+        if not os.path.isfile(target_path):
+		    shutil.copy(
+                dll_filename,
+                target_path
             )
+
+            dll_map.append(
+                (dll_filename, dll_name)
+            )
+
+            if Options.isShowInclusion():
+                info(
+                     "Included used shared library '%s' (used by %s)." % (
+                        dll_filename,
+                        ", ".join(sources)
+                     )
+                )
 
     if Utils.getOS() == "Darwin":
         # For MacOS, the binary and the DLLs needs to be changed to reflect
