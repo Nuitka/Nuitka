@@ -222,6 +222,10 @@ static PyObject *Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator,
                 exception_value,
                 (PyObject *)exception_tb
             );
+
+            Py_DECREF( exception_type );
+            Py_XDECREF( exception_value );
+            Py_XDECREF( exception_tb );
         }
         else
 #endif
@@ -232,6 +236,10 @@ static PyObject *Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator,
             {
                 retval = PyObject_CallFunctionObjArgs( throw_method, exception_type, exception_value, exception_tb, NULL );
                 Py_DECREF( throw_method );
+
+                Py_DECREF( exception_type );
+                Py_XDECREF( exception_value );
+                Py_XDECREF( exception_tb );
 
             }
             else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
