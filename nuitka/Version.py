@@ -20,7 +20,7 @@
 """
 
 version_string = """\
-Nuitka V0.5.32.4
+Nuitka V0.5.32.5
 Copyright (C) 2018 Kay Hayen."""
 
 def getNuitkaVersion():
