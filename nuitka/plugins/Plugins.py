@@ -52,10 +52,6 @@ from .standard.PySidePyQtPlugin import (  # isort:skip
     NuitkaPluginDetectorPyQtPySidePlugins,
     NuitkaPluginPyQtPySidePlugins
 )
-from .standard.EnumPlugin import (  # isort:skip
-    NuitkaPluginEnumWorkarounds,
-    NuitkaPluginDetectorEnumWorkarounds
-)
 # The standard plug-ins have their list hard-coded here. User plug-ins will
 # be scanned later, TODO.
 
@@ -72,7 +68,6 @@ optional_plugin_classes = (
     (NuitkaPluginPyQtPySidePlugins, NuitkaPluginDetectorPyQtPySidePlugins),
     (NuitkaPluginPylintEclipseAnnotations, NuitkaPluginDetectorPylintEclipseAnnotations),
     (NuitkaPluginPmw, NuitkaPluginDetectorPmw),
-    (NuitkaPluginEnumWorkarounds, NuitkaPluginDetectorEnumWorkarounds)
 )
 
 plugin_name2plugin_classes = dict(
