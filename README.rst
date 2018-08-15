@@ -115,6 +115,8 @@ Requirements
        bits matching your Python. Use both MinGW64 and 64 bits Python if you
        have the choice of which Python to use. Install it to ``C:\MinGW64`` or
        ``\MinGW64`` (same disk root as Nuitka running) to find it automatically.
+       Also, when prompted, use "posix" for threads and "dwarf" for exception
+       model, although these currently do not matter at all.
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
