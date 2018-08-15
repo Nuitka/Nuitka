@@ -1,3 +1,6 @@
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
+
 /* Extract of libtask, just the ARM specific portions. */
 
 /*
@@ -120,3 +123,5 @@ void _swapFiber( Fiber *to, Fiber *from )
         setcontext( &from->f_context );
     }
 }
+
+#endif

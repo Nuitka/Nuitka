@@ -55,6 +55,10 @@ struct Nuitka_GeneratorObject {
 #if PYTHON_VERSION >= 350
     PyObject *m_qualname;
 #endif
+#if PYTHON_VERSION >= 300
+    // The value currently yielded from.
+    PyObject *m_yieldfrom;
+#endif
 
     // Weak references are supported for generator objects in CPython.
     PyObject *m_weakrefs;
@@ -86,11 +90,6 @@ struct Nuitka_GeneratorObject {
     PyObject *m_yielded;
 #endif
 
-#if PYTHON_VERSION >= 300
-    // The value currently yielded from.
-    PyObject *m_yieldfrom;
-#endif
-
     // Returned value if yielded value is NULL, is
     // NULL if not a return
 #if PYTHON_VERSION >= 300
@@ -104,7 +103,8 @@ struct Nuitka_GeneratorObject {
 #endif
 
     /* Closure variables given, if any, we reference cells here. The last
-     * part is dynamically allocated, the array size differs per generator.
+     * part is dynamically allocated, the array size differs per generator
+     * and includes the heap storage.
      */
     Py_ssize_t m_closure_given;
     struct Nuitka_CellObject *m_closure[1];
@@ -159,7 +159,6 @@ static inline void SAVE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *gene
     PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
 #if PYTHON_VERSION < 370
-    // TODO: When not go via generator->m_frame, ought to be the same.
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
     EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
     EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;

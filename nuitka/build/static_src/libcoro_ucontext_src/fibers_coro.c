@@ -17,6 +17,8 @@
 //
 // Implementation of process context switch for generic targets.
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
 #include "nuitka/prelude.h"
 
 #ifdef __cplusplus
@@ -74,3 +76,5 @@ void _swapFiber( Fiber *to, Fiber *from )
 
     coro_transfer( &to->coro_ctx, &from->coro_ctx );
 }
+
+#endif

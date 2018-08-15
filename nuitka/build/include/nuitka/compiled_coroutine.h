@@ -35,19 +35,15 @@ struct Nuitka_CoroutineObject {
     PyObject *m_qualname;
     PyObject *m_yieldfrom;
 
-    Fiber m_yielder_context;
-    Fiber m_caller_context;
-
     // Weak references are supported for coroutine objects in CPython.
     PyObject *m_weakrefs;
 
     int m_running;
+
+    // When a coroutine is awaiting, this flag is set.
     int m_awaiting;
 
     void *m_code;
-
-    PyObject *m_yielded;
-    PyObject *m_returned;
 
     PyObject *m_exception_type, *m_exception_value;
     PyTracebackObject *m_exception_tb;
@@ -65,19 +61,41 @@ struct Nuitka_CoroutineObject {
     PyObject *m_origin;
 #endif
 
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    int m_yield_return_index;
+#else
+    Fiber m_yielder_context;
+    Fiber m_caller_context;
+
+    // The yielded value, NULL in case of exception or return.
+    PyObject *m_yielded;
+#endif
+
+    // Returned value if yielded value is NULL, is
+    // NULL if not a return
+    PyObject *m_returned;
+
 #if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
     /* The heap of generator objects at run time. */
     void *m_heap_storage;
 #endif
 
-    // Closure variables given, if any, we reference cells here.
+    /* Closure variables given, if any, we reference cells here. The last
+     * part is dynamically allocated, the array size differs per coroutine
+     * and includes the heap storage.
+     */
     Py_ssize_t m_closure_given;
     struct Nuitka_CellObject *m_closure[1];
 };
 
 extern PyTypeObject Nuitka_Coroutine_Type;
 
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+typedef PyObject *(*coroutine_code)( struct Nuitka_CoroutineObject *, PyObject * );
+#else
 typedef void (*coroutine_code)( struct Nuitka_CoroutineObject * );
+#endif
+
 
 extern PyObject *Nuitka_Coroutine_New(
     coroutine_code code,

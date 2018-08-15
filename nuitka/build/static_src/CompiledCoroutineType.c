@@ -133,7 +133,7 @@ static void Nuitka_Coroutine_release_closure( struct Nuitka_CoroutineObject *cor
     coroutine->m_closure_given = 0;
 }
 
-
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 // For the coroutine object fiber entry point, we may need to follow what
 // "makecontext" will support and that is only a list of integers, but we will need
 // to push a pointer through it, and so it's two of them, which might be fully
@@ -159,6 +159,7 @@ static void Nuitka_Coroutine_entry_point( struct Nuitka_CoroutineObject *corouti
 
     swapFiber( &coroutine->m_yielder_context, &coroutine->m_caller_context );
 }
+#endif
 
 static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutine, PyObject *value, bool closing )
 {
@@ -193,6 +194,7 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
 
         if ( coroutine->m_status == status_Unused )
         {
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
             // Prepare the coroutine context to run.
             int res = prepareFiber( &coroutine->m_yielder_context, (void *)Nuitka_Coroutine_entry_point, (uintptr_t)coroutine );
 
@@ -201,6 +203,7 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
                 PyErr_Format( PyExc_MemoryError, "coroutine cannot be allocated" );
                 return NULL;
             }
+#endif
 
             coroutine->m_status = status_Running;
         }

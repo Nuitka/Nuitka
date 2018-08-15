@@ -18,6 +18,8 @@
 #ifndef __NUITKA_FIBERS_H__
 #define __NUITKA_FIBERS_H__
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
 #if defined( _WIN32 )
 #include <windows.h>
 #elif defined( __OpenBSD__ )
@@ -95,6 +97,8 @@ static inline void releaseFiber( Fiber *to )
 
     _releaseFiber( to );
 }
+#endif
+
 #endif
 
 #endif

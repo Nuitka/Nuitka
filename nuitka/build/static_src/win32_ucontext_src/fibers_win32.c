@@ -17,6 +17,8 @@
 //
 // Implementation of process context switch for Win32
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
 #include "nuitka/prelude.h"
 
 // Less than 1MB is ignored on Win32 apparently.
@@ -55,3 +57,5 @@ void _swapFiber( Fiber *to, Fiber *from )
     assert( from->fiber != NULL );
     SwitchToFiber( from->fiber );
 }
+
+#endif

@@ -17,6 +17,8 @@
 //
 // Implementation of process context switch for generic targets.
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
 #include "nuitka/prelude.h"
 
 // TODO: Make stack size rational.
@@ -75,3 +77,5 @@ void _swapFiber( Fiber *to, Fiber *from )
 
     assert( res == 0 );
 }
+
+#endif

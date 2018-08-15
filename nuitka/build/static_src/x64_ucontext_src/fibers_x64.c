@@ -17,6 +17,8 @@
 //
 // Implementation of process context switch for x64.
 
+#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
 #include "nuitka/prelude.h"
 
 #define STACK_SIZE (1024*1024)
@@ -75,3 +77,5 @@ void _releaseFiber( Fiber *to )
         to->start_stack = NULL;
     }
 }
+
+#endif

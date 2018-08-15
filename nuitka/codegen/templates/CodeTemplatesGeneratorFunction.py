@@ -75,7 +75,7 @@ template_make_generator = """\
 
 
 template_generator_exception_exit = """\
-%(function_cleanup)s\
+%(function_cleanup)s
 #if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
 #else
