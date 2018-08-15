@@ -244,7 +244,6 @@ static PyObject *Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator,
                 Py_DECREF( exception_type );
                 Py_XDECREF( exception_value );
                 Py_XDECREF( exception_tb );
-
             }
             else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
             {
@@ -266,15 +265,15 @@ static PyObject *Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator,
 
         if (unlikely( send_value == NULL ))
         {
-            if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_StopIteration ) )
+            PyObject *error = GET_ERROR_OCCURRED();
+
+            if ( error != NULL && EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) )
             {
                 generator->m_returned = ERROR_GET_STOP_ITERATION_VALUE();
 
                 assert( !ERROR_OCCURRED() );
                 return NULL;
             }
-
-            return NULL;
         }
 
     }
