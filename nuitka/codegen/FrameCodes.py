@@ -96,14 +96,10 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         real_parent_exception_exit = parent_exception_exit
         parent_exception_exit = context.allocateLabel("nested_frame_exit")
 
-    if statement_sequence.hasStructureMember():
-        frame_identifier = "%s->m_frame" % context.getContextObjectName()
-    else:
-        frame_identifier = code_identifier.replace("codeobj_", "frame_")
-
     # Allow stacking of frame handles.
-    frame_identifier = context.pushFrameHandle(
-        frame_identifier
+    context.pushFrameHandle(
+        code_identifier,
+        statement_sequence.hasStructureMember()
     )
 
     context.setExceptionEscape(
@@ -173,7 +169,6 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         )
     elif guard_mode == "full":
         getFrameGuardHeavyCode(
-            frame_identifier      = context.getFrameHandle(),
             code_identifier       = code_identifier,
             type_descriptions     = type_descriptions,
             parent_exception_exit = parent_exception_exit,
@@ -187,7 +182,6 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         )
     elif guard_mode == "once":
         getFrameGuardOnceCode(
-            frame_identifier      = context.getFrameHandle(),
             code_identifier       = code_identifier,
             parent_exception_exit = parent_exception_exit,
             parent_return_exit    = parent_return_exit,
@@ -246,8 +240,8 @@ def getFrameAttachLocalsCode(context, frame_identifier):
     }
 
 
-def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
-                           type_descriptions, needs_preserve, parent_exception_exit,
+def getFrameGuardHeavyCode(code_identifier, codes, type_descriptions,
+                           needs_preserve, parent_exception_exit,
                            parent_return_exit, frame_exception_exit,
                            frame_return_exit, emit, context):
     # We really need this many parameters here and it gets very
@@ -255,21 +249,22 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
 
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
-    context.variable_storage.addFrameDeclaration(frame_identifier)
-    context.variable_storage.addFrameCacheDeclaration(frame_identifier)
+    frame_identifier = context.getFrameHandle()
+    frame_cache_identifier = context.variable_storage.addFrameCacheDeclaration(frame_identifier.code_name)
 
     _exception_type, _exception_value, _exception_tb, exception_lineno = \
       context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
         template_frame_guard_full_block % {
-            "frame_identifier"  : frame_identifier,
-            "code_identifier"   : code_identifier,
-            "locals_size"       : getFrameLocalsStorageSize(type_descriptions),
-            "codes"             : indented(codes, 0),
-            "module_identifier" : getModuleAccessCode(context),
-            "no_exception_exit" : no_exception_exit,
-            "needs_preserve"    : 1 if needs_preserve else 0,
+            "frame_identifier"       : frame_identifier,
+            "frame_cache_identifier" : frame_cache_identifier,
+            "code_identifier"        : code_identifier,
+            "locals_size"            : getFrameLocalsStorageSize(type_descriptions),
+            "codes"                  : indented(codes, 0),
+            "module_identifier"      : getModuleAccessCode(context),
+            "no_exception_exit"      : no_exception_exit,
+            "needs_preserve"         : 1 if needs_preserve else 0,
         }
     )
 
@@ -284,41 +279,43 @@ def getFrameGuardHeavyCode(frame_identifier, code_identifier, codes,
         )
 
     if frame_exception_exit is not None:
+        _exception_type, _exception_value, exception_tb, exception_lineno = \
+          context.variable_storage.getExceptionVariableDescriptions()
 
         emit(
             template_frame_guard_full_exception_handler % {
-                "frame_identifier"      : frame_identifier,
-                "tb_making"             : getTracebackMakingIdentifier(
-                                              context     = context,
-                                              lineno_name = exception_lineno
-                                          ),
-                "parent_exception_exit" : parent_exception_exit,
-                "frame_exception_exit"  : frame_exception_exit,
-                "attach_locals"         : getFrameAttachLocalsCode(context, frame_identifier),
-                "needs_preserve"        : 1 if needs_preserve else 0,
+                "frame_identifier"       : frame_identifier,
+                "frame_cache_identifier" : frame_cache_identifier,
+                "tb_making"              : getTracebackMakingIdentifier(
+                    context     = context,
+                    lineno_name = exception_lineno
+                ),
+                "parent_exception_exit"  : parent_exception_exit,
+                "frame_exception_exit"   : frame_exception_exit,
+                "attach_locals"          : getFrameAttachLocalsCode(context, frame_identifier),
+                "needs_preserve"         : 1 if needs_preserve else 0,
+                "exception_tb"           : exception_tb,
+                "exception_lineno"       : exception_lineno
             }
         )
 
     emit("%s:;\n" % no_exception_exit)
 
 
-def getFrameGuardOnceCode(frame_identifier, code_identifier,
-                          codes, parent_exception_exit, parent_return_exit,
-                          frame_exception_exit, frame_return_exit,
-                          needs_preserve, emit, context):
+def getFrameGuardOnceCode(code_identifier, codes, parent_exception_exit,
+                          parent_return_exit, frame_exception_exit,
+                          frame_return_exit, needs_preserve, emit, context):
     # We really need this many parameters here.
 
     # Used for modules only currently, but that ought to change.
     assert parent_return_exit is None and frame_return_exit is None
 
-    context.variable_storage.addFrameDeclaration(frame_identifier)
-
-    _exception_type, _exception_value, _exception_tb, exception_lineno = \
+    _exception_type, _exception_value, exception_tb, exception_lineno = \
       context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
         template_frame_guard_once % {
-            "frame_identifier"      : frame_identifier,
+            "frame_identifier"      : context.getFrameHandle(),
             "code_identifier"       : code_identifier,
             "codes"                 : indented(codes, 0),
             "module_identifier"     : getModuleAccessCode(context),
@@ -331,7 +328,9 @@ def getFrameGuardOnceCode(frame_identifier, code_identifier,
             "no_exception_exit"     : context.allocateLabel(
                 "frame_no_exception"
             ),
-            "needs_preserve"        : 1 if needs_preserve else 0
+            "needs_preserve"        : 1 if needs_preserve else 0,
+            "exception_tb"          : exception_tb,
+            "exception_lineno"      : exception_lineno
         }
     )
 
@@ -347,16 +346,15 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
 
     context_identifier = context.getContextObjectName()
 
-    context.variable_storage.addFrameCacheDeclaration("frame_%s" % context_identifier)
-
     no_exception_exit = context.allocateLabel("frame_no_exception")
 
-    frame_identifier = context_identifier + "->m_frame"
+    frame_identifier = context.getFrameHandle()
+    frame_cache_identifier = context.variable_storage.addFrameCacheDeclaration(frame_identifier.code_name)
 
     emit(
         template_frame_guard_generator % {
             "context_identifier"     : context_identifier,
-            "frame_cache_identifier" : "cache_frame_" + context_identifier,
+            "frame_cache_identifier" : frame_cache_identifier,
             "code_identifier"        : code_identifier,
             "locals_size"            : getFrameLocalsStorageSize(type_descriptions),
             "codes"                  : indented(codes, 0),
@@ -379,8 +377,8 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
         emit(
             template_frame_guard_generator_exception_handler % {
                 "context_identifier"     : context_identifier,
-                "frame_identifier"       : "%s->m_frame" % context_identifier,
-                "frame_cache_identifier" : "cache_frame_" + context_identifier,
+                "frame_identifier"       : frame_identifier,
+                "frame_cache_identifier" : frame_cache_identifier,
                 "exception_type"         : exception_type,
                 "exception_tb"           : exception_tb,
                 "exception_lineno"       : exception_lineno,

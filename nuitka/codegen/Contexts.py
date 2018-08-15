@@ -35,7 +35,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .Namify import namifyConstant
-from .VariableDeclarations import VariableStorage
+from .VariableDeclarations import VariableDeclaration, VariableStorage
 
 
 class ContextMetaClass(ABCMeta):
@@ -868,11 +868,28 @@ class FrameDeclarationsMixin(object):
     def getFrameHandle(self):
         return self.frame_stack[-1]
 
-    def pushFrameHandle(self, frame_handle):
+    def pushFrameHandle(self, code_identifier, is_light):
         self.frames_used += 1
 
-        if self.frames_used > 1:
-            frame_handle += "_%d" % self.frames_used
+        if is_light:
+            frame_identifier = VariableDeclaration(
+                "struct Nuitka_FrameObject *",
+                "m_frame",
+                None,
+                self.getContextObjectName()
+            )
+
+        else:
+            frame_handle = code_identifier.replace("codeobj_", "frame_")
+
+            if self.frames_used > 1:
+                frame_handle += "_%d" % self.frames_used
+
+            frame_identifier = self.variable_storage.addVariableDeclarationTop(
+                "struct Nuitka_FrameObject *",
+                frame_handle,
+                None
+            )
 
         self.variable_storage.addVariableDeclarationTop(
             "NUITKA_MAY_BE_UNUSED char const *",
@@ -880,8 +897,9 @@ class FrameDeclarationsMixin(object):
             "NULL"
         )
 
-        self.frame_stack.append(frame_handle)
-        return self.frame_stack[-1]
+
+        self.frame_stack.append(frame_identifier)
+        return frame_identifier
 
     def popFrameHandle(self):
         result = self.frame_stack[-1]
@@ -1310,8 +1328,8 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
     def getFrameHandle(self):
         return self.parent.getFrameHandle()
 
-    def pushFrameHandle(self, frame_handle):
-        return self.parent.pushFrameHandle(frame_handle)
+    def pushFrameHandle(self, code_identifier, is_light):
+        return self.parent.pushFrameHandle(code_identifier, is_light)
 
     def popFrameHandle(self):
         return self.parent.popFrameHandle()

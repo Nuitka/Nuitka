@@ -21,8 +21,8 @@
 
 # Frame in a function
 template_frame_guard_full_block = """\
-MAKE_OR_REUSE_FRAME( cache_%(frame_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s );
-%(frame_identifier)s = cache_%(frame_identifier)s;
+MAKE_OR_REUSE_FRAME( %(frame_cache_identifier)s, %(code_identifier)s, %(module_identifier)s, %(locals_size)s );
+%(frame_identifier)s = %(frame_cache_identifier)s;
 
 // Push the new frame as the currently active one.
 pushFrameStack( %(frame_identifier)s );
@@ -69,24 +69,24 @@ template_frame_guard_full_exception_handler = """\
 RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );
 #endif
 
-if ( exception_tb == NULL )
+if ( %(exception_tb)s == NULL )
 {
-    exception_tb = %(tb_making)s;
+    %(exception_tb)s = %(tb_making)s;
 }
-else if ( exception_tb->tb_frame != &%(frame_identifier)s->m_frame )
+else if ( %(exception_tb)s->tb_frame != &%(frame_identifier)s->m_frame )
 {
-    exception_tb = ADD_TRACEBACK( exception_tb, %(frame_identifier)s, exception_lineno );
+    %(exception_tb)s = ADD_TRACEBACK( %(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s );
 }
 
 // Attachs locals to frame if any.
 %(attach_locals)s
 
 // Release cached frame.
-if ( %(frame_identifier)s == cache_%(frame_identifier)s )
+if ( %(frame_identifier)s == %(frame_cache_identifier)s )
 {
     Py_DECREF( %(frame_identifier)s );
 }
-cache_%(frame_identifier)s = NULL;
+%(frame_cache_identifier)s = NULL;
 
 assertFrameObject( %(frame_identifier)s );
 
@@ -125,13 +125,13 @@ goto %(no_exception_exit)s;
 RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );
 #endif
 
-if ( exception_tb == NULL )
+if ( %(exception_tb)s == NULL )
 {
-    exception_tb = %(tb_making)s;
+    %(exception_tb)s = %(tb_making)s;
 }
 else if ( exception_tb->tb_frame != &%(frame_identifier)s->m_frame )
 {
-    exception_tb = ADD_TRACEBACK( exception_tb, %(frame_identifier)s, exception_lineno );
+    %(exception_tb)s = ADD_TRACEBACK( %(exception_tb)s, %(frame_identifier)s, %(exception_lineno)s );
 }
 
 // Put the previous frame back on top.

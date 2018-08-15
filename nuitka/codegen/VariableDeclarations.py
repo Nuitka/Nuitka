@@ -159,15 +159,8 @@ class VariableStorage(object):
     def getVariableDeclarationClosure(self, closure_index):
         return self.variable_declarations_closure[closure_index]
 
-    def addFrameDeclaration(self, frame_identifier):
-        self.addVariableDeclarationTop(
-            "struct Nuitka_FrameObject *",
-            frame_identifier,
-            None
-        )
-
     def addFrameCacheDeclaration(self, frame_identifier):
-        self.addVariableDeclarationFunction(
+        return self.addVariableDeclarationFunction(
             "static struct Nuitka_FrameObject *",
             "cache_%s" % frame_identifier,
             "NULL"
