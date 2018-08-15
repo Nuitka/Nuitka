@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-import sys, os
+import sys, os, types
 
 # Find nuitka package relative to us.
 sys.path.insert(
@@ -30,6 +30,8 @@ sys.path.insert(
 )
 from nuitka.tools.testing.Common import (
     executeReferenceChecked,
+    someGenerator,
+    someGeneratorRaising,
     checkDebugPython
 )
 
@@ -129,6 +131,134 @@ def simpleFunction7():
 
     return list( g() )
 
+
+def simpleFunction8():
+    def g():
+        x = someGenerator()
+        assert type(x) is types.GeneratorType
+
+        yield from x
+
+    gen = g()
+    next(gen)
+
+    try:
+        gen.throw(ValueError)
+    except ValueError:
+        pass
+
+
+def simpleFunction9():
+    def g():
+        x = someGeneratorRaising()
+        assert type(x) is types.GeneratorType
+
+        yield from x
+
+    gen = g()
+    next(gen)
+
+    try:
+        next(gen)
+    except TypeError:
+        pass
+
+
+class ClassIteratorBrokenClose:
+    def __init__(self):
+        self.my_iter = iter(range(2))
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return next(self.my_iter)
+
+    def close(self):
+        raise TypeError(3)
+
+    __next__ = next
+
+def simpleFunction10():
+    def g():
+        x = ClassIteratorBrokenClose()
+
+        yield from x
+
+    gen = g()
+    next(gen)
+
+    try:
+        gen.throw(GeneratorExit)
+    except GeneratorExit:
+        pass
+    except TypeError:
+        pass
+
+class ClassIteratorBrokenThrow:
+    def __init__(self):
+        self.my_iter = iter(range(2))
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return next(self.my_iter)
+
+    def throw(self, *args):
+        raise TypeError(3)
+
+    __next__ = next
+
+
+def simpleFunction11():
+    def g():
+        x = ClassIteratorBrokenThrow()
+
+        yield from x
+
+    gen = g()
+    next(gen)
+
+    try:
+        gen.throw(ValueError)
+    except GeneratorExit:
+        pass
+    except TypeError:
+        pass
+
+
+class ClassIteratorRejectingThrow:
+    def __init__(self):
+        self.my_iter = iter(range(2))
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return next(self.my_iter)
+
+    def throw(self, *args):
+        pass
+
+    __next__ = next
+
+
+# Lets have an exception that must not be instantiated.
+class MyError(Exception):
+    def __init__(self):
+        assert False
+
+def simpleFunction12():
+    def g():
+        x = ClassIteratorRejectingThrow()
+
+        yield from x
+
+    gen = g()
+    next(gen)
+
+    gen.throw(MyError)
 
 
 # These need stderr to be wrapped.
