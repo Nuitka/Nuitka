@@ -211,7 +211,11 @@ static PyObject *Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator,
         }
 
 #if NUITKA_UNCOMPILED_THROW_INTEGRATION
-        if ( PyGen_CheckExact( value ) || PyCoro_CheckExact( value ))
+        if ( PyGen_CheckExact( value )
+#if PYTHON_VERSION >= 350
+             || PyCoro_CheckExact( value )
+#endif
+        )
         {
             PyGenObject *gen = (PyGenObject *)value;
 
@@ -1493,7 +1497,11 @@ static PyObject *_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject
             }
 
 #if NUITKA_UNCOMPILED_THROW_INTEGRATION
-            if ( PyGen_CheckExact( value ) || PyCoro_CheckExact( value ))
+            if ( PyGen_CheckExact( value )
+#if PYTHON_VERSION >= 350
+                 || PyCoro_CheckExact( value )
+#endif
+            )
             {
                 PyGenObject *gen = (PyGenObject *)value;
 
