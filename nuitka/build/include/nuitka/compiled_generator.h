@@ -54,7 +54,6 @@ struct Nuitka_GeneratorObject {
 
 #if PYTHON_VERSION >= 350
     PyObject *m_qualname;
-    PyObject *m_yieldfrom;
 #endif
 
     // Weak references are supported for generator objects in CPython.
@@ -85,7 +84,11 @@ struct Nuitka_GeneratorObject {
 
     // The yielded value, NULL in case of exception or return.
     PyObject *m_yielded;
+#endif
 
+#if PYTHON_VERSION >= 300
+    // The value currently yielded from.
+    PyObject *m_yieldfrom;
 #endif
 
     // Returned value if yielded value is NULL, is
