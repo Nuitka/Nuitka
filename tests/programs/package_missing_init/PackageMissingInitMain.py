@@ -16,3 +16,6 @@
 #     limitations under the License.
 #
 import some_package.some_module
+print(some_package.__package__)
+import some_package.sub_package.some_sub_module
+print(some_package.sub_package.__package__)

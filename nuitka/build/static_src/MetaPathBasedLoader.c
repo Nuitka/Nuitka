@@ -918,10 +918,20 @@ static PyObject *createModuleSpec( PyObject *module_name )
 
     char const *name = Nuitka_String_AsString( module_name );
 
+    if ( isVerbose() )
+    {
+        PySys_WriteStderr( "import %s # considering responsibility\n", name );
+    }
+
     struct Nuitka_MetaPathBasedLoaderEntry *entry = findEntry( name );
 
     if ( entry == NULL )
     {
+        if ( isVerbose() )
+        {
+            PySys_WriteStderr( "import %s # denied responsibility\n", name );
+        }
+
         Py_INCREF( Py_None );
         return Py_None;
     }
@@ -946,6 +956,14 @@ static PyObject *createModuleSpec( PyObject *module_name )
     if (unlikely( module_spec_class == NULL ))
     {
         return NULL;
+    }
+
+    if ( isVerbose() )
+    {
+        PySys_WriteStderr(
+            "import %s # claimed responsibility (compiled)\n",
+            name
+        );
     }
 
     PyObject *result = PyObject_CallFunctionObjArgs(

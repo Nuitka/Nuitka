@@ -38,6 +38,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         self.pkg_utils_externals = None
 
     def isRequiredImplicitImport(self, module, full_name):
+        # Many cases of course, pylint: disable=too-many-return-statements
+
         if full_name == "_tkinter":
             return False
 
@@ -53,6 +55,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         # Can be built-in.
         if full_name == "_socket":
+            return False
+
+        if full_name == "enum":
             return False
 
         return True
@@ -138,8 +143,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield "PyQt5.QtMultimedia"
                 yield "PyQt5.QtQml"
                 yield "PyQt5.QtWidgets"
-
-
+        elif full_name == "sip" and python_version < 300:
+            yield "enum"
         elif full_name == "PySide.QtDeclarative":
             yield "PySide.QtGui"
         elif full_name == "PySide.QtHelp":

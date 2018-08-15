@@ -1236,3 +1236,13 @@ def withDirectoryChange(path, allow_none = False):
 
     if path is not None or not allow_none:
         os.chdir(old_cwd)
+
+
+def someGenerator():
+    yield 1
+    yield 2
+    yield 3
+
+def someGeneratorRaising():
+    yield 1
+    raise TypeError(2)
