@@ -838,7 +838,15 @@ static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generato
         Py_XINCREF( generator->m_exception_value );
         Py_XINCREF( generator->m_exception_tb );
 
-        NORMALIZE_EXCEPTION( &generator->m_exception_type, &generator->m_exception_value, &generator->m_exception_tb );
+#if PYTHON_VERSION >= 300
+        // During yield from, the normalize is not done.
+        if ( generator->m_yieldfrom == NULL )
+        {
+#endif
+            NORMALIZE_EXCEPTION( &generator->m_exception_type, &generator->m_exception_value, &generator->m_exception_tb );
+#if PYTHON_VERSION >= 300
+        }
+#endif
     }
     else if ( PyExceptionInstance_Check( generator->m_exception_type ) )
     {

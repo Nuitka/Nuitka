@@ -239,7 +239,7 @@ class ClassIteratorRejectingThrow:
         return next(self.my_iter)
 
     def throw(self, *args):
-        pass
+        assert len(args) == 1
 
     __next__ = next
 
