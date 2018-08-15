@@ -984,15 +984,16 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
 
     elif Importing.isPackageDir(filename):
         if is_top:
-            package_name = splitPath(filename)[-1]
+            module_name = splitPath(filename)[-1]
         else:
-            package_name = os.path.basename(filename)
+            module_name = os.path.basename(filename)
 
         source_filename = os.path.join(filename, "__init__.py")
 
         if not os.path.isfile(source_filename):
             source_ref, result = createNamespacePackage(
-                package_name   = package_name,
+                module_name    = module_name,
+                package_name   = package,
                 module_relpath = filename
             )
             source_filename = None
@@ -1002,12 +1003,12 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             )
 
             if package is not None:
-                full_name = package + '.' + package_name
+                full_name = package + '.' + module_name
             else:
-                full_name = package_name
+                full_name = module_name
 
             result = CompiledPythonPackage(
-                name         = package_name,
+                name         = module_name,
                 package_name = package,
                 mode         = Plugins.decideCompilation(full_name, source_ref),
                 future_spec  = None,

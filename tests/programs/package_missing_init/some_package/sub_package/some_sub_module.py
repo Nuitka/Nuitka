@@ -19,9 +19,9 @@
 print( "This must be Python3 which no longer needs __init__.py to accept a package." )
 
 import sys
-print("The parent path is", sys.modules["some_package"].__path__)
+print("The parent path is", sys.modules["some_package.sub_package"].__path__)
 
-def f():
+def s():
     pass
 
-print(f)
+print(s)

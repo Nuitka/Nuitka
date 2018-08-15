@@ -145,7 +145,7 @@ def createPathAssignment(package, source_ref):
     )
 
 
-def createPython3NamespacePath(package, package_name, module_relpath, source_ref):
+def createPython3NamespacePath(package, module_relpath, source_ref):
     return StatementAssignmentVariableName(
         provider      = package,
         variable_name = "__path__",
@@ -163,7 +163,7 @@ def createPython3NamespacePath(package, package_name, module_relpath, source_ref
             ),
             args       = makeConstantRefNode(
                 constant   = (
-                    package_name,
+                    package.getFullName(),
                     [module_relpath],
                     None
                 ),
@@ -175,20 +175,19 @@ def createPython3NamespacePath(package, package_name, module_relpath, source_ref
     )
 
 
-def createNamespacePackage(package_name, module_relpath):
-    parts = package_name.split('.')
-
+def createNamespacePackage(module_name, package_name, module_relpath):
     source_ref = SourceCodeReference.fromFilenameAndLine(
         filename = module_relpath,
         line     = 1
     )
     source_ref = source_ref.atInternal()
 
-    package_package_name = '.'.join(parts[:-1]) or None
+    package_name = package_name or None
+
     package = CompiledPythonPackage(
-        name         = parts[-1],
+        name         = module_name,
         mode         = "compiled",
-        package_name = package_package_name,
+        package_name = package_name,
         future_spec  = FutureSpec(),
         source_ref   = source_ref,
     )
@@ -196,7 +195,6 @@ def createNamespacePackage(package_name, module_relpath):
     if python_version >= 300:
         statement = createPython3NamespacePath(
             package        = package,
-            package_name   = package_name,
             module_relpath = module_relpath,
             source_ref     = source_ref
         )

@@ -1092,6 +1092,11 @@ static PyObject *_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject
 
                     if (unlikely( close_value == NULL ))
                     {
+
+                        Py_CLEAR( generator->m_exception_type );
+                        Py_CLEAR( generator->m_exception_value );
+                        Py_CLEAR( generator->m_exception_tb );
+
                         return NULL;
                     }
 
@@ -1124,6 +1129,10 @@ static PyObject *_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject
                     generator->m_exception_value,
                     (PyObject *)generator->m_exception_tb
                 );
+
+                Py_CLEAR( generator->m_exception_type );
+                Py_CLEAR( generator->m_exception_value );
+                Py_CLEAR( generator->m_exception_tb );
             }
             else
 #endif
@@ -1135,6 +1144,9 @@ static PyObject *_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject
                     retval = PyObject_CallFunctionObjArgs( throw_method, generator->m_exception_type, generator->m_exception_value, generator->m_exception_tb, NULL );
                     Py_DECREF( throw_method );
 
+                    Py_CLEAR( generator->m_exception_type );
+                    Py_CLEAR( generator->m_exception_value );
+                    Py_CLEAR( generator->m_exception_tb );
                 }
                 else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
                 {
@@ -1307,6 +1319,11 @@ static PyObject *_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generato
 
                     if (unlikely( close_value == NULL ))
                     {
+
+                        Py_CLEAR( generator->m_exception_type );
+                        Py_CLEAR( generator->m_exception_value );
+                        Py_CLEAR( generator->m_exception_tb );
+
                         return NULL;
                     }
 
@@ -1339,10 +1356,9 @@ static PyObject *_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generato
                     return NULL;
                 }
 
-
-                generator->m_exception_type = NULL;
-                generator->m_exception_value = NULL;
-                generator->m_exception_tb = NULL;
+                Py_CLEAR( generator->m_exception_type );
+                Py_CLEAR( generator->m_exception_value );
+                Py_CLEAR( generator->m_exception_tb );
             }
             else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
             {
