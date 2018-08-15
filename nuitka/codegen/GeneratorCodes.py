@@ -113,9 +113,19 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
 
     generator_object_body = context.getOwner()
 
+    if local_type_decl:
+        heap_declaration = """\
+struct %(function_identifier)s_locals *generator_heap = \
+(struct %(function_identifier)s_locals *)generator->m_heap_storage;""" % {
+            "function_identifier" : function_identifier
+        }
+    else:
+        heap_declaration = ""
+
     return template_genfunc_yielder_body_template % {
         "function_identifier"    : function_identifier,
         "function_body"          : indented(function_codes.codes),
+        "heap_declaration"       : indented(heap_declaration),
         "function_local_types"   : indented(local_type_decl),
         "function_var_inits"     : indented(function_locals),
         "function_dispatch"      : indented(function_dispatch),

@@ -37,9 +37,8 @@ static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *gene
     CHECK_OBJECT( (PyObject *)generator );
     assert( Nuitka_Generator_Check( (PyObject *)generator ) );
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
-    struct %(function_identifier)s_locals *generator_heap = (struct %(function_identifier)s_locals *)generator->m_heap_storage;
-#endif
+    // Heap access if used.
+%(heap_declaration)s
 
     // Dispatch to yield based on return label index:
 %(function_dispatch)s
