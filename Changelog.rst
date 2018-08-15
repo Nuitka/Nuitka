@@ -44,6 +44,29 @@ Bug Fixes
   be modified, leading to severe corruption potentially. Fixed in 0.5.32.4
   already.
 
+- Python3: When an exception is thrown into a generator that currently does
+  a ``yield from`` is not to be normalized.
+
+- Python3: Some exception handling cases of ``yield from`` were leaking
+  references to objects. Fixed in 0.5.32.5 already.
+
+- Python3: Nested namespace packages were not working unless the directory
+  continued to exist on disk. Fixed in 0.5.32.5 already.
+
+- Standalone: Do not include ``icuuc.dll`` which is a system DLL. Fixed in
+  0.5.32.5 already.
+
+- Standalone: Added hidden dependency of newer version of ``sip``. Fixed in
+  0.5.32.5 already.
+
+Organizational
+--------------
+
+- Document the threading model and exception model to use for MinGW64.
+
+- Removed the ``enum`` plug-in which is no longer useful after the improvements
+  to the ``staticmethod`` handling for Python3.
+
 New Features
 ------------
 
