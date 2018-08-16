@@ -132,6 +132,13 @@ def makeRaiseExceptionExpressionFromTemplate(exception_type, template,
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
     from .OperatorNodes import makeBinaryOperationNode
     from .ConstantRefNodes import makeConstantRefNode
+    from .ContainerMakingNodes import ExpressionMakeTuple
+
+    if type(template_args) is tuple:
+        template_args = ExpressionMakeTuple(
+            elements   = template_args,
+            source_ref = source_ref
+        )
 
     return ExpressionRaiseException(
         exception_type  = ExpressionBuiltinExceptionRef(
@@ -150,6 +157,7 @@ def makeRaiseExceptionExpressionFromTemplate(exception_type, template,
         ),
         source_ref      = source_ref
     )
+
 
 def makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(template,
                                                                operation,
