@@ -136,6 +136,76 @@ static const int await_enter = 1;
 static const int await_exit = 2;
 #endif
 
+static inline void SAVE_COROUTINE_EXCEPTION( struct Nuitka_CoroutineObject *coroutine )
+{
+    /* Before Python3.7: When yielding from an exception handler in Python3,
+     * the exception preserved to the frame is restored, while the current one
+     * is put as there.
+     *
+     * Python3.7: The exception is preserved in the coroutine object itself
+     * which has a new "m_exc_state" structure just for that.
+     */
+
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    PyObject *saved_exception_type = EXC_TYPE(thread_state);
+    PyObject *saved_exception_value = EXC_VALUE(thread_state);
+    PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
+
+#if PYTHON_VERSION < 370
+    EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
+    EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
+    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
+#else
+    EXC_TYPE(thread_state) = coroutine->m_exc_state.exc_type;
+    EXC_VALUE(thread_state) = coroutine->m_exc_state.exc_value;
+    EXC_TRACEBACK(thread_state) = coroutine->m_exc_state.exc_traceback;
+#endif
+
+#if _DEBUG_EXCEPTIONS
+    PRINT_STRING("YIELD exit:\n");
+    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
+#endif
+
+#if PYTHON_VERSION < 370
+    thread_state->frame->f_exc_type = saved_exception_type;
+    thread_state->frame->f_exc_value = saved_exception_value;
+    thread_state->frame->f_exc_traceback = saved_exception_traceback;
+#else
+    coroutine->m_exc_state.exc_type = saved_exception_type;
+    coroutine->m_exc_state.exc_value = saved_exception_value;;
+    coroutine->m_exc_state.exc_traceback = saved_exception_traceback;
+#endif
+}
+
+static inline void RESTORE_COROUTINE_EXCEPTION( struct Nuitka_CoroutineObject *coroutine )
+{
+    // When returning from yield, the exception of the frame is preserved, and
+    // the one that enters should be there.
+    PyThreadState *thread_state = PyThreadState_GET();
+
+    PyObject *saved_exception_type = EXC_TYPE(thread_state);
+    PyObject *saved_exception_value = EXC_VALUE(thread_state);
+    PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
+
+#if PYTHON_VERSION < 370
+    EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
+    EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
+    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
+
+    thread_state->frame->f_exc_type = saved_exception_type;
+    thread_state->frame->f_exc_value = saved_exception_value;
+    thread_state->frame->f_exc_traceback = saved_exception_traceback;
+#else
+    EXC_TYPE(thread_state) = coroutine->m_exc_state.exc_type;
+    EXC_VALUE(thread_state) = coroutine->m_exc_state.exc_value;
+    EXC_TRACEBACK(thread_state) = coroutine->m_exc_state.exc_traceback;
+
+    coroutine->m_exc_state.exc_type = saved_exception_type;
+    coroutine->m_exc_state.exc_value = saved_exception_value;
+    coroutine->m_exc_state.exc_traceback = saved_exception_traceback;
+#endif
+}
 
 extern PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
 extern PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
