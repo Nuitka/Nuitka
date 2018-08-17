@@ -263,7 +263,12 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
             coroutine->m_status = status_Finished;
 
             Py_XDECREF( coroutine->m_frame );
-            coroutine->m_frame = NULL;
+            if ( coroutine->m_frame )
+            {
+                coroutine->m_frame->m_frame.f_gen = NULL;
+                Py_DECREF( coroutine->m_frame );
+                coroutine->m_frame = NULL;
+            }
 
             Nuitka_Coroutine_release_closure( coroutine );
 
@@ -294,8 +299,12 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
 
             coroutine->m_status = status_Finished;
 
-            Py_XDECREF( coroutine->m_frame );
-            coroutine->m_frame = NULL;
+            if ( coroutine->m_frame )
+            {
+                coroutine->m_frame->m_frame.f_gen = NULL;
+                Py_DECREF( coroutine->m_frame );
+                coroutine->m_frame = NULL;
+            }
 
             Nuitka_Coroutine_release_closure( coroutine );
 
