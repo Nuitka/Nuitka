@@ -206,8 +206,14 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
         {
             generator->m_status = status_Finished;
 
-            Py_XDECREF( generator->m_frame );
-            generator->m_frame = NULL;
+            if ( generator->m_frame != NULL )
+            {
+#if PYTHON_VERSION >= 340
+                generator->m_frame->m_frame.f_gen = NULL;
+#endif
+                Py_DECREF( generator->m_frame );
+                generator->m_frame = NULL;
+            }
 
             Nuitka_Generator_release_closure( generator );
 
@@ -663,7 +669,14 @@ static void Nuitka_Generator_tp_dealloc( struct Nuitka_GeneratorObject *generato
 
     Nuitka_Generator_release_closure( generator );
 
-    Py_XDECREF( generator->m_frame );
+    if ( generator->m_frame != NULL )
+    {
+#if PYTHON_VERSION >= 340
+        generator->m_frame->m_frame.f_gen = NULL;
+#endif
+        Py_DECREF( generator->m_frame );
+        generator->m_frame = NULL;
+    }
 
     assert( Py_REFCNT( generator ) == 1 );
     Py_REFCNT( generator ) = 0;
