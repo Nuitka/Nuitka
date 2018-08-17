@@ -175,10 +175,16 @@ extern PyObject *Nuitka_UncompiledGenerator_throw( PyGenObject *gen, int close_o
 
 extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
 
-static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *coroutine, bool closing );
 extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
 
 extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
+
+extern PyObject *_Nuitka_YieldFromPassExceptionTo(
+    PyObject *value,
+    PyObject *exception_type,
+    PyObject *exception_value,
+    PyTracebackObject *exception_tb
+);
 
 static PyObject *_Nuitka_YieldFromCoroutineCore( struct Nuitka_CoroutineObject *coroutine, PyObject *send_value )
 {
@@ -208,113 +214,7 @@ static PyObject *_Nuitka_YieldFromCoroutineCore( struct Nuitka_CoroutineObject *
     // Exception, was thrown into us, need to send that to sub-generator.
     if ( exception_type )
     {
-        // The yielding coroutine is being closed, but we also are tasked to
-        // immediately close the currently running sub-generator.
-        if ( EXCEPTION_MATCH_BOOL_SINGLE( exception_type, PyExc_GeneratorExit ) )
-        {
-            PyObject *close_method = PyObject_GetAttr( value, const_str_plain_close );
-
-            if ( close_method )
-            {
-                PyObject *close_value = PyObject_Call( close_method, const_tuple_empty, NULL );
-                Py_DECREF( close_method );
-
-                if (unlikely( close_value == NULL ))
-                {
-                    Py_DECREF( exception_type );
-                    Py_XDECREF( exception_value );
-                    Py_XDECREF( exception_tb );
-
-                    return NULL;
-                }
-
-                Py_DECREF( close_value );
-            }
-            else
-            {
-                PyObject *error = GET_ERROR_OCCURRED();
-
-                if ( error != NULL && !EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_AttributeError ) )
-                {
-                    PyErr_WriteUnraisable( (PyObject *)value );
-                }
-            }
-
-            RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
-
-            return NULL;
-        }
-
-        if ( PyGen_CheckExact( value ) || PyCoro_CheckExact( value ) )
-        {
-            PyGenObject *gen = (PyGenObject *)value;
-
-            retval = Nuitka_UncompiledGenerator_throw(
-                gen,
-                0, // ??
-                exception_type,
-                exception_value,
-                (PyObject *)exception_tb
-            );
-
-            Py_DECREF( exception_type );
-            Py_XDECREF( exception_value );
-            Py_XDECREF( exception_tb );
-        }
-        else if ( Nuitka_Coroutine_Check( value ) )
-        {
-            assert( false );
-
-            retval = _Nuitka_Coroutine_throw2(
-                (struct Nuitka_CoroutineObject *)value,
-                false
-            );
-        }
-        else if ( Nuitka_CoroutineWrapper_Check( value ) )
-        {
-            assert( false );
-
-            struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineWrapperObject *)value)->m_coroutine;
-
-            coro->m_exception_type = exception_type;
-            coro->m_exception_value = exception_value;
-            coro->m_exception_tb = exception_tb;
-
-            retval = _Nuitka_Coroutine_throw2(
-                coro,
-                false
-            );
-        }
-        else
-        {
-            PyObject *throw_method = PyObject_GetAttr( value, const_str_plain_throw );
-
-            if ( throw_method )
-            {
-                retval = PyObject_CallFunctionObjArgs( throw_method, exception_type, exception_value, exception_tb, NULL );
-                Py_DECREF( throw_method );
-
-                Py_DECREF( exception_type );
-                Py_XDECREF( exception_value );
-                Py_XDECREF( exception_tb );
-            }
-            else if ( EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
-            {
-                RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
-
-                return NULL;
-            }
-            else
-            {
-                assert( ERROR_OCCURRED() );
-
-                Py_DECREF( exception_type );
-                Py_XDECREF( exception_value );
-                Py_XDECREF( exception_tb );
-
-                return NULL;
-            }
-        }
+        retval = _Nuitka_YieldFromPassExceptionTo( value, exception_type, exception_value, exception_tb );
 
         if (unlikely( send_value == NULL ))
         {
@@ -760,7 +660,7 @@ bool Nuitka_gen_close_iter( PyObject *yieldfrom )
 
 extern PyObject *const_str_plain_throw;
 
-static PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *coroutine, bool closing )
+PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *coroutine, bool closing )
 {
     assert( Nuitka_Coroutine_Check( (PyObject *)coroutine ) );
 
