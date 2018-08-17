@@ -18,14 +18,10 @@
 /** Compiled Generators.
  *
  * Unlike in CPython, we have one type for just generators, this doesn't do coroutines
- * nor async.
+ * nor asyncgen.
  *
  * It strives to be full replacement for normal generators, while providing also an
  * interface for quick iteration from compiled code.
- *
- * Unfortunately, due to implementation details of CPython, there is difficulty with
- * interacting with generator objects from code that is not compiled with "yield from"
- * and thrown exceptions.
  *
  */
 

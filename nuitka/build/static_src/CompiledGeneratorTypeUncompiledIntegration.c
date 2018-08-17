@@ -23,7 +23,10 @@
  */
 
 #if PYTHON_VERSION >= 300
-static void Nuitka_SetStopIterationValue( PyObject *value )
+#if PYTHON_VERSION < 350
+static
+#endif
+void Nuitka_SetStopIterationValue( PyObject *value )
 {
     CHECK_OBJECT( value );
 

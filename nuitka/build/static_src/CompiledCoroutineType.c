@@ -15,6 +15,14 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 //
+/** Compiled Coroutines.
+ *
+ * Unlike in CPython, we have one type for just coroutines, this doesn't do generators
+ * nor asyncgen.
+ *
+ * It strives to be full replacement for normal coroutines.
+ *
+ */
 
 #include "nuitka/prelude.h"
 
@@ -408,6 +416,9 @@ static PyObject *Nuitka_YieldFromCoroutineNext( struct Nuitka_CoroutineObject *c
 
 #endif
 
+
+extern void Nuitka_SetStopIterationValue( PyObject *value );
+
 static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutine, PyObject *value, bool closing )
 {
 #if _DEBUG_COROUTINE
@@ -573,23 +584,15 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
 
             Nuitka_Coroutine_release_closure( coroutine );
 
-            PyObject *result = coroutine->m_returned;
-
-            if ( result == Py_None )
+            // Create StopIteration if necessary, i.e. return value that is not "None" was
+            // given. TODO: Push this further down the user line, we might be able to avoid
+            // it for some uses, e.g. quick iteration entirely.
+            if ( coroutine->m_returned )
             {
-                PyErr_SetObject( PyExc_StopIteration, Py_None );
-                Py_DECREF( Py_None );
-            }
-            else
-            {
-                PyObject *exc_result  = PyObject_CallFunctionObjArgs( PyExc_StopIteration, result, NULL );
-                Py_DECREF( result );
+                Nuitka_SetStopIterationValue( coroutine->m_returned );
 
-                if (likely( exc_result != NULL ))
-                {
-                    PyErr_SetObject( PyExc_StopIteration, exc_result );
-                    Py_DECREF( exc_result );
-                }
+                Py_DECREF( coroutine->m_returned );
+                coroutine->m_returned = NULL;
             }
 
             return NULL;
