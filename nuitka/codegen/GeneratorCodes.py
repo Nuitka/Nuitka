@@ -39,6 +39,7 @@ from .templates.CodeTemplatesGeneratorFunction import (
     template_genfunc_yielder_maker_decl,
     template_make_generator
 )
+from .YieldCodes import getYieldReturnDispatchCode
 
 
 def getGeneratorObjectDeclCode(function_identifier):
@@ -94,18 +95,6 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
                              None
         }
 
-    function_dispatch = [
-        "case %(index)d: goto yield_return_%(index)d;" % {
-            "index" : yield_index
-        }
-        for yield_index in
-        range(context.getLabelCount("yield_return"), 0, -1)
-    ]
-
-    if function_dispatch:
-        function_dispatch.insert(0, "switch(generator->m_yield_return_index) {")
-        function_dispatch.append('}')
-
     function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
     local_type_decl = context.variable_storage.makeCStructLevelDeclarations()
@@ -128,7 +117,7 @@ struct %(function_identifier)s_locals *generator_heap = \
         "heap_declaration"       : indented(heap_declaration),
         "function_local_types"   : indented(local_type_decl),
         "function_var_inits"     : indented(function_locals),
-        "function_dispatch"      : indented(function_dispatch),
+        "function_dispatch"      : indented(getYieldReturnDispatchCode(context)),
         "generator_exit"         : generator_exit,
         "generator_module"       : getModuleAccessCode(context),
         "generator_name_obj"     : context.getConstantCode(

@@ -49,6 +49,14 @@ def simpleFunction1():
 
 ####################################
 
+def simpleFunction2():
+    async def foo():
+        return 7
+
+    run_async(foo())
+
+####################################
+
 class AsyncIteratorWrapper:
     def __init__(self, obj):
         self._it = iter(obj)
@@ -80,12 +88,6 @@ def simpleFunction3():
     run_async(f())
 
 ####################################
-
-def simpleFunction2():
-    async def foo():
-        return 7
-
-    run_async(foo())
 
 def simpleFunction4():
     async def foo():

@@ -148,12 +148,13 @@ extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_
 
 static PyObject *_Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator, PyObject *send_value )
 {
-    PyObject *value = generator->m_yieldfrom;
-
     // Send iteration value to the sub-generator, which may be a CPython
     // generator object, something with an iterator next, or a send method,
     // where the later is only required if values other than "None" need to
     // be passed in.
+    PyObject *value = generator->m_yieldfrom;
+    CHECK_OBJECT( value );
+
     PyObject *retval;
 
 #if 0
@@ -275,7 +276,6 @@ static PyObject *_Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator
                 return NULL;
             }
         }
-
     }
     else if ( PyGen_CheckExact( value ) )
     {
@@ -357,7 +357,6 @@ static PyObject *Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator,
 
 static PyObject *Nuitka_YieldFromInitial( struct Nuitka_GeneratorObject *generator )
 {
-
     // Coroutines are already perfect for yielding from.
 #if PYTHON_VERSION >= 350
     if ( PyCoro_CheckExact( generator->m_yieldfrom ) || Nuitka_Coroutine_Check( generator->m_yieldfrom ))

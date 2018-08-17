@@ -34,13 +34,13 @@ from .VariableCodes import getLocalVariableDeclaration
 
 
 def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
-    # The locals scope is the context needed, pylint: disable=unused-argument
+    locals_scope = expression.getLocalsScope()
 
+    locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
     emit(
-        """\
-%s = %s;""" % (
+        "%s = %s;" % (
             to_name,
-            expression.getLocalsScope().getCodeName(),
+            locals_declaration,
         )
     )
 

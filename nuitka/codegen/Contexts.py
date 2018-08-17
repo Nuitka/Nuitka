@@ -208,22 +208,22 @@ class TempMixin(object):
             keeper_obj_init = None
 
         return (
-            self.variable_storage.addVariableDeclarationFunction(
+            self.variable_storage.addVariableDeclarationTop(
                 "PyObject *",
                 "exception_keeper_type_%d" % self.keeper_variable_count,
                 keeper_obj_init
             ),
-            self.variable_storage.addVariableDeclarationFunction(
+            self.variable_storage.addVariableDeclarationTop(
                 "PyObject *",
                 "exception_keeper_value_%d" % self.keeper_variable_count,
                 keeper_obj_init
             ),
-            self.variable_storage.addVariableDeclarationFunction(
+            self.variable_storage.addVariableDeclarationTop(
                 "PyTracebackObject *",
                 "exception_keeper_tb_%d" % self.keeper_variable_count,
                 keeper_obj_init
             ),
-            self.variable_storage.addVariableDeclarationFunction(
+            self.variable_storage.addVariableDeclarationTop(
                 "NUITKA_MAY_BE_UNUSED int",
                 "exception_keeper_lineno_%d" % self.keeper_variable_count,
                 '0' if debug else None
@@ -1193,7 +1193,9 @@ class PythonFunctionDirectContext(PythonFunctionContext):
 class PythonGeneratorObjectContext(PythonFunctionContext):
     if isExperimental("generator_heap"):
         def _makeVariableStorage(self):
-            return VariableStorage(heap_name = "generator_heap")
+            return VariableStorage(
+                heap_name = "%s_heap" % self.getContextObjectName()
+            )
 
     def isForDirectCall(self):
         return False

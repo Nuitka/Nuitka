@@ -36,8 +36,14 @@ def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
 
     # Need not preserve it, if we are not going to use it for the purpose
     # of releasing it.
-    if not context.needsCleanup(value_name):
-        locals_preserved.remove(value_name)
+    if type(value_name) is tuple:
+        value_names = value_name
+    else:
+        value_names = (value_name,)
+
+    for name in value_names:
+        if not context.needsCleanup(name):
+            locals_preserved.remove(name)
 
     # Target name is not assigned, no need to preserve it.
     if to_name in locals_preserved:
@@ -69,7 +75,12 @@ def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
         )
 
     if preserve_exception:
-        emit("SAVE_GENERATOR_EXCEPTION( generator );")
+        emit(
+            "SAVE_%s_EXCEPTION( %s );" % (
+                context.getContextObjectName().upper(),
+                context.getContextObjectName()
+            )
+        )
 
     emit(
         """\
@@ -110,8 +121,12 @@ def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
     )
 
     if preserve_exception:
-        emit("RESTORE_GENERATOR_EXCEPTION( generator );")
-
+        emit(
+            "RESTORE_%s_EXCEPTION( %s );" % (
+                context.getContextObjectName().upper(),
+                context.getContextObjectName()
+            )
+        )
 
 def generateYieldCode(to_name, expression, emit, context):
     value_name, = generateChildExpressionsCode(
@@ -175,8 +190,6 @@ def generateYieldFromCode(to_name, expression, emit, context):
     # In handlers, we must preserve/restore the exception.
     preserve_exception = expression.isExceptionPreserving()
 
-    # This will produce GENERATOR_YIELD_FROM, COROUTINE_YIELD_FROM or
-    # ASYNCGEN_YIELD_FROM.
     getReferenceExportCode(value_name, emit, context)
 
     if Options.isExperimental("generator_goto"):
@@ -207,6 +220,8 @@ return NULL;
         if not context.needsCleanup(value_name):
             context.addCleanupTempName(value_name)
 
+        # This will produce GENERATOR_YIELD_FROM, COROUTINE_YIELD_FROM or
+        # ASYNCGEN_YIELD_FROM.
         emit(
             "%s = %s_%s( %s, %s );" % (
                 to_name,
@@ -227,3 +242,22 @@ return NULL;
         )
 
     context.addCleanupTempName(to_name)
+
+
+def getYieldReturnDispatchCode(context):
+    function_dispatch = [
+        "case %(index)d: goto yield_return_%(index)d;" % {
+            "index" : yield_index
+        }
+        for yield_index in
+        range(context.getLabelCount("yield_return"), 0, -1)
+    ]
+
+    if function_dispatch:
+        function_dispatch.insert(
+            0,
+            "switch(%s->m_yield_return_index) {" % context.getContextObjectName()
+        )
+        function_dispatch.append('}')
+
+    return function_dispatch

@@ -123,19 +123,6 @@ static inline bool Nuitka_CoroutineWrapper_Check( PyObject *object )
     return Py_TYPE( object ) == &Nuitka_CoroutineWrapper_Type;
 }
 
-#ifdef __cplusplus
-enum Await_Kind {
-    await_normal,   // user provided "await"
-    await_enter,    // async with statement "__enter__"
-    await_exit      // async with statement "__enter__"
-};
-#else
-typedef int Generator_Status;
-static const int await_normal = 0;
-static const int await_enter = 1;
-static const int await_exit = 2;
-#endif
-
 static inline void SAVE_COROUTINE_EXCEPTION( struct Nuitka_CoroutineObject *coroutine )
 {
     /* Before Python3.7: When yielding from an exception handler in Python3,
@@ -160,11 +147,6 @@ static inline void SAVE_COROUTINE_EXCEPTION( struct Nuitka_CoroutineObject *coro
     EXC_TYPE(thread_state) = coroutine->m_exc_state.exc_type;
     EXC_VALUE(thread_state) = coroutine->m_exc_state.exc_value;
     EXC_TRACEBACK(thread_state) = coroutine->m_exc_state.exc_traceback;
-#endif
-
-#if _DEBUG_EXCEPTIONS
-    PRINT_STRING("YIELD exit:\n");
-    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
 #endif
 
 #if PYTHON_VERSION < 370
@@ -207,13 +189,31 @@ static inline void RESTORE_COROUTINE_EXCEPTION( struct Nuitka_CoroutineObject *c
 #endif
 }
 
-extern PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
-extern PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
+
+#ifdef __cplusplus
+enum Await_Kind {
+    await_normal,   // user provided "await"
+    await_enter,    // async with statement "__enter__"
+    await_exit      // async with statement "__enter__"
+};
+#else
+typedef int Generator_Status;
+static const int await_normal = 0;
+static const int await_enter = 1;
+static const int await_exit = 2;
+#endif
+
+
 
 extern PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
 extern PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
 
+extern PyObject *COROUTINE_AWAIT_COMMON( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
+
 #ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+
+extern PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
+extern PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
 
 static inline PyObject *COROUTINE_YIELD( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
 {
@@ -267,30 +267,14 @@ static inline PyObject *COROUTINE_YIELD_IN_HANDLER( struct Nuitka_CoroutineObjec
     PyObject *saved_exception_value = EXC_VALUE(thread_state);
     PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
-#if PYTHON_VERSION < 370
-    EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
-    EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
-    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
-#else
-    EXC_TYPE(thread_state) = coroutine->m_exc_state.exc_type;
-    EXC_VALUE(thread_state) = coroutine->m_exc_state.exc_value;
-    EXC_TRACEBACK(thread_state) = coroutine->m_exc_state.exc_traceback;
-#endif
+    SAVE_COROUTINE_EXCEPTION( coroutine );
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("YIELD exit:\n");
     PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
 #endif
 
-#if PYTHON_VERSION < 370
-    thread_state->frame->f_exc_type = saved_exception_type;
-    thread_state->frame->f_exc_value = saved_exception_value;
-    thread_state->frame->f_exc_traceback = saved_exception_traceback;
-#else
-    coroutine->m_exc_state.exc_type = saved_exception_type;
-    coroutine->m_exc_state.exc_value = saved_exception_value;;
-    coroutine->m_exc_state.exc_traceback = saved_exception_traceback;
-#endif
+    RESTORE_COROUTINE_EXCEPTION( coroutine );
 
     Nuitka_Frame_MarkAsNotExecuting( coroutine->m_frame );
 

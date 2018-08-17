@@ -37,9 +37,11 @@ static void %(function_identifier)s_context( struct Nuitka_CoroutineObject *coro
     CHECK_OBJECT( (PyObject *)coroutine );
     assert( Nuitka_Coroutine_Check( (PyObject *)coroutine ) );
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
-    struct %(function_identifier)s_locals *generator_heap = (struct %(function_identifier)s_locals *)coroutine->m_heap_storage;
-#endif
+    // Heap access if used.
+%(heap_declaration)s
+
+    // Dispatch to yield based on return label index:
+%(function_dispatch)s
 
     // Local variable initialization
 %(function_var_inits)s
