@@ -217,8 +217,12 @@ static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, 
         // Generator return does set this.
         if ( asyncgen->m_status == status_Finished )
         {
-            Py_XDECREF( asyncgen->m_frame );
-            asyncgen->m_frame = NULL;
+            if ( asyncgen->m_frame != NULL )
+            {
+                asyncgen->m_frame->m_frame.f_gen = NULL;
+                Py_DECREF( asyncgen->m_frame );
+                asyncgen->m_frame = NULL;
+            }
 
             Nuitka_Asyncgen_release_closure( asyncgen );
 
@@ -230,8 +234,12 @@ static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, 
 
             asyncgen->m_status = status_Finished;
 
-            Py_XDECREF( asyncgen->m_frame );
-            asyncgen->m_frame = NULL;
+            if ( asyncgen->m_frame != NULL )
+            {
+                asyncgen->m_frame->m_frame.f_gen = NULL;
+                Py_DECREF( asyncgen->m_frame );
+                asyncgen->m_frame = NULL;
+            }
 
             Nuitka_Asyncgen_release_closure( asyncgen );
 
@@ -667,7 +675,12 @@ static void Nuitka_Asyncgen_tp_dealloc( struct Nuitka_AsyncgenObject *asyncgen )
 
     Nuitka_Asyncgen_release_closure( asyncgen );
 
-    Py_XDECREF( asyncgen->m_frame );
+    if ( asyncgen->m_frame )
+    {
+        asyncgen->m_frame->m_frame.f_gen = NULL;
+        Py_DECREF( asyncgen->m_frame );
+        asyncgen->m_frame = NULL;
+    }
 
     assert( Py_REFCNT( asyncgen ) == 1 );
     Py_REFCNT( asyncgen ) = 0;
