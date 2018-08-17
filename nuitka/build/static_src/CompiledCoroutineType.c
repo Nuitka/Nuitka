@@ -291,7 +291,7 @@ static PyObject *_Nuitka_YieldFromCoroutineCore( struct Nuitka_CoroutineObject *
 
             if ( throw_method )
             {
-                retval = PyObject_CallFunctionObjArgs( throw_method, coroutine->m_exception_type, coroutine->m_exception_value, coroutine->m_exception_tb, NULL );
+                retval = PyObject_CallFunctionObjArgs( throw_method, exception_type, exception_value, exception_tb, NULL );
                 Py_DECREF( throw_method );
 
                 Py_DECREF( exception_type );
@@ -571,33 +571,7 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
         }
 #endif
 
-        if ( coroutine->m_returned != NULL )
-        {
-            coroutine->m_status = status_Finished;
-
-            if ( coroutine->m_frame )
-            {
-                coroutine->m_frame->m_frame.f_gen = NULL;
-                Py_DECREF( coroutine->m_frame );
-                coroutine->m_frame = NULL;
-            }
-
-            Nuitka_Coroutine_release_closure( coroutine );
-
-            // Create StopIteration if necessary, i.e. return value that is not "None" was
-            // given. TODO: Push this further down the user line, we might be able to avoid
-            // it for some uses, e.g. quick iteration entirely.
-            if ( coroutine->m_returned )
-            {
-                Nuitka_SetStopIterationValue( coroutine->m_returned );
-
-                Py_DECREF( coroutine->m_returned );
-                coroutine->m_returned = NULL;
-            }
-
-            return NULL;
-        }
-        else if ( yielded == NULL )
+        if ( yielded == NULL )
         {
             coroutine->m_status = status_Finished;
 
@@ -612,11 +586,7 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
 
             PyObject *error = GET_ERROR_OCCURRED();
 
-            if ( error == NULL )
-            {
-                PyErr_SetObject( PyExc_StopIteration, Py_None );
-            }
-            else if ( error == PyExc_StopIteration )
+            if ( error == PyExc_StopIteration )
             {
                 PyObject *saved_exception_type, *saved_exception_value;
                 PyTracebackObject *saved_exception_tb;
@@ -652,6 +622,17 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
                 RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
             }
 
+            // Create StopIteration if necessary, i.e. return value that is not "None" was
+            // given. TODO: Push this further down the user line, we might be able to avoid
+            // it for some uses, e.g. quick iteration entirely.
+            if ( coroutine->m_returned )
+            {
+                Nuitka_SetStopIterationValue( coroutine->m_returned );
+
+                Py_DECREF( coroutine->m_returned );
+                coroutine->m_returned = NULL;
+            }
+
             return NULL;
         }
         else
@@ -683,7 +664,7 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
         else
 #endif
         {
-            PyErr_SetObject( PyExc_StopIteration, (PyObject *)NULL );
+            PyErr_SetObject( PyExc_StopIteration, NULL );
         }
 
         return NULL;
