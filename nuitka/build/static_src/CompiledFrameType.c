@@ -434,6 +434,12 @@ static int Nuitka_Frame_tp_traverse( struct Nuitka_FrameObject *frame, visitproc
 #if PYTHON_VERSION >= 340
 
 extern PyObject *Nuitka_Generator_close( struct Nuitka_GeneratorObject *generator, PyObject *args );
+#if PYTHON_VERSION >= 350
+extern PyObject *Nuitka_Coroutine_close( struct Nuitka_CoroutineObject *coroutine, PyObject *args );
+#endif
+#if PYTHON_VERSION >= 360
+extern PyObject *Nuitka_Asyncgen_close( struct Nuitka_AsyncgenObject *asyncgen, PyObject *args );
+#endif
 
 static PyObject *Nuitka_Frame_clear( struct Nuitka_FrameObject *frame )
 {
@@ -453,19 +459,58 @@ static PyObject *Nuitka_Frame_clear( struct Nuitka_FrameObject *frame )
     {
         Py_INCREF( frame );
 
-        assert( Nuitka_Generator_Check( frame->m_frame.f_gen ) );
+        CHECK_OBJECT( frame->m_frame.f_gen );
+        PyObject *f_gen = frame->m_frame.f_gen;
 
-        struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)frame->m_frame.f_gen;
-        frame->m_frame.f_gen = NULL;
+        PyObject *close_result;
+        if ( Nuitka_Generator_Check( frame->m_frame.f_gen ) )
+        {
+            struct Nuitka_GeneratorObject *generator = (struct Nuitka_GeneratorObject *)frame->m_frame.f_gen;
+            frame->m_frame.f_gen = NULL;
 
-        PyObject *close_result = Nuitka_Generator_close(
-            generator,
-            NULL
-        );
+            close_result = Nuitka_Generator_close(
+                generator,
+                NULL
+            );
+        }
+#if PYTHON_VERSION >= 350
+        else if ( Nuitka_Coroutine_Check( frame->m_frame.f_gen ) )
+        {
+            struct Nuitka_CoroutineObject *coroutine = (struct Nuitka_CoroutineObject *)frame->m_frame.f_gen;
+            frame->m_frame.f_gen = NULL;
+
+            close_result = Nuitka_Coroutine_close(
+                coroutine,
+                NULL
+            );
+        }
+#endif
+#if PYTHON_VERSION >= 360
+        else if ( Nuitka_Asyncgen_Check( frame->m_frame.f_gen ) )
+        {
+            struct Nuitka_AsyncgenObject *asyncgen = (struct Nuitka_AsyncgenObject *)frame->m_frame.f_gen;
+            frame->m_frame.f_gen = NULL;
+
+            close_result = Nuitka_Asyncgen_close(
+                asyncgen,
+                NULL
+            );
+        }
+#endif
+        else
+        {
+            // Compiled frames should only have our types.
+            assert( false );
+
+            frame->m_frame.f_gen = NULL;
+
+            close_result = Py_None;
+            Py_INCREF( close_result );
+        }
 
         if (unlikely( close_result == NULL ))
         {
-            PyErr_WriteUnraisable( (PyObject *)frame->m_frame.f_gen );
+            PyErr_WriteUnraisable( f_gen );
         }
         else
         {
