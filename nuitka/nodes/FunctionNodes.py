@@ -649,12 +649,6 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
     def getName(self):
         return self.getFunctionRef().getName()
 
-    def getDetailsForDisplay(self):
-        if self.code_object:
-            return self.code_object.getDetails()
-        else:
-            return {}
-
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
