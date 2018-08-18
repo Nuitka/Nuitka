@@ -28,14 +28,20 @@ struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
 
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+static PyObject *%(function_identifier)s_context( struct Nuitka_AsyncgenObject *asyncgen, PyObject *yield_return_value )
+#else
 static void %(function_identifier)s_context( struct Nuitka_AsyncgenObject *asyncgen )
+#endif
 {
     CHECK_OBJECT( (PyObject *)asyncgen );
     assert( Nuitka_Asyncgen_Check( (PyObject *)asyncgen ) );
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
-    struct %(function_identifier)s_locals *generator_heap = (struct %(function_identifier)s_locals *)asyncgen->m_heap_storage;
-#endif
+    // Heap access if used.
+%(heap_declaration)s
+
+    // Dispatch to yield based on return label index:
+%(function_dispatch)s
 
     // Local variable initialization
 %(function_var_inits)s
@@ -72,8 +78,12 @@ template_asyncgen_exception_exit = """\
 %(function_cleanup)s\
     assert( %(exception_type)s );
     RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    return NULL;
+#else
     asyncgen->m_yielded = NULL;
     return;
+#endif
 """
 
 template_asyncgen_noexception_exit = """\
@@ -81,15 +91,27 @@ template_asyncgen_noexception_exit = """\
     NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
 
 %(function_cleanup)s\
+
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    return NULL;
+#else
     asyncgen->m_yielded = NULL;
     return;
+#endif
 """
 
+# TODO: Why does this set m_status unlike others
 template_asyncgen_return_exit = """\
     function_return_exit:;
-    asyncgen->m_yielded = NULL;
+
     asyncgen->m_status = status_Finished;
+
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    return NULL;
+#else
+    asyncgen->m_yielded = NULL;
     return;
+#endif
 """
 
 

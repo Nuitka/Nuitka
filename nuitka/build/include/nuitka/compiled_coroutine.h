@@ -208,7 +208,7 @@ static const int await_exit = 2;
 extern PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
 extern PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
 
-extern PyObject *COROUTINE_AWAIT_COMMON( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
+extern PyObject *COROUTINE_AWAIT_COMMON( PyObject *awaitable, int await_kind );
 
 #ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 
@@ -254,27 +254,7 @@ static inline PyObject *COROUTINE_YIELD_IN_HANDLER( struct Nuitka_CoroutineObjec
 
     coroutine->m_yielded = value;
 
-    /* Before Python3.7: When yielding from an exception handler in Python3,
-     * the exception preserved to the frame is restored, while the current one
-     * is put as there.
-     *
-     * Python3.7: The exception is preserved in the generator object itself
-     * which has a new "m_exc_state" structure just for that.
-     */
-    PyThreadState *thread_state = PyThreadState_GET();
-
-    PyObject *saved_exception_type = EXC_TYPE(thread_state);
-    PyObject *saved_exception_value = EXC_VALUE(thread_state);
-    PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
-
     SAVE_COROUTINE_EXCEPTION( coroutine );
-
-#if _DEBUG_EXCEPTIONS
-    PRINT_STRING("YIELD exit:\n");
-    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
-#endif
-
-    RESTORE_COROUTINE_EXCEPTION( coroutine );
 
     Nuitka_Frame_MarkAsNotExecuting( coroutine->m_frame );
 
@@ -283,36 +263,7 @@ static inline PyObject *COROUTINE_YIELD_IN_HANDLER( struct Nuitka_CoroutineObjec
 
     Nuitka_Frame_MarkAsExecuting( coroutine->m_frame );
 
-    // When returning from yield, the exception of the frame is preserved, and
-    // the one that enters should be there.
-    thread_state = PyThreadState_GET();
-
-    saved_exception_type = EXC_TYPE(thread_state);
-    saved_exception_value = EXC_VALUE(thread_state);
-    saved_exception_traceback = EXC_TRACEBACK(thread_state);
-
-#if _DEBUG_EXCEPTIONS
-    PRINT_STRING("YIELD return:\n");
-    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
-#endif
-
-#if PYTHON_VERSION < 370
-    EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
-    EXC_VALUE(thread_state) = thread_state->frame->f_exc_value;
-    EXC_TRACEBACK(thread_state) = thread_state->frame->f_exc_traceback;
-
-    thread_state->frame->f_exc_type = saved_exception_type;
-    thread_state->frame->f_exc_value = saved_exception_value;
-    thread_state->frame->f_exc_traceback = saved_exception_traceback;
-#else
-    EXC_TYPE(thread_state) = coroutine->m_exc_state.exc_type;
-    EXC_VALUE(thread_state) = coroutine->m_exc_state.exc_value;
-    EXC_TRACEBACK(thread_state) = coroutine->m_exc_state.exc_traceback;
-
-    coroutine->m_exc_state.exc_type = saved_exception_type;
-    coroutine->m_exc_state.exc_value = saved_exception_value;
-    coroutine->m_exc_state.exc_traceback = saved_exception_traceback;
-#endif
+    RESTORE_COROUTINE_EXCEPTION( coroutine );
 
     // Check for thrown exception.
     if (unlikely( coroutine->m_exception_type ))

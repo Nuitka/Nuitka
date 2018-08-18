@@ -274,7 +274,7 @@ PyObject *_Nuitka_YieldFromPassExceptionTo(
     }
 }
 
-static PyObject *_Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator, PyObject *send_value )
+static PyObject *_Nuitka_YieldFromGeneratorCore( struct Nuitka_GeneratorObject *generator, PyObject *send_value )
 {
     // Send iteration value to the sub-generator, which may be a CPython
     // generator object, something with an iterator next, or a send method,
@@ -370,7 +370,7 @@ static PyObject *_Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator
     }
 }
 
-static PyObject *Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator, PyObject *send_value )
+static PyObject *Nuitka_YieldFromGeneratorCore( struct Nuitka_GeneratorObject *generator, PyObject *send_value )
 {
     PyObject *yielded = _Nuitka_YieldFromCore( generator, send_value );
 
@@ -379,6 +379,20 @@ static PyObject *Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator,
         Py_DECREF( generator->m_yieldfrom );
         generator->m_yieldfrom = NULL;
 
+        if ( generator->m_returned != NULL )
+        {
+            PyObject *yield_from_result = generator->m_returned;
+            generator->m_returned = NULL;
+
+            yielded = ((generator_code)generator->m_code)( generator, yield_from_result );
+        }
+        else
+        {
+            assert( ERROR_OCCURRED() );
+            yielded = ((generator_code)generator->m_code)( generator, NULL );
+        }
+
+#if 0
         if ( ERROR_OCCURRED() )
         {
             yielded = ((generator_code)generator->m_code)( generator, NULL );
@@ -390,6 +404,7 @@ static PyObject *Nuitka_YieldFromCore( struct Nuitka_GeneratorObject *generator,
 
             yielded = ((generator_code)generator->m_code)( generator, yield_from_result );
         }
+#endif
     }
 
     return yielded;
@@ -423,12 +438,12 @@ static PyObject *Nuitka_YieldFromInitial( struct Nuitka_GeneratorObject *generat
         }
     }
 
-    return Nuitka_YieldFromCore( generator, Py_None );
+    return Nuitka_YieldFromGeneratorCore( generator, Py_None );
 }
 
-static PyObject *Nuitka_YieldFromNext( struct Nuitka_GeneratorObject *generator, PyObject *send_value )
+static PyObject *Nuitka_YieldFromGeneratorNext( struct Nuitka_GeneratorObject *generator, PyObject *send_value )
 {
-    PyObject *result = Nuitka_YieldFromCore( generator, send_value );
+    PyObject *result = Nuitka_YieldFromGeneratorCore( generator, send_value );
 
 #if 0
     PRINT_STRING("RES:");
@@ -545,7 +560,7 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
         }
         else
         {
-            yielded = Nuitka_YieldFromNext( generator, value );
+            yielded = Nuitka_YieldFromGeneratorNext( generator, value );
         }
 #else
         PyObject *yielded = ((generator_code)generator->m_code)( generator, value );
@@ -556,7 +571,7 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
         // from that value from now on.
         if ( yielded == NULL && generator->m_yieldfrom != NULL )
         {
-            yielded = Nuitka_YieldFromInitial( generator );
+            yielded = Nuitka_YieldFromGeneratorInitial( generator );
         }
 #endif
         if ( generator->m_frame )

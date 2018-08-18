@@ -36,6 +36,7 @@ from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_return_exit,
     template_make_asyncgen
 )
+from .YieldCodes import getYieldReturnDispatchCode
 
 
 def getAsyncgenObjectDeclCode(function_identifier):
@@ -96,11 +97,22 @@ def getAsyncgenObjectCode(context, function_identifier, closure_variables,
     local_type_decl = context.variable_storage.makeCStructLevelDeclarations()
     function_locals += context.variable_storage.makeCStructInits()
 
+    if local_type_decl:
+        heap_declaration = """\
+struct %(function_identifier)s_locals *asyncgen_heap = \
+(struct %(function_identifier)s_locals *)asyncgen->m_heap_storage;""" % {
+            "function_identifier" : function_identifier
+        }
+    else:
+        heap_declaration = ""
+
     return template_asyncgen_object_body_template % {
         "function_identifier"   : function_identifier,
         "function_body"         : indented(function_codes.codes),
-        "function_local_types"   : indented(local_type_decl),
+        "heap_declaration"      : indented(heap_declaration),
+        "function_local_types"  : indented(local_type_decl),
         "function_var_inits"    : indented(function_locals),
+        "function_dispatch"     : indented(getYieldReturnDispatchCode(context)),
         "asyncgen_exit"         : generator_exit,
         "asyncgen_name_obj"     : context.getConstantCode(
             constant = asyncgen_object_body.getFunctionName()

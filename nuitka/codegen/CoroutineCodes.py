@@ -183,10 +183,8 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
         iter_name = context.allocateTempName("async_wait")
 
         emit(
-            "%s = %s_AWAIT_COMMON( %s, %s, %s );" % (
+            "%s = COROUTINE_AWAIT_COMMON( %s, %s );" % (
                 iter_name,
-                context.getContextObjectName().upper(),
-                context.getContextObjectName(),
                 value_name,
                 wait_kind
             )
