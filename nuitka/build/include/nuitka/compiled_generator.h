@@ -50,6 +50,7 @@ struct Nuitka_GeneratorObject {
 
     PyObject *m_name;
 
+    // TODO: Only to make traceback for non-started throw
     PyObject *m_module;
 
 #if PYTHON_VERSION >= 350

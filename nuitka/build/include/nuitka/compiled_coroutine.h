@@ -32,6 +32,9 @@ struct Nuitka_CoroutineObject {
 
     PyObject *m_name;
 
+    // TODO: Only to make traceback for non-started throw
+    PyObject *m_module;
+
     PyObject *m_qualname;
     PyObject *m_yieldfrom;
 
@@ -99,6 +102,7 @@ typedef void (*coroutine_code)( struct Nuitka_CoroutineObject * );
 
 extern PyObject *Nuitka_Coroutine_New(
     coroutine_code code,
+    PyObject *module,
     PyObject *name,
     PyObject *qualname,
     PyCodeObject *code_object,

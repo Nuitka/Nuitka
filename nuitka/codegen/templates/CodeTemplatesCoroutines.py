@@ -56,6 +56,7 @@ static PyObject *%(function_identifier)s_maker( void )
 {
     return Nuitka_Coroutine_New(
         %(function_identifier)s_context,
+        %(coroutine_module)s,
         %(coroutine_name_obj)s,
         %(coroutine_qualname_obj)s,
         %(code_identifier)s,

@@ -35,6 +35,7 @@ from .FunctionCodes import (
 )
 from .Indentation import indented
 from .LineNumberCodes import emitLineNumberUpdateCode
+from .ModuleCodes import getModuleAccessCode
 from .PythonAPICodes import getReferenceExportCode
 from .templates.CodeTemplatesCoroutines import (
     template_coroutine_exception_exit,
@@ -124,6 +125,7 @@ struct %(function_identifier)s_locals *coroutine_heap = \
         "function_var_inits"     : indented(function_locals),
         "function_dispatch"      : indented(getYieldReturnDispatchCode(context)),
         "coroutine_exit"         : generator_exit,
+        "coroutine_module"       : getModuleAccessCode(context),
         "coroutine_name_obj"     : context.getConstantCode(
             constant = coroutine_object_body.getFunctionName()
         ),

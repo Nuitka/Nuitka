@@ -593,8 +593,6 @@ PyObject *Nuitka_Coroutine_close( struct Nuitka_CoroutineObject *coroutine, PyOb
     {
         coroutine->m_exception_type = PyExc_GeneratorExit;
         Py_INCREF( PyExc_GeneratorExit );
-        CHECK_OBJECT( coroutine->m_exception_type );
-
         coroutine->m_exception_value = NULL;
         coroutine->m_exception_tb = NULL;
 
@@ -854,7 +852,7 @@ throw_here:
         return NULL;
     }
 
-    if ( coroutine->m_status != status_Finished )
+    if ( coroutine->m_status == status_Running )
     {
 #if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
         PyObject *result = _Nuitka_Coroutine_send( coroutine, NULL, false );
@@ -863,7 +861,7 @@ throw_here:
 #endif
         return result;
     }
-    else
+    else if ( coroutine->m_status == status_Finished )
     {
         /* This seems wasteful to do it like this, but it's a corner case. */
         RESTORE_ERROR_OCCURRED( coroutine->m_exception_type, coroutine->m_exception_value, coroutine->m_exception_tb );
@@ -893,6 +891,41 @@ throw_here:
             );
         }
 #endif
+
+        return NULL;
+    }
+    else
+    {
+        if ( coroutine->m_exception_tb == NULL )
+        {
+            // TODO: Our compiled objects really need a way to store common
+            // stuff in a "shared" part across all instances, and outside of
+            // run time, so we could reuse this.
+            struct Nuitka_FrameObject *frame = MAKE_FUNCTION_FRAME(
+                coroutine->m_code_object,
+                coroutine->m_module,
+                0
+            );
+
+            coroutine->m_exception_tb = MAKE_TRACEBACK(
+                frame,
+                coroutine->m_code_object->co_firstlineno
+            );
+
+            Py_DECREF( frame );
+        }
+
+        RESTORE_ERROR_OCCURRED(
+            coroutine->m_exception_type,
+            coroutine->m_exception_value,
+            coroutine->m_exception_tb
+        );
+
+        coroutine->m_exception_type = NULL;
+        coroutine->m_exception_value = NULL;
+        coroutine->m_exception_tb = NULL;
+
+        coroutine->m_status = status_Finished;
 
         return NULL;
     }
@@ -1313,6 +1346,7 @@ static PyObject *computeCoroutineOrigin(int origin_depth)
 
 PyObject *Nuitka_Coroutine_New(
     coroutine_code code,
+    PyObject *module,
     PyObject *name,
     PyObject *qualname,
     PyCodeObject *code_object,
@@ -1339,6 +1373,9 @@ PyObject *Nuitka_Coroutine_New(
 #endif
 
     result->m_code = (void *)code;
+
+    CHECK_OBJECT( module );
+    result->m_module = module;
 
     CHECK_OBJECT( name );
     result->m_name = name;

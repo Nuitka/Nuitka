@@ -56,6 +56,7 @@ static PyObject *%(function_identifier)s_maker( void )
 {
     return Nuitka_Asyncgen_New(
         %(function_identifier)s_context,
+        %(asyncgen_module)s,
         %(asyncgen_name_obj)s,
         %(asyncgen_qualname_obj)s,
         %(code_identifier)s,

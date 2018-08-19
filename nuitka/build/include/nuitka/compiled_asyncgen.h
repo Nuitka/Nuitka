@@ -33,6 +33,9 @@ struct Nuitka_AsyncgenObject {
 
     PyObject *m_name;
 
+    // TODO: Only to make traceback for non-started throw
+    PyObject *m_module;
+
     PyObject *m_qualname;
     PyObject *m_yieldfrom;
 
@@ -69,13 +72,13 @@ struct Nuitka_AsyncgenObject {
     PyObject *m_yielded;
 #endif
 
-    // The finalizer associated
+    // The finalizer associated through a hook
     PyObject *m_finalizer;
 
     // The hooks were initialized
     bool m_hooks_init_done;
 
-    // It is closed.
+    // It is closed, and cannot be closed again.
     bool m_closed;
 
 #if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
@@ -101,6 +104,7 @@ typedef void (*asyncgen_code)( struct Nuitka_AsyncgenObject * );
 
 extern PyObject *Nuitka_Asyncgen_New(
     asyncgen_code code,
+    PyObject *module,
     PyObject *name,
     PyObject *qualname,
     PyCodeObject *code_object,

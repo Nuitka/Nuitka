@@ -28,6 +28,7 @@ from .FunctionCodes import (
     setupFunctionLocalVariables
 )
 from .Indentation import indented
+from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesAsyncgens import (
     template_asyncgen_exception_exit,
     template_asyncgen_noexception_exit,
@@ -114,6 +115,7 @@ struct %(function_identifier)s_locals *asyncgen_heap = \
         "function_var_inits"    : indented(function_locals),
         "function_dispatch"     : indented(getYieldReturnDispatchCode(context)),
         "asyncgen_exit"         : generator_exit,
+        "asyncgen_module"       : getModuleAccessCode(context),
         "asyncgen_name_obj"     : context.getConstantCode(
             constant = asyncgen_object_body.getFunctionName()
         ),
