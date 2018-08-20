@@ -162,7 +162,7 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack( struct Nuitka_FrameObjec
     {
         assertCodeObject( old->f_code );
 
-        printf( "Upstacking to frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)old ) ), PyString_AsString( PyObject_Repr( (PyObject *)old->f_code ) ) );
+        printf( "Upstacking to frame %s %s\n", Nuitka_String_AsString( PyObject_Str( (PyObject *)old ) ), Nuitka_String_AsString( PyObject_Repr( (PyObject *)old->f_code ) ) );
     }
 #endif
 
@@ -184,7 +184,7 @@ NUITKA_MAY_BE_UNUSED inline static void pushFrameStack( struct Nuitka_FrameObjec
     Py_INCREF( frame_object );
 
 #if _DEBUG_FRAME
-    printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Repr( (PyObject *)tstate->frame->f_code ) ) );
+    printf( "Now at top frame %s %s\n", Nuitka_String_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), Nuitka_String_AsString( PyObject_Repr( (PyObject *)tstate->frame->f_code ) ) );
 #endif
 }
 
@@ -195,7 +195,7 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack( void )
     PyFrameObject *old = tstate->frame;
 
 #if _DEBUG_FRAME
-    printf( "Taking off frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)old ) ), PyString_AsString( PyObject_Repr( (PyObject *)old->f_code ) ) );
+    printf( "Taking off frame %s %s\n", Nuitka_String_AsString( PyObject_Str( (PyObject *)old ) ), Nuitka_String_AsString( PyObject_Repr( (PyObject *)old->f_code ) ) );
 #endif
 
     // Put previous frame on top.
@@ -208,7 +208,7 @@ NUITKA_MAY_BE_UNUSED inline static void popFrameStack( void )
 #if _DEBUG_FRAME
     if ( tstate->frame )
     {
-        printf( "Now at top frame %s %s\n", PyString_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), PyString_AsString( PyObject_Repr( (PyObject *)tstate->frame->f_code ) ) );
+        printf( "Now at top frame %s %s\n", Nuitka_String_AsString( PyObject_Str( (PyObject *)tstate->frame ) ), Nuitka_String_AsString( PyObject_Repr( (PyObject *)tstate->frame->f_code ) ) );
     }
     else
     {

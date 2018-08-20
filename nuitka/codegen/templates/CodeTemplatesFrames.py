@@ -270,6 +270,7 @@ Py_CLEAR( %(frame_identifier)s->m_frame.f_exc_traceback );
 #endif
 
 Py_DECREF( %(frame_identifier)s );
+
 // Return the error.
 goto %(parent_exception_exit)s;
 """

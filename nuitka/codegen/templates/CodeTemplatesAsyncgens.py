@@ -101,11 +101,8 @@ template_asyncgen_noexception_exit = """\
 #endif
 """
 
-# TODO: Why does this set m_status unlike others
 template_asyncgen_return_exit = """\
     function_return_exit:;
-
-    asyncgen->m_status = status_Finished;
 
 #if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;

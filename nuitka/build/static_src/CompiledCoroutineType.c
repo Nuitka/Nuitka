@@ -186,10 +186,10 @@ extern PyObject *_Nuitka_YieldFromPassExceptionTo(
     PyTracebackObject *exception_tb
 );
 
-static PyObject *_Nuitka_YieldFromCoroutineCore(
-    struct Nuitka_CoroutineObject *coroutine,
+PyObject *_Nuitka_YieldFromCore(
     PyObject *yieldfrom,
-    PyObject *send_value
+    PyObject *send_value,
+    PyObject **returned_value
 )
 {
     // Send iteration value to the sub-generator, which may be a CPython
@@ -216,7 +216,7 @@ static PyObject *_Nuitka_YieldFromCoroutineCore(
 
             if ( error != NULL && EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) )
             {
-                coroutine->m_returned = ERROR_GET_STOP_ITERATION_VALUE();
+                *returned_value = ERROR_GET_STOP_ITERATION_VALUE();
 
                 assert( !ERROR_OCCURRED() );
                 return NULL;
@@ -244,7 +244,7 @@ static PyObject *_Nuitka_YieldFromCoroutineCore(
         if ( error == NULL )
         {
             Py_INCREF( Py_None );
-            coroutine->m_returned = Py_None;
+            *returned_value = Py_None;
         }
         else if (likely( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_StopIteration ) ))
         {
@@ -252,9 +252,13 @@ static PyObject *_Nuitka_YieldFromCoroutineCore(
             // StopIteration, we need to check the value, as it is going to be
             // the expression value of this "yield from", and we are done. All
             // other errors, we need to raise.
-            coroutine->m_returned = ERROR_GET_STOP_ITERATION_VALUE();
+            *returned_value = ERROR_GET_STOP_ITERATION_VALUE();
+            assert( *returned_value != NULL );
             assert( !ERROR_OCCURRED() );
-            assert( coroutine->m_returned != NULL );
+        }
+        else
+        {
+            *returned_value = NULL;
         }
 
         return NULL;
@@ -273,24 +277,15 @@ static PyObject *Nuitka_YieldFromCoroutineCore( struct Nuitka_CoroutineObject *c
 
     // Need to make it unaccessible while using it.
     coroutine->m_yieldfrom = NULL;
-    PyObject *yielded = _Nuitka_YieldFromCoroutineCore( coroutine, yieldfrom, send_value );
+
+    PyObject *returned_value;
+    PyObject *yielded = _Nuitka_YieldFromCore( yieldfrom, send_value, &returned_value );
 
     if ( yielded == NULL )
     {
         Py_DECREF( yieldfrom );
 
-        if ( coroutine->m_returned != NULL )
-        {
-            PyObject *yield_from_result = coroutine->m_returned;
-            coroutine->m_returned = NULL;
-
-            yielded = ((coroutine_code)coroutine->m_code)( coroutine, yield_from_result );
-        }
-        else
-        {
-            assert( ERROR_OCCURRED() );
-            yielded = ((coroutine_code)coroutine->m_code)( coroutine, NULL );
-        }
+        yielded = ((coroutine_code)coroutine->m_code)( coroutine, returned_value );
     }
     else
     {
@@ -380,19 +375,17 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
         }
 #endif
 
-        if ( coroutine->m_frame )
+        if ( coroutine->m_resume_frame )
         {
             // It would be nice if our frame were still alive. Nobody had the
             // right to release it.
-            assertFrameObject( coroutine->m_frame );
+            assertFrameObject( coroutine->m_resume_frame );
 
             // It's not supposed to be on the top right now.
-            assert( return_frame != &coroutine->m_frame->m_frame );
+            assert( return_frame != &coroutine->m_resume_frame->m_frame );
 
-            Py_XINCREF( return_frame );
-            coroutine->m_frame->m_frame.f_back = return_frame;
-
-            thread_state->frame = &coroutine->m_frame->m_frame;
+            thread_state->frame = &coroutine->m_resume_frame->m_frame;
+            coroutine->m_resume_frame = NULL;
         }
 
         // Continue the yielder function while preventing recursion.
@@ -453,13 +446,14 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
 
         thread_state = PyThreadState_GET();
 
-        // Remove the coroutine from the frame stack.
+        // Remove the back frame from coroutine if it's there.
         if ( coroutine->m_frame )
         {
-            assert( thread_state->frame == &coroutine->m_frame->m_frame );
             assertFrameObject( coroutine->m_frame );
 
             Py_CLEAR( coroutine->m_frame->m_frame.f_back );
+
+            coroutine->m_resume_frame = (struct Nuitka_FrameObject *)thread_state->frame;
         }
 
         thread_state->frame = return_frame;
@@ -475,7 +469,7 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
         {
             coroutine->m_status = status_Finished;
 
-            if ( coroutine->m_frame )
+            if ( coroutine->m_frame != NULL )
             {
                 coroutine->m_frame->m_frame.f_gen = NULL;
                 Py_DECREF( coroutine->m_frame );
@@ -1416,6 +1410,8 @@ PyObject *Nuitka_Coroutine_New(
 
     result->m_frame = NULL;
     result->m_code_object = code_object;
+
+    result->m_resume_frame = NULL;
 
 #if PYTHON_VERSION >= 370
     PyThreadState *tstate = PyThreadState_GET();

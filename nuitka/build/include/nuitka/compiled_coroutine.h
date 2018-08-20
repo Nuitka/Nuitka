@@ -51,8 +51,14 @@ struct Nuitka_CoroutineObject {
     PyObject *m_exception_type, *m_exception_value;
     PyTracebackObject *m_exception_tb;
 
+    // The parent frame of the coroutine, if created.
     struct Nuitka_FrameObject *m_frame;
+
     PyCodeObject *m_code_object;
+
+    // While yielding, this was the frame currently active, restore when
+    // resuming.
+    struct Nuitka_FrameObject *m_resume_frame;
 
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
@@ -218,75 +224,6 @@ extern PyObject *COROUTINE_AWAIT_COMMON( PyObject *awaitable, int await_kind );
 
 extern PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
 extern PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
-
-static inline PyObject *COROUTINE_YIELD( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
-{
-    CHECK_OBJECT( value );
-
-    coroutine->m_yielded = value;
-
-    Nuitka_Frame_MarkAsNotExecuting( coroutine->m_frame );
-
-    // Return to the calling context.
-    swapFiber( &coroutine->m_yielder_context, &coroutine->m_caller_context );
-
-    Nuitka_Frame_MarkAsExecuting( coroutine->m_frame );
-
-    // Check for thrown exception.
-    if (unlikely( coroutine->m_exception_type ))
-    {
-        RESTORE_ERROR_OCCURRED(
-            coroutine->m_exception_type,
-            coroutine->m_exception_value,
-            coroutine->m_exception_tb
-        );
-
-        coroutine->m_exception_type = NULL;
-        coroutine->m_exception_value = NULL;
-        coroutine->m_exception_tb = NULL;
-
-        return NULL;
-    }
-
-    CHECK_OBJECT( coroutine->m_yielded );
-    return coroutine->m_yielded;
-}
-
-static inline PyObject *COROUTINE_YIELD_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
-{
-    CHECK_OBJECT( value );
-
-    coroutine->m_yielded = value;
-
-    SAVE_COROUTINE_EXCEPTION( coroutine );
-
-    Nuitka_Frame_MarkAsNotExecuting( coroutine->m_frame );
-
-    // Return to the calling context.
-    swapFiber( &coroutine->m_yielder_context, &coroutine->m_caller_context );
-
-    Nuitka_Frame_MarkAsExecuting( coroutine->m_frame );
-
-    RESTORE_COROUTINE_EXCEPTION( coroutine );
-
-    // Check for thrown exception.
-    if (unlikely( coroutine->m_exception_type ))
-    {
-        RESTORE_ERROR_OCCURRED(
-            coroutine->m_exception_type,
-            coroutine->m_exception_value,
-            coroutine->m_exception_tb
-        );
-
-        coroutine->m_exception_type = NULL;
-        coroutine->m_exception_value = NULL;
-        coroutine->m_exception_tb = NULL;
-
-        return NULL;
-    }
-
-    return coroutine->m_yielded;
-}
 
 #endif
 
