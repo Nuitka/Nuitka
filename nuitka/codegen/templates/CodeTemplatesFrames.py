@@ -167,27 +167,27 @@ Nuitka_Frame_MarkAsExecuting( %(context_identifier)s->m_frame );
 #if PYTHON_VERSION >= 300
 // Accept currently existing exception as the one to publish again when we
 // yield or yield from.
-
-PyThreadState *thread_state = PyThreadState_GET();
+{
+    PyThreadState *thread_state = PyThreadState_GET();
 
 #if PYTHON_VERSION < 370
-%(context_identifier)s->m_frame->m_frame.f_exc_type = EXC_TYPE( thread_state );
+    %(context_identifier)s->m_frame->m_frame.f_exc_type = EXC_TYPE( thread_state );
 if ( %(context_identifier)s->m_frame->m_frame.f_exc_type == Py_None ) %(context_identifier)s->m_frame->m_frame.f_exc_type = NULL;
-Py_XINCREF( %(context_identifier)s->m_frame->m_frame.f_exc_type );
+    Py_XINCREF( %(context_identifier)s->m_frame->m_frame.f_exc_type );
 %(context_identifier)s->m_frame->m_frame.f_exc_value = EXC_VALUE( thread_state );
-Py_XINCREF( %(context_identifier)s->m_frame->m_frame.f_exc_value );
+    Py_XINCREF( %(context_identifier)s->m_frame->m_frame.f_exc_value );
 %(context_identifier)s->m_frame->m_frame.f_exc_traceback = EXC_TRACEBACK( thread_state );
-Py_XINCREF( %(context_identifier)s->m_frame->m_frame.f_exc_traceback );
+    Py_XINCREF( %(context_identifier)s->m_frame->m_frame.f_exc_traceback );
 #else
-%(context_identifier)s->m_exc_state.exc_type = EXC_TYPE( thread_state );
-if ( %(context_identifier)s->m_exc_state.exc_type == Py_None ) %(context_identifier)s->m_exc_state.exc_type = NULL;
-Py_XINCREF( %(context_identifier)s->m_exc_state.exc_type );
-%(context_identifier)s->m_exc_state.exc_value = EXC_VALUE( thread_state );
-Py_XINCREF( %(context_identifier)s->m_exc_state.exc_value );
-%(context_identifier)s->m_exc_state.exc_traceback = EXC_TRACEBACK( thread_state );
-Py_XINCREF( %(context_identifier)s->m_exc_state.exc_traceback );
-
+    %(context_identifier)s->m_exc_state.exc_type = EXC_TYPE( thread_state );
+    if ( %(context_identifier)s->m_exc_state.exc_type == Py_None ) %(context_identifier)s->m_exc_state.exc_type = NULL;
+    Py_XINCREF( %(context_identifier)s->m_exc_state.exc_type );
+    %(context_identifier)s->m_exc_state.exc_value = EXC_VALUE( thread_state );
+    Py_XINCREF( %(context_identifier)s->m_exc_state.exc_value );
+    %(context_identifier)s->m_exc_state.exc_traceback = EXC_TRACEBACK( thread_state );
+    Py_XINCREF( %(context_identifier)s->m_exc_state.exc_traceback );
 #endif
+}
 
 #endif
 
