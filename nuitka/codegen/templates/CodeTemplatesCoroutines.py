@@ -28,11 +28,7 @@ struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 static PyObject *%(function_identifier)s_context( struct Nuitka_CoroutineObject *coroutine, PyObject *yield_return_value )
-#else
-static void %(function_identifier)s_context( struct Nuitka_CoroutineObject *coroutine )
-#endif
 {
     CHECK_OBJECT( (PyObject *)coroutine );
     assert( Nuitka_Coroutine_Check( (PyObject *)coroutine ) );
@@ -79,12 +75,7 @@ template_coroutine_exception_exit = """\
 %(function_cleanup)s\
     assert( %(exception_type)s );
     RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
-#else
-    coroutine->m_yielded = NULL;
-    return;
-#endif
 """
 
 template_coroutine_noexception_exit = """\
@@ -93,12 +84,7 @@ template_coroutine_noexception_exit = """\
 
 %(function_cleanup)s\
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
-#else
-    coroutine->m_yielded = NULL;
-    return;
-#endif
 """
 
 template_coroutine_return_exit = """\
@@ -106,12 +92,7 @@ template_coroutine_return_exit = """\
 
     coroutine->m_returned = %(return_value)s;
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
-#else
-    coroutine->m_yielded = NULL;
-    return;
-#endif
 """
 
 

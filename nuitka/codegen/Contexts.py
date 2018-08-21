@@ -30,7 +30,6 @@ from nuitka.Builtins import (
     builtin_anon_values,
     builtin_exception_values_list
 )
-from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 

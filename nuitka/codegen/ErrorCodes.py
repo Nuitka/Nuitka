@@ -28,7 +28,6 @@ And releasing of values, as this is what the error case commonly does.
 
 """
 
-from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 
 from .ExceptionCodes import getExceptionIdentifier
@@ -259,15 +258,7 @@ def getMustNotGetHereCode(reason, context, emit):
         }
     )
 
-    goto_generators = isExperimental("generator_goto")
-
-    if provider.isExpressionGeneratorObjectBody() and not goto_generators:
-        emit("return;")
-    elif provider.isExpressionCoroutineObjectBody() and not goto_generators:
-        emit("return;")
-    elif provider.isExpressionAsyncgenObjectBody() and not goto_generators:
-        emit("return;")
-    elif provider.isCompiledPythonModule():
+    if provider.isCompiledPythonModule():
         emit("return MOD_RETURN_VALUE( NULL );")
     else:
         emit("return NULL;")

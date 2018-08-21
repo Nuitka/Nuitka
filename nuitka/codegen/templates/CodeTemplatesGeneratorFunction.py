@@ -28,11 +28,7 @@ struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 static PyObject *%(function_identifier)s_context( struct Nuitka_GeneratorObject *generator, PyObject *yield_return_value )
-#else
-static void %(function_identifier)s_context( struct Nuitka_GeneratorObject *generator )
-#endif
 {
     CHECK_OBJECT( (PyObject *)generator );
     assert( Nuitka_Generator_Check( (PyObject *)generator ) );
@@ -76,36 +72,21 @@ template_make_generator = """\
 
 template_generator_exception_exit = """\
 %(function_cleanup)s
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
-#else
-    generator->m_yielded = NULL;
-    return;
-#endif
 
     function_exception_exit:
 %(function_cleanup)s\
     assert( %(exception_type)s );
     RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
-#else
-    generator->m_yielded = NULL;
-    return;
-#endif
 """
 
 template_generator_noexception_exit = """\
     // Return statement need not be present.
 %(function_cleanup)s\
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
-#else
-    generator->m_yielded = NULL;
-    return;
-#endif
 """
 
 # TODO: Clarify if cannot get here function is to be used.
@@ -113,23 +94,14 @@ template_generator_return_exit = """\
     // The above won't return, but we need to make it clear to the compiler
     // as well, or else it will complain and/or generate inferior code.
     assert(false);
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
-#else
-    return;
-#endif
 
     function_return_exit:
 #if PYTHON_VERSION >= 300
     generator->m_returned = %(return_value)s;
 #endif
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
-#else
-    generator->m_yielded = NULL;
-    return;
-#endif
 """
 
 

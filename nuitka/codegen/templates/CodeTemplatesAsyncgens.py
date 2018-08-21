@@ -28,11 +28,7 @@ struct %(function_identifier)s_locals {
 %(function_local_types)s
 };
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 static PyObject *%(function_identifier)s_context( struct Nuitka_AsyncgenObject *asyncgen, PyObject *yield_return_value )
-#else
-static void %(function_identifier)s_context( struct Nuitka_AsyncgenObject *asyncgen )
-#endif
 {
     CHECK_OBJECT( (PyObject *)asyncgen );
     assert( Nuitka_Asyncgen_Check( (PyObject *)asyncgen ) );
@@ -79,12 +75,7 @@ template_asyncgen_exception_exit = """\
 %(function_cleanup)s\
     assert( %(exception_type)s );
     RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
-#else
-    asyncgen->m_yielded = NULL;
-    return;
-#endif
 """
 
 template_asyncgen_noexception_exit = """\
@@ -93,23 +84,13 @@ template_asyncgen_noexception_exit = """\
 
 %(function_cleanup)s\
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
-#else
-    asyncgen->m_yielded = NULL;
-    return;
-#endif
 """
 
 template_asyncgen_return_exit = """\
     function_return_exit:;
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
     return NULL;
-#else
-    asyncgen->m_yielded = NULL;
-    return;
-#endif
 """
 
 

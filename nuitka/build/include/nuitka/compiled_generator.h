@@ -27,8 +27,6 @@
 // Another cornerstone of the integration into CPython. Try to behave as well as
 // normal generator objects do or even better.
 
-#include "fibers.h"
-
 // Status of the generator object.
 #ifdef __cplusplus
 enum Generator_Status {
@@ -81,15 +79,8 @@ struct Nuitka_GeneratorObject {
     _PyErr_StackItem m_exc_state;
 #endif
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    // The label index to resume after yield.
     int m_yield_return_index;
-#else
-    Fiber m_yielder_context;
-    Fiber m_caller_context;
-
-    // The yielded value, NULL in case of exception or return.
-    PyObject *m_yielded;
-#endif
 
     // Returned value if yielded value is NULL, is
     // NULL if not a return
@@ -110,11 +101,7 @@ struct Nuitka_GeneratorObject {
 
 extern PyTypeObject Nuitka_Generator_Type;
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 typedef PyObject *(*generator_code)( struct Nuitka_GeneratorObject *, PyObject * );
-#else
-typedef void (*generator_code)( struct Nuitka_GeneratorObject * );
-#endif
 
 extern PyObject *Nuitka_Generator_New(
     generator_code code,
@@ -211,98 +198,8 @@ static inline void RESTORE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *g
 #endif
 }
 
-#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
-
-static inline PyObject *GENERATOR_YIELD( struct Nuitka_GeneratorObject *generator, PyObject *value )
-{
-    CHECK_OBJECT( value );
-
-    generator->m_yielded = value;
-
-    Nuitka_Frame_MarkAsNotExecuting( generator->m_frame );
-
-    // Return to the calling context.
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-
-    Nuitka_Frame_MarkAsExecuting( generator->m_frame );
-
-    // Check for thrown exception.
-    if (unlikely( generator->m_exception_type ))
-    {
-        RESTORE_ERROR_OCCURRED(
-            generator->m_exception_type,
-            generator->m_exception_value,
-            generator->m_exception_tb
-        );
-
-        generator->m_exception_type = NULL;
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
-
-        return NULL;
-    }
-
-    CHECK_OBJECT( generator->m_yielded );
-    return generator->m_yielded;
-}
-
-#if PYTHON_VERSION >= 300
-static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *value )
-{
-    CHECK_OBJECT( value );
-
-    generator->m_yielded = value;
-
-    SAVE_GENERATOR_EXCEPTION( generator );
-
-#if _DEBUG_EXCEPTIONS
-    PyThreadState *thread_state = PyThreadState_GET();
-
-    PRINT_STRING("YIELD exit:\n");
-    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
-#endif
-
-    Nuitka_Frame_MarkAsNotExecuting( generator->m_frame );
-
-    // Return to the calling context.
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-
-    Nuitka_Frame_MarkAsExecuting( generator->m_frame );
-
-#if _DEBUG_EXCEPTIONS
-    PRINT_STRING("YIELD return:\n");
-    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
-#endif
-
-    RESTORE_GENERATOR_EXCEPTION( generator );
-
-    // Check for thrown exception.
-    if (unlikely( generator->m_exception_type ))
-    {
-        RESTORE_ERROR_OCCURRED(
-            generator->m_exception_type,
-            generator->m_exception_value,
-            generator->m_exception_tb
-        );
-
-        generator->m_exception_type = NULL;
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
-
-        return NULL;
-    }
-
-    return generator->m_yielded;
-}
-#endif
-
-#if PYTHON_VERSION >= 300
-extern PyObject *GENERATOR_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject *target );
-extern PyObject *GENERATOR_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *target );
-#endif
-
-#endif
-
+// Functions to preserver and restore from heap area temporary values during
+// yield/yield from/await exits of generator functions.
 extern void Nuitka_PreserveHeap( void *dest, ... );
 extern void Nuitka_RestoreHeap( void *source, ... );
 

@@ -70,15 +70,8 @@ struct Nuitka_CoroutineObject {
     PyObject *m_origin;
 #endif
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    // The label index to resume after yield.
     int m_yield_return_index;
-#else
-    Fiber m_yielder_context;
-    Fiber m_caller_context;
-
-    // The yielded value, NULL in case of exception or return.
-    PyObject *m_yielded;
-#endif
 
     // Returned value if yielded value is NULL, is
     // NULL if not a return
@@ -97,12 +90,7 @@ struct Nuitka_CoroutineObject {
 
 extern PyTypeObject Nuitka_Coroutine_Type;
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 typedef PyObject *(*coroutine_code)( struct Nuitka_CoroutineObject *, PyObject * );
-#else
-typedef void (*coroutine_code)( struct Nuitka_CoroutineObject * );
-#endif
-
 
 extern PyObject *Nuitka_Coroutine_New(
     coroutine_code code,
@@ -212,19 +200,12 @@ static const int await_exit = 2;
 #endif
 
 
-
 extern PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
 extern PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
 
 extern PyObject *COROUTINE_AWAIT_COMMON( PyObject *awaitable, int await_kind );
 
-#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
-
-extern PyObject *COROUTINE_AWAIT( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
-extern PyObject *COROUTINE_AWAIT_IN_HANDLER( struct Nuitka_CoroutineObject *coroutine, PyObject *awaitable, int await_kind );
-
-#endif
-
+// TODO: Misnomer, have Nuitka_ prefix
 #if PYTHON_VERSION >= 360
 extern PyObject *PyCoro_GetAwaitableIter( PyObject *value );
 #endif

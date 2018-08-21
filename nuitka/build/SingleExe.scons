@@ -1492,35 +1492,6 @@ def discoverSourceFiles():
     result.append(provideStatic("InspectPatcher.c"))
     result.append(provideStatic("MetaPathBasedLoader.c"))
 
-    # Platform dependent fiber implementations for generators to use.
-    if win_target:
-        result.append(provideStatic("win32_ucontext_src/fibers_win32.c"))
-    elif target_arch == "x86_64" and "linux" in sys.platform:
-        result.append(provideStatic("x64_ucontext_src/fibers_x64.c"))
-        result.append(provideStatic("x64_ucontext_src/swapfiber.S"))
-    elif target_arch == "armv5tel":
-        result.append(provideStatic("arm_ucontext_src/fibers_arm.c"))
-        result.append(provideStatic("arm_ucontext_src/ucontext.c"))
-        result.append(provideStatic("arm_ucontext_src/getcontext.asm"))
-    elif "openbsd" in sys.platform:
-        result.append(provideStatic("libcoro_ucontext_src/fibers_coro.c"))
-        result.append(provideStatic("libcoro_ucontext_src/coro.c"))
-
-        env.Append(
-            CPPDEFINES = ["CORO_SJLJ"]
-        )
-    elif os.path.isfile("/etc/alpine-release"):
-        result.append(provideStatic("libcoro_ucontext_src/fibers_coro.c"))
-        result.append(provideStatic("libcoro_ucontext_src/coro.c"))
-
-        env.Append(
-            CPPDEFINES = ["CORO_SJLJ", "__OpenBSD__"]
-        )
-    else:
-        # Variant based on deprecated, but still present versions of
-        # getcontext/setcontext/swapcontext/makecontext
-        result.append(provideStatic("gen_ucontext_src/fibers_gen.c"))
-
     return result
 
 source_targets = []
@@ -1706,10 +1677,6 @@ if win_target and gcc_mode:
         ]
     )
 
-
-# On some architectures, makecontext cannot pass pointers reliably.
-if target_arch == "x86_64" and "linux" in sys.platform:
-    env.Append(CPPDEFINES = ["_NUITKA_MAKECONTEXT_INTS"])
 
 # Avoid IO for compilation as much as possible, this should make the
 # compilation more memory hungry, but also faster.

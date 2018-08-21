@@ -20,8 +20,6 @@
 The normal "yield", and the Python 3.3 or higher "yield from" variant.
 """
 
-from nuitka import Options
-
 from .CodeHelpers import generateChildExpressionsCode
 from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import getReferenceExportCode
@@ -142,33 +140,18 @@ def generateYieldCode(to_name, expression, emit, context):
     if context.needsCleanup(value_name):
         context.removeCleanupTempName(value_name)
 
-    if Options.isExperimental("generator_goto"):
-        yield_code = "return %(yielded_value)s;" % {
-            "yielded_value"       : value_name,
-        }
+    yield_code = "return %(yielded_value)s;" % {
+        "yielded_value"       : value_name,
+    }
 
-        _getYieldPreserveCode(
-            to_name            = to_name,
-            value_name         = value_name,
-            yield_code         = yield_code,
-            preserve_exception = preserve_exception,
-            emit               = emit,
-            context            = context
-        )
-    else:
-        # This will produce GENERATOR_YIELD, COROUTINE_YIELD or ASYNCGEN_YIELD.
-        emit(
-            "%s = %s_%s( %s, %s );" % (
-                to_name,
-                context.getContextObjectName().upper(),
-                "YIELD"
-                  if not preserve_exception else
-                "YIELD_IN_HANDLER",
-                context.getContextObjectName(),
-                value_name
-            )
-        )
-
+    _getYieldPreserveCode(
+        to_name            = to_name,
+        value_name         = value_name,
+        yield_code         = yield_code,
+        preserve_exception = preserve_exception,
+        emit               = emit,
+        context            = context
+    )
 
     getErrorExitCode(
         check_name = to_name,
@@ -192,54 +175,29 @@ def generateYieldFromCode(to_name, expression, emit, context):
 
     getReferenceExportCode(value_name, emit, context)
 
-    if Options.isExperimental("generator_goto"):
-        if context.needsCleanup(value_name):
-            context.removeCleanupTempName(value_name)
-        yield_code = """\
+    if context.needsCleanup(value_name):
+        context.removeCleanupTempName(value_name)
+    yield_code = """\
 generator->m_yieldfrom = %(yield_from)s;
 return NULL;
 """ % {
-            "yield_from"       : value_name,
-        }
+        "yield_from"       : value_name,
+    }
 
-        _getYieldPreserveCode(
-            to_name            = to_name,
-            value_name         = value_name,
-            yield_code         = yield_code,
-            preserve_exception = preserve_exception,
-            emit               = emit,
-            context            = context
-        )
+    _getYieldPreserveCode(
+        to_name            = to_name,
+        value_name         = value_name,
+        yield_code         = yield_code,
+        preserve_exception = preserve_exception,
+        emit               = emit,
+        context            = context
+    )
 
-        getErrorExitCode(
-            check_name = to_name,
-            emit       = emit,
-            context    = context
-        )
-    else:
-        if not context.needsCleanup(value_name):
-            context.addCleanupTempName(value_name)
-
-        # This will produce GENERATOR_YIELD_FROM, COROUTINE_YIELD_FROM or
-        # ASYNCGEN_YIELD_FROM.
-        emit(
-            "%s = %s_%s( %s, %s );" % (
-                to_name,
-                context.getContextObjectName().upper(),
-                "YIELD_FROM"
-                  if not preserve_exception else
-                "YIELD_FROM_IN_HANDLER",
-                context.getContextObjectName(),
-                value_name
-            )
-        )
-
-        getErrorExitCode(
-            check_name   = to_name,
-            release_name = value_name,
-            emit         = emit,
-            context      = context
-        )
+    getErrorExitCode(
+        check_name = to_name,
+        emit       = emit,
+        context    = context
+    )
 
     context.addCleanupTempName(to_name)
 
