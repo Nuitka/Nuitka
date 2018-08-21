@@ -1191,11 +1191,10 @@ class PythonFunctionDirectContext(PythonFunctionContext):
 
 
 class PythonGeneratorObjectContext(PythonFunctionContext):
-    if isExperimental("generator_heap"):
-        def _makeVariableStorage(self):
-            return VariableStorage(
-                heap_name = "%s_heap" % self.getContextObjectName()
-            )
+    def _makeVariableStorage(self):
+        return VariableStorage(
+            heap_name = "%s_heap" % self.getContextObjectName()
+        )
 
     def isForDirectCall(self):
         return False

@@ -1362,10 +1362,8 @@ PyObject *Nuitka_Coroutine_New(
         full_size
     );
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
     // For quicker access of generator heap.
     result->m_heap_storage = &result->m_closure[ closure_given ];
-#endif
 
     result->m_code = (void *)code;
 

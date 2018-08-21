@@ -97,11 +97,8 @@ struct Nuitka_GeneratorObject {
     PyObject *m_returned;
 #endif
 
-
-#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
     /* The heap of generator objects at run time. */
     void *m_heap_storage;
-#endif
 
     /* Closure variables given, if any, we reference cells here. The last
      * part is dynamically allocated, the array size differs per generator

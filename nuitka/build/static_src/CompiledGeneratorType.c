@@ -1373,10 +1373,8 @@ PyObject *Nuitka_Generator_New(
         full_size
     );
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_HEAP
     // For quicker access of generator heap.
     result->m_heap_storage = &result->m_closure[ closure_given ];
-#endif
 
     assert( result != NULL );
     CHECK_OBJECT( result );
