@@ -239,19 +239,17 @@ static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, 
         }
 #endif
 
-        if ( asyncgen->m_frame )
+        if ( asyncgen->m_resume_frame )
         {
             // It would be nice if our frame were still alive. Nobody had the
             // right to release it.
-            assertFrameObject( asyncgen->m_frame );
+            assertFrameObject( asyncgen->m_resume_frame );
 
             // It's not supposed to be on the top right now.
-            assert( return_frame != &asyncgen->m_frame->m_frame );
-
-            Py_XINCREF( return_frame );
-            asyncgen->m_frame->m_frame.f_back = return_frame;
+            assert( return_frame != &asyncgen->m_resume_frame->m_frame );
 
             thread_state->frame = &asyncgen->m_frame->m_frame;
+            asyncgen->m_resume_frame = NULL;
         }
 
         // Continue the yielder function while preventing recursion.
@@ -293,7 +291,7 @@ static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, 
 
         // If the asyncgen returns with m_yieldfrom set, it wants us to yield
         // from that value from now on.
-        if ( yielded == NULL && asyncgen->m_yieldfrom != NULL )
+        while ( yielded == NULL && asyncgen->m_yieldfrom != NULL )
         {
             yielded = Nuitka_YieldFromAsyncgenInitial( asyncgen );
         }
@@ -318,6 +316,9 @@ static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, 
             assertFrameObject( asyncgen->m_frame );
 
             Py_CLEAR( asyncgen->m_frame->m_frame.f_back );
+
+            // Remember where to resume from.
+            asyncgen->m_resume_frame = (struct Nuitka_FrameObject *)thread_state->frame;
         }
 
         thread_state->frame = return_frame;
@@ -529,7 +530,11 @@ static PyObject *_Nuitka_Asyncgen_throw2( struct Nuitka_AsyncgenObject *asyncgen
             }
             else
             {
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+                ret = _Nuitka_Asyncgen_send( asyncgen, NULL, false );
+#else
                 ret = _Nuitka_Asyncgen_send( asyncgen, Py_None, false );
+#endif
             }
         }
 
@@ -1037,6 +1042,8 @@ PyObject *Nuitka_Asyncgen_New(
     result->m_frame = NULL;
     result->m_code_object = code_object;
 
+    result->m_resume_frame = NULL;
+
     result->m_finalizer = NULL;
     result->m_hooks_init_done = false;
     result->m_closed = false;
@@ -1247,6 +1254,8 @@ static PyObject *Nuitka_AsyncgenAsend_send( struct Nuitka_AsyncgenAsendObject *a
 #if _DEBUG_ASYNCGEN
     PRINT_STRING("Nuitka_AsyncgenAsend_send: Enter with state:" );
     PRINT_NEW_LINE();
+    PRINT_ITEM((PyObject *)asyncgen_asend);
+    PRINT_NEW_LINE();
     printf("State on entry is asyncgen_send->m_state = %d\n", asyncgen_asend->m_state );
     fflush(stdout);
     PRINT_ITEM( arg );
@@ -1292,6 +1301,18 @@ static PyObject *Nuitka_AsyncgenAsend_tp_iternext( struct Nuitka_AsyncgenAsendOb
 
     return Nuitka_AsyncgenAsend_send( asyncgen_asend, Py_None );
 }
+
+
+static PyObject *Nuitka_AsyncgenAsend_tp_repr( struct Nuitka_AsyncgenAsendObject *asyncgen_asend )
+{
+    return PyUnicode_FromFormat(
+        "<compiled_async_generator_asend of %s at %p>",
+        Nuitka_String_AsString( asyncgen_asend->m_gen->m_qualname ),
+        asyncgen_asend
+    );
+}
+
+
 
 
 static PyObject *Nuitka_AsyncgenAsend_throw( struct Nuitka_AsyncgenAsendObject *asyncgen_asend, PyObject *args )
@@ -1353,7 +1374,7 @@ static PyTypeObject Nuitka_AsyncgenAsend_Type =
     0,                                                  /* tp_getattr */
     0,                                                  /* tp_setattr */
     &Nuitka_AsyncgenAsend_as_async,                     /* tp_as_async */
-    0,                                                  /* tp_repr */
+    (reprfunc)Nuitka_AsyncgenAsend_tp_repr,             /* tp_repr */
     0,                                                  /* tp_as_number */
     0,                                                  /* tp_as_sequence */
     0,                                                  /* tp_as_mapping */

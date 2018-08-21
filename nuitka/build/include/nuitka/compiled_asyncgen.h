@@ -52,8 +52,14 @@ struct Nuitka_AsyncgenObject {
     PyObject *m_exception_type, *m_exception_value;
     PyTracebackObject *m_exception_tb;
 
+    // The parent frame of the coroutine, if created.
     struct Nuitka_FrameObject *m_frame;
+
     PyCodeObject *m_code_object;
+
+    // While yielding, this was the frame currently active, restore when
+    // resuming.
+    struct Nuitka_FrameObject *m_resume_frame;
 
     // Was it ever used, is it still running, or already finished.
     Generator_Status m_status;
