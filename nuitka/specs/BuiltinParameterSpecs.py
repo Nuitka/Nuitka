@@ -27,6 +27,11 @@ from nuitka.PythonVersions import python_version
 
 from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
+if str is bytes:
+    import __builtin__ as builtins
+else:
+    import builtins
+
 
 class BuiltinParameterSpec(ParameterSpec):
     __slots__ = ("builtin",)
@@ -43,7 +48,7 @@ class BuiltinParameterSpec(ParameterSpec):
             ps_kw_only_args  = ()
         )
 
-        self.builtin = __builtins__[name]
+        self.builtin = getattr(builtins, name)
 
         assert default_count <= len(arg_names)
 

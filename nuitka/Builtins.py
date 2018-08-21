@@ -26,6 +26,11 @@ from types import BuiltinFunctionType, FunctionType, GeneratorType
 from nuitka.__past__ import iterItems
 from nuitka.PythonVersions import python_version
 
+if str is bytes:
+    import __builtin__ as builtins
+else:
+    import builtins
+
 
 def _getBuiltinExceptionNames():
     def isExceptionName(builtin_name):
@@ -39,43 +44,30 @@ def _getBuiltinExceptionNames():
         else:
             return False
 
+    exceptions = {}
+
     # Hide Python3 changes for built-in exception names
     if python_version < 300:
-        import exceptions
+        import exceptions as builtin_exceptions
 
-        names = [
-            str(name) for name in dir(exceptions)
-            if isExceptionName(name)
-        ]
-
-        values = {}
-
-        for key in names:
-            values[key] = getattr(exceptions, key)
-
-        for key in dir(sys.modules["__builtin__"]):
+        for key in dir(builtin_exceptions):
             name = str(key)
 
             if isExceptionName(name):
-                names.append(key)
-                values[name] = getattr(sys.modules["__builtin__"], key)
+                exceptions[name] = getattr(builtin_exceptions, key)
+
+        for key in dir(builtins):
+            name = str(key)
+
+            if isExceptionName(name):
+                exceptions[name] = getattr(builtins, key)
     else:
-        exceptions = {}
 
-        for key, value in  sys.modules["builtins"].__dict__.items():
+        for key in dir(builtins):
             if isExceptionName(key):
-                exceptions[key] = value
+                exceptions[key] = getattr(builtins, key)
 
-        names = [
-            key for key, value in exceptions.items()
-        ]
-
-        values = {}
-
-        for key, value in exceptions.items():
-            values[key] = value
-
-    return names, values
+    return list(exceptions.keys()), exceptions
 
 builtin_exception_names, builtin_exception_values = _getBuiltinExceptionNames()
 builtin_exception_values_list = tuple(builtin_exception_values.values())
@@ -93,10 +85,11 @@ assert "NotImplemented" in builtin_exception_names
 
 assert "StopAsyncIteration" in builtin_exception_names or python_version < 350
 
+
 def _getBuiltinNames():
     names = [
         str(x)
-        for x in __builtins__.keys()
+        for x in dir(builtins)
     ]
 
     for builtin_exception_name in builtin_exception_names:
@@ -126,7 +119,7 @@ def _getBuiltinNames():
 
 builtin_names, builtin_warnings = _getBuiltinNames()
 builtin_named_values = dict(
-    (__builtins__[x], x)
+    ((getattr(builtins, x), x)
     for x in builtin_names
 )
 builtin_named_values_list = tuple(builtin_named_values)
@@ -143,7 +136,7 @@ def getBuiltinTypeNames():
     result = []
 
     for builtin_name in builtin_names:
-        if isinstance(__builtins__[builtin_name], type):
+        if isinstance(getattr(builtins, builtin_name), type):
             result.append(builtin_name)
 
     return tuple(sorted(result))
