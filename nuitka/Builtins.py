@@ -119,7 +119,7 @@ def _getBuiltinNames():
 
 builtin_names, builtin_warnings = _getBuiltinNames()
 builtin_named_values = dict(
-    ((getattr(builtins, x), x)
+    (getattr(builtins, x), x)
     for x in builtin_names
 )
 builtin_named_values_list = tuple(builtin_named_values)
