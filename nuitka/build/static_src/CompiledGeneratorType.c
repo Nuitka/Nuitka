@@ -525,7 +525,6 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
 #if PYTHON_VERSION >= 300
         PyObject *yielded;
 
-        // TODO: We could do a switch on m_code instead.
         if ( generator->m_yieldfrom == NULL )
         {
             yielded = ((generator_code)generator->m_code)( generator, value );

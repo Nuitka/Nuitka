@@ -181,7 +181,7 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
     iter_name = context.allocateTempName("async_wait")
 
     emit(
-        "%s = COROUTINE_AWAIT_COMMON( %s, %s );" % (
+        "%s = ASYNC_AWAIT( %s, %s );" % (
             iter_name,
             value_name,
             wait_kind
@@ -246,10 +246,8 @@ def generateAsyncIterCode(to_name, expression, emit, context):
     iter_name = context.allocateTempName("async_iter")
 
     emit(
-        "%s = %s_ASYNC_MAKE_ITERATOR( %s, %s );" % (
+        "%s = ASYNC_MAKE_ITERATOR( %s );" % (
             iter_name,
-            context.getContextObjectName().upper(),
-            context.getContextObjectName(),
             value_name
         )
     )
@@ -305,10 +303,8 @@ def generateAsyncNextCode(to_name, expression, emit, context):
     iter_name = context.allocateTempName("async_next")
 
     emit(
-        "%s = %s_ASYNC_ITERATOR_NEXT( %s, %s );" % (
+        "%s = ASYNC_ITERATOR_NEXT( %s );" % (
             iter_name,
-            context.getContextObjectName().upper(),
-            context.getContextObjectName(),
             value_name
         )
     )

@@ -114,10 +114,6 @@ static void Nuitka_Asyncgen_release_closure( struct Nuitka_AsyncgenObject *async
 
 extern PyObject *ERROR_GET_STOP_ITERATION_VALUE();
 
-extern PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg );
-
-extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
-
 extern PyObject *_Nuitka_YieldFromCore(
     PyObject *yieldfrom,
     PyObject *send_value,
@@ -158,6 +154,9 @@ static PyObject *Nuitka_YieldFromAsyncgenNext( struct Nuitka_AsyncgenObject *asy
 {
     return Nuitka_YieldFromAsyncgenCore( asyncgen, send_value );
 }
+
+static PyObject *Nuitka_AsyncGenValueWrapperNew( PyObject *value );
+
 
 static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value, bool closing )
 {
@@ -230,7 +229,6 @@ static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, 
 
         PyObject *yielded;
 
-        // TODO: We could do a switch on m_code instead.
         if ( asyncgen->m_yieldfrom == NULL )
         {
             yielded = ((asyncgen_code)asyncgen->m_code)( asyncgen, value );
@@ -1045,7 +1043,7 @@ static PyTypeObject Nuitka_AsyncgenValueWrapper_Type =
 };
 
 
-PyObject *Nuitka_AsyncGenValueWrapperNew( PyObject *value )
+static PyObject *Nuitka_AsyncGenValueWrapperNew( PyObject *value )
 {
     CHECK_OBJECT( value );
     struct Nuitka_AsyncgenWrappedValueObject *result;
@@ -1676,22 +1674,6 @@ static PyObject *Nuitka_AsyncgenAthrow_New( struct Nuitka_AsyncgenObject *asyncg
 }
 
 extern PyObject *Nuitka_AIterWrapper_New( PyObject *aiter );
-
-// TODO: Once making goto generators the only option, merge with
-// the coroutine helpers, they do not really make a difference
-// at all.
-PyObject *ASYNCGEN_ASYNC_MAKE_ITERATOR( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
-{
-    return COROUTINE_ASYNC_MAKE_ITERATOR( NULL, value );
-}
-
-// TODO: Once making goto generators the only option, merge with
-// the coroutine helpers, they do not really make a difference
-// at all.
-PyObject *ASYNCGEN_ASYNC_ITERATOR_NEXT( struct Nuitka_AsyncgenObject *asyncgen, PyObject *value )
-{
-    return COROUTINE_ASYNC_ITERATOR_NEXT( NULL, value );
-}
 
 void _initCompiledAsyncgenTypes( void )
 {

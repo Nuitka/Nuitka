@@ -362,7 +362,6 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
 
         PyObject *yielded;
 
-        // TODO: We could do a switch on m_code instead.
         if ( coroutine->m_yieldfrom == NULL )
         {
             yielded = ((coroutine_code)coroutine->m_code)( coroutine, value );
@@ -1366,13 +1365,10 @@ static int gen_is_coroutine( PyObject *object )
     return 0;
 }
 
-#if PYTHON_VERSION < 360
-static
-#endif
-PyObject *PyCoro_GetAwaitableIter( PyObject *value )
+static PyObject *Nuitka_GetAwaitableIter( PyObject *value )
 {
 #if _DEBUG_COROUTINE
-    PRINT_STRING("PyCoro_GetAwaitableIter:");
+    PRINT_STRING("Nuitka_GetAwaitableIter:");
     PRINT_ITEM( value );
     PRINT_NEW_LINE();
 #endif
@@ -1458,9 +1454,9 @@ static void FORMAT_AWAIT_ERROR( PyObject *value, int await_kind )
 }
 #endif
 
-PyObject *COROUTINE_AWAIT_COMMON( PyObject *awaitable, int await_kind )
+PyObject *ASYNC_AWAIT( PyObject *awaitable, int await_kind )
 {
-    PyObject *awaitable_iter = PyCoro_GetAwaitableIter( awaitable );
+    PyObject *awaitable_iter = Nuitka_GetAwaitableIter( awaitable );
 
     if (unlikely( awaitable_iter == NULL ))
     {
@@ -1644,7 +1640,7 @@ PyObject *Nuitka_AIterWrapper_New( PyObject *aiter )
 
 #endif
 
-PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
+PyObject *ASYNC_MAKE_ITERATOR( PyObject *value )
 {
 #if _DEBUG_COROUTINE
     PRINT_STRING("AITER entry:");
@@ -1706,7 +1702,7 @@ PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutin
     }
 #endif
 
-    PyObject *awaitable_iter = PyCoro_GetAwaitableIter( iter );
+    PyObject *awaitable_iter = Nuitka_GetAwaitableIter( iter );
 
     if (unlikely( awaitable_iter == NULL ))
     {
@@ -1730,7 +1726,7 @@ PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutin
     return awaitable_iter;
 }
 
-PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value )
+PyObject *ASYNC_ITERATOR_NEXT( PyObject *value )
 {
 #if _DEBUG_COROUTINE
     PRINT_STRING("ANEXT entry:");
@@ -1764,7 +1760,7 @@ PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutin
         return NULL;
     }
 
-    PyObject *awaitable_iter = PyCoro_GetAwaitableIter( next_value );
+    PyObject *awaitable_iter = Nuitka_GetAwaitableIter( next_value );
 
     if (unlikely( awaitable_iter == NULL ))
     {

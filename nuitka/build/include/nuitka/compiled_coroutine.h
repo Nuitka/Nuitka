@@ -200,15 +200,14 @@ static const int await_exit = 2;
 #endif
 
 
-extern PyObject *COROUTINE_ASYNC_MAKE_ITERATOR( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
-extern PyObject *COROUTINE_ASYNC_ITERATOR_NEXT( struct Nuitka_CoroutineObject *coroutine, PyObject *value );
+// Create the object to await for async for "iter".
+extern PyObject *ASYNC_MAKE_ITERATOR( PyObject *value );
 
-extern PyObject *COROUTINE_AWAIT_COMMON( PyObject *awaitable, int await_kind );
+// Create the object to await for async for "next".
+extern PyObject *ASYNC_ITERATOR_NEXT( PyObject *value );
 
-// TODO: Misnomer, have Nuitka_ prefix
-#if PYTHON_VERSION >= 360
-extern PyObject *PyCoro_GetAwaitableIter( PyObject *value );
-#endif
+// Create the object for plain "await".
+extern PyObject *ASYNC_AWAIT( PyObject *awaitable, int await_kind );
 
 #endif
 
