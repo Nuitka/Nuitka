@@ -540,7 +540,7 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
 #if PYTHON_VERSION >= 300
         // If the generator returns with m_yieldfrom set, it wants us to yield
         // from that value from now on.
-        if ( yielded == NULL && generator->m_yieldfrom != NULL )
+        while ( yielded == NULL && generator->m_yieldfrom != NULL )
         {
             yielded = Nuitka_YieldFromGeneratorInitial( generator );
         }
