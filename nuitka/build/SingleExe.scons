@@ -778,7 +778,10 @@ if debug_mode:
                 # At least for self-compiled Python3.2, and MinGW this happens
                 # and has little use anyway.
                 "-Wno-error=format",
-                "-Wno-format"
+                "-Wno-format",
+                # For large files, these can issue warnings about disabling
+                # itself, while we do not need it
+                "-Wno-misleading-indentation"
 
             ]
         )
