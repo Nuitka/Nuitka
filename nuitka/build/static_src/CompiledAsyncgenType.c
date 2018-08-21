@@ -477,7 +477,11 @@ static PyObject *_Nuitka_Asyncgen_throw2( struct Nuitka_AsyncgenObject *asyncgen
 
                 if ( res == true )
                 {
+#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+                    return _Nuitka_Asyncgen_send( asyncgen, NULL, false );
+#else
                     return _Nuitka_Asyncgen_send( asyncgen, Py_None, false );
+#endif
                 }
 
                 goto throw_here;
@@ -1509,7 +1513,7 @@ static PyObject *Nuitka_AsyncgenAthrow_send( struct Nuitka_AsyncgenAthrowObject 
 
             retval = _Nuitka_Asyncgen_throw(
                 asyncgen,
-                0,  /* Do not close generator when PyExc_GeneratorExit is passed */
+                1,  /* Do not close generator when PyExc_GeneratorExit is passed */
                 PyExc_GeneratorExit,
                 NULL,
                 NULL
