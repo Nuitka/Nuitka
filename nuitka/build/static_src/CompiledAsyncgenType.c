@@ -340,10 +340,19 @@ static PyObject *_Nuitka_Asyncgen_send( struct Nuitka_AsyncgenObject *asyncgen, 
         }
         else
         {
-            // TODO: Why not transfer ownership to constructor.
-            PyObject *wrapped = Nuitka_AsyncGenValueWrapperNew( yielded );
-            Py_DECREF( yielded );
-            return wrapped;
+            // For normal yield, wrap the result value before returning.
+            if ( asyncgen->m_yieldfrom == NULL )
+            {
+                // TODO: Why not transfer ownership to constructor.
+                PyObject *wrapped = Nuitka_AsyncGenValueWrapperNew( yielded );
+                Py_DECREF( yielded );
+
+                yielded = wrapped;
+
+                assert( yielded != NULL );
+            }
+
+            return yielded;
         }
     }
     else
