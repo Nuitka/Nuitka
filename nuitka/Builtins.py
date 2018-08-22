@@ -27,9 +27,9 @@ from nuitka.__past__ import iterItems
 from nuitka.PythonVersions import python_version
 
 if str is bytes:
-    import __builtin__ as builtins
+    import __builtin__ as builtins  # @UnresolvedImport pylint: disable=I0021,import-error
 else:
-    import builtins
+    import builtins  # @UnresolvedImport pylint: disable=I0021,import-error
 
 
 def _getBuiltinExceptionNames():

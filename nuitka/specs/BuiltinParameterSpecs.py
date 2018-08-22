@@ -28,9 +28,9 @@ from nuitka.PythonVersions import python_version
 from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 
 if str is bytes:
-    import __builtin__ as builtins
+    import __builtin__ as builtins  # @UnresolvedImport pylint: disable=I0021,import-error
 else:
-    import builtins
+    import builtins  # @UnresolvedImport pylint: disable=I0021,import-error
 
 
 class BuiltinParameterSpec(ParameterSpec):
