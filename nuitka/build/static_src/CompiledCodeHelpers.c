@@ -965,6 +965,14 @@ void PRINT_CURRENT_EXCEPTION( void )
 
 }
 
+void PRINT_PUBLISHED_EXCEPTION( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PRINT_EXCEPTION( EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate) );
+}
+
+
 // TODO: Could be ported, the "printf" stuff would need to be split. On Python3
 // the normal C print output gets lost.
 #if PYTHON_VERSION < 300
