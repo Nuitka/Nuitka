@@ -99,7 +99,7 @@ goto %(parent_exception_exit)s;
 
 # Frame for a module. TODO: Use it for functions called only once.
 # TODO: The once guard need not take a reference count in its frame class.
-template_frame_guard_once = """\
+template_frame_guard_once_block = """\
 // Frame without reuse.
 %(frame_identifier)s = MAKE_MODULE_FRAME( %(code_identifier)s, %(module_identifier)s );
 
@@ -120,6 +120,9 @@ popFrameStack();
 assertFrameObject( %(frame_identifier)s );
 
 goto %(no_exception_exit)s;
+"""
+
+template_frame_guard_once_exception_handler = """\
 %(frame_exception_exit)s:;
 #if %(needs_preserve)d
 RESTORE_FRAME_EXCEPTION( %(frame_identifier)s );
@@ -139,7 +142,7 @@ popFrameStack();
 
 // Return the error.
 goto %(parent_exception_exit)s;
-%(no_exception_exit)s:;"""
+"""
 
 # Frame in a generator, coroutine or asyncgen.
 template_frame_guard_generator = """\

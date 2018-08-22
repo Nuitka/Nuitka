@@ -38,7 +38,8 @@ from .templates.CodeTemplatesFrames import (
     template_frame_guard_generator,
     template_frame_guard_generator_exception_handler,
     template_frame_guard_generator_return_handler,
-    template_frame_guard_once
+    template_frame_guard_once_block,
+    template_frame_guard_once_exception_handler
 )
 
 
@@ -306,34 +307,42 @@ def getFrameGuardOnceCode(code_identifier, codes, parent_exception_exit,
                           parent_return_exit, frame_exception_exit,
                           frame_return_exit, needs_preserve, emit, context):
     # We really need this many parameters here.
+    no_exception_exit = context.allocateLabel("frame_no_exception")
 
     # Used for modules only currently, but that ought to change.
     assert parent_return_exit is None and frame_return_exit is None
 
-    _exception_type, _exception_value, exception_tb, exception_lineno = \
-      context.variable_storage.getExceptionVariableDescriptions()
-
     emit(
-        template_frame_guard_once % {
-            "frame_identifier"      : context.getFrameHandle(),
-            "code_identifier"       : code_identifier,
-            "codes"                 : indented(codes, 0),
-            "module_identifier"     : getModuleAccessCode(context),
-            "tb_making"             : getTracebackMakingIdentifier(
-                                         context     = context,
-                                         lineno_name = exception_lineno
-                                      ),
-            "parent_exception_exit" : parent_exception_exit,
-            "frame_exception_exit"  : frame_exception_exit,
-            "no_exception_exit"     : context.allocateLabel(
-                "frame_no_exception"
-            ),
-            "needs_preserve"        : 1 if needs_preserve else 0,
-            "exception_tb"          : exception_tb,
-            "exception_lineno"      : exception_lineno
+        template_frame_guard_once_block % {
+            "frame_identifier"  : context.getFrameHandle(),
+            "code_identifier"   : code_identifier,
+            "codes"             : indented(codes, 0),
+            "module_identifier" : getModuleAccessCode(context),
+            "no_exception_exit" : no_exception_exit,
+            "needs_preserve"    : 1 if needs_preserve else 0,
         }
     )
 
+    if frame_exception_exit is not None:
+        _exception_type, _exception_value, exception_tb, exception_lineno = \
+          context.variable_storage.getExceptionVariableDescriptions()
+
+        emit(
+            template_frame_guard_once_exception_handler % {
+                "frame_identifier"      : context.getFrameHandle(),
+                "tb_making"             : getTracebackMakingIdentifier(
+                    context     = context,
+                    lineno_name = exception_lineno
+                ),
+                "parent_exception_exit" : parent_exception_exit,
+                "frame_exception_exit"  : frame_exception_exit,
+                "needs_preserve"        : 1 if needs_preserve else 0,
+                "exception_tb"          : exception_tb,
+                "exception_lineno"      : exception_lineno
+            }
+        )
+
+    emit("%s:;\n" % no_exception_exit)
 
 def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
                            type_descriptions, parent_return_exit,
