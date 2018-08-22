@@ -58,14 +58,14 @@ except NameError:
     xrange = range   # @ReservedAssignment
 
 try:
-    from urllib.request import urlretrieve  # @UnresolvedImport pylint: disable=I0021
+    from urllib.request import urlretrieve  # @UnresolvedImport
 except ImportError:
-    from urllib import urlretrieve          # @UnresolvedImport pylint: disable=I0021
+    from urllib import urlretrieve          # @UnresolvedImport
 
 try:
-    from cStringIO import StringIO  # @UnresolvedImport pylint: disable=I0021
+    from cStringIO import StringIO  # @UnresolvedImport
 except ImportError:
-    from io import StringIO         # @UnresolvedImport pylint: disable=I0021
+    from io import StringIO         # @UnresolvedImport
 
 try:
     from functools import total_ordering
