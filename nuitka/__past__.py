@@ -30,15 +30,15 @@ import sys
 # pylint: disable=I0021,invalid-name,redefined-builtin
 
 # Work around for CPython 3.x renaming "long" to "int".
-if str is bytes:
-    long = long  # @ReservedAssignment pylint: disable=I0021,undefined-variable
-else:
+try:
+    long = long  # @ReservedAssignment
+except NameError:
     long = int   # @ReservedAssignment
 
 # Work around for CPython 3.x renaming "unicode" to "str".
-if str is bytes:
-    unicode = unicode  # @ReservedAssignment pylint: disable=I0021,undefined-variable
-else:
+try:
+    unicode = unicode  # @ReservedAssignment
+except NameError:
     unicode = str      # @ReservedAssignment
 
 def iterItems(d):
@@ -47,26 +47,25 @@ def iterItems(d):
     except AttributeError:
         return d.items()
 
-if str is not bytes:
-    raw_input = input      # @ReservedAssignment
-else:
+try:
     raw_input = raw_input  # @ReservedAssignment
+except NameError:
+    raw_input = input      # @ReservedAssignment
 
-if str is bytes:
-    xrange = xrange # @ReservedAssignment pylint: disable=I0021,undefined-variable
-else:
-    xrange = range  # @ReservedAssignment
+try:
+    xrange = xrange  # @ReservedAssignment
+except NameError:
+    xrange = range   # @ReservedAssignment
 
+try:
+    from urllib.request import urlretrieve  # @UnresolvedImport
+except ImportError:
+    from urllib import urlretrieve          # @UnresolvedImport
 
-if str is bytes:
-    from urllib import urlretrieve # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
-else:
-    from urllib.request import urlretrieve # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
-
-if str is bytes:
-    from cStringIO import StringIO # @UnresolvedImport pylint: disable=I0021,import-error
-else:
-    from io import StringIO # @UnresolvedImport pylint: disable=I0021,import-error
+try:
+    from cStringIO import StringIO  # @UnresolvedImport
+except ImportError:
+    from io import StringIO         # @UnresolvedImport
 
 try:
     from functools import total_ordering
@@ -81,9 +80,9 @@ except ImportError:
 
         return cls
 
-if str is bytes:
-    intern = intern      # @ReservedAssignment pylint: disable=I0021,undefined-variable
-else:
+try:
+    intern = intern      # @ReservedAssignment
+except NameError:
     intern = sys.intern  # @ReservedAssignment @UndefinedVariable
 
 # For PyLint to be happy.
