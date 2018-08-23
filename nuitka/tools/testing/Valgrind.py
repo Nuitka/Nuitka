@@ -78,7 +78,7 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename = None):
             my_print("OK", file = sys.stderr)
 
         if save_logfilename is not None:
-            shutil.copy(log_filename, save_logfilename)
+            shutil.copyfile(log_filename, save_logfilename)
 
         max_mem = None
 

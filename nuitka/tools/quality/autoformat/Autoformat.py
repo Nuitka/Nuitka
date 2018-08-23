@@ -299,7 +299,7 @@ def autoformat(filename, abort = False):
         try:
             os.rename(new_name, filename)
         except OSError:
-            shutil.copy(new_name, filename)
+            shutil.copyfile(new_name, filename)
             os.unlink(new_name)
 
         os.chmod(filename, old_stat.st_mode)

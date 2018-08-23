@@ -224,7 +224,7 @@ def executePASS1():
             os.path.join("nuitka", "build", "inline_copy")
         )
 
-    shutil.copy(
+    shutil.copyfile(
         os.path.join(base_dir, "nuitka", "build", "SingleExe.scons"),
         os.path.join("nuitka", "build", "SingleExe.scons")
     )

@@ -1181,7 +1181,7 @@ different from
             dll_name
         )
 
-        shutil.copy(
+        shutil.copyfile(
             dll_filename,
             target_path
         )
