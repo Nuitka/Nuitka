@@ -115,7 +115,13 @@ PyObject *ERROR_GET_STOP_ITERATION_VALUE()
 extern PyObject *const_str_plain_send, *const_str_plain_throw, *const_str_plain_close;
 
 #if PYTHON_VERSION >= 350
-extern PyObject *_Nuitka_Coroutine_throw2( struct Nuitka_CoroutineObject *coroutine, bool closing );
+extern PyObject *_Nuitka_Coroutine_throw2(
+    struct Nuitka_CoroutineObject *coroutine,
+    bool closing,
+    PyObject *exception_type,
+    PyObject *exception_value,
+    PyTracebackObject *exception_tb
+);
 #endif
 
 #if PYTHON_VERSION < 350
@@ -193,22 +199,26 @@ PyObject *_Nuitka_YieldFromPassExceptionTo(
 #if PYTHON_VERSION >= 350
     if ( Nuitka_Coroutine_Check( value ) )
     {
+        struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineObject *)value);
+
         return _Nuitka_Coroutine_throw2(
-            (struct Nuitka_CoroutineObject *)value,
-            false
+            coro,
+            false,
+            exception_type,
+            exception_value,
+            exception_tb
         );
     }
     else if ( Nuitka_CoroutineWrapper_Check( value ) )
     {
         struct Nuitka_CoroutineObject *coro = ((struct Nuitka_CoroutineWrapperObject *)value)->m_coroutine;
 
-        coro->m_exception_type = exception_type;
-        coro->m_exception_value = exception_value;
-        coro->m_exception_tb = exception_tb;
-
         return _Nuitka_Coroutine_throw2(
             coro,
-            false
+            false,
+            exception_type,
+            exception_value,
+            exception_tb
         );
     }
     else
@@ -276,7 +286,7 @@ static PyObject *_Nuitka_YieldFromGeneratorCore(
     FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 
     // Exception, was thrown into us, need to send that to sub-generator.
-    if ( exception_type )
+    if ( exception_type != NULL )
     {
         retval = _Nuitka_YieldFromPassExceptionTo( yieldfrom, exception_type, exception_value, exception_tb );
 
@@ -443,7 +453,13 @@ static PyObject *Nuitka_YieldFromGeneratorNext( struct Nuitka_GeneratorObject *g
 
 #endif
 
-static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generator, PyObject *value )
+static PyObject *Nuitka_Generator_send2(
+    struct Nuitka_GeneratorObject *generator,
+    PyObject *value,
+    PyObject *exception_type,
+    PyObject *exception_value,
+    PyTracebackObject *exception_tb
+)
 {
     CHECK_OBJECT( generator );
 
@@ -458,8 +474,8 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
 
         if ( saved_exception_type != Py_None && saved_exception_type != NULL )
         {
-            Py_INCREF( saved_exception_type );
             saved_exception_value = thread_state->exc_value;
+            Py_INCREF( saved_exception_type );
             Py_XINCREF( saved_exception_value );
             saved_exception_traceback = (PyTracebackObject *)thread_state->exc_traceback;
             Py_XINCREF( saved_exception_traceback );
@@ -504,20 +520,17 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
         // Continue the yielder function while preventing recursion.
         generator->m_running = true;
 
-        // Check for thrown exception.
-        if (unlikely( generator->m_exception_type ))
+        // Check for thrown exception. TODO: Pass these the the entry point
+        // maybe.
+        if (unlikely( exception_type ))
         {
             assert( value == NULL );
 
             RESTORE_ERROR_OCCURRED(
-                generator->m_exception_type,
-                generator->m_exception_value,
-                generator->m_exception_tb
+                exception_type,
+                exception_value,
+                exception_tb
             );
-
-            generator->m_exception_type = NULL;
-            generator->m_exception_value = NULL;
-            generator->m_exception_tb = NULL;
         }
 
         if ( generator->m_frame )
@@ -609,8 +622,6 @@ static PyObject *Nuitka_Generator_send2( struct Nuitka_GeneratorObject *generato
                     PyExc_RuntimeError,
                     "generator raised StopIteration"
                 );
-                PyObject *exception_type, *exception_value;
-                PyTracebackObject *exception_tb;
 
                 FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 
@@ -735,7 +746,7 @@ static PyObject *Nuitka_Generator_send( struct Nuitka_GeneratorObject *generator
         return NULL;
     }
 
-    PyObject *result = Nuitka_Generator_send2( generator, value );
+    PyObject *result = Nuitka_Generator_send2( generator, value, NULL, NULL, NULL );
 
     if ( result == NULL )
     {
@@ -751,14 +762,14 @@ static PyObject *Nuitka_Generator_send( struct Nuitka_GeneratorObject *generator
 
 static PyObject *Nuitka_Generator_tp_iternext( struct Nuitka_GeneratorObject *generator )
 {
-    return Nuitka_Generator_send2( generator, Py_None );
+    return Nuitka_Generator_send2( generator, Py_None, NULL, NULL, NULL );
 }
 
 /* Our own qiter interface, which is for quicker simple loop style iteration,
    that does not send anything in. */
 PyObject *Nuitka_Generator_qiter( struct Nuitka_GeneratorObject *generator, bool *finished )
 {
-    PyObject *result = Nuitka_Generator_send2( generator, Py_None );
+    PyObject *result = Nuitka_Generator_send2( generator, Py_None, NULL, NULL, NULL );
 
     if ( result == NULL )
     {
@@ -785,12 +796,9 @@ PyObject *Nuitka_Generator_close( struct Nuitka_GeneratorObject *generator, PyOb
 {
     if ( generator->m_status == status_Running )
     {
-        generator->m_exception_type = PyExc_GeneratorExit;
         Py_INCREF( PyExc_GeneratorExit );
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
 
-        PyObject *result = Nuitka_Generator_send2( generator, NULL );
+        PyObject *result = Nuitka_Generator_send2( generator, NULL, PyExc_GeneratorExit, NULL, NULL );
 
         if (unlikely( result ))
         {
@@ -829,67 +837,72 @@ PyObject *Nuitka_Generator_close( struct Nuitka_GeneratorObject *generator, PyOb
 
 static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generator, PyObject *args )
 {
-    assert( generator->m_exception_type == NULL );
-    assert( generator->m_exception_value == NULL );
-    assert( generator->m_exception_tb == NULL );
+    PyObject *exception_type;
+    PyObject *exception_value = NULL;
+    PyTracebackObject *exception_tb = NULL;
 
-    int res = PyArg_UnpackTuple( args, "throw", 1, 3, &generator->m_exception_type, &generator->m_exception_value, (PyObject **)&generator->m_exception_tb );
+    // This takes no references, that is for us to do.
+    int res = PyArg_UnpackTuple(
+        args,
+        "throw",
+        1, 3,
+        &exception_type,
+        &exception_value,
+        &exception_tb
+    );
 
     if (unlikely( res == 0 ))
     {
-        generator->m_exception_type = NULL;
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
+        return NULL;
+    }
+
+    // Check traceback limitations.
+    if ( (PyObject *)exception_tb == Py_None )
+    {
+        exception_tb = NULL;
+    }
+    else if ( exception_tb != NULL && !PyTraceBack_Check( exception_tb ) )
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "throw() third argument must be a traceback object"
+        );
 
         return NULL;
     }
 
-    if ( (PyObject *)generator->m_exception_tb == Py_None )
+    if ( PyExceptionClass_Check( exception_type ))
     {
-        generator->m_exception_tb = NULL;
-    }
-    else if ( generator->m_exception_tb != NULL && !PyTraceBack_Check( generator->m_exception_tb ) )
-    {
-        generator->m_exception_type = NULL;
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
-
-        PyErr_Format( PyExc_TypeError, "throw() third argument must be a traceback object" );
-        return NULL;
-    }
-
-    if ( PyExceptionClass_Check( generator->m_exception_type ))
-    {
-        Py_INCREF( generator->m_exception_type );
-        Py_XINCREF( generator->m_exception_value );
-        Py_XINCREF( generator->m_exception_tb );
+        Py_INCREF( exception_type );
+        Py_XINCREF( exception_value );
+        Py_XINCREF( exception_tb );
 
 #if PYTHON_VERSION >= 300
-        // During yield from, the normalize is not done.
+        // During a "yield from", the normalize is not done.
         if ( generator->m_yieldfrom == NULL )
         {
 #endif
-            NORMALIZE_EXCEPTION( &generator->m_exception_type, &generator->m_exception_value, &generator->m_exception_tb );
+            NORMALIZE_EXCEPTION( &exception_type, &exception_value, &exception_tb );
 #if PYTHON_VERSION >= 300
         }
 #endif
     }
-    else if ( PyExceptionInstance_Check( generator->m_exception_type ) )
+    else if ( PyExceptionInstance_Check( exception_type ) )
     {
-        if ( generator->m_exception_value && generator->m_exception_value != Py_None )
+        if ( exception_value != NULL && exception_value != Py_None )
         {
-            generator->m_exception_type = NULL;
-            generator->m_exception_value = NULL;
-            generator->m_exception_tb = NULL;
-
-            PyErr_Format( PyExc_TypeError, "instance exception may not have a separate value" );
+            PyErr_Format(
+                PyExc_TypeError,
+                "instance exception may not have a separate value"
+            );
             return NULL;
         }
-        generator->m_exception_value = generator->m_exception_type;
-        Py_INCREF( generator->m_exception_value );
-        generator->m_exception_type = PyExceptionInstance_Class( generator->m_exception_type );
-        Py_INCREF( generator->m_exception_type );
-        Py_XINCREF( generator->m_exception_tb );
+
+        exception_value = exception_type;
+        Py_INCREF( exception_value );
+        exception_type = PyExceptionInstance_Class( exception_type );
+        Py_INCREF( exception_type );
+        Py_XINCREF( exception_tb );
     }
     else
     {
@@ -900,25 +913,15 @@ static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generato
 #else
             "exceptions must be classes or instances deriving from BaseException, not %s",
 #endif
-            Py_TYPE( generator->m_exception_type )->tp_name
+            Py_TYPE( exception_type )->tp_name
         );
 
-        generator->m_exception_type = NULL;
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
-
-        return NULL;
-    }
-
-    if ( ( generator->m_exception_tb != NULL ) && ( (PyObject *)generator->m_exception_tb != Py_None ) && ( !PyTraceBack_Check( generator->m_exception_tb ) ) )
-    {
-        PyErr_Format( PyExc_TypeError, "throw() third argument must be a traceback object" );
         return NULL;
     }
 
     if ( generator->m_status == status_Running )
     {
-        PyObject *result = Nuitka_Generator_send2( generator, NULL );
+        PyObject *result = Nuitka_Generator_send2( generator, NULL, exception_type, exception_value, exception_tb );
 
         if ( result == NULL )
         {
@@ -934,20 +937,16 @@ static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generato
     else if ( generator->m_status == status_Finished )
     {
         RESTORE_ERROR_OCCURRED(
-            generator->m_exception_type,
-            generator->m_exception_value,
-            generator->m_exception_tb
+            exception_type,
+            exception_value,
+            exception_tb
         );
-
-        generator->m_exception_type = NULL;
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
 
         return NULL;
     }
     else
     {
-        if ( generator->m_exception_tb == NULL )
+        if ( exception_tb == NULL )
         {
             // TODO: Our compiled objects really need a way to store common
             // stuff in a "shared" part across all instances, and outside of
@@ -958,7 +957,7 @@ static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generato
                 0
             );
 
-            generator->m_exception_tb = MAKE_TRACEBACK(
+            exception_tb = MAKE_TRACEBACK(
                 frame,
                 generator->m_code_object->co_firstlineno
             );
@@ -967,14 +966,10 @@ static PyObject *Nuitka_Generator_throw( struct Nuitka_GeneratorObject *generato
         }
 
         RESTORE_ERROR_OCCURRED(
-            generator->m_exception_type,
-            generator->m_exception_value,
-            generator->m_exception_tb
+            exception_type,
+            exception_value,
+            exception_tb
         );
-
-        generator->m_exception_type = NULL;
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
 
         generator->m_status = status_Finished;
 
