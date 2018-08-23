@@ -402,7 +402,10 @@ static PyObject *Nuitka_YieldFromGeneratorInitial( struct Nuitka_GeneratorObject
     {
         if (unlikely( (generator->m_code_object->co_flags & CO_ITERABLE_COROUTINE) == 0 ))
         {
-            PyErr_SetString(
+            Py_DECREF( generator->m_yieldfrom );
+            generator->m_yieldfrom = NULL;
+
+            PyErr_Format(
                 PyExc_TypeError,
                 "cannot 'yield from' a coroutine object in a non-coroutine generator"
             );
