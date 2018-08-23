@@ -113,7 +113,7 @@ needs_2to3 = python_version.startswith('3') and \
              not test_case.endswith("33.py")
 
 if options.target_dir:
-    shutil.copy(
+    shutil.copyfile(
         test_case,
         os.path.join(options.target_dir, os.path.basename(test_case))
     )
@@ -172,7 +172,7 @@ if nuitka:
 
     # We want to compile under the same filename to minimize differences, and
     # then copy te resulting files afterwards.
-    shutil.copy(test_case_1, os.path.basename(test_case))
+    shutil.copyfile(test_case_1, os.path.basename(test_case))
 
     subprocess.check_call(nuitka_call)
 
@@ -185,7 +185,7 @@ if nuitka:
         os.path.basename(test_case_1).replace(".py", ".exe")
     )
 
-    shutil.copy(test_case_2, os.path.basename(test_case))
+    shutil.copyfile(test_case_2, os.path.basename(test_case))
 
     subprocess.check_call(nuitka_call)
 
