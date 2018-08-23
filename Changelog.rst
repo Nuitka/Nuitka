@@ -1,7 +1,8 @@
 Nuitka Release 0.5.33 (Draft)
 =============================
 
-This release is not done yet.
+This release contains a bunch of fixes, most of which were previously released
+as part of hotfixes, and important new optimization.
 
 Bug Fixes
 ---------
@@ -10,14 +11,14 @@ Bug Fixes
   variables were not registering their usage, which could lead to errors
   at C compile time. Fixed in 0.5.32.1 already.
 
-- Fix, usage of built-in calls on class level could crash the compiler if
-  a class variable was updated. Fixed in 0.5.32.1 already.
+- Fix, usage of built-in calls in a class level could crash the compiler if
+  a class variable was updated with its result. Fixed in 0.5.32.1 already.
 
 - Python 3.7: The handling of non-type bases classes was not fully compatible
   and wrong usages were giving ``AttributeError`` instead of ``TypeError``.
   Fixed in 0.5.32.2 already.
 
-- Python 3.5: Fix, await expressions didn't annotate their exception exit.
+- Python 3.5: Fix, ``await`` expressions didn't annotate their exception exit.
   Fixed in 0.5.32.2 already.
 
 - Python3: The ``enum`` module usages with ``__new__`` in derived classes
@@ -59,6 +60,15 @@ Bug Fixes
 - Standalone: Added hidden dependency of newer version of ``sip``. Fixed in
   0.5.32.5 already.
 
+- Standalone: Do not copy file permissions of DLLs and extension modules as
+  that makes deleting and modifying them only harder.
+
+- Python 3.5: Fixed exception handling with coroutines and asyncgen ``throw``
+  to not corrupt exception objects.
+
+- Python 3.7: Added more checks to class creations that were missing for
+  full compatibility.
+
 Organizational
 --------------
 
@@ -67,6 +77,10 @@ Organizational
 - Removed the ``enum`` plug-in which is no longer useful after the improvements
   to the ``staticmethod`` handling for Python3.
 
+- Added Python 3.7 testing for Travis.
+
+- Make it clear in the documentation that ``pyenv`` is not supported.
+
 New Features
 ------------
 
@@ -74,6 +88,10 @@ New Features
 
 Optimization
 ------------
+
+- Using goto based generators that return from execution and resume based on
+  heap storage. This makes tests using generators twice as fast and they no
+  longer use a full C stack of 2MB, but only 1K instead.
 
 - Put all statement related code and declarations for it in a dedicated C
   block, making things slightly more easy for the C compiler to re-use the
@@ -86,6 +104,8 @@ Optimization
 - More compact function, generator, and asyncgen creation code for the normal
   cases, avoid qualname if identical to name for all of them.
 
+- Python2 class dictionaries are now indeed directly optimized, giving more
+  compact code.
 
 Cleanups
 --------
@@ -115,7 +135,38 @@ Cleanups
   asyncgen bodies, and not anymore to the creation of these objects. This
   allows for simpler code generation.
 
-This release is not done yet.
+- Removed fiber implementations, no more needed.
+
+Tests
+-----
+
+- Finally the asyncgen tests can be enabled in the CPython 3.6 test suite as
+  the corrupting crasher has been identified.
+
+- Cover ever more cases of spurious permission problems on Windows.
+
+Summary
+-------
+
+This release is huge in many ways.
+
+First, finishing "goto generators" clears an old scalability problem of Nuitka
+that needed to be addressed. No more do generators/coroutines/asyncgen consume
+too much memory, but instead they become as lightweight as they ought to be.
+
+Second, the use of variable declarations carying type information all through
+the code generation, is an import pre-condition for "C types" work to resume
+and become possible.
+
+Third, the improved generator performance will be removing a lot of cases,
+where Nuitka wasn't as fast, as its current state not using "C types" yet,
+would allow.
+
+Fourth, the fibers were a burden for the debugging and linking of Nuitka on
+various platforms, as they provided deprecated interfaces or not. As they are
+now gone, Nuitka ought to definitely work on any platform where Python works.
+
+From here on, C types work will resume and hopefully yield good results soon.
 
 
 Nuitka Release 0.5.32
