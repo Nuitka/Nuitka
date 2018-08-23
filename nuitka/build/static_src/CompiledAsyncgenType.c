@@ -545,7 +545,7 @@ throw_here:
     }
     else if ( asyncgen->m_status == status_Finished )
     {
-        PyErr_SetNone( PyExc_StopAsyncIteration );
+        RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
         return NULL;
     }
     else
@@ -1208,20 +1208,12 @@ static PyObject *Nuitka_AsyncgenAsend_tp_iternext( struct Nuitka_AsyncgenAsendOb
 }
 
 
-static PyObject *Nuitka_AsyncgenAsend_tp_repr( struct Nuitka_AsyncgenAsendObject *asyncgen_asend )
-{
-    return PyUnicode_FromFormat(
-        "<compiled_async_generator_asend of %s at %p>",
-        Nuitka_String_AsString( asyncgen_asend->m_gen->m_qualname ),
-        asyncgen_asend
-    );
-}
-
-
-
-
 static PyObject *Nuitka_AsyncgenAsend_throw( struct Nuitka_AsyncgenAsendObject *asyncgen_asend, PyObject *args )
 {
+#if _DEBUG_ASYNCGEN
+    PRINT_STRING("Nuitka_AsyncgenAsend_throw: Enter\n");
+#endif
+
     PyObject *result;
 
     if ( asyncgen_asend->m_state == AWAITABLE_STATE_CLOSED )
@@ -1231,12 +1223,23 @@ static PyObject *Nuitka_AsyncgenAsend_throw( struct Nuitka_AsyncgenAsendObject *
     }
 
     result = Nuitka_Asyncgen_throw( asyncgen_asend->m_gen, args );
+#if _DEBUG_ASYNCGEN
+    PRINT_STRING("Nuitka_AsyncgenAsend_throw: Async throw result\n");
+    PRINT_ITEM(result);
+    PRINT_CURRENT_EXCEPTION();
+#endif
+
     result = Nuitka_Asyncgen_unwrap_value( asyncgen_asend->m_gen, result );
 
     if ( asyncgen_asend == NULL )
     {
         asyncgen_asend->m_state = AWAITABLE_STATE_CLOSED;
     }
+
+#if _DEBUG_ASYNCGEN
+    PRINT_STRING("Nuitka_AsyncgenAsend_throw: Leave\n");
+    PRINT_CURRENT_EXCEPTION();
+#endif
 
     return result;
 }
@@ -1248,6 +1251,16 @@ static PyObject *Nuitka_AsyncgenAsend_close( struct Nuitka_AsyncgenAsendObject *
 
     Py_INCREF( Py_None );
     return Py_None;
+}
+
+
+static PyObject *Nuitka_AsyncgenAsend_tp_repr( struct Nuitka_AsyncgenAsendObject *asyncgen_asend )
+{
+    return PyUnicode_FromFormat(
+        "<compiled_async_generator_asend of %s at %p>",
+        Nuitka_String_AsString( asyncgen_asend->m_gen->m_qualname ),
+        asyncgen_asend
+    );
 }
 
 

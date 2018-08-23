@@ -862,9 +862,10 @@ static PyObject *Nuitka_Coroutine_throw( struct Nuitka_CoroutineObject *coroutin
     }
 
 #if _DEBUG_COROUTINE
-    PRINT_STRING("Nuitka_Coroutine_throw:");
+    PRINT_STRING("Nuitka_Coroutine_throw: Enter\n");
 
-    if ( exception_type ) {
+    if ( exception_type )
+    {
         PRINT_STRING("TYPE:");
         PRINT_ITEM((PyObject *)Py_TYPE(exception_type));
     }
@@ -872,11 +873,16 @@ static PyObject *Nuitka_Coroutine_throw( struct Nuitka_CoroutineObject *coroutin
     PRINT_STRING("-");
     PRINT_ITEM(exception_value);
     PRINT_STRING("-");
-    PRINT_ITEM(exception_tb);
+    PRINT_ITEM((PyObject *)exception_tb);
     PRINT_NEW_LINE();
 #endif
 
     PyObject *result = _Nuitka_Coroutine_throw2( coroutine, true, exception_type, exception_value, exception_tb );
+
+#if _DEBUG_COROUTINE
+    PRINT_STRING("Nuitka_Coroutine_throw: Leave\n");
+    PRINT_CURRENT_EXCEPTION();
+#endif
 
     // Make sure to not misbehave
     assert( result != NULL || ERROR_OCCURRED() );
