@@ -90,7 +90,7 @@ def cleanupTarfileForDebian(filename, new_name):
     PDF files for now.
     """
 
-    shutil.copy(filename, new_name)
+    shutil.copyfile(filename, new_name)
     assert os.system(
         "gunzip " + new_name
     ) == 0

@@ -422,7 +422,7 @@ def makeSourceDirectory(main_module):
             if not os.path.isdir(target_dir):
                 makePath(target_dir)
 
-            shutil.copy(
+            shutil.copyfile(
                 module.getFilename(),
                 target_filename
             )
