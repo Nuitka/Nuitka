@@ -262,7 +262,6 @@ static PyObject *_Nuitka_Coroutine_send( struct Nuitka_CoroutineObject *coroutin
         {
             coroutine->m_status = status_Finished;
 
-            Py_XDECREF( coroutine->m_frame );
             if ( coroutine->m_frame )
             {
                 coroutine->m_frame->m_frame.f_gen = NULL;
