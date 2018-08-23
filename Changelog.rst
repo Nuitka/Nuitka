@@ -72,6 +72,9 @@ Bug Fixes
 Organizational
 --------------
 
+- The issue tracker on Github is now the one that should be used with Nuitka,
+  winning due to easier issue templating and integration with pull requests.
+
 - Document the threading model and exception model to use for MinGW64.
 
 - Removed the ``enum`` plug-in which is no longer useful after the improvements

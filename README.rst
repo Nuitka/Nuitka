@@ -284,7 +284,7 @@ Report issues or bugs
 ---------------------
 
 Should you encounter any issues, bugs, or ideas, please visit the `Nuitka bug
-tracker <http://bugs.nuitka.net>`__ and report them.
+tracker <https://github.com/kayhayen/Nuitka/issues>`__ and report them.
 
 Best practices for reporting bugs:
 
@@ -294,7 +294,7 @@ Best practices for reporting bugs:
 
   .. code-block:: sh
 
-      nuitka --version
+      python -m nuitka --version
 
 - Try to make your example minimal. That is, try to remove code that does
   not contribute to the issue as much as possible. Ideally come up with
