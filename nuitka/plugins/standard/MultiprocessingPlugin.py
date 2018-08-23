@@ -49,7 +49,7 @@ class NuitkaPluginMultiprocessingWorkarounds(NuitkaPluginBase):
     def createPreModuleLoadCode(module):
         full_name = module.getFullName()
 
-        if full_name in ("multiprocessing.forking", "multiprocessing.spawn"):
+        if full_name == "multiprocessing":
             code = """\
 import sys
 sys.frozen = 1
@@ -65,9 +65,12 @@ Monkey patching "multiprocessing" load environment."""
     def createPostModuleLoadCode(module):
         full_name = module.getFullName()
 
-        if full_name in ("multiprocessing.forking", "multiprocessing.reduction"):
+        if full_name == "multiprocessing":
             code = """\
-from %s import ForkingPickler
+try:
+    from multiprocessing.forking import ForkingPickler
+except ImportError:
+    from multiprocessing.reduction import ForkingPickler
 
 class C:
    def f():
@@ -82,7 +85,6 @@ def _reduce_compiled_method(m):
 ForkingPickler.register(type(C().f), _reduce_compiled_method)
 ForkingPickler.register(type(C.f), _reduce_compiled_method)
 """
-            code %= full_name
 
             return code, """\
 Monkey patching "multiprocessing" for compiled methods."""
@@ -154,7 +156,12 @@ __import__("multiprocessing.forking").forking.freeze_support()"""
             else:
                 assert False
 
-        if module_package == "multiprocessing" and module_name in ("forking", "spawn"):
+        if module_package == "multiprocessing" and \
+           module_name in (
+            "forking",
+            "spawn",
+            "reduction"
+           ):
             return True, "Multiprocessing plugin needs this to monkey patch it."
 
 
