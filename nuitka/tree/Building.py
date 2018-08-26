@@ -662,11 +662,16 @@ def buildFormattedValueNode(provider, node, source_ref):
 
 
 def buildJoinedStrNode(provider, node, source_ref):
-    return ExpressionStringConcatenation(
-        values     = buildNodeList(provider, node.values, source_ref),
-        source_ref = source_ref
-    )
-
+    if node.values:
+        return ExpressionStringConcatenation(
+            values     = buildNodeList(provider, node.values, source_ref),
+            source_ref = source_ref
+        )
+    else:
+        return makeConstantRefNode(
+            constant   = "",
+            source_ref = source_ref
+        )
 
 
 setBuildingDispatchers(

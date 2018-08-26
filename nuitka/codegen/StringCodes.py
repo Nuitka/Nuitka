@@ -150,6 +150,8 @@ def generateStringContenationCode(to_name, expression, emit, context):
     # TODO: These are bad things.
     tuple_temp_name = context.allocateTempName("string_concat_values")
 
+    # TODO: Consider using _PyUnicode_JoinArray which avoids the tuple,
+    # but got all to be able to release arrays.
     getTupleCreationCode(
         to_name  = tuple_temp_name,
         elements = values,
