@@ -270,7 +270,6 @@ class StatementTry(StatementChildrenHavingBase):
                 self.setBlockReturnHandler(None)
                 return_handler = None
 
-
         # Merge exception handler only if it is used. Empty means it is not
         # aborting, as it swallows the exception.
         if tried_may_raise and (
@@ -283,7 +282,11 @@ class StatementTry(StatementChildrenHavingBase):
             )
 
         # An empty exception handler means we have to swallow exception.
-        if not tried_may_raise and \
+        if (not tried_may_raise or \
+            (except_handler is not None and \
+             except_handler.getStatements()[0].isStatementReraiseException()
+            )
+           ) and \
            break_handler is None and \
            continue_handler is None and \
            return_handler is None:
