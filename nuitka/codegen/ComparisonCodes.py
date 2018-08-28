@@ -81,6 +81,36 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         )
 
         return
+    elif comparator == "Is":
+        emit(
+            to_name.getCType().getAssignmentCodeFromBoolCondition(
+                to_name   = to_name,
+                condition = "%s == %s" % (left_name, right_name)
+            )
+        )
+
+        getReleaseCodes(
+            release_names = (left_name, right_name),
+            emit          = emit,
+            context       = context
+        )
+
+        return
+    elif comparator == "IsNot":
+        emit(
+            to_name.getCType().getAssignmentCodeFromBoolCondition(
+                to_name   = to_name,
+                condition = "%s != %s" % (left_name, right_name)
+            )
+        )
+
+        getReleaseCodes(
+            release_names = (left_name, right_name),
+            emit          = emit,
+            context       = context
+        )
+
+        return
 
     if to_name.c_type == "nuitka_bool":
         getComparisonExpressionBoolCode(
@@ -122,34 +152,6 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         )
 
         context.addCleanupTempName(to_name)
-    elif comparator == "Is":
-        emit(
-            "%s = BOOL_FROM( %s == %s );" % (
-                to_name,
-                left_name,
-                right_name
-            )
-        )
-
-        getReleaseCodes(
-            release_names = (left_name, right_name),
-            emit          = emit,
-            context       = context
-        )
-    elif comparator == "IsNot":
-        emit(
-            "%s = BOOL_FROM( %s != %s );" % (
-                to_name,
-                left_name,
-                right_name
-            )
-        )
-
-        getReleaseCodes(
-            release_names = (left_name, right_name),
-            emit          = emit,
-            context       = context
-        )
     elif comparator == "exception_match":
         needs_check = expression.mayRaiseExceptionBool(BaseException)
 
@@ -217,42 +219,6 @@ def getComparisonExpressionBoolCode(to_name, expression, left_name, right_name,
         condition = "%s == 1" % (
             operator_res_name,
         )
-    elif comparator == "Is":
-        operator_res_name = context.allocateTempName("is", "bool")
-
-        emit(
-            "%s = ( %s == %s );" % (
-                operator_res_name,
-                left_name,
-                right_name
-            )
-        )
-
-        getReleaseCodes(
-            release_names = (left_name, right_name),
-            emit          = emit,
-            context       = context
-        )
-
-        condition = operator_res_name
-    elif comparator == "IsNot":
-        operator_res_name = context.allocateTempName("isnot", "bool")
-
-        emit(
-            "%s = ( %s != %s );" % (
-                operator_res_name,
-                left_name,
-                right_name
-            )
-        )
-
-        getReleaseCodes(
-            release_names = (left_name, right_name),
-            emit          = emit,
-            context       = context
-        )
-
-        condition = operator_res_name
     elif comparator == "exception_match":
         needs_check = expression.mayRaiseExceptionBool(BaseException)
 
