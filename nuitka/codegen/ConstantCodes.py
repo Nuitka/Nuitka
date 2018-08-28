@@ -81,9 +81,14 @@ def generateConstantTrueReferenceCode(to_name, expression, emit, context):
 
     # No context or other knowledge needed, pylint: disable=unused-argument
 
-    emit(
-        "%s = Py_True;" % to_name
-    )
+    if to_name.c_type == "nuitka_bool":
+        emit(
+            "%s = NUITKA_BOOL_TRUE;" % to_name
+        )
+    else:
+        emit(
+            "%s = Py_True;" % to_name
+        )
 
 
 def generateConstantFalseReferenceCode(to_name, expression, emit, context):
@@ -91,9 +96,14 @@ def generateConstantFalseReferenceCode(to_name, expression, emit, context):
 
     # No context or other knowledge needed, pylint: disable=unused-argument
 
-    emit(
-        "%s = Py_False;" % to_name
-    )
+    if to_name.c_type == "nuitka_bool":
+        emit(
+            "%s = NUITKA_BOOL_FALSE;" % to_name
+        )
+    else:
+        emit(
+            "%s = Py_False;" % to_name
+        )
 
 
 def generateConstantEllipsisReferenceCode(to_name, expression, emit, context):

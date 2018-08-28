@@ -19,6 +19,8 @@
 
 """
 
+from nuitka import Options
+from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeBool
 from nuitka.Options import isExperimental
 
 from .c_types.CTypePyObjectPtrs import (
@@ -35,10 +37,28 @@ from .templates.CodeTemplatesVariables import (
 
 
 def generateAssignmentVariableCode(statement, emit, context):
-    tmp_name = context.allocateTempName("assign_source")
+    assign_source = statement.getAssignSource()
+
+    variable = statement.getVariable()
+    variable_trace = statement.getVariableTrace()
+
+    if variable.isModuleVariable():
+        # Use "object" for module variables.
+        tmp_name = context.allocateTempName("assign_source")
+    else:
+        source_shape = assign_source.getTypeShape()
+
+        variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
+
+        if source_shape is ShapeTypeBool and \
+           variable_declaration.c_type == "nuitka_bool" and \
+           Options.isExperimental("enable_bool_ctype"):
+            tmp_name = context.allocateTempName("assign_source", "nuitka_bool")
+        else:
+            tmp_name = context.allocateTempName("assign_source")
 
     generateExpressionCode(
-        expression = statement.getAssignSource(),
+        expression = assign_source,
         to_name    = tmp_name,
         emit       = emit,
         context    = context
@@ -46,8 +66,8 @@ def generateAssignmentVariableCode(statement, emit, context):
 
     getVariableAssignmentCode(
         tmp_name       = tmp_name,
-        variable       = statement.getVariable(),
-        variable_trace = statement.getVariableTrace(),
+        variable       = variable,
+        variable_trace = variable_trace,
         needs_release  = statement.needsReleasePreviousValue(),
         in_place       = statement.inplace_suspect,
         emit           = emit,

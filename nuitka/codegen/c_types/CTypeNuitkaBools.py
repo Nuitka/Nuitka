@@ -37,26 +37,29 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         assert not in_place
         assert not ref_count
 
+        if tmp_name.c_type == "nuitka_bool":
+            return "%s = %s;" % (variable_code_name, tmp_name)
+
+        if tmp_name.c_type == "PyObject *":
+            test_code = "%s == Py_True" % tmp_name
+        else:
+            assert False, tmp_name
+
         return """\
-if (%(tmp_name)s == Py_True)
-{
-    %(variable_code_name)s = NUITKA_BOOL_TRUE;
-}
-else
-{
-    %(variable_code_name)s = NUITKA_BOOL_FALSE;
-}
+%(variable_code_name)s = %(test_code)s ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
         """ % {
-            "variable_code_name" : variable_code_name,
-            "tmp_name"            : tmp_name,
+                "variable_code_name" : variable_code_name,
+                "test_code"          : test_code,
         }
 
 
     @classmethod
     def getVariableObjectAccessCode(cls, to_name, needs_check, variable_code_name,
                                     variable, emit, context):
-        emit(
-            """\
+
+        if needs_check:
+            emit(
+                """\
 switch (%(variable_code_name)s)
 {
     case NUITKA_BOOL_TRUE:
@@ -74,20 +77,22 @@ switch (%(variable_code_name)s)
     // from better compilers.
     default:
     {
-#if %(needs_check)s
         %(to_name)s = NULL;
-#else
-        NUITKA_CANNOT_GET_HERE(%(identifier)s);
-#endif
         break;
     }
 }""" % {
-        "variable_code_name" : variable_code_name,
-        "to_name"            : to_name,
-        "identifier"         : context.getOwner().getCodeName(),
-        "needs_check"        : '1' if needs_check else '0'
+            "variable_code_name" : variable_code_name,
+            "to_name"            : to_name,
     }
-        )
+            )
+        else:
+            emit("""
+assert( %(variable_code_name)s != NUITKA_BOOL_UNASSIGNED );
+%(to_name)s = (%(variable_code_name)s == NUITKA_BOOL_TRUE) ? Py_True : Py_False;
+""" % {
+            "variable_code_name" : variable_code_name,
+            "to_name"            : to_name,
+    }            )
 
         if 0: # Future work, pylint: disable=using-constant-test
             context.reportObjectConversion(variable)
