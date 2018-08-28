@@ -82,7 +82,7 @@ rich_comparison_codes = {
     "GtE"   : "GE"
 }
 
-containing_comparison_codes = {
-    "In"    : "SEQUENCE_CONTAINS",
-    "NotIn" : "SEQUENCE_CONTAINS_NOT"
-}
+containing_comparison_codes = (
+    "In",
+    "NotIn"
+)

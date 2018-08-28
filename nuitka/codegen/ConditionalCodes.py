@@ -24,10 +24,7 @@ from nuitka import Options
 
 from .AttributeCodes import getAttributeCheckBoolCode
 from .CodeHelpers import generateExpressionCode
-from .ComparisonCodes import (
-    getBuiltinIsinstanceBoolCode,
-    getComparisonExpressionBoolCode
-)
+from .ComparisonCodes import getBuiltinIsinstanceBoolCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCode
 from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
@@ -38,34 +35,21 @@ def generateConditionCode(condition, emit, context):
     # pylint: disable=too-many-locals,too-many-statements
 
     if condition.isExpressionComparison():
-        left_name = context.allocateTempName("compare_left")
+        compare_name = context.allocateTempName("compare_result", "nuitka_bool")
 
         generateExpressionCode(
-            to_name    = left_name,
-            expression = condition.getLeft(),
+            to_name    = compare_name,
+            expression = condition,
             emit       = emit,
             context    = context
         )
 
-        right_name = context.allocateTempName("compare_right")
-
-        generateExpressionCode(
-            to_name    = right_name,
-            expression = condition.getRight(),
-            emit       = emit,
-            context    = context
+        getBranchingCode(
+            condition = "%s == NUITKA_BOOL_TRUE" % compare_name,
+            emit      = emit,
+            context   = context
         )
 
-        old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
-        getComparisonExpressionBoolCode(
-            comparator  = condition.getComparator(),
-            left_name   = left_name,
-            right_name  = right_name,
-            needs_check = condition.mayRaiseExceptionBool(BaseException),
-            emit        = emit,
-            context     = context
-        )
-        context.setCurrentSourceCodeReference(old_source_ref)
     elif condition.isExpressionOperationNOT():
         # Lets just switch the targets temporarily to get at "NOT" without
         # any effort really.

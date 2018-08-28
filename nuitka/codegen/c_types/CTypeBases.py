@@ -114,6 +114,15 @@ class CTypeBase(object):
 
 
     @classmethod
+    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
+        """ Get the assignment code from C boolean condition.
+
+        """
+        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        assert False, cls.c_type
+
+
+    @classmethod
     def getReleaseCode(cls, variable_code_name, needs_check, emit):
         """ Get release code for given object.
 

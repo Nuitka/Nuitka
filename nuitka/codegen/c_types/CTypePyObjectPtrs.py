@@ -123,6 +123,13 @@ class CPythonPyObjectPtrBase(CTypeBase):
             }
         )
 
+    @classmethod
+    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
+        return "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % {
+            "to_name" : to_name,
+            "condition" : condition
+        }
+
 
 class CTypePyObjectPtr(CPythonPyObjectPtrBase):
     c_type = "PyObject *"
@@ -200,6 +207,13 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
                     emit  = emit
                 )
 
+    @classmethod
+    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
+        return "%(to_name)s = ( %(condition)s ) ? Py_True : Py_False;" % {
+            "to_name" : to_name,
+            "condition" : condition
+        }
+
 
 class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     c_type = "PyObject **"
@@ -219,6 +233,13 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     @classmethod
     def getLocalVariableInitTestCode(cls, variable_code_name):
         return "*%s != NULL" % variable_code_name
+
+    @classmethod
+    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
+        return "*%(to_name)s = ( %(condition)s ) ? Py_True : Py_False;" % {
+            "to_name" : to_name,
+            "condition" : condition
+        }
 
 
 class CTypeCellObject(CTypeBase):
@@ -314,6 +335,13 @@ class CTypeCellObject(CTypeBase):
     @classmethod
     def getLocalVariableInitTestCode(cls, variable_code_name):
         return "%s->ob_ref != NULL" % variable_code_name
+
+    @classmethod
+    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
+        return "%(to_name)s->ob_ref = ( %(condition)s ) ? Py_True : Py_False;" % {
+            "to_name" : to_name,
+            "condition" : condition
+        }
 
     @classmethod
     def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,

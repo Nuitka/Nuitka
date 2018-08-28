@@ -52,26 +52,49 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             expression.getLeft()
         )
 
-        helper = OperatorCodes.containing_comparison_codes[ comparator ]
-        assert helper.startswith("SEQUENCE_CONTAINS")
+        res_name = context.getIntResName()
 
         emit(
-            "%s = %s( %s, %s );" % (
-                to_name,
-                helper,
-                left_name,
-                right_name
+             "%s = PySequence_Contains( %s, %s );" % (
+                res_name,
+                right_name, # sequence goes first in the API.
+                left_name
             )
         )
 
-        getErrorExitCode(
-            check_name    = to_name,
+        getErrorExitBoolCode(
+            condition     = "%s == -1" % res_name,
             release_names = (left_name, right_name),
             needs_check   = needs_check,
             emit          = emit,
             context       = context
         )
-    elif comparator in OperatorCodes.rich_comparison_codes:
+
+        emit(
+            to_name.getCType().getAssignmentCodeFromBoolCondition(
+                to_name   = to_name,
+                condition = "%s == %d" % (
+                    res_name,
+                    1 if comparator == "In" else 0
+                )
+            )
+        )
+
+        return
+
+    if to_name.c_type == "nuitka_bool":
+        getComparisonExpressionBoolCode(
+            to_name    = to_name,
+            expression = expression,
+            left_name  = left_name,
+            right_name = right_name,
+            emit       = emit,
+            context    = context
+        )
+
+        return
+
+    if comparator in OperatorCodes.rich_comparison_codes:
         needs_check = expression.mayRaiseExceptionBool(BaseException)
 
         helper = "RICH_COMPARE_%s" % (
@@ -161,32 +184,13 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         assert False, comparator
 
 
-def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_check,
+def getComparisonExpressionBoolCode(to_name, expression, left_name, right_name,
                                     emit, context):
-    if comparator in OperatorCodes.containing_comparison_codes:
-        operator_res_name = context.allocateTempName("cmp_" + comparator, "int")
+    comparator  = expression.getComparator()
 
-        emit(
-             "%s = PySequence_Contains( %s, %s );" % (
-                operator_res_name,
-                right_name, # sequence goes first in the API.
-                left_name
-            )
-        )
+    if comparator in OperatorCodes.rich_comparison_codes:
+        needs_check = expression.mayRaiseExceptionBool(BaseException)
 
-        getErrorExitBoolCode(
-            condition     = "%s == -1" % operator_res_name,
-            release_names = (left_name, right_name),
-            needs_check   = needs_check,
-            emit          = emit,
-            context       = context
-        )
-
-        condition = "%s == %d" % (
-            operator_res_name,
-            1 if comparator == "In" else 0
-        )
-    elif comparator in OperatorCodes.rich_comparison_codes:
         operator_res_name = context.allocateTempName("cmp_" + comparator, "int")
 
         helper = OperatorCodes.rich_comparison_codes[comparator]
@@ -250,6 +254,8 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_che
 
         condition = operator_res_name
     elif comparator == "exception_match":
+        needs_check = expression.mayRaiseExceptionBool(BaseException)
+
         operator_res_name = context.allocateTempName("exc_match_" + comparator, "int")
 
         emit(
@@ -274,7 +280,12 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_che
     else:
         assert False, comparator
 
-    getBranchingCode(condition, emit, context)
+    emit(
+        "%s = (%s) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % (
+            to_name,
+            condition
+        )
+    )
 
 
 def getBuiltinIsinstanceBoolCode(inst_name, cls_name, emit, context):

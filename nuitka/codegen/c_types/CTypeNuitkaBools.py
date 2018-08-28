@@ -45,12 +45,10 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         else:
             assert False, tmp_name
 
-        return """\
-%(variable_code_name)s = %(test_code)s ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;
-        """ % {
-                "variable_code_name" : variable_code_name,
-                "test_code"          : test_code,
-        }
+        return cls.getAssignmentCodeFromBoolCondition(
+            to_name   = variable_code_name,
+            condition = test_code
+        )
 
 
     @classmethod
@@ -86,13 +84,15 @@ switch (%(variable_code_name)s)
     }
             )
         else:
-            emit("""
+            emit(
+                """\
 assert( %(variable_code_name)s != NUITKA_BOOL_UNASSIGNED );
 %(to_name)s = (%(variable_code_name)s == NUITKA_BOOL_TRUE) ? Py_True : Py_False;
 """ % {
             "variable_code_name" : variable_code_name,
             "to_name"            : to_name,
-    }            )
+            }
+        )
 
         if 0: # Future work, pylint: disable=using-constant-test
             context.reportObjectConversion(variable)
@@ -154,3 +154,10 @@ assert( %(variable_code_name)s != NUITKA_BOOL_UNASSIGNED );
                     check = "%s != false" % res_name,
                     emit  = emit
                 )
+
+    @classmethod
+    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
+        return "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % {
+            "to_name" : to_name,
+            "condition" : condition
+        }
