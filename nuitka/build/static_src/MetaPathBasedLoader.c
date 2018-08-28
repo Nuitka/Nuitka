@@ -673,6 +673,10 @@ static void loadTriggeredModule( char const *name, char const *trigger_name )
     }
 }
 
+#if PYTHON_VERSION >= 340
+extern PyObject *const_str_plain___spec__;
+extern PyObject *const_str_plain__initializing;
+#endif
 
 static PyObject *loadModule( PyObject *module_name, struct Nuitka_MetaPathBasedLoaderEntry *entry )
 {
@@ -731,6 +735,20 @@ static PyObject *loadModule( PyObject *module_name, struct Nuitka_MetaPathBasedL
         assert( ( entry->flags & NUITKA_SHLIB_FLAG ) == 0 );
         assert( entry->python_initfunc );
         entry->python_initfunc();
+
+#if PYTHON_VERSION >= 340
+        PyObject *result = LOOKUP_SUBSCRIPT( PyImport_GetModuleDict(), module_name );
+
+        PyObject *spec_value = LOOKUP_ATTRIBUTE( result, const_str_plain___spec__ );
+
+        if ( spec_value != Py_None )
+        {
+            if ( PyObject_HasAttr( spec_value, const_str_plain__initializing ) )
+            {
+                SET_ATTRIBUTE( spec_value, const_str_plain__initializing, Py_False );
+            }
+        }
+#endif
     }
 
     if (unlikely( ERROR_OCCURRED() ))
