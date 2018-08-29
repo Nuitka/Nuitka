@@ -20,9 +20,6 @@
 Branches, conditions, truth checks.
 """
 
-from nuitka import Options
-
-from .AttributeCodes import getAttributeCheckBoolCode
 from .CodeHelpers import generateExpressionCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCode
@@ -31,10 +28,11 @@ from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
 
 def generateConditionCode(condition, emit, context):
     # The complexity is needed to avoid unnecessary complex generated C
-    # pylint: disable=too-many-locals,too-many-statements
+    # pylint: disable=too-many-locals
 
     if condition.isExpressionComparison() or \
-       condition.isExpressionBuiltinIsinstance():
+       condition.isExpressionBuiltinIsinstance() or \
+       condition.isExpressionBuiltinHasattr():
         compare_name = context.allocateTempName("compare_result", "nuitka_bool")
 
         generateExpressionCode(
@@ -108,41 +106,6 @@ def generateConditionCode(condition, emit, context):
             context   = context,
         )
         getLabelCode(select_end,emit)
-    elif condition.isExpressionBuiltinHasattr():
-        source_name = context.allocateTempName("hasattr_source")
-        attr_name = context.allocateTempName("hasattr_attr")
-
-        generateExpressionCode(
-            to_name    = source_name,
-            expression = condition.getLookupSource(),
-            emit       = emit,
-            context    = context
-        )
-        generateExpressionCode(
-            to_name    = attr_name,
-            expression = condition.getAttribute(),
-            emit       = emit,
-            context    = context
-        )
-
-        old_source_ref = context.setCurrentSourceCodeReference(
-            condition.getAttribute().getSourceReference()
-               if Options.isFullCompat() else
-            condition.getSourceReference()
-        )
-
-        getAttributeCheckBoolCode(
-            source_name = source_name,
-            attr_name   = attr_name,
-            needs_check = condition.getLookupSource().mayRaiseExceptionAttributeCheckObject(
-                exception_type = BaseException,
-                attribute      = condition.getAttribute()
-            ),
-            emit        = emit,
-            context     = context
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
     elif condition.isCompileTimeConstant():
         getBranchingCode(
             condition = '1' if condition.getCompileTimeConstant() else '0',

@@ -28,7 +28,7 @@ extern PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT( PyObject *source );
 extern PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT( PyObject *source );
 
 // For built-in "hasattr" functionality.
-extern PyObject *BUILTIN_HASATTR( PyObject *source, PyObject *attr_name );
+extern int BUILTIN_HASATTR_BOOL( PyObject *source, PyObject *attr_name );
 
 // Set an attribute except for attribute slots below.
 extern bool SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *value );

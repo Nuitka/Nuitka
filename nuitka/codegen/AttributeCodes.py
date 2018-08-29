@@ -23,8 +23,7 @@ Attribute lookup, setting.
 from nuitka import Options
 
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
-from .LabelCodes import getBranchingCode
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
 
@@ -169,28 +168,6 @@ def getAttributeLookupCode(to_name, source_name, attribute_name, needs_check,
     context.addCleanupTempName(to_name)
 
 
-def getAttributeCheckBoolCode(source_name, attr_name, needs_check, emit, context):
-    res_name = context.getIntResName()
-
-    emit(
-        "%s = PyObject_HasAttr( %s, %s );" % (
-            res_name,
-            source_name,
-            attr_name
-        )
-    )
-
-    getErrorExitBoolCode(
-        condition     = "%s == -1" % res_name,
-        release_names = (source_name, attr_name),
-        needs_check   = needs_check,
-        emit          = emit,
-        context       = context
-    )
-
-    getBranchingCode("%s == 1" % res_name, emit, context)
-
-
 def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit,
                                context):
     res_name = context.getBoolResName()
@@ -319,17 +296,35 @@ def getAttributeLookupSpecialCode(to_name, source_name, attr_name, needs_check,
 
 
 def generateBuiltinHasattrCode(to_name, expression, emit, context):
-    generateCAPIObjectCode0(
-        to_name    = to_name,
-        capi       = "BUILTIN_HASATTR",
-        arg_desc   = (
-            ("hasattr_value", expression.getLookupSource()),
-            ("hasattr_attr", expression.getAttribute()),
-        ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
+    source_name, attr_name = generateChildExpressionsCode(
+        expression = expression,
         emit       = emit,
         context    = context
+    )
+
+    res_name = context.getIntResName()
+
+    emit(
+        "%s = BUILTIN_HASATTR_BOOL( %s, %s );" % (
+            res_name,
+            source_name,
+            attr_name
+        )
+    )
+
+    getErrorExitBoolCode(
+        condition     = "%s == -1" % res_name,
+        release_names = (source_name, attr_name),
+        needs_check   = expression.mayRaiseException(BaseException),
+        emit          = emit,
+        context       = context
+    )
+
+    emit(
+        to_name.getCType().getAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s != 0" % res_name
+        )
     )
 
 

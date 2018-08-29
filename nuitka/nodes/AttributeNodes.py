@@ -350,6 +350,8 @@ class ExpressionBuiltinSetattr(ExpressionChildrenHavingBase):
         return self, None, None
 
 
+# TODO: Have ExpressionHasAttr with string attribute name.
+
 class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_HASATTR"
 

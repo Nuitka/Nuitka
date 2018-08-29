@@ -580,20 +580,19 @@ PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT( PyObject *source )
     }
 }
 
-PyObject *BUILTIN_HASATTR( PyObject *source, PyObject *attr_name )
+int BUILTIN_HASATTR_BOOL( PyObject *source, PyObject *attr_name )
 {
     CHECK_OBJECT( source );
     CHECK_OBJECT( attr_name );
 
 #if PYTHON_VERSION < 300
-
     if ( PyUnicode_Check( attr_name ) )
     {
         attr_name = _PyUnicode_AsDefaultEncodedString( attr_name, NULL );
 
         if (unlikely( attr_name == NULL ))
         {
-            return NULL;
+            return -1;
         }
     }
 
@@ -604,7 +603,7 @@ PyObject *BUILTIN_HASATTR( PyObject *source, PyObject *attr_name )
             "hasattr(): attribute name must be string"
         );
 
-        return NULL;
+        return -1;
     }
 #else
     if (unlikely( !PyUnicode_Check( attr_name ) ))
@@ -614,7 +613,7 @@ PyObject *BUILTIN_HASATTR( PyObject *source, PyObject *attr_name )
             "hasattr(): attribute name must be string"
         );
 
-        return NULL;
+        return -1;
     }
 #endif
 
@@ -625,13 +624,15 @@ PyObject *BUILTIN_HASATTR( PyObject *source, PyObject *attr_name )
         if ( PyErr_ExceptionMatches( PyExc_AttributeError ) )
         {
             CLEAR_ERROR_OCCURRED();
-            return Py_False;
+            return 0;
         }
 
-        return NULL;
+        return -1;
     }
 
-    return Py_True;
+    Py_DECREF( value );
+
+    return 1;
 }
 
 #if PYTHON_VERSION < 300
