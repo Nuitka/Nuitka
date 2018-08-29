@@ -21,32 +21,47 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 "isinstance" check as used in conditions, as well as exception matching.
 """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeBool
+from nuitka.Options import isExperimental
+
 from . import OperatorCodes
 from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
 
 
 def generateComparisonExpressionCode(to_name, expression, emit, context):
-    left_name = context.allocateTempName("compexpr_left")
-    right_name = context.allocateTempName("compexpr_right")
+    # Currently high complexity, due to manual C typing and doing all
+    # in one place, pylint: disable=too-many-branches,too-many-statements
+
+    left = expression.getLeft()
+    right = expression.getRight()
+
+    comparator  = expression.getComparator()
+
+    type_name = "PyObject *"
+    if comparator in ("Is", "IsNot") and isExperimental("enabled_bool_ctype"):
+        if left.getTypeShape() is ShapeTypeBool and \
+           right.getTypeShape() is ShapeTypeBool:
+            type_name = "nuitka_bool"
+
+    left_name = context.allocateTempName("compexpr_left", type_name = type_name)
+    right_name = context.allocateTempName("compexpr_right", type_name = type_name)
 
     generateExpressionCode(
         to_name    = left_name,
-        expression = expression.getLeft(),
+        expression = left,
         emit       = emit,
         context    = context
     )
     generateExpressionCode(
         to_name    = right_name,
-        expression = expression.getRight(),
+        expression = right,
         emit       = emit,
         context    = context
     )
 
-    comparator  = expression.getComparator()
-
     if comparator in OperatorCodes.containing_comparison_codes:
-        needs_check = expression.getRight().mayRaiseExceptionIn(
+        needs_check = right.mayRaiseExceptionIn(
             BaseException,
             expression.getLeft()
         )
