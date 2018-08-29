@@ -25,7 +25,10 @@ import math
 
 from nuitka import PythonOperators
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase
+)
 from .shapes.BuiltinTypeShapes import ShapeTypeBool, ShapeTypeTuple
 from .shapes.StandardShapes import (
     ShapeLargeConstantValuePredictable,
@@ -34,29 +37,28 @@ from .shapes.StandardShapes import (
 )
 
 
-class ExpressionOperationBase(ExpressionChildrenHavingBase):
+class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
 
-    inplace_suspect = False
+    named_children = ("left", "right")
+    nice_children = tuple(child_name + " operand" for child_name in named_children)
 
-    def __init__(self, operator, simulator, values, source_ref):
+    def __init__(self, operator, left, right, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = values,
+            values     = {
+                "left"  : left,
+                "right" : right
+            },
             source_ref = source_ref
         )
 
         self.operator = operator
 
-        self.simulator = simulator
+        self.simulator = PythonOperators.binary_operator_functions[ operator ]
 
-    def markAsInplaceSuspect(self):
-        self.inplace_suspect = True
-
-    def unmarkAsInplaceSuspect(self):
-        self.inplace_suspect = False
-
-    def isInplaceSuspect(self):
-        return self.inplace_suspect
+    @staticmethod
+    def isExpressionOperationBinary():
+        return True
 
     def getDetail(self):
         return self.operator
@@ -72,34 +74,16 @@ class ExpressionOperationBase(ExpressionChildrenHavingBase):
     def getSimulator(self):
         return self.simulator
 
-    def isKnownToBeIterable(self, count):
-        # TODO: Could be true, if the arguments said so
-        return None
+    inplace_suspect = False
 
+    def markAsInplaceSuspect(self):
+        self.inplace_suspect = True
 
-class ExpressionOperationBinary(ExpressionOperationBase):
-    kind = "EXPRESSION_OPERATION_BINARY"
+    def unmarkAsInplaceSuspect(self):
+        self.inplace_suspect = False
 
-    named_children = ("left", "right")
-    nice_children = tuple(child_name + " operand" for child_name in named_children)
-
-    def __init__(self, operator, left, right, source_ref):
-        assert left.isExpression() and right.isExpression, (left, right)
-
-        ExpressionOperationBase.__init__(
-            self,
-            operator   = operator,
-            simulator  = PythonOperators.binary_operator_functions[ operator ],
-            values     = {
-                "left"  : left,
-                "right" : right
-            },
-            source_ref = source_ref
-        )
-
-    @staticmethod
-    def isExpressionOperationBinary():
-        return True
+    def isInplaceSuspect(self):
+        return self.inplace_suspect
 
     def computeExpression(self, trace_collection):
         operator = self.getOperator()
@@ -142,11 +126,27 @@ class ExpressionOperationBinary(ExpressionOperationBase):
     getRight = ExpressionChildrenHavingBase.childGetter("right")
 
 
-class ExpressionOperationBinaryAdd(ExpressionOperationBinary):
+class ExpressionOperationBinary(ExpressionOperationBinaryBase):
+    kind = "EXPRESSION_OPERATION_BINARY"
+
+    def __init__(self, operator, left, right, source_ref):
+        assert left.isExpression() and right.isExpression, (left, right)
+
+        ExpressionOperationBinaryBase.__init__(
+            self,
+            operator   = operator,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+
+
+class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_ADD"
 
     def __init__(self, left, right, source_ref):
-        ExpressionOperationBinary.__init__(
+        ExpressionOperationBinaryBase.__init__(
             self,
             operator   = "Add",
             left       = left,
@@ -199,11 +199,11 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinary):
         return self, None, None
 
 
-class ExpressionOperationBinaryMult(ExpressionOperationBinary):
+class ExpressionOperationBinaryMult(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_MULT"
 
     def __init__(self, left, right, source_ref):
-        ExpressionOperationBinary.__init__(
+        ExpressionOperationBinaryBase.__init__(
             self,
             operator   = "Mult",
             left       = left,
@@ -245,7 +245,7 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinary):
             if left_value is not None:
                 return right_length * left_value
 
-        return ExpressionOperationBase.getIterationLength(self)
+        return ExpressionOperationBinaryBase.getIterationLength(self)
 
     def computeExpression(self, trace_collection):
         # TODO: May go down to MemoryError for compile time constant overflow
@@ -336,14 +336,14 @@ class ExpressionOperationBinaryMult(ExpressionOperationBinary):
             if left_value is not None:
                 return self.getLeft().extractSideEffects() + self.getRight().extractSideEffects()
 
-        return ExpressionOperationBinary.extractSideEffects(self)
+        return ExpressionOperationBinaryBase.extractSideEffects(self)
 
 
-class ExpressionOperationBinaryDivmod(ExpressionOperationBinary):
+class ExpressionOperationBinaryDivmod(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_DIVMOD"
 
     def __init__(self, left, right, source_ref):
-        ExpressionOperationBinary.__init__(
+        ExpressionOperationBinaryBase.__init__(
             self,
             operator   = "Divmod",
             left       = left,
@@ -383,23 +383,38 @@ def makeBinaryOperationNode(operator, left, right, source_ref):
         )
 
 
-class ExpressionOperationUnary(ExpressionOperationBase):
-    kind = "EXPRESSION_OPERATION_UNARY"
+class ExpressionOperationUnaryBase(ExpressionChildHavingBase):
+    named_child = "operand"
 
-    named_children = ("operand",)
+    __slots__ = (
+        "operator",
+        "simulator"
+    )
 
     def __init__(self, operator, operand, source_ref):
-        assert operand.isExpression(), operand
-
-        ExpressionOperationBase.__init__(
+        ExpressionChildHavingBase.__init__(
             self,
-            operator   = operator,
-            simulator  = PythonOperators.unary_operator_functions[ operator ],
-            values     = {
-                "operand" : operand
-            },
+            value      = operand,
             source_ref = source_ref
         )
+
+        self.operator = operator
+
+        self.simulator = PythonOperators.unary_operator_functions[ operator ]
+
+    def getDetail(self):
+        return self.operator
+
+    def getDetails(self):
+        return {
+            "operator" : self.operator
+        }
+
+    def getOperator(self):
+        return self.operator
+
+    def getSimulator(self):
+        return self.simulator
 
     def computeExpression(self, trace_collection):
         operator = self.getOperator()
@@ -428,7 +443,7 @@ class ExpressionOperationUnary(ExpressionOperationBase):
 
             return self, None, None
 
-    getOperand = ExpressionOperationBase.childGetter("operand")
+    getOperand = ExpressionChildHavingBase.childGetter("operand")
 
     def getOperands(self):
         return (self.getOperand(),)
@@ -438,11 +453,25 @@ class ExpressionOperationUnary(ExpressionOperationBase):
         return True
 
 
-class ExpressionOperationNOT(ExpressionOperationUnary):
+class ExpressionOperationUnary(ExpressionOperationUnaryBase):
+    kind = "EXPRESSION_OPERATION_UNARY"
+
+    def __init__(self, operator, operand, source_ref):
+        assert operand.isExpression(), operand
+
+        ExpressionOperationUnaryBase.__init__(
+            self,
+            operator   = operator,
+            operand    = operand,
+            source_ref = source_ref
+        )
+
+
+class ExpressionOperationNOT(ExpressionOperationUnaryBase):
     kind = "EXPRESSION_OPERATION_NOT"
 
     def __init__(self, operand, source_ref):
-        ExpressionOperationUnary.__init__(
+        ExpressionOperationUnaryBase.__init__(
             self,
             operator   = "Not",
             operand    = operand,

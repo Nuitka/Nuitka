@@ -88,16 +88,11 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
         context    = context
     )
 
-    inplace = expression.isInplaceSuspect()
-
-    assert not inplace or not expression.getOperand().isCompileTimeConstant(), \
-        expression
-
     getOperationCode(
         to_name   = to_name,
         operator  = expression.getOperator(),
         arg_names = (arg_name,),
-        in_place  = inplace,
+        in_place  = False,
         emit      = emit,
         context   = context
     )
