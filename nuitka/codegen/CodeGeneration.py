@@ -204,6 +204,7 @@ from .ModuleCodes import (
 )
 from .OperationCodes import (
     generateOperationBinaryCode,
+    generateOperationNotCode,
     generateOperationUnaryCode
 )
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
@@ -643,7 +644,7 @@ setExpressionDispatchDict(
         "EXPRESSION_OPERATION_BINARY_DIVMOD"          : generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_INPLACE"         : generateOperationBinaryCode,
         "EXPRESSION_OPERATION_UNARY"                  : generateOperationUnaryCode,
-        "EXPRESSION_OPERATION_NOT"                    : generateOperationUnaryCode,
+        "EXPRESSION_OPERATION_NOT"                    : generateOperationNotCode,
         "EXPRESSION_OUTLINE_BODY"                     : generateFunctionOutlineCode,
         "EXPRESSION_OUTLINE_FUNCTION"                 : generateFunctionOutlineCode,
         # TODO: Rename to make more clear it is an outline

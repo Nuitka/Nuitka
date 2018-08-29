@@ -49,6 +49,38 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
     )
 
 
+def generateOperationNotCode(to_name, expression, emit, context):
+    arg_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    res_name = context.getIntResName()
+
+    emit(
+         "%s = CHECK_IF_TRUE( %s );" % (
+            res_name,
+            arg_name
+        )
+    )
+
+    getErrorExitBoolCode(
+        condition    = "%s == -1" % res_name,
+        release_name = arg_name,
+        needs_check  = expression.getOperand().mayRaiseExceptionBool(BaseException),
+        emit         = emit,
+        context      = context
+    )
+
+    emit(
+        to_name.getCType().getAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s == 0" % res_name
+        )
+    )
+
+
 def generateOperationUnaryCode(to_name, expression, emit, context):
     arg_name, = generateChildExpressionsCode(
         expression = expression,

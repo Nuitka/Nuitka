@@ -88,15 +88,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *BOOL_FROM( bool value )
     return value ? Py_True : Py_False;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *UNARY_NOT( PyObject *object )
-{
-    int res = CHECK_IF_TRUE( object );
-
-    if ( res == 0 ) return Py_True;
-    if ( res == 1 ) return Py_False;
-    return NULL;
-}
-
 #undef nb_nonzero
 
 typedef enum

@@ -26,7 +26,7 @@ import math
 from nuitka import PythonOperators
 
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .shapes.BuiltinTypeShapes import ShapeTypeTuple
+from .shapes.BuiltinTypeShapes import ShapeTypeBool, ShapeTypeTuple
 from .shapes.StandardShapes import (
     ShapeLargeConstantValuePredictable,
     ShapeUnknown,
@@ -448,6 +448,9 @@ class ExpressionOperationNOT(ExpressionOperationUnary):
             operand    = operand,
             source_ref = source_ref
         )
+
+    def getTypeShape(self):
+        return ShapeTypeBool
 
     def getDetails(self):
         return {}
