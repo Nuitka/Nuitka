@@ -279,9 +279,6 @@ extern PyObject *BUILTIN_LEN( PyObject *boundary );
 // For built-in built-in super() functionality.
 extern PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object );
 
-// For built-in isinstance() functionality.
-extern PyObject *BUILTIN_ISINSTANCE( PyObject *inst, PyObject *cls );
-
 // The patched isinstance() functionality used for the built-in.
 extern int Nuitka_IsInstance( PyObject *inst, PyObject *cls );
 

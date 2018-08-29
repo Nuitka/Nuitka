@@ -1623,19 +1623,6 @@ int Nuitka_IsInstance( PyObject *inst, PyObject *cls )
     }
 }
 
-PyObject *BUILTIN_ISINSTANCE( PyObject *inst, PyObject *cls )
-{
-    int res = Nuitka_IsInstance( inst, cls );
-
-    if (unlikely( res < 0 ))
-    {
-        return NULL;
-    }
-
-    return BOOL_FROM( res != 0 );
-}
-
-
 #define ITERATOR_GENERIC 0
 #define ITERATOR_COMPILED_GENERATOR 1
 #define ITERATOR_TUPLE 2

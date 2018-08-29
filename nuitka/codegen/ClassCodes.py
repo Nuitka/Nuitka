@@ -25,7 +25,6 @@ from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateChildExpressionsCode
 from .ErrorCodes import getErrorExitCode
-from .PythonAPICodes import generateCAPIObjectCode0
 
 
 def generateSelectMetaclassCode(to_name, expression, emit, context):
@@ -88,18 +87,3 @@ def generateBuiltinSuperCode(to_name, expression, emit, context):
     )
 
     context.addCleanupTempName(to_name)
-
-
-def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
-    generateCAPIObjectCode0(
-        to_name    = to_name,
-        capi       = "BUILTIN_ISINSTANCE",
-        arg_desc   = (
-            ("isinstance_inst", expression.getInstance()),
-            ("isinstance_cls", expression.getCls()),
-        ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
-    )

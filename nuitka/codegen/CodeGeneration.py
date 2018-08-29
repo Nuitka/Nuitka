@@ -69,13 +69,12 @@ from .BuiltinCodes import (
     generateBuiltinXrange3Code
 )
 from .CallCodes import generateCallCode, getCallsCode, getCallsDecls
-from .ClassCodes import (
-    generateBuiltinIsinstanceCode,
-    generateBuiltinSuperCode,
-    generateSelectMetaclassCode
-)
+from .ClassCodes import generateBuiltinSuperCode, generateSelectMetaclassCode
 from .CodeHelpers import setExpressionDispatchDict, setStatementDispatchDict
-from .ComparisonCodes import generateComparisonExpressionCode
+from .ComparisonCodes import (
+    generateBuiltinIsinstanceCode,
+    generateComparisonExpressionCode
+)
 from .ConditionalCodes import (
     generateConditionalAndOrCode,
     generateConditionalCode

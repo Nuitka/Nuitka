@@ -24,7 +24,6 @@ from nuitka import Options
 
 from .AttributeCodes import getAttributeCheckBoolCode
 from .CodeHelpers import generateExpressionCode
-from .ComparisonCodes import getBuiltinIsinstanceBoolCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCode
 from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
@@ -34,7 +33,8 @@ def generateConditionCode(condition, emit, context):
     # The complexity is needed to avoid unnecessary complex generated C
     # pylint: disable=too-many-locals,too-many-statements
 
-    if condition.isExpressionComparison():
+    if condition.isExpressionComparison() or \
+       condition.isExpressionBuiltinIsinstance():
         compare_name = context.allocateTempName("compare_result", "nuitka_bool")
 
         generateExpressionCode(
@@ -140,33 +140,6 @@ def generateConditionCode(condition, emit, context):
             ),
             emit        = emit,
             context     = context
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
-    elif condition.isExpressionBuiltinIsinstance():
-        inst_name = context.allocateTempName("isinstance_inst")
-        cls_name = context.allocateTempName("isinstance_cls")
-
-        generateExpressionCode(
-            to_name    = inst_name,
-            expression = condition.getInstance(),
-            emit       = emit,
-            context    = context
-        )
-        generateExpressionCode(
-            to_name    = cls_name,
-            expression = condition.getCls(),
-            emit       = emit,
-            context    = context
-        )
-
-        old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
-
-        getBuiltinIsinstanceBoolCode(
-            inst_name = inst_name,
-            cls_name  = cls_name,
-            emit      = emit,
-            context   = context
         )
 
         context.setCurrentSourceCodeReference(old_source_ref)

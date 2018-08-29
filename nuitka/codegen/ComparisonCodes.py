@@ -24,7 +24,6 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 from . import OperatorCodes
 from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
-from .LabelCodes import getBranchingCode
 
 
 def generateComparisonExpressionCode(to_name, expression, emit, context):
@@ -207,7 +206,24 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         assert False, comparator
 
 
-def getBuiltinIsinstanceBoolCode(inst_name, cls_name, emit, context):
+def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
+    inst_name = context.allocateTempName("isinstance_inst")
+    cls_name = context.allocateTempName("isinstance_cls")
+
+    generateExpressionCode(
+        to_name    = inst_name,
+        expression = expression.getInstance(),
+        emit       = emit,
+        context    = context
+    )
+    generateExpressionCode(
+        to_name    = cls_name,
+        expression = expression.getCls(),
+        emit       = emit,
+        context    = context
+    )
+
+
     res_name = context.getIntResName()
 
     emit(
@@ -225,8 +241,9 @@ def getBuiltinIsinstanceBoolCode(inst_name, cls_name, emit, context):
         context       = context
     )
 
-    getBranchingCode(
-        condition = "%s == 1" % res_name,
-        emit      = emit,
-        context   = context
+    emit(
+        to_name.getCType().getAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s != 0" % res_name
+        )
     )
