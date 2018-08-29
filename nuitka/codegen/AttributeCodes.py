@@ -328,6 +328,39 @@ def generateBuiltinHasattrCode(to_name, expression, emit, context):
     )
 
 
+def generateAttributeCheckCode(to_name, expression, emit, context):
+    source_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    res_name = context.getIntResName()
+
+    emit(
+        "%s = PyObject_HasAttr( %s, %s );" % (
+            res_name,
+            source_name,
+            context.getConstantCode(
+                constant = expression.getAttributeName()
+            )
+        )
+    )
+
+    getReleaseCode(
+        release_name = source_name,
+        emit         = emit,
+        context      = context
+    )
+
+    emit(
+        to_name.getCType().getAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s != 0" % res_name
+        )
+    )
+
+
 def generateBuiltinGetattrCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
         to_name    = to_name,

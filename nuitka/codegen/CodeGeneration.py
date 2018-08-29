@@ -34,6 +34,7 @@ from .AsyncgenCodes import (
 )
 from .AttributeCodes import (
     generateAssignmentAttributeCode,
+    generateAttributeCheckCode,
     generateAttributeLookupCode,
     generateAttributeLookupSpecialCode,
     generateBuiltinGetattrCode,
@@ -503,6 +504,7 @@ def makeGlobalContext():
 
 setExpressionDispatchDict(
     {
+        "EXPRESSION_ATTRIBUTE_CHECK"                  : generateAttributeCheckCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP"                 : generateAttributeLookupCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL"         : generateAttributeLookupSpecialCode,
         "EXPRESSION_BUILTIN_SLICE"                    : generateBuiltinSliceCode,

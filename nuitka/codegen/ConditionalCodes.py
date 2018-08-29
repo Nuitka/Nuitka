@@ -32,7 +32,8 @@ def generateConditionCode(condition, emit, context):
 
     if condition.isExpressionComparison() or \
        condition.isExpressionBuiltinIsinstance() or \
-       condition.isExpressionBuiltinHasattr():
+       condition.isExpressionBuiltinHasattr() or \
+       condition.isExpressionAttributeCheck():
         compare_name = context.allocateTempName("compare_result", "nuitka_bool")
 
         generateExpressionCode(
