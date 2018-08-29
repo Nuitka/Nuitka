@@ -24,8 +24,12 @@ from nuitka import Builtins
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateChildExpressionsCode
-from .ErrorCodes import getAssertionCode, getErrorExitCode
-from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
+from .ErrorCodes import (
+    getAssertionCode,
+    getErrorExitBoolCode,
+    getErrorExitCode
+)
+from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generateBuiltinRefCode(to_name, expression, emit, context):
@@ -300,16 +304,34 @@ def generateBuiltinComplex2Code(to_name, expression, emit, context):
 
 
 def generateBuiltinBoolCode(to_name, expression, emit, context):
-    generateCAPIObjectCode0(
-        to_name    = to_name,
-        capi       = "TO_BOOL",
-        arg_desc   = (
-            ("bool_arg", expression.getValue()),
-        ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
+    arg_name, = generateChildExpressionsCode(
+        expression = expression,
         emit       = emit,
         context    = context
+    )
+
+    res_name = context.getIntResName()
+
+    emit(
+         "%s = CHECK_IF_TRUE( %s );" % (
+            res_name,
+            arg_name
+        )
+    )
+
+    getErrorExitBoolCode(
+        condition    = "%s == -1" % res_name,
+        release_name = arg_name,
+        needs_check  = expression.mayRaiseException(BaseException),
+        emit         = emit,
+        context      = context
+    )
+
+    emit(
+        to_name.getCType().getAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s != 0" % res_name
+        )
     )
 
 

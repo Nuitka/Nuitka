@@ -119,14 +119,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
 
 #include "nuitka/helper/ints.h"
 
-NUITKA_MAY_BE_UNUSED static PyObject *TO_BOOL( PyObject *value )
-{
-    int res = CHECK_IF_TRUE( value );
-
-    if (unlikely( res == -1 )) return NULL;
-    return BOOL_FROM( res != 0 );
-}
-
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *encoding, PyObject *errors )
 {
