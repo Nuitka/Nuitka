@@ -2395,6 +2395,8 @@ void _initSlotIternext()
 
 #include "HelpersDeepcopy.c"
 
+#include "HelpersAttributes.c"
+
 #if _NUITKA_PROFILE
 #include "HelpersProfiling.c"
 #endif
