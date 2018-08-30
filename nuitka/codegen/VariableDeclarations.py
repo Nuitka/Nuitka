@@ -21,6 +21,7 @@ Holds the information necessary to make C code declarations related to a variabl
 """
 from contextlib import contextmanager
 
+from .c_types.CTypeModuleDictVariables import CTypeModuleDictVariable
 from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
 from .c_types.CTypePyObjectPtrs import (
     CTypeCellObject,
@@ -92,6 +93,8 @@ class VariableDeclaration(object):
             return CTypePyObjectPtrPtr
         elif c_type == "nuitka_bool":
             return CTypeNuitkaBoolEnum
+        elif c_type == "module_var":
+            return CTypeModuleDictVariable
 
         assert False, c_type
 

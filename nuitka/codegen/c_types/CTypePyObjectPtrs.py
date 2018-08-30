@@ -23,7 +23,8 @@
 from nuitka.codegen.ErrorCodes import (
     getAssertionCode,
     getCheckObjectCode,
-    getLocalVariableReferenceErrorCode
+    getLocalVariableReferenceErrorCode,
+    getNameReferenceErrorCode
 )
 from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_del_local_intolerant,
@@ -195,13 +196,21 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         return value_name
 
     @classmethod
-    def emitLocalVariableValueCheckCode(cls, variable, value_name, emit, context):
-        getLocalVariableReferenceErrorCode(
-            variable  = variable,
-            condition = "%s == NULL" % value_name,
-            emit      = emit,
-            context   = context
-        )
+    def emitVariableValueCheckCode(cls, variable, value_name, emit, context):
+        if variable.isModuleVariable():
+            getNameReferenceErrorCode(
+                variable_name = variable.getName(),
+                condition     = "%s == NULL" % value_name,
+                emit          = emit,
+                context       = context
+            )
+        else:
+            getLocalVariableReferenceErrorCode(
+                variable  = variable,
+                condition = "%s == NULL" % value_name,
+                emit      = emit,
+                context   = context
+            )
 
     @classmethod
     def emitValueAssertionCode(cls, value_name, emit, context):

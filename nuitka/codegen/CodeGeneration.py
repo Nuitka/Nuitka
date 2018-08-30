@@ -194,11 +194,8 @@ from .LoopCodes import (
     generateLoopContinueCode
 )
 from .ModuleCodes import (
+    generateModuleAttributeCode,
     generateModuleAttributeFileCode,
-    generateModuleAttributeLoaderCode,
-    generateModuleAttributeNameCode,
-    generateModuleAttributePackageCode,
-    generateModuleAttributeSpecCode,
     getModuleCode,
     getModuleValues
 )
@@ -626,10 +623,10 @@ setExpressionDispatchDict(
         "EXPRESSION_LIST_OPERATION_EXTEND"            : generateListOperationExtendCode,
         "EXPRESSION_LIST_OPERATION_POP"               : generateListOperationPopCode,
         "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF"        : generateModuleAttributeFileCode,
-        "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF"        : generateModuleAttributeNameCode,
-        "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF"     : generateModuleAttributePackageCode,
-        "EXPRESSION_MODULE_ATTRIBUTE_LOADER_REF"      : generateModuleAttributeLoaderCode,
-        "EXPRESSION_MODULE_ATTRIBUTE_SPEC_REF"        : generateModuleAttributeSpecCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF"        : generateModuleAttributeCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF"     : generateModuleAttributeCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_LOADER_REF"      : generateModuleAttributeCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_SPEC_REF"        : generateModuleAttributeCode,
         "EXPRESSION_MAKE_GENERATOR_OBJECT"            : generateMakeGeneratorObjectCode,
         "EXPRESSION_MAKE_COROUTINE_OBJECT"            : generateMakeCoroutineObjectCode,
         "EXPRESSION_MAKE_ASYNCGEN_OBJECT"             : generateMakeAsyncgenObjectCode,

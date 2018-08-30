@@ -29,11 +29,9 @@ from .c_types.CTypePyObjectPtrs import (
     CTypePyObjectPtrPtr
 )
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import getCheckObjectCode, getNameReferenceErrorCode
-from .templates.CodeTemplatesVariables import (
-    template_del_global_unclear,
-    template_read_mvar_unclear
-)
+from .ErrorCodes import getNameReferenceErrorCode
+from .templates.CodeTemplatesVariables import template_del_global_unclear
+from .VariableDeclarations import VariableDeclaration
 
 
 def generateAssignmentVariableCode(statement, emit, context):
@@ -116,51 +114,60 @@ def generateVariableReleaseCode(statement, emit, context):
     )
 
 
-def generateVariableReferenceCode(to_name, expression, emit, context):
-    variable       = expression.getVariable()
-    variable_trace = expression.getVariableTrace()
-    needs_check    = expression.mayRaiseException(BaseException)
-
+def getVariableReferenceCode(to_name, variable, variable_trace, needs_check,
+                             emit, context):
     if variable.isModuleVariable():
-        generateModuleVariableAccessCode(
-            to_name       = to_name,
-            variable_name = variable.getName(),
-            needs_check   = needs_check,
-            emit          = emit,
-            context       = context
+        variable_declaration = VariableDeclaration(
+            "module_var",
+            variable.getName(),
+            None,
+            None
         )
     else:
         variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
-        variable_c_type = variable_declaration.getCType()
 
-        value_name = variable_c_type.emitValueAccessCode(
-            value_name = variable_declaration,
+    value_name = variable_declaration.getCType().emitValueAccessCode(
+        value_name = variable_declaration,
+        emit       = emit,
+        context    = context
+    )
+
+    if needs_check:
+        value_name.getCType().emitVariableValueCheckCode(
+            variable   = variable,
+            value_name = value_name,
             emit       = emit,
             context    = context
         )
-
-        if needs_check:
-            value_name.getCType().emitLocalVariableValueCheckCode(
-                variable   = variable,
-                value_name = value_name,
-                emit       = emit,
-                context    = context
-            )
-        else:
-            value_name.getCType().emitValueAssertionCode(
-                value_name = value_name,
-                emit       = emit,
-                context    = context
-            )
-
-
-        to_name.getCType().emitAssignConversionCode(
-            to_name    = to_name,
+    else:
+        value_name.getCType().emitValueAssertionCode(
             value_name = value_name,
             emit       = emit,
             context    = context
         )
 
+    to_name.getCType().emitAssignConversionCode(
+        to_name    = to_name,
+        value_name = value_name,
+        emit       = emit,
+        context    = context
+    )
+
+
+
+def generateVariableReferenceCode(to_name, expression, emit, context):
+    variable       = expression.getVariable()
+    variable_trace = expression.getVariableTrace()
+    needs_check    = expression.mayRaiseException(BaseException)
+
+    getVariableReferenceCode(
+        to_name        = to_name,
+        variable       = variable,
+        variable_trace = variable_trace,
+        needs_check    = needs_check,
+        emit           = emit,
+        context        = context
+    )
 
 def _getVariableCodeName(in_context, variable):
     if in_context:
@@ -357,28 +364,6 @@ def getVariableAssignmentCode(context, emit, variable, variable_trace,
 
         if ref_count:
             context.removeCleanupTempName(tmp_name)
-
-
-def generateModuleVariableAccessCode(to_name, variable_name, needs_check,
-                                      emit, context):
-    emit(
-        template_read_mvar_unclear % {
-            "module_identifier" : context.getModuleCodeName(),
-            "tmp_name"          : to_name,
-            "var_name"          : context.getConstantCode(
-                constant = variable_name
-            )
-        }
-    )
-    if needs_check:
-        getNameReferenceErrorCode(
-            variable_name = variable_name,
-            condition     = "%s == NULL" % to_name,
-            emit          = emit,
-            context       = context
-        )
-    else:
-        getCheckObjectCode(to_name, emit)
 
 
 def getVariableDelCode(variable, variable_trace, previous_trace, tolerant,

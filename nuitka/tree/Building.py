@@ -814,7 +814,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 provider      = provider,
                 variable_name = "__file__",
                 source        = ExpressionModuleAttributeFileRef(
-                    module     = provider,
+                    variable   = provider.getVariableForReference("__file__"),
                     source_ref = internal_source_ref,
                 ),
                 source_ref    = internal_source_ref

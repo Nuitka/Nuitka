@@ -375,7 +375,7 @@ Module variable '%s' found to be built-in reference.""" % (
                 )
             elif variable_name == "__name__":
                 new_node = ExpressionModuleAttributeNameRef(
-                    module     = variable.getOwner(),
+                    variable   = variable,
                     source_ref = self.getSourceReference()
                 )
 
@@ -384,7 +384,7 @@ Module variable '%s' found to be built-in reference.""" % (
 Replaced read-only module attribute '__name__' with module attribute reference."""
             elif variable_name == "__package__":
                 new_node = ExpressionModuleAttributePackageRef(
-                    module     = variable.getOwner(),
+                    variable   = variable,
                     source_ref = self.getSourceReference()
                 )
 
@@ -393,7 +393,7 @@ Replaced read-only module attribute '__name__' with module attribute reference."
 Replaced read-only module attribute '__package__' with module attribute reference."""
             elif variable_name == "__loader__" and python_version >= 300:
                 new_node = ExpressionModuleAttributeLoaderRef(
-                    module     = variable.getOwner(),
+                    variable   = variable,
                     source_ref = self.getSourceReference()
                 )
 
@@ -402,7 +402,7 @@ Replaced read-only module attribute '__package__' with module attribute referenc
 Replaced read-only module attribute '__loader__' with module attribute reference."""
             elif variable_name == "__spec__" and python_version >= 340:
                 new_node = ExpressionModuleAttributeSpecRef(
-                    module     = variable.getOwner(),
+                    variable   = variable,
                     source_ref = self.getSourceReference()
                 )
 

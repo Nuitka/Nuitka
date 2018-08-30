@@ -33,7 +33,7 @@ from .templates.CodeTemplatesModules import (
     template_module_exception_exit,
     template_module_noexception_exit
 )
-from .VariableCodes import generateModuleVariableAccessCode
+from .VariableCodes import getVariableReferenceCode
 
 
 def getModuleAccessCode(context):
@@ -167,52 +167,13 @@ def generateModuleAttributeFileCode(to_name, expression, emit, context):
     context.markAsNeedsModuleFilenameObject()
 
 
-def generateModuleAttributeNameCode(to_name, expression, emit, context):
-    # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=unused-argument
-    generateModuleVariableAccessCode(
-        to_name       = to_name,
-        variable_name = "__name__",
-        needs_check   = False,
-        emit          = emit,
-        context       = context
+def generateModuleAttributeCode(to_name, expression, emit, context):
+    getVariableReferenceCode(
+        to_name        = to_name,
+        variable       = expression.getVariable(),
+        variable_trace = None,
+        needs_check    = False,
+        emit           = emit,
+        context        = context
 
-    )
-
-
-def generateModuleAttributePackageCode(to_name, expression, emit, context):
-    # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=unused-argument
-    generateModuleVariableAccessCode(
-        to_name       = to_name,
-        variable_name = "__package__",
-        needs_check   = False,
-        emit          = emit,
-        context       = context
-    )
-
-
-def generateModuleAttributeLoaderCode(to_name, expression, emit, context):
-    # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=unused-argument
-
-    generateModuleVariableAccessCode(
-        to_name       = to_name,
-        variable_name = "__loader__",
-        needs_check   = False,
-        emit          = emit,
-        context       = context
-    )
-
-
-def generateModuleAttributeSpecCode(to_name, expression, emit, context):
-    # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=unused-argument
-
-    generateModuleVariableAccessCode(
-        to_name       = to_name,
-        variable_name = "__spec__",
-        needs_check   = False,
-        emit          = emit,
-        context       = context
     )
