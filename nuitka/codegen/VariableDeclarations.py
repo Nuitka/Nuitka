@@ -30,16 +30,23 @@ from .c_types.CTypePyObjectPtrs import (
 
 
 class VariableDeclaration(object):
-    __slots__ = ("c_type", "code_name", "init_value", "heap_name")
+    __slots__ = ("c_type", "code_name", "init_value", "heap_name", "maybe_unused")
 
     def __init__(self, c_type, code_name, init_value, heap_name):
-        self.c_type = c_type
+        if c_type.startswith("NUITKA_MAY_BE_UNUSED"):
+            self.c_type = c_type[21:]
+            self.maybe_unused = True
+        else:
+            self.c_type = c_type
+            self.maybe_unused = False
+
         self.code_name = code_name
         self.init_value = init_value
         self.heap_name = heap_name
 
     def makeCFunctionLevelDeclaration(self):
-        return "%s%s%s%s;" % (
+        return "%s%s%s%s%s;" % (
+            "NUITKA_MAY_BE_UNUSED " if self.maybe_unused else "",
             self.c_type,
             ' ' if self.c_type[-1] != '*' else "",
             self.code_name,
@@ -48,9 +55,6 @@ class VariableDeclaration(object):
 
     def makeCStructDeclaration(self):
         c_type = self.c_type
-
-        if c_type.startswith("NUITKA_MAY_BE_UNUSED"):
-            c_type = c_type[21:]
 
         if '[' in c_type:
             array_decl = c_type[c_type.find('['):]
@@ -79,9 +83,6 @@ class VariableDeclaration(object):
 
     def getCType(self):
         c_type = self.c_type
-
-        if c_type.startswith("NUITKA_MAY_BE_UNUSED"):
-            c_type = c_type[21:]
 
         if c_type == "PyObject *":
             return CTypePyObjectPtr
