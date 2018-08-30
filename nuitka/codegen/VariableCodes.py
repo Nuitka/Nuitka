@@ -117,14 +117,49 @@ def generateVariableReleaseCode(statement, emit, context):
 
 
 def generateVariableReferenceCode(to_name, expression, emit, context):
-    getVariableAccessCode(
-        to_name        = to_name,
-        variable       = expression.getVariable(),
-        variable_trace = expression.getVariableTrace(),
-        needs_check    = expression.mayRaiseException(BaseException),
-        emit           = emit,
-        context        = context
-    )
+    variable       = expression.getVariable()
+    variable_trace = expression.getVariableTrace()
+    needs_check    = expression.mayRaiseException(BaseException)
+
+    if variable.isModuleVariable():
+        generateModuleVariableAccessCode(
+            to_name       = to_name,
+            variable_name = variable.getName(),
+            needs_check   = needs_check,
+            emit          = emit,
+            context       = context
+        )
+    else:
+        variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
+        variable_c_type = variable_declaration.getCType()
+
+        value_name = variable_c_type.emitValueAccessCode(
+            value_name = variable_declaration,
+            emit       = emit,
+            context    = context
+        )
+
+        if needs_check:
+            value_name.getCType().emitLocalVariableValueCheckCode(
+                variable   = variable,
+                value_name = value_name,
+                emit       = emit,
+                context    = context
+            )
+        else:
+            value_name.getCType().emitValueAssertionCode(
+                value_name = value_name,
+                emit       = emit,
+                context    = context
+            )
+
+
+        to_name.getCType().emitAssignConversionCode(
+            to_name    = to_name,
+            value_name = value_name,
+            emit       = emit,
+            context    = context
+        )
 
 
 def _getVariableCodeName(in_context, variable):
@@ -344,30 +379,6 @@ def generateModuleVariableAccessCode(to_name, variable_name, needs_check,
         )
     else:
         getCheckObjectCode(to_name, emit)
-
-
-
-def getVariableAccessCode(to_name, variable, variable_trace, needs_check, emit, context):
-    if variable.isModuleVariable():
-        generateModuleVariableAccessCode(
-            to_name       = to_name,
-            variable_name = variable.getName(),
-            needs_check   = needs_check,
-            emit          = emit,
-            context       = context
-        )
-    else:
-        variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
-        variable_c_type = variable_declaration.getCType()
-
-        variable_c_type.getVariableObjectAccessCode(
-            to_name            = to_name,
-            variable_code_name = variable_declaration,
-            variable           = variable,
-            needs_check        = needs_check,
-            emit               = emit,
-            context            = context
-        )
 
 
 def getVariableDelCode(variable, variable_trace, previous_trace, tolerant,

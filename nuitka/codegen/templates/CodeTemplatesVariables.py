@@ -104,10 +104,6 @@ PyCell_SET( %(identifier)s, %(tmp_name)s );
 """
 
 
-template_read_local = """\
-%(tmp_name)s = %(identifier)s;
-"""
-
 template_del_local_tolerant = """\
 Py_XDECREF( %(identifier)s );
 %(identifier)s = NULL;
@@ -163,18 +159,6 @@ template_release_clear = """\
 CHECK_OBJECT( (PyObject *)%(identifier)s );
 Py_DECREF( %(identifier)s );
 %(identifier)s = NULL;
-"""
-
-# TODO: Storage will not be NULL.
-template_read_shared_unclear = """\
-if ( %(identifier)s == NULL )
-{
-    %(tmp_name)s = NULL;
-}
-else
-{
-    %(tmp_name)s = PyCell_GET( %(identifier)s );
-}
 """
 
 template_read_shared_known = """\

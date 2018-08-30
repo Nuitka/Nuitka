@@ -50,56 +50,27 @@ class CTypeNuitkaBoolEnum(CTypeBase):
             condition = test_code
         )
 
-
-    @classmethod
-    def getVariableObjectAccessCode(cls, to_name, needs_check, variable_code_name,
-                                    variable, emit, context):
-
-        if needs_check:
-            emit(
-                """\
-switch (%(variable_code_name)s)
-{
-    case NUITKA_BOOL_TRUE:
-    {
-        %(to_name)s = Py_True;
-        break;
-    }
-    case NUITKA_BOOL_FALSE:
-    {
-        %(to_name)s = Py_False;
-        break;
-    }
-    // case NUITKA_BOOL_UNASSIGNED: (MSVC wants default to believe it). We may
-    // try to add an illegal default instead, but that may trigger warnings
-    // from better compilers.
-    default:
-    {
-        %(to_name)s = NULL;
-        break;
-    }
-}""" % {
-            "variable_code_name" : variable_code_name,
-            "to_name"            : to_name,
-    }
-            )
-        else:
-            emit(
-                """\
-assert( %(variable_code_name)s != NUITKA_BOOL_UNASSIGNED );
-%(to_name)s = (%(variable_code_name)s == NUITKA_BOOL_TRUE) ? Py_True : Py_False;
-""" % {
-            "variable_code_name" : variable_code_name,
-            "to_name"            : to_name,
-            }
-        )
-
-        if 0: # Future work, pylint: disable=using-constant-test
-            context.reportObjectConversion(variable)
-
     @classmethod
     def getLocalVariableInitTestCode(cls, variable_code_name):
         return "%s != NUITKA_BOOL_UNASSIGNED" % variable_code_name
+
+    @classmethod
+    def emitAssignConversionCode(cls, to_name, value_name, emit, context):
+        # No context needed, pylint: disable=unused-argument
+        if value_name.c_type == cls.c_type:
+            emit(
+                "%s = %s;" % (
+                    to_name,
+                    value_name
+                )
+            )
+        else:
+            emit(
+                cls.getAssignmentCodeFromBoolCondition(
+                    condition = value_name.getCType().getTruthCheckCode(value_name),
+                    to_name   = to_name
+                )
+            )
 
     @classmethod
     def getLocalVariableObjectAccessCode(cls, variable_code_name):

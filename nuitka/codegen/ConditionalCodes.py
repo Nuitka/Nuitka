@@ -20,6 +20,8 @@
 Branches, conditions, truth checks.
 """
 
+from nuitka.Options import isExperimental
+
 from .CodeHelpers import generateExpressionCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitBoolCode, getReleaseCode
@@ -30,7 +32,8 @@ def generateConditionCode(condition, emit, context):
     # The complexity is needed to avoid unnecessary complex generated C
     # pylint: disable=too-many-locals
 
-    if condition.isExpressionComparison() or \
+    if isExperimental("enable_bool_ctype") or \
+       condition.isExpressionComparison() or \
        condition.isExpressionBuiltinIsinstance() or \
        condition.isExpressionBuiltinHasattr() or \
        condition.isExpressionAttributeCheck():

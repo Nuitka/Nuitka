@@ -32,8 +32,6 @@ from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_del_shared_intolerant,
     template_del_shared_known,
     template_del_shared_tolerant,
-    template_read_local,
-    template_read_shared_unclear,
     template_release_clear,
     template_release_unclear,
     template_write_local_clear_ref0,
@@ -83,32 +81,9 @@ class CPythonPyObjectPtrBase(CTypeBase):
             "tmp_name"   : tmp_name
         }
 
-
-
     @classmethod
-    def getVariableObjectAccessCode(cls, to_name, needs_check, variable_code_name,
-                                    variable, emit, context):
-        template = template_read_local
-
-        emit(
-            template % {
-                "tmp_name"   : to_name,
-                "identifier" : cls.getLocalVariableObjectAccessCode(variable_code_name)
-            }
-        )
-
-        if needs_check:
-            getLocalVariableReferenceErrorCode(
-                variable  = variable,
-                condition = "%s == NULL" % to_name,
-                emit      = emit,
-                context   = context
-            )
-        else:
-            getCheckObjectCode(
-                check_name = to_name,
-                emit       = emit
-            )
+    def getTruthCheckCode(cls, value_name):
+        return "CHECK_IF_TRUE( %s )" % value_name
 
     @classmethod
     def getReleaseCode(cls, variable_code_name, needs_check, emit):
@@ -214,6 +189,41 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
             "condition" : condition
         }
 
+    @classmethod
+    def emitValueAccessCode(cls, value_name, emit, context):
+        # Nothing to do for this type, pylint: disable=unused-argument
+        return value_name
+
+    @classmethod
+    def emitLocalVariableValueCheckCode(cls, variable, value_name, emit, context):
+        getLocalVariableReferenceErrorCode(
+            variable  = variable,
+            condition = "%s == NULL" % value_name,
+            emit      = emit,
+            context   = context
+        )
+
+    @classmethod
+    def emitValueAssertionCode(cls, value_name, emit, context):
+        # Not using the context, pylint: disable=unused-argument
+        getCheckObjectCode(
+            check_name = value_name,
+            emit       = emit
+        )
+
+    @classmethod
+    def emitAssignConversionCode(cls, to_name, value_name, emit, context):
+        # Nothing done for this type yet, pylint: disable=unused-argument
+        if to_name.c_type == cls.c_type:
+            emit(
+                "%s = %s;" % (
+                    to_name,
+                    value_name
+                )
+            )
+        else:
+            assert False, to_name.c_type
+
 
 class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     c_type = "PyObject **"
@@ -225,6 +235,19 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
     @classmethod
     def getVariableArgReferencePassingCode(cls, variable_code_name):
         return variable_code_name
+
+    @classmethod
+    def emitValueAccessCode(cls, value_name, emit, context):
+        # No code needed for this type, pylint: disable=unused-argument
+        from ..VariableDeclarations import VariableDeclaration
+
+        # Use the object pointed to.
+        return VariableDeclaration(
+            "PyObject *",
+            "*%s" % value_name,
+            None,
+            None
+        )
 
     @classmethod
     def getLocalVariableObjectAccessCode(cls, variable_code_name):
@@ -296,29 +319,17 @@ class CTypeCellObject(CTypeBase):
         }
 
     @classmethod
-    def getVariableObjectAccessCode(cls, to_name, needs_check, variable_code_name,
-                                    variable, emit, context):
-        template = template_read_shared_unclear
+    def emitValueAccessCode(cls, value_name, emit, context):
+        # No code needed for this type, pylint: disable=unused-argument
+        from ..VariableDeclarations import VariableDeclaration
 
-        emit(
-            template % {
-                "tmp_name"   : to_name,
-                "identifier" : variable_code_name
-            }
+        # Use the object pointed to.
+        return VariableDeclaration(
+            "PyObject *",
+            "PyCell_GET( %s )" % value_name,
+            None,
+            None
         )
-
-        if needs_check:
-            getLocalVariableReferenceErrorCode(
-                variable  = variable,
-                condition = "%s == NULL" % to_name,
-                emit      = emit,
-                context   = context
-            )
-        else:
-            getCheckObjectCode(
-                check_name = to_name,
-                emit       = emit
-            )
 
     @classmethod
     def getVariableArgDeclarationCode(cls, variable_code_name):
