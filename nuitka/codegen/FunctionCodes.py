@@ -690,6 +690,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     return_target = context.allocateLabel("outline_result")
     old_return_target = context.setReturnTarget(return_target)
 
+    # TODO: Put the return value name as that to_name.c_type too.
     return_value_name = context.allocateTempName("outline_return_value")
     old_return_value_name = context.setReturnValueName(return_value_name)
 
@@ -724,14 +725,16 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
         context.setExceptionEscape(old_exception_target)
 
     getLabelCode(return_target, emit)
-    emit(
-        "%s = %s;" % (
-            to_name,
-            return_value_name
-        )
+
+    to_name.getCType().emitAssignConversionCode(
+        to_name    = to_name,
+        value_name = return_value_name,
+        emit       = emit,
+        context    = context
     )
 
-    context.addCleanupTempName(to_name)
+    if to_name.c_type == "PyObject *":
+        context.addCleanupTempName(to_name)
 
     # Restore previous "return" handling.
     context.setReturnTarget(old_return_target)
