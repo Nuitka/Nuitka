@@ -23,6 +23,7 @@
 from nuitka.codegen.ErrorCodes import (
     getAssertionCode,
     getCheckObjectCode,
+    getErrorExitBoolCode,
     getLocalVariableReferenceErrorCode,
     getNameReferenceErrorCode
 )
@@ -85,6 +86,24 @@ class CPythonPyObjectPtrBase(CTypeBase):
     @classmethod
     def getTruthCheckCode(cls, value_name):
         return "CHECK_IF_TRUE( %s )" % value_name
+
+    @classmethod
+    def emitTruthCheckCode(cls, to_name, value_name, needs_check, emit, context):
+        emit(
+            "%s = CHECK_IF_TRUE( %s );" % (
+                to_name,
+                value_name
+            )
+        )
+
+        if needs_check:
+            getErrorExitBoolCode(
+                condition   = "%s == -1" % to_name,
+                needs_check = needs_check,
+                emit        = emit,
+                context     = context
+            )
+
 
     @classmethod
     def getReleaseCode(cls, variable_code_name, needs_check, emit):

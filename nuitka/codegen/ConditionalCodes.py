@@ -24,7 +24,7 @@ from nuitka.Options import isExperimental
 
 from .CodeHelpers import generateExpressionCode
 from .Emission import SourceCodeCollector
-from .ErrorCodes import getErrorExitBoolCode, getReleaseCode
+from .ErrorCodes import getReleaseCode
 from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
 
 
@@ -153,15 +153,9 @@ def generateConditionCode(condition, emit, context):
 
 
 def getConditionCheckTrueCode(to_name, value_name, needs_check, emit, context):
-    emit(
-        "%s = CHECK_IF_TRUE( %s );" % (
-            to_name,
-            value_name
-        )
-    )
-
-    getErrorExitBoolCode(
-        condition   = "%s == -1" % to_name,
+    value_name.getCType().emitTruthCheckCode(
+        to_name     = to_name,
+        value_name  = value_name,
         needs_check = needs_check,
         emit        = emit,
         context     = context
@@ -186,8 +180,8 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
 
     truth_name = context.allocateTempName(prefix + "left_truth", "int")
 
-    left_name = context.allocateTempName(prefix + "left_value")
-    right_name = context.allocateTempName(prefix + "right_value")
+    left_name = context.allocateTempName(prefix + "left_value", to_name.c_type)
+    right_name = context.allocateTempName(prefix + "right_value", to_name.c_type)
 
     left_value = expression.getLeft()
 
@@ -202,6 +196,13 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     # this, and we better do this manually later.
     needs_ref1 = context.needsCleanup(left_name)
 
+    if expression.isExpressionConditionalOR():
+        context.setTrueBranchTarget(true_target)
+        context.setFalseBranchTarget(false_target)
+    else:
+        context.setTrueBranchTarget(false_target)
+        context.setFalseBranchTarget(true_target)
+
     getConditionCheckTrueCode(
         to_name     = truth_name,
         value_name  = left_name,
@@ -210,20 +211,13 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
         context     = context
     )
 
-    if expression.isExpressionConditionalOR():
-        context.setTrueBranchTarget(true_target)
-        context.setFalseBranchTarget(false_target)
-    else:
-        context.setTrueBranchTarget(false_target)
-        context.setFalseBranchTarget(true_target)
-
     getBranchingCode(
         condition = "%s == 1" % truth_name,
         emit      = emit,
         context   = context
     )
 
-    getLabelCode(false_target,emit)
+    getLabelCode(false_target, emit)
 
     # So it's not the left value, then lets release that one right away, it
     # is not needed, but we remember if it should be added above.
@@ -250,11 +244,11 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     if not needs_ref2 and needs_ref1:
         emit("Py_INCREF( %s );" % right_name)
 
-    emit(
-        "%s = %s;" % (
-            to_name,
-            right_name
-        )
+    to_name.getCType().emitAssignConversionCode(
+        to_name    = to_name,
+        value_name = right_name,
+        emit       = emit,
+        context    = context
     )
 
     getGotoCode(end_target, emit)
@@ -264,11 +258,11 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     if not needs_ref1 and needs_ref2:
         emit("Py_INCREF( %s );" % left_name)
 
-    emit(
-        "%s = %s;" % (
-            to_name,
-            left_name
-        )
+    to_name.getCType().emitAssignConversionCode(
+        to_name    = to_name,
+        value_name = left_name,
+        emit       = emit,
+        context    = context
     )
 
     getLabelCode(end_target, emit)
