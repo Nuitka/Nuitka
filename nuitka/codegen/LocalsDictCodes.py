@@ -248,19 +248,16 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
     is_dict = expression.getLocalsDictScope().getTypeShape() is ShapeTypeDict
 
     if is_dict:
-        template = """\
-%(to_name)s = PyDict_GetItem( %(locals_dict)s, %(var_name)s );
-
-%(to_name)s = BOOL_FROM( %(to_name)s != NULL );
-"""
         emit(
-            template % {
-                "locals_dict" : expression.getLocalsDictScope().getCodeName(),
-                "var_name"    : context.getConstantCode(
-                    constant = variable_name
-                ),
-                "to_name"     : to_name
-            }
+            to_name.getCType().getAssignmentCodeFromBoolCondition(
+                to_name   = to_name,
+                condition = "PyDict_GetItem( %(locals_dict)s, %(var_name)s )" % {
+                    "locals_dict" : expression.getLocalsDictScope().getCodeName(),
+                    "var_name"    : context.getConstantCode(
+                        constant = variable_name
+                    )
+                }
+            )
         )
     else:
         tmp_name = context.getIntResName()
@@ -287,11 +284,8 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
         )
 
         emit(
-            """\
-%(to_name)s = BOOL_FROM( %(tmp_name)s == 1 );
-""" % {
-                "to_name"  : to_name,
-                "tmp_name" : tmp_name
-
-            }
+            to_name.getCType().getAssignmentCodeFromBoolCondition(
+                to_name   = to_name,
+                condition = "%s == 1" % tmp_name
+            )
         )
