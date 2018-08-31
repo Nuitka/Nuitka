@@ -25,7 +25,7 @@ able to execute them without creating the argument dictionary at all.
 
 from .CodeHelpers import generateChildExpressionCode, generateExpressionCode
 from .ConstantCodes import getConstantAccess
-from .ErrorCodes import getErrorExitCode
+from .ErrorCodes import getErrorExitCode, getReleaseCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .templates.CodeTemplatesCalls import (
     template_call_function_with_args_decl,
@@ -241,6 +241,11 @@ def generateCallCode(to_name, expression, emit, context):
     call_kw = expression.getCallKw()
     call_args = expression.getCallArgs()
 
+    if to_name.c_type != "PyObject *":
+        result_name = context.allocateTempName("call_result")
+    else:
+        result_name = to_name
+
     # TODO: Make this work for all cases. Currently, the method calls that do
     # a combined lookup and call, do a re-ordering of things, and therefore it
     # must be disabled until this is solved.
@@ -276,7 +281,7 @@ def generateCallCode(to_name, expression, emit, context):
     if call_kw is None or \
        (call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}):
         _generateCallCodePosOnly(
-            to_name               = to_name,
+            to_name               = result_name,
             called_name           = called_name,
             called_attribute_name = called_attribute_name,
             expression            = expression,
@@ -290,7 +295,7 @@ def generateCallCode(to_name, expression, emit, context):
            (call_args.isExpressionConstantRef() and \
             call_args.getConstant() == ()):
             _generateCallCodeKwOnly(
-                to_name               = to_name,
+                to_name               = result_name,
                 called_name           = called_name,
                 called_attribute_name = called_attribute_name,
                 expression            = expression,
@@ -316,13 +321,23 @@ def generateCallCode(to_name, expression, emit, context):
             )
 
             getCallCodePosKeywordArgs(
-                to_name        = to_name,
+                to_name        = result_name,
                 called_name    = called_name,
                 call_args_name = call_args_name,
                 call_kw_name   = call_kw_name,
                 emit           = emit,
                 context        = context
             )
+
+    if to_name is not result_name:
+        to_name.getCType().emitAssignConversionCode(
+            to_name    = to_name,
+            value_name = result_name,
+            emit       = emit,
+            context    = context
+        )
+
+        getReleaseCode(result_name, emit, context)
 
 
 def getCallCodeNoArgs(to_name, called_name, needs_check, emit, context):
