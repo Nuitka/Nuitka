@@ -223,11 +223,18 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
     @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, emit, context):
         # Nothing done for this type yet, pylint: disable=unused-argument
-        if to_name.c_type == cls.c_type:
+        if value_name.c_type == cls.c_type:
             emit(
                 "%s = %s;" % (
                     to_name,
                     value_name
+                )
+            )
+        elif value_name.c_type == "nuitka_bool":
+            emit(
+                cls.getAssignmentCodeFromBoolCondition(
+                    condition = value_name.getCType().getTruthCheckCode(value_name),
+                    to_name   = to_name
                 )
             )
         else:

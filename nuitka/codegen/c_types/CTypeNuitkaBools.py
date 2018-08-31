@@ -55,6 +55,22 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         return "%s != NUITKA_BOOL_UNASSIGNED" % variable_code_name
 
     @classmethod
+    def getTruthCheckCode(cls, value_name):
+        return "%s == NUITKA_BOOL_TRUE" % value_name
+
+    @classmethod
+    def emitValueAccessCode(cls, value_name, emit, context):
+        # Nothing to do for this type, pylint: disable=unused-argument
+        return value_name
+
+    @classmethod
+    def emitValueAssertionCode(cls, value_name, emit, context):
+        # Not using the context, pylint: disable=unused-argument
+        emit(
+            "assert( %s != NUITKA_BOOL_UNASSIGNED);" % value_name
+        )
+
+    @classmethod
     def emitAssignConversionCode(cls, to_name, value_name, emit, context):
         # No context needed, pylint: disable=unused-argument
         if value_name.c_type == cls.c_type:

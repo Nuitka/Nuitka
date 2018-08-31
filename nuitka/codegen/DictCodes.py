@@ -259,10 +259,12 @@ def generateDictOperationInCode(to_name, expression, emit, context):
     )
 
     emit(
-        "%s = BOOL_FROM( %s == %s );" % (
-            to_name,
-            res_name,
-            '1' if not inverted else '0'
+        to_name.getCType().getAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s %s 0" % (
+                res_name,
+                "==" if inverted else "!="
+            )
         )
     )
 
