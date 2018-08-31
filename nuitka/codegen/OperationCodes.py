@@ -192,9 +192,14 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
             context.addCleanupTempName(to_name)
 
     else:
+        if to_name.c_type != "PyObject *":
+            value_name = context.allocateTempName("op_%s_res" % operator.lower())
+        else:
+            value_name = to_name
+
         emit(
             "%s = %s( %s );" % (
-                to_name,
+                value_name,
                 helper,
                 ", ".join(
                     str(arg_name)
@@ -205,11 +210,19 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
         )
 
         getErrorExitCode(
-            check_name    = to_name,
+            check_name    = value_name,
             release_names = arg_names,
             emit          = emit,
             context       = context
         )
 
-        if ref_count:
-            context.addCleanupTempName(to_name)
+        if value_name is not to_name:
+            to_name.getCType().emitAssignConversionCode(
+                to_name    = to_name,
+                value_name = value_name,
+                emit       = emit,
+                context    = context
+            )
+        else:
+            if ref_count:
+                context.addCleanupTempName(to_name)
