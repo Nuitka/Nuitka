@@ -23,6 +23,7 @@ The normal "yield", and the Python 3.3 or higher "yield from" variant.
 from .CodeHelpers import generateChildExpressionsCode
 from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import getReferenceExportCode
+from .VariableDeclarations import VariableDeclaration
 
 
 def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
@@ -112,10 +113,24 @@ def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
             )
         )
 
-    emit(
-        "%(to_name)s = yield_return_value;" % {
-            "to_name" : to_name
-        }
+    yield_return_name = VariableDeclaration(
+        "PyObject *",
+        "yield_return_value",
+        None,
+        None
+    )
+
+    getErrorExitCode(
+        check_name = yield_return_name,
+        emit       = emit,
+        context    = context
+    )
+
+    to_name.getCType().emitAssignConversionCode(
+        to_name    = to_name,
+        value_name = yield_return_name,
+        emit       = emit,
+        context    = context
     )
 
     if preserve_exception:
@@ -125,6 +140,7 @@ def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
                 context.getContextObjectName()
             )
         )
+
 
 def generateYieldCode(to_name, expression, emit, context):
     value_name, = generateChildExpressionsCode(
@@ -151,12 +167,6 @@ def generateYieldCode(to_name, expression, emit, context):
         preserve_exception = preserve_exception,
         emit               = emit,
         context            = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     # Comes as only borrowed.
@@ -191,12 +201,6 @@ return NULL;
         preserve_exception = preserve_exception,
         emit               = emit,
         context            = context
-    )
-
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
     )
 
     context.addCleanupTempName(to_name)
