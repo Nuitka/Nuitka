@@ -465,9 +465,8 @@ local variable '%s' referenced before assignment""" % variable_name
         return not self.variable_trace.mustHaveValue()
 
     def mayRaiseException(self, exception_type):
-        variable_trace = self.variable_trace
-
-        return variable_trace is None or not self.variable_trace.mustHaveValue()
+        return self.variable_trace is None or \
+               not self.variable_trace.mustHaveValue()
 
 
 class ExpressionTempVariableRef(ExpressionVariableRefBase):
