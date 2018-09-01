@@ -502,7 +502,8 @@ class ExpressionFunctionBody(MarkUnoptimizedFunctionIndicatorMixin,
 
         result.update(self.parameters.getDetails())
 
-        result.update(self.code_object.getDetails())
+        if self.code_object:
+            result.update(self.code_object.getDetails())
 
         if self.doc is not None:
             result["doc"] = self.doc
