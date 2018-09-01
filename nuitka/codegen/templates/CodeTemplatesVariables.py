@@ -202,6 +202,7 @@ if ( %(to_name)s == NULL )
     if ( CHECK_AND_CLEAR_KEY_ERROR_OCCURRED() )
     {
 %(fallback)s
+    Py_INCREF( %(to_name)s );
     }
 }
 """
