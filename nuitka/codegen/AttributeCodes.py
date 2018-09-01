@@ -119,53 +119,58 @@ def generateAttributeLookupCode(to_name, expression, emit, context):
 
     attribute_name = expression.getAttributeName()
 
-    getAttributeLookupCode(
-        to_name        = to_name,
-        source_name    = source_name,
-        attribute_name = attribute_name,
-        needs_check    = expression.getLookupSource().mayRaiseExceptionAttributeLookup(
-            exception_type = BaseException,
-            attribute_name = attribute_name
-        ),
-        emit           = emit,
-        context        = context
+    needs_check    = expression.getLookupSource().mayRaiseExceptionAttributeLookup(
+        exception_type = BaseException,
+        attribute_name = attribute_name
     )
 
+    if to_name.c_type == "PyObject *":
+        value_name = to_name
+    else:
+        value_name = context.allocateTempName("attribute_value")
 
-def getAttributeLookupCode(to_name, source_name, attribute_name, needs_check,
-                           emit, context):
     if attribute_name == "__dict__":
         emit(
             "%s = LOOKUP_ATTRIBUTE_DICT_SLOT( %s );" % (
-                to_name,
+                value_name,
                 source_name
             )
         )
     elif attribute_name == "__class__":
         emit(
             "%s = LOOKUP_ATTRIBUTE_CLASS_SLOT( %s );" % (
-                to_name,
+                value_name,
                 source_name
             )
         )
     else:
         emit(
             "%s = LOOKUP_ATTRIBUTE( %s, %s );" % (
-                to_name,
+                value_name,
                 source_name,
                 context.getConstantCode(attribute_name)
             )
         )
 
     getErrorExitCode(
-        check_name   = to_name,
+        check_name   = value_name,
         release_name = source_name,
         needs_check  = needs_check,
         emit         = emit,
         context      = context
     )
 
-    context.addCleanupTempName(to_name)
+    context.addCleanupTempName(value_name)
+
+    if to_name is not value_name:
+        to_name.getCType().emitAssignConversionCode(
+            to_name    = to_name,
+            value_name = value_name,
+            emit       = emit,
+            context    = context
+        )
+
+        getReleaseCode(value_name, emit, context)
 
 
 def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit,
