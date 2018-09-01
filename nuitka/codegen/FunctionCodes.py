@@ -665,8 +665,13 @@ def generateFunctionCallCode(to_name, expression, emit, context):
         expression.getCompatibleSourceReference()
     )
 
+    if to_name.c_type == "PyObject *":
+        value_name = to_name
+    else:
+        value_name = context.allocateTempName("call_result")
+
     getDirectFunctionCallCode(
-        to_name             = to_name,
+        to_name             = value_name,
         function_identifier = function_identifier,
         arg_names           = arg_names,
         closure_variables   = expression.getClosureVariableVersions(),
@@ -675,6 +680,17 @@ def generateFunctionCallCode(to_name, expression, emit, context):
         emit                = emit,
         context             = context
     )
+
+    if value_name is not to_name:
+        to_name.getCType().emitAssignConversionCode(
+            to_name     = to_name,
+            value_name  = value_name,
+            needs_check = decideConversionCheckNeeded(to_name, expression),
+            emit        = emit,
+            context     = context
+        )
+
+        getReleaseCode(value_name, emit, context)
 
 
 def generateFunctionOutlineCode(to_name, expression, emit, context):
