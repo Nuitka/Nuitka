@@ -20,7 +20,11 @@
 Right now only the creation is done here. But more should be added later on.
 """
 
-from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateChildExpressionsCode,
+    generateExpressionCode
+)
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode
 
@@ -157,13 +161,14 @@ def generateListOperationPopCode(to_name, expression, emit, context):
 
 def generateBuiltinListCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "PySequence_List",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "PySequence_List",
+        arg_desc         = (
             ("list_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )

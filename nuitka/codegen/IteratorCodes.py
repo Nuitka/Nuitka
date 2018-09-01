@@ -22,7 +22,11 @@ Next variants and unpacking with related checks.
 
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateChildExpressionsCode,
+    generateExpressionCode
+)
 from .ErrorCodes import (
     getErrorExitCode,
     getErrorExitReleaseCode,
@@ -213,71 +217,76 @@ def generateUnpackCheckCode(statement, emit, context):
 
 def generateBuiltinNext2Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "BUILTIN_NEXT2",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "BUILTIN_NEXT2",
+        arg_desc         = (
             ("next_arg", expression.getIterator()),
             ("next_default", expression.getDefault()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )
 
 
 def generateBuiltinIter1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "MAKE_ITERATOR",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "MAKE_ITERATOR",
+        arg_desc         = (
             ("iter_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )
 
 
 def generateBuiltinIterForUnpackCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "MAKE_UNPACK_ITERATOR",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "MAKE_UNPACK_ITERATOR",
+        arg_desc         = (
             ("iter_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )
 
 
 def generateBuiltinIter2Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "BUILTIN_ITER2",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "BUILTIN_ITER2",
+        arg_desc         = (
             ("iter_callable", expression.getCallable()),
             ("iter_sentinel", expression.getSentinel()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )
 
 
 def generateBuiltinLenCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "BUILTIN_LEN",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "BUILTIN_LEN",
+        arg_desc         = (
             ("len_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )

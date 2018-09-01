@@ -22,6 +22,7 @@ This also includes writing back to locals for exec statements.
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 
+from .CodeHelpers import decideConversionCheckNeeded
 from .ErrorCodes import getErrorExitBoolCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesVariables import (
@@ -207,27 +208,29 @@ def _getVariableDictUpdateCode(target_name, variable, variable_trace, initial,
 
 def generateBuiltinDir1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "PyObject_Dir",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "PyObject_Dir",
+        arg_desc         = (
             ("dir_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )
 
 
 def generateBuiltinVarsCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "LOOKUP_VARS",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "LOOKUP_VARS",
+        arg_desc         = (
             ("vars_arg", expression.getSource()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )

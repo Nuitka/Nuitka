@@ -25,6 +25,7 @@ from nuitka import Options
 from nuitka.Constants import isIndexConstant
 
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateChildExpressionCode,
     generateExpressionCode,
     generateExpressionsCode
@@ -174,10 +175,11 @@ def generateSubscriptLookupCode(to_name, expression, emit, context):
 
     if to_name is not value_name:
         to_name.getCType().emitAssignConversionCode(
-            to_name    = to_name,
-            value_name = value_name,
-            emit       = emit,
-            context    = context
+            to_name     = to_name,
+            value_name  = value_name,
+            needs_check = decideConversionCheckNeeded(to_name, expression),
+            emit        = emit,
+            context     = context
         )
 
         getReleaseCode(value_name, emit, context)

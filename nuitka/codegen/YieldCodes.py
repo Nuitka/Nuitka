@@ -20,14 +20,17 @@
 The normal "yield", and the Python 3.3 or higher "yield from" variant.
 """
 
-from .CodeHelpers import generateChildExpressionsCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateChildExpressionsCode
+)
 from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import getReferenceExportCode
 from .VariableDeclarations import VariableDeclaration
 
 
 def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
-                          emit, context):
+                          conversion_check, emit, context):
     yield_return_label = context.allocateLabel("yield_return")
     yield_return_index = yield_return_label.split('_')[-1]
 
@@ -129,7 +132,7 @@ def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
     to_name.getCType().emitAssignConversionCode(
         to_name     = to_name,
         value_name  = yield_return_name,
-        needs_check = True,
+        needs_check = conversion_check,
         emit        = emit,
         context     = context
     )
@@ -166,6 +169,7 @@ def generateYieldCode(to_name, expression, emit, context):
         value_name         = value_name,
         yield_code         = yield_code,
         preserve_exception = preserve_exception,
+        conversion_check   = decideConversionCheckNeeded(to_name, expression),
         emit               = emit,
         context            = context
     )
@@ -200,6 +204,7 @@ return NULL;
         value_name         = value_name,
         yield_code         = yield_code,
         preserve_exception = preserve_exception,
+        conversion_check   = decideConversionCheckNeeded(to_name, expression),
         emit               = emit,
         context            = context
     )

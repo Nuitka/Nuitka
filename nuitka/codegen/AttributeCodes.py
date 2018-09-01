@@ -373,32 +373,34 @@ def generateAttributeCheckCode(to_name, expression, emit, context):
 
 def generateBuiltinGetattrCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "BUILTIN_GETATTR",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "BUILTIN_GETATTR",
+        arg_desc         = (
             ("getattr_target", expression.getLookupSource()),
             ("getattr_attr", expression.getAttribute()),
             ("getattr_default", expression.getDefault()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        none_null  = True,
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        none_null        = True,
+        emit             = emit,
+        context          = context
     )
 
 
 def generateBuiltinSetattrCode(to_name, expression, emit, context):
     generateCAPIObjectCode0(
-        to_name    = to_name,
-        capi       = "BUILTIN_SETATTR",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "BUILTIN_SETATTR",
+        arg_desc         = (
             ("setattr_target", expression.getLookupSource()),
             ("setattr_attr", expression.getAttribute()),
             ("setattr_value", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context,
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context,
     )

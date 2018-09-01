@@ -20,6 +20,7 @@
 """
 
 from .CodeHelpers import (
+    decideConversionCheckNeeded,
     generateChildExpressionsCode,
     generateStatementSequenceCode
 )
@@ -211,6 +212,7 @@ return NULL;
         value_name         = (value_name, iter_name),
         yield_code         = yield_code,
         preserve_exception = preserve_exception,
+        conversion_check   = decideConversionCheckNeeded(to_name, expression),
         emit               = emit,
         context            = context
     )
@@ -274,6 +276,7 @@ return NULL;
         value_name         = (value_name, iter_name),
         yield_code         = yield_code,
         preserve_exception = preserve_exception,
+        conversion_check   = decideConversionCheckNeeded(to_name, expression),
         emit               = emit,
         context            = context
     )
@@ -331,6 +334,7 @@ return NULL;
         value_name         = (value_name, iter_name),
         yield_code         = yield_code,
         preserve_exception = preserve_exception,
+        conversion_check   = decideConversionCheckNeeded(to_name, expression),
         emit               = emit,
         context            = context
     )

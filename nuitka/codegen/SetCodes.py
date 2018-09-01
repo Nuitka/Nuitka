@@ -23,7 +23,11 @@ added later on.
 
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
-from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateChildExpressionsCode,
+    generateExpressionCode
+)
 from .ErrorCodes import getErrorExitBoolCode
 from .PythonAPICodes import generateCAPIObjectCode
 
@@ -201,27 +205,29 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
 
 def generateBuiltinSetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "PySet_New",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "PySet_New",
+        arg_desc         = (
             ("set_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )
 
 
 def generateBuiltinFrozensetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "PyFrozenSet_New",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "PyFrozenSet_New",
+        arg_desc         = (
             ("frozenset_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )
