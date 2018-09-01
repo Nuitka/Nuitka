@@ -111,8 +111,6 @@ def getOperationCode(to_name, operator, arg_names, in_place, needs_check,
     # This needs to have one case per operation of Python, and there are many
     # of these, pylint: disable=too-many-branches,too-many-statements
 
-    # TODO: Use "needs_check" too.
-
     prefix_args = ()
     ref_count = 1
 
@@ -195,6 +193,7 @@ def getOperationCode(to_name, operator, arg_names, in_place, needs_check,
         getErrorExitBoolCode(
             condition     = "%s == false" % res_name,
             release_names = arg_names,
+            needs_check   = needs_check,
             emit          = emit,
             context       = context
         )
@@ -223,6 +222,7 @@ def getOperationCode(to_name, operator, arg_names, in_place, needs_check,
         getErrorExitCode(
             check_name    = value_name,
             release_names = arg_names,
+            needs_check   = needs_check,
             emit          = emit,
             context       = context
         )
