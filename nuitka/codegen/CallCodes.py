@@ -23,7 +23,11 @@ able to execute them without creating the argument dictionary at all.
 
 """
 
-from .CodeHelpers import generateChildExpressionCode, generateExpressionCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateChildExpressionCode,
+    generateExpressionCode
+)
 from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitCode, getReleaseCode
 from .LineNumberCodes import emitLineNumberUpdateCode
@@ -331,10 +335,11 @@ def generateCallCode(to_name, expression, emit, context):
 
     if to_name is not result_name:
         to_name.getCType().emitAssignConversionCode(
-            to_name    = to_name,
-            value_name = result_name,
-            emit       = emit,
-            context    = context
+            to_name     = to_name,
+            value_name  = result_name,
+            needs_check = decideConversionCheckNeeded(to_name, expression),
+            emit        = emit,
+            context     = context
         )
 
         getReleaseCode(result_name, emit, context)

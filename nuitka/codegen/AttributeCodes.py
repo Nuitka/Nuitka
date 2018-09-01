@@ -22,7 +22,11 @@ Attribute lookup, setting.
 
 from nuitka import Options
 
-from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateChildExpressionsCode,
+    generateExpressionCode
+)
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
@@ -164,10 +168,11 @@ def generateAttributeLookupCode(to_name, expression, emit, context):
 
     if to_name is not value_name:
         to_name.getCType().emitAssignConversionCode(
-            to_name    = to_name,
-            value_name = value_name,
-            emit       = emit,
-            context    = context
+            to_name     = to_name,
+            value_name  = value_name,
+            needs_check = decideConversionCheckNeeded(to_name, expression),
+            emit        = emit,
+            context     = context
         )
 
         getReleaseCode(value_name, emit, context)

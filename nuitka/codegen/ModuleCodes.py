@@ -23,7 +23,10 @@ from nuitka.__past__ import iterItems
 from nuitka.codegen import Emission
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
-from .CodeHelpers import generateStatementSequenceCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateStatementSequenceCode
+)
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import allocateNestedConstants, getConstantInitCodes
 from .Indentation import indented
@@ -169,11 +172,12 @@ def generateModuleAttributeFileCode(to_name, expression, emit, context):
 
 def generateModuleAttributeCode(to_name, expression, emit, context):
     getVariableReferenceCode(
-        to_name        = to_name,
-        variable       = expression.getVariable(),
-        variable_trace = None,
-        needs_check    = False,
-        emit           = emit,
-        context        = context
+        to_name          = to_name,
+        variable         = expression.getVariable(),
+        variable_trace   = None,
+        needs_check      = False,
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        emit             = emit,
+        context          = context
 
     )

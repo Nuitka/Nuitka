@@ -23,7 +23,10 @@ in-place assignments, which have other operation variants.
 """
 
 from . import OperatorCodes
-from .CodeHelpers import generateChildExpressionsCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateChildExpressionsCode
+)
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 
 
@@ -34,18 +37,21 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
         context    = context
     )
 
+    # TODO: Decide and use one single spelling, inplace or in_place
     inplace = expression.isInplaceSuspect()
 
     assert not inplace or not expression.getLeft().isCompileTimeConstant(),  \
         expression
 
     getOperationCode(
-        to_name   = to_name,
-        operator  = expression.getOperator(),
-        arg_names = (left_arg_name, right_arg_name),
-        in_place  = inplace,
-        emit      = emit,
-        context   = context
+        to_name          = to_name,
+        operator         = expression.getOperator(),
+        arg_names        = (left_arg_name, right_arg_name),
+        in_place         = inplace,
+        needs_check      = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        emit             = emit,
+        context          = context
     )
 
 
@@ -89,18 +95,23 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
     )
 
     getOperationCode(
-        to_name   = to_name,
-        operator  = expression.getOperator(),
-        arg_names = (arg_name,),
-        in_place  = False,
-        emit      = emit,
-        context   = context
+        to_name          = to_name,
+        operator         = expression.getOperator(),
+        arg_names        = (arg_name,),
+        in_place         = False,
+        needs_check      = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        emit             = emit,
+        context          = context
     )
 
 
-def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
+def getOperationCode(to_name, operator, arg_names, in_place, needs_check,
+                     conversion_check, emit, context):
     # This needs to have one case per operation of Python, and there are many
     # of these, pylint: disable=too-many-branches,too-many-statements
+
+    # TODO: Use "needs_check" too.
 
     prefix_args = ()
     ref_count = 1
@@ -218,10 +229,11 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
 
         if value_name is not to_name:
             to_name.getCType().emitAssignConversionCode(
-                to_name    = to_name,
-                value_name = value_name,
-                emit       = emit,
-                context    = context
+                to_name     = to_name,
+                value_name  = value_name,
+                needs_check = conversion_check,
+                emit        = emit,
+                context     = context
             )
         else:
             if ref_count:

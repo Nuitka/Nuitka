@@ -21,7 +21,8 @@
 
 from nuitka.codegen.ErrorCodes import (
     getAssertionCode,
-    getLocalVariableReferenceErrorCode
+    getLocalVariableReferenceErrorCode,
+    getNameReferenceErrorCode
 )
 
 from .CTypeBases import CTypeBase
@@ -74,6 +75,23 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         return value_name
 
     @classmethod
+    def emitVariableValueCheckCode(cls, variable, value_name, emit, context):
+        if variable.isModuleVariable():
+            getNameReferenceErrorCode(
+                variable_name = variable.getName(),
+                condition     = "%s == NUITKA_BOOL_UNASSIGNED" % value_name,
+                emit          = emit,
+                context       = context
+            )
+        else:
+            getLocalVariableReferenceErrorCode(
+                variable  = variable,
+                condition = "%s == NUITKA_BOOL_UNASSIGNED" % value_name,
+                emit      = emit,
+                context   = context
+            )
+
+    @classmethod
     def emitValueAssertionCode(cls, value_name, emit, context):
         # Not using the context, pylint: disable=unused-argument
         emit(
@@ -81,8 +99,7 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         )
 
     @classmethod
-    def emitAssignConversionCode(cls, to_name, value_name, emit, context):
-        # No context needed, pylint: disable=unused-argument
+    def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
         if value_name.c_type == cls.c_type:
             emit(
                 "%s = %s;" % (
@@ -91,11 +108,12 @@ class CTypeNuitkaBoolEnum(CTypeBase):
                 )
             )
         else:
-            emit(
-                cls.getAssignmentCodeFromBoolCondition(
-                    condition = value_name.getCType().getTruthCheckCode(value_name),
-                    to_name   = to_name
-                )
+            value_name.getCType().emitAssignmentCodeToNuitkaBool(
+                to_name     = to_name,
+                value_name  = value_name,
+                needs_check = needs_check,
+                emit        = emit,
+                context     = context
             )
 
     @classmethod

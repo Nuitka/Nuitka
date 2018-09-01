@@ -22,7 +22,11 @@
 from nuitka.PythonVersions import python_version
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
-from .CodeHelpers import generateExpressionCode, generateStatementSequenceCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateExpressionCode,
+    generateStatementSequenceCode
+)
 from .Contexts import PythonFunctionOutlineContext
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode, getMustNotGetHereCode, getReleaseCode
@@ -727,10 +731,11 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     getLabelCode(return_target, emit)
 
     to_name.getCType().emitAssignConversionCode(
-        to_name    = to_name,
-        value_name = return_value_name,
-        emit       = emit,
-        context    = context
+        to_name     = to_name,
+        value_name  = return_value_name,
+        needs_check = decideConversionCheckNeeded(to_name, expression),
+        emit        = emit,
+        context     = context
     )
 
     if to_name.c_type == "PyObject *":

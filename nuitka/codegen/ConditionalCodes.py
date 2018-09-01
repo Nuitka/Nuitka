@@ -22,7 +22,7 @@ Branches, conditions, truth checks.
 
 from nuitka.Options import isExperimental
 
-from .CodeHelpers import generateExpressionCode
+from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getReleaseCode
 from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
@@ -227,10 +227,12 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
        context      = context
     )
 
+    right_value = expression.getRight()
+
     # Evaluate the "right" value then.
     generateExpressionCode(
         to_name    = right_name,
-        expression = expression.getRight(),
+        expression = right_value,
         emit       = emit,
         context    = context
     )
@@ -245,10 +247,11 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
         emit("Py_INCREF( %s );" % right_name)
 
     to_name.getCType().emitAssignConversionCode(
-        to_name    = to_name,
-        value_name = right_name,
-        emit       = emit,
-        context    = context
+        to_name     = to_name,
+        value_name  = right_name,
+        needs_check = decideConversionCheckNeeded(to_name, right_value),
+        emit        = emit,
+        context     = context
     )
 
     getGotoCode(end_target, emit)
@@ -259,10 +262,11 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
         emit("Py_INCREF( %s );" % left_name)
 
     to_name.getCType().emitAssignConversionCode(
-        to_name    = to_name,
-        value_name = left_name,
-        emit       = emit,
-        context    = context
+        to_name     = to_name,
+        value_name  = left_name,
+        needs_check = decideConversionCheckNeeded(to_name, left_value),
+        emit        = emit,
+        context     = context
     )
 
     getLabelCode(end_target, emit)

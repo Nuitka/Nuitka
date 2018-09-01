@@ -127,10 +127,11 @@ def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
     )
 
     to_name.getCType().emitAssignConversionCode(
-        to_name    = to_name,
-        value_name = yield_return_name,
-        emit       = emit,
-        context    = context
+        to_name     = to_name,
+        value_name  = yield_return_name,
+        needs_check = True,
+        emit        = emit,
+        context     = context
     )
 
     if preserve_exception:

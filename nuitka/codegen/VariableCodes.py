@@ -28,7 +28,7 @@ from .c_types.CTypePyObjectPtrs import (
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr
 )
-from .CodeHelpers import generateExpressionCode
+from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
 from .ErrorCodes import getNameReferenceErrorCode
 from .templates.CodeTemplatesVariables import template_del_global_unclear
 from .VariableDeclarations import VariableDeclaration
@@ -115,7 +115,7 @@ def generateVariableReleaseCode(statement, emit, context):
 
 
 def getVariableReferenceCode(to_name, variable, variable_trace, needs_check,
-                             emit, context):
+                             conversion_check, emit, context):
     if variable.isModuleVariable():
         variable_declaration = VariableDeclaration(
             "module_var",
@@ -147,26 +147,28 @@ def getVariableReferenceCode(to_name, variable, variable_trace, needs_check,
         )
 
     to_name.getCType().emitAssignConversionCode(
-        to_name    = to_name,
-        value_name = value_name,
-        emit       = emit,
-        context    = context
+        to_name     = to_name,
+        value_name  = value_name,
+        needs_check = conversion_check,
+        emit        = emit,
+        context     = context
     )
-
 
 
 def generateVariableReferenceCode(to_name, expression, emit, context):
     variable       = expression.getVariable()
     variable_trace = expression.getVariableTrace()
+
     needs_check    = expression.mayRaiseException(BaseException)
 
     getVariableReferenceCode(
-        to_name        = to_name,
-        variable       = variable,
-        variable_trace = variable_trace,
-        needs_check    = needs_check,
-        emit           = emit,
-        context        = context
+        to_name          = to_name,
+        variable         = variable,
+        variable_trace   = variable_trace,
+        needs_check      = needs_check,
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        emit             = emit,
+        context          = context
     )
 
 def _getVariableCodeName(in_context, variable):

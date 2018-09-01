@@ -121,9 +121,43 @@ class CPythonPyObjectPtrBase(CTypeBase):
     @classmethod
     def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
         return "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % {
-            "to_name" : to_name,
+            "to_name"   : to_name,
             "condition" : condition
         }
+
+
+    @classmethod
+    def emitAssignmentCodeToNuitkaBool(cls, to_name, value_name, needs_check, emit, context):
+        if needs_check:
+            truth_name = context.allocateTempName("truth_name", "int")
+
+            emit(
+                "%s = CHECK_IF_TRUE( %s );" % (
+                    truth_name,
+                    value_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition   = "%s == -1" % truth_name,
+                emit        = emit,
+                context     = context,
+                needs_check = True
+            )
+
+            emit(
+                "%s = %s == 1 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % (
+                    to_name,
+                    truth_name
+                )
+            )
+        else:
+            emit(
+                cls.getAssignmentCodeFromBoolCondition(
+                    to_name   = to_name,
+                    condition = "%s == 1",
+                )
+            )
 
 
 class CTypePyObjectPtr(CPythonPyObjectPtrBase):
@@ -240,7 +274,7 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         )
 
     @classmethod
-    def emitAssignConversionCode(cls, to_name, value_name, emit, context):
+    def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
         # Nothing done for this type yet, pylint: disable=unused-argument
         if value_name.c_type == cls.c_type:
             emit(

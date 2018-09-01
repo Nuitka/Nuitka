@@ -258,3 +258,12 @@ def generateStatementSequenceCode(statement_sequence, emit, context,
         emit               = emit,
         context            = context
     )
+
+
+def decideConversionCheckNeeded(to_name, expression):
+    if to_name.c_type == "nuitka_bool":
+        conversion_check = expression.mayRaiseExceptionBool(BaseException)
+    else:
+        conversion_check = False
+
+    return conversion_check
