@@ -954,6 +954,9 @@ def getConstantAccess(to_name, constant, emit, context):
     # Many cases, because for each type, we may copy or optimize by creating
     # empty.  pylint: disable=too-many-branches,too-many-statements
 
+    if to_name.c_type == "nuitka_bool":
+        assert False
+
     if type(constant) is dict:
         if constant:
             for key, value in iterItems(constant):

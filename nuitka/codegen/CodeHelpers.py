@@ -22,6 +22,8 @@ typical support functions to building parts.
 
 """
 
+from contextlib import contextmanager
+
 from nuitka.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
@@ -267,3 +269,25 @@ def decideConversionCheckNeeded(to_name, expression):
         conversion_check = False
 
     return conversion_check
+
+
+@contextmanager
+def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, context):
+    if to_name.c_type == "PyObject *":
+        value_name = to_name
+    else:
+        value_name = context.allocateTempName(value_name)
+
+    yield value_name
+
+    if to_name is not value_name:
+        to_name.getCType().emitAssignConversionCode(
+            to_name     = to_name,
+            value_name  = value_name,
+            needs_check = decideConversionCheckNeeded(to_name, expression),
+            emit        = emit,
+            context     = context
+        )
+
+        from .ErrorCodes import getReleaseCode
+        getReleaseCode(value_name, emit, context)

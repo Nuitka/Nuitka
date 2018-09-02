@@ -92,6 +92,7 @@ def generateCAPIObjectCode0(to_name, capi, arg_desc, may_raise, conversion_check
 
 def getCAPIObjectCode(to_name, capi, arg_names, may_raise, conversion_check,
                       ref_count, emit, context):
+    # TODO: Use context manager here too.
     if to_name.c_type == "PyObject *":
         value_name = to_name
     else:

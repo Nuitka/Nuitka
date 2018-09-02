@@ -25,7 +25,8 @@ from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
-    generateChildExpressionsCode
+    generateChildExpressionsCode,
+    withObjectCodeTemporaryAssignment
 )
 from .ErrorCodes import (
     getAssertionCode,
@@ -38,34 +39,38 @@ from .PythonAPICodes import generateCAPIObjectCode
 def generateBuiltinRefCode(to_name, expression, emit, context):
     builtin_name = expression.getBuiltinName()
 
-    emit(
-        "%s = LOOKUP_BUILTIN( %s );" % (
-            to_name,
-            context.getConstantCode(
-                constant = builtin_name,
+    with withObjectCodeTemporaryAssignment(to_name, "builtin_value", expression, emit, context) \
+      as value_name:
+
+        emit(
+            "%s = LOOKUP_BUILTIN( %s );" % (
+                value_name,
+                context.getConstantCode(
+                    constant = builtin_name,
+                )
             )
         )
-    )
 
-    getAssertionCode(
-        check = "%s != NULL" % to_name,
-        emit  = emit
-    )
+        getAssertionCode(
+            check = "%s != NULL" % to_name,
+            emit  = emit
+        )
 
-    # Gives no reference
+        # Gives no reference
 
 
 def generateBuiltinAnonymousRefCode(to_name, expression, emit, context):
-    # Functions used for generation all accept context, but this one does
-    # not use it. pylint: disable=unused-argument
     builtin_name = expression.getBuiltinName()
 
-    emit(
-        "%s = (PyObject *)%s;" % (
-            to_name,
-            Builtins.builtin_anon_codes[builtin_name]
+    with withObjectCodeTemporaryAssignment(to_name, "builtin_value", expression, emit, context) \
+      as value_name:
+
+        emit(
+            "%s = (PyObject *)%s;" % (
+                value_name,
+                Builtins.builtin_anon_codes[builtin_name]
+            )
         )
-    )
 
 
 def generateBuiltinType1Code(to_name, expression, emit, context):
@@ -90,26 +95,29 @@ def generateBuiltinType3Code(to_name, expression, emit, context):
         context    = context
     )
 
-    emit(
-        "%s = BUILTIN_TYPE3( %s, %s, %s, %s );" % (
-            to_name,
-            context.getConstantCode(
-                constant = context.getModuleName(),
+    with withObjectCodeTemporaryAssignment(to_name, "type3_result", expression, emit, context) \
+      as value_name:
+
+        emit(
+            "%s = BUILTIN_TYPE3( %s, %s, %s, %s );" % (
+                value_name,
+                context.getConstantCode(
+                    constant = context.getModuleName(),
+                ),
+                type_name,
+                bases_name,
+                dict_name
             ),
-            type_name,
-            bases_name,
-            dict_name
-        ),
-    )
+        )
 
-    getErrorExitCode(
-        check_name    = to_name,
-        release_names = (type_name, bases_name, dict_name),
-        emit          = emit,
-        context       = context
-    )
+        getErrorExitCode(
+            check_name    = value_name,
+            release_names = (type_name, bases_name, dict_name),
+            emit          = emit,
+            context       = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(value_name)
 
 
 def generateBuiltinOpenCode(to_name, expression, emit, context):

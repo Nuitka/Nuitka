@@ -24,8 +24,8 @@ in-place assignments, which have other operation variants.
 
 from . import OperatorCodes
 from .CodeHelpers import (
-    decideConversionCheckNeeded,
-    generateChildExpressionsCode
+    generateChildExpressionsCode,
+    withObjectCodeTemporaryAssignment
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 
@@ -43,13 +43,13 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
     assert not inplace or not expression.getLeft().isCompileTimeConstant(),  \
         expression
 
-    getOperationCode(
+    _getOperationCode(
         to_name          = to_name,
+        expression       = expression,
         operator         = expression.getOperator(),
         arg_names        = (left_arg_name, right_arg_name),
         in_place         = inplace,
         needs_check      = expression.mayRaiseException(BaseException),
-        conversion_check = decideConversionCheckNeeded(to_name, expression),
         emit             = emit,
         context          = context
     )
@@ -94,20 +94,20 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
         context    = context
     )
 
-    getOperationCode(
+    _getOperationCode(
         to_name          = to_name,
+        expression       = expression,
         operator         = expression.getOperator(),
         arg_names        = (arg_name,),
         in_place         = False,
         needs_check      = expression.mayRaiseException(BaseException),
-        conversion_check = decideConversionCheckNeeded(to_name, expression),
         emit             = emit,
         context          = context
     )
 
 
-def getOperationCode(to_name, operator, arg_names, in_place, needs_check,
-                     conversion_check, emit, context):
+def _getOperationCode(to_name, expression, operator, arg_names, in_place,
+                     needs_check, emit, context):
     # This needs to have one case per operation of Python, and there are many
     # of these, pylint: disable=too-many-branches,too-many-statements
 
@@ -202,39 +202,28 @@ def getOperationCode(to_name, operator, arg_names, in_place, needs_check,
             context.addCleanupTempName(to_name)
 
     else:
-        if to_name.c_type != "PyObject *":
-            value_name = context.allocateTempName("op_%s_res" % operator.lower())
-        else:
-            value_name = to_name
+        with withObjectCodeTemporaryAssignment(to_name, "op_%s_res" % operator.lower(), expression, emit, context) \
+          as value_name:
 
-        emit(
-            "%s = %s( %s );" % (
-                value_name,
-                helper,
-                ", ".join(
-                    str(arg_name)
-                    for arg_name in
-                    prefix_args + arg_names
+            emit(
+                "%s = %s( %s );" % (
+                    value_name,
+                    helper,
+                    ", ".join(
+                        str(arg_name)
+                        for arg_name in
+                        prefix_args + arg_names
+                    )
                 )
             )
-        )
 
-        getErrorExitCode(
-            check_name    = value_name,
-            release_names = arg_names,
-            needs_check   = needs_check,
-            emit          = emit,
-            context       = context
-        )
-
-        if value_name is not to_name:
-            to_name.getCType().emitAssignConversionCode(
-                to_name     = to_name,
-                value_name  = value_name,
-                needs_check = conversion_check,
-                emit        = emit,
-                context     = context
+            getErrorExitCode(
+                check_name    = value_name,
+                release_names = arg_names,
+                needs_check   = needs_check,
+                emit          = emit,
+                context       = context
             )
-        else:
+
             if ref_count:
-                context.addCleanupTempName(to_name)
+                context.addCleanupTempName(value_name)

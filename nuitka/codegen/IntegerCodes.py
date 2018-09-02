@@ -23,7 +23,8 @@ from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
-    generateChildExpressionsCode
+    generateChildExpressionsCode,
+    withObjectCodeTemporaryAssignment
 )
 from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode
@@ -57,22 +58,25 @@ def generateBuiltinLong2Code(to_name, expression, emit, context):
         context    = context
     )
 
-    emit(
-        "%s = TO_LONG2( %s, %s );" % (
-            to_name,
-            value_name,
-            base_name
+    with withObjectCodeTemporaryAssignment(to_name, "long_value", expression, emit, context) \
+      as result_name:
+
+        emit(
+            "%s = TO_LONG2( %s, %s );" % (
+                result_name,
+                value_name,
+                base_name
+            )
         )
-    )
 
-    getErrorExitCode(
-        check_name    = to_name,
-        release_names = (value_name, base_name),
-        emit          = emit,
-        context       = context
-    )
+        getErrorExitCode(
+            check_name    = result_name,
+            release_names = (value_name, base_name),
+            emit          = emit,
+            context       = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)
 
 
 def generateBuiltinInt1Code(to_name, expression, emit, context):
@@ -99,19 +103,22 @@ def generateBuiltinInt2Code(to_name, expression, emit, context):
         context    = context
     )
 
-    emit(
-        "%s = TO_INT2( %s, %s );" % (
-            to_name,
-            value_name,
-            base_name
+    with withObjectCodeTemporaryAssignment(to_name, "int_value", expression, emit, context) \
+      as result_name:
+
+        emit(
+            "%s = TO_INT2( %s, %s );" % (
+                result_name,
+                value_name,
+                base_name
+            )
         )
-    )
 
-    getErrorExitCode(
-        check_name    = to_name,
-        release_names = (value_name, base_name),
-        emit          = emit,
-        context       = context
-    )
+        getErrorExitCode(
+            check_name    = result_name,
+            release_names = (value_name, base_name),
+            emit          = emit,
+            context       = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)

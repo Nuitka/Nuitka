@@ -93,6 +93,7 @@ def generateReturnConstantCode(statement, emit, context):
 def generateReturnedValueRefCode(to_name, expression, emit, context):
     # We don't need the expression, pylint: disable=unused-argument
 
+    # TODO: Support other C types than object.
     return_value_name = context.getReturnValueName()
 
     emit(

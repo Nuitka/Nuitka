@@ -37,7 +37,7 @@ def generateConditionCode(condition, emit, context):
        condition.isExpressionBuiltinIsinstance() or \
        condition.isExpressionBuiltinHasattr() or \
        condition.isExpressionAttributeCheck():
-        compare_name = context.allocateTempName("compare_result", "nuitka_bool")
+        compare_name = context.allocateTempName("condition_result", "nuitka_bool")
 
         generateExpressionCode(
             to_name    = compare_name,
@@ -51,7 +51,6 @@ def generateConditionCode(condition, emit, context):
             emit      = emit,
             context   = context
         )
-
     elif condition.isExpressionOperationNOT():
         # Lets just switch the targets temporarily to get at "NOT" without
         # any effort really.
@@ -152,6 +151,7 @@ def generateConditionCode(condition, emit, context):
         )
 
 
+# TODO: Inline this once "enable_bool_ctype" is completed
 def getConditionCheckTrueCode(to_name, value_name, needs_check, emit, context):
     value_name.getCType().emitTruthCheckCode(
         to_name     = to_name,

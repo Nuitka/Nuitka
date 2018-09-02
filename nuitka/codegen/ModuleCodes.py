@@ -25,7 +25,8 @@ from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
-    generateStatementSequenceCode
+    generateStatementSequenceCode,
+    withObjectCodeTemporaryAssignment
 )
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import allocateNestedConstants, getConstantInitCodes
@@ -158,16 +159,16 @@ def getModuleCode(module_context, template_values):
 
 
 def generateModuleAttributeFileCode(to_name, expression, emit, context):
-    # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=unused-argument
-
-    emit(
-        "%s = module_filename_obj;" % (
-            to_name,
-        )
-    )
-
+    # TODO: Special treatment justified?
     context.markAsNeedsModuleFilenameObject()
+
+    with withObjectCodeTemporaryAssignment(to_name, "module_fileattr_value", expression, emit, context) \
+      as result_name:
+        emit(
+            "%s = module_filename_obj;" % (
+                result_name,
+            )
+        )
 
 
 def generateModuleAttributeCode(to_name, expression, emit, context):
@@ -179,5 +180,4 @@ def generateModuleAttributeCode(to_name, expression, emit, context):
         conversion_check = decideConversionCheckNeeded(to_name, expression),
         emit             = emit,
         context          = context
-
     )

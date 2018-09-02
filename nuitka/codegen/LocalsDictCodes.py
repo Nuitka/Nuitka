@@ -23,13 +23,15 @@ statements.
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 
-from .CodeHelpers import generateExpressionCode
+from .CodeHelpers import (
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitBoolCode,
     getErrorExitCode,
-    getNameReferenceErrorCode,
-    getReleaseCode
+    getNameReferenceErrorCode
 )
 from .Indentation import indented
 from .PythonAPICodes import getReferenceExportCode
@@ -176,54 +178,41 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
 
     fallback_emit = SourceCodeCollector()
 
-    if to_name.c_type == "PyObject *":
-        value_name = to_name
-    else:
-        value_name = context.allocateTempName("locals_lookup_value")
+    with withObjectCodeTemporaryAssignment(to_name, "locals_lookup_value", expression, emit, context) \
+      as value_name:
 
-    generateExpressionCode(
-        to_name    = value_name,
-        expression = expression.subnode_fallback,
-        emit       = fallback_emit,
-        context    = context
-    )
-
-    locals_scope = expression.getLocalsDictScope()
-    locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
-
-    is_dict = locals_scope.getTypeShape() is ShapeTypeDict
-
-    assert not context.needsCleanup(value_name)
-
-    if is_dict:
-        template = template_read_locals_dict_with_fallback
-    else:
-        template = template_read_locals_mapping_with_fallback
-        # If the fallback took no reference, then make it do it
-        # anyway.
-        context.addCleanupTempName(value_name)
-
-    emit(
-        template % {
-            "to_name"      : value_name,
-            "locals_dict"  : locals_declaration,
-            "fallback"     : indented(fallback_emit.codes),
-            "var_name"     : context.getConstantCode(
-                constant = variable_name
-            )
-        }
-    )
-
-    if to_name is not value_name:
-        to_name.getCType().emitAssignConversionCode(
-            to_name     = to_name,
-            value_name  = value_name,
-            needs_check = expression.mayRaiseExceptionBool(BaseException),
-            emit        = emit,
-            context     = context
+        generateExpressionCode(
+            to_name    = value_name,
+            expression = expression.subnode_fallback,
+            emit       = fallback_emit,
+            context    = context
         )
 
-        getReleaseCode(value_name, emit, context)
+        locals_scope = expression.getLocalsDictScope()
+        locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
+
+        is_dict = locals_scope.getTypeShape() is ShapeTypeDict
+
+        assert not context.needsCleanup(value_name)
+
+        if is_dict:
+            template = template_read_locals_dict_with_fallback
+        else:
+            template = template_read_locals_mapping_with_fallback
+            # If the fallback took no reference, then make it do it
+            # anyway.
+            context.addCleanupTempName(value_name)
+
+        emit(
+            template % {
+                "to_name"      : value_name,
+                "locals_dict"  : locals_declaration,
+                "fallback"     : indented(fallback_emit.codes),
+                "var_name"     : context.getConstantCode(
+                    constant = variable_name
+                )
+            }
+        )
 
 
 def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
@@ -239,49 +228,34 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
     else:
         template = template_read_locals_mapping_without_fallback
 
-    if to_name.c_type == "PyObject *":
-        value_name = to_name
-    else:
-        value_name = context.allocateTempName("locals_dict_value")
+    with withObjectCodeTemporaryAssignment(to_name, "locals_lookup_value", expression, emit, context) \
+      as value_name:
 
-    emit(
-        template % {
-            "to_name"     : value_name,
-            "locals_dict" : locals_declaration,
-            "var_name"    : context.getConstantCode(
-                constant = variable_name
-            )
-        }
-    )
-
-    getNameReferenceErrorCode(
-        variable_name = variable_name,
-        condition     = "%s == NULL && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()" % value_name,
-        emit          = emit,
-        context       = context
-    )
-
-    getErrorExitCode(
-        check_name = value_name,
-        emit       = emit,
-        context    = context
-    )
-
-    if not is_dict:
-        context.addCleanupTempName(value_name)
-        getReleaseCode(value_name, emit, context)
-
-    if to_name is not value_name:
-        to_name.getCType().emitAssignConversionCode(
-            to_name     = to_name,
-            value_name  = value_name,
-            needs_check = expression.mayRaiseExceptionBool(BaseException),
-            emit        = emit,
-            context     = context
+        emit(
+            template % {
+                "to_name"     : value_name,
+                "locals_dict" : locals_declaration,
+                "var_name"    : context.getConstantCode(
+                    constant = variable_name
+                )
+            }
         )
 
-        getReleaseCode(value_name, emit, context)
+        getNameReferenceErrorCode(
+            variable_name = variable_name,
+            condition     = "%s == NULL && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()" % value_name,
+            emit          = emit,
+            context       = context
+        )
 
+        getErrorExitCode(
+            check_name = value_name,
+            emit       = emit,
+            context    = context
+        )
+
+        if not is_dict:
+            context.addCleanupTempName(value_name)
 
 
 def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):

@@ -22,7 +22,10 @@ This also includes writing back to locals for exec statements.
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 
-from .CodeHelpers import decideConversionCheckNeeded
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    withObjectCodeTemporaryAssignment
+)
 from .ErrorCodes import getErrorExitBoolCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesVariables import (
@@ -38,12 +41,16 @@ def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
     locals_scope = expression.getLocalsScope()
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
-    emit(
-        "%s = %s;" % (
-            to_name,
-            locals_declaration,
+
+    with withObjectCodeTemporaryAssignment(to_name, "locals_ref_value", expression, emit, context) \
+      as value_name:
+
+        emit(
+            "%s = %s;" % (
+                value_name,
+                locals_declaration,
+            )
         )
-    )
 
 
 def generateBuiltinLocalsCode(to_name, expression, emit, context):
@@ -70,68 +77,62 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
     # about local variables at all.
     assert not provider.isCompiledPythonModule(), provider
 
-    if updated:
-        locals_scope = expression.getLocalsScope()
+    with withObjectCodeTemporaryAssignment(to_name, "locals_ref_value", expression, emit, context) \
+      as value_name:
 
-        locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
-        is_dict = locals_scope.getTypeShape() is ShapeTypeDict
-        # For Python3 it may really not be a dictionary.
+        if updated:
+            locals_scope = expression.getLocalsScope()
 
-        # TODO: Creation is not needed for classes.
-        emit(
-            """\
+            locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
+            is_dict = locals_scope.getTypeShape() is ShapeTypeDict
+            # For Python3 it may really not be a dictionary.
+
+            # TODO: Creation is not needed for classes.
+            emit(
+                """\
 if (%(locals_dict)s == NULL) %(locals_dict)s = PyDict_New();
 %(to_name)s = %(locals_dict)s;
 Py_INCREF( %(to_name)s );""" % {
-                "to_name"     : to_name ,
-                "locals_dict" : locals_declaration,
-            }
-        )
-        context.addCleanupTempName(to_name)
-
-        initial = False
-    else:
-        emit(
-            "%s = PyDict_New();" % (
-                to_name,
+                    "to_name"     : value_name,
+                    "locals_dict" : locals_declaration,
+                }
             )
-        )
+            context.addCleanupTempName(value_name)
 
-        context.addCleanupTempName(to_name)
+            initial = False
+        else:
+            emit(
+                "%s = PyDict_New();" % (
+                    to_name,
+                )
+            )
 
-        initial = True
-        is_dict = True
+            context.addCleanupTempName(value_name)
 
-    for local_var, variable_trace in _sorted(variable_traces):
-        _getVariableDictUpdateCode(
-            target_name    = to_name,
-            variable       = local_var,
-            variable_trace = variable_trace,
-            is_dict        = is_dict,
-            initial        = initial,
-            emit           = emit,
-            context        = context
-        )
+            initial = True
+            is_dict = True
+
+        for local_var, variable_trace in _sorted(variable_traces):
+            _getVariableDictUpdateCode(
+                target_name    = value_name,
+                variable       = local_var,
+                variable_trace = variable_trace,
+                is_dict        = is_dict,
+                initial        = initial,
+                emit           = emit,
+                context        = context
+            )
 
 
 def generateBuiltinGlobalsCode(to_name, expression, emit, context):
-    # Functions used for generation all accept expression, but this one does
-    # not use it. pylint: disable=unused-argument
-
-    getLoadGlobalsCode(
-        to_name = to_name,
-        emit    = emit,
-        context = context
-    )
-
-
-def getLoadGlobalsCode(to_name, emit, context):
-    emit(
-        "%(to_name)s = (PyObject *)moduledict_%(module_identifier)s;" % {
-            "to_name"           : to_name,
-            "module_identifier" : context.getModuleCodeName()
-        },
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "globals_value", expression, emit, context) \
+      as value_name:
+        emit(
+            "%(to_name)s = (PyObject *)moduledict_%(module_identifier)s;" % {
+                "to_name"           : value_name,
+                "module_identifier" : context.getModuleCodeName()
+            },
+        )
 
 
 def _getLocalVariableList(provider):

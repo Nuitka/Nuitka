@@ -35,6 +35,8 @@ def generateExpressionOnlyCode(statement, emit, context):
 
 
 def getStatementOnlyCode(value, emit, context):
+    # TODO: Introduce "void" as a C type, which discards all assignments
+    # as a no-op.
     tmp_name = context.allocateTempName(
         base_name = "unused",
         type_name = "NUITKA_MAY_BE_UNUSED PyObject *",

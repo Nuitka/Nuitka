@@ -19,7 +19,11 @@
 
 """
 
-from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ConstantCodes import getConstantAccess
 from .PythonAPICodes import generateCAPIObjectCode
 
@@ -36,12 +40,15 @@ def _areConstants(expressions):
 
 
 def generateTupleCreationCode(to_name, expression, emit, context):
-    return getTupleCreationCode(
-        to_name  = to_name,
-        elements = expression.getElements(),
-        emit     = emit,
-        context  = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "tuple_value", expression, emit, context) \
+      as value_name:
+
+        getTupleCreationCode(
+            to_name  = value_name,
+            elements = expression.getElements(),
+            emit     = emit,
+            context  = context
+        )
 
 
 def getTupleCreationCode(to_name, elements, emit, context):

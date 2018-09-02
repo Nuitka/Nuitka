@@ -25,7 +25,8 @@ from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import (
     decideConversionCheckNeeded,
     generateExpressionCode,
-    generateStatementSequenceCode
+    generateStatementSequenceCode,
+    withObjectCodeTemporaryAssignment
 )
 from .Contexts import PythonFunctionOutlineContext
 from .Emission import SourceCodeCollector
@@ -84,11 +85,20 @@ def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
     }
 
 
-def getFunctionEntryPointIdentifier(function_identifier):
+def _getFunctionEntryPointIdentifier(function_identifier):
     return "impl_" + function_identifier
 
 
 def getFunctionQualnameObj(owner, context):
+    """ Get code to pass to function alike object creation for qualname.
+
+        Qualname for funcions existed for Python3, generators only after
+        3.5 and coroutines and asyncgen for as long as they existed.
+
+        If indentical to the name, we do not pass it as a value, but
+        NULL instead.
+    """
+
     if owner.isExpressionFunctionBody():
         min_version = 300
     else:
@@ -131,7 +141,7 @@ def getFunctionMakerCode(function_body, function_identifier, closure_variables,
         ),
         "function_qualname_obj"      : getFunctionQualnameObj(function_body, context),
         "function_identifier"        : function_identifier,
-        "function_impl_identifier"   : getFunctionEntryPointIdentifier(
+        "function_impl_identifier"   : _getFunctionEntryPointIdentifier(
             function_identifier = function_identifier,
         ),
         "function_creation_args"     : ", ".join(
@@ -343,7 +353,7 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
 
 def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
                               closure_variables, needs_check, emit, context):
-    function_identifier = getFunctionEntryPointIdentifier(
+    function_identifier = _getFunctionEntryPointIdentifier(
         function_identifier = function_identifier
     )
 
@@ -665,32 +675,19 @@ def generateFunctionCallCode(to_name, expression, emit, context):
         expression.getCompatibleSourceReference()
     )
 
-    if to_name.c_type == "PyObject *":
-        value_name = to_name
-    else:
-        value_name = context.allocateTempName("call_result")
+    with withObjectCodeTemporaryAssignment(to_name, "call_result", expression, emit, context) \
+      as value_name:
 
-    getDirectFunctionCallCode(
-        to_name             = value_name,
-        function_identifier = function_identifier,
-        arg_names           = arg_names,
-        closure_variables   = expression.getClosureVariableVersions(),
-        needs_check         = expression.getFunction().getFunctionRef().\
-                                getFunctionBody().mayRaiseException(BaseException),
-        emit                = emit,
-        context             = context
-    )
-
-    if value_name is not to_name:
-        to_name.getCType().emitAssignConversionCode(
-            to_name     = to_name,
-            value_name  = value_name,
-            needs_check = decideConversionCheckNeeded(to_name, expression),
-            emit        = emit,
-            context     = context
+        getDirectFunctionCallCode(
+            to_name             = value_name,
+            function_identifier = function_identifier,
+            arg_names           = arg_names,
+            closure_variables   = expression.getClosureVariableVersions(),
+            needs_check         = expression.getFunction().getFunctionRef().\
+                                    getFunctionBody().mayRaiseException(BaseException),
+            emit                = emit,
+            context             = context
         )
-
-        getReleaseCode(value_name, emit, context)
 
 
 def generateFunctionOutlineCode(to_name, expression, emit, context):
