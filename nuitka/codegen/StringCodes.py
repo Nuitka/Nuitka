@@ -22,7 +22,7 @@
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
-from .ErrorCodes import getErrorExitCode
+from .ErrorCodes import getErrorExitCode, getReleaseCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .TupleCodes import getTupleCreationCode
 
@@ -154,7 +154,11 @@ def generateBuiltinOrdCode(to_name, expression, emit, context):
 def generateStringContenationCode(to_name, expression, emit, context):
     values = expression.getValues()
 
-    # TODO: These are bad things.
+    if to_name.c_type == "PyObject *":
+        value_name = to_name
+    else:
+        value_name = context.allocateTempName("string_concat_result")
+
     tuple_temp_name = context.allocateTempName("string_concat_values")
 
     # TODO: Consider using _PyUnicode_JoinArray which avoids the tuple,
@@ -168,20 +172,31 @@ def generateStringContenationCode(to_name, expression, emit, context):
 
     emit(
         "%s = PyUnicode_Join( %s, %s );" % (
-            to_name,
+            value_name,
             context.getConstantCode(""),
             tuple_temp_name
         )
     )
 
     getErrorExitCode(
-        check_name   = to_name,
+        check_name   = value_name,
         release_name = tuple_temp_name,
         emit         = emit,
         context      = context
     )
 
-    context.addCleanupTempName(to_name)
+    context.addCleanupTempName(value_name)
+
+    if to_name is not value_name:
+        to_name.getCType().emitAssignConversionCode(
+            to_name     = to_name,
+            value_name  = value_name,
+            needs_check = decideConversionCheckNeeded(to_name, expression),
+            emit        = emit,
+            context     = context
+        )
+
+        getReleaseCode(value_name, emit, context)
 
 
 def generateBuiltinFormatCode(to_name, expression, emit, context):
@@ -213,22 +228,38 @@ def generateBuiltinFormatCode(to_name, expression, emit, context):
             context    = context
         )
 
+    if to_name.c_type == "PyObject *":
+        result_name = to_name
+    else:
+        result_name = context.allocateTempName("format_result")
+
     emit(
         "%s = BUILTIN_FORMAT( %s, %s );" % (
-            to_name,
+            result_name,
             value_name,
             format_spec_name
         )
     )
 
     getErrorExitCode(
-        check_name    = to_name,
+        check_name    = result_name,
         release_names = (value_name, format_spec_name),
         emit          = emit,
         context       = context
     )
 
-    context.addCleanupTempName(to_name)
+    context.addCleanupTempName(result_name)
+
+    if to_name is not result_name:
+        to_name.getCType().emitAssignConversionCode(
+            to_name     = to_name,
+            value_name  = result_name,
+            needs_check = decideConversionCheckNeeded(to_name, expression),
+            emit        = emit,
+            context     = context
+        )
+
+        getReleaseCode(result_name, emit, context)
 
 
 def generateBuiltinAsciiCode(to_name, expression, emit, context):
