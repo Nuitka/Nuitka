@@ -814,7 +814,10 @@ def main():
             sys.exit(0)
 
         if Options.isStandaloneMode():
-            binary_filename = options["result_name"] + ".exe"
+            if Utils.getOS() == "Windows":
+                binary_filename = options["result_name"] + ".exe"
+            else:
+                binary_filename = options["result_name"]
 
             standalone_entry_points.insert(
                 0,
