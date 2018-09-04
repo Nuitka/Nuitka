@@ -171,7 +171,7 @@ Allow Nuitka to download code if necessary, e.g. dependency walker on Windows.""
 
 include_group = OptionGroup(
     parser,
-    "Control the inclusion of modules and packages."
+    "Control the inclusion of modules and packages"
 )
 
 include_group.add_option(
@@ -199,6 +199,7 @@ and Nuitka will then find it and include it in the binary or extension module
 it creates, and make it available for import by the code. Default empty."""
 )
 
+parser.add_option_group(include_group)
 
 recurse_group = OptionGroup(
     parser,
