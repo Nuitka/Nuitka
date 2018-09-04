@@ -740,9 +740,10 @@ def _getConstantDefaultPopulation():
 
     if python_version >= 340:
         # Setting the __spec__ module attribute.
-        result.append(
-            "__spec__"
-        )
+        result += [
+            "__spec__",
+            "_initializing"
+        ]
 
     if python_version >= 350:
         # Patching the types module.

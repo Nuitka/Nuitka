@@ -140,6 +140,12 @@ of '--recurse-directory'.""" % (
                         if assign_source.isInplaceSuspect():
                             node.markAsInplaceSuspect()
 
+        if node.isStatementLocalsDictOperationSet():
+            assign_source = node.getAssignSource()
+
+            if assign_source.isExpressionOperationBinary():
+                assign_source.unmarkAsInplaceSuspect()
+
         if python_version < 300 and node.isStatementPublishException():
             node.getParentStatementsFrame().markAsFrameExceptionPreserving()
 

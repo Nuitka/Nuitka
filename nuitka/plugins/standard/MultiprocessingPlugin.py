@@ -83,7 +83,8 @@ def _reduce_compiled_method(m):
         return getattr, (m.im_self, m.im_func.__name__)
 
 ForkingPickler.register(type(C().f), _reduce_compiled_method)
-ForkingPickler.register(type(C.f), _reduce_compiled_method)
+if str is bytes:
+    ForkingPickler.register(type(C.f), _reduce_compiled_method)
 """
 
             return code, """\

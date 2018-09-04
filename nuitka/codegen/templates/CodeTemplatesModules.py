@@ -120,6 +120,7 @@ extern PyObject *metapath_based_loader;
 
 #if PYTHON_VERSION >= 340
 extern PyObject *const_str_plain___spec__;
+extern PyObject *const_str_plain__initializing;
 #endif
 
 extern void _initCompiledCellType();
@@ -329,6 +330,8 @@ MOD_INIT_DECL( %(module_identifier)s )
             module_spec_class,
             args
         );
+
+        SET_ATTRIBUTE( spec_value, const_str_plain__initializing, Py_True );
 
         UPDATE_STRING_DICT1( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, spec_value );
 
