@@ -30,7 +30,7 @@ from .VariableDeclarations import VariableDeclaration
 
 
 def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
-                          conversion_check, emit, context):
+                          resume_code, conversion_check, emit, context):
     yield_return_label = context.allocateLabel("yield_return")
     yield_return_index = yield_return_label.split('_')[-1]
 
@@ -116,6 +116,9 @@ def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
             )
         )
 
+    if resume_code:
+        emit(resume_code)
+
     yield_return_name = VariableDeclaration(
         "PyObject *",
         "yield_return_value",
@@ -168,6 +171,7 @@ def generateYieldCode(to_name, expression, emit, context):
         to_name            = to_name,
         value_name         = value_name,
         yield_code         = yield_code,
+        resume_code        = None,
         preserve_exception = preserve_exception,
         conversion_check   = decideConversionCheckNeeded(to_name, expression),
         emit               = emit,
@@ -203,6 +207,7 @@ return NULL;
         to_name            = to_name,
         value_name         = value_name,
         yield_code         = yield_code,
+        resume_code        = None,
         preserve_exception = preserve_exception,
         conversion_check   = decideConversionCheckNeeded(to_name, expression),
         emit               = emit,

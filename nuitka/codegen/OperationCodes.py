@@ -44,14 +44,14 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
         expression
 
     _getOperationCode(
-        to_name          = to_name,
-        expression       = expression,
-        operator         = expression.getOperator(),
-        arg_names        = (left_arg_name, right_arg_name),
-        in_place         = inplace,
-        needs_check      = expression.mayRaiseException(BaseException),
-        emit             = emit,
-        context          = context
+        to_name     = to_name,
+        expression  = expression,
+        operator    = expression.getOperator(),
+        arg_names   = (left_arg_name, right_arg_name),
+        in_place    = inplace,
+        needs_check = expression.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
     )
 
 
@@ -95,14 +95,14 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
     )
 
     _getOperationCode(
-        to_name          = to_name,
-        expression       = expression,
-        operator         = expression.getOperator(),
-        arg_names        = (arg_name,),
-        in_place         = False,
-        needs_check      = expression.mayRaiseException(BaseException),
-        emit             = emit,
-        context          = context
+        to_name     = to_name,
+        expression  = expression,
+        operator    = expression.getOperator(),
+        arg_names   = (arg_name,),
+        in_place    = False,
+        needs_check = expression.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
     )
 
 

@@ -207,20 +207,21 @@ return NULL;
         "yield_from"  : iter_name,
     }
 
+    resume_code = """\
+%(object_name)s->m_awaiting = false;
+""" % {
+        "object_name" : context.getContextObjectName(),
+    }
+
     _getYieldPreserveCode(
         to_name            = to_name,
         value_name         = (value_name, iter_name),
         yield_code         = yield_code,
+        resume_code        = resume_code,
         preserve_exception = preserve_exception,
         conversion_check   = decideConversionCheckNeeded(to_name, expression),
         emit               = emit,
         context            = context
-    )
-
-    emit(
-        "%(object_name)s->m_awaiting = false;" % {
-            "object_name" : context.getContextObjectName(),
-        }
     )
 
     getErrorExitCode(
@@ -275,6 +276,7 @@ return NULL;
         to_name            = to_name,
         value_name         = (value_name, iter_name),
         yield_code         = yield_code,
+        resume_code        = None,
         preserve_exception = preserve_exception,
         conversion_check   = decideConversionCheckNeeded(to_name, expression),
         emit               = emit,
@@ -333,6 +335,7 @@ return NULL;
         to_name            = to_name,
         value_name         = (value_name, iter_name),
         yield_code         = yield_code,
+        resume_code        = None,
         preserve_exception = preserve_exception,
         conversion_check   = decideConversionCheckNeeded(to_name, expression),
         emit               = emit,
