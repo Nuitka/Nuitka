@@ -117,10 +117,6 @@ class CTypeNuitkaBoolEnum(CTypeBase):
             )
 
     @classmethod
-    def getLocalVariableObjectAccessCode(cls, variable_code_name):
-        return "%s == NUITKA_BOOL_TRUE ? Py_True : Py_False" % variable_code_name
-
-    @classmethod
     def getInitValue(cls, init_from):
         if init_from is None:
             return "NUITKA_BOOL_UNASSIGNED"

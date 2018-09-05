@@ -26,7 +26,9 @@ from .CodeHelpers import (
     decideConversionCheckNeeded,
     withObjectCodeTemporaryAssignment
 )
+from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitBoolCode
+from .Indentation import indented
 from .PythonAPICodes import generateCAPIObjectCode
 from .templates.CodeTemplatesVariables import (
     template_set_locals_dict_value,
@@ -34,7 +36,11 @@ from .templates.CodeTemplatesVariables import (
     template_update_locals_dict_value,
     template_update_locals_mapping_value
 )
-from .VariableCodes import getLocalVariableDeclaration
+from .VariableCodes import (
+    getLocalVariableDeclaration,
+    getVariableReferenceCode
+)
+from .VariableDeclarations import VariableDeclaration
 
 
 def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
@@ -162,7 +168,18 @@ def _getVariableDictUpdateCode(target_name, variable, variable_trace, initial,
     variable_c_type = variable_declaration.getCType()
 
     test_code = variable_c_type.getLocalVariableInitTestCode(variable_declaration)
-    access_code = variable_c_type.getLocalVariableObjectAccessCode(variable_declaration)
+
+    access_code = SourceCodeCollector()
+
+    getVariableReferenceCode(
+        to_name          = VariableDeclaration("PyObject *", "value", None, None),
+        variable         = variable,
+        variable_trace   = variable_trace,
+        needs_check      = False,
+        conversion_check = True,
+        emit             = access_code,
+        context          = context
+    )
 
     if is_dict:
         if initial:
@@ -177,7 +194,7 @@ def _getVariableDictUpdateCode(target_name, variable, variable_trace, initial,
                     constant = variable.getName()
                 ),
                 "test_code"   : test_code,
-                "access_code" : access_code
+                "access_code" : indented(access_code.codes)
             }
         )
     else:

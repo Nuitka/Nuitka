@@ -221,7 +221,10 @@ if ( %(res_name)s == -1 ) CLEAR_ERROR_OCCURRED();
 template_update_locals_dict_value = """\
 if ( %(test_code)s )
 {
-    UPDATE_STRING_DICT0( (PyDictObject *)%(dict_name)s, (Nuitka_StringObject *)%(var_name)s, %(access_code)s );
+    PyObject *value;
+%(access_code)s
+
+    UPDATE_STRING_DICT0( (PyDictObject *)%(dict_name)s, (Nuitka_StringObject *)%(var_name)s, value );
 }
 else
 {
@@ -237,10 +240,13 @@ else
 template_set_locals_dict_value = """\
 if ( %(test_code)s )
 {
+    PyObject *value;
+%(access_code)s
+
     int res = PyDict_SetItem(
         %(dict_name)s,
         %(var_name)s,
-        %(access_code)s
+        value
     );
 
     assert( res == 0 );
@@ -250,10 +256,13 @@ if ( %(test_code)s )
 template_update_locals_mapping_value = """\
 if ( %(test_code)s )
 {
+    PyObject *value;
+%(access_code)s
+
     int res = PyObject_SetItem(
         %(mapping_name)s,
         %(var_name)s,
-        %(access_code)s
+        value
     );
 
     %(tmp_name)s = res == 0;
@@ -287,10 +296,13 @@ else
 template_set_locals_mapping_value = """\
 if ( %(test_code)s )
 {
+    PyObject *value;
+%(access_code)s
+
     %(tmp_name)s = SET_SUBSCRIPT(
         %(mapping_name)s,
         %(var_name)s,
-        %(access_code)s
+        value
     );
 }
 else
