@@ -27,7 +27,10 @@ from .c_types.CTypePyObjectPtrs import (
     CTypePyObjectPtrPtr
 )
 from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
-from .ErrorCodes import getNameReferenceErrorCode
+from .ErrorCodes import (
+    getLocalVariableReferenceErrorCode,
+    getNameReferenceErrorCode
+)
 from .templates.CodeTemplatesVariables import template_del_global_unclear
 from .VariableDeclarations import VariableDeclaration
 
@@ -130,12 +133,22 @@ def getVariableReferenceCode(to_name, variable, variable_trace, needs_check,
     )
 
     if needs_check:
-        value_name.getCType().emitVariableValueCheckCode(
-            variable   = variable,
-            value_name = value_name,
-            emit       = emit,
-            context    = context
-        )
+        condition = value_name.getCType().getLocalVariableInitTestCode(value_name, True)
+
+        if variable.isModuleVariable():
+            getNameReferenceErrorCode(
+                variable_name = variable.getName(),
+                condition     = condition,
+                emit          = emit,
+                context       = context
+            )
+        else:
+            getLocalVariableReferenceErrorCode(
+                variable  = variable,
+                condition = condition,
+                emit      = emit,
+                context   = context
+            )
     else:
         value_name.getCType().emitValueAssertionCode(
             value_name = value_name,

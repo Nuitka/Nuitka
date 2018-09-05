@@ -56,7 +56,7 @@ class CTypeBase(object):
         )
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, variable_code_name):
+    def getLocalVariableInitTestCode(cls, value_name, inverted):
         """ Get code to test for uninitialized.
 
         """

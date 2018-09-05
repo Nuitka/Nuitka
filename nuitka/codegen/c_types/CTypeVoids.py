@@ -24,6 +24,9 @@ to assign to it.
 
 from .CTypeBases import CTypeBase
 
+# This is going to not use arguments very commonly. For now disable
+# the warning all around, specialize one done, pylint: disable=unused-argument
+
 class CTypeVoid(CTypeBase):
     c_type = "void"
 
@@ -34,10 +37,6 @@ class CTypeVoid(CTypeBase):
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
         # Nothing to do for this type, pylint: disable=unused-argument
-        assert False
-
-    @classmethod
-    def emitVariableValueCheckCode(cls, variable, value_name, emit, context):
         assert False
 
     @classmethod

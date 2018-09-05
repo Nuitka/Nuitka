@@ -24,8 +24,7 @@ from nuitka.codegen.ErrorCodes import (
     getAssertionCode,
     getCheckObjectCode,
     getErrorExitBoolCode,
-    getLocalVariableReferenceErrorCode,
-    getNameReferenceErrorCode
+    getLocalVariableReferenceErrorCode
 )
 from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_del_local_intolerant,
@@ -179,8 +178,11 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         return "&%s" % variable_code_name
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, variable_code_name):
-        return "%s != NULL" % variable_code_name
+    def getLocalVariableInitTestCode(cls, value_name, inverted):
+        return "%s %s NULL" % (
+            value_name,
+            "==" if inverted else "!="
+        )
 
     @classmethod
     def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):
@@ -242,23 +244,6 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         return value_name
 
     @classmethod
-    def emitVariableValueCheckCode(cls, variable, value_name, emit, context):
-        if variable.isModuleVariable():
-            getNameReferenceErrorCode(
-                variable_name = variable.getName(),
-                condition     = "%s == NULL" % value_name,
-                emit          = emit,
-                context       = context
-            )
-        else:
-            getLocalVariableReferenceErrorCode(
-                variable  = variable,
-                condition = "%s == NULL" % value_name,
-                emit      = emit,
-                context   = context
-            )
-
-    @classmethod
     def emitValueAssertionCode(cls, value_name, emit, context):
         # Not using the context, pylint: disable=unused-argument
         getCheckObjectCode(
@@ -312,8 +297,11 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
         )
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, variable_code_name):
-        return "*%s != NULL" % variable_code_name
+    def getLocalVariableInitTestCode(cls, value_name, inverted):
+        return "*%s %s NULL" % (
+            value_name,
+            "==" if inverted else "!="
+        )
 
     @classmethod
     def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
@@ -398,8 +386,11 @@ class CTypeCellObject(CTypeBase):
         return variable_code_name
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, variable_code_name):
-        return "%s->ob_ref != NULL" % variable_code_name
+    def getLocalVariableInitTestCode(cls, value_name, inverted):
+        return "%s->ob_ref %s NULL" % (
+            value_name,
+            "==" if inverted else "!="
+        )
 
     @classmethod
     def getAssignmentCodeFromBoolCondition(cls, to_name, condition):

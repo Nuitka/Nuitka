@@ -21,8 +21,7 @@
 
 from nuitka.codegen.ErrorCodes import (
     getAssertionCode,
-    getLocalVariableReferenceErrorCode,
-    getNameReferenceErrorCode
+    getLocalVariableReferenceErrorCode
 )
 
 from .CTypeBases import CTypeBase
@@ -52,8 +51,11 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         )
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, variable_code_name):
-        return "%s != NUITKA_BOOL_UNASSIGNED" % variable_code_name
+    def getLocalVariableInitTestCode(cls, value_name, inverted):
+        return "%s %s NUITKA_BOOL_UNASSIGNED" % (
+            value_name,
+            "==" if inverted else "!="
+        )
 
     @classmethod
     def getTruthCheckCode(cls, value_name):
@@ -73,23 +75,6 @@ class CTypeNuitkaBoolEnum(CTypeBase):
     def emitValueAccessCode(cls, value_name, emit, context):
         # Nothing to do for this type, pylint: disable=unused-argument
         return value_name
-
-    @classmethod
-    def emitVariableValueCheckCode(cls, variable, value_name, emit, context):
-        if variable.isModuleVariable():
-            getNameReferenceErrorCode(
-                variable_name = variable.getName(),
-                condition     = "%s == NUITKA_BOOL_UNASSIGNED" % value_name,
-                emit          = emit,
-                context       = context
-            )
-        else:
-            getLocalVariableReferenceErrorCode(
-                variable  = variable,
-                condition = "%s == NUITKA_BOOL_UNASSIGNED" % value_name,
-                emit      = emit,
-                context   = context
-            )
 
     @classmethod
     def emitValueAssertionCode(cls, value_name, emit, context):
