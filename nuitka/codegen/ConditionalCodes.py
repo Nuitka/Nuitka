@@ -20,8 +20,6 @@
 Branches, conditions, truth checks.
 """
 
-from nuitka.Options import isExperimental
-
 from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getReleaseCode
@@ -29,126 +27,20 @@ from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
 
 
 def generateConditionCode(condition, emit, context):
-    # The complexity is needed to avoid unnecessary complex generated C
-    # pylint: disable=too-many-locals
+    compare_name = context.allocateTempName("condition_result", "nuitka_bool")
 
-    if isExperimental("enable_bool_ctype") or \
-       condition.isExpressionComparison() or \
-       condition.isExpressionBuiltinIsinstance() or \
-       condition.isExpressionBuiltinHasattr() or \
-       condition.isExpressionAttributeCheck():
-        compare_name = context.allocateTempName("condition_result", "nuitka_bool")
+    generateExpressionCode(
+        to_name    = compare_name,
+        expression = condition,
+        emit       = emit,
+        context    = context
+    )
 
-        generateExpressionCode(
-            to_name    = compare_name,
-            expression = condition,
-            emit       = emit,
-            context    = context
-        )
-
-        getBranchingCode(
-            condition = "%s == NUITKA_BOOL_TRUE" % compare_name,
-            emit      = emit,
-            context   = context
-        )
-    elif condition.isExpressionOperationNOT():
-        # Lets just switch the targets temporarily to get at "NOT" without
-        # any effort really.
-        true_target = context.getTrueBranchTarget()
-        false_target = context.getFalseBranchTarget()
-
-        context.setTrueBranchTarget(false_target)
-        context.setFalseBranchTarget(true_target)
-
-        generateConditionCode(
-            condition = condition.getOperand(),
-            emit      = emit,
-            context   = context
-        )
-
-        context.setTrueBranchTarget(true_target)
-        context.setFalseBranchTarget(false_target)
-    elif condition.isExpressionConditional():
-        expression_yes = condition.getExpressionYes()
-        expression_no = condition.getExpressionNo()
-
-        condition = condition.getCondition()
-
-        old_true_target = context.getTrueBranchTarget()
-        old_false_target = context.getFalseBranchTarget()
-
-        select_true = context.allocateLabel("select_true")
-        select_false = context.allocateLabel("select_false")
-
-        # TODO: Could be avoided in some cases.
-        select_end = context.allocateLabel("select_end")
-
-        context.setTrueBranchTarget(select_true)
-        context.setFalseBranchTarget(select_false)
-
-        generateConditionCode(
-            condition = condition,
-            emit      = emit,
-            context   = context,
-        )
-
-        context.setTrueBranchTarget(old_true_target)
-        context.setFalseBranchTarget(old_false_target)
-
-        getLabelCode(select_true,emit)
-        generateConditionCode(
-            condition = expression_yes,
-            emit      = emit,
-            context   = context,
-        )
-        getGotoCode(select_end, emit)
-        getLabelCode(select_false,emit)
-        generateConditionCode(
-            condition = expression_no,
-            emit      = emit,
-            context   = context,
-        )
-        getLabelCode(select_end,emit)
-    elif condition.isCompileTimeConstant():
-        getBranchingCode(
-            condition = '1' if condition.getCompileTimeConstant() else '0',
-            emit      = emit,
-            context   = context
-        )
-    else:
-        condition_name = context.allocateTempName("cond_value")
-        truth_name = context.allocateTempName("cond_truth", "int")
-
-        generateExpressionCode(
-            to_name    = condition_name,
-            expression = condition,
-            emit       = emit,
-            context    = context
-        )
-
-        old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
-
-        getConditionCheckTrueCode(
-            to_name     = truth_name,
-            value_name  = condition_name,
-            needs_check = condition.mayRaiseExceptionBool(BaseException),
-            emit        = emit,
-            context     = context
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
-
-        getReleaseCode(
-            release_name = condition_name,
-            emit         = emit,
-            context      = context
-        )
-
-        getBranchingCode(
-            condition = "%s == 1" % truth_name,
-            emit      = emit,
-            context   = context
-        )
+    getBranchingCode(
+        condition = "%s == NUITKA_BOOL_TRUE" % compare_name,
+        emit      = emit,
+        context   = context
+    )
 
 
 # TODO: Inline this once "enable_bool_ctype" is completed
@@ -203,7 +95,7 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
         context.setTrueBranchTarget(false_target)
         context.setFalseBranchTarget(true_target)
 
-    getConditionCheckTrueCode(
+    left_name.getCType().emitTruthCheckCode(
         to_name     = truth_name,
         value_name  = left_name,
         needs_check = left_value.mayRaiseExceptionBool(BaseException),

@@ -22,7 +22,6 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 """
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeBool
-from nuitka.Options import isExperimental
 
 from . import OperatorCodes
 from .CodeHelpers import generateExpressionCode
@@ -39,7 +38,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
     comparator  = expression.getComparator()
 
     type_name = "PyObject *"
-    if comparator in ("Is", "IsNot") and isExperimental("enabled_bool_ctype"):
+    if comparator in ("Is", "IsNot"):
         if left.getTypeShape() is ShapeTypeBool and \
            right.getTypeShape() is ShapeTypeBool:
             type_name = "nuitka_bool"

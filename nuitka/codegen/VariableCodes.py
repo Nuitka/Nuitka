@@ -19,9 +19,7 @@
 
 """
 
-from nuitka import Options
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeBool
-from nuitka.Options import isExperimental
 
 from .c_types.CTypePyObjectPtrs import (
     CTypeCellObject,
@@ -49,8 +47,7 @@ def generateAssignmentVariableCode(statement, emit, context):
         variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
 
         if source_shape is ShapeTypeBool and \
-           variable_declaration.c_type == "nuitka_bool" and \
-           Options.isExperimental("enable_bool_ctype"):
+           variable_declaration.c_type == "nuitka_bool":
             tmp_name = context.allocateTempName("assign_source", "nuitka_bool")
         else:
             tmp_name = context.allocateTempName("assign_source")
@@ -182,8 +179,6 @@ def _getVariableCodeName(in_context, variable):
     else:
         return "var_" + variable.getCodeName()
 
-enable_bool_ctype = isExperimental("enable_bool_ctype")
-
 def getPickedCType(variable, variable_trace, context):
     """ Return type to use for specific context. """
 
@@ -194,18 +189,15 @@ def getPickedCType(variable, variable_trace, context):
         if variable.isSharedTechnically():
             result = CTypeCellObject
         else:
-            if enable_bool_ctype:
-                shapes = variable.getTypeShapes()
+            shapes = variable.getTypeShapes()
 
-                if len(shapes) > 1:
-                    return CTypePyObjectPtr
-                else:
-                    # We are avoiding this for now.
-                    assert shapes, (variable, variable_trace)
-
-                    return shapes.pop().getCType()
-            else:
+            if len(shapes) > 1:
                 return CTypePyObjectPtr
+            else:
+                # We are avoiding this for now.
+                assert shapes, (variable, variable_trace)
+
+                return shapes.pop().getCType()
     elif context.isForDirectCall():
         if variable.isSharedTechnically():
             result = CTypeCellObject
