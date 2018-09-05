@@ -28,6 +28,7 @@ from .c_types.CTypePyObjectPtrs import (
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr
 )
+from .c_types.CTypeVoids import CTypeVoid
 
 
 class VariableDeclaration(object):
@@ -95,6 +96,8 @@ class VariableDeclaration(object):
             return CTypeNuitkaBoolEnum
         elif c_type == "module_var":
             return CTypeModuleDictVariable
+        elif c_type == "void":
+            return CTypeVoid
 
         assert False, c_type
 
@@ -262,6 +265,7 @@ class VariableStorage(object):
             variable_declaration.makeCFunctionLevelDeclaration()
             for variable_declaration in
             self.variable_declarations_main
+            if variable_declaration.c_type != "void"
         ]
 
     def getLocalPreservationDeclarations(self):
