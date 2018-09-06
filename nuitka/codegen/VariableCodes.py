@@ -28,10 +28,10 @@ from .c_types.CTypePyObjectPtrs import (
 )
 from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
 from .ErrorCodes import (
+    getAssertionCode,
     getLocalVariableReferenceErrorCode,
     getNameReferenceErrorCode
 )
-from .templates.CodeTemplatesVariables import template_del_global_unclear
 from .VariableDeclarations import VariableDeclaration
 
 
@@ -81,7 +81,7 @@ def generateDelVariableCode(statement, emit, context):
         statement.getSourceReference()
     )
 
-    getVariableDelCode(
+    _getVariableDelCode(
         variable       = statement.getVariable(),
         variable_trace = statement.variable_trace,
         previous_trace = statement.previous_trace,
@@ -364,28 +364,16 @@ def getVariableAssignmentCode(context, emit, variable, variable_trace,
         context.removeCleanupTempName(tmp_name)
 
 
-def getVariableDelCode(variable, variable_trace, previous_trace, tolerant,
-                       needs_check, emit, context):
+def _getVariableDelCode(variable, variable_trace, previous_trace, tolerant,
+                        needs_check, emit, context):
     if variable.isModuleVariable():
-        res_name = context.getIntResName()
-
-        emit(
-            template_del_global_unclear % {
-                "module_identifier" : context.getModuleCodeName(),
-                "res_name"          : res_name,
-                "var_name"          : context.getConstantCode(
-                    constant = variable.getName()
-                )
-            }
+        variable_declaration_old = VariableDeclaration(
+            "module_var",
+            variable.getName(),
+            None,
+            None
         )
-
-        if needs_check and not tolerant:
-            getNameReferenceErrorCode(
-                variable_name = variable.getName(),
-                condition     = "%s == -1" % res_name,
-                emit          = emit,
-                context       = context
-            )
+        variable_declaration_new = variable_declaration_old
     else:
         variable_declaration_old = getLocalVariableDeclaration(context, variable, previous_trace)
         variable_declaration_new = getLocalVariableDeclaration(context, variable, variable_trace)
@@ -397,16 +385,41 @@ def getVariableDelCode(variable, variable_trace, previous_trace, tolerant,
         if variable.isLocalVariable():
             context.setVariableType(variable, variable_declaration_new)
 
-        variable_c_type = variable_declaration_new.getCType()
+    if needs_check and not tolerant:
+        to_name = context.getBoolResName()
+    else:
+        to_name = None
 
-        variable_c_type.getDeleteObjectCode(
-            variable_code_name = variable_declaration_old,
-            tolerant           = tolerant,
-            needs_check        = needs_check,
-            variable           = variable,
-            emit               = emit,
-            context            = context
-        )
+    variable_declaration_old.getCType().getDeleteObjectCode(
+        to_name     = to_name,
+        value_name  = variable_declaration_old,
+        tolerant    = tolerant,
+        needs_check = needs_check,
+        emit        = emit,
+        context     = context
+    )
+
+    if needs_check and not tolerant:
+        if variable.isModuleVariable():
+            getNameReferenceErrorCode(
+                variable_name = variable.getName(),
+                condition     = "%s == false" % to_name,
+                emit          = emit,
+                context       = context
+            )
+        elif variable.isLocalVariable():
+            getLocalVariableReferenceErrorCode(
+                variable  = variable,
+                condition = "%s == false" % to_name,
+                emit      = emit,
+                context   = context
+            )
+        else:
+            getAssertionCode(
+                check = "%s != false" % to_name,
+                emit  = emit
+            )
+
 
 
 def getVariableReleaseCode(variable, variable_trace, needs_check, emit, context):
@@ -414,9 +427,7 @@ def getVariableReleaseCode(variable, variable_trace, needs_check, emit, context)
 
     variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
 
-    variable_c_type = variable_declaration.getCType()
-
-    variable_c_type.getReleaseCode(
+    variable_declaration.getCType().getReleaseCode(
         variable_code_name = variable_declaration,
         needs_check        = needs_check,
         emit               = emit

@@ -76,8 +76,8 @@ class CTypeBase(object):
         assert False, cls.c_type
 
     @classmethod
-    def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,
-                            variable, emit, context):
+    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
+                            emit, context):
         """ Get code to delete (del) local variable.
 
         """

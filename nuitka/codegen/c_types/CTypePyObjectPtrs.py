@@ -20,12 +20,7 @@
 """
 
 
-from nuitka.codegen.ErrorCodes import (
-    getAssertionCode,
-    getCheckObjectCode,
-    getErrorExitBoolCode,
-    getLocalVariableReferenceErrorCode
-)
+from nuitka.codegen.ErrorCodes import getCheckObjectCode, getErrorExitBoolCode
 from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_del_local_intolerant,
     template_del_local_known,
@@ -197,42 +192,27 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         )
 
     @classmethod
-    def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,
-                            variable, emit, context):
+    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
+                            emit, context):
         if not needs_check:
             emit(
                 template_del_local_known % {
-                    "identifier" : variable_code_name
+                    "identifier" : value_name
                 }
             )
         elif tolerant:
             emit(
                 template_del_local_tolerant % {
-                    "identifier" : variable_code_name
+                    "identifier" : value_name
                 }
             )
         else:
-            res_name = context.getBoolResName()
-
             emit(
                 template_del_local_intolerant % {
-                    "identifier" : variable_code_name,
-                    "result" : res_name
+                    "identifier" : value_name,
+                    "result"     : to_name
                 }
             )
-
-            if variable.isLocalVariable():
-                getLocalVariableReferenceErrorCode(
-                    variable  = variable,
-                    condition = "%s == false" % res_name,
-                    emit      = emit,
-                    context   = context
-                )
-            else:
-                getAssertionCode(
-                    check = "%s != false" % res_name,
-                    emit  = emit
-                )
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
@@ -410,43 +390,27 @@ class CTypeCellObject(CTypeBase):
         )
 
     @classmethod
-    def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,
-                            variable, emit, context):
+    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
+                            emit, context):
         if not needs_check:
             emit(
                 template_del_shared_known % {
-                    "identifier" : variable_code_name
+                    "identifier" : value_name
                 }
             )
         elif tolerant:
             emit(
                 template_del_shared_tolerant % {
-                    "identifier" : variable_code_name
+                    "identifier" : value_name
                 }
             )
         else:
-            res_name = context.getBoolResName()
-
             emit(
                 template_del_shared_intolerant % {
-                    "identifier" : variable_code_name,
-                    "result" : res_name
+                    "identifier" : value_name,
+                    "result"     : to_name
                 }
             )
-
-
-            if variable.isLocalVariable():
-                getLocalVariableReferenceErrorCode(
-                    variable  = variable,
-                    condition = "%s == false" % res_name,
-                    emit      = emit,
-                    context   = context
-                )
-            else:
-                getAssertionCode(
-                    check = "%s != false" % res_name,
-                    emit  = emit
-                )
 
     @classmethod
     def getReleaseCode(cls, variable_code_name, needs_check, emit):

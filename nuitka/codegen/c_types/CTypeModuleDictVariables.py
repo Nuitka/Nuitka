@@ -24,6 +24,8 @@
 """
 
 from nuitka.codegen.templates.CodeTemplatesVariables import (
+    template_del_global_known,
+    template_del_global_unclear,
     template_read_mvar_unclear
 )
 
@@ -45,7 +47,6 @@ class CTypeModuleDictVariable(CTypeBase):
             )
         )
 
-
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
         tmp_name = context.allocateTempName("mvar_value")
@@ -61,3 +62,29 @@ class CTypeModuleDictVariable(CTypeBase):
         )
 
         return tmp_name
+
+    @classmethod
+    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
+                            emit, context):
+
+        if not needs_check or tolerant:
+            emit(
+                template_del_global_known % {
+                    "module_identifier" : context.getModuleCodeName(),
+                    "res_name"          : context.getIntResName(),
+                    "var_name"          : context.getConstantCode(
+                        constant = value_name.code_name
+                    )
+                }
+            )
+        else:
+            emit(
+                template_del_global_unclear % {
+                    "module_identifier" : context.getModuleCodeName(),
+                    "res_name"          : context.getIntResName(),
+                    "result"            : to_name,
+                    "var_name"          : context.getConstantCode(
+                        constant = value_name.code_name
+                    )
+                }
+            )

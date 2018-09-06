@@ -58,8 +58,8 @@ class CTypeVoid(CTypeBase):
         assert False
 
     @classmethod
-    def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,
-                            variable, emit, context):
+    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
+                            emit, context):
         assert False
 
     @classmethod

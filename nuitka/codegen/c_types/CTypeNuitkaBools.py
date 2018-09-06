@@ -19,10 +19,6 @@
 
 """
 
-from nuitka.codegen.ErrorCodes import (
-    getAssertionCode,
-    getLocalVariableReferenceErrorCode
-)
 
 from .CTypeBases import CTypeBase
 
@@ -121,41 +117,26 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         pass
 
     @classmethod
-    def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,
-                            variable, emit, context):
+    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
+                            emit, context):
         if not needs_check:
             emit(
-                "%s = NUITKA_BOOL_UNASSIGNED;" % variable_code_name
+                "%s = NUITKA_BOOL_UNASSIGNED;" % value_name
             )
         elif tolerant:
             emit(
-                "%s = NUITKA_BOOL_UNASSIGNED;" % variable_code_name
+                "%s = NUITKA_BOOL_UNASSIGNED;" % value_name
             )
         else:
-            res_name = context.getBoolResName()
-
             emit(
                 "%s = %s == NUITKA_BOOL_UNASSIGNED;" % (
-                    res_name,
-                    variable_code_name,
+                    to_name,
+                    value_name,
                 )
             )
             emit(
-                "%s = NUITKA_BOOL_UNASSIGNED;" % variable_code_name
+                "%s = NUITKA_BOOL_UNASSIGNED;" % value_name
             )
-
-            if variable.isLocalVariable():
-                getLocalVariableReferenceErrorCode(
-                    variable  = variable,
-                    condition = "%s == false" % res_name,
-                    emit      = emit,
-                    context   = context
-                )
-            else:
-                getAssertionCode(
-                    check = "%s != false" % res_name,
-                    emit  = emit
-                )
 
     @classmethod
     def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):

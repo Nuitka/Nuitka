@@ -110,10 +110,10 @@ Py_XDECREF( %(identifier)s );
 """
 
 template_del_shared_tolerant = """\
-if ( %(identifier)s )
 {
-    Py_XDECREF( PyCell_GET( %(identifier)s ));
+    PyObject *old = PyCell_GET( %(identifier)s );
     PyCell_SET( %(identifier)s, NULL );
+    Py_XDECREF( old );
 }
 """
 
@@ -127,12 +127,12 @@ if ( %(result)s == true )
 """
 
 template_del_shared_intolerant = """\
-assert( %(identifier)s != NULL );
-%(result)s = PyCell_GET( %(identifier)s ) != NULL;
-if ( %(result)s == true )
 {
-    Py_DECREF( PyCell_GET( %(identifier)s ) );
+    PyObject *old = PyCell_GET( %(identifier)s );
     PyCell_SET( %(identifier)s, NULL );
+    Py_XDECREF( old );
+
+    %(result)s = old != NULL;
 }
 """
 
@@ -143,8 +143,13 @@ Py_DECREF( %(identifier)s );
 """
 
 template_del_shared_known = """\
-Py_DECREF( PyCell_GET( %(identifier)s ) );
-PyCell_SET( %(identifier)s, NULL );
+{
+    PyObject *old = PyCell_GET( %(identifier)s );
+    PyCell_SET( %(identifier)s, NULL );
+
+    CHECK_OBJECT( old );
+    Py_DECREF( old );
+}
 """
 
 
@@ -211,12 +216,17 @@ template_read_locals_mapping_without_fallback = """\
 %(to_name)s = PyObject_GetItem( %(locals_dict)s, %(var_name)s );
 """
 
-
-
 template_del_global_unclear = """\
+%(res_name)s = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, %(var_name)s );
+%(result)s = %(res_name)s != -1;
+if ( %(result)s == false ) CLEAR_ERROR_OCCURRED();
+"""
+
+template_del_global_known = """\
 %(res_name)s = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, %(var_name)s );
 if ( %(res_name)s == -1 ) CLEAR_ERROR_OCCURRED();
 """
+
 
 template_update_locals_dict_value = """\
 if ( %(test_code)s )
