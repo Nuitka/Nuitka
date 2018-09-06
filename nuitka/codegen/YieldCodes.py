@@ -180,6 +180,11 @@ def generateYieldCode(to_name, expression, emit, context):
             context            = context
         )
 
+        # This conversion will not use it, and since it is borrowed, debug mode
+        # would otherwise complain.
+        if to_name.c_type == "void":
+            result_name.maybe_unused = True
+
         # Comes as only borrowed.
         # context.addCleanupTempName(result_name)
 
