@@ -357,16 +357,13 @@ def getVariableAssignmentCode(context, emit, variable, variable_trace,
         # occurs.
         assert not in_place or not variable.isTempVariable()
 
-        variable_c_type = variable_declaration.getCType()
-
-        emit(
-            variable_c_type.getLocalVariableAssignCode(
-                variable_code_name = variable_declaration,
-                needs_release      = needs_release,
-                tmp_name           = tmp_name,
-                ref_count          = ref_count,
-                in_place           = in_place
-            )
+        variable_declaration.getCType().emitLocalVariableAssignCode(
+            variable_code_name = variable_declaration,
+            needs_release      = needs_release,
+            tmp_name           = tmp_name,
+            ref_count          = ref_count,
+            in_place           = in_place,
+            emit               = emit
         )
 
         if ref_count:

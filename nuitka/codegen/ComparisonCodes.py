@@ -83,23 +83,21 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             context       = context
         )
 
-        emit(
-            to_name.getCType().getAssignmentCodeFromBoolCondition(
-                to_name   = to_name,
-                condition = "%s == %d" % (
-                    res_name,
-                    1 if comparator == "In" else 0
-                )
-            )
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s == %d" % (
+                res_name,
+                1 if comparator == "In" else 0
+            ),
+            emit      = emit
         )
 
         return
     elif comparator == "Is":
-        emit(
-            to_name.getCType().getAssignmentCodeFromBoolCondition(
-                to_name   = to_name,
-                condition = "%s == %s" % (left_name, right_name)
-            )
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s == %s" % (left_name, right_name),
+            emit      = emit
         )
 
         getReleaseCodes(
@@ -110,11 +108,10 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
         return
     elif comparator == "IsNot":
-        emit(
-            to_name.getCType().getAssignmentCodeFromBoolCondition(
-                to_name   = to_name,
-                condition = "%s != %s" % (left_name, right_name)
-            )
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s != %s" % (left_name, right_name),
+            emit      = emit
         )
 
         getReleaseCodes(
@@ -179,11 +176,10 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
                 context       = context
             )
 
-            emit(
-                c_type.getAssignmentCodeFromBoolCondition(
-                    to_name   = to_name,
-                    condition = "%s != 0" % res_name
-                )
+            c_type.emitAssignmentCodeFromBoolCondition(
+                to_name   = to_name,
+                condition = "%s != 0" % res_name,
+                emit      = emit
             )
         else:
             assert False, to_name.c_type
@@ -210,11 +206,10 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             context       = context
         )
 
-        emit(
-            to_name.getCType().getAssignmentCodeFromBoolCondition(
-                to_name   = to_name,
-                condition = "%s != 0" % res_name
-            )
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s != 0" % res_name,
+            emit      = emit
         )
     else:
         assert False, comparator
@@ -255,9 +250,8 @@ def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
         context       = context
     )
 
-    emit(
-        to_name.getCType().getAssignmentCodeFromBoolCondition(
-            to_name   = to_name,
-            condition = "%s != 0" % res_name
-        )
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name   = to_name,
+        condition = "%s != 0" % res_name,
+        emit      = emit
     )

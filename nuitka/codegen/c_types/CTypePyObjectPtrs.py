@@ -54,8 +54,8 @@ from .CTypeBases import CTypeBase
 
 class CPythonPyObjectPtrBase(CTypeBase):
     @classmethod
-    def getLocalVariableAssignCode(cls, variable_code_name, needs_release,
-                                   tmp_name, ref_count, in_place):
+    def emitLocalVariableAssignCode(cls, variable_code_name, needs_release,
+                                    tmp_name, ref_count, in_place, emit):
         if in_place:
             # Releasing is not an issue here, local variable reference never
             # gave a reference, and the in-place code deals with possible
@@ -77,10 +77,12 @@ class CPythonPyObjectPtrBase(CTypeBase):
                 else:
                     template = template_write_local_unclear_ref1
 
-        return template % {
-            "identifier" : variable_code_name,
-            "tmp_name"   : tmp_name
-        }
+        emit(
+            template % {
+                "identifier" : variable_code_name,
+                "tmp_name"   : tmp_name
+            }
+        )
 
     @classmethod
     def getTruthCheckCode(cls, value_name):
@@ -118,11 +120,13 @@ class CPythonPyObjectPtrBase(CTypeBase):
         )
 
     @classmethod
-    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
-        return "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % {
-            "to_name"   : to_name,
-            "condition" : condition
-        }
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        emit(
+            "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % {
+                "to_name"   : to_name,
+                "condition" : condition
+            }
+        )
 
 
     @classmethod
@@ -151,11 +155,10 @@ class CPythonPyObjectPtrBase(CTypeBase):
                 )
             )
         else:
-            emit(
-                cls.getAssignmentCodeFromBoolCondition(
-                    to_name   = to_name,
-                    condition = "%s == 1",
-                )
+            cls.emitAssignmentCodeFromBoolCondition(
+                to_name   = to_name,
+                condition = "%s == 1",
+                emit      = emit
             )
 
 
@@ -232,11 +235,13 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
                 )
 
     @classmethod
-    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
-        return "%(to_name)s = ( %(condition)s ) ? Py_True : Py_False;" % {
-            "to_name" : to_name,
-            "condition" : condition
-        }
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        emit(
+            "%(to_name)s = ( %(condition)s ) ? Py_True : Py_False;" % {
+                "to_name"   : to_name,
+                "condition" : condition
+            }
+        )
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
@@ -262,11 +267,10 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
                 )
             )
         elif value_name.c_type == "nuitka_bool":
-            emit(
-                cls.getAssignmentCodeFromBoolCondition(
-                    condition = value_name.getCType().getTruthCheckCode(value_name),
-                    to_name   = to_name
-                )
+            cls.emitAssignmentCodeFromBoolCondition(
+                condition = value_name.getCType().getTruthCheckCode(value_name),
+                to_name   = to_name,
+                emit      = emit
             )
         else:
             assert False, to_name.c_type
@@ -304,11 +308,13 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
         )
 
     @classmethod
-    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
-        return "*%(to_name)s = ( %(condition)s ) ? Py_True : Py_False;" % {
-            "to_name" : to_name,
-            "condition" : condition
-        }
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        emit(
+            "*%(to_name)s = ( %(condition)s ) ? Py_True : Py_False;" % {
+                "to_name" : to_name,
+                "condition" : condition
+            }
+        )
 
 
 class CTypeCellObject(CTypeBase):
@@ -339,8 +345,8 @@ class CTypeCellObject(CTypeBase):
         )
 
     @classmethod
-    def getLocalVariableAssignCode(cls, variable_code_name, needs_release,
-                                   tmp_name, ref_count, in_place):
+    def emitLocalVariableAssignCode(cls, variable_code_name, needs_release,
+                                    tmp_name, ref_count, in_place, emit):
         if in_place:
             # Releasing is not an issue here, local variable reference never
             # gave a reference, and the in-place code deals with possible
@@ -359,10 +365,12 @@ class CTypeCellObject(CTypeBase):
                 else:
                     template = template_write_shared_unclear_ref1
 
-        return template % {
-            "identifier" : variable_code_name,
-            "tmp_name"   : tmp_name
-        }
+        emit(
+            template % {
+                "identifier" : variable_code_name,
+                "tmp_name"   : tmp_name
+            }
+        )
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):
@@ -393,11 +401,13 @@ class CTypeCellObject(CTypeBase):
         )
 
     @classmethod
-    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
-        return "%(to_name)s->ob_ref = ( %(condition)s ) ? Py_True : Py_False;" % {
-            "to_name" : to_name,
-            "condition" : condition
-        }
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        emit(
+            "%(to_name)s->ob_ref = ( %(condition)s ) ? Py_True : Py_False;" % {
+                "to_name" : to_name,
+                "condition" : condition
+            }
+        )
 
     @classmethod
     def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,

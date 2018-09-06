@@ -63,5 +63,5 @@ class CTypeVoid(CTypeBase):
         assert False
 
     @classmethod
-    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         assert False

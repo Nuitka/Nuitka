@@ -66,8 +66,8 @@ class CTypeBase(object):
 
 
     @classmethod
-    def getLocalVariableAssignCode(cls, variable_code_name, needs_release,
-                                   tmp_name, ref_count, in_place):
+    def emitLocalVariableAssignCode(cls, variable_code_name, needs_release,
+                                    tmp_name, ref_count, in_place, emit):
         """ Get code to assign local variable.
 
         """
@@ -114,7 +114,7 @@ class CTypeBase(object):
 
 
     @classmethod
-    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
         """ Get the assignment code from C boolean condition.
 
         """

@@ -79,11 +79,10 @@ def generateOperationNotCode(to_name, expression, emit, context):
         context      = context
     )
 
-    emit(
-        to_name.getCType().getAssignmentCodeFromBoolCondition(
-            to_name   = to_name,
-            condition = "%s == 0" % res_name
-        )
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name   = to_name,
+        condition = "%s == 0" % res_name,
+        emit      = emit
     )
 
 

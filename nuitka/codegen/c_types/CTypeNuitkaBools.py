@@ -31,24 +31,30 @@ class CTypeNuitkaBoolEnum(CTypeBase):
     c_type = "nuitka_bool"
 
     @classmethod
-    def getLocalVariableAssignCode(cls, variable_code_name, needs_release,
-                                   tmp_name, ref_count, in_place):
+    def emitLocalVariableAssignCode(cls, variable_code_name, needs_release,
+                                    tmp_name, ref_count, in_place, emit):
 
         assert not in_place
         assert not ref_count
 
         if tmp_name.c_type == "nuitka_bool":
-            return "%s = %s;" % (variable_code_name, tmp_name)
-
-        if tmp_name.c_type == "PyObject *":
-            test_code = "%s == Py_True" % tmp_name
+            emit(
+                "%s = %s;" % (
+                    variable_code_name,
+                    tmp_name
+                )
+            )
         else:
-            assert False, tmp_name
+            if tmp_name.c_type == "PyObject *":
+                test_code = "%s == Py_True" % tmp_name
+            else:
+                assert False, tmp_name
 
-        return cls.getAssignmentCodeFromBoolCondition(
-            to_name   = variable_code_name,
-            condition = test_code
-        )
+            cls.emitAssignmentCodeFromBoolCondition(
+                to_name   = variable_code_name,
+                condition = test_code,
+                emit      = emit
+            )
 
     @classmethod
     def getLocalVariableInitTestCode(cls, value_name, inverted):
@@ -152,8 +158,10 @@ class CTypeNuitkaBoolEnum(CTypeBase):
                 )
 
     @classmethod
-    def getAssignmentCodeFromBoolCondition(cls, to_name, condition):
-        return "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % {
-            "to_name" : to_name,
-            "condition" : condition
-        }
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        emit(
+            "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % {
+                "to_name"   : to_name,
+                "condition" : condition
+            }
+        )
