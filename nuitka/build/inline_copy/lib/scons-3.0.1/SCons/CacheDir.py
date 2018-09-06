@@ -160,7 +160,7 @@ class CacheDir(object):
             # as an attempt to alleviate this, on the basis that it's a pretty
             # unlikely occurence (it'd require two builds with a brand new cache
             # directory)
-            if os.path.isdir(path) and len(f for f in os.listdir(path) if os.path.basename(f) != "config") != 0:
+            if os.path.isdir(path) and len([f for f in os.listdir(path) if os.path.basename(f) != "config"]) != 0:
                 self.config['prefix_len'] = 1
                 # When building the project I was testing this on, the warning
                 # was output over 20 times. That seems excessive
