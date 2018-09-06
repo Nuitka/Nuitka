@@ -366,6 +366,22 @@ branches.""" % self.conditional_kind
 
         return False
 
+    def computeExpressionDrop(self, statement, trace_collection):
+        result = makeStatementConditional(
+            condition  = self.getLeft(),
+            yes_branch = None,
+            no_branch  = makeStatementExpressionOnlyReplacementNode(
+                expression = self.getRight(),
+                node       = self.getRight()
+            ),
+            source_ref = self.source_ref
+        )
+
+        del self.parent
+
+        return result, "new_statements", """\
+Removed conditional '%s' expression for unused result.""" % self.conditional_kind
+
     def mayHaveSideEffectsBool(self):
         if self.getLeft().mayHaveSideEffectsBool():
             return True
