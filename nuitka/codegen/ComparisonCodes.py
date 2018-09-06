@@ -152,7 +152,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
             )
 
             context.addCleanupTempName(to_name)
-        elif c_type.c_type == "nuitka_bool":
+        elif c_type.c_type in ("nuitka_bool", "void"):
             res_name = context.getIntResName()
 
             helper = OperatorCodes.rich_comparison_codes[comparator]
