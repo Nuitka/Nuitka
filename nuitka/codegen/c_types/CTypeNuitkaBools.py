@@ -31,8 +31,8 @@ class CTypeNuitkaBoolEnum(CTypeBase):
     c_type = "nuitka_bool"
 
     @classmethod
-    def emitLocalVariableAssignCode(cls, variable_code_name, needs_release,
-                                    tmp_name, ref_count, in_place, emit):
+    def emitLocalVariableAssignCode(cls, value_name, needs_release, tmp_name,
+                                    ref_count, in_place, emit, context):
 
         assert not in_place
         assert not ref_count
@@ -40,7 +40,7 @@ class CTypeNuitkaBoolEnum(CTypeBase):
         if tmp_name.c_type == "nuitka_bool":
             emit(
                 "%s = %s;" % (
-                    variable_code_name,
+                    value_name,
                     tmp_name
                 )
             )
@@ -51,7 +51,7 @@ class CTypeNuitkaBoolEnum(CTypeBase):
                 assert False, tmp_name
 
             cls.emitAssignmentCodeFromBoolCondition(
-                to_name   = variable_code_name,
+                to_name   = value_name,
                 condition = test_code,
                 emit      = emit
             )

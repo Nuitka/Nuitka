@@ -332,19 +332,12 @@ def getVariableAssignmentCode(context, emit, variable, variable_trace,
         ref_count = 0
 
     if variable.isModuleVariable():
-        emit(
-            "UPDATE_STRING_DICT%s( moduledict_%s, (Nuitka_StringObject *)%s, %s );" % (
-                ref_count,
-                context.getModuleCodeName(),
-                context.getConstantCode(
-                    constant = variable.getName(),
-                ),
-                tmp_name
-            )
+        variable_declaration = VariableDeclaration(
+            "module_var",
+            variable.getName(),
+            None,
+            None
         )
-
-        if ref_count:
-            context.removeCleanupTempName(tmp_name)
     else:
         variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
 
@@ -357,17 +350,18 @@ def getVariableAssignmentCode(context, emit, variable, variable_trace,
         # occurs.
         assert not in_place or not variable.isTempVariable()
 
-        variable_declaration.getCType().emitLocalVariableAssignCode(
-            variable_code_name = variable_declaration,
-            needs_release      = needs_release,
-            tmp_name           = tmp_name,
-            ref_count          = ref_count,
-            in_place           = in_place,
-            emit               = emit
-        )
+    variable_declaration.getCType().emitLocalVariableAssignCode(
+        value_name    = variable_declaration,
+        needs_release = needs_release,
+        tmp_name      = tmp_name,
+        ref_count     = ref_count,
+        in_place      = in_place,
+        emit          = emit,
+        context       = context
+    )
 
-        if ref_count:
-            context.removeCleanupTempName(tmp_name)
+    if ref_count:
+        context.removeCleanupTempName(tmp_name)
 
 
 def getVariableDelCode(variable, variable_trace, previous_trace, tolerant,
