@@ -49,8 +49,8 @@ from .CTypeBases import CTypeBase
 
 class CPythonPyObjectPtrBase(CTypeBase):
     @classmethod
-    def emitLocalVariableAssignCode(cls, value_name, needs_release, tmp_name,
-                                    ref_count, in_place, emit, context):
+    def emitVariableAssignCode(cls, value_name, needs_release, tmp_name,
+                               ref_count, in_place, emit, context):
         if in_place:
             # Releasing is not an issue here, local variable reference never
             # gave a reference, and the in-place code deals with possible
@@ -325,8 +325,8 @@ class CTypeCellObject(CTypeBase):
         )
 
     @classmethod
-    def emitLocalVariableAssignCode(cls, value_name, needs_release, tmp_name,
-                                    ref_count, in_place, emit, context):
+    def emitVariableAssignCode(cls, value_name, needs_release, tmp_name,
+                               ref_count, in_place, emit, context):
         if in_place:
             # Releasing is not an issue here, local variable reference never
             # gave a reference, and the in-place code deals with possible

@@ -66,7 +66,7 @@ class CTypeBase(object):
 
 
     @classmethod
-    def emitLocalVariableAssignCode(cls, value_name, needs_release, tmp_name,
+    def emitVariableAssignCode(cls, value_name, needs_release, tmp_name,
                                     ref_count, in_place, emit, context):
         """ Get code to assign local variable.
 

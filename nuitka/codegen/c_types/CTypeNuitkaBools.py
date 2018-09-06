@@ -27,8 +27,8 @@ class CTypeNuitkaBoolEnum(CTypeBase):
     c_type = "nuitka_bool"
 
     @classmethod
-    def emitLocalVariableAssignCode(cls, value_name, needs_release, tmp_name,
-                                    ref_count, in_place, emit, context):
+    def emitVariableAssignCode(cls, value_name, needs_release, tmp_name,
+                               ref_count, in_place, emit, context):
 
         assert not in_place
         assert not ref_count

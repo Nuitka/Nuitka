@@ -95,23 +95,6 @@ def generateDelVariableCode(statement, emit, context):
     context.setCurrentSourceCodeReference(old_source_ref)
 
 
-def generateVariableReleaseCode(statement, emit, context):
-    variable = statement.getVariable()
-
-    if variable.isSharedTechnically():
-        # TODO: We might start to not allocate the cell object, then a check
-        # would be due. But currently we always allocate it.
-        needs_check = False
-    else:
-        needs_check = not statement.variable_trace.mustHaveValue()
-
-    getVariableReleaseCode(
-        variable       = statement.getVariable(),
-        variable_trace = statement.getVariableTrace(),
-        needs_check    = needs_check,
-        emit           = emit,
-        context        = context
-    )
 
 
 def getVariableReferenceCode(to_name, variable, variable_trace, needs_check,
@@ -181,6 +164,7 @@ def generateVariableReferenceCode(to_name, expression, emit, context):
         context          = context
     )
 
+
 def _getVariableCodeName(in_context, variable):
     if in_context:
         # Closure case:
@@ -191,6 +175,7 @@ def _getVariableCodeName(in_context, variable):
         return "tmp_" + variable.getCodeName()
     else:
         return "var_" + variable.getCodeName()
+
 
 def getPickedCType(variable, variable_trace, context):
     """ Return type to use for specific context. """
@@ -350,7 +335,7 @@ def getVariableAssignmentCode(context, emit, variable, variable_trace,
         # occurs.
         assert not in_place or not variable.isTempVariable()
 
-    variable_declaration.getCType().emitLocalVariableAssignCode(
+    variable_declaration.getCType().emitVariableAssignCode(
         value_name    = variable_declaration,
         needs_release = needs_release,
         tmp_name      = tmp_name,
@@ -421,8 +406,26 @@ def _getVariableDelCode(variable, variable_trace, previous_trace, tolerant,
             )
 
 
+def generateVariableReleaseCode(statement, emit, context):
+    variable = statement.getVariable()
 
-def getVariableReleaseCode(variable, variable_trace, needs_check, emit, context):
+    if variable.isSharedTechnically():
+        # TODO: We might start to not allocate the cell object, then a check
+        # would be due. But currently we always allocate it.
+        needs_check = False
+    else:
+        needs_check = not statement.variable_trace.mustHaveValue()
+
+    _getVariableReleaseCode(
+        variable       = statement.getVariable(),
+        variable_trace = statement.getVariableTrace(),
+        needs_check    = needs_check,
+        emit           = emit,
+        context        = context
+    )
+
+
+def _getVariableReleaseCode(variable, variable_trace, needs_check, emit, context):
     assert not variable.isModuleVariable()
 
     variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
