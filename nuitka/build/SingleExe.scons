@@ -593,6 +593,8 @@ elif gcc_mode and found_gcc:
 else:
     c11_mode = False
 
+no_import_lib = False
+
 if msvc_mode:
     def getMsvcVersionString():
         import SCons.Tool.MSCommon.vc  # @UnresolvedImport
@@ -738,9 +740,17 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
     # can enable it. TODO: Does this cause a performance loss?
     env.Append(CCFLAGS = ["-fno-var-tracking"])
 
+def normalize_path(path):
+    return os.path.abspath(os.path.expanduser(path))
+
 if msvc_mode:
     env.Append(CCFLAGS = ["/EHsc", "/J", "/Gd"])
-    env.Append(LINKFLAGS = ["/INCREMENTAL:NO"])
+    env.Append(LINKFLAGS = [
+        "/INCREMENTAL:NO",
+        "/IMPLIB:{}".format(os.path.join(source_dir, "import.lib"))
+    ])
+
+    no_import_lib = True
 
     # Stack size 4MB or 8MB, we need more than the default 1MB.
     if target_arch == "x86_64":
@@ -1660,7 +1670,8 @@ if module_mode:
 
     target = env.SharedLibrary(
         result_basepath,
-        source_files  + source_targets
+        source_files  + source_targets,
+        no_import_lib = no_import_lib
     )
 else:
     target = env.Program(
