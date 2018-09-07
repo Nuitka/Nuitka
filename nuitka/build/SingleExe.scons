@@ -272,14 +272,10 @@ blacklisted_tools = (
     "sccs",
     "rcs",
     "cvs"
+    "as",
+    "gas",
+    "nasm",
 )
-
-if win_target:
-    blacklisted_tools += (
-        "as",
-        "gas",
-        "nasm",
-    )
 
 # From gcc.py of Scons
 def detectVersion(env, cc):
