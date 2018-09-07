@@ -408,12 +408,26 @@ independent of what it really is."""
 
 parser.add_option_group(codegen_group)
 
-outputdir_group = OptionGroup(
+output_group = OptionGroup(
     parser,
     "Output choices"
 )
 
-outputdir_group.add_option(
+output_group.add_option(
+    "-o",
+    action  = "store",
+    dest    = "output_filename",
+    metavar = "FILENAME",
+    default = None,
+    help    = """\
+Specify how the executable should be named. For extension modules there is no
+choice, also not for standalone mode and using it will be an error. This may
+include path information that needs to exist though. Defaults to %s on this
+platform.
+""" % "<program_name>" + (".exe" if Utils.getOS() == "Windows" else ".bin")
+)
+
+output_group.add_option(
     "--output-dir",
     action  = "store",
     dest    = "output_dir",
@@ -426,7 +440,7 @@ Defaults to current directory.
 """
 )
 
-outputdir_group.add_option(
+output_group.add_option(
     "--remove-output",
     action  = "store_true",
     dest    = "remove_build",
@@ -436,7 +450,7 @@ Removes the build directory after producing the module or exe file.
 Defaults to off."""
 )
 
-outputdir_group.add_option(
+output_group.add_option(
     "--no-pyi-file",
     action  = "store_false",
     dest    = "pyi_file",
@@ -446,9 +460,7 @@ Do not create a ".pyi" file for extension modules created by Nuitka.
 Defaults to off."""
 )
 
-
-
-parser.add_option_group(outputdir_group)
+parser.add_option_group(output_group)
 
 
 windows_group = OptionGroup(
@@ -882,6 +894,15 @@ Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" %
     if scons_python is not None and not os.path.exists(scons_python):
         sys.exit("Error, no such Python2 binary '%s'." % scons_python)
 
+    if options.output_filename is not None and \
+       (isStandaloneMode() or shallMakeModule()):
+        sys.exit(
+            """\
+Error, can only specify output filename for acceleration mode, not for module
+mode where filenames are mandatory, and not for standalone where there is a
+sane default used inside the dist folder."""
+        )
+
 
 def isVerbose():
     return options.verbose
@@ -1030,6 +1051,10 @@ def isProfile():
 
 def shallCreateGraph():
     return options.graph
+
+
+def getOutputFilename():
+    return options.output_filename
 
 
 def getOutputPath(path):

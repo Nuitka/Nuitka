@@ -67,6 +67,9 @@ nuitka_cache = ARGUMENTS["nuitka_cache"]
 # The name of executable or extension module that we produce.
 result_basepath = ARGUMENTS["result_name"]
 
+# The name of executable or extension module that we produce.
+result_exe = ARGUMENTS.get("result_exe", None)
+
 def getBoolOption(option_name, default = None):
     """ Small helper for boolean mode flags."""
     if default is None:
@@ -1660,7 +1663,7 @@ if module_mode:
     )
 else:
     target = env.Program(
-        result_basepath + ".exe",
+        result_exe,
         source_files + source_targets
     )
 
@@ -1770,7 +1773,7 @@ if uninstalled_python:
                 "-change",
                 python_dll_filename,
                 os.path.join(python_lib_path, python_dll_filename),
-                result_basepath + ".exe"
+                result_exe
             ),
             stdout = subprocess.PIPE
         )

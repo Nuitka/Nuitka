@@ -225,7 +225,7 @@ for filename in sorted(os.listdir('.')):
     loaded_filenames = getRuntimeTraceOfLoadedFiles(
         path = os.path.join(
             filename[:-3] + ".dist",
-            filename[:-3] + ".exe"
+            filename[:-3] + (".exe" if os.name == "nt" else "")
         )
     )
 
