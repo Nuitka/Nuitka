@@ -217,6 +217,12 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
             "%s = Py_None;" % result_name
         )
 
+        # This conversion will not use it, and since it is borrowed, debug mode
+        # would otherwise complain.
+        if to_name.c_type == "void":
+            result_name.maybe_unused = True
+
+
 
 def generateBuiltinSetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(

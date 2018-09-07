@@ -47,7 +47,8 @@ class CTypeVoid(CTypeBase):
     def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
         # We have no storage, the original user will cleanup after itself. This
         # is the main point of the whole type.
-        pass
+        from ..ErrorCodes import getReleaseCode
+        getReleaseCode(value_name, emit, context)
 
     @classmethod
     def getInitValue(cls, init_from):

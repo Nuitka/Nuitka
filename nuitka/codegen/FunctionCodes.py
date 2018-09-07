@@ -23,7 +23,6 @@ from nuitka.PythonVersions import python_version
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
 from .CodeHelpers import (
-    decideConversionCheckNeeded,
     generateExpressionCode,
     generateStatementSequenceCode,
     withObjectCodeTemporaryAssignment
@@ -708,8 +707,6 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     old_return_target = context.setReturnTarget(return_target)
 
     # TODO: Put the return value name as that to_name.c_type too.
-    return_value_name = context.allocateTempName("outline_return_value")
-    old_return_value_name = context.setReturnValueName(return_value_name)
 
     if expression.isExpressionOutlineFunctionBodyBase() and \
        expression.getBody().mayRaiseException(BaseException):
@@ -718,41 +715,36 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     else:
         exception_target = None
 
-    generateStatementSequenceCode(
-        statement_sequence = expression.getBody(),
-        emit               = emit,
-        context            = context,
-        allow_none         = False
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "outline_return_value", expression, emit, context) \
+      as return_value_name:
+        old_return_value_name = context.setReturnValueName(return_value_name)
 
-    getMustNotGetHereCode(
-        reason  = "Return statement must have exited already.",
-        context = context,
-        emit    = emit
-    )
+        generateStatementSequenceCode(
+            statement_sequence = expression.getBody(),
+            emit               = emit,
+            context            = context,
+            allow_none         = False
+        )
 
-    if exception_target is not None:
-        getLabelCode(exception_target, emit)
+        context.addCleanupTempName(return_value_name)
 
-        context.setCurrentSourceCodeReference(expression.getSourceReference())
+        getMustNotGetHereCode(
+            reason  = "Return statement must have exited already.",
+            context = context,
+            emit    = emit
+        )
 
-        emitErrorLineNumberUpdateCode(emit, context)
-        getGotoCode(old_exception_target, emit)
+        if exception_target is not None:
+            getLabelCode(exception_target, emit)
 
-        context.setExceptionEscape(old_exception_target)
+            context.setCurrentSourceCodeReference(expression.getSourceReference())
 
-    getLabelCode(return_target, emit)
+            emitErrorLineNumberUpdateCode(emit, context)
+            getGotoCode(old_exception_target, emit)
 
-    to_name.getCType().emitAssignConversionCode(
-        to_name     = to_name,
-        value_name  = return_value_name,
-        needs_check = decideConversionCheckNeeded(to_name, expression),
-        emit        = emit,
-        context     = context
-    )
+            context.setExceptionEscape(old_exception_target)
 
-    if to_name.c_type == "PyObject *":
-        context.addCleanupTempName(to_name)
+        getLabelCode(return_target, emit)
 
     # Restore previous "return" handling.
     context.setReturnTarget(old_return_target)

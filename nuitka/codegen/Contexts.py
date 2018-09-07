@@ -288,6 +288,7 @@ class TempMixin(object):
 
     def addCleanupTempName(self, tmp_name):
         assert tmp_name not in self.cleanup_names[-1], tmp_name
+        assert tmp_name.c_type != "void"
 
         self.cleanup_names[-1].append(tmp_name)
 
