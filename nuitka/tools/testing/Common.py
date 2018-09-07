@@ -528,6 +528,14 @@ Error, needs 'strace' on your system to scan used libraries."""
         )
 
         _stdout_strace, stderr_strace = process.communicate()
+        exit_strace = process.returncode
+
+        if exit_strace != 0:
+            if str is not bytes:
+                stderr_strace = stderr_strace.decode("utf8")
+
+            my_print(stderr_strace, file = sys.stderr)
+            sys.exit("Failed to run strace.")
 
         open(path+".strace","wb").write(stderr_strace)
 
