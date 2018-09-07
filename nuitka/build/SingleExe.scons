@@ -748,7 +748,6 @@ if msvc_mode:
         "/IMPLIB:{}\\{}.lib".format(normalize_path(source_dir), result_basepath)
     ])
 
-    print(env["LINKFLAGS"])
     # Stack size 4MB or 8MB, we need more than the default 1MB.
     if target_arch == "x86_64":
         env.Append(CCFLAGS = ["/F8388608"])
