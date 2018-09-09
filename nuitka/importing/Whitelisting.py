@@ -81,7 +81,7 @@ def getModuleWhiteList():
         "distutils.tests", "distutils.mwerkscompiler",
 
         # test_docxmlrpc.py
-        "xmlrpc.server",
+        "xmlrpc",
 
         # test_emails.py
         "email.test.test_email", "email.test.test_email_renamed",
@@ -164,6 +164,9 @@ def getModuleWhiteList():
         # test_platform.py
         "gestalt",
 
+        # test_pickleable.py
+        "email.headerregistry",
+
         # test_pkg.py
         "t1", "t2", "t2.sub", "t2.sub.subsub", "t3.sub.subsub", "t5", "t6",
         "t7", "t7.sub", "t7.sub.subsub", "t8", "t3.sub", "t3",
@@ -171,6 +174,9 @@ def getModuleWhiteList():
         # test_pkgutil.py
         "foo", "foo.bar", "foo.baz", "zipimport", "pkg", "pkg.subpkg",
         "pkg.subpkg.c", "pkg.subpkg.d",
+
+        # test_policy.py
+        "email.policy",
 
         # test_urllib.py
         "urllib.parse",
