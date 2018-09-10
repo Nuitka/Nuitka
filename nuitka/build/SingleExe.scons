@@ -593,6 +593,8 @@ elif gcc_mode and found_gcc:
 else:
     c11_mode = False
 
+no_import_lib = False
+
 if msvc_mode:
     def getMsvcVersionString():
         import SCons.Tool.MSCommon.vc  # @UnresolvedImport
@@ -747,6 +749,8 @@ if msvc_mode:
         "/INCREMENTAL:NO",
         "/IMPLIB:{}\\{}.lib".format(normalize_path(source_dir), result_basepath)
     ])
+
+    no_import_lib = True
 
     # Stack size 4MB or 8MB, we need more than the default 1MB.
     if target_arch == "x86_64":
@@ -1667,7 +1671,7 @@ if module_mode:
     target = env.SharedLibrary(
         result_basepath,
         source_files  + source_targets,
-        no_import_lib=True
+        no_import_lib = no_import_lib
     )
 else:
     target = env.Program(
