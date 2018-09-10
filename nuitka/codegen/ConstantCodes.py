@@ -908,6 +908,8 @@ def getConstantsInitCode(context):
 
 
 def getConstantsDeclCode(context):
+    from nuitka import Options
+
     statements = []
 
     # Sort items by length and name, so we are deterministic and pretty.
@@ -1040,6 +1042,8 @@ def getModuleConstantCode(constant):
 constant_counts = {}
 
 def getConstantInitCodes(module_context):
+    from nuitka import Options
+
     decls = []
     inits = SourceCodeCollector()
     checks = SourceCodeCollector()
@@ -1143,6 +1147,8 @@ def getConstantsDefinitionCode(context):
         than one module) and create them.
 
     """
+    from nuitka import Options
+
     constant_inits, constant_checks = getConstantsInitCode(
         context = context
     )
