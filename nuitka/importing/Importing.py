@@ -321,6 +321,8 @@ def _findModuleInPath2(module_name, search_path):
 
     # We may have to decide between package and module, therefore build
     # a list of candidates.
+    from nuitka import Options
+
     candidates = OrderedSet()
 
     considered = set()
