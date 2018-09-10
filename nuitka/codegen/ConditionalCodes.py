@@ -20,8 +20,6 @@
 Branches, conditions, truth checks.
 """
 
-from nuitka import Options
-
 from .AttributeCodes import getAttributeCheckBoolCode
 from .CodeHelpers import generateExpressionCode
 from .ComparisonCodes import (
@@ -34,6 +32,8 @@ from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
 
 
 def generateConditionCode(condition, emit, context):
+    from nuitka import Options
+
     # The complexity is needed to avoid unnecessary complex generated C
     # pylint: disable=too-many-locals,too-many-statements
 

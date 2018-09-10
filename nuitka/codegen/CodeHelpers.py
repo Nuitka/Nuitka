@@ -22,7 +22,6 @@ typical support functions to building parts.
 
 """
 
-from nuitka.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
 
@@ -195,6 +194,8 @@ def generateStatementCode(statement, emit, context):
 
 
 def _generateStatementSequenceCode(statement_sequence, emit, context):
+    from nuitka.Options import shallTraceExecution
+
     if statement_sequence is None:
         return
 

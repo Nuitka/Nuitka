@@ -20,8 +20,6 @@
 Attribute lookup, setting.
 """
 
-from nuitka import Options
-
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .LabelCodes import getBranchingCode
@@ -29,6 +27,8 @@ from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
 
 def generateAssignmentAttributeCode(statement, emit, context):
+    from nuitka import Options
+
     lookup_source  = statement.getLookupSource()
     attribute_name = statement.getAttributeName()
     value          = statement.getAssignSource()

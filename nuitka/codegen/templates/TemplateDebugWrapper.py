@@ -22,7 +22,6 @@ This wraps strings with a class derived from "str" that does more checks.
 
 
 from nuitka.__past__ import iterItems
-from nuitka.Options import isDebug
 
 
 def enableDebug(globals_dict):
@@ -75,5 +74,7 @@ def enableDebug(globals_dict):
             )
 
 def checkDebug(globals_dict):
+    from nuitka.Options import isDebug
+
     if isDebug():
         enableDebug(globals_dict)

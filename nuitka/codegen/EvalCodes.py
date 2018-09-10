@@ -17,7 +17,6 @@
 #
 """ Eval/exec/execfile/compile built-in related codes. """
 
-from nuitka import Options
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 from nuitka.PythonVersions import python_version
 
@@ -242,6 +241,8 @@ def getBuiltinEvalCode(to_name, source_name, filename_name, globals_name,
 
 
 def generateExecCode(statement, emit, context):
+    from nuitka import Options
+
     source_arg = statement.getSourceCode()
     globals_arg = statement.getGlobals()
     locals_arg = statement.getLocals()

@@ -21,7 +21,6 @@ There is special handling for integer indexes, which can be dealt with
 much faster than general subscript lookups.
 """
 
-from nuitka import Options
 from nuitka.Constants import isIndexConstant
 
 from .CodeHelpers import (
@@ -33,6 +32,8 @@ from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 
 
 def generateAssignmentSubscriptCode(statement, emit, context):
+    from nuitka import Options
+
     subscribed      = statement.getSubscribed()
     subscript       = statement.getSubscript()
     value           = statement.getAssignSource()
@@ -101,6 +102,8 @@ def generateAssignmentSubscriptCode(statement, emit, context):
 
 
 def generateDelSubscriptCode(statement, emit, context):
+    from nuitka import Options
+
     subscribed = statement.getSubscribed()
     subscript  = statement.getSubscript()
 

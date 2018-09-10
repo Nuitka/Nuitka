@@ -19,7 +19,6 @@
 
 """
 
-from nuitka.Options import isExperimental
 
 from .c_types.CTypePyObjectPtrs import (
     CTypeCellObject,
@@ -118,10 +117,10 @@ def _getVariableCodeName(in_context, variable):
     else:
         return "var_" + variable.getCodeName()
 
-enable_bool_ctype = isExperimental("enable_bool_ctype")
 
 def getPickedCType(variable, variable_trace, context):
     """ Return type to use for specific context. """
+    from nuitka.Options import isExperimental
 
     user = context.getEntryPoint()
     owner = variable.getEntryPoint()
@@ -130,7 +129,7 @@ def getPickedCType(variable, variable_trace, context):
         if variable.isSharedTechnically():
             result = CTypeCellObject
         else:
-            if enable_bool_ctype:
+            if isExperimental("enable_bool_ctype"):
                 shapes = variable.getTypeShapes()
 
                 if len(shapes) > 1:

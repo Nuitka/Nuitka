@@ -21,8 +21,6 @@ Exceptions from other operations are consider ErrorCodes domain.
 
 """
 
-from nuitka.Options import isDebug
-
 from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
 from .ErrorCodes import getFrameVariableTypeDescriptionCode
 from .LabelCodes import getGotoCode
@@ -185,6 +183,8 @@ def generateRaiseCode(statement, emit, context):
 
 
 def generateRaiseExpressionCode(to_name, expression, emit, context):
+    from nuitka.Options import isDebug
+
     arg_names = generateChildExpressionsCode(
         expression = expression,
         emit       = emit,

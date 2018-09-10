@@ -34,7 +34,6 @@ import struct
 import sys
 from logging import warning
 
-from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     iterItems,
     long,
@@ -304,6 +303,7 @@ def _addConstantInitCode(context, emit, check, constant_type, constant_value,
         constants belong into the same scope.
     """
     # Got a couple of values to dodge, pylint: disable=too-many-return-statements
+    from nuitka import Options
 
     if constant_value is None:
         return

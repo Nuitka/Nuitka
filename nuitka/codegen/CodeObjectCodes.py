@@ -22,7 +22,6 @@ Right now only the creation is done here. But more should be added later on.
 
 import os
 
-from nuitka import Options
 from nuitka.PythonVersions import python_version
 
 
@@ -41,6 +40,8 @@ def getCodeObjectsDeclCode(context):
     return statements
 
 def getCodeObjectsInitCode(context):
+    from nuitka import Options
+
     # There is a bit of details to this, code objects have many flags to deal
     # with, and we are making some optimizations as well as customization to
     # what path should be put there, pylint: disable=too-many-branches
