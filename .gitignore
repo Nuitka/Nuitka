@@ -10,6 +10,7 @@
 *.o
 *.os
 *.so
+*.dll
 *.pyd
 *.pyi
 *.exe
