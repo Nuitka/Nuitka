@@ -24,14 +24,15 @@ class.
 This is going to expanded with time.
 
 """
-from nuitka.Options import isShowMemory
 from nuitka.Tracing import printIndented, printLine
 
 counted_inits = {}
 counted_dels = {}
 
 def counted_init(init):
-    if isShowMemory():
+    from nuitka import Options
+
+    if Options.isShowMemory():
         def wrapped_init(self, *args, **kw):
             name = self.__class__.__name__
             assert type(name) is str
@@ -50,7 +51,9 @@ def counted_init(init):
 empty_del = lambda x : 0
 
 def counted_del(del_func = empty_del):
-    if isShowMemory():
+    from nuitka import Options
+
+    if Options.isShowMemory():
         def wrapped_del(self):
             # This cannot be necessary, because in program finalization, the
             # global variables were assign to None.

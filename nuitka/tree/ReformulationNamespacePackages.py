@@ -22,7 +22,6 @@ Namespace packages of Python3.3 or higher
 
 import os
 
-from nuitka import Options
 from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.CallNodes import ExpressionCallNoKeywords
@@ -49,6 +48,8 @@ from .VariableClosure import completeVariableClosures
 
 
 def createPathAssignment(package, source_ref):
+    from nuitka import Options
+
     if Options.getFileReferenceMode() == "original":
         path_value = makeConstantRefNode(
             constant      = [

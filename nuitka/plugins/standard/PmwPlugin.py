@@ -23,7 +23,6 @@ import os
 import re
 import sys
 
-from nuitka import Options
 from nuitka.__past__ import StringIO
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils.FileOperations import listDir
@@ -188,6 +187,7 @@ class NuitkaPluginDetectorPmw(NuitkaPluginBase):
 
     @staticmethod
     def isRelevant():
+        from nuitka import Options
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):

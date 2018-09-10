@@ -27,7 +27,6 @@ from abc import abstractmethod
 
 from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
 from nuitka.Constants import isCompileTimeConstantValue
-from nuitka.Options import isFullCompat
 from nuitka.PythonVersions import python_version
 
 from .NodeBases import ChildrenHavingMixin, NodeBase
@@ -428,6 +427,8 @@ class ExpressionBase(NodeBase):
         return long_node, None, None
 
     def computeExpressionFloat(self, float_node, trace_collection):
+        from nuitka.Options import isFullCompat
+
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotFloat() is False:
@@ -474,6 +475,8 @@ class ExpressionBase(NodeBase):
         return bytes_node, None, None
 
     def computeExpressionComplex(self, complex_node, trace_collection):
+        from nuitka.Options import isFullCompat
+
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotComplex() is False:

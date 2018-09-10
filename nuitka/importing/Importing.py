@@ -42,7 +42,6 @@ import os
 import sys
 from logging import warning
 
-from nuitka import Options
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
@@ -52,7 +51,6 @@ from nuitka.utils.FileOperations import listDir
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
 from .Whitelisting import isWhiteListedNotExistingModule
 
-_debug_module_finding = Options.shallExplainImports()
 
 warned_about = set()
 
@@ -206,7 +204,9 @@ def findModule(importing, module_name, parent_package, level, warn):
 
     # We have many branches here, because there are a lot of cases to try.
     # pylint: disable=too-many-branches
-    if _debug_module_finding:
+    from nuitka import Options
+
+    if Options.shallExplainImports():
         print(
             "findModule: Enter to search %r in package %r level %s." % (
                 module_name,
@@ -249,7 +249,7 @@ def findModule(importing, module_name, parent_package, level, warn):
             # For relative import, that is OK, we will still try absolute.
             pass
         else:
-            if _debug_module_finding:
+            if Options.shallExplainImports():
                 print(
                     "findModule: Relative imported module '%s' as '%s' in filename '%s':" % (
                         module_name,
@@ -268,7 +268,7 @@ def findModule(importing, module_name, parent_package, level, warn):
 
         # Built-in module names must not be searched any further.
         if module_name in sys.builtin_module_names:
-            if _debug_module_finding:
+            if Options.shallExplainImports():
                 print(
                     "findModule: Absolute imported module '%s' in as built-in':" % (
                         module_name,
@@ -284,7 +284,7 @@ def findModule(importing, module_name, parent_package, level, warn):
             # For relative import, that is OK, we will still try absolute.
             pass
         else:
-            if _debug_module_finding:
+            if Options.shallExplainImports():
                 print(
                     "findModule: Found absolute imported module '%s' in filename '%s':" % (
                         module_name,
@@ -365,7 +365,7 @@ def _findModuleInPath2(module_name, search_path):
                 )
                 break
 
-    if _debug_module_finding:
+    if Options.shallExplainImports():
         print("Candidates", candidates)
 
     if candidates:
@@ -443,7 +443,9 @@ def getPackageSearchPath(package_name):
 
 
 def _findModuleInPath(module_name, package_name):
-    if _debug_module_finding:
+    from nuitka import Options
+
+    if Options.shallExplainImports():
         print("_findModuleInPath: Enter", module_name, "in", package_name)
 
     # The "site" module must be located based on PYTHONPATH before it was
@@ -461,7 +463,7 @@ def _findModuleInPath(module_name, package_name):
 
     search_path = getPackageSearchPath(package_name)
 
-    if _debug_module_finding:
+    if Options.shallExplainImports():
         print("_findModuleInPath: Using search path", search_path, "for", package_name)
 
     try:
@@ -480,7 +482,7 @@ def _findModuleInPath(module_name, package_name):
 
         return None
 
-    if _debug_module_finding:
+    if Options.shallExplainImports():
         print("_findModuleInPath: _findModuleInPath2 gave", module_filename)
 
     return module_filename
@@ -488,7 +490,9 @@ def _findModuleInPath(module_name, package_name):
 module_search_cache = {}
 
 def _findModule(module_name):
-    if _debug_module_finding:
+    from nuitka import Options
+
+    if Options.shallExplainImports():
         print(
             "_findModule: Enter to search '%s'." % (
                 module_name,
@@ -502,7 +506,7 @@ def _findModule(module_name):
     if key in module_search_cache:
         result = module_search_cache[key]
 
-        if _debug_module_finding:
+        if Options.shallExplainImports():
             print("_findModule: Cached result (see previous call).")
 
         if result is ImportError:

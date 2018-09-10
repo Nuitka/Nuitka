@@ -22,7 +22,7 @@
 import ast
 from logging import warning
 
-from nuitka import Constants, Options, Tracing
+from nuitka import Constants, Tracing
 from nuitka.nodes.CallNodes import makeExpressionCall
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
@@ -62,6 +62,8 @@ def getKind(node):
 
 
 def extractDocFromBody(node):
+    from nuitka import Options
+
     body = node.body
     doc = None
 
@@ -346,6 +348,8 @@ def buildNodeList(provider, nodes, source_ref, allow_none = False):
 
 
 def makeModuleFrame(module, statements, source_ref):
+    from nuitka import Options
+
     assert module.isCompiledPythonModule()
 
     if Options.isFullCompat():

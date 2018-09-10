@@ -23,8 +23,6 @@ are intended to allow for as much compile time optimization as possible,
 despite this difficulty.
 
 """
-from nuitka import Options
-
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionBase
 
@@ -63,6 +61,8 @@ class ExpressionModuleAttributeFileRef(ExpressionModuleAttributeBase):
     def computeExpressionRaw(self, trace_collection):
         # There is not a whole lot to do here, the path will change at run
         # time, but options may disable that and make it predictable.
+        from nuitka import Options
+
         if Options.getFileReferenceMode() != "runtime":
             result = makeConstantRefNode(
                 constant   = self.module.getRunTimeFilename(),
@@ -79,6 +79,7 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
 
     def computeExpressionRaw(self, trace_collection):
         # For binaries, we can know it definite, but not for modules.
+        from nuitka import Options
 
         if not Options.shallMakeModule():
             result = makeConstantRefNode(
@@ -96,6 +97,7 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
 
     def computeExpressionRaw(self, trace_collection):
         # For binaries, we can know it definite, but not for modules.
+        from nuitka import Options
 
         if not Options.shallMakeModule():
             provider = self.module

@@ -42,7 +42,6 @@ from nuitka.Constants import (
     isMutable,
     isNumberConstant
 )
-from nuitka.Options import isDebug
 
 from .ExpressionBases import CompileTimeConstantExpressionBase
 from .NodeMakingHelpers import (
@@ -76,6 +75,8 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
     __slots__ = "constant", "user_provided"
 
     def __init__(self, constant, source_ref, user_provided = False):
+        from nuitka.Options import isDebug
+
         CompileTimeConstantExpressionBase.__init__(
             self,
             source_ref = source_ref

@@ -30,7 +30,6 @@ from logging import warning
 
 from nuitka.Builtins import builtin_names
 from nuitka.Constants import isConstant
-from nuitka.Options import isDebug, shallWarnImplicitRaises
 from nuitka.PythonVersions import python_version
 
 
@@ -47,12 +46,13 @@ def makeRaiseExceptionReplacementExpression(expression, exception_type,
                                             exception_value):
     from .ExceptionNodes import ExpressionRaiseException
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+    from nuitka import Options
 
     source_ref = expression.getSourceReference()
 
     assert type(exception_type) is str
 
-    if shallWarnImplicitRaises():
+    if Options.shallWarnImplicitRaises():
         warning(
             '%s: Will always raise exception: "%s(%s)"',
             source_ref.getAsString(),
@@ -79,12 +79,13 @@ def makeRaiseExceptionReplacementStatement(statement, exception_type,
                                            exception_value):
     from .ExceptionNodes import StatementRaiseExceptionImplicit
     from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+    from nuitka import Options
 
     source_ref = statement.getSourceReference()
 
     assert type(exception_type) is str
 
-    if shallWarnImplicitRaises():
+    if Options.shallWarnImplicitRaises():
         warning(
             '%s: Will always raise exception: "%s(%s)"',
             source_ref.getAsString(),
@@ -235,6 +236,8 @@ def getComputationResult(node, computation, description):
     """
 
     # Try and turn raised exceptions into static raises. pylint: disable=broad-except
+    from nuitka import Options
+
     try:
         result = computation()
     except Exception as e:
@@ -251,7 +254,7 @@ def getComputationResult(node, computation, description):
             node  = node
         )
 
-        if isDebug():
+        if Options.isDebug():
             assert new_node is not node, (node, result)
 
         if new_node is not node:

@@ -22,7 +22,6 @@ source code comments with developer manual sections.
 
 """
 
-from nuitka import Options
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
@@ -72,6 +71,8 @@ from .TreeHelpers import (
 def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
                    sync, source_ref):
     # Many details, pylint: disable=too-many-locals
+    from nuitka import Options
+
     with_source = buildNode(provider, context_expr, source_ref)
 
     if Options.isFullCompat():

@@ -23,7 +23,6 @@ progress of optimization into images.
 
 from logging import warning
 
-from nuitka import Options
 from nuitka.ModuleRegistry import getDoneModules
 
 graph = None
@@ -50,6 +49,8 @@ def onModuleOptimizationStep(module):
 
 
 def startGraph():
+    from nuitka import Options
+
     # We maintain this globally to make it accessible, pylint: disable=global-statement
     global graph
 

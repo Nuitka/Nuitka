@@ -26,7 +26,7 @@ import os
 import sys
 from logging import debug, info, warning
 
-from nuitka import ModuleRegistry, Options
+from nuitka import ModuleRegistry
 from nuitka.importing import ImportCache, Importing, StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
@@ -35,6 +35,8 @@ from nuitka.utils.FileOperations import listDir, relpath
 
 
 def logRecursion(*args):
+    from nuitka import Options
+
     if Options.isShowInclusion():
         info(*args)
     else:
@@ -59,6 +61,7 @@ def _recurseTo(module_package, module_filename, module_relpath, module_kind,
               reason):
     from nuitka.tree import Building
     from nuitka.nodes.ModuleNodes import makeUncompiledPythonModule
+    from nuitka import Options
 
     module, source_ref, source_filename = Building.decideModuleTree(
         filename = module_filename,
@@ -176,6 +179,8 @@ def decideRecursion(module_filename, module_name, module_package, module_kind,
                     extra_recursion = False):
     # Many branches, which make decisions immediately, by returning
     # pylint: disable=too-many-branches,too-many-return-statements
+    from nuitka import Options
+
     if module_name == "__main__":
         return False, "Main program is not recursed to again."
 

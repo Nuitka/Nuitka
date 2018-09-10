@@ -29,7 +29,7 @@ Coroutines and generators live in their dedicated module and share base
 classes.
 """
 
-from nuitka import Options, Variables
+from nuitka import Variables
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import (
     ParameterSpec,
@@ -768,6 +768,7 @@ error""" % self.getName()
     def getCallCost(self, values):
         # TODO: Ought to use values. If they are all constant, how about we
         # assume no cost, pylint: disable=unused-argument
+        from nuitka import Options
 
         function_body = self.getFunctionRef().getFunctionBody()
 

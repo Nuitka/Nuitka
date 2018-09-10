@@ -33,7 +33,7 @@ are in another context.
 
 from logging import warning
 
-from nuitka import Options, Tracing
+from nuitka import Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.importing.Importing import isWhiteListedImport
 from nuitka.plugins.Plugins import Plugins
@@ -66,6 +66,8 @@ class FinalizeMarkups(FinalizationVisitorBase):
 
         # Also all self specific things have been done on the outside,
         # pylint: disable=no-self-use
+        from nuitka import Options
+
         if node.isStatementReturn() or node.isStatementGeneratorReturn():
             search = node
 

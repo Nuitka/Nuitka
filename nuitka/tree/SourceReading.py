@@ -25,7 +25,7 @@ import os
 import re
 import sys
 
-from nuitka import Options, SourceCodeReferences
+from nuitka import SourceCodeReferences
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version, python_version_str
@@ -129,6 +129,7 @@ def readSourceCodeFromFilename(module_name, source_filename):
 
 def checkPythonVersionFromCode(source_code):
     # There is a lot of cases to consider, pylint: disable=too-many-branches
+    from nuitka import Options
 
     shebang = getShebangFromSource(source_code)
 

@@ -34,7 +34,6 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.TryNodes import StatementTry
-from nuitka.Options import isDebug
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import (
@@ -71,6 +70,7 @@ def _checkCloning(final, provider):
 
 def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = False):
     # Complex handling, due to the many variants, pylint: disable=too-many-branches
+    from nuitka import Options
 
     if type(tried) in (tuple, list):
         if tried:
@@ -108,7 +108,7 @@ def makeTryFinallyStatement(provider, tried, final, source_ref, public_exc = Fal
 
     # TODO: Currently it's not possible anymore to get at XML for all codes
     # during the building phase. So this error catcher cannot work currently.
-    if False and isDebug():
+    if False and Options.isDebug():
         _checkCloning(final, provider)
 
     def getFinal():

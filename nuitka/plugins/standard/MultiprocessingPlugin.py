@@ -24,7 +24,6 @@ point to a "Python.exe" and won't use compiled code by default.
 The issue applies to accelerated and standalone mode alike.
 """
 
-from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils import Utils
 
@@ -171,6 +170,7 @@ class NuitkaPluginDetectorMultiprocessingWorkarounds(NuitkaPluginBase):
 
     @staticmethod
     def isRelevant():
+        from nuitka import Options
         return Utils.getOS() == "Windows" and not Options.shallMakeModule()
 
     def onModuleSourceCode(self, module_name, source_code):
