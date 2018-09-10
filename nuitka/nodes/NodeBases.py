@@ -45,9 +45,13 @@ from .NodeMetaClasses import NodeCheckMetaClass, NodeMetaClassBase
 class NodeBase(NodeMetaClassBase):
     __slots__ = "parent", "source_ref"
 
+    # TODO: Come up to make lazy evaluation here
     # Avoid the attribute unless it's really necessary.
-    from nuitka import Options
-    if Options.isFullCompat():
+    # from nuitka import Options
+    # if Options.isFullCompat():
+    #     __slots__ += ("effective_source_ref",)
+
+    if True:
         __slots__ += ("effective_source_ref",)
 
     # String to identify the node class, to be consistent with its name.

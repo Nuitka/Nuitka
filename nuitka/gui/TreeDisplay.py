@@ -29,6 +29,7 @@ from nuitka import SourceCodeReferences
 from PyQt5 import ( # isort:skip pylint: disable=I0021,import-error
     QtCore,   # @UnresolvedImport
     QtGui,   # @UnresolvedImport
+    QtWidgets, # @UnresolvedImport
     uic
 )
 
@@ -197,9 +198,9 @@ class NodeTreeModel(QtCore.QAbstractItemModel):
         return check(self.root_item)
 
 
-class InspectNodeTreeDialog(QtGui.QDialog):
+class InspectNodeTreeDialog(QtWidgets.QDialog):
     def __init__(self, *args):
-        QtGui.QDialog.__init__(self, *args)
+        QtWidgets.QDialog.__init__(self, *args)
 
         ui_dir = os.path.dirname(__file__)
         ui_filename = os.path.join(
@@ -217,11 +218,13 @@ class InspectNodeTreeDialog(QtGui.QDialog):
         self.model = None
         self.moving = None
 
+
     def setModel(self, model):
         self.treeview_nodes.setModel(model)
         self.treeview_nodes.expandAll()
 
-    @QtCore.pyqtSignature("on_treeview_nodes_clicked(QModelIndex)")
+    # TODO: Update to pyqt5 properly
+    # @QtCore.pyqtSlot("on_treeview_nodes_clicked(QModelIndex)")
     def onTreeviewNodesClicked(self, item):
         tree_path = []
 
@@ -244,7 +247,8 @@ class InspectNodeTreeDialog(QtGui.QDialog):
 
         self.moving = False
 
-    @QtCore.pyqtSignature("on_textedit_source_cursorPositionChanged()")
+    # TODO: Update to pyqt5 properly
+    # @QtCore.pyqtSlot("on_textedit_source_cursorPositionChanged()")
     def onTexteditSourceCursorMoved(self):
         if self.moving:
             return
