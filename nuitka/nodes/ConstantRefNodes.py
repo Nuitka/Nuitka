@@ -75,7 +75,7 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
     __slots__ = "constant", "user_provided"
 
     def __init__(self, constant, source_ref, user_provided = False):
-        from nuitka.Options import isDebug
+        from nuitka import Options
 
         CompileTimeConstantExpressionBase.__init__(
             self,
@@ -89,7 +89,7 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
         # Memory saving method, have the attribute only where necessary.
         self.user_provided = user_provided
 
-        if not user_provided and isDebug():
+        if not user_provided and Options.isDebug():
             try:
                 if type(constant) in (str, unicode, bytes):
                     max_size = 1000

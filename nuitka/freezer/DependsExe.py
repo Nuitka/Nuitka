@@ -41,7 +41,7 @@ def getDependsExePath():
         Will prompt the user to download if not already cached in AppData
         directory for Nuitka.
     """
-    from nuitka.Options import assumeYesForDownloads
+    from nuitka import Options
 
     if Utils.getArchitecture() == "x86":
         depends_url = "http://dependencywalker.com/depends22_x86.zip"
@@ -65,7 +65,7 @@ def getDependsExePath():
     makePath(nuitka_depends_dir)
 
     if not os.path.isfile(nuitka_depends_zip) and not os.path.isfile(depends_exe):
-        if assumeYesForDownloads():
+        if Options.assumeYesForDownloads():
             reply = 'y'
         else:
             Tracing.printLine(

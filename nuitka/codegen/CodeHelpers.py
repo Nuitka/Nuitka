@@ -194,13 +194,13 @@ def generateStatementCode(statement, emit, context):
 
 
 def _generateStatementSequenceCode(statement_sequence, emit, context):
-    from nuitka.Options import shallTraceExecution
+    from nuitka import Options
 
     if statement_sequence is None:
         return
 
     for statement in statement_sequence.getStatements():
-        if shallTraceExecution():
+        if Options.shallTraceExecution():
             source_ref = statement.getSourceReference()
 
             statement_repr = repr(statement)

@@ -57,6 +57,8 @@ def signalChange(tags, source_ref, message):
     """ Indicate a change to the optimization framework.
 
     """
+    from nuitka import Options
+
     if message is not None:
         # Try hard to not call a delayed evaluation of node descriptions.
 
@@ -132,6 +134,7 @@ def optimizeCompiledPythonModule(module):
 
 
 def optimizeUncompiledPythonModule(module):
+    from nuitka import Options
     if Options.isShowProgress():
         info(
             "Doing module dependency considerations for '{module_name}':".format(
@@ -420,6 +423,7 @@ def makeOptimizationPass(initial_pass):
 
     """
     # Controls complex optimization, pylint: disable=too-many-branches
+    from nuitka import Options
 
     finished = True
 

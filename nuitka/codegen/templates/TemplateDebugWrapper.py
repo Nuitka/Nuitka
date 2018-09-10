@@ -74,7 +74,7 @@ def enableDebug(globals_dict):
             )
 
 def checkDebug(globals_dict):
-    from nuitka.Options import isDebug
+    from nuitka import Options
 
-    if isDebug():
+    if Options.isDebug():
         enableDebug(globals_dict)
