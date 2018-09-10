@@ -84,6 +84,8 @@ def generateAssignmentAttributeCode(statement, emit, context):
 
 
 def generateDelAttributeCode(statement, emit, context):
+    from nuitka import Options
+
     target_name = context.allocateTempName("attrdel_target")
 
     generateExpressionCode(
