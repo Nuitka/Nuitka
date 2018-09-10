@@ -260,6 +260,8 @@ def generateAssignmentSliceCode(statement, emit, context):
 
 
 def generateDelSliceCode(statement, emit, context):
+    from nuitka import Options
+
     assert python_version < 300
 
     target  = statement.getLookupSource()
