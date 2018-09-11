@@ -246,6 +246,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pkg_resources._vendor.packaging.version"
             yield "pkg_resources._vendor.packaging.specifiers"
             yield "pkg_resources._vendor.packaging.requirements"
+        elif full_name == "uvloop.loop":
+            yield "uvloop._noop"
 
 
     # We don't care about line length here, pylint: disable=line-too-long
