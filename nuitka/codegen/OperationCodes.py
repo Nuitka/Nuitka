@@ -22,6 +22,18 @@ of course types could play into it. Then there is also the added difficulty of
 in-place assignments, which have other operation variants.
 """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    ShapeTypeBytes,
+    ShapeTypeFloat,
+    ShapeTypeInt,
+    ShapeTypeList,
+    ShapeTypeLong,
+    ShapeTypeStr,
+    ShapeTypeTuple,
+    ShapeTypeUnicode
+)
+from nuitka.PythonVersions import python_version
+
 from . import OperatorCodes
 from .CodeHelpers import (
     generateChildExpressionsCode,
@@ -104,6 +116,21 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
         context     = context
     )
 
+# TODO: Have these for even more types, esp. long values, construct from the
+# list of keys the helper name automatically.
+_iadd_shape_to_helper = {
+    ShapeTypeList    : "BINARY_OPERATION_ADD_LIST_INPLACE",
+    ShapeTypeFloat   : "BINARY_OPERATION_ADD_FLOAT_INPLACE",
+    ShapeTypeTuple   : "BINARY_OPERATION_ADD_TUPLE_INPLACE",
+    ShapeTypeUnicode : "BINARY_OPERATION_ADD_UNICODE_INPLACE",
+}
+
+if python_version < 300:
+    _iadd_shape_to_helper[ShapeTypeInt] = "BINARY_OPERATION_ADD_INT_INPLACE"
+    _iadd_shape_to_helper[ShapeTypeStr] = "BINARY_OPERATION_ADD_STR_INPLACE"
+else:
+    _iadd_shape_to_helper[ShapeTypeLong] = "BINARY_OPERATION_ADD_LONG_INPLACE"
+    _iadd_shape_to_helper[ShapeTypeBytes] = "BINARY_OPERATION_ADD_BYTES_INPLACE"
 
 def _getOperationCode(to_name, expression, operator, arg_names, in_place,
                      needs_check, emit, context):
@@ -122,7 +149,11 @@ def _getOperationCode(to_name, expression, operator, arg_names, in_place,
     elif operator == "Add":
         helper = "BINARY_OPERATION_ADD"
     elif operator == "IAdd" and in_place:
-        helper = "BINARY_OPERATION_ADD_INPLACE"
+        helper = _iadd_shape_to_helper.get(
+            expression.getRight().getTypeShape(),
+            "BINARY_OPERATION_ADD_INPLACE"
+        )
+
     elif operator == "IMult" and in_place:
         helper = "BINARY_OPERATION_MUL_INPLACE"
     elif operator == "Sub":
