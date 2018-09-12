@@ -400,7 +400,11 @@ def getPackageSearchPath(package_name):
     assert main_path is not None
 
     if package_name is None:
-        return [os.getcwd(), main_path] + sys.path
+        return [os.getcwd(), main_path] + [
+            element or "." # empty means current directory
+            for element in
+            sys.path
+        ]
     elif '.' in package_name:
         parent_package_name, child_package_name = package_name.rsplit('.', 1)
 
