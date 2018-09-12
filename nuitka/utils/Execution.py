@@ -46,9 +46,12 @@ def callExec(args):
         del args[1]
 
         try:
-            sys.exit(
-                subprocess.call(args)
+            process = subprocess.Popen(
+                args = args,
             )
+            process.communicate()
+
+            sys.exit(process.wait())
         except KeyboardInterrupt:
             # There was a more relevant stack trace already, so abort this
             # right here, pylint: disable=protected-access
