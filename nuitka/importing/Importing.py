@@ -78,7 +78,8 @@ def isPackageDir(dirname):
         extra packages provided via "*.pth" file tricks by "site.py" loading.
     """
 
-    return os.path.isdir(dirname) and \
+    return "." not in os.path.basename(dirname) and \
+           os.path.isdir(dirname) and \
            (
                python_version >= 300 or
                os.path.isfile(os.path.join(dirname, "__init__.py")) or
