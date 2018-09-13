@@ -1,5 +1,11 @@
-Nuitka Release 0.5.33 (Draft)
+Nuitka Release 0.6.0 (Draft)
 =============================
+
+This release is not done yet.
+
+
+Nuitka Release 0.5.33
+=====================
 
 This release contains a bunch of fixes, most of which were previously released
 as part of hotfixes, and important new optimization.
