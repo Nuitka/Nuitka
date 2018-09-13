@@ -239,7 +239,8 @@ class ClassIteratorRejectingThrow:
         return next(self.my_iter)
 
     def throw(self, *args):
-        pass
+        # Some Python3.4 versions do normalize exceptions.
+        assert len(args) == 1 or sys.version_info < (3,5)
 
     __next__ = next
 

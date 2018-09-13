@@ -251,29 +251,29 @@ class ExpressionAttributeLookupSpecial(ExpressionAttributeLookup):
 class ExpressionBuiltinGetattr(ExpressionChildrenHavingBase):
     """ Built-in "getattr".
 
-        Typical code like this: getattr(source, attribute, default)
+        Typical code like this: getattr(object_arg, name, default)
 
         The default is optional, but computed before the lookup is done.
     """
 
     kind = "EXPRESSION_BUILTIN_GETATTR"
 
-    named_children = ("source", "attribute", "default")
+    named_children = ("object", "name", "default")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, object_arg, name, default, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
-                "source"    : object_arg,
-                "attribute" : name,
-                "default"   : default
+                "object"  : object_arg,
+                "name"    : name,
+                "default" : default
             },
             source_ref = source_ref
         )
 
-    getLookupSource = ExpressionChildrenHavingBase.childGetter("source")
-    getAttribute = ExpressionChildrenHavingBase.childGetter("attribute")
+    getLookupSource = ExpressionChildrenHavingBase.childGetter("object")
+    getAttribute = ExpressionChildrenHavingBase.childGetter("name")
     getDefault = ExpressionChildrenHavingBase.childGetter("default")
 
     def computeExpression(self, trace_collection):

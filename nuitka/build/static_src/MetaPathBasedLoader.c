@@ -36,6 +36,10 @@
 #include "nuitka/prelude.h"
 #include "nuitka/unfreezing.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 extern char *getDirname( char *path );
 
 // For Python3.3, the loader is a module attribute, so we need to make it

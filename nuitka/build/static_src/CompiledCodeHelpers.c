@@ -33,6 +33,7 @@
 #include "HelpersStrings.c"
 #include "HelpersImport.c"
 #include "HelpersClasses.c"
+#include "HelpersHeapStorage.c"
 
 
 #if PYTHON_VERSION < 300
@@ -963,6 +964,14 @@ void PRINT_CURRENT_EXCEPTION( void )
     PRINT_EXCEPTION( tstate->curexc_type, tstate->curexc_value, tstate->curexc_traceback );
 
 }
+
+void PRINT_PUBLISHED_EXCEPTION( void )
+{
+    PyThreadState *tstate = PyThreadState_GET();
+
+    PRINT_EXCEPTION( EXC_TYPE(tstate), EXC_VALUE(tstate), EXC_TRACEBACK(tstate) );
+}
+
 
 // TODO: Could be ported, the "printf" stuff would need to be split. On Python3
 // the normal C print output gets lost.

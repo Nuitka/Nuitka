@@ -1175,6 +1175,26 @@ class SideEffectsFromChildrenMixin(object):
 
         return tuple(result)
 
+    def computeExpressionDrop(self, statement, trace_collection):
+        # Expression only statement plays no role, pylint: disable=unused-argument
+
+        side_effects = self.extractSideEffects()
+
+        # TODO: Have a method for nicer output and remove existing overloads
+        # by using classes and prefer generic implementation here.
+        if side_effects:
+            return (
+                makeStatementOnlyNodesFromExpressions(side_effects),
+                "new_statements",
+                "Reduced unused %s to side effects." % self.kind
+            )
+        else:
+            return (
+                None,
+                "new_statements",
+                "Removed %s without side effects." % self.kind
+            )
+
 
 def makeChild(provider, child, source_ref):
     child_type = child.attrib.get("type")

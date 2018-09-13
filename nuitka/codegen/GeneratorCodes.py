@@ -19,30 +19,31 @@
 
 """
 
-from nuitka import Options
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import generateStatementSequenceCode
 from .Emission import SourceCodeCollector
 from .FunctionCodes import (
     finalizeFunctionLocalVariables,
+    getClosureCopyCode,
+    getFunctionQualnameObj,
     setupFunctionLocalVariables
 )
 from .Indentation import indented
 from .ModuleCodes import getModuleAccessCode
 from .templates.CodeTemplatesGeneratorFunction import (
     template_generator_exception_exit,
-    template_generator_making,
     template_generator_noexception_exit,
     template_generator_return_exit,
     template_genfunc_yielder_body_template,
-    template_genfunc_yielder_decl_template
+    template_genfunc_yielder_maker_decl,
+    template_make_generator
 )
-from .VariableCodes import getLocalVariableCodeType
+from .YieldCodes import getYieldReturnDispatchCode
 
 
 def getGeneratorObjectDeclCode(function_identifier):
-    return template_genfunc_yielder_decl_template % {
+    return template_genfunc_yielder_maker_decl % {
         "function_identifier" : function_identifier,
     }
 
@@ -51,9 +52,9 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
                            user_variables, outline_variables,
                            temp_variables, needs_exception_exit,
                            needs_generator_return):
-    # Due to the current experimental code, pylint: disable=too-many-locals
+    # A bit of details going on here, pylint: disable=too-many-locals
 
-    function_locals, function_cleanup = setupFunctionLocalVariables(
+    setupFunctionLocalVariables(
         context           = context,
         parameters        = None,
         closure_variables = closure_variables,
@@ -70,11 +71,17 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
         context            = context
     )
 
-    finalizeFunctionLocalVariables(context, function_locals, function_cleanup)
+    function_cleanup = finalizeFunctionLocalVariables(context)
 
     if needs_exception_exit:
+        exception_type, exception_value, exception_tb, _exception_lineno = \
+          context.variable_storage.getExceptionVariableDescriptions()
+
         generator_exit = template_generator_exception_exit % {
-            "function_cleanup" : indented(function_cleanup)
+            "function_cleanup" : indented(function_cleanup),
+            "exception_type"   : exception_type,
+            "exception_value"  : exception_value,
+            "exception_tb"     : exception_tb
         }
     else:
         generator_exit = template_generator_noexception_exit % {
@@ -82,108 +89,51 @@ def getGeneratorObjectCode(context, function_identifier, closure_variables,
         }
 
     if needs_generator_return:
-        generator_exit += template_generator_return_exit % {}
-
-    function_dispatch = [
-        "case %(index)d: goto yield_return_%(index)d;" % {
-            "index" : yield_index
+        generator_exit += template_generator_return_exit % {
+            "return_value" : context.getReturnValueName()
+                               if python_version >= 300 else
+                             None
         }
-        for yield_index in
-        range(context.getLabelCount("yield_return"), 0, -1)
-    ]
 
-    if function_dispatch:
-        function_dispatch.insert(0, "switch(generator->m_yield_return_index) {")
-        function_dispatch.append('}')
+    function_locals = context.variable_storage.makeCFunctionLevelDeclarations()
 
-    local_type_decl = []
-    local_type_init = []
-    local_reals = []
+    local_type_decl = context.variable_storage.makeCStructLevelDeclarations()
+    function_locals += context.variable_storage.makeCStructInits()
 
-    for decl in function_locals:
-        if decl.startswith("NUITKA_MAY_BE_UNUSED "):
-            decl = decl[21:]
+    generator_object_body = context.getOwner()
 
-        if decl.startswith("static"):
-            local_reals.append(decl)
-            continue
-
-        if decl in ("char const *type_description;", "PyObject *tmp_unused;"):
-            local_reals.append(decl)
-            continue
-
-        parts = decl.split('=')
-
-        if len(parts) == 1:
-            local_type_decl.append(decl)
-        else:
-            type_decl = parts[0].strip()
-            var_name = type_decl.split('*')[-1]
-            var_name = var_name.split(' ')[-1]
-
-            local_type_decl.append(type_decl)
-            local_type_init.append(
-                "local_variables->" + var_name + " =" + parts[1]
-            )
-
-    if Options.isExperimental("generator_goto"):
-        function_locals = local_reals + local_type_init
+    if local_type_decl:
+        heap_declaration = """\
+struct %(function_identifier)s_locals *generator_heap = \
+(struct %(function_identifier)s_locals *)generator->m_heap_storage;""" % {
+            "function_identifier" : function_identifier
+        }
+    else:
+        heap_declaration = ""
 
     return template_genfunc_yielder_body_template % {
-        "function_identifier"  : function_identifier,
-        "function_body"        : indented(function_codes.codes),
-        "function_local_types" : indented(local_type_decl),
-        "function_var_inits"   : indented(function_locals),
-        "function_dispatch"    : indented(function_dispatch),
-        "generator_exit"       : generator_exit
+        "function_identifier"    : function_identifier,
+        "function_body"          : indented(function_codes.codes),
+        "heap_declaration"       : indented(heap_declaration),
+        "function_local_types"   : indented(local_type_decl),
+        "function_var_inits"     : indented(function_locals),
+        "function_dispatch"      : indented(getYieldReturnDispatchCode(context)),
+        "generator_exit"         : generator_exit,
+        "generator_module"       : getModuleAccessCode(context),
+        "generator_name_obj"     : context.getConstantCode(
+            constant = generator_object_body.getFunctionName()
+        ),
+        "generator_qualname_obj" : getFunctionQualnameObj(generator_object_body, context),
+        "code_identifier"        : context.getCodeObjectHandle(
+            code_object = generator_object_body.getCodeObject()
+        ),
+        "closure_count"          : len(closure_variables)
     }
-
-
-def getClosureCopyCode(to_name, closure_variables, closure_type, context):
-    """ Get code to copy closure variables storage.
-
-    This gets used by generator/coroutine/asyncgen with varying "closure_type".
-    """
-    closure_copy = []
-
-    for count, (variable, variable_trace) in enumerate(closure_variables):
-        variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
-
-        target_cell_code = "((%s)%s)->m_closure[%d]" % (
-            closure_type,
-            to_name,
-            count
-        )
-
-        variable_c_type.getCellObjectAssignmentCode(
-            target_cell_code   = target_cell_code,
-            variable_code_name = variable_code_name,
-            emit               = closure_copy.append
-        )
-
-    closure_copy.append(
-        "assert( Py_SIZE( %s ) >= %s ); " % (
-            to_name,
-            len(closure_variables)
-        )
-    )
-
-    return closure_copy
 
 
 def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     generator_object_body = expression.getGeneratorRef().getFunctionBody()
 
-    generator_name_obj = context.getConstantCode(
-        constant = generator_object_body.getFunctionName()
-    )
-
-    if python_version < 350:
-        generator_qualname_obj = "NULL"
-    else:
-        generator_qualname_obj = context.getConstantCode(
-            constant = generator_object_body.getFunctionQualname()
-        )
 
     closure_variables = expression.getClosureVariableVersions()
 
@@ -195,17 +145,10 @@ def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     )
 
     emit(
-        template_generator_making % {
+        template_make_generator % {
             "closure_copy"           : indented(closure_copy, 0, True),
             "to_name"                : to_name,
             "generator_identifier"   : generator_object_body.getCodeName(),
-            "generator_module"       : getModuleAccessCode(context),
-            "generator_name_obj"     : generator_name_obj,
-            "generator_qualname_obj" : generator_qualname_obj,
-            "code_identifier"        : context.getCodeObjectHandle(
-                code_object = expression.getCodeObject()
-            ),
-            "closure_count"          : len(closure_variables)
         }
     )
 

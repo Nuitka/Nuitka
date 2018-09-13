@@ -290,7 +290,7 @@ Do not use Python3.6 even if available on the system. Default is %default."""
         dest    = "no37",
         default = False,
         help    = """\
-Do not use Python3.6 even if available on the system. Default is %default."""
+Do not use Python3.7 even if available on the system. Default is %default."""
     )
 
     parser.add_option(

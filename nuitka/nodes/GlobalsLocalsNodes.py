@@ -24,8 +24,6 @@ anymore, if we start to not know where their value goes.
 The "dir()" call without arguments is reformulated to locals or globals calls.
 """
 
-from nuitka.PythonVersions import python_version
-
 from .ConstantRefNodes import makeConstantRefNode
 from .DictionaryNodes import ExpressionKeyValuePair, ExpressionMakeDict
 from .ExpressionBases import ExpressionBase, ExpressionBuiltinSingleArgBase
@@ -73,18 +71,10 @@ class ExpressionBuiltinLocalsBase(ExpressionBase):
         del self.variable_traces
 
     def mayHaveSideEffects(self):
-        if python_version < 300:
-            return False
-
-        provider = self.getParentVariableProvider()
-
-        assert not provider.isCompiledPythonModule()
-
-        # TODO: That's not true.
-        return self.getParentVariableProvider().isExpressionClassBody()
+        return False
 
     def mayRaiseException(self, exception_type):
-        return self.mayHaveSideEffects()
+        return False
 
     def getVariableTraces(self):
         return self.variable_traces

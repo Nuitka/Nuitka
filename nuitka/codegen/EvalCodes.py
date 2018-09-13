@@ -181,7 +181,11 @@ def getBuiltinCompileCode(to_name, source_name, filename_name, mode_name,
     emit(
         "%s = COMPILE_CODE( %s );" % (
             to_name,
-            ", ".join(args)
+            ", ".join(
+                str(arg)
+                for arg in
+                args
+            )
         )
     )
 

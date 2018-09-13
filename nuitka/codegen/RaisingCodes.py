@@ -34,8 +34,6 @@ from .PythonAPICodes import getReferenceExportCode
 
 
 def generateReraiseCode(statement, emit, context):
-    context.markAsNeedsExceptionVariables()
-
     old_source_ref = context.setCurrentSourceCodeReference(
         value = statement.getCompatibleSourceReference()
     )
@@ -53,8 +51,6 @@ def generateRaiseCode(statement, emit, context):
     exception_value = statement.getExceptionValue()
     exception_tb    = statement.getExceptionTrace()
     exception_cause = statement.getExceptionCause()
-
-    context.markAsNeedsExceptionVariables()
 
     # Exception cause is only possible with simple raise form.
     if exception_cause is not None:
@@ -220,19 +216,25 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
 
 
 def getReRaiseExceptionCode(emit, context):
+    exception_type, exception_value, exception_tb, exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
+
     keeper_variables = context.getExceptionKeeperVariables()
 
     if keeper_variables[0] is None:
         emit(
             """\
-%(bool_res_name)s = RERAISE_EXCEPTION( &exception_type, &exception_value, &exception_tb );
+%(bool_res_name)s = RERAISE_EXCEPTION( &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s );
 if (unlikely( %(bool_res_name)s == false ))
 {
     %(update_code)s
 }
 """ % {
-                "bool_res_name" : context.getBoolResName(),
-                "update_code"   : getErrorLineNumberUpdateCode(context)
+                "exception_type"  : exception_type,
+                "exception_value" : exception_value,
+                "exception_tb"    : exception_tb,
+                "bool_res_name"   : context.getBoolResName(),
+                "update_code"     : getErrorLineNumberUpdateCode(context)
 
             }
         )
@@ -242,8 +244,9 @@ if (unlikely( %(bool_res_name)s == false ))
         if frame_handle:
             emit(
                 """\
-if (exception_tb && exception_tb->tb_frame == &%(frame_identifier)s->m_frame) \
-%(frame_identifier)s->m_frame.f_lineno = exception_tb->tb_lineno;""" % {
+if (%(exception_tb)s && %(exception_tb)s->tb_frame == &%(frame_identifier)s->m_frame) \
+%(frame_identifier)s->m_frame.f_lineno = %(exception_tb)s->tb_lineno;""" % {
+                    "exception_tb"     : exception_tb,
                     "frame_identifier" : context.getFrameHandle()
                 }
             )
@@ -257,15 +260,19 @@ if (exception_tb && exception_tb->tb_frame == &%(frame_identifier)s->m_frame) \
         emit(
             """\
 // Re-raise.
-exception_type = %(keeper_type)s;
-exception_value = %(keeper_value)s;
-exception_tb = %(keeper_tb)s;
-exception_lineno = %(keeper_lineno)s;
+%(exception_type)s = %(keeper_type)s;
+%(exception_value)s = %(keeper_value)s;
+%(exception_tb)s = %(keeper_tb)s;
+%(exception_lineno)s = %(keeper_lineno)s;
 """ %  {
-            "keeper_type"        : keeper_type,
-            "keeper_value"       : keeper_value,
-            "keeper_tb"          : keeper_tb,
-            "keeper_lineno"      : keeper_lineno
+            "exception_type"   : exception_type,
+            "exception_value"  : exception_value,
+            "exception_tb"     : exception_tb,
+            "exception_lineno" : exception_lineno,
+            "keeper_type"      : keeper_type,
+            "keeper_value"     : keeper_value,
+            "keeper_tb"        : keeper_tb,
+            "keeper_lineno"    : keeper_lineno
             }
         )
 
@@ -274,22 +281,31 @@ exception_lineno = %(keeper_lineno)s;
 
 def getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit,
                                    context):
-    context.markAsNeedsExceptionVariables()
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
-        "exception_type = %s;" % raise_type_name
+        "%s = %s;" % (
+            exception_type,
+            raise_type_name
+        )
     )
     getReferenceExportCode(raise_type_name, emit, context)
 
-    emit("exception_value = NULL;")
+    emit(
+        "%s = NULL;" % exception_value
+    )
 
     getReferenceExportCode(raise_cause_name, emit, context)
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        """\
-RAISE_EXCEPTION_WITH_CAUSE( &exception_type, &exception_value, &exception_tb, \
-%s );""" % raise_cause_name
+        "RAISE_EXCEPTION_WITH_CAUSE( &%s, &%s, &%s, %s );" % (
+            exception_type,
+            exception_value,
+            exception_tb,
+            raise_cause_name
+        )
     )
 
     emit(
@@ -305,16 +321,24 @@ RAISE_EXCEPTION_WITH_CAUSE( &exception_type, &exception_value, &exception_tb, \
 
 
 def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
-    context.markAsNeedsExceptionVariables()
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
 
     emit(
-        "exception_type = %s;" % raise_type_name
+        "%s = %s;" % (
+            exception_type,
+            raise_type_name
+        )
     )
     getReferenceExportCode(raise_type_name, emit, context)
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_WITH_TYPE( &exception_type, &exception_value, &exception_tb );"
+        "RAISE_EXCEPTION_WITH_TYPE( &%s, &%s, &%s );" % (
+            exception_type,
+            exception_value,
+            exception_tb
+        )
     )
 
     emit(
@@ -329,19 +353,31 @@ def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
 
 def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
                                    emit, context):
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
+
     emit(
-        "exception_type = %s;" % raise_type_name
+        "%s = %s;" % (
+            exception_type,
+            raise_type_name
+        )
     )
     getReferenceExportCode(raise_type_name, emit, context)
     emit(
-        "exception_value = %s;" % raise_value_name
+        "%s = %s;" % (
+            exception_value,
+            raise_value_name
+        )
     )
     getReferenceExportCode(raise_value_name, emit, context)
 
     emitErrorLineNumberUpdateCode(emit, context)
     emit(
-        "RAISE_EXCEPTION_%s( &exception_type, &exception_value, &exception_tb );" % (
-            ("IMPLICIT" if implicit else "WITH_VALUE")
+        "RAISE_EXCEPTION_%s( &%s, &%s, &%s );" % (
+            ("IMPLICIT" if implicit else "WITH_VALUE"),
+            exception_type,
+            exception_value,
+            exception_tb
         )
     )
 
@@ -359,21 +395,38 @@ def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
 
 def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
                                        raise_tb_name, emit, context):
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
+
     emit(
-        "exception_type = %s;" % raise_type_name
+        "%s = %s;" % (
+            exception_type,
+            raise_type_name
+        )
     )
     getReferenceExportCode(raise_type_name, emit, context)
     emit(
-        "exception_value = %s;" % raise_value_name
+        "%s = %s;" % (
+            exception_value,
+            raise_value_name
+        )
     )
     getReferenceExportCode(raise_value_name, emit, context)
+
     emit(
-        "exception_tb = (PyTracebackObject *)%s;" % raise_tb_name
+        "%s = (PyTracebackObject *)%s;" % (
+            exception_tb,
+            raise_tb_name
+        )
     )
     getReferenceExportCode(raise_tb_name, emit, context)
 
     emit(
-        "RAISE_EXCEPTION_WITH_TRACEBACK( &exception_type, &exception_value, &exception_tb);"
+        "RAISE_EXCEPTION_WITH_TRACEBACK( &%s, &%s, &%s);" % (
+            exception_type,
+            exception_value,
+            exception_tb
+        )
     )
 
     # If anything is wrong, that will be used.

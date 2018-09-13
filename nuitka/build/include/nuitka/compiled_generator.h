@@ -27,8 +27,6 @@
 // Another cornerstone of the integration into CPython. Try to behave as well as
 // normal generator objects do or even better.
 
-#include "fibers.h"
-
 // Status of the generator object.
 #ifdef __cplusplus
 enum Generator_Status {
@@ -50,10 +48,14 @@ struct Nuitka_GeneratorObject {
 
     PyObject *m_name;
 
+    // TODO: Only to make traceback for non-started throw
     PyObject *m_module;
 
 #if PYTHON_VERSION >= 350
     PyObject *m_qualname;
+#endif
+#if PYTHON_VERSION >= 300
+    // The value currently yielded from.
     PyObject *m_yieldfrom;
 #endif
 
@@ -77,14 +79,8 @@ struct Nuitka_GeneratorObject {
     _PyErr_StackItem m_exc_state;
 #endif
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
+    // The label index to resume after yield.
     int m_yield_return_index;
-#else
-    Fiber m_yielder_context;
-    Fiber m_caller_context;
-
-    // The yielded value, NULL in case of exception or return.
-    PyObject *m_yielded;
 
     // Returned value if yielded value is NULL, is
     // NULL if not a return
@@ -92,10 +88,12 @@ struct Nuitka_GeneratorObject {
     PyObject *m_returned;
 #endif
 
-#endif
+    /* The heap of generator objects at run time. */
+    void *m_heap_storage;
 
     /* Closure variables given, if any, we reference cells here. The last
-     * part is dynamically allocated, the array size differs per generator.
+     * part is dynamically allocated, the array size differs per generator
+     * and includes the heap storage.
      */
     Py_ssize_t m_closure_given;
     struct Nuitka_CellObject *m_closure[1];
@@ -103,17 +101,19 @@ struct Nuitka_GeneratorObject {
 
 extern PyTypeObject Nuitka_Generator_Type;
 
-#if _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
 typedef PyObject *(*generator_code)( struct Nuitka_GeneratorObject *, PyObject * );
-#else
-typedef void (*generator_code)( struct Nuitka_GeneratorObject * );
-#endif
 
-#if PYTHON_VERSION < 350
-extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject *name, PyCodeObject *code_object, Py_ssize_t closure_given );
-#else
-extern PyObject *Nuitka_Generator_New( generator_code code, PyObject *module, PyObject *name, PyObject *qualname, PyCodeObject *code_object, Py_ssize_t closure_given );
+extern PyObject *Nuitka_Generator_New(
+    generator_code code,
+    PyObject *module,
+    PyObject *name,
+#if PYTHON_VERSION >= 350
+    PyObject *qualname,
 #endif
+    PyCodeObject *code_object,
+    Py_ssize_t closure_given,
+    Py_ssize_t heap_storage_size
+);
 
 extern PyObject *Nuitka_Generator_qiter( struct Nuitka_GeneratorObject *generator, bool *finished );
 
@@ -127,48 +127,8 @@ static inline PyObject *Nuitka_Generator_GetName( PyObject *object )
     return ((struct Nuitka_GeneratorObject *)object)->m_name;
 }
 
-#ifndef _NUITKA_EXPERIMENTAL_GENERATOR_GOTO
-
-static inline PyObject *GENERATOR_YIELD( struct Nuitka_GeneratorObject *generator, PyObject *value )
+static inline void SAVE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *generator )
 {
-    CHECK_OBJECT( value );
-
-    generator->m_yielded = value;
-
-    Nuitka_Frame_MarkAsNotExecuting( generator->m_frame );
-
-    // Return to the calling context.
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-
-    Nuitka_Frame_MarkAsExecuting( generator->m_frame );
-
-    // Check for thrown exception.
-    if (unlikely( generator->m_exception_type ))
-    {
-        RESTORE_ERROR_OCCURRED(
-            generator->m_exception_type,
-            generator->m_exception_value,
-            generator->m_exception_tb
-        );
-
-        generator->m_exception_type = NULL;
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
-
-        return NULL;
-    }
-
-    CHECK_OBJECT( generator->m_yielded );
-    return generator->m_yielded;
-}
-
-#if PYTHON_VERSION >= 300
-static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *value )
-{
-    CHECK_OBJECT( value );
-
-    generator->m_yielded = value;
-
     /* Before Python3.7: When yielding from an exception handler in Python3,
      * the exception preserved to the frame is restored, while the current one
      * is put as there.
@@ -176,6 +136,7 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
      * Python3.7: The exception is preserved in the generator object itself
      * which has a new "m_exc_state" structure just for that.
      */
+
     PyThreadState *thread_state = PyThreadState_GET();
 
     PyObject *saved_exception_type = EXC_TYPE(thread_state);
@@ -206,26 +167,17 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
     generator->m_exc_state.exc_value = saved_exception_value;;
     generator->m_exc_state.exc_traceback = saved_exception_traceback;
 #endif
+}
 
-    Nuitka_Frame_MarkAsNotExecuting( generator->m_frame );
-
-    // Return to the calling context.
-    swapFiber( &generator->m_yielder_context, &generator->m_caller_context );
-
-    Nuitka_Frame_MarkAsExecuting( generator->m_frame );
-
+static inline void RESTORE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *generator )
+{
     // When returning from yield, the exception of the frame is preserved, and
     // the one that enters should be there.
-    thread_state = PyThreadState_GET();
+    PyThreadState *thread_state = PyThreadState_GET();
 
-    saved_exception_type = EXC_TYPE(thread_state);
-    saved_exception_value = EXC_VALUE(thread_state);
-    saved_exception_traceback = EXC_TRACEBACK(thread_state);
-
-#if _DEBUG_EXCEPTIONS
-    PRINT_STRING("YIELD return:\n");
-    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
-#endif
+    PyObject *saved_exception_type = EXC_TYPE(thread_state);
+    PyObject *saved_exception_value = EXC_VALUE(thread_state);
+    PyObject *saved_exception_traceback = EXC_TRACEBACK(thread_state);
 
 #if PYTHON_VERSION < 370
     EXC_TYPE(thread_state) = thread_state->frame->f_exc_type;
@@ -244,32 +196,11 @@ static inline PyObject *GENERATOR_YIELD_IN_HANDLER( struct Nuitka_GeneratorObjec
     generator->m_exc_state.exc_value = saved_exception_value;
     generator->m_exc_state.exc_traceback = saved_exception_traceback;
 #endif
-
-    // Check for thrown exception.
-    if (unlikely( generator->m_exception_type ))
-    {
-        RESTORE_ERROR_OCCURRED(
-            generator->m_exception_type,
-            generator->m_exception_value,
-            generator->m_exception_tb
-        );
-
-        generator->m_exception_type = NULL;
-        generator->m_exception_value = NULL;
-        generator->m_exception_tb = NULL;
-
-        return NULL;
-    }
-
-    return generator->m_yielded;
 }
-#endif
 
-#if PYTHON_VERSION >= 300
-extern PyObject *GENERATOR_YIELD_FROM( struct Nuitka_GeneratorObject *generator, PyObject *target );
-extern PyObject *GENERATOR_YIELD_FROM_IN_HANDLER( struct Nuitka_GeneratorObject *generator, PyObject *target );
-#endif
-
-#endif
+// Functions to preserver and restore from heap area temporary values during
+// yield/yield from/await exits of generator functions.
+extern void Nuitka_PreserveHeap( void *dest, ... );
+extern void Nuitka_RestoreHeap( void *source, ... );
 
 #endif

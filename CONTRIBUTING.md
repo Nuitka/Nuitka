@@ -66,7 +66,7 @@ please check that you have provided the information below:
 You can also do a quick check whether..
 
  * the bug was already fixed in the branch for the next release, e.g. for the
-   `develop` branch pre-release packages out.
+   `develop` branch try pre-release packages out.
 
  * if it was already reported and/or is maybe even being worked on already by
    checking open issues of the corresponding milestone, e.g. see

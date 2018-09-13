@@ -30,17 +30,17 @@ from .templates.CodeTemplatesVariables import (
     template_update_locals_dict_value,
     template_update_locals_mapping_value
 )
-from .VariableCodes import getLocalVariableCodeType
+from .VariableCodes import getLocalVariableDeclaration
 
 
 def generateBuiltinLocalsRefCode(to_name, expression, emit, context):
-    # The locals scope is the context needed, pylint: disable=unused-argument
+    locals_scope = expression.getLocalsScope()
 
+    locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
     emit(
-        """\
-%s = %s;""" % (
+        "%s = %s;" % (
             to_name,
-            expression.getLocalsScope().getCodeName(),
+            locals_declaration,
         )
     )
 
@@ -72,7 +72,7 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
     if updated:
         locals_scope = expression.getLocalsScope()
 
-        locals_dict_name = locals_scope.getCodeName()
+        locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
         is_dict = locals_scope.getTypeShape() is ShapeTypeDict
         # For Python3 it may really not be a dictionary.
 
@@ -82,13 +82,11 @@ def generateBuiltinLocalsCode(to_name, expression, emit, context):
 if (%(locals_dict)s == NULL) %(locals_dict)s = PyDict_New();
 %(to_name)s = %(locals_dict)s;
 Py_INCREF( %(to_name)s );""" % {
-                "to_name" : to_name ,
-                "locals_dict" : locals_dict_name,
+                "to_name"     : to_name ,
+                "locals_dict" : locals_declaration,
             }
         )
         context.addCleanupTempName(to_name)
-
-        context.addLocalsDictName(locals_dict_name)
 
         initial = False
     else:
@@ -127,8 +125,6 @@ def generateBuiltinGlobalsCode(to_name, expression, emit, context):
 
 
 def getLoadGlobalsCode(to_name, emit, context):
-    assert type(to_name) is str
-
     emit(
         "%(to_name)s = (PyObject *)moduledict_%(module_identifier)s;" % {
             "to_name"           : to_name,
@@ -159,10 +155,12 @@ def _getVariableDictUpdateCode(target_name, variable, variable_trace, initial,
     # TODO: Variable could known to be set here, get a hand at that
     # information.
 
-    variable_code_name, variable_c_type = getLocalVariableCodeType(context, variable, variable_trace)
+    variable_declaration = getLocalVariableDeclaration(context, variable, variable_trace)
 
-    test_code = variable_c_type.getLocalVariableInitTestCode(variable_code_name)
-    access_code = variable_c_type.getLocalVariableObjectAccessCode(variable_code_name)
+    variable_c_type = variable_declaration.getCType()
+
+    test_code = variable_c_type.getLocalVariableInitTestCode(variable_declaration)
+    access_code = variable_c_type.getLocalVariableObjectAccessCode(variable_declaration)
 
     if is_dict:
         if initial:

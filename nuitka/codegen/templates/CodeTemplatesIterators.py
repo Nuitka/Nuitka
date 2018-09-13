@@ -38,7 +38,7 @@ if (likely( %(attempt_name)s == NULL ))
         }
         else
         {
-            FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+            FETCH_ERROR_OCCURRED( &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s );
 %(release_temps_1)s
 %(var_description_code_1)s
 %(line_number_code_1)s
@@ -56,7 +56,7 @@ else
 #else
     PyErr_Format( PyExc_ValueError, "too many values to unpack (expected %(count)d)" );
 #endif
-    FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+    FETCH_ERROR_OCCURRED( &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s );
 %(release_temps_2)s
 %(var_description_code_2)s
 %(line_number_code_2)s
@@ -74,7 +74,7 @@ if ( %(to_name)s == NULL )
     else
     {
 %(release_temps)s
-        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+        FETCH_ERROR_OCCURRED( &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s );
 %(var_description_code)s
 %(line_number_code)s
         goto %(exception_target)s;

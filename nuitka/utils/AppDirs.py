@@ -30,7 +30,7 @@ import tempfile
 from .FileOperations import makePath
 
 try:
-    import appdirs
+    import appdirs # pylint: disable=I0021,import-error
 except ImportError:
     # Temporarily add the inline copy of appdir to the import path.
     sys.path.append(
@@ -42,7 +42,7 @@ except ImportError:
 
     # Handle case without inline copy too.
     try:
-        import appdirs
+        import appdirs # pylint: disable=I0021,import-error
     except ImportError:
         appdirs = None
 

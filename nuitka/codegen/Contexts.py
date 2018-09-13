@@ -34,6 +34,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .Namify import namifyConstant
+from .VariableDeclarations import VariableDeclaration, VariableStorage
 
 
 class ContextMetaClass(ABCMeta):
@@ -57,13 +58,10 @@ class TempMixin(object):
 
     def __init__(self):
         self.tmp_names = {}
-        self.tmp_types = {}
-        self.forgotten_names = set()
 
         self.labels = {}
 
-        # For exception handling
-        self.needs_exception_variables = False
+        # For exception and loop handling
         self.exception_escape = None
         self.loop_continue = None
         self.loop_break = None
@@ -75,11 +73,11 @@ class TempMixin(object):
         self.keeper_variable_count = 0
         self.exception_keepers = (None, None, None, None)
 
-        self.preserver_variable_counts = set()
+        self.preserver_variable_declaration = {}
 
         self.cleanup_names = []
 
-    def formatTempName(self, base_name, number):
+    def _formatTempName(self, base_name, number):
         if number is None:
             return "tmp_{name}".format(
                 name = base_name
@@ -92,6 +90,10 @@ class TempMixin(object):
 
     def allocateTempName(self, base_name, type_name = "PyObject *",
                          unique = False):
+        # We might be hard coding too many details for special temps
+        # here.
+
+
         if unique:
             number = None
         else:
@@ -100,16 +102,51 @@ class TempMixin(object):
 
         self.tmp_names[base_name] = number
 
-        if base_name not in self.tmp_types:
-            self.tmp_types[base_name] = type_name
-        else:
-            assert self.tmp_types[base_name] == type_name, \
-                (self.tmp_types[base_name], type_name)
-
-        return self.formatTempName(
+        formatted_name = self._formatTempName(
             base_name = base_name,
             number    = number
         )
+
+        if unique:
+            result = self.variable_storage.getVariableDeclarationTop(formatted_name)
+
+            if result is None:
+                if base_name == "outline_return_value":
+                    init_value = "NULL"
+                elif base_name == "return_value":
+                    init_value = "NULL"
+                elif base_name == "generator_return":
+                    init_value = "false"
+                else:
+                    init_value = None
+
+                if base_name == "unused":
+                    result = self.variable_storage.addVariableDeclarationFunction(
+                        c_type     = type_name,
+                        code_name  = formatted_name,
+                        init_value = init_value
+                    )
+                else:
+                    result = self.variable_storage.addVariableDeclarationTop(
+                        c_type     = type_name,
+                        code_name  = formatted_name,
+                        init_value = init_value
+                    )
+            else:
+                assert result.c_type == type_name
+
+        else:
+            result = self.variable_storage.addVariableDeclarationLocal(
+                c_type    = type_name,
+                code_name = formatted_name
+            )
+
+        return result
+
+    def skipTempName(self, base_name):
+        number = self.tmp_names.get(base_name, 0)
+        number += 1
+        self.tmp_names[base_name] = number
 
     def getIntResName(self):
         return self.allocateTempName("res", "int", unique = True)
@@ -119,43 +156,6 @@ class TempMixin(object):
 
     def hasTempName(self, base_name):
         return base_name in self.tmp_names
-
-    def forgetTempName(self, tmp_name):
-        self.forgotten_names.add(tmp_name)
-
-    def getTempNameInfos(self):
-        result  = []
-
-        for base_name, count in sorted(iterItems(self.tmp_names)):
-            if count is not None:
-                for number in range(1,count+1):
-                    tmp_name = self.formatTempName(
-                        base_name = base_name,
-                        number    = number
-                    )
-
-                    if tmp_name not in self.forgotten_names:
-                        result.append(
-                            (
-                                tmp_name,
-                                self.tmp_types[base_name]
-                            )
-                        )
-            else:
-                tmp_name = self.formatTempName(
-                    base_name = base_name,
-                    number    = None
-                )
-
-                if tmp_name not in self.forgotten_names:
-                    result.append(
-                        (
-                            tmp_name,
-                            self.tmp_types[base_name]
-                        )
-                    )
-
-        return result
 
     def getExceptionEscape(self):
         return self.exception_escape
@@ -194,24 +194,40 @@ class TempMixin(object):
     def getLabelCount(self, label):
         return self.labels.get(label, 0)
 
-    def needsExceptionVariables(self):
-        return self.needs_exception_variables
-
-    def markAsNeedsExceptionVariables(self):
-        self.needs_exception_variables = True
-
     def allocateExceptionKeeperVariables(self):
         self.keeper_variable_count += 1
 
-        return (
-            "exception_keeper_type_%d" % self.keeper_variable_count,
-            "exception_keeper_value_%d" % self.keeper_variable_count,
-            "exception_keeper_tb_%d" % self.keeper_variable_count,
-            "exception_keeper_lineno_%s" % self.keeper_variable_count
-        )
+        # For finally handlers of Python3, which have conditions on assign and
+        # use, the NULL init is needed.
+        debug = Options.isDebug() and python_version >= 300
 
-    def getKeeperVariableCount(self):
-        return self.keeper_variable_count
+        if debug:
+            keeper_obj_init = "NULL"
+        else:
+            keeper_obj_init = None
+
+        return (
+            self.variable_storage.addVariableDeclarationTop(
+                "PyObject *",
+                "exception_keeper_type_%d" % self.keeper_variable_count,
+                keeper_obj_init
+            ),
+            self.variable_storage.addVariableDeclarationTop(
+                "PyObject *",
+                "exception_keeper_value_%d" % self.keeper_variable_count,
+                keeper_obj_init
+            ),
+            self.variable_storage.addVariableDeclarationTop(
+                "PyTracebackObject *",
+                "exception_keeper_tb_%d" % self.keeper_variable_count,
+                keeper_obj_init
+            ),
+            self.variable_storage.addVariableDeclarationTop(
+                "NUITKA_MAY_BE_UNUSED int",
+                "exception_keeper_lineno_%d" % self.keeper_variable_count,
+                '0' if debug else None
+            )
+        )
 
     def getExceptionKeeperVariables(self):
         return self.exception_keepers
@@ -221,12 +237,37 @@ class TempMixin(object):
         self.exception_keepers = tuple(keeper_vars)
         return result
 
-    def getExceptionPreserverCounts(self):
-        return self.preserver_variable_counts
+    def addExceptionPreserverVariables(self, preserver_id):
+        # For finally handlers of Python3, which have conditions on assign and
+        # use.
+        if preserver_id not in self.preserver_variable_declaration:
 
-    def addExceptionPreserverVariables(self, count):
-        assert count != 0
-        self.preserver_variable_counts.add(count)
+            debug = Options.isDebug() and python_version >= 300
+
+            if debug:
+                preserver_obj_init = "NULL"
+            else:
+                preserver_obj_init = None
+
+            self.preserver_variable_declaration[preserver_id] = (
+                self.variable_storage.addVariableDeclarationTop(
+                    "PyObject *",
+                    "exception_preserved_type_%d" % preserver_id,
+                    preserver_obj_init
+                ),
+                self.variable_storage.addVariableDeclarationTop(
+                    "PyObject *",
+                    "exception_preserved_value_%d" % preserver_id,
+                    preserver_obj_init
+                ),
+                self.variable_storage.addVariableDeclarationTop(
+                    "PyTracebackObject *",
+                    "exception_preserved_tb_%d" % preserver_id,
+                    preserver_obj_init
+                )
+            )
+
+        return self.preserver_variable_declaration[preserver_id]
 
     def getTrueBranchTarget(self):
         return self.true_target
@@ -336,12 +377,6 @@ class PythonContextBase(ContextMetaClassBase):
         # self.last_source_ref = None
         return result
 
-    def isUsed(self, tmp_name):
-        if tmp_name.startswith("tmp_unused_"):
-            return False
-        else:
-            return True
-
     @abstractmethod
     def getConstantCode(self, constant):
         pass
@@ -383,7 +418,7 @@ class PythonContextBase(ContextMetaClassBase):
         pass
 
     @abstractmethod
-    def getFrameVariableTypeDescriptionName(self):
+    def getFrameTypeDescriptionDeclaration(self):
         pass
 
     @abstractmethod
@@ -396,6 +431,10 @@ class PythonContextBase(ContextMetaClassBase):
         pass
 
     @abstractmethod
+    def skipTempName(self, base_name):
+        pass
+
+    @abstractmethod
     def getIntResName(self):
         pass
 
@@ -405,14 +444,6 @@ class PythonContextBase(ContextMetaClassBase):
 
     @abstractmethod
     def hasTempName(self, base_name):
-        pass
-
-    @abstractmethod
-    def forgetTempName(self, tmp_name):
-        pass
-
-    @abstractmethod
-    def getTempNameInfos(self):
         pass
 
     @abstractmethod
@@ -441,14 +472,6 @@ class PythonContextBase(ContextMetaClassBase):
 
     @abstractmethod
     def allocateLabel(self, label):
-        pass
-
-    @abstractmethod
-    def needsExceptionVariables(self):
-        pass
-
-    @abstractmethod
-    def markAsNeedsExceptionVariables(self):
         pass
 
     @abstractmethod
@@ -546,8 +569,8 @@ class PythonChildContextBase(PythonContextBase):
     def getFrameVariableTypeDescription(self):
         return self.parent.getFrameVariableTypeDescription()
 
-    def getFrameVariableTypeDescriptionName(self):
-        return self.parent.getFrameVariableTypeDescriptionName()
+    def getFrameTypeDescriptionDeclaration(self):
+        return self.parent.getFrameTypeDescriptionDeclaration()
 
     def getFrameVariableCodeNames(self):
         return self.parent.getFrameVariableCodeNames()
@@ -753,8 +776,6 @@ class PythonGlobalContext(object):
             self.countConstantUse(code)
             self.countConstantUse(code)
 
-        self.needs_exception_variables = False
-
     def getConstantCode(self, constant):
         # Use in user code, or for constants building code itself, many
         # constant types get special code immediately.
@@ -828,8 +849,6 @@ class PythonGlobalContext(object):
 
 class FrameDeclarationsMixin(object):
     def __init__(self):
-        self.frame_declarations = []
-
         # Frame is active or not, default not.
         self.frame_variables_stack = [""]
         # Type descriptions of the current frame.
@@ -849,14 +868,38 @@ class FrameDeclarationsMixin(object):
     def getFrameHandle(self):
         return self.frame_stack[-1]
 
-    def pushFrameHandle(self, frame_handle):
+    def pushFrameHandle(self, code_identifier, is_light):
         self.frames_used += 1
 
-        if self.frames_used > 1:
-            frame_handle += "_%d" % self.frames_used
+        if is_light:
+            frame_identifier = VariableDeclaration(
+                "struct Nuitka_FrameObject *",
+                "m_frame",
+                None,
+                self.getContextObjectName()
+            )
 
-        self.frame_stack.append(frame_handle)
-        return self.frame_stack[-1]
+        else:
+            frame_handle = code_identifier.replace("codeobj_", "frame_")
+
+            if self.frames_used > 1:
+                frame_handle += "_%d" % self.frames_used
+
+            frame_identifier = self.variable_storage.addVariableDeclarationTop(
+                "struct Nuitka_FrameObject *",
+                frame_handle,
+                None
+            )
+
+        self.variable_storage.addVariableDeclarationTop(
+            "NUITKA_MAY_BE_UNUSED char const *",
+            "type_description_%d" % self.frames_used,
+            "NULL"
+        )
+
+
+        self.frame_stack.append(frame_identifier)
+        return frame_identifier
 
     def popFrameHandle(self):
         result = self.frame_stack[-1]
@@ -866,16 +909,6 @@ class FrameDeclarationsMixin(object):
 
     def getFramesCount(self):
         return self.frames_used
-
-    def addFrameDeclaration(self, frame_decl):
-        self.frame_declarations.append(frame_decl)
-
-    def getFrameDeclarations(self):
-        return self.frame_declarations + [
-            "NUITKA_MAY_BE_UNUSED char const *type_description_%d = NULL;" % (i+1)
-            for i in
-            range(self.getFramesCount())
-        ]
 
     def pushFrameVariables(self, frame_variables):
         """ Set current the frame variables. """
@@ -887,16 +920,22 @@ class FrameDeclarationsMixin(object):
         del self.frame_variables_stack[-1]
         del self.frame_type_descriptions[-1]
 
-    def setVariableType(self, variable, variable_code_name, variable_c_type):
+    def setVariableType(self, variable, variable_declaration):
         assert variable.isLocalVariable(), variable
 
-        self.frame_variable_types[variable] = variable_code_name, variable_c_type.getTypeIndicator()
+        # TODO: Change value of that dict to take advantage of declaration.
+        self.frame_variable_types[variable] = (
+            str(variable_declaration),
+            variable_declaration.getCType().getTypeIndicator()
+        )
 
     def getFrameVariableTypeDescriptions(self):
         return self.frame_type_descriptions[-1]
 
-    def getFrameVariableTypeDescriptionName(self):
-        return "type_description_%d" % (len(self.frame_stack) - 1)
+    def getFrameTypeDescriptionDeclaration(self):
+        return self.variable_storage.getVariableDeclarationTop(
+            "type_description_%d" % (len(self.frame_stack) - 1)
+        )
 
     def getFrameVariableTypeDescription(self):
         result = "".join(
@@ -927,8 +966,18 @@ class FrameDeclarationsMixin(object):
         return self.locals_dict_names
 
     def addLocalsDictName(self, locals_dict_name):
-        self.locals_dict_names.add(locals_dict_name)
+        result = self.variable_storage.getVariableDeclarationTop(locals_dict_name)
 
+        if result is None:
+            result = self.variable_storage.addVariableDeclarationTop(
+                "PyObject *",
+                locals_dict_name,
+                "NULL"
+            )
+
+        self.locals_dict_names.add(result)
+
+        return result
 
 class ReturnReleaseModeMixin(object):
     def __init__(self):
@@ -1001,6 +1050,10 @@ class PythonModuleContext(TempMixin, CodeObjectsMixin,
         self.frame_handle = None
 
         self.needs_module_filename_object = False
+
+        self.variable_storage = VariableStorage(
+            heap_name = None
+        )
 
     def __repr__(self):
         return "<PythonModuleContext instance for module %s>" % self.filename
@@ -1095,6 +1148,13 @@ class PythonFunctionContext(FrameDeclarationsMixin,
 
         self.frame_handle = None
 
+        self.variable_storage = self._makeVariableStorage()
+
+    def _makeVariableStorage(self):
+        return VariableStorage(
+            heap_name = None
+        )
+
     def __repr__(self):
         return "<%s for %s '%s'>" % (
             self.__class__.__name__,
@@ -1131,6 +1191,11 @@ class PythonFunctionDirectContext(PythonFunctionContext):
 
 
 class PythonGeneratorObjectContext(PythonFunctionContext):
+    def _makeVariableStorage(self):
+        return VariableStorage(
+            heap_name = "%s_heap" % self.getContextObjectName()
+        )
+
     def isForDirectCall(self):
         return False
 
@@ -1189,6 +1254,8 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
 
         self.outline = outline
 
+        self.variable_storage = parent.variable_storage
+
     def getOwner(self):
         return self.outline
 
@@ -1201,6 +1268,9 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
     def allocateTempName(self, base_name, type_name = "PyObject *",
                          unique = False):
         return self.parent.allocateTempName(base_name, type_name, unique)
+
+    def skipTempName(self, base_name):
+        return self.parent.skipTempName(base_name)
 
     def hasTempName(self, base_name):
         return self.parent.hasTempName(base_name)
@@ -1259,8 +1329,8 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
     def getFrameHandle(self):
         return self.parent.getFrameHandle()
 
-    def pushFrameHandle(self, frame_handle):
-        return self.parent.pushFrameHandle(frame_handle)
+    def pushFrameHandle(self, code_identifier, is_light):
+        return self.parent.pushFrameHandle(code_identifier, is_light)
 
     def popFrameHandle(self):
         return self.parent.popFrameHandle()
@@ -1271,8 +1341,8 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
     def setExceptionKeeperVariables(self, keeper_vars):
         return self.parent.setExceptionKeeperVariables(keeper_vars)
 
-    def setVariableType(self, variable, variable_code_name, variable_c_type):
-        self.parent.setVariableType(variable, variable_code_name, variable_c_type)
+    def setVariableType(self, variable, variable_declaration):
+        self.parent.setVariableType(variable, variable_declaration)
 
     def getIntResName(self):
         return self.parent.getIntResName()
@@ -1280,17 +1350,8 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
     def getBoolResName(self):
         return self.parent.getBoolResName()
 
-    def needsExceptionVariables(self):
-        return self.parent.needsExceptionVariables()
-
-    def markAsNeedsExceptionVariables(self):
-        self.parent.markAsNeedsExceptionVariables()
-
     def allocateExceptionKeeperVariables(self):
         return self.parent.allocateExceptionKeeperVariables()
-
-    def addFrameDeclaration(self, frame_decl):
-        self.parent.addFrameDeclaration(frame_decl)
 
     def isForDirectCall(self):
         return self.parent.isForDirectCall()
@@ -1301,16 +1362,10 @@ class PythonFunctionOutlineContext(ReturnReleaseModeMixin,
         return True
 
     def addLocalsDictName(self, locals_dict_name):
-        self.parent.addLocalsDictName(locals_dict_name)
+        return self.parent.addLocalsDictName(locals_dict_name)
 
     def addExceptionPreserverVariables(self, count):
-        self.parent.addExceptionPreserverVariables(count)
-
-    def getTempNameInfos(self):
-        return self.parent.getTempNameInfos()
-
-    def forgetTempName(self, tmp_name):
-        self.parent.forgetTempName(tmp_name)
+        return self.parent.addExceptionPreserverVariables(count)
 
     def getContextObjectName(self):
         return self.parent.getContextObjectName()

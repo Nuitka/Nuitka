@@ -86,10 +86,11 @@ def buildLambdaNode(provider, node, source_ref):
         code_body = function_body
     else:
         code_body = ExpressionGeneratorObjectBody(
-            provider   = function_body,
-            name       = "<lambda>",
-            flags      = set(),
-            source_ref = source_ref
+            provider    = function_body,
+            name        = "<lambda>",
+            code_object = code_object,
+            flags       = set(),
+            source_ref  = source_ref
         )
         code_body.qualname_provider = provider
 
@@ -102,7 +103,6 @@ def buildLambdaNode(provider, node, source_ref):
                             function_body = code_body,
                             source_ref    = source_ref
                         ),
-                        code_object   = code_object,
                         source_ref    = source_ref
                     ),
                     source_ref = source_ref
@@ -209,7 +209,6 @@ def buildLambdaNode(provider, node, source_ref):
             function_body = outer_body,
             source_ref    = source_ref
         ),
-        code_object  = code_object,
         defaults     = defaults,
         kw_defaults  = kw_defaults,
         annotations  = annotations,
