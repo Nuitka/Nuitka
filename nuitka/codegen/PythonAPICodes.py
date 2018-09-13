@@ -92,7 +92,11 @@ def getCAPIObjectCode(to_name, capi, arg_names, may_raise, ref_count, emit,
         "%s = %s( %s );" % (
             to_name,
             capi,
-            ", ".join(arg_names)
+            ", ".join(
+                str(arg_name)
+                for arg_name in
+                arg_names
+            )
         )
     )
 

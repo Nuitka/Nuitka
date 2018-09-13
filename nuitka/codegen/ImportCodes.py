@@ -63,7 +63,7 @@ def getCountedArgumentsHelperCallCode(helper_prefix, to_name, args, min_args,
                 to_name,
                 helper_prefix,
                 ", ".join(
-                    "NULL" if arg is None else arg
+                    "NULL" if arg is None else str(arg)
                     for arg in
                     orig_args
                 )
@@ -78,7 +78,11 @@ def getCountedArgumentsHelperCallCode(helper_prefix, to_name, args, min_args,
                 to_name,
                 helper_prefix,
                 len(args),
-                ", ".join(args)
+                ", ".join(
+                    str(arg)
+                    for arg in
+                    args
+                )
             )
         )
 
@@ -207,19 +211,19 @@ def generateImportStarCode(statement, emit, context):
             )
         )
     else:
-        locals_dict_name = statement.getLocalsDictScope().getCodeName()
+        locals_declaration = context.addLocalsDictName(
+            statement.getLocalsDictScope().getCodeName()
+        )
 
         emit(
             """
 %(res_name)s = IMPORT_MODULE_STAR( %(locals_dict)s, false, %(module_name)s );
 """ % {
                 "res_name"    : res_name,
-                "locals_dict" : locals_dict_name,
+                "locals_dict" : locals_declaration,
                 "module_name" : module_name
             }
         )
-
-        context.addLocalsDictName(locals_dict_name)
 
     getErrorExitBoolCode(
         condition    = "%s == false" % res_name,

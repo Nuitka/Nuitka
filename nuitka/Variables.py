@@ -109,9 +109,9 @@ class Variable(object):
     def addVariableUser(self, user):
         # Update the shared scopes flag.
         if user is not self.owner:
-            # These are not really scopes.
             self.shared_users = True
 
+            # These are not really scopes, just shared uses.
             if user.isExpressionGeneratorObjectBody() or \
                user.isExpressionCoroutineObjectBody() or \
                user.isExpressionAsyncgenObjectBody():

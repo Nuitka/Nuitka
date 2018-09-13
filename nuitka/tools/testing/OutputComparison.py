@@ -63,7 +63,7 @@ def traceback_re_callback(match):
     )
 
 importerror_re               = re.compile(
-    r"""(ImportError\("cannot import name '\w+' from '.*?' )\((.*?)\)"""
+    r"""(ImportError(?:\("|: )cannot import name '\w+' from '.*?' )\((.*?)\)"""
 )
 
 def import_re_callback(match):

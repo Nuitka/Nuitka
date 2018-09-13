@@ -29,6 +29,7 @@ from nuitka.nodes.AssignNodes import (
 )
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
+    ExpressionBuiltinGetattr,
     ExpressionBuiltinHasattr
 )
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
@@ -59,7 +60,6 @@ from nuitka.nodes.DictionaryNodes import (
     StatementDictOperationUpdate
 )
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionBody,
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
     ExpressionFunctionQualnameRef,
@@ -72,7 +72,10 @@ from nuitka.nodes.LocalsDictNodes import (
     StatementSetLocals
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
-from nuitka.nodes.NodeMakingHelpers import mergeStatements
+from nuitka.nodes.NodeMakingHelpers import (
+    makeRaiseExceptionExpressionFromTemplate,
+    mergeStatements
+)
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
@@ -88,8 +91,8 @@ from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .InternalModule import (
-    getInternalModule,
     internal_source_ref,
+    makeInternalHelperFunctionBody,
     once_decorator
 )
 from .ReformulationSequenceCreation import buildTupleCreationNode
@@ -418,7 +421,6 @@ def buildClassNode3(provider, node, source_ref):
                         function_body = getClassBasesMroConversionHelper(),
                         source_ref    = source_ref
                     ),
-                    code_object  = None,
                     defaults     = (),
                     kw_defaults  = None,
                     annotations  = None,
@@ -514,6 +516,91 @@ def buildClassNode3(provider, node, source_ref):
             source_ref   = source_ref
         )
 
+    call_prepare = StatementAssignmentVariable(
+        variable   = tmp_prepared,
+        source     = makeExpressionCall(
+            called     = ExpressionAttributeLookup(
+                source         = ExpressionTempVariableRef(
+                    variable   = tmp_metaclass,
+                    source_ref = source_ref
+                ),
+                attribute_name = "__prepare__",
+                source_ref     = source_ref
+            ),
+            args       = ExpressionMakeTuple(
+                elements   = (
+                    makeConstantRefNode(
+                        constant      = node.name,
+                        source_ref    = source_ref,
+                        user_provided = True
+                    ),
+                    makeBasesRef(),
+                ),
+                source_ref = source_ref
+            ),
+            kw         = ExpressionTempVariableRef(
+                variable   = tmp_class_decl_dict,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        ),
+        source_ref = source_ref
+    )
+
+    if python_version >= 370:
+        call_prepare = makeStatementsSequenceFromStatements(
+            call_prepare,
+            makeStatementConditional(
+                condition  = ExpressionBuiltinHasattr(
+                    object_arg = ExpressionTempVariableRef(
+                        variable   = tmp_prepared,
+                        source_ref = source_ref
+                    ),
+                    name       = makeConstantRefNode(
+                        constant      = "__getitem__",
+                        source_ref    = source_ref,
+                        user_provided = True
+                    ),
+                    source_ref = source_ref
+                ),
+                yes_branch = None,
+                no_branch  = makeRaiseExceptionExpressionFromTemplate(
+                    exception_type = "TypeError",
+                    template       = "%s.__prepare__() must return a mapping, not %s",
+                    template_args  = (
+                        ExpressionBuiltinGetattr(
+                            object_arg = ExpressionTempVariableRef(
+                                variable   = tmp_metaclass,
+                                source_ref = source_ref
+                            ),
+                            name       = makeConstantRefNode(
+                                constant   = "__name__",
+                                source_ref = source_ref
+                            ),
+                            default    = makeConstantRefNode(
+                                constant   = "<metaclass>",
+                                source_ref = source_ref
+                            ),
+                            source_ref = source_ref
+                        ),
+                        ExpressionAttributeLookup(
+                            source         = ExpressionBuiltinType1(
+                                value      = ExpressionTempVariableRef(
+                                    variable   = tmp_prepared,
+                                    source_ref = source_ref
+                                ),
+                                source_ref = source_ref
+                            ),
+                            attribute_name = "__name__",
+                            source_ref     = source_ref
+                        ),
+                    ),
+                    source_ref     = source_ref
+                ).asStatement(),
+                source_ref = source_ref
+            )
+        )
+
     statements += [
         StatementAssignmentVariable(
             variable   = tmp_metaclass,
@@ -579,53 +666,28 @@ def buildClassNode3(provider, node, source_ref):
             ),
             source_ref = source_ref
         ),
-        StatementAssignmentVariable(
-            variable   = tmp_prepared,
-            source     = ExpressionConditional(
-                condition      = ExpressionBuiltinHasattr(
-                    object_arg = ExpressionTempVariableRef(
-                        variable   = tmp_metaclass,
-                        source_ref = source_ref
-                    ),
-                    name       = makeConstantRefNode(
-                        constant      = "__prepare__",
-                        source_ref    = source_ref,
-                        user_provided = True
-                    ),
+        makeStatementConditional(
+            condition  = ExpressionBuiltinHasattr(
+                object_arg = ExpressionTempVariableRef(
+                    variable   = tmp_metaclass,
                     source_ref = source_ref
                 ),
-                expression_no  = makeConstantRefNode(
+                name       = makeConstantRefNode(
+                    constant      = "__prepare__",
+                    source_ref    = source_ref,
+                    user_provided = True
+                ),
+                source_ref = source_ref
+            ),
+            yes_branch = call_prepare,
+            no_branch  = StatementAssignmentVariable(
+                variable   = tmp_prepared,
+                source     = makeConstantRefNode(
                     constant      = {},
                     source_ref    = source_ref,
                     user_provided = True
                 ),
-                expression_yes = makeExpressionCall(
-                    called     = ExpressionAttributeLookup(
-                        source         = ExpressionTempVariableRef(
-                            variable   = tmp_metaclass,
-                            source_ref = source_ref
-                        ),
-                        attribute_name = "__prepare__",
-                        source_ref     = source_ref
-                    ),
-                    args       = ExpressionMakeTuple(
-                        elements   = (
-                            makeConstantRefNode(
-                                constant      = node.name,
-                                source_ref    = source_ref,
-                                user_provided = True
-                            ),
-                            makeBasesRef(),
-                        ),
-                        source_ref = source_ref
-                    ),
-                    kw         = ExpressionTempVariableRef(
-                        variable   = tmp_class_decl_dict,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
-                source_ref     = source_ref
+                source_ref = source_ref
             ),
             source_ref = source_ref
         ),
@@ -665,10 +727,8 @@ def buildClassNode3(provider, node, source_ref):
 def getClassBasesMroConversionHelper():
     helper_name = "_mro_entries_conversion"
 
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = ("bases",),
@@ -676,9 +736,7 @@ def getClassBasesMroConversionHelper():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     temp_scope = None

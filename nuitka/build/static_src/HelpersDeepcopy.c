@@ -344,14 +344,11 @@ Py_hash_t DEEP_HASH( PyObject *value )
 
         FETCH_ERROR_OCCURRED_UNTRACED( &exception_type, &exception_value, &exception_tb );
 
-#if PYTHON_VERSION >= 330
-        Py_ssize_t size;
-        char const *s = PyUnicode_AsUTF8AndSize( value, &size );
+#if PYTHON_VERSION >= 300
+        char const *s = (char const *)PyUnicode_DATA( value );
+        Py_ssize_t size = PyUnicode_GET_LENGTH( value ) * PyUnicode_KIND( value );
 
-        if ( s != NULL )
-        {
-            DEEP_HASH_BLOB( &result, s, size );
-        }
+        DEEP_HASH_BLOB( &result, s, size );
 #else
         PyObject *str = PyUnicode_AsUTF8String( value );
 

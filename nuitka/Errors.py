@@ -30,20 +30,23 @@ class NuitkaNodeError(NuitkaErrorBase):
 
     # Try to output more information about nodes passed.
     def __str__(self):
-        from nuitka.codegen.Indentation import indented
+        try:
+            from nuitka.codegen.Indentation import indented
 
-        parts = [""]
+            parts = [""]
 
-        for arg in self.args:
-            if hasattr(arg, "asXmlText"):
-                parts.append(indented("\n%s\n" % arg.asXmlText()))
-            else:
-                parts.append(arg)
+            for arg in self.args:
+                if hasattr(arg, "asXmlText"):
+                    parts.append(indented("\n%s\n" % arg.asXmlText()))
+                else:
+                    parts.append(str(arg))
 
-        parts.append("")
-        parts.append("The above information should be included in a bug report.")
+            parts.append("")
+            parts.append("The above information should be included in a bug report.")
 
-        return '\n'.join(parts)
+            return '\n'.join(parts)
+        except Exception as e: # Catch all the things, pylint: disable=broad-except
+            return "<NuitkaNodeError failed with %r>" % e
 
 
 class NuitkaOptimizationError(NuitkaNodeError):

@@ -23,6 +23,7 @@ own these functions to a random module.
 """
 
 
+from nuitka.nodes.FunctionNodes import ExpressionFunctionBody
 from nuitka.nodes.ModuleNodes import PythonInternalModule
 from nuitka.SourceCodeReferences import fromFilename
 
@@ -56,3 +57,15 @@ def getInternalModule():
     """
 
     return PythonInternalModule()
+
+
+def makeInternalHelperFunctionBody(name, parameters):
+    return ExpressionFunctionBody(
+        provider    = getInternalModule(),
+        name        = name,
+        code_object = None,
+        doc         = None,
+        parameters  = parameters,
+        flags       = set(),
+        source_ref  = internal_source_ref
+    )

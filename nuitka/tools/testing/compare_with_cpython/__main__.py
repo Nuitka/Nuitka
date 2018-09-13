@@ -127,6 +127,13 @@ def main():
             recurse_not.append(arg[len("recurse_not:"):])
             del args[count]
 
+    recurse_to = []
+
+    for count, arg in reversed(tuple(enumerate(args))):
+        if arg.startswith("recurse_to:"):
+            recurse_to.append(arg[len("recurse_to:"):])
+            del args[count]
+
     if args:
         sys.exit("Error, non understood mode(s) '%s'," % ','.join(args))
 

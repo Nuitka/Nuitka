@@ -54,7 +54,10 @@ blacklist = (
     "__phello__.foo.py", # Triggers error for "." in module name
     "idnadata",          # Avoid too complex code for main program.
     "joined_strings.py",
-    "_identifier.py"     # No syntax error with compileall, but run.
+    # No syntax error with Python2 compileall, but run time only:
+    "_identifier.py",
+    "bench.py",
+    "_tweedie_compound_poisson.py"
 )
 
 def decide(root, filename):

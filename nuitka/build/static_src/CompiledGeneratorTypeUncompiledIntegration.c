@@ -23,7 +23,10 @@
  */
 
 #if PYTHON_VERSION >= 300
-static void Nuitka_SetStopIterationValue( PyObject *value )
+#if PYTHON_VERSION < 350
+static
+#endif
+void Nuitka_SetStopIterationValue( PyObject *value )
 {
     CHECK_OBJECT( value );
 
@@ -208,7 +211,7 @@ PyObject *PyGen_Send( PyGenObject *gen, PyObject *arg )
 #endif
 
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 340
 
 #include <opcode.h>
 
@@ -263,6 +266,7 @@ static PyObject *Nuitka_PyGen_gen_send_ex( PyGenObject *gen, PyObject *arg, int 
     {
         char const *msg = "generator already executing";
 
+#if PYTHON_VERSION >= 350
         if ( PyCoro_CheckExact(gen) )
         {
             msg = "coroutine already executing";
@@ -273,6 +277,7 @@ static PyObject *Nuitka_PyGen_gen_send_ex( PyGenObject *gen, PyObject *arg, int 
             msg = "async generator already executing";
         }
 #endif
+#endif
         PyErr_Format( PyExc_ValueError, msg );
 
         return NULL;
@@ -280,6 +285,7 @@ static PyObject *Nuitka_PyGen_gen_send_ex( PyGenObject *gen, PyObject *arg, int 
 
     if ( f == NULL || f->f_stacktop == NULL )
     {
+#if PYTHON_VERSION >= 350
         if ( PyCoro_CheckExact(gen) && !closing )
         {
             PyErr_Format(
@@ -287,7 +293,9 @@ static PyObject *Nuitka_PyGen_gen_send_ex( PyGenObject *gen, PyObject *arg, int 
                 "cannot reuse already awaited coroutine"
             );
         }
-        else if ( arg && !exc )
+        else
+#endif
+        if ( arg && !exc )
         {
 #if PYTHON_VERSION >= 360
             if ( PyAsyncGen_CheckExact(gen) )
@@ -308,15 +316,19 @@ static PyObject *Nuitka_PyGen_gen_send_ex( PyGenObject *gen, PyObject *arg, int 
         if (unlikely( arg != NULL && arg != Py_None ))
         {
             char const *msg = "can't send non-None value to a just-started generator";
-            if ( PyCoro_CheckExact(gen) )
+
+
+#if PYTHON_VERSION >= 350
+            if ( PyCoro_CheckExact( gen ) )
             {
                 msg = "can't send non-None value to a just-started coroutine";
             }
 #if PYTHON_VERSION >= 360
-            else if ( PyAsyncGen_CheckExact(gen) )
+            else if ( PyAsyncGen_CheckExact( gen ) )
             {
                 msg = "can't send non-None value to a just-started async generator";
             }
+#endif
 #endif
 
             PyErr_Format( PyExc_TypeError, msg );
@@ -369,6 +381,7 @@ static PyObject *Nuitka_PyGen_gen_send_ex( PyGenObject *gen, PyObject *arg, int 
 
         Py_CLEAR( result );
     }
+#if PYTHON_VERSION >= 350
     else if ( result == NULL && PyErr_ExceptionMatches( PyExc_StopIteration ) )
     {
 #if PYTHON_VERSION < 370
@@ -410,6 +423,7 @@ static PyObject *Nuitka_PyGen_gen_send_ex( PyGenObject *gen, PyObject *arg, int 
             );
         }
     }
+#endif
 #if PYTHON_VERSION >= 360
     else if ( result == NULL &&
               PyAsyncGen_CheckExact( gen ) &&
@@ -449,7 +463,11 @@ static int Nuitka_PyGen_gen_close_iter( PyObject *yf )
 {
     PyObject *retval = NULL;
 
-    if ( PyGen_CheckExact( yf ) || PyCoro_CheckExact( yf ) )
+    if ( PyGen_CheckExact( yf )
+#if PYTHON_VERSION >= 350
+        || PyCoro_CheckExact( yf )
+#endif
+    )
     {
         retval = Nuitka_PyGen_gen_close(
             (PyGenObject *)yf,
@@ -515,15 +533,18 @@ static PyObject *Nuitka_PyGen_gen_close( PyGenObject *gen, PyObject *args )
     if ( retval != NULL )
     {
         char const *msg = "generator ignored GeneratorExit";
-        if (PyCoro_CheckExact(gen))
+
+#if PYTHON_VERSION >= 350
+        if ( PyCoro_CheckExact( gen ) )
         {
             msg = "coroutine ignored GeneratorExit";
         }
 #if PYTHON_VERSION >= 360
-        else if (PyAsyncGen_CheckExact(gen))
+        else if ( PyAsyncGen_CheckExact( gen ) )
         {
             msg = "async generator ignored GeneratorExit";
         }
+#endif
 #endif
         Py_DECREF( retval );
 
@@ -566,8 +587,11 @@ PyObject *Nuitka_UncompiledGenerator_throw( PyGenObject *gen, int close_on_genex
 
         PyObject *ret;
 
-        if ( PyGen_CheckExact( yf ) ||
-             PyCoro_CheckExact( yf ) )
+        if ( PyGen_CheckExact( yf )
+#if PYTHON_VERSION >= 350
+             || PyCoro_CheckExact( yf )
+#endif
+        )
         {
             gen->gi_running = 1;
 

@@ -140,7 +140,7 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def getVariableArgReferencePassingCode(cls, variable_code_name):
-        return '&' + variable_code_name
+        return "&%s" % variable_code_name
 
     @classmethod
     def getLocalVariableObjectAccessCode(cls, variable_code_name):
@@ -214,7 +214,7 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
 
     @classmethod
     def getLocalVariableObjectAccessCode(cls, variable_code_name):
-        return '*' + variable_code_name
+        return "*%s" % variable_code_name
 
     @classmethod
     def getLocalVariableInitTestCode(cls, variable_code_name):
@@ -309,7 +309,7 @@ class CTypeCellObject(CTypeBase):
 
     @classmethod
     def getLocalVariableObjectAccessCode(cls,variable_code_name):
-        return variable_code_name + "->ob_ref"
+        return "%s->ob_ref" % variable_code_name
 
     @classmethod
     def getLocalVariableInitTestCode(cls, variable_code_name):

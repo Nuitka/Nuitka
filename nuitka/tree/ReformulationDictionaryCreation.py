@@ -48,7 +48,6 @@ from nuitka.nodes.ExceptionNodes import (
     StatementRaiseException
 )
 from nuitka.nodes.FunctionNodes import (
-    ExpressionFunctionBody,
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
     ExpressionFunctionRef
@@ -65,8 +64,8 @@ from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
 
 from .InternalModule import (
-    getInternalModule,
     internal_source_ref,
+    makeInternalHelperFunctionBody,
     once_decorator
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
@@ -100,10 +99,8 @@ def buildDictionaryNode(provider, node, source_ref):
 def getDictUnpackingHelper():
     helper_name = "_unpack_dict"
 
-    result = ExpressionFunctionBody(
-        provider   = getInternalModule(),
+    result = makeInternalHelperFunctionBody(
         name       = helper_name,
-        doc        = None,
         parameters = ParameterSpec(
             ps_name          = helper_name,
             ps_normal_args   = (),
@@ -111,9 +108,7 @@ def getDictUnpackingHelper():
             ps_dict_star_arg = None,
             ps_default_count = 0,
             ps_kw_only_args  = ()
-        ),
-        flags      = set(),
-        source_ref = internal_source_ref
+        )
     )
 
     temp_scope = None
@@ -320,7 +315,6 @@ def buildDictionaryUnpacking(provider, node, source_ref):
                 function_body = getDictUnpackingHelper(),
                 source_ref    = source_ref
             ),
-            code_object  = None,
             defaults     = (),
             kw_defaults  = None,
             annotations  = None,

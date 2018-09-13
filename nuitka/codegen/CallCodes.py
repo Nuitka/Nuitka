@@ -394,7 +394,11 @@ def getInstanceCallCodePosArgsQuick(to_name, called_name, called_attribute_name,
     %s = CALL_METHOD_WITH_ARGS%d( %s, %s, call_args );
 }
 """ % (
-            ", ".join(arg_names),
+            ", ".join(
+                str(arg_name)
+                for arg_name in
+                arg_names
+            ),
             to_name,
             arg_size,
             called_name,
@@ -431,7 +435,11 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
     %s = CALL_FUNCTION_WITH_ARGS%d( %s, call_args );
 }
 """ % (
-            ", ".join(arg_names),
+            ", ".join(
+                str(arg_name)
+                for arg_name in
+                arg_names
+            ),
             to_name,
             arg_size,
             called_name,

@@ -27,7 +27,7 @@ template_function_direct_declaration = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s );
 """
 
-template_make_function_template = """
+template_make_function_body = """
 static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args)s )
 {
     struct Nuitka_FunctionObject *result = Nuitka_Function_New(
@@ -46,9 +46,14 @@ static PyObject *MAKE_FUNCTION_%(function_identifier)s( %(function_creation_args
         %(function_doc)s,
         %(closure_count)d
     );
-%(closure_copy)s
+
     return (PyObject *)result;
 }
+"""
+
+template_make_function = """\
+%(to_name)s = MAKE_FUNCTION_%(function_identifier)s( %(args)s );
+%(closure_copy)s
 """
 
 template_function_body = """\
@@ -72,8 +77,8 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
 template_function_exception_exit = """\
 function_exception_exit:
 %(function_cleanup)s\
-    assert( exception_type );
-    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
+    assert( %(exception_type)s );
+    RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
 
     return NULL;
 """

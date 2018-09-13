@@ -35,14 +35,14 @@ if ( %(condition)s )
 {
     if ( !ERROR_OCCURRED() )
     {
-        exception_type = %(quick_exception)s;
-        Py_INCREF( exception_type );
-        exception_value = NULL;
-        exception_tb = NULL;
+        %(exception_type)s = %(quick_exception)s;
+        Py_INCREF( %(exception_type)s );
+        %(exception_value)s = NULL;
+        %(exception_tb)s = NULL;
     }
     else
     {
-        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+        FETCH_ERROR_OCCURRED( &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s );
     }
 %(release_temps)s
 
@@ -56,7 +56,7 @@ if ( %(condition)s )
 {
     assert( ERROR_OCCURRED() );
 
-    FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
+    FETCH_ERROR_OCCURRED( &%(exception_type)s, &%(exception_value)s, &%(exception_tb)s );
 %(release_temps)s
 
 %(line_number_code)s

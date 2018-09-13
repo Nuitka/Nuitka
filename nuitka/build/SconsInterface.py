@@ -150,7 +150,7 @@ in case it is not visible in registry, e.g. due to using uninstalled
 AnaConda Python.
 """)
 
-    for version_candidate in ("2.7", "2.6", "3.5", "3.6"):
+    for version_candidate in ("2.7", "2.6", "3.5", "3.6", "3.7"):
         candidate = Execution.getExecutablePath("python" + version_candidate)
 
         if candidate is not None:

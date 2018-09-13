@@ -156,19 +156,21 @@ def buildFunctionNode(provider, node, source_ref):
     if function_kind in ("Generator", "Coroutine"):
         if function_kind == "Coroutine":
             code_body = ExpressionCoroutineObjectBody(
-                provider   = function_body,
-                name       = node.name,
-                flags      = flags,
-                source_ref = source_ref
+                provider    = function_body,
+                name        = node.name,
+                code_object = code_object,
+                flags       = flags,
+                source_ref  = source_ref
             )
 
             maker_class = ExpressionMakeCoroutineObject
         else:
             code_body = ExpressionGeneratorObjectBody(
-                provider   = function_body,
-                name       = node.name,
-                flags      = flags,
-                source_ref = source_ref
+                provider    = function_body,
+                name        = node.name,
+                code_object = code_object,
+                flags       = flags,
+                source_ref  = source_ref
             )
 
             maker_class = ExpressionMakeGeneratorObject
@@ -186,8 +188,7 @@ def buildFunctionNode(provider, node, source_ref):
                             function_body = code_body,
                             source_ref    = source_ref
                         ),
-                        code_object = code_object,
-                        source_ref  = source_ref
+                        source_ref = source_ref
                     ),
                     source_ref = source_ref
                 )
@@ -251,7 +252,6 @@ def buildFunctionNode(provider, node, source_ref):
             function_body = function_body,
             source_ref    = source_ref
         ),
-        code_object  = code_object,
         defaults     = defaults,
         kw_defaults  = kw_defaults,
         annotations  = annotations,
@@ -323,17 +323,19 @@ def buildAsyncFunctionNode(provider, node, source_ref):
 
     if function_kind == "Coroutine":
         function_body = ExpressionCoroutineObjectBody(
-            provider   = creator_function_body,
-            name       = node.name,
-            flags      = flags,
-            source_ref = source_ref
+            provider    = creator_function_body,
+            name        = node.name,
+            code_object = code_object,
+            flags       = flags,
+            source_ref  = source_ref
         )
     else:
         function_body = ExpressionAsyncgenObjectBody(
-            provider   = creator_function_body,
-            name       = node.name,
-            flags      = flags,
-            source_ref = source_ref
+            provider    = creator_function_body,
+            name        = node.name,
+            code_object = code_object,
+            flags       = flags,
+            source_ref  = source_ref
         )
 
     function_body.qualname_provider = provider
@@ -391,7 +393,6 @@ def buildAsyncFunctionNode(provider, node, source_ref):
                 function_body = function_body,
                 source_ref    = source_ref
             ),
-            code_object   = code_object,
             source_ref    = source_ref
         )
     else:
@@ -400,7 +401,6 @@ def buildAsyncFunctionNode(provider, node, source_ref):
                 function_body = function_body,
                 source_ref    = source_ref
             ),
-            code_object  = code_object,
             source_ref   = source_ref
         )
 
@@ -419,7 +419,6 @@ def buildAsyncFunctionNode(provider, node, source_ref):
             function_body = creator_function_body,
             source_ref    = source_ref
         ),
-        code_object  = code_object,
         defaults     = defaults,
         kw_defaults  = kw_defaults,
         annotations  = annotations,
@@ -792,12 +791,13 @@ def buildFunctionWithParsing(provider, function_kind, name, function_doc, flags,
     )
 
     outer_body = ExpressionFunctionBody(
-        provider   = provider,
-        name       = name,
-        flags      = flags,
-        doc        = function_doc,
-        parameters = parameters,
-        source_ref = source_ref
+        provider    = provider,
+        name        = name,
+        code_object = code_object,
+        flags       = flags,
+        doc         = function_doc,
+        parameters  = parameters,
+        source_ref  = source_ref
     )
 
     # Wrap if necessary for special nested arguments.

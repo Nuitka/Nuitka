@@ -936,6 +936,15 @@ def simpleFunction112():
             pass
 
 
+def simpleFunction113():
+    class A(object):
+        pass
+    a = A()
+    a.a = a
+
+    return a
+
+
 ####################################
 
 

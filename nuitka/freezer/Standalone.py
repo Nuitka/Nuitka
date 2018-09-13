@@ -260,6 +260,7 @@ def _detectImports(command, user_provided, technical):
             args   = [sys.executable, "-s", "-S", "-v", tmp_filename],
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE,
+            env    = dict(os.environ, PYTHONIOENCODING = "utf_8")
         )
         _stdout, stderr = process.communicate()
     finally:

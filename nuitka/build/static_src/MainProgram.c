@@ -30,6 +30,10 @@
 #include "structseq.h"
 #include "osdefs.h"
 
+#if defined( _WIN32 )
+#include <windows.h>
+#endif
+
 #if _NUITKA_NO_WARNINGSSYSFLAGS
 extern PyObject *const_str_plain_ignore;
 #endif

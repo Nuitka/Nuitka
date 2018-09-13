@@ -3420,23 +3420,6 @@ This is also critical to getting to whole program optimization. Being certain
 what is what there on module level, will enable more definitely knowledge about
 data flows and module interfaces.
 
-Generator memory usage / Goto generators
-----------------------------------------
-
-Generator, coroutine, asyncgen memory usage. Currently, with fibers, every
-started generator alike object uses 1 MB of memory. That does not scale well.
-
-Already have we started code that will make generators re-entrant, with an
-initial goto dispatcher that continues code. The generator function will
-exit with a return when ``yield`` happens and resume at function entry again,
-going to the code portion in question.
-
-The storage of local variables and temporary variables in memory allocated
-for generator object is missing still.
-
-The benefit will be to be able to throw away all the platform dependent stuff
-for fibers, and hopefully this also could be faster for setup and maybe even
-the operation of generators.
 
 Class Creation Overhead Reduction
 ---------------------------------

@@ -40,8 +40,10 @@ parser = OptionParser(
     version = '\n'.join(
         (
             getNuitkaVersion(),
-            sys.version,
-            sys.executable
+            "Python: " + sys.version.split('\n')[0],
+            "Executable: " + sys.executable,
+            "OS: " + Utils.getOS(),
+            "Arch: " + Utils.getArchitecture()
         )
     )
 )

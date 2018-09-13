@@ -39,7 +39,6 @@ from nuitka.specs.ParameterSpecs import (
 from nuitka.tree.Extractions import updateVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
-from .CodeObjectSpecs import CodeObjectSpec
 from .ExpressionBases import (
     CompileTimeConstantExpressionBase,
     ExpressionBase,
@@ -360,7 +359,8 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
 
 class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBase):
-    def __init__(self, provider, name, code_prefix, flags, source_ref):
+    def __init__(self, provider, name, code_object, code_prefix, flags,
+                 source_ref):
         ExpressionFunctionBodyBase.__init__(
             self,
             provider    = provider,
@@ -372,6 +372,8 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
         )
 
         EntryPointMixin.__init__(self)
+
+        self.code_object = code_object
 
         provider.getParentModule().addFunction(self)
 
@@ -394,6 +396,9 @@ class ExpressionFunctionEntryPointBase(EntryPointMixin, ExpressionFunctionBodyBa
             return None
         else:
             return getLocalsDictHandle(self.locals_dict_name)
+
+    def getCodeObject(self):
+        return self.code_object
 
     def computeFunctionRaw(self, trace_collection):
         from nuitka.optimizations.TraceCollections import \
@@ -442,11 +447,13 @@ class ExpressionFunctionBody(MarkUnoptimizedFunctionIndicatorMixin,
     if python_version >= 340:
         qualname_setup = None
 
-    def __init__(self, provider, name, doc, parameters, flags, source_ref):
+    def __init__(self, provider, name, code_object, doc, parameters, flags,
+                 source_ref):
         ExpressionFunctionEntryPointBase.__init__(
             self,
             provider    = provider,
             name        = name,
+            code_object = code_object,
             code_prefix = "function",
             flags       = flags,
             source_ref  = source_ref
@@ -620,7 +627,7 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
         "kw_defaults" : convertNoneConstantOrEmptyDictToNone,
     }
 
-    def __init__(self, function_ref, code_object, defaults, kw_defaults,
+    def __init__(self, function_ref, defaults, kw_defaults,
                  annotations, source_ref):
         assert kw_defaults is None or kw_defaults.isExpression()
         assert annotations is None or annotations.isExpression()
@@ -637,50 +644,10 @@ class ExpressionFunctionCreation(SideEffectsFromChildrenMixin,
             source_ref = source_ref
         )
 
-        self.code_object = code_object
-
         self.variable_closure_traces = None
 
     def getName(self):
         return self.getFunctionRef().getName()
-
-    def getCodeObject(self):
-        return self.code_object
-
-    def getDetails(self):
-        return {
-            "code_object" : self.code_object
-        }
-
-    def getDetailsForDisplay(self):
-        if self.code_object:
-            return self.code_object.getDetails()
-        else:
-            return {}
-
-    @classmethod
-    def fromXML(cls, provider, source_ref, **args):
-        code_object_args = {}
-        other_args = {}
-
-        for key, value in args.items():
-            if key.startswith("co_"):
-                code_object_args[key] = value
-            elif key == "code_flags":
-                code_object_args["future_spec"] = fromFlags(args["code_flags"])
-            else:
-                other_args[key] = value
-
-        if code_object_args:
-            code_object = CodeObjectSpec(**code_object_args)
-        else:
-            code_object = None
-
-        return cls(
-            code_object = code_object,
-            source_ref  = source_ref,
-            **other_args
-        )
 
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []

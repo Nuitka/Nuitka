@@ -183,6 +183,8 @@ class StatementReraiseException(StatementRaiseExceptionMixin, StatementBase):
 
         return self, None, None
 
+    # TODO: Not actually true, leads to wrong frame attached if there is
+    # no pending exception.
     def needsFrame(self):
         return False
 

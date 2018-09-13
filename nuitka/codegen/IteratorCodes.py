@@ -84,6 +84,9 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
     else:
         break_indicator_code = ""
 
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
+
     emit(
         template_loop_break_next % {
             "to_name"              : to_name,
@@ -101,7 +104,10 @@ def getBuiltinLoopBreakNextCode(to_name, value, emit, context):
                 getErrorLineNumberUpdateCode(context),
                 2
             ),
-            "exception_target"     : context.getExceptionEscape()
+            "exception_target"     : context.getExceptionEscape(),
+            "exception_type"       : exception_type,
+            "exception_value"      : exception_value,
+            "exception_tb"         : exception_tb
         }
     )
 
@@ -173,6 +179,9 @@ def generateUnpackCheckCode(statement, emit, context):
         statement.getSourceReference()
     )
 
+    exception_type, exception_value, exception_tb, _exception_lineno = \
+      context.variable_storage.getExceptionVariableDescriptions()
+
     emit(
         template_iterator_check % {
             "iterator_name"          : iterator_name,
@@ -185,6 +194,9 @@ def generateUnpackCheckCode(statement, emit, context):
             "release_temps_2"        : indented(release_code),
             "var_description_code_2" : indented(var_description_code),
             "line_number_code_2"     : indented(getErrorLineNumberUpdateCode(context)),
+            "exception_type"         : exception_type,
+            "exception_value"        : exception_value,
+            "exception_tb"           : exception_tb
         }
     )
 

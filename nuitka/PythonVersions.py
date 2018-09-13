@@ -195,4 +195,43 @@ def isStaticallyLinkedPython():
         # about that anyway.
         return False
 
-    return sysconfig.get_config_var("Py_ENABLE_SHARED") == 0
+    result = sysconfig.get_config_var("Py_ENABLE_SHARED") == 0
+
+    if result:
+        from nuitka.utils.Execution import check_output
+
+        with open(os.devnull, 'w') as devnull:
+            output = check_output(
+                (
+                    os.path.realpath(sys.executable) + "-config",
+                    "--ldflags"
+                ),
+                stderr = devnull
+            )
+
+        if str is not bytes:
+            output = output.decode("utf8")
+
+        import shlex
+        output = shlex.split(output)
+
+        python_abi_version = python_version_str + getPythonABI()
+
+        result = ("-lpython" + python_abi_version) not in output
+
+    return result
+
+
+def getPythonABI():
+    if hasattr(sys, "abiflags"):
+        abiflags = sys.abiflags
+
+        # Cyclic dependency here.
+        from nuitka.Options import isPythonDebug
+        if isPythonDebug() or hasattr(sys, "getobjects"):
+            if not abiflags.startswith('d'):
+                abiflags = 'd' + abiflags
+    else:
+        abiflags = ""
+
+    return abiflags

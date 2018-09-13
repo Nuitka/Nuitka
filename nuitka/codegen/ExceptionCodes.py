@@ -160,10 +160,6 @@ def getExceptionUnpublishedReleaseCode(emit, context):
 def generateExceptionPublishCode(statement, emit, context):
     # This statement has no attributes really, pylint: disable=unused-argument
 
-    # TODO: Should this be necessary, something else would have required
-    # them already, or it's wrong.
-    context.markAsNeedsExceptionVariables()
-
     # Current variables cannot be used anymore now.
     keeper_type, keeper_value, keeper_tb, keeper_lineno = context.setExceptionKeeperVariables(
         (None, None, None, None)

@@ -35,8 +35,8 @@ from nuitka.importing import Importing, Recursion
 from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import (
+    getPythonABI,
     getSupportedPythonVersions,
-    isStaticallyLinkedPython,
     isUninstalledPython,
     python_version,
     python_version_str
@@ -476,17 +476,7 @@ def _asBoolStr(value):
 
 def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
-    # have checks for them, leading to many branches, pylint: disable=too-many-branches,too-many-statements
-
-    if hasattr(sys, "abiflags"):
-        abiflags = sys.abiflags
-
-        if Options.isPythonDebug() or \
-           hasattr(sys, "getobjects"):
-            if not abiflags.startswith('d'):
-                abiflags = 'd' + abiflags
-    else:
-        abiflags = None
+    # have checks for them, leading to many branches, pylint: disable=too-many-branches
 
     options = {
         "name"            : os.path.basename(
@@ -531,9 +521,6 @@ def runScons(main_module, quiet):
        not Options.shallMakeModule() and \
        isUninstalledPython():
         options["uninstalled_python"] = "true"
-
-    if isStaticallyLinkedPython():
-        options["static_python"] = "true"
 
     if ModuleRegistry.getUncompiledTechnicalModules():
         options["frozen_modules"] = str(
@@ -588,6 +575,7 @@ def runScons(main_module, quiet):
     if python_version >= 370 and sys.flags.utf8_mode:
         options["python_sysflag_utf8"] = "true"
 
+    abiflags = getPythonABI()
     if abiflags:
         options["abiflags"] = abiflags
 

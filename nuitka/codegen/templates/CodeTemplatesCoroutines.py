@@ -19,15 +19,25 @@
 
 """
 
-template_coroutine_object_decl_template = """\
-static void %(function_identifier)s( struct Nuitka_CoroutineObject *coroutine );
+template_coroutine_object_maker_template = """\
+static PyObject *%(function_identifier)s_maker( void );
 """
 
 template_coroutine_object_body_template = """
-static void %(function_identifier)s( struct Nuitka_CoroutineObject *coroutine )
+struct %(function_identifier)s_locals {
+%(function_local_types)s
+};
+
+static PyObject *%(function_identifier)s_context( struct Nuitka_CoroutineObject *coroutine, PyObject *yield_return_value )
 {
     CHECK_OBJECT( (PyObject *)coroutine );
     assert( Nuitka_Coroutine_Check( (PyObject *)coroutine ) );
+
+    // Heap access if used.
+%(heap_declaration)s
+
+    // Dispatch to yield based on return label index:
+%(function_dispatch)s
 
     // Local variable initialization
 %(function_var_inits)s
@@ -37,6 +47,24 @@ static void %(function_identifier)s( struct Nuitka_CoroutineObject *coroutine )
 
 %(coroutine_exit)s
 }
+
+static PyObject *%(function_identifier)s_maker( void )
+{
+    return Nuitka_Coroutine_New(
+        %(function_identifier)s_context,
+        %(coroutine_module)s,
+        %(coroutine_name_obj)s,
+        %(coroutine_qualname_obj)s,
+        %(code_identifier)s,
+        %(closure_count)d,
+        sizeof(struct %(function_identifier)s_locals)
+    );
+}
+"""
+
+template_make_coroutine = """\
+%(to_name)s = %(coroutine_identifier)s_maker();
+%(closure_copy)s
 """
 
 template_coroutine_exception_exit = """\
@@ -45,10 +73,9 @@ template_coroutine_exception_exit = """\
 
     function_exception_exit:
 %(function_cleanup)s\
-    assert( exception_type );
-    RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
-    coroutine->m_yielded = NULL;
-    return;
+    assert( %(exception_type)s );
+    RESTORE_ERROR_OCCURRED( %(exception_type)s, %(exception_value)s, %(exception_tb)s );
+    return NULL;
 """
 
 template_coroutine_noexception_exit = """\
@@ -56,28 +83,19 @@ template_coroutine_noexception_exit = """\
     NUITKA_CANNOT_GET_HERE( %(function_identifier)s );
 
 %(function_cleanup)s\
-    coroutine->m_yielded = NULL;
-    return;
+
+    return NULL;
 """
 
 template_coroutine_return_exit = """\
     function_return_exit:;
-    coroutine->m_yielded = NULL;
-    coroutine->m_returned = tmp_return_value;
-    return;
+
+    coroutine->m_returned = %(return_value)s;
+
+    return NULL;
 """
 
 
-template_make_coroutine_template = """
-%(to_name)s = Nuitka_Coroutine_New(
-    %(coroutine_identifier)s,
-    self->m_name,
-    self->m_qualname,
-    %(code_identifier)s,
-    %(closure_count)d
-);
-%(closure_copy)s
-"""
 
 from . import TemplateDebugWrapper # isort:skip
 TemplateDebugWrapper.checkDebug(globals())
