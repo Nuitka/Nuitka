@@ -23,14 +23,10 @@ from __future__ import print_function
 import math
 import sys
 
+from nuitka.__past__ import builtins
 from nuitka.PythonVersions import python_version
 
 from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
-
-if str is bytes:
-    import __builtin__ as builtins  # @UnresolvedImport pylint: disable=I0021,import-error
-else:
-    import builtins  # @UnresolvedImport pylint: disable=I0021,import-error
 
 
 class BuiltinParameterSpec(ParameterSpec):

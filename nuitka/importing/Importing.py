@@ -78,7 +78,7 @@ def isPackageDir(dirname):
         extra packages provided via "*.pth" file tricks by "site.py" loading.
     """
 
-    return "." not in os.path.basename(dirname) and \
+    return '.' not in os.path.basename(dirname) and \
            os.path.isdir(dirname) and \
            (
                python_version >= 300 or
@@ -401,7 +401,7 @@ def getPackageSearchPath(package_name):
 
     if package_name is None:
         return [os.getcwd(), main_path] + [
-            element or "." # empty means current directory
+            element or '.' # empty means current directory
             for element in
             sys.path
         ]

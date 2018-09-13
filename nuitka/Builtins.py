@@ -23,13 +23,8 @@ import functools
 import sys
 from types import BuiltinFunctionType, FunctionType, GeneratorType
 
-from nuitka.__past__ import iterItems
+from nuitka.__past__ import builtins, iterItems
 from nuitka.PythonVersions import python_version
-
-if str is bytes:
-    import __builtin__ as builtins  # @UnresolvedImport pylint: disable=I0021,import-error
-else:
-    import builtins  # @UnresolvedImport pylint: disable=I0021,import-error
 
 
 def _getBuiltinExceptionNames():
