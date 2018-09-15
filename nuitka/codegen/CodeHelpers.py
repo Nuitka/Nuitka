@@ -22,6 +22,9 @@ typical support functions to building parts.
 
 """
 
+from contextlib import contextmanager
+
+from nuitka.Options import shallTraceExecution
 from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
 
@@ -117,9 +120,7 @@ def generateExpressionsCode(names, expressions, emit, context):
 def generateChildExpressionsCode(expression, emit, context):
     value_names = []
 
-    for child_name in expression.named_children:
-        child_value = expression.getChild(child_name)
-
+    for child_name, child_value in expression.getVisitableNodesNamed():
         if child_value is not None:
             # Allocate anyway, so names are aligned.
             value_name = context.allocateTempName(child_name + "_name")
@@ -194,13 +195,11 @@ def generateStatementCode(statement, emit, context):
 
 
 def _generateStatementSequenceCode(statement_sequence, emit, context):
-    from nuitka import Options
-
     if statement_sequence is None:
         return
 
     for statement in statement_sequence.getStatements():
-        if Options.shallTraceExecution():
+        if shallTraceExecution():
             source_ref = statement.getSourceReference()
 
             statement_repr = repr(statement)
@@ -261,3 +260,34 @@ def generateStatementSequenceCode(statement_sequence, emit, context,
         emit               = emit,
         context            = context
     )
+
+
+def decideConversionCheckNeeded(to_name, expression):
+    if to_name.c_type == "nuitka_bool":
+        conversion_check = expression.mayRaiseExceptionBool(BaseException)
+    else:
+        conversion_check = False
+
+    return conversion_check
+
+
+@contextmanager
+def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, context):
+    if to_name.c_type == "PyObject *":
+        value_name = to_name
+    else:
+        value_name = context.allocateTempName(value_name)
+
+    yield value_name
+
+    if to_name is not value_name:
+        to_name.getCType().emitAssignConversionCode(
+            to_name     = to_name,
+            value_name  = value_name,
+            needs_check = decideConversionCheckNeeded(to_name, expression),
+            emit        = emit,
+            context     = context
+        )
+
+        from .ErrorCodes import getReleaseCode
+        getReleaseCode(value_name, emit, context)

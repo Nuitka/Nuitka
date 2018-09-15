@@ -67,6 +67,9 @@ nuitka_cache = ARGUMENTS["nuitka_cache"]
 # The name of executable or extension module that we produce.
 result_basepath = ARGUMENTS["result_name"]
 
+# The name of executable or extension module that we produce.
+result_exe = ARGUMENTS.get("result_exe", None)
+
 def getBoolOption(option_name, default = None):
     """ Small helper for boolean mode flags."""
     if default is None:
@@ -589,6 +592,8 @@ elif gcc_mode and found_gcc:
 else:
     c11_mode = False
 
+no_import_lib = False
+
 if msvc_mode:
     def getMsvcVersionString():
         import SCons.Tool.MSCommon.vc  # @UnresolvedImport
@@ -736,7 +741,12 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
 
 if msvc_mode:
     env.Append(CCFLAGS = ["/EHsc", "/J", "/Gd"])
-    env.Append(LINKFLAGS = ["/INCREMENTAL:NO"])
+    env.Append(LINKFLAGS = [
+        "/INCREMENTAL:NO",
+        "/IMPLIB:%s" % os.path.join(source_dir, "import.lib")
+    ])
+
+    no_import_lib = True
 
     # Stack size 4MB or 8MB, we need more than the default 1MB.
     if target_arch == "x86_64":
@@ -1656,11 +1666,12 @@ if module_mode:
 
     target = env.SharedLibrary(
         result_basepath,
-        source_files  + source_targets
+        source_files  + source_targets,
+        no_import_lib = no_import_lib
     )
 else:
     target = env.Program(
-        result_basepath + ".exe",
+        result_exe,
         source_files + source_targets
     )
 
@@ -1770,7 +1781,7 @@ if uninstalled_python:
                 "-change",
                 python_dll_filename,
                 os.path.join(python_lib_path, python_dll_filename),
-                result_basepath + ".exe"
+                result_exe
             ),
             stdout = subprocess.PIPE
         )

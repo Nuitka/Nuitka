@@ -90,8 +90,7 @@ class TempMixin(object):
     def allocateTempName(self, base_name, type_name = "PyObject *",
                          unique = False):
         # We might be hard coding too many details for special temps
-        # here.
-
+        # here, pylint: disable=too-many-branches
 
         if unique:
             number = None
@@ -132,6 +131,9 @@ class TempMixin(object):
                         init_value = init_value
                     )
             else:
+                if type_name.startswith("NUITKA_MAY_BE_UNUSED"):
+                    type_name = type_name[21:]
+
                 assert result.c_type == type_name
 
         else:
@@ -289,6 +291,7 @@ class TempMixin(object):
 
     def addCleanupTempName(self, tmp_name):
         assert tmp_name not in self.cleanup_names[-1], tmp_name
+        assert tmp_name.c_type != "void"
 
         self.cleanup_names[-1].append(tmp_name)
 

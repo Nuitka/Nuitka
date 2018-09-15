@@ -382,7 +382,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
             exe_filename = exe_filename[:-3]
 
         exe_filename = exe_filename.replace(')', "").replace('(', "")
-        exe_filename += ".exe"
+        exe_filename += (".exe" if os.name == "nt" else ".bin")
 
         nuitka_cmd2 = [
             os.path.join(output_dir, exe_filename)

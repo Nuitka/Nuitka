@@ -32,6 +32,7 @@ from logging import info, warning
 
 from nuitka.finalizations.FinalizeMarkups import getImportedNames
 from nuitka.importing import Importing, Recursion
+from nuitka.Options import getPythonFlags
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import (
     getPythonABI,
@@ -51,7 +52,7 @@ from nuitka.utils.FileOperations import (
     removeDirectory
 )
 
-from . import ModuleRegistry, TreeXML
+from . import ModuleRegistry, Options, TreeXML
 from .build import SconsInterface
 from .codegen import CodeGeneration, ConstantCodes
 from .finalizations import Finalization
@@ -69,7 +70,6 @@ def createNodeTree(filename):
     optimization, or immediately through recursed directory paths.
 
     """
-    from nuitka import Options
 
     # First, build the raw node tree from the source code.
     main_module = Building.buildModuleTree(
@@ -180,8 +180,6 @@ def getTreeFilenameWithSuffix(tree, suffix):
 
 
 def getSourceDirectoryPath(main_module):
-    from nuitka import Options
-
     assert main_module.isCompiledPythonModule()
 
     return Options.getOutputPath(
@@ -192,8 +190,6 @@ def getSourceDirectoryPath(main_module):
 
 
 def getStandaloneDirectoryPath(main_module):
-    from nuitka import Options
-
     return Options.getOutputPath(
         path = os.path.basename(
             getTreeFilenameWithSuffix(main_module, ".dist")
@@ -202,8 +198,6 @@ def getStandaloneDirectoryPath(main_module):
 
 
 def getResultBasepath(main_module):
-    from nuitka import Options
-
     assert main_module.isCompiledPythonModule()
 
     if Options.isStandaloneMode():
@@ -222,14 +216,21 @@ def getResultBasepath(main_module):
 
 
 def getResultFullpath(main_module):
-    from nuitka import Options
+    """ Get the final output binary result full path.
+
+    """
 
     result = getResultBasepath(main_module)
 
     if Options.shallMakeModule():
         result += Utils.getSharedLibrarySuffix()
     else:
-        result += ".exe"
+        if Options.getOutputFilename() is not None:
+            result = Options.getOutputFilename()
+        elif Utils.getOS() == "Windows":
+            result += ".exe"
+        elif not Options.isStandaloneMode():
+            result += ".bin"
 
     return result
 
@@ -316,7 +317,6 @@ def makeSourceDirectory(main_module):
     """
     # We deal with a lot of details here, but rather one by one, and split makes
     # no sense, pylint: disable=too-many-branches,too-many-locals,too-many-statements
-    from nuitka import Options
 
     assert main_module.isCompiledPythonModule()
 
@@ -485,8 +485,8 @@ def _asBoolStr(value):
 
 def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
-    # have checks for them, leading to many branches, pylint: disable=too-many-branches
-    from nuitka import Options
+    # have checks for them, leading to many branches and statements,
+    # pylint: disable=too-many-branches,too-many-statements
 
     options = {
         "name"            : os.path.basename(
@@ -512,6 +512,9 @@ def runScons(main_module, quiet):
             len(ModuleRegistry.getUncompiledNonTechnicalModules())
         )
     }
+
+    if not Options.shallMakeModule():
+        options["result_exe"] = getResultFullpath(main_module)
 
     # Ask Scons to cache on Windows, except where the directory is thrown
     # away. On non-Windows you can should use ccache instead.
@@ -561,7 +564,7 @@ def runScons(main_module, quiet):
     if Options.isProfile():
         options["profile_mode"] = "true"
 
-    if "no_warnings" in Options.getPythonFlags():
+    if "no_warnings" in getPythonFlags():
         options["no_python_warnings"] = "true"
 
     if python_version < 300 and sys.flags.py3k_warning:
@@ -617,8 +620,6 @@ def writeBinaryData(filename, binary_data):
 
 
 def callExecPython(args, clean_path, add_path):
-    from nuitka import Options
-
     old_python_path = os.environ.get("PYTHONPATH", None)
 
     if clean_path and old_python_path is not None:
@@ -641,8 +642,6 @@ def callExecPython(args, clean_path, add_path):
 
 
 def executeMain(binary_filename, clean_path):
-    from nuitka import Options
-
     args = (binary_filename, binary_filename)
 
     if Options.shallRunInDebugger():
@@ -678,8 +677,6 @@ def executeModule(tree, clean_path):
 
 
 def compileTree(main_module):
-    from nuitka import Options
-
     source_dir = getSourceDirectoryPath(main_module)
 
     if not Options.shallOnlyExecCCompilerCall():
@@ -735,8 +732,6 @@ def compileTree(main_module):
 
 
 def handleSyntaxError(e):
-    from nuitka import Options
-
     # Syntax or indentation errors, output them to the user and abort. If
     # we are not in full compat, and user has not specified the Python
     # versions he wants, tell him about the potential version problem.
@@ -772,7 +767,6 @@ def main():
         We might be asked to only re-compile generated C, dump only an XML
         representation of the internal node tree after optimization, etc.
     """
-    from nuitka import Options
 
     # Main has to fulfill many options, leading to many branches and statements
     # to deal with them.  pylint: disable=too-many-branches
@@ -833,7 +827,7 @@ def main():
             sys.exit(0)
 
         if Options.isStandaloneMode():
-            binary_filename = options["result_name"] + ".exe"
+            binary_filename = options["result_exe"]
 
             standalone_entry_points.insert(
                 0,
@@ -884,7 +878,7 @@ def main():
             )
 
         # Modules should not be executable, but Scons creates them like it, fix
-        # it up here.
+        # it up here. TODO: Move inside scons file and avoid subprocess call.
         if Utils.getOS() != "Windows" and Options.shallMakeModule():
             subprocess.call(
                 (

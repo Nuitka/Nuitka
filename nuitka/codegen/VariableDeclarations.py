@@ -21,24 +21,34 @@ Holds the information necessary to make C code declarations related to a variabl
 """
 from contextlib import contextmanager
 
+from .c_types.CTypeModuleDictVariables import CTypeModuleDictVariable
+from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
 from .c_types.CTypePyObjectPtrs import (
     CTypeCellObject,
     CTypePyObjectPtr,
     CTypePyObjectPtrPtr
 )
+from .c_types.CTypeVoids import CTypeVoid
 
 
 class VariableDeclaration(object):
-    __slots__ = ("c_type", "code_name", "init_value", "heap_name")
+    __slots__ = ("c_type", "code_name", "init_value", "heap_name", "maybe_unused")
 
     def __init__(self, c_type, code_name, init_value, heap_name):
-        self.c_type = c_type
+        if c_type.startswith("NUITKA_MAY_BE_UNUSED"):
+            self.c_type = c_type[21:]
+            self.maybe_unused = True
+        else:
+            self.c_type = c_type
+            self.maybe_unused = False
+
         self.code_name = code_name
         self.init_value = init_value
         self.heap_name = heap_name
 
     def makeCFunctionLevelDeclaration(self):
-        return "%s%s%s%s;" % (
+        return "%s%s%s%s%s;" % (
+            "NUITKA_MAY_BE_UNUSED " if self.maybe_unused else "",
             self.c_type,
             ' ' if self.c_type[-1] != '*' else "",
             self.code_name,
@@ -47,9 +57,6 @@ class VariableDeclaration(object):
 
     def makeCStructDeclaration(self):
         c_type = self.c_type
-
-        if c_type.startswith("NUITKA_MAY_BE_UNUSED"):
-            c_type = c_type[21:]
 
         if '[' in c_type:
             array_decl = c_type[c_type.find('['):]
@@ -79,15 +86,18 @@ class VariableDeclaration(object):
     def getCType(self):
         c_type = self.c_type
 
-        if c_type.startswith("NUITKA_MAY_BE_UNUSED"):
-            c_type = c_type[21:]
-
         if c_type == "PyObject *":
             return CTypePyObjectPtr
         elif c_type == "struct Nuitka_CellObject *":
             return CTypeCellObject
         elif c_type == "PyObject **":
             return CTypePyObjectPtrPtr
+        elif c_type == "nuitka_bool":
+            return CTypeNuitkaBoolEnum
+        elif c_type == "module_var":
+            return CTypeModuleDictVariable
+        elif c_type == "void":
+            return CTypeVoid
 
         assert False, c_type
 
@@ -255,6 +265,7 @@ class VariableStorage(object):
             variable_declaration.makeCFunctionLevelDeclaration()
             for variable_declaration in
             self.variable_declarations_main
+            if variable_declaration.c_type != "void"
         ]
 
     def getLocalPreservationDeclarations(self):

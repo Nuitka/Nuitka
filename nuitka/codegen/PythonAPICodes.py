@@ -21,11 +21,12 @@ This is generic stuff.
 """
 
 from .CodeHelpers import generateExpressionCode
-from .ErrorCodes import getErrorExitCode
+from .ErrorCodes import getErrorExitCode, getReleaseCode
 
 
-def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, may_raise, ref_count,
-                                 source_ref, emit, context, none_null = False):
+def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, may_raise,
+                                 conversion_check, ref_count, source_ref,
+                                 emit, context, none_null = False):
     arg_names = []
 
     for arg_name, arg_expression in arg_desc:
@@ -46,51 +47,60 @@ def generateCAPIObjectCodeCommon(to_name, capi, arg_desc, may_raise, ref_count,
     context.setCurrentSourceCodeReference(source_ref)
 
     getCAPIObjectCode(
-        to_name   = to_name,
-        capi      = capi,
-        arg_names = arg_names,
-        may_raise = may_raise,
-        ref_count = ref_count,
-        emit      = emit,
-        context   = context
+        to_name          = to_name,
+        capi             = capi,
+        arg_names        = arg_names,
+        may_raise        = may_raise,
+        conversion_check = conversion_check,
+        ref_count        = ref_count,
+        emit             = emit,
+        context          = context
     )
 
 
-def generateCAPIObjectCode(to_name, capi, arg_desc, may_raise, source_ref, emit,
-                           context, none_null = False):
+def generateCAPIObjectCode(to_name, capi, arg_desc, may_raise, conversion_check,
+                           source_ref, emit, context, none_null = False):
     generateCAPIObjectCodeCommon(
-        to_name    = to_name,
-        capi       = capi,
-        arg_desc   = arg_desc,
-        may_raise  = may_raise,
-        ref_count  = 1,
-        source_ref = source_ref,
-        emit       = emit,
-        context    = context,
-        none_null  = none_null
+        to_name          = to_name,
+        capi             = capi,
+        arg_desc         = arg_desc,
+        may_raise        = may_raise,
+        conversion_check = conversion_check,
+        ref_count        = 1,
+        source_ref       = source_ref,
+        emit             = emit,
+        context          = context,
+        none_null        = none_null
     )
 
 
-def generateCAPIObjectCode0(to_name, capi, arg_desc, may_raise, source_ref,
-                            emit, context, none_null = False):
+def generateCAPIObjectCode0(to_name, capi, arg_desc, may_raise, conversion_check,
+                            source_ref, emit, context, none_null = False):
     generateCAPIObjectCodeCommon(
-        to_name    = to_name,
-        capi       = capi,
-        arg_desc   = arg_desc,
-        may_raise  = may_raise,
-        ref_count  = 0,
-        source_ref = source_ref,
-        emit       = emit,
-        context    = context,
-        none_null  = none_null
+        to_name          = to_name,
+        capi             = capi,
+        arg_desc         = arg_desc,
+        may_raise        = may_raise,
+        conversion_check = conversion_check,
+        ref_count        = 0,
+        source_ref       = source_ref,
+        emit             = emit,
+        context          = context,
+        none_null        = none_null
     )
 
 
-def getCAPIObjectCode(to_name, capi, arg_names, may_raise, ref_count, emit,
-                      context):
+def getCAPIObjectCode(to_name, capi, arg_names, may_raise, conversion_check,
+                      ref_count, emit, context):
+    # TODO: Use context manager here too.
+    if to_name.c_type == "PyObject *":
+        value_name = to_name
+    else:
+        value_name = context.allocateTempName("capi_result")
+
     emit(
         "%s = %s( %s );" % (
-            to_name,
+            value_name,
             capi,
             ", ".join(
                 str(arg_name)
@@ -101,7 +111,7 @@ def getCAPIObjectCode(to_name, capi, arg_names, may_raise, ref_count, emit,
     )
 
     getErrorExitCode(
-        check_name    = to_name,
+        check_name    = value_name,
         release_names = (
             arg_name
             for arg_name in
@@ -114,7 +124,19 @@ def getCAPIObjectCode(to_name, capi, arg_names, may_raise, ref_count, emit,
     )
 
     if ref_count:
-        context.addCleanupTempName(to_name)
+        context.addCleanupTempName(value_name)
+
+    if to_name is not value_name:
+        to_name.getCType().emitAssignConversionCode(
+            to_name     = to_name,
+            value_name  = value_name,
+            needs_check = conversion_check,
+            emit        = emit,
+            context     = context
+        )
+
+        if ref_count:
+            getReleaseCode(value_name, emit, context)
 
 
 def getReferenceExportCode(base_name, emit, context):

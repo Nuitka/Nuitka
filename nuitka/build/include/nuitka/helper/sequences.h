@@ -18,53 +18,7 @@
 #ifndef __NUITKA_HELPER_SEQUENCES_H__
 #define __NUITKA_HELPER_SEQUENCES_H__
 
-NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS( PyObject *element, PyObject *sequence )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        return NULL;
-    }
-
-    return BOOL_FROM( result == 1 );
-}
-
-NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS_NOT( PyObject *element, PyObject *sequence )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        return NULL;
-    }
-
-    return BOOL_FROM( result == 0 );
-}
-
-NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_BOOL( PyObject *element, PyObject *sequence )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        return false;
-    }
-
-    return result == 1;
-}
-
-NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *element, PyObject *sequence )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        return false;
-    }
-
-    return result == 0;
-}
+// TODO: Provide enhanced form of PySequence_Contains with less overhead.
 
 NUITKA_MAY_BE_UNUSED static bool SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_t index, PyObject *value )
 {

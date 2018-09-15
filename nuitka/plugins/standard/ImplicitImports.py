@@ -246,6 +246,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pkg_resources._vendor.packaging.version"
             yield "pkg_resources._vendor.packaging.specifiers"
             yield "pkg_resources._vendor.packaging.requirements"
+        elif full_name == "uvloop.loop":
+            yield "uvloop._noop"
 
 
     # We don't care about line length here, pylint: disable=line-too-long
@@ -366,6 +368,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     unworthy_namespaces = (
         "setuptools",      # Not performance relevant.
         "distutils",       # Not performance relevant.
+        "wheel",           # Not performance relevant.
         "pkg_resources",   # Not performance relevant.
         "numpy.distutils", # Largely unused, and a lot of modules.
         "numpy.f2py",      # Mostly unused, only numpy.distutils import it.

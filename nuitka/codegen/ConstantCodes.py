@@ -80,9 +80,14 @@ def generateConstantTrueReferenceCode(to_name, expression, emit, context):
 
     # No context or other knowledge needed, pylint: disable=unused-argument
 
-    emit(
-        "%s = Py_True;" % to_name
-    )
+    if to_name.c_type == "nuitka_bool":
+        emit(
+            "%s = NUITKA_BOOL_TRUE;" % to_name
+        )
+    else:
+        emit(
+            "%s = Py_True;" % to_name
+        )
 
 
 def generateConstantFalseReferenceCode(to_name, expression, emit, context):
@@ -90,9 +95,14 @@ def generateConstantFalseReferenceCode(to_name, expression, emit, context):
 
     # No context or other knowledge needed, pylint: disable=unused-argument
 
-    emit(
-        "%s = Py_False;" % to_name
-    )
+    if to_name.c_type == "nuitka_bool":
+        emit(
+            "%s = NUITKA_BOOL_FALSE;" % to_name
+        )
+    else:
+        emit(
+            "%s = Py_False;" % to_name
+        )
 
 
 def generateConstantEllipsisReferenceCode(to_name, expression, emit, context):
@@ -945,6 +955,9 @@ def getConstantsDeclCode(context):
 def getConstantAccess(to_name, constant, emit, context):
     # Many cases, because for each type, we may copy or optimize by creating
     # empty.  pylint: disable=too-many-branches,too-many-statements
+
+    if to_name.c_type == "nuitka_bool":
+        assert False
 
     if type(constant) is dict:
         if constant:

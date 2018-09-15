@@ -104,20 +104,16 @@ PyCell_SET( %(identifier)s, %(tmp_name)s );
 """
 
 
-template_read_local = """\
-%(tmp_name)s = %(identifier)s;
-"""
-
 template_del_local_tolerant = """\
 Py_XDECREF( %(identifier)s );
 %(identifier)s = NULL;
 """
 
 template_del_shared_tolerant = """\
-if ( %(identifier)s )
 {
-    Py_XDECREF( PyCell_GET( %(identifier)s ));
+    PyObject *old = PyCell_GET( %(identifier)s );
     PyCell_SET( %(identifier)s, NULL );
+    Py_XDECREF( old );
 }
 """
 
@@ -131,12 +127,12 @@ if ( %(result)s == true )
 """
 
 template_del_shared_intolerant = """\
-assert( %(identifier)s != NULL );
-%(result)s = PyCell_GET( %(identifier)s ) != NULL;
-if ( %(result)s == true )
 {
-    Py_DECREF( PyCell_GET( %(identifier)s ) );
+    PyObject *old = PyCell_GET( %(identifier)s );
     PyCell_SET( %(identifier)s, NULL );
+    Py_XDECREF( old );
+
+    %(result)s = old != NULL;
 }
 """
 
@@ -147,8 +143,13 @@ Py_DECREF( %(identifier)s );
 """
 
 template_del_shared_known = """\
-Py_DECREF( PyCell_GET( %(identifier)s ) );
-PyCell_SET( %(identifier)s, NULL );
+{
+    PyObject *old = PyCell_GET( %(identifier)s );
+    PyCell_SET( %(identifier)s, NULL );
+
+    CHECK_OBJECT( old );
+    Py_DECREF( old );
+}
 """
 
 
@@ -163,18 +164,6 @@ template_release_clear = """\
 CHECK_OBJECT( (PyObject *)%(identifier)s );
 Py_DECREF( %(identifier)s );
 %(identifier)s = NULL;
-"""
-
-# TODO: Storage will not be NULL.
-template_read_shared_unclear = """\
-if ( %(identifier)s == NULL )
-{
-    %(tmp_name)s = NULL;
-}
-else
-{
-    %(tmp_name)s = PyCell_GET( %(identifier)s );
-}
 """
 
 template_read_shared_known = """\
@@ -218,6 +207,7 @@ if ( %(to_name)s == NULL )
     if ( CHECK_AND_CLEAR_KEY_ERROR_OCCURRED() )
     {
 %(fallback)s
+    Py_INCREF( %(to_name)s );
     }
 }
 """
@@ -226,17 +216,25 @@ template_read_locals_mapping_without_fallback = """\
 %(to_name)s = PyObject_GetItem( %(locals_dict)s, %(var_name)s );
 """
 
-
-
 template_del_global_unclear = """\
+%(res_name)s = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, %(var_name)s );
+%(result)s = %(res_name)s != -1;
+if ( %(result)s == false ) CLEAR_ERROR_OCCURRED();
+"""
+
+template_del_global_known = """\
 %(res_name)s = PyDict_DelItem( (PyObject *)moduledict_%(module_identifier)s, %(var_name)s );
 if ( %(res_name)s == -1 ) CLEAR_ERROR_OCCURRED();
 """
 
+
 template_update_locals_dict_value = """\
 if ( %(test_code)s )
 {
-    UPDATE_STRING_DICT0( (PyDictObject *)%(dict_name)s, (Nuitka_StringObject *)%(var_name)s, %(access_code)s );
+    PyObject *value;
+%(access_code)s
+
+    UPDATE_STRING_DICT0( (PyDictObject *)%(dict_name)s, (Nuitka_StringObject *)%(var_name)s, value );
 }
 else
 {
@@ -252,10 +250,13 @@ else
 template_set_locals_dict_value = """\
 if ( %(test_code)s )
 {
+    PyObject *value;
+%(access_code)s
+
     int res = PyDict_SetItem(
         %(dict_name)s,
         %(var_name)s,
-        %(access_code)s
+        value
     );
 
     assert( res == 0 );
@@ -265,10 +266,13 @@ if ( %(test_code)s )
 template_update_locals_mapping_value = """\
 if ( %(test_code)s )
 {
+    PyObject *value;
+%(access_code)s
+
     int res = PyObject_SetItem(
         %(mapping_name)s,
         %(var_name)s,
-        %(access_code)s
+        value
     );
 
     %(tmp_name)s = res == 0;
@@ -302,10 +306,13 @@ else
 template_set_locals_mapping_value = """\
 if ( %(test_code)s )
 {
+    PyObject *value;
+%(access_code)s
+
     %(tmp_name)s = SET_SUBSCRIPT(
         %(mapping_name)s,
         %(var_name)s,
-        %(access_code)s
+        value
     );
 }
 else

@@ -385,10 +385,6 @@ class NodeBase(NodeMetaClassBase):
         # necessary, but we test against them.
         return False
 
-    def isStatementReraiseException(self):
-        # Virtual method, pylint: disable=no-self-use
-        return False
-
     def isExpressionMakeSequence(self):
         # Virtual method, pylint: disable=no-self-use
         return False

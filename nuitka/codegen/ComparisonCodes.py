@@ -21,207 +21,83 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 "isinstance" check as used in conditions, as well as exception matching.
 """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeBool
+
 from . import OperatorCodes
 from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
-from .LabelCodes import getBranchingCode
 
 
 def generateComparisonExpressionCode(to_name, expression, emit, context):
-    left_name = context.allocateTempName("compexpr_left")
-    right_name = context.allocateTempName("compexpr_right")
+    # Currently high complexity, due to manual C typing and doing all
+    # in one place, pylint: disable=too-many-branches,too-many-statements
+
+    left = expression.getLeft()
+    right = expression.getRight()
+
+    comparator  = expression.getComparator()
+
+    type_name = "PyObject *"
+    if comparator in ("Is", "IsNot"):
+        if left.getTypeShape() is ShapeTypeBool and \
+           right.getTypeShape() is ShapeTypeBool:
+            type_name = "nuitka_bool"
+
+    left_name = context.allocateTempName("compexpr_left", type_name = type_name)
+    right_name = context.allocateTempName("compexpr_right", type_name = type_name)
 
     generateExpressionCode(
         to_name    = left_name,
-        expression = expression.getLeft(),
+        expression = left,
         emit       = emit,
         context    = context
     )
     generateExpressionCode(
         to_name    = right_name,
-        expression = expression.getRight(),
+        expression = right,
         emit       = emit,
         context    = context
     )
 
-    comparator  = expression.getComparator()
-
     if comparator in OperatorCodes.containing_comparison_codes:
-        needs_check = expression.getRight().mayRaiseExceptionIn(
+        needs_check = right.mayRaiseExceptionIn(
             BaseException,
             expression.getLeft()
         )
 
-        helper = OperatorCodes.containing_comparison_codes[ comparator ]
-        assert helper.startswith("SEQUENCE_CONTAINS")
-
-        emit(
-            "%s = %s( %s, %s );" % (
-                to_name,
-                helper,
-                left_name,
-                right_name
-            )
-        )
-
-        getErrorExitCode(
-            check_name    = to_name,
-            release_names = (left_name, right_name),
-            needs_check   = needs_check,
-            emit          = emit,
-            context       = context
-        )
-    elif comparator in OperatorCodes.rich_comparison_codes:
-        needs_check = expression.mayRaiseExceptionBool(BaseException)
-
-        helper = "RICH_COMPARE_%s" % (
-            OperatorCodes.rich_comparison_codes[ comparator ]
-        )
-
-        if not context.mayRecurse() and comparator == "Eq":
-            helper += "_NORECURSE"
-
-        emit(
-            "%s = %s( %s, %s );" % (
-                to_name,
-                helper,
-                left_name,
-                right_name
-            )
-        )
-
-        getErrorExitCode(
-            check_name    = to_name,
-            release_names = (left_name, right_name),
-            needs_check   = needs_check,
-            emit          = emit,
-            context       = context
-        )
-
-        context.addCleanupTempName(to_name)
-    elif comparator == "Is":
-        emit(
-            "%s = BOOL_FROM( %s == %s );" % (
-                to_name,
-                left_name,
-                right_name
-            )
-        )
-
-        getReleaseCodes(
-            release_names = (left_name, right_name),
-            emit          = emit,
-            context       = context
-        )
-    elif comparator == "IsNot":
-        emit(
-            "%s = BOOL_FROM( %s != %s );" % (
-                to_name,
-                left_name,
-                right_name
-            )
-        )
-
-        getReleaseCodes(
-            release_names = (left_name, right_name),
-            emit          = emit,
-            context       = context
-        )
-    elif comparator == "exception_match":
-        needs_check = expression.mayRaiseExceptionBool(BaseException)
-
-        operator_res_name = context.allocateTempName(
-            "cmp_exception_match",
-            "int"
-        )
-
-        emit(
-             "%s = EXCEPTION_MATCH_BOOL( %s, %s );" % (
-                operator_res_name,
-                left_name,
-                right_name
-            )
-        )
-
-        getErrorExitBoolCode(
-            condition     = "%s == -1" % operator_res_name,
-            release_names = (left_name, right_name),
-            needs_check   = needs_check,
-            emit          = emit,
-            context       = context
-        )
-
-        emit(
-            "%s = BOOL_FROM( %s != 0 );" % (
-                to_name,
-                operator_res_name
-            )
-        )
-    else:
-        assert False, comparator
-
-
-def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_check,
-                                    emit, context):
-    if comparator in OperatorCodes.containing_comparison_codes:
-        operator_res_name = context.allocateTempName("cmp_" + comparator, "int")
+        res_name = context.getIntResName()
 
         emit(
              "%s = PySequence_Contains( %s, %s );" % (
-                operator_res_name,
+                res_name,
                 right_name, # sequence goes first in the API.
                 left_name
             )
         )
 
         getErrorExitBoolCode(
-            condition     = "%s == -1" % operator_res_name,
+            condition     = "%s == -1" % res_name,
             release_names = (left_name, right_name),
             needs_check   = needs_check,
             emit          = emit,
             context       = context
         )
 
-        condition = "%s == %d" % (
-            operator_res_name,
-            1 if comparator == "In" else 0
-        )
-    elif comparator in OperatorCodes.rich_comparison_codes:
-        operator_res_name = context.allocateTempName("cmp_" + comparator, "int")
-
-        helper = OperatorCodes.rich_comparison_codes[comparator]
-        if not context.mayRecurse() and comparator == "Eq":
-            helper += "_NORECURSE"
-
-        emit(
-             "%s = RICH_COMPARE_BOOL_%s( %s, %s );" % (
-                operator_res_name,
-                helper,
-                left_name,
-                right_name
-            )
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s == %d" % (
+                res_name,
+                1 if comparator == "In" else 0
+            ),
+            emit      = emit
         )
 
-        getErrorExitBoolCode(
-            condition     = "%s == -1" % operator_res_name,
-            release_names = (left_name, right_name),
-            needs_check   = needs_check,
-            emit          = emit,
-            context       = context
-        )
-
-        condition = "%s == 1" % (
-            operator_res_name,
-        )
+        return
     elif comparator == "Is":
-        operator_res_name = context.allocateTempName("is", "bool")
-
-        emit(
-            "%s = ( %s == %s );" % (
-                operator_res_name,
-                left_name,
-                right_name
-            )
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s == %s" % (left_name, right_name),
+            emit      = emit
         )
 
         getReleaseCodes(
@@ -230,16 +106,12 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_che
             context       = context
         )
 
-        condition = operator_res_name
+        return
     elif comparator == "IsNot":
-        operator_res_name = context.allocateTempName("isnot", "bool")
-
-        emit(
-            "%s = ( %s != %s );" % (
-                operator_res_name,
-                left_name,
-                right_name
-            )
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s != %s" % (left_name, right_name),
+            emit      = emit
         )
 
         getReleaseCodes(
@@ -248,36 +120,119 @@ def getComparisonExpressionBoolCode(comparator, left_name, right_name, needs_che
             context       = context
         )
 
-        condition = operator_res_name
+        return
+    elif comparator in OperatorCodes.rich_comparison_codes:
+        needs_check = expression.mayRaiseExceptionBool(BaseException)
+
+        c_type = to_name.getCType()
+
+        if c_type.c_type == "PyObject *":
+            helper = "RICH_COMPARE_%s" % (
+                OperatorCodes.rich_comparison_codes[ comparator ]
+            )
+
+            if not context.mayRecurse() and comparator == "Eq":
+                helper += "_NORECURSE"
+
+            emit(
+                "%s = %s( %s, %s );" % (
+                    to_name,
+                    helper,
+                    left_name,
+                    right_name
+                )
+            )
+
+            getErrorExitCode(
+                check_name    = to_name,
+                release_names = (left_name, right_name),
+                needs_check   = needs_check,
+                emit          = emit,
+                context       = context
+            )
+
+            context.addCleanupTempName(to_name)
+        elif c_type.c_type in ("nuitka_bool", "void"):
+            res_name = context.getIntResName()
+
+            helper = OperatorCodes.rich_comparison_codes[comparator]
+            if not context.mayRecurse() and comparator == "Eq":
+                helper += "_NORECURSE"
+
+            emit(
+                 "%s = RICH_COMPARE_BOOL_%s( %s, %s );" % (
+                    res_name,
+                    helper,
+                    left_name,
+                    right_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition     = "%s == -1" % res_name,
+                release_names = (left_name, right_name),
+                needs_check   = needs_check,
+                emit          = emit,
+                context       = context
+            )
+
+            c_type.emitAssignmentCodeFromBoolCondition(
+                to_name   = to_name,
+                condition = "%s != 0" % res_name,
+                emit      = emit
+            )
+        else:
+            assert False, to_name.c_type
+
+        return
     elif comparator == "exception_match":
-        operator_res_name = context.allocateTempName("exc_match_" + comparator, "int")
+        needs_check = expression.mayRaiseExceptionBool(BaseException)
+
+        res_name = context.getIntResName()
 
         emit(
              "%s = EXCEPTION_MATCH_BOOL( %s, %s );" % (
-                operator_res_name,
+                res_name,
                 left_name,
                 right_name
             )
         )
 
         getErrorExitBoolCode(
-            condition     = "%s == -1" % operator_res_name,
+            condition     = "%s == -1" % res_name,
             release_names = (left_name, right_name),
             needs_check   = needs_check,
             emit          = emit,
             context       = context
         )
 
-        condition = "%s == 1" % (
-            operator_res_name
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s != 0" % res_name,
+            emit      = emit
         )
     else:
         assert False, comparator
 
-    getBranchingCode(condition, emit, context)
+
+def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
+    inst_name = context.allocateTempName("isinstance_inst")
+    cls_name = context.allocateTempName("isinstance_cls")
+
+    generateExpressionCode(
+        to_name    = inst_name,
+        expression = expression.getInstance(),
+        emit       = emit,
+        context    = context
+    )
+    generateExpressionCode(
+        to_name    = cls_name,
+        expression = expression.getCls(),
+        emit       = emit,
+        context    = context
+    )
 
 
-def getBuiltinIsinstanceBoolCode(inst_name, cls_name, emit, context):
     res_name = context.getIntResName()
 
     emit(
@@ -295,8 +250,8 @@ def getBuiltinIsinstanceBoolCode(inst_name, cls_name, emit, context):
         context       = context
     )
 
-    getBranchingCode(
-        condition = "%s == 1" % res_name,
-        emit      = emit,
-        context   = context
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name   = to_name,
+        condition = "%s != 0" % res_name,
+        emit      = emit
     )

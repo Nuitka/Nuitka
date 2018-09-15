@@ -134,7 +134,6 @@ struct %(function_identifier)s_locals *generator_heap = \
 def generateMakeGeneratorObjectCode(to_name, expression, emit, context):
     generator_object_body = expression.getGeneratorRef().getFunctionBody()
 
-
     closure_variables = expression.getClosureVariableVersions()
 
     closure_copy = getClosureCopyCode(

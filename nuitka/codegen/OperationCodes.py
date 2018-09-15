@@ -22,8 +22,23 @@ of course types could play into it. Then there is also the added difficulty of
 in-place assignments, which have other operation variants.
 """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    ShapeTypeBytes,
+    ShapeTypeFloat,
+    ShapeTypeInt,
+    ShapeTypeList,
+    ShapeTypeLong,
+    ShapeTypeStr,
+    ShapeTypeTuple,
+    ShapeTypeUnicode
+)
+from nuitka.PythonVersions import python_version
+
 from . import OperatorCodes
-from .CodeHelpers import generateChildExpressionsCode
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 
 
@@ -34,18 +49,52 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
         context    = context
     )
 
+    # TODO: Decide and use one single spelling, inplace or in_place
     inplace = expression.isInplaceSuspect()
 
     assert not inplace or not expression.getLeft().isCompileTimeConstant(),  \
         expression
 
-    getOperationCode(
+    _getOperationCode(
+        to_name     = to_name,
+        expression  = expression,
+        operator    = expression.getOperator(),
+        arg_names   = (left_arg_name, right_arg_name),
+        in_place    = inplace,
+        needs_check = expression.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
+    )
+
+
+def generateOperationNotCode(to_name, expression, emit, context):
+    arg_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    res_name = context.getIntResName()
+
+    emit(
+         "%s = CHECK_IF_TRUE( %s );" % (
+            res_name,
+            arg_name
+        )
+    )
+
+    getErrorExitBoolCode(
+        condition    = "%s == -1" % res_name,
+        release_name = arg_name,
+        needs_check  = expression.getOperand().mayRaiseExceptionBool(BaseException),
+        emit         = emit,
+        context      = context
+    )
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
         to_name   = to_name,
-        operator  = expression.getOperator(),
-        arg_names = (left_arg_name, right_arg_name),
-        in_place  = inplace,
-        emit      = emit,
-        context   = context
+        condition = "%s == 0" % res_name,
+        emit      = emit
     )
 
 
@@ -56,22 +105,35 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
         context    = context
     )
 
-    inplace = expression.isInplaceSuspect()
-
-    assert not inplace or not expression.getOperand().isCompileTimeConstant(), \
-        expression
-
-    getOperationCode(
-        to_name   = to_name,
-        operator  = expression.getOperator(),
-        arg_names = (arg_name,),
-        in_place  = inplace,
-        emit      = emit,
-        context   = context
+    _getOperationCode(
+        to_name     = to_name,
+        expression  = expression,
+        operator    = expression.getOperator(),
+        arg_names   = (arg_name,),
+        in_place    = False,
+        needs_check = expression.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
     )
 
+# TODO: Have these for even more types, esp. long values, construct from the
+# list of keys the helper name automatically.
+_iadd_shape_to_helper = {
+    ShapeTypeList    : "BINARY_OPERATION_ADD_LIST_INPLACE",
+    ShapeTypeFloat   : "BINARY_OPERATION_ADD_FLOAT_INPLACE",
+    ShapeTypeTuple   : "BINARY_OPERATION_ADD_TUPLE_INPLACE",
+    ShapeTypeUnicode : "BINARY_OPERATION_ADD_UNICODE_INPLACE",
+}
 
-def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
+if python_version < 300:
+    _iadd_shape_to_helper[ShapeTypeInt] = "BINARY_OPERATION_ADD_INT_INPLACE"
+    _iadd_shape_to_helper[ShapeTypeStr] = "BINARY_OPERATION_ADD_STR_INPLACE"
+else:
+    _iadd_shape_to_helper[ShapeTypeLong] = "BINARY_OPERATION_ADD_LONG_INPLACE"
+    _iadd_shape_to_helper[ShapeTypeBytes] = "BINARY_OPERATION_ADD_BYTES_INPLACE"
+
+def _getOperationCode(to_name, expression, operator, arg_names, in_place,
+                     needs_check, emit, context):
     # This needs to have one case per operation of Python, and there are many
     # of these, pylint: disable=too-many-branches,too-many-statements
 
@@ -87,7 +149,11 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
     elif operator == "Add":
         helper = "BINARY_OPERATION_ADD"
     elif operator == "IAdd" and in_place:
-        helper = "BINARY_OPERATION_ADD_INPLACE"
+        helper = _iadd_shape_to_helper.get(
+            expression.getRight().getTypeShape(),
+            "BINARY_OPERATION_ADD_INPLACE"
+        )
+
     elif operator == "IMult" and in_place:
         helper = "BINARY_OPERATION_MUL_INPLACE"
     elif operator == "Sub":
@@ -157,6 +223,7 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
         getErrorExitBoolCode(
             condition     = "%s == false" % res_name,
             release_names = arg_names,
+            needs_check   = needs_check,
             emit          = emit,
             context       = context
         )
@@ -165,24 +232,28 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
             context.addCleanupTempName(to_name)
 
     else:
-        emit(
-            "%s = %s( %s );" % (
-                to_name,
-                helper,
-                ", ".join(
-                    str(arg_name)
-                    for arg_name in
-                    prefix_args + arg_names
+        with withObjectCodeTemporaryAssignment(to_name, "op_%s_res" % operator.lower(), expression, emit, context) \
+          as value_name:
+
+            emit(
+                "%s = %s( %s );" % (
+                    value_name,
+                    helper,
+                    ", ".join(
+                        str(arg_name)
+                        for arg_name in
+                        prefix_args + arg_names
+                    )
                 )
             )
-        )
 
-        getErrorExitCode(
-            check_name    = to_name,
-            release_names = arg_names,
-            emit          = emit,
-            context       = context
-        )
+            getErrorExitCode(
+                check_name    = value_name,
+                release_names = arg_names,
+                needs_check   = needs_check,
+                emit          = emit,
+                context       = context
+            )
 
-        if ref_count:
-            context.addCleanupTempName(to_name)
+            if ref_count:
+                context.addCleanupTempName(value_name)

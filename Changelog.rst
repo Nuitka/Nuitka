@@ -1,8 +1,14 @@
-Nuitka Release 0.5.33 (Draft)
+Nuitka Release 0.6.0 (Draft)
 =============================
 
+This release is not done yet.
+
+
+Nuitka Release 0.5.33
+=====================
+
 This release contains a bunch of fixes, most of which were previously released
-as part of hotfixes, and important new optimization.
+as part of hotfixes, and important new optimization for generators.
 
 Bug Fixes
 ---------
@@ -39,7 +45,8 @@ Bug Fixes
   line 129, was considered the same. And that is what actually happened. Fixed
   in 0.5.32.3 already.
 
-- MacOS: Various fixes for newer Xcode versions to work as well.
+- MacOS: Various fixes for newer Xcode versions to work as well. Fixed in
+  0.5.32.4 already.
 
 - Python3: Fix, the default ``__annotations__`` was the empty dict and could
   be modified, leading to severe corruption potentially. Fixed in 0.5.32.4
@@ -61,13 +68,53 @@ Bug Fixes
   0.5.32.5 already.
 
 - Standalone: Do not copy file permissions of DLLs and extension modules as
-  that makes deleting and modifying them only harder.
+  that makes deleting and modifying them only harder. Fixed in 0.5.32.6
+  already.
+
+- Windows: The multiprocessing plugin was not always properly patching
+  the run time for all module loads, made it more robust. Fixed in
+  0.5.32.6 already.
+
+- Standalone: Do not preserve permissions of copied DLLs, which can cause
+  issues with read-only files on Windows when later trying to overwrite or
+  remove files.
+
+- Python3.4: Make sure to disconnect finished generators from their frames
+  to avoid potential data corruption. Fixed in 0.5.32.6 already.
+
+- Python3.5: Make sure to disconnect finished coroutines from their frames
+  to avoid potential data corruption. Fixed in 0.5.32.6 already.
+
+- Python3.6: Make sure to disconnect finished asyncgen from their frames
+  to avoid potential data corruption. Fixed in 0.5.32.6 already.
+
+- Python3.5: Explicit frame closes of frames owned by coroutines could
+  corrupt data. Fixed in 0.5.32.7 already.
+
+- Python3.6: Explicit frame closes of frames owned by asyncgen could
+  corrupt data. Fixed in 0.5.32.7 already.
+
+- Python 3.4: Fix threaded imports by properly handling ``_initializing``
+  in compiled modules ```spec`` attributes. Before it happen that another
+  thread attempts to use an unfinished module. Fixed in 0.5.32.8 already.
+
+- Fix, the options ``--include-module`` and ``--include-package`` were
+  present but not visible in the help output. Fixed in 0.5.32.8 already.
+
+- Windows: The multiprocessing plugin failed to properly pass compiled
+  functions. Fixed in 0.5.32.8 already.
+
+- Python3: Fix, optimization for in-place operations on mapping values
+  are not allowed and had to be disabled. Fixed in 0.5.32.8 already.
 
 - Python 3.5: Fixed exception handling with coroutines and asyncgen ``throw``
   to not corrupt exception objects.
 
 - Python 3.7: Added more checks to class creations that were missing for
   full compatibility.
+
+- Python3: Smarter hashing of unicode values avoids increased memory usage
+  from cached converted forms in debug mode.
 
 Organizational
 --------------
@@ -84,6 +131,12 @@ Organizational
 
 - Make it clear in the documentation that ``pyenv`` is not supported.
 
+- The version output includes more information now, OS and architecture, so
+  issue reports should contain that now.
+
+- On PyPI we didn't yet indicated Python 3.7 as supported, which it of course
+  is.
+
 New Features
 ------------
 
@@ -95,6 +148,14 @@ Optimization
 - Using goto based generators that return from execution and resume based on
   heap storage. This makes tests using generators twice as fast and they no
   longer use a full C stack of 2MB, but only 1K instead.
+
+- Conditional ``a if cond else b``, ``a and b```, ``a or b`` expressions of
+  which the result value is are now transformed into conditional statements
+  allowing to apply further optimizations to the right and left side
+  expressions as well.
+
+- Replace unused function creations with side effects from their default
+  values with just those, removing more unused code.
 
 - Put all statement related code and declarations for it in a dedicated C
   block, making things slightly more easy for the C compiler to re-use the
@@ -109,6 +170,12 @@ Optimization
 
 - Python2 class dictionaries are now indeed directly optimized, giving more
   compact code.
+
+- Module exception exits and thus its frames have become optional allowing to
+  avoid some code for some special modules.
+
+- Uncompiled generator integration was backported to 3.4 as well, improving
+  compatibility and speed there as well.
 
 Cleanups
 --------
@@ -148,6 +215,10 @@ Tests
 
 - Cover ever more cases of spurious permission problems on Windows.
 
+- Added the ability to specify specific modules a comparison test should
+  recurse to, making some CPython tests follow into modules where actual
+  test code lives.
+
 Summary
 -------
 
@@ -158,18 +229,25 @@ that needed to be addressed. No more do generators/coroutines/asyncgen consume
 too much memory, but instead they become as lightweight as they ought to be.
 
 Second, the use of variable declarations carying type information all through
-the code generation, is an import pre-condition for "C types" work to resume
-and become possible.
+the code generation, is an important pre-condition for "C types" work to resume
+and become possible, what will be 0.6.0 and the next release.
 
 Third, the improved generator performance will be removing a lot of cases,
 where Nuitka wasn't as fast, as its current state not using "C types" yet,
-would allow.
+should allow. It is now consistenly faster than CPython for everything
+related to generators.
 
 Fourth, the fibers were a burden for the debugging and linking of Nuitka on
 various platforms, as they provided deprecated interfaces or not. As they are
 now gone, Nuitka ought to definitely work on any platform where Python works.
 
-From here on, C types work will resume and hopefully yield good results soon.
+From here on, C types work can take it, and produce the results we are waiting
+for in the next major release cycle that is about to start.
+
+Also the amount of fixes for this release has been incredibly high. Lots of
+old bugs esp. for coroutines and asyncgen have been fixed, this is not only
+faster, but way more correct. Mainly due to the easier debugging and interface
+to the context code, bugs were far easier to avoid and/or find.
 
 
 Nuitka Release 0.5.32

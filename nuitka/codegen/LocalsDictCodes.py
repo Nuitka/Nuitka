@@ -23,7 +23,10 @@ statements.
 
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 
-from .CodeHelpers import generateExpressionCode
+from .CodeHelpers import (
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
 from .Emission import SourceCodeCollector
 from .ErrorCodes import (
     getErrorExitBoolCode,
@@ -175,38 +178,45 @@ def generateLocalsDictVariableRefOrFallbackCode(to_name, expression, emit, conte
 
     fallback_emit = SourceCodeCollector()
 
-    generateExpressionCode(
-        to_name    = to_name,
-        expression = expression.subnode_fallback,
-        emit       = fallback_emit,
-        context    = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "locals_lookup_value", expression, emit, context) \
+      as value_name:
 
-    locals_scope = expression.getLocalsDictScope()
-    locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
+        generateExpressionCode(
+            to_name    = value_name,
+            expression = expression.subnode_fallback,
+            emit       = fallback_emit,
+            context    = context
+        )
 
-    is_dict = locals_scope.getTypeShape() is ShapeTypeDict
+        locals_scope = expression.getLocalsDictScope()
+        locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
 
-    if is_dict:
-        template = template_read_locals_dict_with_fallback
-    else:
-        template = template_read_locals_mapping_with_fallback
+        is_dict = locals_scope.getTypeShape() is ShapeTypeDict
 
-    emit(
-        template % {
-            "to_name"     : to_name,
-            "locals_dict" : locals_declaration,
-            "fallback"    : indented(fallback_emit.codes),
-            "var_name"    : context.getConstantCode(
-                constant = variable_name
-            )
-        }
-    )
+        assert not context.needsCleanup(value_name)
+
+        if is_dict:
+            template = template_read_locals_dict_with_fallback
+        else:
+            template = template_read_locals_mapping_with_fallback
+            # If the fallback took no reference, then make it do it
+            # anyway.
+            context.addCleanupTempName(value_name)
+
+        emit(
+            template % {
+                "to_name"      : value_name,
+                "locals_dict"  : locals_declaration,
+                "fallback"     : indented(fallback_emit.codes),
+                "var_name"     : context.getConstantCode(
+                    constant = variable_name
+                )
+            }
+        )
 
 
 def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
     variable_name = expression.getVariableName()
-
     locals_scope = expression.getLocalsDictScope()
 
     locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
@@ -218,28 +228,34 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
     else:
         template = template_read_locals_mapping_without_fallback
 
-    emit(
-        template % {
-            "to_name"     : to_name,
-            "locals_dict" : locals_declaration,
-            "var_name"    : context.getConstantCode(
-                constant = variable_name
-            )
-        }
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "locals_lookup_value", expression, emit, context) \
+      as value_name:
 
-    getNameReferenceErrorCode(
-        variable_name = variable_name,
-        condition     = "%s == NULL && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()" % to_name,
-        emit          = emit,
-        context       = context
-    )
+        emit(
+            template % {
+                "to_name"     : value_name,
+                "locals_dict" : locals_declaration,
+                "var_name"    : context.getConstantCode(
+                    constant = variable_name
+                )
+            }
+        )
 
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
+        getNameReferenceErrorCode(
+            variable_name = variable_name,
+            condition     = "%s == NULL && CHECK_AND_CLEAR_KEY_ERROR_OCCURRED()" % value_name,
+            emit          = emit,
+            context       = context
+        )
+
+        getErrorExitCode(
+            check_name = value_name,
+            emit       = emit,
+            context    = context
+        )
+
+        if not is_dict:
+            context.addCleanupTempName(value_name)
 
 
 def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
@@ -248,19 +264,15 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
     is_dict = expression.getLocalsDictScope().getTypeShape() is ShapeTypeDict
 
     if is_dict:
-        template = """\
-%(to_name)s = PyDict_GetItem( %(locals_dict)s, %(var_name)s );
-
-%(to_name)s = BOOL_FROM( %(to_name)s != NULL );
-"""
-        emit(
-            template % {
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "PyDict_GetItem( %(locals_dict)s, %(var_name)s )" % {
                 "locals_dict" : expression.getLocalsDictScope().getCodeName(),
                 "var_name"    : context.getConstantCode(
                     constant = variable_name
-                ),
-                "to_name"     : to_name
-            }
+                )
+            },
+            emit      = emit
         )
     else:
         tmp_name = context.getIntResName()
@@ -286,12 +298,8 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
             context     = context
         )
 
-        emit(
-            """\
-%(to_name)s = BOOL_FROM( %(tmp_name)s == 1 );
-""" % {
-                "to_name"  : to_name,
-                "tmp_name" : tmp_name
-
-            }
+        to_name.getCType().emitAssignmentCodeFromBoolCondition(
+            to_name   = to_name,
+            condition = "%s == 1" % tmp_name,
+            emit      = emit
         )

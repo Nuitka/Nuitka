@@ -18,26 +18,29 @@
 #     limitations under the License.
 #
 
-module_value1 = list()
-module_value2 = 3000
+module_value1 = 5
+
+additiv_global = u'*' * 500
 
 def calledRepeatedly():
     # Force frame and eliminate forward propagation (currently).
     module_value1
 
-    local_value = module_value1
+    # Make sure we have a local variable s anyway
+    s = u'2'
 
-    s = module_value1
-    s.append
+    additiv = additiv_global
+
+    s += additiv
 # construct_begin
-    s.append
+    s += u'lala'
 # construct_end
-    s.append
+    s += additiv
 
-    return s, local_value
+    return s
 
 import itertools
-for x in itertools.repeat(None, 25000):
+for x in itertools.repeat(None, 5000):
     calledRepeatedly()
 
 print("OK.")

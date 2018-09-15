@@ -185,6 +185,27 @@ branches."""
         else:
             return self, None, None
 
+    def computeExpressionDrop(self, statement, trace_collection):
+        result = makeStatementConditional(
+            condition  = self.getCondition(),
+            yes_branch = makeStatementExpressionOnlyReplacementNode(
+                expression = self.getExpressionYes(),
+                node       = self.getExpressionYes()
+            ),
+            no_branch  = makeStatementExpressionOnlyReplacementNode(
+                expression = self.getExpressionNo(),
+                node       = self.getExpressionNo()
+            ),
+            source_ref = self.source_ref
+        )
+
+
+        del self.parent
+
+        return result, "new_statements", """\
+Convert conditional expression with unused result into conditional statement."""
+
+
     def mayHaveSideEffectsBool(self):
         if self.getCondition().mayHaveSideEffectsBool():
             return True
@@ -380,7 +401,7 @@ branches.""" % self.conditional_kind
         del self.parent
 
         return result, "new_statements", """\
-Removed conditional '%s' expression for unused result.""" % self.conditional_kind
+Convert conditional '%s' expression with unused result into conditional statement.""" % self.conditional_kind
 
     def mayHaveSideEffectsBool(self):
         if self.getLeft().mayHaveSideEffectsBool():

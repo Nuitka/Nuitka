@@ -22,6 +22,7 @@ code alternative to actually looking up that method from the empty string
 object, so it got a dedicated node, also to perform optimizations specific
 to this.
 """
+from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .shapes.BuiltinTypeShapes import ShapeTypeStrOrUnicode
 
@@ -34,6 +35,8 @@ class ExpressionStringConcatenation(ExpressionChildrenHavingBase):
     )
 
     def __init__(self, values, source_ref):
+        assert values
+
         ExpressionChildrenHavingBase.__init__(
             self,
             values     = {
@@ -48,6 +51,50 @@ class ExpressionStringConcatenation(ExpressionChildrenHavingBase):
     def computeExpression(self, trace_collection):
         # TODO: Could remove itself if only one argument or merge arguments
         # of mergable types.
+        streaks = []
+
+        start = None
+
+        values = self.subnode_values
+
+        for count, value in enumerate(values):
+            if value.isCompileTimeConstant() and value.hasShapeUnicodeExact():
+                if start is None:
+                    start = count
+            else:
+                if start is not None:
+                    if start != count - 1:
+                        streaks.append((start, count))
+
+                start = None
+
+        # Catch final one too.
+        if start is not None:
+            if start != len(values)-1:
+                streaks.append((start, len(values)))
+
+        if streaks:
+            values = list(values)
+
+            for streak in reversed(streaks):
+                new_element = makeConstantRefNode(
+                    constant   = "".join(
+                        value.getCompileTimeConstant()
+                        for value in
+                        values[streak[0]:streak[1]]
+                    ),
+                    source_ref = values[streak[0]].source_ref
+                )
+
+                values[streak[0]:streak[1]] = (new_element,)
+
+            if len(values) > 1:
+                self.setChild("values", values)
+                return self, "new_constant", "Partially combined strings for concatenation"
+
+        if len(values) == 1 and values[0].hasShapeUnicodeExact():
+            return values[0], "new_constant", "Removed strings concatenation of one value."
+
         return self, None, None
 
 

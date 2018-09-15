@@ -75,7 +75,7 @@ def createPathAssignment(package, source_ref):
                 args       = ExpressionMakeTuple(
                     elements   = (
                         ExpressionModuleAttributeFileRef(
-                            module     = package,
+                            variable   = package.getVariableForReference("__file__"),
                             source_ref = source_ref,
                         ),
                     ),

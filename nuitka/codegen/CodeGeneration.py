@@ -34,6 +34,7 @@ from .AsyncgenCodes import (
 )
 from .AttributeCodes import (
     generateAssignmentAttributeCode,
+    generateAttributeCheckCode,
     generateAttributeLookupCode,
     generateAttributeLookupSpecialCode,
     generateBuiltinGetattrCode,
@@ -69,13 +70,12 @@ from .BuiltinCodes import (
     generateBuiltinXrange3Code
 )
 from .CallCodes import generateCallCode, getCallsCode, getCallsDecls
-from .ClassCodes import (
-    generateBuiltinIsinstanceCode,
-    generateBuiltinSuperCode,
-    generateSelectMetaclassCode
-)
+from .ClassCodes import generateBuiltinSuperCode, generateSelectMetaclassCode
 from .CodeHelpers import setExpressionDispatchDict, setStatementDispatchDict
-from .ComparisonCodes import generateComparisonExpressionCode
+from .ComparisonCodes import (
+    generateBuiltinIsinstanceCode,
+    generateComparisonExpressionCode
+)
 from .ConditionalCodes import (
     generateConditionalAndOrCode,
     generateConditionalCode
@@ -194,16 +194,14 @@ from .LoopCodes import (
     generateLoopContinueCode
 )
 from .ModuleCodes import (
+    generateModuleAttributeCode,
     generateModuleAttributeFileCode,
-    generateModuleAttributeLoaderCode,
-    generateModuleAttributeNameCode,
-    generateModuleAttributePackageCode,
-    generateModuleAttributeSpecCode,
     getModuleCode,
     getModuleValues
 )
 from .OperationCodes import (
     generateOperationBinaryCode,
+    generateOperationNotCode,
     generateOperationUnaryCode
 )
 from .PrintCodes import generatePrintNewlineCode, generatePrintValueCode
@@ -504,6 +502,7 @@ def makeGlobalContext():
 
 setExpressionDispatchDict(
     {
+        "EXPRESSION_ATTRIBUTE_CHECK"                  : generateAttributeCheckCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP"                 : generateAttributeLookupCode,
         "EXPRESSION_ATTRIBUTE_LOOKUP_SPECIAL"         : generateAttributeLookupSpecialCode,
         "EXPRESSION_BUILTIN_SLICE"                    : generateBuiltinSliceCode,
@@ -624,10 +623,10 @@ setExpressionDispatchDict(
         "EXPRESSION_LIST_OPERATION_EXTEND"            : generateListOperationExtendCode,
         "EXPRESSION_LIST_OPERATION_POP"               : generateListOperationPopCode,
         "EXPRESSION_MODULE_ATTRIBUTE_FILE_REF"        : generateModuleAttributeFileCode,
-        "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF"        : generateModuleAttributeNameCode,
-        "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF"     : generateModuleAttributePackageCode,
-        "EXPRESSION_MODULE_ATTRIBUTE_LOADER_REF"      : generateModuleAttributeLoaderCode,
-        "EXPRESSION_MODULE_ATTRIBUTE_SPEC_REF"        : generateModuleAttributeSpecCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_NAME_REF"        : generateModuleAttributeCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_PACKAGE_REF"     : generateModuleAttributeCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_LOADER_REF"      : generateModuleAttributeCode,
+        "EXPRESSION_MODULE_ATTRIBUTE_SPEC_REF"        : generateModuleAttributeCode,
         "EXPRESSION_MAKE_GENERATOR_OBJECT"            : generateMakeGeneratorObjectCode,
         "EXPRESSION_MAKE_COROUTINE_OBJECT"            : generateMakeCoroutineObjectCode,
         "EXPRESSION_MAKE_ASYNCGEN_OBJECT"             : generateMakeAsyncgenObjectCode,
@@ -642,34 +641,34 @@ setExpressionDispatchDict(
         "EXPRESSION_OPERATION_BINARY_DIVMOD"          : generateOperationBinaryCode,
         "EXPRESSION_OPERATION_BINARY_INPLACE"         : generateOperationBinaryCode,
         "EXPRESSION_OPERATION_UNARY"                  : generateOperationUnaryCode,
-        "EXPRESSION_OPERATION_NOT"                    : generateOperationUnaryCode,
+        "EXPRESSION_OPERATION_NOT"                    : generateOperationNotCode,
         "EXPRESSION_OUTLINE_BODY"                     : generateFunctionOutlineCode,
         "EXPRESSION_OUTLINE_FUNCTION"                 : generateFunctionOutlineCode,
         # TODO: Rename to make more clear it is an outline
-        "EXPRESSION_CLASS_BODY"                      : generateFunctionOutlineCode,
-        "EXPRESSION_RETURNED_VALUE_REF"              : generateReturnedValueRefCode,
-        "EXPRESSION_SUBSCRIPT_LOOKUP"                : generateSubscriptLookupCode,
-        "EXPRESSION_SLICE_LOOKUP"                    : generateSliceLookupCode,
-        "EXPRESSION_SET_OPERATION_UPDATE"            : generateSetOperationUpdateCode,
-        "EXPRESSION_SIDE_EFFECTS"                    : generateSideEffectsCode,
-        "EXPRESSION_SPECIAL_UNPACK"                  : generateSpecialUnpackCode,
-        "EXPRESSION_TEMP_VARIABLE_REF"               : generateVariableReferenceCode,
-        "EXPRESSION_VARIABLE_REF"                    : generateVariableReferenceCode,
-        "EXPRESSION_YIELD"                           : generateYieldCode,
-        "EXPRESSION_YIELD_FROM"                      : generateYieldFromCode,
-        "EXPRESSION_SELECT_METACLASS"                : generateSelectMetaclassCode,
-        "EXPRESSION_ASYNC_WAIT"                      : generateAsyncWaitCode,
-        "EXPRESSION_ASYNC_WAIT_ENTER"                : generateAsyncWaitCode,
-        "EXPRESSION_ASYNC_WAIT_EXIT"                 : generateAsyncWaitCode,
-        "EXPRESSION_ASYNC_ITER"                      : generateAsyncIterCode,
-        "EXPRESSION_ASYNC_NEXT"                      : generateAsyncNextCode,
-        "EXPRESSION_STRING_CONCATENATION"            : generateStringContenationCode,
-        "EXPRESSION_BUILTIN_FORMAT"                  : generateBuiltinFormatCode,
-        "EXPRESSION_BUILTIN_ASCII"                   : generateBuiltinAsciiCode,
-        "EXPRESSION_LOCALS_VARIABLE_CHECK"           : generateLocalsDictVariableCheckCode,
-        "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK" : generateLocalsDictVariableRefOrFallbackCode,
-        "EXPRESSION_LOCALS_VARIABLE_REF"             : generateLocalsDictVariableRefCode,
-        "EXPRESSION_RAISE_EXCEPTION"                 : generateRaiseExpressionCode,
+        "EXPRESSION_CLASS_BODY"                       : generateFunctionOutlineCode,
+        "EXPRESSION_RETURNED_VALUE_REF"               : generateReturnedValueRefCode,
+        "EXPRESSION_SUBSCRIPT_LOOKUP"                 : generateSubscriptLookupCode,
+        "EXPRESSION_SLICE_LOOKUP"                     : generateSliceLookupCode,
+        "EXPRESSION_SET_OPERATION_UPDATE"             : generateSetOperationUpdateCode,
+        "EXPRESSION_SIDE_EFFECTS"                     : generateSideEffectsCode,
+        "EXPRESSION_SPECIAL_UNPACK"                   : generateSpecialUnpackCode,
+        "EXPRESSION_TEMP_VARIABLE_REF"                : generateVariableReferenceCode,
+        "EXPRESSION_VARIABLE_REF"                     : generateVariableReferenceCode,
+        "EXPRESSION_YIELD"                            : generateYieldCode,
+        "EXPRESSION_YIELD_FROM"                       : generateYieldFromCode,
+        "EXPRESSION_SELECT_METACLASS"                 : generateSelectMetaclassCode,
+        "EXPRESSION_ASYNC_WAIT"                       : generateAsyncWaitCode,
+        "EXPRESSION_ASYNC_WAIT_ENTER"                 : generateAsyncWaitCode,
+        "EXPRESSION_ASYNC_WAIT_EXIT"                  : generateAsyncWaitCode,
+        "EXPRESSION_ASYNC_ITER"                       : generateAsyncIterCode,
+        "EXPRESSION_ASYNC_NEXT"                       : generateAsyncNextCode,
+        "EXPRESSION_STRING_CONCATENATION"             : generateStringContenationCode,
+        "EXPRESSION_BUILTIN_FORMAT"                   : generateBuiltinFormatCode,
+        "EXPRESSION_BUILTIN_ASCII"                    : generateBuiltinAsciiCode,
+        "EXPRESSION_LOCALS_VARIABLE_CHECK"            : generateLocalsDictVariableCheckCode,
+        "EXPRESSION_LOCALS_VARIABLE_REF_OR_FALLBACK"  : generateLocalsDictVariableRefOrFallbackCode,
+        "EXPRESSION_LOCALS_VARIABLE_REF"              : generateLocalsDictVariableRefCode,
+        "EXPRESSION_RAISE_EXCEPTION"                  : generateRaiseExpressionCode,
 
     }
 )

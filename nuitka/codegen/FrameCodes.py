@@ -218,7 +218,6 @@ def generateStatementsFrameCode(statement_sequence, emit, context):
         context.setReturnTarget(parent_return_exit)
 
 
-
 def getTypeSizeOf(type_indicator):
     if type_indicator in ('O', 'o', 'N', 'c'):
         return "sizeof(void *)"
@@ -300,7 +299,7 @@ def getFrameGuardHeavyCode(code_identifier, codes, type_descriptions,
             }
         )
 
-    emit("%s:;\n" % no_exception_exit)
+    getLabelCode(no_exception_exit, emit)
 
 
 def getFrameGuardOnceCode(code_identifier, codes, parent_exception_exit,
@@ -342,7 +341,8 @@ def getFrameGuardOnceCode(code_identifier, codes, parent_exception_exit,
             }
         )
 
-    emit("%s:;\n" % no_exception_exit)
+    getLabelCode(no_exception_exit, emit)
+
 
 def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
                            type_descriptions, parent_return_exit,
@@ -403,7 +403,7 @@ def getFrameGuardLightCode(code_identifier, codes, parent_exception_exit,
             }
         )
 
-    emit("%s:;\n" % no_exception_exit)
+    getLabelCode(no_exception_exit, emit)
 
 
 def generateFramePreserveExceptionCode(statement, emit, context):

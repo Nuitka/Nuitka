@@ -119,14 +119,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *TO_FLOAT( PyObject *value )
 
 #include "nuitka/helper/ints.h"
 
-NUITKA_MAY_BE_UNUSED static PyObject *TO_BOOL( PyObject *value )
-{
-    int res = CHECK_IF_TRUE( value );
-
-    if (unlikely( res == -1 )) return NULL;
-    return BOOL_FROM( res != 0 );
-}
-
 
 NUITKA_MAY_BE_UNUSED static PyObject *TO_UNICODE3( PyObject *value, PyObject *encoding, PyObject *errors )
 {
@@ -278,9 +270,6 @@ extern PyObject *BUILTIN_LEN( PyObject *boundary );
 
 // For built-in built-in super() functionality.
 extern PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object );
-
-// For built-in isinstance() functionality.
-extern PyObject *BUILTIN_ISINSTANCE( PyObject *inst, PyObject *cls );
 
 // The patched isinstance() functionality used for the built-in.
 extern int Nuitka_IsInstance( PyObject *inst, PyObject *cls );

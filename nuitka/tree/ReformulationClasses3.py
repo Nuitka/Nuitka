@@ -28,9 +28,9 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable
 )
 from nuitka.nodes.AttributeNodes import (
+    ExpressionAttributeCheck,
     ExpressionAttributeLookup,
-    ExpressionBuiltinGetattr,
-    ExpressionBuiltinHasattr
+    ExpressionBuiltinGetattr
 )
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
@@ -551,17 +551,13 @@ def buildClassNode3(provider, node, source_ref):
         call_prepare = makeStatementsSequenceFromStatements(
             call_prepare,
             makeStatementConditional(
-                condition  = ExpressionBuiltinHasattr(
-                    object_arg = ExpressionTempVariableRef(
+                condition  = ExpressionAttributeCheck(
+                    object_arg     = ExpressionTempVariableRef(
                         variable   = tmp_prepared,
                         source_ref = source_ref
                     ),
-                    name       = makeConstantRefNode(
-                        constant      = "__getitem__",
-                        source_ref    = source_ref,
-                        user_provided = True
-                    ),
-                    source_ref = source_ref
+                    attribute_name = "__getitem__",
+                    source_ref     = source_ref
                 ),
                 yes_branch = None,
                 no_branch  = makeRaiseExceptionExpressionFromTemplate(
@@ -667,17 +663,13 @@ def buildClassNode3(provider, node, source_ref):
             source_ref = source_ref
         ),
         makeStatementConditional(
-            condition  = ExpressionBuiltinHasattr(
-                object_arg = ExpressionTempVariableRef(
+            condition  = ExpressionAttributeCheck(
+                object_arg     = ExpressionTempVariableRef(
                     variable   = tmp_metaclass,
                     source_ref = source_ref
                 ),
-                name       = makeConstantRefNode(
-                    constant      = "__prepare__",
-                    source_ref    = source_ref,
-                    user_provided = True
-                ),
-                source_ref = source_ref
+                attribute_name = "__prepare__",
+                source_ref     = source_ref
             ),
             yes_branch = call_prepare,
             no_branch  = StatementAssignmentVariable(
@@ -750,16 +742,13 @@ def getClassBasesMroConversionHelper():
     )
 
     non_type_case = makeStatementConditional(
-        condition  = ExpressionBuiltinHasattr(
-            object_arg = ExpressionTempVariableRef(
+        condition  = ExpressionAttributeCheck(
+            object_arg     = ExpressionTempVariableRef(
                 variable   = tmp_item_variable,
                 source_ref = internal_source_ref
             ),
-            name       = makeConstantRefNode(
-                constant   = "__mro_entries__",
-                source_ref = internal_source_ref
-            ),
-            source_ref = internal_source_ref
+            attribute_name = "__mro_entries__",
+            source_ref     = internal_source_ref
         ),
         yes_branch = StatementExpressionOnly(
             expression = ExpressionListOperationExtend(

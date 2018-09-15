@@ -22,7 +22,11 @@
 from nuitka.PythonVersions import python_version
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
-from .CodeHelpers import generateExpressionCode, generateStatementSequenceCode
+from .CodeHelpers import (
+    generateExpressionCode,
+    generateStatementSequenceCode,
+    withObjectCodeTemporaryAssignment
+)
 from .Contexts import PythonFunctionOutlineContext
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode, getMustNotGetHereCode, getReleaseCode
@@ -80,11 +84,20 @@ def getFunctionMakerDecl(function_identifier, defaults_name, kw_defaults_name,
     }
 
 
-def getFunctionEntryPointIdentifier(function_identifier):
+def _getFunctionEntryPointIdentifier(function_identifier):
     return "impl_" + function_identifier
 
 
 def getFunctionQualnameObj(owner, context):
+    """ Get code to pass to function alike object creation for qualname.
+
+        Qualname for funcions existed for Python3, generators only after
+        3.5 and coroutines and asyncgen for as long as they existed.
+
+        If indentical to the name, we do not pass it as a value, but
+        NULL instead.
+    """
+
     if owner.isExpressionFunctionBody():
         min_version = 300
     else:
@@ -127,7 +140,7 @@ def getFunctionMakerCode(function_body, function_identifier, closure_variables,
         ),
         "function_qualname_obj"      : getFunctionQualnameObj(function_body, context),
         "function_identifier"        : function_identifier,
-        "function_impl_identifier"   : getFunctionEntryPointIdentifier(
+        "function_impl_identifier"   : _getFunctionEntryPointIdentifier(
             function_identifier = function_identifier,
         ),
         "function_creation_args"     : ", ".join(
@@ -339,7 +352,7 @@ def getFunctionCreationCode(to_name, function_identifier, defaults_name,
 
 def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
                               closure_variables, needs_check, emit, context):
-    function_identifier = getFunctionEntryPointIdentifier(
+    function_identifier = _getFunctionEntryPointIdentifier(
         function_identifier = function_identifier
     )
 
@@ -661,16 +674,19 @@ def generateFunctionCallCode(to_name, expression, emit, context):
         expression.getCompatibleSourceReference()
     )
 
-    getDirectFunctionCallCode(
-        to_name             = to_name,
-        function_identifier = function_identifier,
-        arg_names           = arg_names,
-        closure_variables   = expression.getClosureVariableVersions(),
-        needs_check         = expression.getFunction().getFunctionRef().\
-                                getFunctionBody().mayRaiseException(BaseException),
-        emit                = emit,
-        context             = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "call_result", expression, emit, context) \
+      as value_name:
+
+        getDirectFunctionCallCode(
+            to_name             = value_name,
+            function_identifier = function_identifier,
+            arg_names           = arg_names,
+            closure_variables   = expression.getClosureVariableVersions(),
+            needs_check         = expression.getFunction().getFunctionRef().\
+                                    getFunctionBody().mayRaiseException(BaseException),
+            emit                = emit,
+            context             = context
+        )
 
 
 def generateFunctionOutlineCode(to_name, expression, emit, context):
@@ -690,8 +706,7 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     return_target = context.allocateLabel("outline_result")
     old_return_target = context.setReturnTarget(return_target)
 
-    return_value_name = context.allocateTempName("outline_return_value")
-    old_return_value_name = context.setReturnValueName(return_value_name)
+    # TODO: Put the return value name as that to_name.c_type too.
 
     if expression.isExpressionOutlineFunctionBodyBase() and \
        expression.getBody().mayRaiseException(BaseException):
@@ -700,38 +715,36 @@ def generateFunctionOutlineCode(to_name, expression, emit, context):
     else:
         exception_target = None
 
-    generateStatementSequenceCode(
-        statement_sequence = expression.getBody(),
-        emit               = emit,
-        context            = context,
-        allow_none         = False
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "outline_return_value", expression, emit, context) \
+      as return_value_name:
+        old_return_value_name = context.setReturnValueName(return_value_name)
 
-    getMustNotGetHereCode(
-        reason  = "Return statement must have exited already.",
-        context = context,
-        emit    = emit
-    )
-
-    if exception_target is not None:
-        getLabelCode(exception_target, emit)
-
-        context.setCurrentSourceCodeReference(expression.getSourceReference())
-
-        emitErrorLineNumberUpdateCode(emit, context)
-        getGotoCode(old_exception_target, emit)
-
-        context.setExceptionEscape(old_exception_target)
-
-    getLabelCode(return_target, emit)
-    emit(
-        "%s = %s;" % (
-            to_name,
-            return_value_name
+        generateStatementSequenceCode(
+            statement_sequence = expression.getBody(),
+            emit               = emit,
+            context            = context,
+            allow_none         = False
         )
-    )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(return_value_name)
+
+        getMustNotGetHereCode(
+            reason  = "Return statement must have exited already.",
+            context = context,
+            emit    = emit
+        )
+
+        if exception_target is not None:
+            getLabelCode(exception_target, emit)
+
+            context.setCurrentSourceCodeReference(expression.getSourceReference())
+
+            emitErrorLineNumberUpdateCode(emit, context)
+            getGotoCode(old_exception_target, emit)
+
+            context.setExceptionEscape(old_exception_target)
+
+        getLabelCode(return_target, emit)
 
     # Restore previous "return" handling.
     context.setReturnTarget(old_return_target)

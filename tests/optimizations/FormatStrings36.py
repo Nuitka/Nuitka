@@ -18,26 +18,23 @@
 #     limitations under the License.
 #
 
-module_value1 = list()
-module_value2 = 3000
+# Format string with local compile time constants fully optimized:
+def f():
+    a = "1"
+    b = "2"
 
-def calledRepeatedly():
-    # Force frame and eliminate forward propagation (currently).
-    module_value1
+    return f'r:{a!r} and a:{a!a} and s:{a!s}'
 
-    local_value = module_value1
+print(f())
 
-    s = module_value1
-    s.append
-# construct_begin
-    s.append
-# construct_end
-    s.append
+# Empty f string fully optimized:
+def f():
+    return f''
 
-    return s, local_value
+print(f())
 
-import itertools
-for x in itertools.repeat(None, 25000):
-    calledRepeatedly()
+# Text only f string fully optimized:
+def f():
+    return f'some_text'
 
-print("OK.")
+print(f())

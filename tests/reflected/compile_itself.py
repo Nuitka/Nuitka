@@ -17,6 +17,13 @@
 #     limitations under the License.
 #
 
+""" Test Nuitka compiling itself and compiling itself in compiled form again.
+
+This should not only give no errors, but the same source for modules being
+compiled when Nuitka is running compiled and uncompiled, so we can discover
+changes in order of execution in this test.
+"""
+
 import difflib
 import os
 import shutil
@@ -68,6 +75,8 @@ PACKAGE_LIST = (
     "nuitka/containers",
     "nuitka/utils",
 )
+
+exe_suffix = ".exe" if os.name == "nt" else ".bin"
 
 def readSource(filename):
     if python_version < "3":
@@ -209,7 +218,7 @@ def executePASS1():
     if result != 0:
         sys.exit(result)
 
-    shutil.move("nuitka-runner.exe", "nuitka.exe")
+    shutil.move("nuitka-runner" + exe_suffix, "nuitka" + exe_suffix)
 
     scons_inline_copy_path = os.path.join(
         base_dir,
@@ -310,7 +319,7 @@ def executePASS2():
     if os.name == "nt":
         os.environ["PYTHONPATH"] = ':'.join(PACKAGE_LIST)
 
-    compileAndCompareWith(os.path.join('.', "nuitka.exe"))
+    compileAndCompareWith(os.path.join('.', "nuitka" + exe_suffix))
 
     # Undo the damage from above.
     if os.name == "nt":
@@ -324,7 +333,7 @@ def executePASS3():
         "PASS 3: Compiling from compiler running from .py files to single .exe."
     )
 
-    exe_path = os.path.join(tmp_dir, "nuitka.exe")
+    exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
 
     if os.path.exists(exe_path):
         os.unlink(exe_path)
@@ -361,7 +370,7 @@ def executePASS3():
 def executePASS4():
     my_print("PASS 4: Compiling the compiler running from single exe.")
 
-    exe_path = os.path.join(tmp_dir, "nuitka.exe")
+    exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
 
     compileAndCompareWith(exe_path)
 
@@ -421,5 +430,5 @@ shutil.rmtree("nuitka")
 
 executePASS5()
 
-os.unlink(os.path.join(tmp_dir, "nuitka.exe"))
+os.unlink(os.path.join(tmp_dir, "nuitka" + exe_suffix))
 os.rmdir(tmp_dir)

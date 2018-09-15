@@ -39,6 +39,7 @@ def getCodeObjectsDeclCode(context):
 
     return statements
 
+
 def getCodeObjectsInitCode(context):
     from nuitka import Options
 

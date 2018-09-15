@@ -14,6 +14,7 @@
 *.pyd
 *.pyi
 *.exe
+*.bin
 *.build
 *.dist
 Nuitka.egg-info

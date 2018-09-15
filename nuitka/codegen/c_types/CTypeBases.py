@@ -56,7 +56,7 @@ class CTypeBase(object):
         )
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, variable_code_name):
+    def getLocalVariableInitTestCode(cls, value_name, inverted):
         """ Get code to test for uninitialized.
 
         """
@@ -66,8 +66,8 @@ class CTypeBase(object):
 
 
     @classmethod
-    def getLocalVariableAssignCode(cls, variable_code_name, needs_release,
-                                   tmp_name, ref_count, in_place):
+    def emitVariableAssignCode(cls, value_name, needs_release, tmp_name,
+                                    ref_count, in_place, emit, context):
         """ Get code to assign local variable.
 
         """
@@ -76,8 +76,8 @@ class CTypeBase(object):
         assert False, cls.c_type
 
     @classmethod
-    def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,
-                            variable, emit, context):
+    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
+                            emit, context):
         """ Get code to delete (del) local variable.
 
         """
@@ -109,6 +109,15 @@ class CTypeBase(object):
 
         """
 
+        # Need to overload this for each type it is used for, pylint: disable=unused-argument
+        assert False, cls.c_type
+
+
+    @classmethod
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        """ Get the assignment code from C boolean condition.
+
+        """
         # Need to overload this for each type it is used for, pylint: disable=unused-argument
         assert False, cls.c_type
 

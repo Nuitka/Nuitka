@@ -21,7 +21,11 @@
 
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateExpressionCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode
 from .TupleCodes import getTupleCreationCode
@@ -29,16 +33,17 @@ from .TupleCodes import getTupleCreationCode
 
 def generateBuiltinBytes1Code(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "BUILTIN_BYTES1",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "BUILTIN_BYTES1",
+        arg_desc         = (
             ("bytes_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        none_null  = True,
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        none_null        = True,
+        emit             = emit,
+        context          = context
     )
 
 
@@ -47,18 +52,19 @@ def generateBuiltinBytes3Code(to_name, expression, emit, context):
     errors = expression.getErrors()
 
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "BUILTIN_BYTES3",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "BUILTIN_BYTES3",
+        arg_desc         = (
             ("bytes_arg", expression.getValue()),
             ("bytes_encoding", encoding),
             ("bytes_errors", errors),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        none_null  = True,
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        none_null        = True,
+        emit             = emit,
+        context          = context
     )
 
 
@@ -68,111 +74,125 @@ def generateBuiltinUnicodeCode(to_name, expression, emit, context):
 
     if encoding is None and errors is None:
         generateCAPIObjectCode(
-            to_name    = to_name,
-            capi       = "PyObject_Unicode",
-            arg_desc   = (
+            to_name          = to_name,
+            capi             = "PyObject_Unicode",
+            arg_desc         = (
                 (
                     "str_arg" if python_version < 300 \
                       else "unicode_arg",
                     expression.getValue()
                 ),
             ),
-            may_raise  = expression.mayRaiseException(BaseException),
-            source_ref = expression.getCompatibleSourceReference(),
-            emit       = emit,
-            context    = context
+            may_raise        = expression.mayRaiseException(BaseException),
+            conversion_check = decideConversionCheckNeeded(to_name, expression),
+            source_ref       = expression.getCompatibleSourceReference(),
+            emit             = emit,
+            context          = context
         )
     else:
         generateCAPIObjectCode(
-            to_name    = to_name,
-            capi       = "TO_UNICODE3",
-            arg_desc   = (
+            to_name          = to_name,
+            capi             = "TO_UNICODE3",
+            arg_desc         = (
                 ("unicode_arg", expression.getValue()),
                 ("unicode_encoding", encoding),
                 ("unicode_errors", errors),
             ),
-            may_raise  = expression.mayRaiseException(BaseException),
-            source_ref = expression.getCompatibleSourceReference(),
-            none_null  = True,
-            emit       = emit,
-            context    = context
+            may_raise        = expression.mayRaiseException(BaseException),
+            conversion_check = decideConversionCheckNeeded(to_name, expression),
+            source_ref       = expression.getCompatibleSourceReference(),
+            none_null        = True,
+            emit             = emit,
+            context          = context
         )
 
 
 def generateBuiltinStrCode(to_name, expression, emit, context):
     if python_version < 300:
         generateCAPIObjectCode(
-            to_name    = to_name,
-            capi       = "PyObject_Str",
-            arg_desc   = (
+            to_name          = to_name,
+            capi             = "PyObject_Str",
+            arg_desc         = (
                 ("str_arg", expression.getValue()),
             ),
-            may_raise  = expression.mayRaiseException(BaseException),
-            source_ref = expression.getCompatibleSourceReference(),
+            may_raise        = expression.mayRaiseException(BaseException),
+            conversion_check = decideConversionCheckNeeded(to_name, expression),
+            source_ref       = expression.getCompatibleSourceReference(),
+            emit             = emit,
+            context          = context
+        )
+    else:
+        return generateBuiltinUnicodeCode(
+            to_name    = to_name,
+            expression = expression,
             emit       = emit,
             context    = context
         )
-    else:
-        return generateBuiltinUnicodeCode(to_name, expression, emit, context)
 
 
 def generateBuiltinChrCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "BUILTIN_CHR",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "BUILTIN_CHR",
+        arg_desc         = (
             ("chr_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )
 
 
 def generateBuiltinOrdCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "BUILTIN_ORD",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "BUILTIN_ORD",
+        arg_desc         = (
             ("ord_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )
 
 
 def generateStringContenationCode(to_name, expression, emit, context):
     values = expression.getValues()
 
-    # TODO: These are bad things.
-    tuple_temp_name = context.allocateTempName("string_concat_values")
+    with withObjectCodeTemporaryAssignment(to_name, "string_concat_result", expression, emit, context) \
+      as value_name:
 
-    getTupleCreationCode(
-        to_name  = tuple_temp_name,
-        elements = values,
-        emit     = emit,
-        context  = context
-    )
+        tuple_temp_name = context.allocateTempName("string_concat_values")
 
-    emit(
-        "%s = PyUnicode_Join( %s, %s );" % (
-            to_name,
-            context.getConstantCode(""),
-            tuple_temp_name
+        # TODO: Consider using _PyUnicode_JoinArray which avoids the tuple,
+        # but got all to be able to release arrays.
+        getTupleCreationCode(
+            to_name  = tuple_temp_name,
+            elements = values,
+            emit     = emit,
+            context  = context
         )
-    )
 
-    getErrorExitCode(
-        check_name   = to_name,
-        release_name = tuple_temp_name,
-        emit         = emit,
-        context      = context
-    )
+        emit(
+            "%s = PyUnicode_Join( %s, %s );" % (
+                value_name,
+                context.getConstantCode(""),
+                tuple_temp_name
+            )
+        )
 
-    context.addCleanupTempName(to_name)
+        getErrorExitCode(
+            check_name   = value_name,
+            release_name = tuple_temp_name,
+            emit         = emit,
+            context      = context
+        )
+
+        context.addCleanupTempName(value_name)
 
 
 def generateBuiltinFormatCode(to_name, expression, emit, context):
@@ -204,33 +224,37 @@ def generateBuiltinFormatCode(to_name, expression, emit, context):
             context    = context
         )
 
-    emit(
-        "%s = BUILTIN_FORMAT( %s, %s );" % (
-            to_name,
-            value_name,
-            format_spec_name
+    with withObjectCodeTemporaryAssignment(to_name, "format_result", expression, emit, context) \
+      as result_name:
+
+        emit(
+            "%s = BUILTIN_FORMAT( %s, %s );" % (
+                result_name,
+                value_name,
+                format_spec_name
+            )
         )
-    )
 
-    getErrorExitCode(
-        check_name    = to_name,
-        release_names = (value_name, format_spec_name),
-        emit          = emit,
-        context       = context
-    )
+        getErrorExitCode(
+            check_name    = result_name,
+            release_names = (value_name, format_spec_name),
+            emit          = emit,
+            context       = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)
 
 
 def generateBuiltinAsciiCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "PyObject_ASCII",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "PyObject_ASCII",
+        arg_desc         = (
             ("ascii_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )

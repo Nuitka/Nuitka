@@ -23,9 +23,11 @@ of the metaclass remains as specific.
 
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateChildExpressionsCode
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ErrorCodes import getErrorExitCode
-from .PythonAPICodes import generateCAPIObjectCode0
 
 
 def generateSelectMetaclassCode(to_name, expression, emit, context):
@@ -43,26 +45,28 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
         bases_name
     ]
 
+    with withObjectCodeTemporaryAssignment(to_name, "metaclass_result", expression, emit, context) \
+      as value_name:
 
-    emit(
-        "%s = SELECT_METACLASS( %s );" % (
-            to_name,
-            ", ".join(
-                str(arg_name)
-                for arg_name in
-                arg_names
+        emit(
+            "%s = SELECT_METACLASS( %s );" % (
+                value_name,
+                ", ".join(
+                    str(arg_name)
+                    for arg_name in
+                    arg_names
+                )
             )
         )
-    )
 
-    getErrorExitCode(
-        check_name    = to_name,
-        release_names = arg_names,
-        emit          = emit,
-        context       = context
-    )
+        getErrorExitCode(
+            check_name    = value_name,
+            release_names = arg_names,
+            emit          = emit,
+            context       = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(value_name)
 
 
 def generateBuiltinSuperCode(to_name, expression, emit, context):
@@ -72,34 +76,22 @@ def generateBuiltinSuperCode(to_name, expression, emit, context):
         context    = context
     )
 
-    emit(
-        "%s = BUILTIN_SUPER( %s, %s );" % (
-            to_name,
-            type_name if type_name is not None else "NULL",
-            object_name if object_name is not None else "NULL"
+    with withObjectCodeTemporaryAssignment(to_name, "super_value", expression, emit, context) \
+      as value_name:
+
+        emit(
+            "%s = BUILTIN_SUPER( %s, %s );" % (
+                value_name,
+                type_name if type_name is not None else "NULL",
+                object_name if object_name is not None else "NULL"
+            )
         )
-    )
 
-    getErrorExitCode(
-        check_name    = to_name,
-        release_names = (type_name, object_name),
-        emit          = emit,
-        context       = context
-    )
+        getErrorExitCode(
+            check_name    = value_name,
+            release_names = (type_name, object_name),
+            emit          = emit,
+            context       = context
+        )
 
-    context.addCleanupTempName(to_name)
-
-
-def generateBuiltinIsinstanceCode(to_name, expression, emit, context):
-    generateCAPIObjectCode0(
-        to_name    = to_name,
-        capi       = "BUILTIN_ISINSTANCE",
-        arg_desc   = (
-            ("isinstance_inst", expression.getInstance()),
-            ("isinstance_cls", expression.getCls()),
-        ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
-    )
+        context.addCleanupTempName(value_name)

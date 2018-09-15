@@ -19,6 +19,14 @@
 #     limitations under the License.
 #
 
+""" Run a construct based comparison test.
+
+This executes a program with and without snippet of code and
+stores the numbers about it, extracted with Valgrind for use
+in comparisons.
+
+"""
+
 from __future__ import print_function
 
 import os, sys, subprocess, shutil, hashlib
@@ -176,13 +184,18 @@ if nuitka:
 
     subprocess.check_call(nuitka_call)
 
+    if os.path.exists(os.path.basename(test_case).replace(".py", ".exe")):
+        exe_suffix = ".exe"
+    else:
+        exe_suffix = ".bin"
+
     os.rename(
         os.path.basename(test_case).replace(".py", ".build"),
         os.path.basename(test_case_1).replace(".py", ".build")
     )
     os.rename(
-        os.path.basename(test_case).replace(".py", ".exe"),
-        os.path.basename(test_case_1).replace(".py", ".exe")
+        os.path.basename(test_case).replace(".py", exe_suffix),
+        os.path.basename(test_case_1).replace(".py", exe_suffix)
     )
 
     shutil.copyfile(test_case_2, os.path.basename(test_case))
@@ -194,8 +207,8 @@ if nuitka:
         os.path.basename(test_case_2).replace(".py", ".build")
     )
     os.rename(
-        os.path.basename(test_case).replace(".py", ".exe"),
-        os.path.basename(test_case_2).replace(".py", ".exe")
+        os.path.basename(test_case).replace(".py", exe_suffix),
+        os.path.basename(test_case_2).replace(".py", exe_suffix)
     )
 
     if options.diff_filename:
@@ -213,7 +226,6 @@ if nuitka:
             assert False
 
         for suffix in suffixes:
-
             cpp_2 = os.path.join(
                 test_case_2.replace(".py", ".build"),
                 "module.__main__" + suffix,
@@ -237,14 +249,14 @@ if nuitka:
     nuitka_1 = runValgrind(
         "Nuitka construct",
         "callgrind",
-        (test_case_1.replace(".py", ".exe"),),
+        (test_case_1.replace(".py", exe_suffix),),
         include_startup = True
     )
 
     nuitka_2 = runValgrind(
         "Nuitka baseline",
         "callgrind",
-        (test_case_2.replace(".py", ".exe"),),
+        (test_case_2.replace(".py", exe_suffix),),
         include_startup = True
     )
 
