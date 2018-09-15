@@ -1,5 +1,3 @@
-vmprof==0.4.12
-
 # Folders to use for cache files.
 appdirs == 1.4.3
 

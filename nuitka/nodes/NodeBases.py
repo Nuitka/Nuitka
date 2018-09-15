@@ -51,6 +51,7 @@ class NodeBase(NodeMetaClassBase):
     # if Options.isFullCompat():
     #     __slots__ += ("effective_source_ref",)
 
+    # pylint: disable=W0125
     if True:
         __slots__ += ("effective_source_ref",)
 

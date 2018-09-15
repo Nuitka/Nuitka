@@ -79,6 +79,7 @@ def main():
                 raise
         vmprof.disable()
 
+        # pylint: disable=E1123
         stats = vmprof.read_profile(
             prof_file.name,
             virtual_only = True
