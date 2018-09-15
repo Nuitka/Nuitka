@@ -118,24 +118,48 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
 
 # TODO: Have these for even more types, esp. long values, construct from the
 # list of keys the helper name automatically.
-_iadd_shape_to_helper = {
-    ShapeTypeList    : "BINARY_OPERATION_ADD_LIST_INPLACE",
-    ShapeTypeFloat   : "BINARY_OPERATION_ADD_FLOAT_INPLACE",
-    ShapeTypeTuple   : "BINARY_OPERATION_ADD_TUPLE_INPLACE",
-    ShapeTypeUnicode : "BINARY_OPERATION_ADD_UNICODE_INPLACE",
+_shape_to_helper_code = {
+    ShapeTypeList    : "LIST",
+    ShapeTypeFloat   : "FLOAT",
+    ShapeTypeTuple   : "TUPLE",
+    ShapeTypeUnicode : "UNICODE",
 }
 
 if python_version < 300:
-    _iadd_shape_to_helper[ShapeTypeInt] = "BINARY_OPERATION_ADD_INT_INPLACE"
-    _iadd_shape_to_helper[ShapeTypeStr] = "BINARY_OPERATION_ADD_STR_INPLACE"
+    _shape_to_helper_code[ShapeTypeInt] = "INT"
+    _shape_to_helper_code[ShapeTypeStr] = "STR"
 else:
-    _iadd_shape_to_helper[ShapeTypeLong] = "BINARY_OPERATION_ADD_LONG_INPLACE"
-    _iadd_shape_to_helper[ShapeTypeBytes] = "BINARY_OPERATION_ADD_BYTES_INPLACE"
+    _shape_to_helper_code[ShapeTypeLong] = "LONG"
+    _shape_to_helper_code[ShapeTypeBytes] = "BYTES"
+
+_iadd_helpers_set = set(
+    [
+        "BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_FLOAT_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_INT_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_STR_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE",
+
+        "BINARY_OPERATION_ADD_LIST_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_FLOAT_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_TUPLE_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_INT_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_STR_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_LONG_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE"
+
+        "BINARY_OPERATION_ADD_LIST_LIST_INPLACE",
+    ]
+)
 
 def _getOperationCode(to_name, expression, operator, arg_names, in_place,
-                     needs_check, emit, context):
+                      needs_check, emit, context):
     # This needs to have one case per operation of Python, and there are many
-    # of these, pylint: disable=too-many-branches,too-many-statements
+    # of these, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     prefix_args = ()
     ref_count = 1
@@ -149,11 +173,21 @@ def _getOperationCode(to_name, expression, operator, arg_names, in_place,
     elif operator == "Add":
         helper = "BINARY_OPERATION_ADD"
     elif operator == "IAdd" and in_place:
-        helper = _iadd_shape_to_helper.get(
-            expression.getRight().getTypeShape(),
-            "BINARY_OPERATION_ADD_INPLACE"
+        left_shape = expression.getLeft().getTypeShape()
+        right_shape = expression.getRight().getTypeShape()
+
+        left_part = _shape_to_helper_code.get(left_shape, "OBJECT")
+        right_part = _shape_to_helper_code.get(right_shape, "OBJECT")
+
+        ideal_helper = "BINARY_OPERATION_ADD_%s_%s_INPLACE" % (
+            left_part,
+            right_part
         )
 
+        if ideal_helper not in _iadd_helpers_set:
+            helper = "BINARY_OPERATION_ADD_INPLACE"
+        else:
+            helper = ideal_helper
     elif operator == "IMult" and in_place:
         helper = "BINARY_OPERATION_MUL_INPLACE"
     elif operator == "Sub":

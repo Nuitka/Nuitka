@@ -379,7 +379,46 @@ static bool FLOAT_MUL_INCREMENTAL( PyObject **operand1, PyObject *operand2 )
     return true;
 }
 
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LIST_INPLACE( PyObject **operand1, PyObject *operand2 )
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LIST_OBJECT_INPLACE( PyObject **operand1, PyObject *operand2 )
+{
+    assert( operand1 );
+    CHECK_OBJECT( *operand1 );
+    CHECK_OBJECT( operand2 );
+    assert( PyList_CheckExact( *operand1 ) );
+
+    PyObject *result;
+
+    if ( PyList_CheckExact( operand2 ) )
+    {
+        return LIST_EXTEND_FROM_LIST( *operand1, operand2 );
+    }
+    else if ( PySequence_Check( operand2 ) )
+    {
+        result = PySequence_InPlaceConcat( *operand1, operand2 );
+    }
+    else
+    {
+        result = PyNumber_InPlaceAdd( *operand1, operand2 );
+    }
+
+    if (unlikely( result == NULL ))
+    {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF( *operand1 );
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
     CHECK_OBJECT( *operand1 );
@@ -390,9 +429,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LIST_INPLACE( PyObject **o
 
     if ( PyList_CheckExact( *operand1 ) )
     {
-        // TODO: No list specific code, create one and use it, as lists are
-        // actually very easy to use.
-        result = PySequence_InPlaceConcat( *operand1, operand2 );
+        return LIST_EXTEND_FROM_LIST( *operand1, operand2 );
     }
     else if ( PySequence_Check( *operand1 ) )
     {
@@ -419,7 +456,19 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LIST_INPLACE( PyObject **o
 }
 
 
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_TUPLE_INPLACE( PyObject **operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LIST_LIST_INPLACE( PyObject **operand1, PyObject *operand2 )
+{
+    assert( operand1 );
+    CHECK_OBJECT( *operand1 );
+    CHECK_OBJECT( operand2 );
+    assert( PyList_CheckExact( *operand1 ) );
+    assert( PyList_CheckExact( operand2 ) );
+
+    return LIST_EXTEND_FROM_LIST( *operand1, operand2 );
+}
+
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
     CHECK_OBJECT( *operand1 );
@@ -460,7 +509,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_TUPLE_INPLACE( PyObject **
 
 #if PYTHON_VERSION < 300
 // This is Python2 int, for Python3 the LONG variant is to be used.
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INT_INPLACE( PyObject **operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_INT_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
     CHECK_OBJECT( *operand1 );
@@ -510,7 +559,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INT_INPLACE( PyObject **op
 }
 #endif
 
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_FLOAT_INPLACE( PyObject **operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_FLOAT_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
     CHECK_OBJECT( *operand1 );
@@ -543,7 +592,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_FLOAT_INPLACE( PyObject **
     return true;
 }
 
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_UNICODE_INPLACE( PyObject **operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
     CHECK_OBJECT( *operand1 );
@@ -593,7 +642,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_UNICODE_INPLACE( PyObject 
 
 #if PYTHON_VERSION < 300
 // This is Python2 str, for Python3 the UNICODE variant is to be used.
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_STR_INPLACE( PyObject **operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_STR_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
     CHECK_OBJECT( *operand1 );
@@ -630,7 +679,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_STR_INPLACE( PyObject **op
 #endif
 
 #if PYTHON_VERSION >= 300
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_BYTES_INPLACE( PyObject **operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
     CHECK_OBJECT( *operand1 );
@@ -657,7 +706,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_BYTES_INPLACE( PyObject **
 }
 #endif
 
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LONG_INPLACE( PyObject **operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
     CHECK_OBJECT( *operand1 );

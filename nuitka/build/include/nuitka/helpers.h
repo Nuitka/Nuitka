@@ -73,8 +73,6 @@ extern void stopProfiling( void );
 
 #include "nuitka/helper/raising.h"
 
-#include "helper/operations.h"
-
 #include "nuitka/helper/richcomparisons.h"
 #include "nuitka/helper/sequences.h"
 
@@ -220,6 +218,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS( PyObject *source )
 
 #include "nuitka/allocator.h"
 
+#include "helper/operations.h"
 
 
 // Compile source code given, pretending the file name was given.
