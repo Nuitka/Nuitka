@@ -34,7 +34,6 @@ import struct
 import sys
 from logging import warning
 
-from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     iterItems,
     long,
@@ -314,6 +313,7 @@ def _addConstantInitCode(context, emit, check, constant_type, constant_value,
         constants belong into the same scope.
     """
     # Got a couple of values to dodge, pylint: disable=too-many-return-statements
+    from nuitka import Options
 
     if constant_value is None:
         return
@@ -918,6 +918,8 @@ def getConstantsInitCode(context):
 
 
 def getConstantsDeclCode(context):
+    from nuitka import Options
+
     statements = []
 
     # Sort items by length and name, so we are deterministic and pretty.
@@ -1053,6 +1055,8 @@ def getModuleConstantCode(constant):
 constant_counts = {}
 
 def getConstantInitCodes(module_context):
+    from nuitka import Options
+
     decls = []
     inits = SourceCodeCollector()
     checks = SourceCodeCollector()
@@ -1156,6 +1160,8 @@ def getConstantsDefinitionCode(context):
         than one module) and create them.
 
     """
+    from nuitka import Options
+
     constant_inits, constant_checks = getConstantsInitCode(
         context = context
     )

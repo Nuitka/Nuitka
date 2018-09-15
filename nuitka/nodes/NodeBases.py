@@ -27,7 +27,7 @@ expression only stuff.
 
 from abc import abstractmethod
 
-from nuitka import Options, Tracing, TreeXML, Variables
+from nuitka import Tracing, TreeXML, Variables
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     intern,
     iterItems
@@ -45,8 +45,14 @@ from .NodeMetaClasses import NodeCheckMetaClass, NodeMetaClassBase
 class NodeBase(NodeMetaClassBase):
     __slots__ = "parent", "source_ref"
 
+    # TODO: Come up to make lazy evaluation here
     # Avoid the attribute unless it's really necessary.
-    if Options.isFullCompat():
+    # from nuitka import Options
+    # if Options.isFullCompat():
+    #     __slots__ += ("effective_source_ref",)
+
+    # pylint: disable=W0125
+    if True:
         __slots__ += ("effective_source_ref",)
 
     # String to identify the node class, to be consistent with its name.
@@ -267,6 +273,7 @@ class NodeBase(NodeMetaClassBase):
             For tests, we wants to be compatible. In improved more, we are
             not being fully compatible, and just drop it altogether.
         """
+        from nuitka import Options
 
         # Getting the same source reference can be dealt with quickly, so do
         # this first.

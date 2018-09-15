@@ -33,7 +33,6 @@ import os
 import sys
 from logging import info, warning
 
-from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.SourceCodeReferences import fromFilename
 from nuitka.utils.FileOperations import relpath
@@ -74,6 +73,7 @@ class NuitkaPluginBase(object):
         return default_value
 
     def getPluginOptions(self):
+        from nuitka import Options
         return Options.getPluginOptions(self.plugin_name)
 
     def considerImplicitImports(self, module, signal_change):

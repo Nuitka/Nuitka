@@ -26,7 +26,6 @@ from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
-from nuitka.Options import getPythonFlags
 from nuitka.PythonVersions import python_version
 
 from .TreeHelpers import buildNode
@@ -46,10 +45,11 @@ def buildAssertNode(provider, node, source_ref):
     # Therefore assert statements are really just conditional statements with a
     # static raise contained.
     #
+    from nuitka import Options
 
     exception_value = buildNode(provider, node.msg, source_ref, True)
 
-    if "no_asserts" in getPythonFlags():
+    if "no_asserts" in Options.getPythonFlags():
         return None
 
     if exception_value is not None and python_version > 272:

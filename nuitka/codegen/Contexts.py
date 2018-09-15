@@ -23,7 +23,6 @@ import hashlib
 import sys
 from abc import ABCMeta, abstractmethod
 
-from nuitka import Options
 from nuitka.__past__ import iterItems
 from nuitka.Builtins import (
     builtin_anon_codes,
@@ -197,6 +196,8 @@ class TempMixin(object):
         return self.labels.get(label, 0)
 
     def allocateExceptionKeeperVariables(self):
+        from nuitka import Options
+
         self.keeper_variable_count += 1
 
         # For finally handlers of Python3, which have conditions on assign and
@@ -242,6 +243,8 @@ class TempMixin(object):
     def addExceptionPreserverVariables(self, preserver_id):
         # For finally handlers of Python3, which have conditions on assign and
         # use.
+        from nuitka import Options
+
         if preserver_id not in self.preserver_variable_declaration:
 
             debug = Options.isDebug() and python_version >= 300
@@ -584,6 +587,7 @@ def _getConstantDefaultPopulation():
 
     # Note: Can't work with set here, because we need to put in some values that
     # cannot be hashed.
+    from nuitka import Options
 
     result = [
         # Basic values that the helper code uses all the times.

@@ -26,7 +26,7 @@ make others possible.
 import inspect
 from logging import debug, info
 
-from nuitka import ModuleRegistry, Options, Variables
+from nuitka import ModuleRegistry, Variables
 from nuitka.importing import ImportCache
 from nuitka.nodes.LocalsScopes import LocalsDictHandle, getLocalsDictHandles
 from nuitka.plugins.Plugins import Plugins
@@ -37,8 +37,6 @@ from . import Graphs, TraceCollections
 from .BytecodeDemotion import demoteCompiledModuleToBytecode
 from .Tags import TagSet
 
-_progress = Options.isShowProgress()
-_is_verbose = Options.isVerbose()
 
 def _attemptRecursion(module):
     new_modules = module.attemptRecursion()
@@ -59,10 +57,12 @@ def signalChange(tags, source_ref, message):
     """ Indicate a change to the optimization framework.
 
     """
+    from nuitka import Options
+
     if message is not None:
         # Try hard to not call a delayed evaluation of node descriptions.
 
-        if _is_verbose:
+        if Options.isVerbose():
             debug(
                 "{source_ref} : {tags} : {message}".format(
                     source_ref = source_ref.getAsString(),
@@ -78,7 +78,9 @@ TraceCollections.signalChange = signalChange
 
 
 def optimizeCompiledPythonModule(module):
-    if _progress:
+    from nuitka import Options
+
+    if Options.isShowProgress():
         info(
             "Doing module local optimizations for '{module_name}'.".format(
                 module_name = module.getFullName()
@@ -87,7 +89,7 @@ def optimizeCompiledPythonModule(module):
 
     touched = False
 
-    if _progress and Options.isShowMemory():
+    if Options.isShowProgress() and Options.isShowMemory():
         memory_watch = MemoryUsage.MemoryWatch()
 
     while True:
@@ -113,7 +115,7 @@ def optimizeCompiledPythonModule(module):
         # Otherwise we did stuff, so note that for return value.
         touched = True
 
-    if _progress and Options.isShowMemory():
+    if Options.isShowProgress() and Options.isShowMemory():
         memory_watch.finish()
 
         info(
@@ -132,7 +134,8 @@ def optimizeCompiledPythonModule(module):
 
 
 def optimizeUncompiledPythonModule(module):
-    if _progress:
+    from nuitka import Options
+    if Options.isShowProgress():
         info(
             "Doing module dependency considerations for '{module_name}':".format(
                 module_name = module.getFullName()
@@ -385,6 +388,8 @@ def optimizeVariables(module):
 
 
 def _traceProgress(current_module):
+    from nuitka import Options
+
     output = """\
 Optimizing module '{module_name}', {remaining:d} more modules to go \
 after that.""".format(
@@ -418,12 +423,13 @@ def makeOptimizationPass(initial_pass):
 
     """
     # Controls complex optimization, pylint: disable=too-many-branches
+    from nuitka import Options
 
     finished = True
 
     ModuleRegistry.startTraversal()
 
-    if _progress:
+    if Options.isShowProgress():
         if initial_pass:
             info("Initial optimization pass.")
         else:
@@ -435,7 +441,7 @@ def makeOptimizationPass(initial_pass):
         if current_module is None:
             break
 
-        if _progress:
+        if Options.isShowProgress():
             _traceProgress(current_module)
 
         # The tag set is global, so it can react to changes without context.
@@ -524,10 +530,12 @@ def _checkXMLPersistence():
 
 
 def optimize(output_filename):
+    from nuitka import Options
+
     Graphs.startGraph()
 
     # First pass.
-    if _progress:
+    if Options.isShowProgress():
         info("PASS 1:")
 
     makeOptimizationPass(initial_pass = True)
@@ -545,7 +553,7 @@ def optimize(output_filename):
            module.mode == "bytecode":
             demoteCompiledModuleToBytecode(module)
 
-    if _progress:
+    if Options.isShowProgress():
         info("PASS 2 ... :")
 
     # Second, "endless" pass.

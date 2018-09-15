@@ -20,7 +20,6 @@
 Attribute lookup, setting.
 """
 
-from nuitka import Options
 
 from .CodeHelpers import (
     decideConversionCheckNeeded,
@@ -33,6 +32,8 @@ from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
 
 def generateAssignmentAttributeCode(statement, emit, context):
+    from nuitka import Options
+
     lookup_source  = statement.getLookupSource()
     attribute_name = statement.getAttributeName()
     value          = statement.getAssignSource()
@@ -88,6 +89,8 @@ def generateAssignmentAttributeCode(statement, emit, context):
 
 
 def generateDelAttributeCode(statement, emit, context):
+    from nuitka import Options
+
     target_name = context.allocateTempName("attrdel_target")
 
     generateExpressionCode(

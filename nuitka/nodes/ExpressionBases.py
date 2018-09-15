@@ -27,7 +27,6 @@ from abc import abstractmethod
 
 from nuitka.__past__ import long  # pylint: disable=I0021,redefined-builtin
 from nuitka.Constants import isCompileTimeConstantValue
-from nuitka.Options import isFullCompat
 from nuitka.PythonVersions import python_version
 
 from .NodeBases import ChildrenHavingMixin, NodeBase
@@ -428,12 +427,14 @@ class ExpressionBase(NodeBase):
         return long_node, None, None
 
     def computeExpressionFloat(self, float_node, trace_collection):
+        from nuitka import Options
+
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotFloat() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                     "float() argument must be a string or a number"
-                      if isFullCompat() and python_version < 300 else
+                      if Options.isFullCompat() and python_version < 300 else
                     "float() argument must be a string or a number, not '%s'",
                 operation     = "long",
                 original_node = float_node,
@@ -474,12 +475,14 @@ class ExpressionBase(NodeBase):
         return bytes_node, None, None
 
     def computeExpressionComplex(self, complex_node, trace_collection):
+        from nuitka import Options
+
         shape = self.getTypeShape()
 
         if shape.hasShapeSlotComplex() is False:
             return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
                     "complex() argument must be a string or a number"
-                      if isFullCompat() and python_version < 300 else
+                      if Options.isFullCompat() and python_version < 300 else
                     "complex() argument must be a string or a number, not '%s'",
                 operation     = "complex",
                 original_node = complex_node,

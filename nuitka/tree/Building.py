@@ -53,7 +53,7 @@ import os
 import sys
 from logging import info, warning
 
-from nuitka import Options, SourceCodeReferences
+from nuitka import SourceCodeReferences
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
     long,
     unicode
@@ -103,7 +103,6 @@ from nuitka.nodes.ReturnNodes import (
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
-from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
 from nuitka.utils import MemoryUsage
@@ -323,10 +322,11 @@ def buildRaiseNode(provider, node, source_ref):
 
 
 def handleGlobalDeclarationNode(provider, node, source_ref):
+    from nuitka import Options
 
     # On the module level, there is nothing to do.
     if provider.isCompiledPythonModule():
-        if shallWarnUnusualCode():
+        if Options.shallWarnUnusualCode():
             warning(
                 "%s: Using 'global' statement on module level has no effect.",
                 source_ref.getAsString(),
@@ -744,6 +744,7 @@ setBuildingDispatchers(
 def buildParseTree(provider, source_code, source_ref, is_module, is_main):
     # There are a bunch of branches here, mostly to deal with version
     # differences for module default variables. pylint: disable=too-many-branches
+    from nuitka import Options
 
     pushFutureSpec()
     if is_module:
@@ -911,6 +912,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
 
 def decideModuleTree(filename, package, is_shlib, is_top, is_main):
     # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
+    from nuitka import Options
 
     assert package is None or type(package) is str
     assert filename is not None
@@ -1049,6 +1051,8 @@ class CodeTooComplexCode(Exception):
 
 
 def createModuleTree(module, source_ref, source_code, is_main):
+    from nuitka import Options
+
     if Options.isShowMemory():
         memory_watch = MemoryUsage.MemoryWatch()
 

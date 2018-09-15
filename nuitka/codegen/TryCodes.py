@@ -22,7 +22,6 @@ finally block gets duplicated into handlers. So this is a common low level
 structure used, where exception handling and everything is made explicit.
 """
 
-from nuitka import Options
 
 from .CodeHelpers import generateExpressionCode, generateStatementSequenceCode
 from .ErrorCodes import getMustNotGetHereCode
@@ -244,6 +243,7 @@ def generateTryCode(statement, emit, context):
 def generateTryNextExceptStopIterationCode(statement, emit, context):
     # This has many branches which mean this optimized code generation is not
     # applicable, we return each time. pylint: disable=too-many-branches,too-many-return-statements
+    from nuitka import Options
 
     except_handler = statement.getBlockExceptHandler()
 

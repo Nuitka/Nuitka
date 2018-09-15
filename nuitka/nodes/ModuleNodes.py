@@ -23,7 +23,7 @@ together and cross-module optimizations are the most difficult to tackle.
 
 import os
 
-from nuitka import Options, Variables
+from nuitka import Variables
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing.Importing import (
     findModule,
@@ -158,6 +158,8 @@ class PythonModuleBase(NodeBase):
 
     def getRunTimeFilename(self):
         # TODO: Don't look at such things this late, push this into building.
+        from nuitka import Options
+
         reference_mode = Options.getFileReferenceMode()
 
         if reference_mode == "original":

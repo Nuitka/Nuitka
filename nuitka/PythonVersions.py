@@ -166,19 +166,19 @@ def getRunningPythonDLLPath():
 
 
 def getTargetPythonDLLPath():
+    from nuitka import Options
+
     dll_path = getRunningPythonDLLPath()
 
-    from nuitka.Options import isPythonDebug
-
     if dll_path.endswith("_d.dll"):
-        if not isPythonDebug():
+        if not Options.isPythonDebug():
             dll_path = dll_path[:-6] + ".dll"
 
         if not os.path.exists(dll_path):
             sys.exit("Error, cannot switch to non-debug Python, not installed.")
 
     else:
-        if isPythonDebug():
+        if Options.isPythonDebug():
             dll_path = dll_path[:-4] + "_d.dll"
 
         if not os.path.exists(dll_path):
@@ -223,12 +223,13 @@ def isStaticallyLinkedPython():
 
 
 def getPythonABI():
+    from nuitka import Options
+
     if hasattr(sys, "abiflags"):
         abiflags = sys.abiflags
 
         # Cyclic dependency here.
-        from nuitka.Options import isPythonDebug
-        if isPythonDebug() or hasattr(sys, "getobjects"):
+        if Options.isPythonDebug() or hasattr(sys, "getobjects"):
             if not abiflags.startswith('d'):
                 abiflags = 'd' + abiflags
     else:

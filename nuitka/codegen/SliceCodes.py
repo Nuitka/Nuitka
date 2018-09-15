@@ -22,7 +22,6 @@ special case, for using index values instead of objects. The slice objects
 are also created here, and can be used for indexing.
 """
 
-from nuitka import Options
 from nuitka.Constants import isNumberConstant
 from nuitka.PythonVersions import python_version
 
@@ -182,6 +181,8 @@ def generateSliceLookupCode(to_name, expression, emit, context):
 
 
 def generateAssignmentSliceCode(statement, emit, context):
+    from nuitka import Options
+
     assert python_version < 300
 
     lookup_source = statement.getLookupSource()
@@ -264,6 +265,8 @@ def generateAssignmentSliceCode(statement, emit, context):
 
 
 def generateDelSliceCode(statement, emit, context):
+    from nuitka import Options
+
     assert python_version < 300
 
     target  = statement.getLookupSource()

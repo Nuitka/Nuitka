@@ -29,7 +29,6 @@ needed except for technical reasons.
 
 from logging import info
 
-from nuitka import Options
 from nuitka.codegen import ConstantCodes
 from nuitka.codegen.Indentation import indented
 from nuitka.codegen.templates.CodeTemplatesFreezer import (
@@ -40,6 +39,8 @@ from nuitka.ModuleRegistry import getUncompiledTechnicalModules
 stream_data = ConstantCodes.stream_data
 
 def generateBytecodeFrozenCode():
+    from nuitka import Options
+
     frozen_defs = []
 
     for uncompiled_module in getUncompiledTechnicalModules():

@@ -19,7 +19,6 @@
 
 """
 
-from nuitka import Options
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -326,6 +325,8 @@ def generateDictOperationSetCode(statement, emit, context):
 
 
 def generateDictOperationRemoveCode(statement, emit, context):
+    from nuitka import Options
+
     dict_arg_name = context.allocateTempName("dictdel_dict", unique = True)
     generateExpressionCode(
         to_name    = dict_arg_name,

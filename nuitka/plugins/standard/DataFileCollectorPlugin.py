@@ -21,7 +21,6 @@
 
 import os
 
-from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 known_data_files = {
@@ -34,6 +33,7 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
 
     @staticmethod
     def isRelevant():
+        from nuitka import Options
         return Options.isStandaloneMode()
 
     def considerDataFiles(self, module):

@@ -28,7 +28,7 @@ import os
 import subprocess
 import sys
 
-from nuitka import Options, Tracing
+from nuitka import Tracing
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import getTargetPythonDLLPath, python_version
 from nuitka.utils import Execution, Utils
@@ -126,6 +126,8 @@ def _getPythonForSconsExePath():
 
     Scons needs it as it doesn't support Python3.
     """
+    from nuitka import Options
+
     python_exe = Options.getPythonPathForScons()
 
     if python_exe is not None:
@@ -222,6 +224,7 @@ def _buildSconsCommand(quiet, options):
     The options are a dictionary to be passed to scons as a command line,
     and other scons stuff is set.
     """
+    from nuitka import Options
 
     scons_command = _getSconsBinaryCall()
 
@@ -273,6 +276,8 @@ def _buildSconsCommand(quiet, options):
 
 
 def runScons(options, quiet):
+    from nuitka import Options
+
     with _setupSconsEnvironment():
         scons_command = _buildSconsCommand(quiet, options)
 

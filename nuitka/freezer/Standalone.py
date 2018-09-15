@@ -33,7 +33,7 @@ import subprocess
 import sys
 from logging import debug, info, warning
 
-from nuitka import Options, SourceCodeReferences, Tracing
+from nuitka import SourceCodeReferences, Tracing
 from nuitka.__past__ import iterItems
 from nuitka.containers.odict import OrderedDict
 from nuitka.importing import ImportCache
@@ -456,6 +456,8 @@ def scanStandardLibraryPath(stdlib_dir):
 
 
 def detectEarlyImports():
+    from nuitka import Options
+
     encoding_names = [
         filename[:-3]
         for _path, filename in
@@ -854,6 +856,7 @@ def _parseDependsExeOutput(filename, result):
 def _detectBinaryPathDLLsWindows(is_main_executable, source_dir, original_dir, binary_filename, package_name):
     # This is complex, as it also includes the caching mechanism
     # pylint: disable=too-many-locals
+    from nuitka import Options
 
     result = set()
 
@@ -1072,6 +1075,8 @@ def getSharedLibraryRPATH(filename):
 
 
 def removeSharedLibraryRPATH(filename):
+    from nuitka import Options
+
     rpath = getSharedLibraryRPATH(filename)
 
     if rpath is not None:
@@ -1105,7 +1110,7 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     # being binary identical, so we can report them. And then of course
     # we also need to handle OS specifics.
     # pylint: disable=too-many-branches,too-many-locals
-
+    from nuitka import Options
 
     used_dlls = detectUsedDLLs(source_dir, standalone_entry_points)
 

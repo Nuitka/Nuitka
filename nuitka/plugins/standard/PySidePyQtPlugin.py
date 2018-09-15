@@ -26,7 +26,6 @@ import shutil
 import sys
 from logging import info
 
-from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils import Execution
 from nuitka.utils.FileOperations import (
@@ -293,6 +292,7 @@ class NuitkaPluginDetectorPyQtPySidePlugins(NuitkaPluginBase):
 
     @staticmethod
     def isRelevant():
+        from nuitka import Options
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):

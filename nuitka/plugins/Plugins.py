@@ -32,7 +32,6 @@ from __future__ import print_function
 import os
 import sys
 
-from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
 
 from .PluginBase import post_modules, pre_modules
@@ -230,6 +229,8 @@ def listPlugins():
 
 
 def initPlugins():
+    from nuitka import Options
+
     for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
         if plugin_name not in plugin_name2plugin_classes:
             sys.exit("Error, unknown plug-in '%s' referenced." % plugin_name)
