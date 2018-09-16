@@ -1761,10 +1761,26 @@ def createBuildDefinitionsFile():
 
 createBuildDefinitionsFile()
 
-# env["CFLAGS"] = env["CCFLAGS"]
-
 if show_scons_mode:
     print("Scons: Launching target:", target)
+
+# Inject ccache if it happens to be installed.
+if win_target and gcc_mode:
+    for location in [
+        r"c:\msys64",
+        r"c:\msys32",
+        r"\msys64",
+        r"\msys32",
+    ]:
+        candidate = os.path.join(location, r"usr\bin\ccache.exe")
+
+        if os.path.exists(candidate):
+            env["CC"] = "%s %s" % (
+                candidate,
+                env["CC"]
+            )
+
+            break
 
 Default(target) # @UndefinedVariable
 
