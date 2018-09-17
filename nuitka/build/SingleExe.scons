@@ -571,16 +571,23 @@ a) If a suitable Visual Studio version is installed, it will not be located
    automatically, unless you install pywin32 for the Python installation
    below "%s".
 
-b) To make it find Visual Studio execute from Start Menu the 'Visual Studio
-   Command Prompt' or "vcvarsall.bat". That will add Visual Studio to the
-   PATH. And it will be detected.
+b) To make it find Visual Studio without registry execute from Start Menu
+   the 'Visual Studio Command Prompt' or "vcvarsall.bat". That will add
+   Visual Studio to the "PATH". And it then will be detected.
 
 c) Install MinGW64 to "C:\\MinGW64" or "\\MinGW", where then it is automatically
    detected or add it to PATH before executing Nuitka. But be sure to pick the
-   proper variant (32/64 bits, your Python arch is %r).
+   proper variant (32/64 bits, your Python arch is %r), or else cryptic errors
+   will be shown.
 
-d) Set the environment variable 'CC' to the *full* path of either "gcc.exe". Also
-   be sure to head proper architecture or else errors will occur.
+d) Set the environment variable "CC" to the *full* path of either "gcc.exe" or
+   to "clang-cl.exe". Also be sure to head proper architecture or else errors
+   will occur.
+
+Normal MinGW will not work! MinGW64 does not mean 64 bits, just better
+Windows compatibility.
+Cygwin based gcc will not work.
+MSYS2 based gcc will not work.
 
 """ % (sys.exec_prefix, target_arch))
     else:
