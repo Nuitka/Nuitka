@@ -40,6 +40,7 @@ from .CodeHelpers import (
     withObjectCodeTemporaryAssignment
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
+from .Reports import onMissingHelper
 
 
 def generateOperationBinaryCode(to_name, expression, emit, context):
@@ -134,6 +135,8 @@ else:
 
 _iadd_helpers_set = set(
     [
+        "BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE",
+
         "BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE",
         "BINARY_OPERATION_ADD_OBJECT_FLOAT_INPLACE",
         "BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE",
@@ -150,7 +153,7 @@ _iadd_helpers_set = set(
         "BINARY_OPERATION_ADD_INT_OBJECT_INPLACE",
         "BINARY_OPERATION_ADD_STR_OBJECT_INPLACE",
         "BINARY_OPERATION_ADD_LONG_OBJECT_INPLACE",
-        "BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE"
+        "BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE",
 
         "BINARY_OPERATION_ADD_LIST_LIST_INPLACE",
     ]
@@ -185,7 +188,9 @@ def _getOperationCode(to_name, expression, operator, arg_names, in_place,
         )
 
         if ideal_helper not in _iadd_helpers_set:
-            helper = "BINARY_OPERATION_ADD_INPLACE"
+            onMissingHelper(ideal_helper)
+
+            helper = "BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE"
         else:
             helper = ideal_helper
     elif operator == "IMult" and in_place:

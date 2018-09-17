@@ -733,7 +733,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE( PyObj
 }
 
 
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INPLACE( PyObject **operand1, PyObject *operand2 )
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE( PyObject **operand1, PyObject *operand2 )
 {
     assert( operand1 );
     CHECK_OBJECT( *operand1 );

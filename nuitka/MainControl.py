@@ -54,7 +54,7 @@ from nuitka.utils.FileOperations import (
 
 from . import ModuleRegistry, Options, TreeXML
 from .build import SconsInterface
-from .codegen import CodeGeneration, ConstantCodes
+from .codegen import CodeGeneration, ConstantCodes, Reports
 from .finalizations import Finalization
 from .freezer.BytecodeModuleFreezer import generateBytecodeFrozenCode
 from .freezer.Standalone import copyUsedDLLs, detectEarlyImports
@@ -710,6 +710,9 @@ def compileTree(main_module):
 
     if Options.isShowMemory():
         InstanceCounters.printStats()
+
+    if Options.isDebug():
+        Reports.doMissingOptimizationReport()
 
     if Options.shallNotDoExecCCompilerCall():
         return True, {}
