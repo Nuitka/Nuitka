@@ -485,7 +485,25 @@ def setupSpawn(env):
 
         rv = proc.wait()
 
-        if cmd == "cl":
+        if cmd == "rc":
+            data = data[data.find(b"reserved.\r") + 13:]
+
+            data = b'\n'.join(
+                line
+                for line in
+                data.split(b'\n')
+                if b"identifier truncated to" not in line
+            )
+        elif cmd == "link" and module_mode:
+            data = b"\r\n".join(
+                line
+                for line in
+                data.split(b"\r\n")
+                if b"   Creating library" not in line
+                # On localized compilers, the message to ignore is not as clear.
+                if not (module_mode and b".exp" in line)
+            )
+        elif cmd == "cl" or os.path.basename(cmd).lower() == "clcache.exe":
             data = data[data.find(b"\r\n") + 2 :]
 
             source_basenames = [
@@ -505,24 +523,6 @@ def setupSpawn(env):
                 if not check(line)
             )
 
-        elif cmd == "rc":
-            data = data[data.find(b"reserved.\r") + 13:]
-
-            data = b'\n'.join(
-                line
-                for line in
-                data.split(b'\n')
-                if b"identifier truncated to" not in line
-            )
-        elif cmd == "link" and module_mode:
-            data = b"\r\n".join(
-                line
-                for line in
-                data.split(b"\r\n")
-                if b"   Creating library" not in line
-                # On localized compilers, the message to ignore is not as clear.
-                if not (module_mode and b".exp" in line)
-            )
 
         if data.rstrip():
             if not show_scons_mode:
@@ -754,20 +754,23 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
 
 if msvc_mode:
     env.Append(CCFLAGS = ["/EHsc", "/J", "/Gd"])
-    env.Append(LINKFLAGS = [
-        "/INCREMENTAL:NO",
-        "/IMPLIB:%s" % os.path.join(source_dir, "import.lib")
-    ])
 
-    no_import_lib = True
-
-    # There is a slight incompatibility in clang-cl to not support this option.
-    if "clang" not in the_cc_name:
+    # Make sure we handle import library on our own and put it into the
+    # build directory.
+    if module_mode:
+        no_import_lib = True
+        env.Append(
+            LINKFLAGS = [
+                "/INCREMENTAL:NO",
+                "/IMPLIB:%s" % os.path.join(source_dir, "import.lib")
+            ]
+        )
+    else:
         # Stack size 4MB or 8MB, we need more than the default 1MB.
         if target_arch == "x86_64":
-            env.Append(CCFLAGS = ["/F8388608"])
+            env.Append(LINKFLAGS = ["/STACK:8388608"])
         else:
-            env.Append(CCFLAGS = ["/F4194304"])
+            env.Append(LINKFLAGS = ["/STACK:4194304"])
 
 # The 32 bits MinGW does not default for API level properly, so help it.
 if mingw_mode:
@@ -1136,27 +1139,27 @@ def makeWindowsMingGW64Lib(win_lib_path):
 
 
 if win_target:
-        # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
-        if python_debug:
-            win_lib_name ="python" + python_abi_version.replace('.', "") + "_d"
-        else:
-            win_lib_name = "python" + python_abi_version.replace('.', "")
+    # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
+    if python_debug:
+        win_lib_name ="python" + python_abi_version.replace('.', "") + "_d"
+    else:
+        win_lib_name = "python" + python_abi_version.replace('.', "")
 
-        for candidate in ("libs", "PCBuild"):
-            win_lib_path = os.path.join(python_prefix, candidate)
+    for candidate in ("libs", "PCBuild"):
+        win_lib_path = os.path.join(python_prefix, candidate)
 
-            if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
-                break
-        else:
-            sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
+        if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
+            break
+    else:
+        sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
 
-        if target_arch == "x86_64" and gcc_mode:
-            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
-        elif target_arch == "x86" and python_debug and gcc_mode:
-            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+    if target_arch == "x86_64" and gcc_mode:
+        win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+    elif target_arch == "x86" and python_debug and gcc_mode:
+        win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
 
-        env.Append(LIBPATH = [win_lib_path])
-        env.Append(LIBS = [win_lib_name])
+    env.Append(LIBPATH = [win_lib_path])
+    env.Append(LIBS = [win_lib_name])
 elif not module_mode:
     # Debian and Ubuntu distinguish the system libraries like this.
     if python_debug and \
@@ -1723,10 +1726,59 @@ if os.path.exists(target[0].abspath):
 if show_scons_mode:
     print("scons: Told to run compilation on %d CPUs." % job_count)
 
+# Inject ccache if it happens to be installed.
+if win_target and gcc_mode:
+    for location in [
+        r"c:\msys64",
+        r"c:\msys32",
+        r"\msys64",
+        r"\msys32",
+    ]:
+        candidate = os.path.join(location, r"usr\bin\ccache.exe")
+
+        if os.path.exists(candidate):
+            env["CC"] = "%s %s" % (
+                candidate,
+                env["CC"]
+            )
+
+            # Do not consider scons cache anymore.
+            if show_scons_mode:
+                print("scons: Found MSYS2 %s to cache object files." % candidate)
+            cache_mode = False
+
+            break
+    else:
+        if show_scons_mode:
+            print("scons: Unable to find MSYS2 ccache.exe, consider user manual.")
+
+# Inject clcache if it happens to be provided via environment.
+if win_target and msvc_mode:
+    if "NUITKA_CLCACHE_BINARY" in os.environ:
+        candidate = os.environ["NUITKA_CLCACHE_BINARY"]
+
+        if os.path.exists(candidate):
+            env["CC"] = candidate
+            env._dict["ENV"]["CLCACHE_CL"] = getExecutablePath(the_compiler, initial = False)
+
+            if show_scons_mode:
+                print(
+                    "scons: Found clcache '%s' to cache object files for '%s'." % (
+                        candidate,
+                        env._dict["ENV"]["CLCACHE_CL"]
+                    )
+                )
+    else:
+        if show_scons_mode:
+            print("scons: Unable to find clcache.exe, consider user manual.")
+
 # Cached, when done, by the fastest possible algorithm and right inside the
 # build directory. Makes no sense of course, if that is removed later on by
 # Nuitka.
 if cache_mode:
+    if show_scons_mode:
+        print("scons: Using scons cache inside build directory.")
+
     CacheDir(os.path.join(source_dir, "cache-" + target_arch + '-' + python_abi_version)) # @UndefinedVariable
     Decider("MD5-timestamp") # @UndefinedVariable
 
@@ -1770,24 +1822,6 @@ createBuildDefinitionsFile()
 
 if show_scons_mode:
     print("Scons: Launching target:", target)
-
-# Inject ccache if it happens to be installed.
-if win_target and gcc_mode:
-    for location in [
-        r"c:\msys64",
-        r"c:\msys32",
-        r"\msys64",
-        r"\msys32",
-    ]:
-        candidate = os.path.join(location, r"usr\bin\ccache.exe")
-
-        if os.path.exists(candidate):
-            env["CC"] = "%s %s" % (
-                candidate,
-                env["CC"]
-            )
-
-            break
 
 Default(target) # @UndefinedVariable
 
