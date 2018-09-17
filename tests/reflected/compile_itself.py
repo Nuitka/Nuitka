@@ -63,7 +63,6 @@ PACKAGE_LIST = (
     "nuitka/importing",
     "nuitka/build",
     "nuitka/freezer",
-    "nuitka/gui",
     "nuitka/codegen",
     "nuitka/codegen/templates",
     "nuitka/codegen/c_types",

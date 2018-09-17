@@ -340,14 +340,6 @@ dump_group.add_option(
     help    = "Dump the final result of optimization as XML, then exit."
 )
 
-dump_group.add_option(
-    "--display-tree",
-    action  = "store_true",
-    dest    = "display_tree",
-    default = False,
-    help    = """\
-Display the final result of optimization in a GUI, then exit."""
-)
 
 parser.add_option_group(dump_group)
 
@@ -922,10 +914,6 @@ def shallRunInDebugger():
 
 def shallDumpBuiltTreeXML():
     return options.dump_xml
-
-
-def shallDisplayBuiltTree():
-    return options.display_tree
 
 
 def shallOnlyExecCCompilerCall():

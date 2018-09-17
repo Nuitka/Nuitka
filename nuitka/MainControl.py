@@ -167,14 +167,6 @@ def dumpTreeXML(tree):
     TreeXML.dump(xml_root)
 
 
-def displayTree(tree): # pragma: no cover
-    # Import only locally so the Qt4 dependency doesn't normally come into play
-    # when it's not strictly needed.
-    from .gui import TreeDisplay
-
-    TreeDisplay.displayTreeInspector(tree)
-
-
 def getTreeFilenameWithSuffix(tree, suffix):
     return tree.getOutputFilename() + suffix
 
@@ -804,12 +796,9 @@ def main():
         handleSyntaxError(e)
 
     if Options.shallDumpBuiltTreeXML():
-        # XML only.
+        # XML output only.
         for module in ModuleRegistry.getDoneModules():
             dumpTreeXML(module)
-    elif Options.shallDisplayBuiltTree():
-        # GUI only.
-        displayTree(main_module)
     else:
         # Make the actual compilation.
         result, options = compileTree(
