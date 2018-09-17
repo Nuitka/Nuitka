@@ -48,15 +48,6 @@ parser = OptionParser(
     )
 )
 
-# This option is obsolete, and module should be used.
-parser.add_option(
-    "--exe",
-    action  = "store_true",
-    dest    = "obsolete_executable",
-    default = False,
-    help    = SUPPRESS_HELP
-)
-
 parser.add_option(
     "--module",
     action  = "store_false",
@@ -67,7 +58,7 @@ Create an extension module executable instead of a program. Defaults to off."""
 )
 
 parser.add_option(
-    "--standalone", "--portable",
+    "--standalone",
     action  = "store_true",
     dest    = "is_standalone",
     default = False,
@@ -110,7 +101,7 @@ Defaults to what you run Nuitka with (currently "%s").""" % (
     )
 
 parser.add_option(
-    "--python-debug", "--python-dbg",
+    "--python-debug",
     action  = "store_true",
     dest    = "python_debug",
     default = None,
@@ -133,7 +124,7 @@ Python runtime warnings), "-O" (alias "noasserts"). Default empty."""
 )
 
 parser.add_option(
-    "--python-for-scons", "--python2-for-scons",
+    "--python-for-scons",
     action  = "store",
     dest    = "python_scons",
     default = None,
@@ -263,7 +254,7 @@ empty."""
 )
 
 recurse_group.add_option(
-    "--recurse-plugins", "--recurse-directory",
+    "--recurse-plugin-directory",
     action  = "append",
     dest    = "recurse_extra",
     metavar = "MODULE/PACKAGE",
@@ -275,7 +266,7 @@ times. Default empty."""
 )
 
 recurse_group.add_option(
-    "--recurse-files", "--recurse-pattern",
+    "--recurse-plugin-files",
     action  = "append",
     dest    = "recurse_extra_files",
     metavar = "PATTERN",
@@ -294,7 +285,7 @@ execute_group = OptionGroup(
 )
 
 execute_group.add_option(
-    "--run", "--execute",
+    "--run",
     action  = "store_true",
     dest    = "immediate_execution",
     default = is_nuitka_run,
@@ -315,7 +306,7 @@ Defaults to off."""
 )
 
 execute_group.add_option(
-    "--execute-with-pythonpath", "--keep-pythonpath",
+    "--execute-with-pythonpath",
     action  = "store_true",
     dest    = "keep_pythonpath",
     default = False,
@@ -333,7 +324,7 @@ dump_group = OptionGroup(
 )
 
 dump_group.add_option(
-    "--dump-xml", "--xml",
+    "--xml",
     action  = "store_true",
     dest    = "dump_xml",
     default = False,
@@ -347,14 +338,6 @@ parser.add_option_group(dump_group)
 codegen_group = OptionGroup(
     parser,
     "Code generation choices"
-)
-
-codegen_group.add_option(
-    "--improved", "--enhanced",
-    action  = "store_true",
-    dest    = "disabled",
-    default = False,
-    help    = SUPPRESS_HELP,
 )
 
 codegen_group.add_option(
@@ -448,7 +431,8 @@ output_group.add_option(
     dest    = "pyi_file",
     default = True,
     help    = """\
-Do not create a ".pyi" file for extension modules created by Nuitka.
+Do not create a ".pyi" file for extension modules created by Nuitka. This is
+used to detect implicit imports.
 Defaults to off."""
 )
 
@@ -477,7 +461,7 @@ production. Defaults to off."""
 )
 
 debug_group.add_option(
-    "--unstripped", "--no-strip", "--unstriped",
+    "--unstripped",
     action  = "store_true",
     dest    = "unstripped",
     default = False,
@@ -611,12 +595,12 @@ Defaults to off."""
 )
 
 c_compiler_group.add_option(
-    "--mingw",
+    "--mingw64",
     action  = "store_true",
-    dest    = "mingw",
+    dest    = "mingw64",
     default = False,
     help    = """\
-Enforce the use of MinGW on Windows.
+Enforce the use of MinGW64 on Windows.
 Defaults to off."""
 )
 
@@ -627,8 +611,9 @@ c_compiler_group.add_option(
     default = None,
     help    = """\
 Enforce the use of specific MSVC version on Windows. Allowed values
-are e.g. 9.0, 9.0exp, specify an illegal value for a list of installed
-compilers. Defaults to the most recent version."""
+are e.g. 14.0, specify an illegal value for a list of installed compilers.
+
+Defaults to the most recent version."""
 )
 
 c_compiler_group.add_option(
@@ -648,7 +633,7 @@ c_compiler_group.add_option(
     dest    = "lto",
     default = False,
     help    = """\
-Use link time optimizations if available and usable (g++ 4.6 and higher).
+Use link time optimizations if available and usable (gcc 4.6 and higher).
 Defaults to off."""
 )
 
@@ -719,7 +704,7 @@ When compiling for Windows, disable the console window. Defaults to off."""
 )
 
 windows_group.add_option(
-    "--windows-icon", "--icon",
+    "--windows-icon",
     action  = "store",
     dest    = "icon_path",
     metavar = "ICON_PATH",
@@ -1088,8 +1073,8 @@ def isClang():
     return options.clang
 
 
-def isMingw():
-    return options.mingw
+def isMingw64():
+    return options.mingw64
 
 
 def getMsvcVersion():

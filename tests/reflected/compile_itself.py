@@ -389,10 +389,9 @@ def executePASS5():
         "--plugin-enable=pylint-warnings",
         "--output-dir=%s" % tmp_dir,
         "--recurse-all",
-        "--recurse-not-to=PyQt5",
         "--recurse-not-to=nuitka.build.inline_copy",
         "--recurse-not-to=nuitka.build.include",
-        "--recurse-dir=%s" % path,
+        "--recurse-plugin-dir=%s" % path,
         "--module",
         path
 

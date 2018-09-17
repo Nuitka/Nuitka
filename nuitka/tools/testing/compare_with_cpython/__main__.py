@@ -308,7 +308,7 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
         addToPythonPath(os.path.dirname(os.path.abspath(filename)))
 
     if keep_python_path or binary_python_path:
-        extra_options.append("--keep-pythonpath")
+        extra_options.append("--execute-with-pythonpath")
 
     if recurse_none:
         extra_options.append("--recurse-none")
@@ -333,13 +333,13 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
     if not two_step_execution:
         if module_mode:
             nuitka_cmd = nuitka_call + extra_options + \
-              ["--execute", "--module", filename]
+              ["--run", "--module", filename]
         elif standalone_mode:
             nuitka_cmd = nuitka_call + extra_options + \
-              ["--execute", "--standalone", filename]
+              ["--run", "--standalone", filename]
         else:
             nuitka_cmd = nuitka_call + extra_options + \
-              ["--execute", filename]
+              ["--run", filename]
 
         if no_site:
             nuitka_cmd.insert(len(nuitka_cmd) - 1, "--python-flag=-S")

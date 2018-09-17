@@ -535,7 +535,7 @@ def runScons(main_module, quiet):
     if Options.isShowScons():
         options["show_scons"] = "true"
 
-    if Options.isMingw():
+    if Options.isMingw64():
         options["mingw_mode"] = "true"
 
     if Options.getMsvcVersion():
