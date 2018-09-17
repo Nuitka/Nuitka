@@ -1234,6 +1234,13 @@ def getTestingCacheDir():
     return result
 
 
+def getTestingCPythonOutputsCacheDir():
+    cache_dir = getCacheDir()
+
+    result = os.path.join(cache_dir, "cpython_outputs")
+    makePath(result)
+    return result
+
 @contextmanager
 def withDirectoryChange(path, allow_none = False):
     if path is not None or not allow_none:

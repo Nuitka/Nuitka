@@ -23,14 +23,20 @@
 
 from __future__ import print_function
 
+import hashlib
 import os
+import pickle
 import re
 import subprocess
 import sys
 import tempfile
 import time
 
-from nuitka.tools.testing.Common import addToPythonPath, withPythonPathChange
+from nuitka.tools.testing.Common import (
+    addToPythonPath,
+    getTestingCPythonOutputsCacheDir,
+    withPythonPathChange
+)
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.Tracing import my_print
 
@@ -43,9 +49,6 @@ def displayOutput(stdout, stderr):
     my_print(stdout, end = ' ')
     if stderr:
         my_print(stderr)
-
-
-
 
 
 def checkNoPermissionError(output):
@@ -62,6 +65,66 @@ def checkNoPermissionError(output):
         return False
 
     return True
+
+
+def getCPythonResults(cpython_cmd, cpython_cached):
+    cached = False
+    if cpython_cached:
+        # TODO: Hashing stuff and creating cache filename is duplicate code
+        # and should be shared.
+
+        hash_input = " -- ".join(cpython_cmd)
+        if str is not bytes:
+            hash_input = hash_input.encode("utf8")
+
+        command_hash = hashlib.md5(hash_input)
+
+        cache_filename = os.path.join(
+            getTestingCPythonOutputsCacheDir(),
+            command_hash.hexdigest()
+        )
+
+        if os.path.exists(cache_filename):
+            with open(cache_filename, "rb") as cache_file:
+                cpython_time, stdout_cpython, stderr_cpython, exit_cpython = \
+                  pickle.load(cache_file)
+                cached = True
+
+    if not cached:
+        start_time = time.time()
+
+        # Try a coupile of times for permission denied, on Windows it can
+        # be transient.
+        for _i in range(5):
+            with withPythonPathChange(os.getcwd()):
+                process = subprocess.Popen(
+                    args   = cpython_cmd,
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.PIPE
+                )
+
+            stdout_cpython, stderr_cpython = process.communicate()
+            exit_cpython = process.returncode
+
+            if checkNoPermissionError(stdout_cpython) and \
+               checkNoPermissionError(stderr_cpython):
+                break
+
+            my_print("Retrying CPython due to permission problems after delay.")
+            time.sleep(2)
+
+            start_time = time.time()
+
+        cpython_time = time.time() - start_time
+
+        if cpython_cached:
+            with open(cache_filename, "wb") as cache_file:
+                pickle.dump(
+                    (cpython_time, stdout_cpython, stderr_cpython, exit_cpython),
+                    cache_file
+                )
+
+    return cpython_time, stdout_cpython, stderr_cpython, exit_cpython
 
 
 def main():
@@ -103,7 +166,7 @@ def main():
     original_file      = hasArg("original_file")
     no_warnings        = not hasArg("warnings")
     full_compat        = not hasArg("improved")
-
+    cpython_cached     = hasArg("cpython_cache")
     syntax_errors      = hasArg("syntax_errors")
 
     plugins_enabled = []
@@ -394,29 +457,10 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
         my_print("CPython command:", *cpython_cmd)
 
     if comparison_mode:
-        start_time = time.time()
-
-        # Try a coupile of times for permission denied, on Windows it can
-        # be transient.
-        for _i in range(5):
-            with withPythonPathChange(os.getcwd()):
-                process = subprocess.Popen(
-                    args   = cpython_cmd,
-                    stdout = subprocess.PIPE,
-                    stderr = subprocess.PIPE
-                )
-
-            stdout_cpython, stderr_cpython = process.communicate()
-            exit_cpython = process.returncode
-
-            if checkNoPermissionError(stdout_cpython) and \
-               checkNoPermissionError(stderr_cpython):
-                break
-
-            my_print("Retrying CPython due to permission problems after delay.")
-            time.sleep(2)
-
-        cpython_time = time.time() - start_time
+        cpython_time, stdout_cpython, stderr_cpython, exit_cpython = getCPythonResults(
+            cpython_cmd    = cpython_cmd,
+            cpython_cached = cpython_cached
+        )
 
     if comparison_mode and not silent_mode:
         displayOutput(stdout_cpython, stderr_cpython)
