@@ -755,9 +755,17 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
 if msvc_mode:
     env.Append(CCFLAGS = ["/EHsc", "/J", "/Gd"])
 
-    # Make sure we handle import library on our own and put it into the
-    # build directory.
+    # No incremental linking.
+    env.Append(
+        LINKFLAGS = [
+            "/INCREMENTAL:NO"
+        ]
+    )
+
     if module_mode:
+        # Make sure we handle import library on our own and put it into the
+        # build directory.
+
         no_import_lib = True
         env.Append(
             LINKFLAGS = [
