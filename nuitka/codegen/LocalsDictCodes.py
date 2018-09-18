@@ -133,6 +133,7 @@ def generateLocalsDictDelCode(statement, emit, context):
     locals_scope = statement.getLocalsDictScope()
 
     dict_arg_name = locals_scope.getCodeName()
+
     is_dict = locals_scope.getTypeShape() is ShapeTypeDict
 
     context.setCurrentSourceCodeReference(statement.getSourceReference())
@@ -261,13 +262,17 @@ def generateLocalsDictVariableRefCode(to_name, expression, emit, context):
 def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
     variable_name = expression.getVariableName()
 
-    is_dict = expression.getLocalsDictScope().getTypeShape() is ShapeTypeDict
+    locals_scope = expression.getLocalsDictScope()
+
+    locals_declaration = context.addLocalsDictName(locals_scope.getCodeName())
+
+    is_dict = locals_scope.getTypeShape() is ShapeTypeDict
 
     if is_dict:
         to_name.getCType().emitAssignmentCodeFromBoolCondition(
             to_name   = to_name,
             condition = "PyDict_GetItem( %(locals_dict)s, %(var_name)s )" % {
-                "locals_dict" : expression.getLocalsDictScope().getCodeName(),
+                "locals_dict" : locals_declaration,
                 "var_name"    : context.getConstantCode(
                     constant = variable_name
                 )
@@ -283,11 +288,11 @@ def generateLocalsDictVariableCheckCode(to_name, expression, emit, context):
 
         emit(
             template % {
-                "locals_dict" : expression.getLocalsDictScope().getCodeName(),
+                "locals_dict" : locals_declaration,
                 "var_name"    : context.getConstantCode(
                     constant = variable_name
                 ),
-                "tmp_name"     : tmp_name
+                "tmp_name"    : tmp_name
             }
         )
 
