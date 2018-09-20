@@ -211,7 +211,7 @@ included in the executable:
 
 .. code-block:: bash
 
-    python -m nuitka --recurse-all --recurse-plugin-directory=plugin_dir program.py
+    python -m nuitka --recurse-all --include-plugin-directory=plugin_dir program.py
 
 .. note::
 

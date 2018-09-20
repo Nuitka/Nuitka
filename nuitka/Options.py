@@ -192,6 +192,29 @@ and Nuitka will then find it and include it in the binary or extension module
 it creates, and make it available for import by the code. Default empty."""
 )
 
+include_group.add_option(
+    "--include-plugin-directory",
+    action  = "append",
+    dest    = "recurse_extra",
+    metavar = "MODULE/PACKAGE",
+    default = [],
+    help    = """\
+Include the content of that directory, no matter if it's used by the given main
+program in a visible form. Overrides all other recursion options. Can be given
+multiple times. Default empty."""
+)
+
+include_group.add_option(
+    "--include-plugin-files",
+    action  = "append",
+    dest    = "recurse_extra_files",
+    metavar = "PATTERN",
+    default = [],
+    help    = """\
+Include into files matching the PATTERN. Overrides all recursion other options.
+Can be given multiple times. Default empty."""
+)
+
 parser.add_option_group(include_group)
 
 recurse_group = OptionGroup(
@@ -251,29 +274,6 @@ recurse_group.add_option(
 Do not recurse to that module, or if a package, to the whole package in any
 case, overrides all other options. Can be given multiple times. Default
 empty."""
-)
-
-recurse_group.add_option(
-    "--recurse-plugin-directory",
-    action  = "append",
-    dest    = "recurse_extra",
-    metavar = "MODULE/PACKAGE",
-    default = [],
-    help    = """\
-Recurse into that directory, no matter if it's used by the given main program
-in a visible form. Overrides all other recursion options. Can be given multiple
-times. Default empty."""
-)
-
-recurse_group.add_option(
-    "--recurse-plugin-files",
-    action  = "append",
-    dest    = "recurse_extra_files",
-    metavar = "PATTERN",
-    default = [],
-    help    = """\
-Recurse into files matching the PATTERN. Overrides all recursion other options.
-Can be given multiple times. Default empty."""
 )
 
 

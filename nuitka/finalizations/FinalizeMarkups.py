@@ -91,7 +91,7 @@ class FinalizeMarkups(FinalizationVisitorBase):
            not node.recurse_attempted and \
            not Plugins.suppressBuiltinImportWarning(node.getParentModule(), node.getSourceReference()):
             warning("""Unresolved '__import__' call at '%s' may require use \
-of '--recurse-plugin-directory' or '--recurse-plugin-files'.""" % (
+of '--include-plugin-directory' or '--include-plugin-files'.""" % (
                     node.getSourceReference().getAsString()
                 )
             )

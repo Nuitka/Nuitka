@@ -103,12 +103,12 @@ for filename in sorted(os.listdir('.')):
     elif filename == "reimport_main_dynamic":
         if python_version < '3':
             os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
-              " --recurse-plugin-directory=%s" % (
+              " --include-plugin-directory=%s" % (
                   os.path.abspath(filename)
               )
         else:
             os.environ["NUITKA_EXTRA_OPTIONS"] = extra_options + \
-              " --recurse-plugin-files=%s/*.py" % (
+              " --include-plugin-files=%s/*.py" % (
                   os.path.abspath(filename)
               )
 
