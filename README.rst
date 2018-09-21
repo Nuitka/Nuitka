@@ -197,11 +197,11 @@ that is the main program, do it like this:
 
 .. code-block:: bash
 
-    python -m nuitka --recurse-all program.py
+    python -m nuitka --follow-imports program.py
 
 .. note::
 
-   There are more fine grained controls than ``--recurse-all`` available.
+   There are more fine grained controls than ``--follow-imports`` available.
    Consider the output of ``nuitka --help``.
 
 In case you have a plugin directory, i.e. one which cannot be found by recursing
@@ -211,15 +211,15 @@ included in the executable:
 
 .. code-block:: bash
 
-    python -m nuitka --recurse-all --include-plugin-directory=plugin_dir program.py
+    python -m nuitka --follow-imports --include-plugin-directory=plugin_dir program.py
 
 .. note::
 
    If you don't do any dynamic imports, simply setting your ``PYTHONPATH`` at
    compilation time will be sufficient for all your needs normally.
 
-   Use ``--recurse-directory`` only if you make ``__import__()`` calls that
-   Nuitka cannot predict, because they e.g. depend on command line
+   Use ``--include-plugin-directory`` only if you make ``__import__()`` calls
+   that Nuitka cannot predict, because they e.g. depend on command line
    parameters. Nuitka also warns about these, and point to the option.
 
 .. note::
@@ -255,7 +255,7 @@ The resulting file ``some_module.so`` can then be used instead of
 
 .. note::
 
-   The option ``--recurse-all`` and other variants work as well, but the
+   The option ``--follow-imports`` and other variants work as well, but the
    included modules will only become importable *after* you imported the
    ``some_module`` name.
 
