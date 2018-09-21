@@ -394,7 +394,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE(PyObj
     assert(operand1);
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
-    assert(PyList_CheckExact(operand2));
+    assert(PyTuple_CheckExact(operand2));
 
     PyObject *result;
 
