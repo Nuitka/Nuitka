@@ -177,7 +177,6 @@ def executePASS1():
                     os.environ["PYTHON"],
                     nuitka_main_path,
                     "--module",
-                    "--nofollow-imports",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % target_dir,
                     "--no-pyi-file",
@@ -281,7 +280,6 @@ def compileAndCompareWith(nuitka):
                 command = [
                     nuitka,
                     "--module",
-                    "--nofollow-imports",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s"% tmp_dir,
                     "--no-pyi-file",

@@ -77,7 +77,6 @@ def action(stage_dir, root, path):
         "--module",
         "--output-dir",
         stage_dir,
-        "--recurse-none",
         "--remove-output",
         "--plugin-enable=pylint-warnings"
     ]
