@@ -179,7 +179,8 @@ def main():
         MemoryUsage.startMemoryTracing()
 
     # Inform the user about potential issues.
-    if current_version not in Options.getSupportedPythonVersions():
+    from nuitka.PythonVersions import getSupportedPythonVersions
+    if current_version not in getSupportedPythonVersions():
 
         # Do not disturb run of automatic tests, detected from the presence of
         # that environment variable.
