@@ -243,10 +243,10 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                     warning(
                         """\
 Not recursing to '%(full_path)s' (%(filename)s), please specify \
---recurse-none (do not warn), \
---recurse-all (recurse to all), \
---recurse-not-to=%(full_path)s (ignore it), \
---recurse-to=%(full_path)s (recurse to it) to change.""" % {
+--nofollow-imports (do not warn), \
+--follow-imports (recurse to all), \
+--nofollow-import-to=%(full_path)s (ignore it), \
+--follow-import-to=%(full_path)s (recurse to it) to change.""" % {
                             "full_path" : module_fullpath,
                             "filename"  : module_filename
                         }

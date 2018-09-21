@@ -234,7 +234,7 @@ the compilation time by a lot. Defaults to off."""
 )
 
 recurse_group.add_option(
-    "--recurse-none",
+    "--nofollow-imports", "--recurse-none",
     action  = "store_true",
     dest    = "recurse_none",
     default = False,
@@ -244,7 +244,7 @@ overrides all other recursion options. Defaults to off."""
 )
 
 recurse_group.add_option(
-    "--recurse-all", "--recurse-on",
+    "--follow-imports", "--recurse-all",
     action  = "store_true",
     dest    = "recurse_all",
     default = False,
@@ -254,7 +254,7 @@ Defaults to off."""
 )
 
 recurse_group.add_option(
-    "--recurse-to",
+    "--follow-import-to", "--recurse-to",
     action  = "append",
     dest    = "recurse_modules",
     metavar = "MODULE/PACKAGE",
@@ -265,14 +265,14 @@ multiple times. Default empty."""
 )
 
 recurse_group.add_option(
-    "--recurse-not-to",
+    "--nofollow-import-to", "--recurse-not-to",
     action  = "append",
     dest    = "recurse_not_modules",
     metavar = "MODULE/PACKAGE",
     default = [],
     help    = """\
-Do not recurse to that module, or if a package, to the whole package in any
-case, overrides all other options. Can be given multiple times. Default
+Do not recurse to that module name, or if a package name, to the whole package
+in any case, overrides all other options. Can be given multiple times. Default
 empty."""
 )
 
@@ -844,7 +844,7 @@ Error, conflicting options, cannot make standalone module, only executable.""")
         if bad:
             sys.exit(
                 """\
-Error, '--recurse-to' takes only module names, not directory path '%s'.""" % \
+Error, '--follow-import-to' takes only module names, not directory path '%s'.""" % \
                 any_case_module
             )
 
@@ -862,7 +862,7 @@ Error, '--recurse-to' takes only module names, not directory path '%s'.""" % \
         if bad:
             sys.exit(
                 """\
-Error, '--recurse-not-to' takes only module names, not directory path '%s'.""" % \
+Error, '--nofollow-import-to' takes only module names, not directory path '%s'.""" % \
                 no_case_module
             )
 

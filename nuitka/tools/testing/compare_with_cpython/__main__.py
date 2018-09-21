@@ -374,13 +374,13 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
         extra_options.append("--execute-with-pythonpath")
 
     if recurse_none:
-        extra_options.append("--recurse-none")
+        extra_options.append("--nofollow-imports")
 
     if recurse_all:
-        extra_options.append("--recurse-all")
+        extra_options.append("--follow-imports")
 
     if recurse_not:
-        extra_options.extend("--recurse-not-to=" + v for v in recurse_not)
+        extra_options.extend("--nofollow-import-to=" + v for v in recurse_not)
 
     if coverage_mode:
         extra_options.append("--must-not-re-execute")

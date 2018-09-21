@@ -114,7 +114,7 @@ class build(distutils.command.build.build):
             "--plugin-enable=pylint-warnings",
             "--output-dir=%s" % output_dir,
             "--include-package=%s" % self.main_package,
-            "--recurse-not-to=*.tests",
+            "--nofollow-import-to=*.tests",
             "--show-modules",
             "--remove-output"
         ]

@@ -177,7 +177,7 @@ def executePASS1():
                     os.environ["PYTHON"],
                     nuitka_main_path,
                     "--module",
-                    "--recurse-none",
+                    "--nofollow-imports",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % target_dir,
                     "--no-pyi-file",
@@ -202,7 +202,7 @@ def executePASS1():
     command = [
         os.environ["PYTHON"],
         nuitka_main_path,
-        "--recurse-none",
+        "--nofollow-imports",
         "--plugin-enable=pylint-warnings",
         "--output-dir=.",
         "--python-flag=-S",
@@ -281,7 +281,7 @@ def compileAndCompareWith(nuitka):
                 command = [
                     nuitka,
                     "--module",
-                    "--recurse-none",
+                    "--nofollow-imports",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s"% tmp_dir,
                     "--no-pyi-file",
@@ -352,7 +352,7 @@ def executePASS3():
         path,
         "--output-dir=%s" % tmp_dir,
         "--python-flag=-S",
-        "--recurse-all"
+        "--follow-imports"
     ]
     result = subprocess.call(
         command
@@ -389,10 +389,10 @@ def executePASS5():
         "--plugin-enable=pylint-warnings",
         "--output-dir=%s" % tmp_dir,
         "--include-plugin-dir=%s" % path,
-        "--recurse-all",
-        "--recurse-not-to=nuitka.build.inline_copy",
-        "--recurse-not-to=nuitka.build.include",
-        "--recurse-not-to=nuitka.build.static_src",
+        "--follow-imports",
+        "--nofollow-import-to=nuitka.build.inline_copy",
+        "--nofollow-import-to=nuitka.build.include",
+        "--nofollow-import-to=nuitka.build.static_src",
         "--module",
         path
 
