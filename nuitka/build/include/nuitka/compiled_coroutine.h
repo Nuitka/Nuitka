@@ -30,7 +30,7 @@
 struct Nuitka_CoroutineObject {
     PyObject_VAR_HEAD
 
-    PyObject *m_name;
+        PyObject *m_name;
 
     // TODO: Only to make traceback for non-started throw
     PyObject *m_module;
@@ -90,37 +90,25 @@ struct Nuitka_CoroutineObject {
 
 extern PyTypeObject Nuitka_Coroutine_Type;
 
-typedef PyObject *(*coroutine_code)( struct Nuitka_CoroutineObject *, PyObject * );
+typedef PyObject *(*coroutine_code)(struct Nuitka_CoroutineObject *, PyObject *);
 
-extern PyObject *Nuitka_Coroutine_New(
-    coroutine_code code,
-    PyObject *module,
-    PyObject *name,
-    PyObject *qualname,
-    PyCodeObject *code_object,
-    Py_ssize_t closure_given,
-    Py_ssize_t heap_storage_size
-);
+extern PyObject *Nuitka_Coroutine_New(coroutine_code code, PyObject *module, PyObject *name, PyObject *qualname,
+                                      PyCodeObject *code_object, Py_ssize_t closure_given,
+                                      Py_ssize_t heap_storage_size);
 
-static inline bool Nuitka_Coroutine_Check( PyObject *object )
-{
-    return Py_TYPE( object ) == &Nuitka_Coroutine_Type;
-}
+static inline bool Nuitka_Coroutine_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Coroutine_Type; }
 
 struct Nuitka_CoroutineWrapperObject {
-    PyObject_HEAD
-    struct Nuitka_CoroutineObject *m_coroutine;
+    PyObject_HEAD struct Nuitka_CoroutineObject *m_coroutine;
 };
 
 extern PyTypeObject Nuitka_CoroutineWrapper_Type;
 
-static inline bool Nuitka_CoroutineWrapper_Check( PyObject *object )
-{
-    return Py_TYPE( object ) == &Nuitka_CoroutineWrapper_Type;
+static inline bool Nuitka_CoroutineWrapper_Check(PyObject *object) {
+    return Py_TYPE(object) == &Nuitka_CoroutineWrapper_Type;
 }
 
-static inline void SAVE_COROUTINE_EXCEPTION( struct Nuitka_CoroutineObject *coroutine )
-{
+static inline void SAVE_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *coroutine) {
     /* Before Python3.7: When yielding from an exception handler in Python3,
      * the exception preserved to the frame is restored, while the current one
      * is put as there.
@@ -151,13 +139,13 @@ static inline void SAVE_COROUTINE_EXCEPTION( struct Nuitka_CoroutineObject *coro
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 #else
     coroutine->m_exc_state.exc_type = saved_exception_type;
-    coroutine->m_exc_state.exc_value = saved_exception_value;;
+    coroutine->m_exc_state.exc_value = saved_exception_value;
+    ;
     coroutine->m_exc_state.exc_traceback = saved_exception_traceback;
 #endif
 }
 
-static inline void RESTORE_COROUTINE_EXCEPTION( struct Nuitka_CoroutineObject *coroutine )
-{
+static inline void RESTORE_COROUTINE_EXCEPTION(struct Nuitka_CoroutineObject *coroutine) {
     // When returning from yield, the exception of the frame is preserved, and
     // the one that enters should be there.
     PyThreadState *thread_state = PyThreadState_GET();
@@ -185,12 +173,11 @@ static inline void RESTORE_COROUTINE_EXCEPTION( struct Nuitka_CoroutineObject *c
 #endif
 }
 
-
 #ifdef __cplusplus
 enum Await_Kind {
-    await_normal,   // user provided "await"
-    await_enter,    // async with statement "__enter__"
-    await_exit      // async with statement "__enter__"
+    await_normal, // user provided "await"
+    await_enter,  // async with statement "__enter__"
+    await_exit    // async with statement "__enter__"
 };
 #else
 typedef int Generator_Status;
@@ -199,15 +186,14 @@ static const int await_enter = 1;
 static const int await_exit = 2;
 #endif
 
-
 // Create the object to await for async for "iter".
-extern PyObject *ASYNC_MAKE_ITERATOR( PyObject *value );
+extern PyObject *ASYNC_MAKE_ITERATOR(PyObject *value);
 
 // Create the object to await for async for "next".
-extern PyObject *ASYNC_ITERATOR_NEXT( PyObject *value );
+extern PyObject *ASYNC_ITERATOR_NEXT(PyObject *value);
 
 // Create the object for plain "await".
-extern PyObject *ASYNC_AWAIT( PyObject *awaitable, int await_kind );
+extern PyObject *ASYNC_AWAIT(PyObject *awaitable, int await_kind);
 
 #endif
 

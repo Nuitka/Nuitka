@@ -27,12 +27,11 @@
 #endif
 
 /* This abstracts "dirname" for use on Windows and Unix alike. */
-char *getDirname( char *path )
-{
+char *getDirname(char *path) {
 #if defined(_WIN32)
-    PathRemoveFileSpec( path );
-	return path;
+    PathRemoveFileSpec(path);
+    return path;
 #else
-	return dirname( path );
+    return dirname(path);
 #endif
 }

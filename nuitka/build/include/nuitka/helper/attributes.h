@@ -19,32 +19,32 @@
 #define __NUITKA_HELPER_ATTRIBUTES_H__
 
 // Attribute lookup except special slots below.
-extern PyObject *LOOKUP_ATTRIBUTE( PyObject *source, PyObject *attr_name );
+extern PyObject *LOOKUP_ATTRIBUTE(PyObject *source, PyObject *attr_name);
 
 // Attribute lookup of attribute slot "__dict__".
-extern PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT( PyObject *source );
+extern PyObject *LOOKUP_ATTRIBUTE_DICT_SLOT(PyObject *source);
 
 // Attribute lookup of attribute slot "__class__".
-extern PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT( PyObject *source );
+extern PyObject *LOOKUP_ATTRIBUTE_CLASS_SLOT(PyObject *source);
 
 // For built-in "hasattr" functionality.
-extern int BUILTIN_HASATTR_BOOL( PyObject *source, PyObject *attr_name );
+extern int BUILTIN_HASATTR_BOOL(PyObject *source, PyObject *attr_name);
 
 // Set an attribute except for attribute slots below.
-extern bool SET_ATTRIBUTE( PyObject *target, PyObject *attr_name, PyObject *value );
+extern bool SET_ATTRIBUTE(PyObject *target, PyObject *attr_name, PyObject *value);
 
 // Set the "__dict__" special attribute slot.
-extern bool SET_ATTRIBUTE_DICT_SLOT( PyObject *target, PyObject *value );
+extern bool SET_ATTRIBUTE_DICT_SLOT(PyObject *target, PyObject *value);
 
 // Set the "__class__" special attribute slot.
-extern bool SET_ATTRIBUTE_CLASS_SLOT( PyObject *target, PyObject *value );
+extern bool SET_ATTRIBUTE_CLASS_SLOT(PyObject *target, PyObject *value);
 
 // Special attribute lookups, e.g. "__enter__".
-extern PyObject *LOOKUP_SPECIAL( PyObject *source, PyObject *attr_name );
+extern PyObject *LOOKUP_SPECIAL(PyObject *source, PyObject *attr_name);
 
 // Find an attribute in a class, Python2 only.
 #if PYTHON_VERSION < 300
-extern PyObject *FIND_ATTRIBUTE_IN_CLASS( PyClassObject *klass, PyObject *attr_name );
+extern PyObject *FIND_ATTRIBUTE_IN_CLASS(PyClassObject *klass, PyObject *attr_name);
 #endif
 
 #endif

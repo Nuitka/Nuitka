@@ -27,10 +27,10 @@
 
 #include "nuitka/prelude.h"
 
-#include "structseq.h"
 #include "osdefs.h"
+#include "structseq.h"
 
-#if defined( _WIN32 )
+#if defined(_WIN32)
 #include <windows.h>
 #endif
 
@@ -57,31 +57,26 @@ static wchar_t **argv_unicode;
 static char *original_home;
 static char *original_path;
 
-#if defined( _WIN32 )
-static void setenv( char const *name, char const *value, int overwrite)
-{
-    assert( overwrite );
+#if defined(_WIN32)
+static void setenv(char const *name, char const *value, int overwrite) {
+    assert(overwrite);
 
     char buffer[MAXPATHLEN + 100];
-    memset( buffer, 0, sizeof(buffer) );
-    snprintf( buffer, sizeof(buffer) - 1, "%s=%s", name, value ? value : "" );
+    memset(buffer, 0, sizeof(buffer));
+    snprintf(buffer, sizeof(buffer) - 1, "%s=%s", name, value ? value : "");
 
-    NUITKA_MAY_BE_UNUSED int res = _putenv( buffer );
-    assert( res == 0 );
+    NUITKA_MAY_BE_UNUSED int res = _putenv(buffer);
+    assert(res == 0);
 }
 
-static void unsetenv( char const *name )
-{
-    setenv( name, NULL, 1 );
-}
+static void unsetenv(char const *name) { setenv(name, NULL, 1); }
 #endif
 
 #if _NUITKA_FROZEN > 0
-extern void copyFrozenModulesTo( struct _frozen *destination );
+extern void copyFrozenModulesTo(struct _frozen *destination);
 #endif
 
-static void prepareStandaloneEnvironment()
-{
+static void prepareStandaloneEnvironment() {
     // Tell the CPython library to use our pre-compiled modules as frozen
     // modules. This for those modules/packages like "encoding" that will be
     // loaded during "Py_Initialize" already, for the others they may be
@@ -91,24 +86,18 @@ static void prepareStandaloneEnvironment()
     // The CPython library has some pre-existing frozen modules, we only append
     // to that.
     struct _frozen const *search = PyImport_FrozenModules;
-    while( search->name )
-    {
+    while (search->name) {
         search++;
     }
-    int pre_existing_count = (int)( search - PyImport_FrozenModules );
+    int pre_existing_count = (int)(search - PyImport_FrozenModules);
 
     /* Allocate new memory and merge the tables. Keeping the old ones has
      * the advantage that e.g. "import this" is going to work well.
      */
-    struct _frozen *merged = (struct _frozen *)malloc(
-        sizeof(struct _frozen) * (_NUITKA_FROZEN + pre_existing_count + 1)
-    );
+    struct _frozen *merged =
+        (struct _frozen *)malloc(sizeof(struct _frozen) * (_NUITKA_FROZEN + pre_existing_count + 1));
 
-    memcpy(
-        merged,
-        PyImport_FrozenModules,
-        pre_existing_count * sizeof( struct _frozen )
-    );
+    memcpy(merged, PyImport_FrozenModules, pre_existing_count * sizeof(struct _frozen));
     copyFrozenModulesTo(merged + pre_existing_count);
     PyImport_FrozenModules = merged;
 #endif
@@ -119,32 +108,32 @@ static void prepareStandaloneEnvironment()
      */
     char *binary_directory = getBinaryDirectoryHostEncoded();
 
-#if defined( _WIN32 ) && defined( _MSC_VER )
-    SetDllDirectory( binary_directory );
+#if defined(_WIN32) && defined(_MSC_VER)
+    SetDllDirectory(binary_directory);
 #endif
 
     /* get original environment variable values */
-    original_home = getenv( "PYTHONHOME" );
-    original_path = getenv( "PYTHONPATH" );
+    original_home = getenv("PYTHONHOME");
+    original_path = getenv("PYTHONPATH");
 
-    assert( binary_directory != NULL );
-    assert( strlen( binary_directory ) > 0 );
+    assert(binary_directory != NULL);
+    assert(strlen(binary_directory) > 0);
 
-    NUITKA_PRINTF_TRACE("Binary dir is %s\n", binary_directory );
+    NUITKA_PRINTF_TRACE("Binary dir is %s\n", binary_directory);
 
-    setenv( "PYTHONHOME", binary_directory, 1 );
+    setenv("PYTHONHOME", binary_directory, 1);
 
     // This has really failed before, on Windows.
-    assert( getenv( "PYTHONHOME") != NULL );
-    assert( strcmp( binary_directory, getenv("PYTHONHOME") ) == 0 );
+    assert(getenv("PYTHONHOME") != NULL);
+    assert(strcmp(binary_directory, getenv("PYTHONHOME")) == 0);
 
-    unsetenv( "PYTHONPATH" );
+    unsetenv("PYTHONPATH");
 
 #if PYTHON_VERSION >= 300
-    wchar_t binary_directory2[MAXPATHLEN+1];
-    mbstowcs( binary_directory2, binary_directory, MAXPATHLEN );
+    wchar_t binary_directory2[MAXPATHLEN + 1];
+    mbstowcs(binary_directory2, binary_directory, MAXPATHLEN);
 
-    Py_SetPath( binary_directory2 );
+    Py_SetPath(binary_directory2);
 #endif
 }
 
@@ -154,26 +143,21 @@ static void prepareStandaloneEnvironment()
 #define PY_FORMAT_GETPATH_RESULT "%ls"
 #endif
 
-static void restoreStandaloneEnvironment()
-{
+static void restoreStandaloneEnvironment() {
     /* Make use the PYTHONHOME set previously. */
-    NUITKA_PRINTF_TRACE("Path is '" PY_FORMAT_GETPATH_RESULT "' (PYTHONHOME %s)\n", Py_GetPath(), getenv( "PYTHONHOME" ) );
+    NUITKA_PRINTF_TRACE("Path is '" PY_FORMAT_GETPATH_RESULT "' (PYTHONHOME %s)\n", Py_GetPath(), getenv("PYTHONHOME"));
     Py_GetPath();
 
     // Restore PYTHONHOME and PYTHONPATH, so spawning executables of Python
     // will still work as expected.
-    if ( original_home == NULL )
-    {
-        unsetenv( "PYTHONHOME" );
-    }
-    else
-    {
-        setenv( "PYTHONHOME", original_home, 1 );
+    if (original_home == NULL) {
+        unsetenv("PYTHONHOME");
+    } else {
+        setenv("PYTHONHOME", original_home, 1);
     }
 
-    if ( original_path != NULL )
-    {
-        setenv( "PYTHONPATH", original_path, 1 );
+    if (original_path != NULL) {
+        setenv("PYTHONPATH", original_path, 1);
     }
 
     // Emulate the effect of Py_SetPath for Python2, and cleanup the duplicate
@@ -182,15 +166,15 @@ static void restoreStandaloneEnvironment()
     // but ought to be good enough still.
     char *binary_directory = getBinaryDirectoryHostEncoded();
 #if PYTHON_VERSION < 300
-    PySys_SetPath( binary_directory );
+    PySys_SetPath(binary_directory);
 #else
-    wchar_t binary_directory2[MAXPATHLEN+1];
-    mbstowcs( binary_directory2, binary_directory, MAXPATHLEN );
+    wchar_t binary_directory2[MAXPATHLEN + 1];
+    mbstowcs(binary_directory2, binary_directory, MAXPATHLEN);
 
-    PySys_SetPath( binary_directory2 );
+    PySys_SetPath(binary_directory2);
 #endif
 
-    NUITKA_PRINTF_TRACE("Path is '" PY_FORMAT_GETPATH_RESULT "'.\n", Py_GetPath() );
+    NUITKA_PRINTF_TRACE("Path is '" PY_FORMAT_GETPATH_RESULT "'.\n", Py_GetPath());
 }
 
 #endif
@@ -208,25 +192,22 @@ extern void _initCompiledAsyncgenTypes();
 #endif
 
 #if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-unsigned char const* constant_bin = NULL;
+unsigned char const *constant_bin = NULL;
 #endif
 
-
 #ifdef _NUITKA_WINMAIN_ENTRY_POINT
-int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char* lpCmdLine, int nCmdShow )
-{
+int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, char *lpCmdLine, int nCmdShow) {
 #if defined(__MINGW32__) && !defined(_W64)
     /* MINGW32 */
     int argc = _argc;
-    char** argv = _argv;
+    char **argv = _argv;
 #else
     /* MSVC, MINGW64 */
     int argc = __argc;
-    char** argv = __argv;
+    char **argv = __argv;
 #endif
 #else
-int main( int argc, char **argv )
-{
+int main(int argc, char **argv) {
 #endif
     NUITKA_PRINT_TRACE("main(): Entered.");
 
@@ -244,7 +225,7 @@ int main( int argc, char **argv )
     fp_except_t m;
 
     m = fpgetmask();
-    fpsetmask( m & ~FP_X_OFL );
+    fpsetmask(m & ~FP_X_OFL);
 #endif
 
     /* On Windows we support loading the constants blob from an embedded
@@ -254,16 +235,11 @@ int main( int argc, char **argv )
 #if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
     NUITKA_PRINT_TRACE("main(): Loading constants blob from Windows resource.");
 
-    constant_bin = (const unsigned char*)LockResource(
-        LoadResource(
-            NULL,
-            FindResource(NULL, MAKEINTRESOURCE(3), RT_RCDATA)
-        )
-    );
+    constant_bin =
+        (const unsigned char *)LockResource(LoadResource(NULL, FindResource(NULL, MAKEINTRESOURCE(3), RT_RCDATA)));
 
-    assert( constant_bin );
+    assert(constant_bin);
 #endif
-
 
 #ifdef _NUITKA_STANDALONE
     NUITKA_PRINT_TRACE("main(): Prepare standalone environment.");
@@ -274,13 +250,13 @@ int main( int argc, char **argv )
 #if defined(PYTHON_HOME_PATH)
     NUITKA_PRINT_TRACE("main(): Prepare run environment PYTHONHOME.");
     {
-        char buffer[MAXPATHLEN+10];
+        char buffer[MAXPATHLEN + 10];
 
         strcpy(buffer, "PYTHONHOME=");
         strcat(buffer, PYTHON_HOME_PATH);
 
         int res = putenv(buffer);
-        assert( res == 0 );
+        assert(res == 0);
     }
 #endif
 
@@ -327,15 +303,15 @@ int main( int argc, char **argv )
 
 #if PYTHON_VERSION >= 300
     NUITKA_PRINT_TRACE("main(): Calling convertCommandLineParameters.");
-    argv_unicode = convertCommandLineParameters( argc, argv );
+    argv_unicode = convertCommandLineParameters(argc, argv);
 #endif
 
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
 
 #if PYTHON_VERSION < 300
-    bool is_multiprocess_forking = setCommandLineParameters( argc, argv, true );
+    bool is_multiprocess_forking = setCommandLineParameters(argc, argv, true);
 #else
-    bool is_multiprocess_forking = setCommandLineParameters( argc, argv_unicode, true );
+    bool is_multiprocess_forking = setCommandLineParameters(argc, argv_unicode, true);
 #endif
 
     /* Initialize the embedded CPython interpreter. */
@@ -351,9 +327,9 @@ int main( int argc, char **argv )
     NUITKA_PRINT_TRACE("main(): Calling setCommandLineParameters.");
 
 #if PYTHON_VERSION < 300
-    setCommandLineParameters( argc, argv, false );
+    setCommandLineParameters(argc, argv, false);
 #else
-    setCommandLineParameters( argc, argv_unicode, false );
+    setCommandLineParameters(argc, argv_unicode, false);
 #endif
 
 #ifdef _NUITKA_STANDALONE
@@ -379,9 +355,9 @@ int main( int argc, char **argv )
      */
 #if _NUITKA_SYSFLAG_NO_SITE == 0
 #if PYTHON_VERSION < 300
-    PyStructSequence_SET_ITEM( PySys_GetObject( (char *)"flags" ), 9, const_int_0 );
+    PyStructSequence_SET_ITEM(PySys_GetObject((char *)"flags"), 9, const_int_0);
 #else
-    PyStructSequence_SetItem( PySys_GetObject( "flags" ), 6, const_int_0 );
+    PyStructSequence_SetItem(PySys_GetObject("flags"), 6, const_int_0);
 #endif
 #endif
 
@@ -419,11 +395,10 @@ int main( int argc, char **argv )
 
     /* Allow to override the ticker value, to remove checks for threads in
      * CPython core from impact on benchmarks. */
-    char const *ticker_value = getenv( "NUITKA_TICKER" );
-    if ( ticker_value != NULL )
-    {
-        _Py_Ticker = atoi( ticker_value );
-        assert ( _Py_Ticker >= 20 );
+    char const *ticker_value = getenv("NUITKA_TICKER");
+    if (ticker_value != NULL) {
+        _Py_Ticker = atoi(ticker_value);
+        assert(_Py_Ticker >= 20);
     }
 
 #ifdef _NUITKA_STANDALONE
@@ -431,7 +406,7 @@ int main( int argc, char **argv )
 
 #if PYTHON_VERSION >= 300
     PyObject *os_module = PyImport_ImportModule("os");
-    CHECK_OBJECT( os_module );
+    CHECK_OBJECT(os_module);
 #endif
     setEarlyFrozenModulesFileAttribute();
 #endif
@@ -452,19 +427,19 @@ int main( int argc, char **argv )
      * works, i.e. return code of "simplefilter" function is not checked.
      */
     {
-        PyObject *warnings = PyImport_ImportModule( "warnings" );
-        if ( warnings != NULL )
-        {
-            PyObject *simplefilter = PyObject_GetAttrString( warnings, "simplefilter" );
+        PyObject *warnings = PyImport_ImportModule("warnings");
+        if (warnings != NULL) {
+            PyObject *simplefilter = PyObject_GetAttrString(warnings, "simplefilter");
 
-            if ( simplefilter != NULL )
-            {
-                PyObject *result1 = PyObject_CallFunctionObjArgs( simplefilter, const_str_plain_ignore, PyExc_UserWarning, NULL );
-                assert( result1 );
-                Py_XDECREF( result1 );
-                PyObject *result2 = PyObject_CallFunctionObjArgs( simplefilter, const_str_plain_ignore, PyExc_DeprecationWarning, NULL );
-                assert( result2 );
-                Py_XDECREF( result2 );
+            if (simplefilter != NULL) {
+                PyObject *result1 =
+                    PyObject_CallFunctionObjArgs(simplefilter, const_str_plain_ignore, PyExc_UserWarning, NULL);
+                assert(result1);
+                Py_XDECREF(result1);
+                PyObject *result2 =
+                    PyObject_CallFunctionObjArgs(simplefilter, const_str_plain_ignore, PyExc_DeprecationWarning, NULL);
+                assert(result2);
+                Py_XDECREF(result2);
             }
         }
     }
@@ -482,15 +457,13 @@ int main( int argc, char **argv )
     /* Execute the main module. In case of multiprocessing making a fork on
      * Windows, we should execute something else instead. */
 #if _NUITKA_MODULE_COUNT > 1
-    if (unlikely( is_multiprocess_forking ))
-    {
+    if (unlikely(is_multiprocess_forking)) {
         NUITKA_PRINT_TRACE("main(): Calling __parents_main__.");
         IMPORT_EMBEDDED_MODULE(PyUnicode_FromString("__parents_main__"), "__parents_main__");
-    }
-    else
+    } else
 #endif
     {
-        assert( !is_multiprocess_forking );
+        assert(!is_multiprocess_forking);
 
         NUITKA_PRINT_TRACE("main(): Calling __main__.");
 
@@ -513,21 +486,18 @@ int main( int argc, char **argv )
 
 #endif
 
-    if ( ERROR_OCCURRED() )
-    {
+    if (ERROR_OCCURRED()) {
 #if PYTHON_VERSION >= 300
         /* Remove the frozen importlib traceback part, which would not be compatible. */
         PyThreadState *thread_state = PyThreadState_GET();
 
-        while( thread_state->curexc_traceback )
-        {
+        while (thread_state->curexc_traceback) {
             PyTracebackObject *tb = (PyTracebackObject *)thread_state->curexc_traceback;
             PyFrameObject *frame = tb->tb_frame;
 
-            if ( 0 == strcmp( PyUnicode_AsUTF8( frame->f_code->co_filename ), "<frozen importlib._bootstrap>" ) )
-            {
+            if (0 == strcmp(PyUnicode_AsUTF8(frame->f_code->co_filename), "<frozen importlib._bootstrap>")) {
                 thread_state->curexc_traceback = (PyObject *)tb->tb_next;
-                Py_INCREF( tb->tb_next );
+                Py_INCREF(tb->tb_next);
 
                 continue;
             }
@@ -536,18 +506,16 @@ int main( int argc, char **argv )
         }
 #endif
 
-        PyErr_PrintEx( 0 );
-        Py_Exit( 1 );
-    }
-    else
-    {
-        Py_Exit( 0 );
+        PyErr_PrintEx(0);
+        Py_Exit(1);
+    } else {
+        Py_Exit(0);
     }
 
     /* The above branches both do "Py_Exit()" calls which are not supposed to
      * return.
      */
-    NUITKA_CANNOT_GET_HERE( main );
+    NUITKA_CANNOT_GET_HERE(main);
 }
 
 /* This is an inofficial API, not available on Windows, but on Linux and others
@@ -559,7 +527,7 @@ extern "C" {
 #endif
 
 #if PYTHON_VERSION >= 300
-#if defined( __GNUC__ )
+#if defined(__GNUC__)
 __attribute__(( visibility( "default" )))
 #endif
 void Py_GetArgcArgv( int *argc, wchar_t ***argv )
@@ -569,7 +537,7 @@ void Py_GetArgcArgv( int *argc, wchar_t ***argv )
 }
 
 #else
-#if defined( __GNUC__ )
+#if defined(__GNUC__)
 __attribute__(( visibility( "default" )))
 #endif
 void Py_GetArgcArgv( int *argc, char ***argv )

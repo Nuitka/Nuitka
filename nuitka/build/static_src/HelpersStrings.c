@@ -21,17 +21,16 @@
    Currently this is used for string subscript code, but may also be used
    for the "char" C type in the future.
 */
-PyObject *STRING_FROM_CHAR( unsigned char c )
-{
+PyObject *STRING_FROM_CHAR(unsigned char c) {
     // TODO: A switch statement might be faster, because no object needs to be
     // created at all, this here is how CPython does it.
     char s[1];
     s[0] = (char)c;
 
 #if PYTHON_VERSION < 300
-    return PyString_FromStringAndSize( s, 1 );
+    return PyString_FromStringAndSize(s, 1);
 #else
-    return PyUnicode_FromStringAndSize( s, 1 );
+    return PyUnicode_FromStringAndSize(s, 1);
 #endif
 }
 
@@ -41,14 +40,12 @@ PyObject *STRING_FROM_CHAR( unsigned char c )
    faster on Python2. For Python3 no such table is reasonable.
 */
 
-PyObject *BUILTIN_CHR( PyObject *value )
-{
-    long x = PyInt_AsLong( value );
+PyObject *BUILTIN_CHR(PyObject *value) {
+    long x = PyInt_AsLong(value);
 
 #if PYTHON_VERSION < 300
-    if ( x < 0 || x >= 256 )
-    {
-        PyErr_Format( PyExc_ValueError, "chr() arg not in range(256)" );
+    if (x < 0 || x >= 256) {
+        PyErr_Format(PyExc_ValueError, "chr() arg not in range(256)");
         return NULL;
     }
 
@@ -57,16 +54,15 @@ PyObject *BUILTIN_CHR( PyObject *value )
     char s[1];
     s[0] = (char)x;
 
-    return PyString_FromStringAndSize( s, 1 );
+    return PyString_FromStringAndSize(s, 1);
 #else
-    PyObject *result = PyUnicode_FromOrdinal( x );
+    PyObject *result = PyUnicode_FromOrdinal(x);
 
-    if (unlikely( result == NULL ))
-    {
+    if (unlikely(result == NULL)) {
         return NULL;
     }
 
-    assert( PyUnicode_Check( result ));
+    assert(PyUnicode_Check(result));
 
     return result;
 #endif
@@ -76,70 +72,52 @@ PyObject *BUILTIN_CHR( PyObject *value )
 
 */
 
-PyObject *BUILTIN_ORD( PyObject *value )
-{
+PyObject *BUILTIN_ORD(PyObject *value) {
     long result;
 
-    if (likely( PyBytes_Check( value ) ))
-    {
-        Py_ssize_t size = PyBytes_GET_SIZE( value );
+    if (likely(PyBytes_Check(value))) {
+        Py_ssize_t size = PyBytes_GET_SIZE(value);
 
-        if (likely( size == 1 ))
-        {
-            result = (long)( ((unsigned char *)PyBytes_AS_STRING( value ))[0] );
-        }
-        else
-        {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but string of length %zd found", size );
+        if (likely(size == 1)) {
+            result = (long)(((unsigned char *)PyBytes_AS_STRING(value))[0]);
+        } else {
+            PyErr_Format(PyExc_TypeError, "ord() expected a character, but string of length %zd found", size);
             return NULL;
         }
-    }
-    else if ( PyByteArray_Check( value ) )
-    {
-        Py_ssize_t size = PyByteArray_GET_SIZE( value );
+    } else if (PyByteArray_Check(value)) {
+        Py_ssize_t size = PyByteArray_GET_SIZE(value);
 
-        if (likely( size == 1 ))
-        {
-            result = (long)( ((unsigned char *)PyByteArray_AS_STRING( value ))[0] );
-        }
-        else
-        {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but byte array of length %zd found", size );
+        if (likely(size == 1)) {
+            result = (long)(((unsigned char *)PyByteArray_AS_STRING(value))[0]);
+        } else {
+            PyErr_Format(PyExc_TypeError, "ord() expected a character, but byte array of length %zd found", size);
             return NULL;
         }
-    }
-    else if ( PyUnicode_Check( value ) )
-    {
+    } else if (PyUnicode_Check(value)) {
 #if PYTHON_VERSION >= 300
-        if (unlikely( PyUnicode_READY( value ) == -1 ))
-        {
+        if (unlikely(PyUnicode_READY(value) == -1)) {
             return NULL;
         }
 
-        Py_ssize_t size = PyUnicode_GET_LENGTH( value );
+        Py_ssize_t size = PyUnicode_GET_LENGTH(value);
 #else
-        Py_ssize_t size = PyUnicode_GET_SIZE( value );
+        Py_ssize_t size = PyUnicode_GET_SIZE(value);
 #endif
 
-        if (likely( size == 1 ))
-        {
+        if (likely(size == 1)) {
 #if PYTHON_VERSION >= 300
-            result = (long)( PyUnicode_READ_CHAR( value, 0 ) );
+            result = (long)(PyUnicode_READ_CHAR(value, 0));
 #else
-            result = (long)( *PyUnicode_AS_UNICODE( value ) );
+            result = (long)(*PyUnicode_AS_UNICODE(value));
 #endif
-        }
-        else
-        {
-            PyErr_Format( PyExc_TypeError, "ord() expected a character, but unicode string of length %zd found", size );
+        } else {
+            PyErr_Format(PyExc_TypeError, "ord() expected a character, but unicode string of length %zd found", size);
             return NULL;
         }
-    }
-    else
-    {
-        PyErr_Format( PyExc_TypeError, "ord() expected string of length 1, but %s found", Py_TYPE( value )->tp_name );
+    } else {
+        PyErr_Format(PyExc_TypeError, "ord() expected string of length 1, but %s found", Py_TYPE(value)->tp_name);
         return NULL;
     }
 
-    return PyInt_FromLong( result );
+    return PyInt_FromLong(result);
 }

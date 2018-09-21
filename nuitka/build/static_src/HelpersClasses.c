@@ -23,47 +23,36 @@
  **/
 
 #if PYTHON_VERSION >= 300
-PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases )
-{
-    CHECK_OBJECT( metaclass );
-    CHECK_OBJECT( bases );
+PyObject *SELECT_METACLASS(PyObject *metaclass, PyObject *bases) {
+    CHECK_OBJECT(metaclass);
+    CHECK_OBJECT(bases);
 
-    if (likely( PyType_Check( metaclass ) ))
-    {
+    if (likely(PyType_Check(metaclass))) {
         // Determine the proper metaclass type
-        Py_ssize_t nbases = PyTuple_GET_SIZE( bases );
+        Py_ssize_t nbases = PyTuple_GET_SIZE(bases);
         PyTypeObject *winner = (PyTypeObject *)metaclass;
 
-        for ( int i = 0; i < nbases; i++ )
-        {
-            PyObject *base = PyTuple_GET_ITEM( bases, i );
+        for (int i = 0; i < nbases; i++) {
+            PyObject *base = PyTuple_GET_ITEM(bases, i);
 
-            PyTypeObject *base_type = Py_TYPE( base );
+            PyTypeObject *base_type = Py_TYPE(base);
 
-            if ( PyType_IsSubtype( winner, base_type ) )
-            {
+            if (PyType_IsSubtype(winner, base_type)) {
                 // Ignore if current winner is already a subtype.
                 continue;
-            }
-            else if ( PyType_IsSubtype( base_type, winner ) )
-            {
+            } else if (PyType_IsSubtype(base_type, winner)) {
                 // Use if, if it's a subtype of the current winner.
                 winner = base_type;
                 continue;
-            }
-            else
-            {
-                PyErr_Format(
-                    PyExc_TypeError,
-                    "metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases"
-                );
+            } else {
+                PyErr_Format(PyExc_TypeError, "metaclass conflict: the metaclass of a derived class must be a "
+                                              "(non-strict) subclass of the metaclasses of all its bases");
 
                 return NULL;
             }
         }
 
-        if (unlikely( winner == NULL ))
-        {
+        if (unlikely(winner == NULL)) {
             return NULL;
         }
 
@@ -73,18 +62,16 @@ PyObject *SELECT_METACLASS( PyObject *metaclass, PyObject *bases )
         PRINT_NEW_LINE();
 #endif
 
-        Py_INCREF( winner );
+        Py_INCREF(winner);
         return (PyObject *)winner;
-    }
-    else
-    {
+    } else {
 #if _DEBUG_CLASSES
         PRINT_STRING("Metaclass not a type is used:");
         PRINT_ITEM((PyObject *)metaclass);
         PRINT_NEW_LINE();
 #endif
 
-        Py_INCREF( metaclass );
+        Py_INCREF(metaclass);
         return metaclass;
     }
 }

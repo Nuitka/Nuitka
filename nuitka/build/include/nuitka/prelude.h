@@ -28,7 +28,7 @@
  * numbers should be.
  */
 #include "patchlevel.h"
-#define PYTHON_VERSION (PY_MAJOR_VERSION*100+PY_MINOR_VERSION*10+PY_MICRO_VERSION)
+#define PYTHON_VERSION (PY_MAJOR_VERSION * 100 + PY_MINOR_VERSION * 10 + PY_MICRO_VERSION)
 
 /* This is needed or else we can't create modules name "proc" or "func". For
  * Python3, the name collision can't happen, so we can limit it to Python2.
@@ -41,17 +41,17 @@
 
 /* Include the relevant Python C-API header files. */
 #include "Python.h"
-#include "methodobject.h"
 #include "frameobject.h"
-#include "pydebug.h"
 #include "marshal.h"
+#include "methodobject.h"
+#include "pydebug.h"
 
 /* The bool type. From Python2 header or self defined for Python3. */
 #if PYTHON_VERSION < 300
 #include "asdl.h"
 #else
 #ifndef __cplusplus
-typedef enum {false, true} bool;
+typedef enum { false, true } bool;
 #endif
 #endif
 
@@ -108,7 +108,9 @@ typedef enum {false, true} bool;
 #endif
 
 /* This is used to indicate code control flows we know cannot happen. */
-#define NUITKA_CANNOT_GET_HERE(NAME) assert(false && #NAME); abort();
+#define NUITKA_CANNOT_GET_HERE(NAME)                                                                                   \
+    assert(false && #NAME);                                                                                            \
+    abort();
 
 #ifdef __GNUC__
 #define NUITKA_FORCE_INLINE __attribute__((always_inline))
@@ -145,13 +147,10 @@ typedef enum {false, true} bool;
 #define Nuitka_String_AsString _PyUnicode_AsString
 
 /* Note: This is from unicodeobject.c */
-#define _PyUnicode_UTF8(op)                             \
-    (((PyCompactUnicodeObject*)(op))->utf8)
-#define PyUnicode_UTF8(op)                              \
-    (assert(PyUnicode_IS_READY(op)),                    \
-     PyUnicode_IS_COMPACT_ASCII(op) ?                   \
-         ((char*)((PyASCIIObject*)(op) + 1)) :          \
-         _PyUnicode_UTF8(op))
+#define _PyUnicode_UTF8(op) (((PyCompactUnicodeObject *)(op))->utf8)
+#define PyUnicode_UTF8(op)                                                                                             \
+    (assert(PyUnicode_IS_READY(op)),                                                                                   \
+     PyUnicode_IS_COMPACT_ASCII(op) ? ((char *)((PyASCIIObject *)(op) + 1)) : _PyUnicode_UTF8(op))
 #define Nuitka_String_AsString_Unchecked PyUnicode_UTF8
 
 #define Nuitka_String_Check PyUnicode_Check
@@ -164,12 +163,11 @@ typedef enum {false, true} bool;
 #define PyUnicode_GetLength(x) (PyUnicode_GetSize(x))
 #endif
 
-
 /* With the idea to reduce the amount of exported symbols in the DLLs, make it
  * clear that the module "init" function should of course be exported, but not
  * for executable, where we call it ourselves from the main code.
  */
-#if defined( _NUITKA_EXE )
+#if defined(_NUITKA_EXE)
 
 #if PYTHON_VERSION < 300
 #define NUITKA_MODULE_INIT_FUNCTION void
@@ -177,15 +175,15 @@ typedef enum {false, true} bool;
 #define NUITKA_MODULE_INIT_FUNCTION PyObject *
 #endif
 
-#elif defined( __GNUC__ )
+#elif defined(__GNUC__)
 
 #if PYTHON_VERSION < 300
-#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__(( visibility( "default" )))
+#define NUITKA_MODULE_INIT_FUNCTION PyMODINIT_FUNC __attribute__((visibility("default")))
 #else
 #ifdef __cplusplus
-#define NUITKA_MODULE_INIT_FUNCTION extern "C" __attribute__(( visibility( "default" ))) PyObject *
+#define NUITKA_MODULE_INIT_FUNCTION extern "C" __attribute__((visibility("default"))) PyObject *
 #else
-#define NUITKA_MODULE_INIT_FUNCTION __attribute__(( visibility( "default" ))) PyObject *
+#define NUITKA_MODULE_INIT_FUNCTION __attribute__((visibility("default"))) PyObject *
 #endif
 #endif
 
@@ -195,7 +193,6 @@ typedef enum {false, true} bool;
 
 #endif
 
-
 /* Avoid gcc warnings about using an integer as a bool. This is a cherry-pick.
  *
  * This might apply to more versions. I am seeing this on 3.3.2, and it was
@@ -204,11 +201,11 @@ typedef enum {false, true} bool;
  */
 #if PYTHON_VERSION >= 300 && PYTHON_VERSION < 340
 
-#undef  PyMem_MALLOC
+#undef PyMem_MALLOC
 #define PyMem_MALLOC(n) ((size_t)(n) > (size_t)PY_SSIZE_T_MAX ? NULL : malloc(((n) != 0) ? (n) : 1))
 
-#undef  PyMem_REALLOC
-#define PyMem_REALLOC(p, n) ((size_t)(n) > (size_t)PY_SSIZE_T_MAX  ? NULL : realloc((p), ((n) != 0) ? (n) : 1))
+#undef PyMem_REALLOC
+#define PyMem_REALLOC(p, n) ((size_t)(n) > (size_t)PY_SSIZE_T_MAX ? NULL : realloc((p), ((n) != 0) ? (n) : 1))
 
 #endif
 
@@ -217,15 +214,15 @@ typedef enum {false, true} bool;
  */
 #if PYTHON_VERSION < 300
 
-#define MOD_INIT_NAME( name ) init##name
-#define MOD_INIT_DECL( name ) NUITKA_MODULE_INIT_FUNCTION init##name( void )
-#define MOD_RETURN_VALUE( value )
+#define MOD_INIT_NAME(name) init##name
+#define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION init##name(void)
+#define MOD_RETURN_VALUE(value)
 
 #else
 
-#define MOD_INIT_NAME( name ) PyInit_##name
-#define MOD_INIT_DECL( name ) NUITKA_MODULE_INIT_FUNCTION PyInit_##name( void )
-#define MOD_RETURN_VALUE( value ) value
+#define MOD_INIT_NAME(name) PyInit_##name
+#define MOD_INIT_DECL(name) NUITKA_MODULE_INIT_FUNCTION PyInit_##name(void)
+#define MOD_RETURN_VALUE(value) value
 
 #endif
 
@@ -245,7 +242,7 @@ typedef long Py_hash_t;
  *
  * TODO: Make it work for 3.7 too.
  */
-#if defined( _WIN32 ) || PYTHON_VERSION >= 370
+#if defined(_WIN32) || PYTHON_VERSION >= 370
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #else
@@ -259,7 +256,7 @@ typedef long Py_hash_t;
 // ours.
 #undef PyThreadState_GET
 extern PyThreadState *_PyThreadState_Current;
-# define PyThreadState_GET() (_PyThreadState_Current)
+#define PyThreadState_GET() (_PyThreadState_Current)
 #endif
 
 #include "nuitka/helpers.h"

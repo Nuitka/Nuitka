@@ -18,19 +18,18 @@
 #ifndef __NUITKA_ALLOCATOR_H__
 #define __NUITKA_ALLOCATOR_H__
 
-NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar( PyTypeObject *tp, Py_ssize_t nitems )
-{
-    assert( nitems >= 0 );
+NUITKA_MAY_BE_UNUSED static void *Nuitka_GC_NewVar(PyTypeObject *tp, Py_ssize_t nitems) {
+    assert(nitems >= 0);
 
-    size_t size = _PyObject_VAR_SIZE( tp, nitems );
-    PyVarObject *op = (PyVarObject *)_PyObject_GC_Malloc( size );
-    assert( op != NULL );
+    size_t size = _PyObject_VAR_SIZE(tp, nitems);
+    PyVarObject *op = (PyVarObject *)_PyObject_GC_Malloc(size);
+    assert(op != NULL);
 
-    Py_TYPE( op ) = tp;
-    Py_SIZE( op ) = size;
-    Py_REFCNT( op ) = 1;
+    Py_TYPE(op) = tp;
+    Py_SIZE(op) = size;
+    Py_REFCNT(op) = 1;
 
-    op = PyObject_INIT_VAR( op, tp, nitems );
+    op = PyObject_INIT_VAR(op, tp, nitems);
 
     return op;
 }

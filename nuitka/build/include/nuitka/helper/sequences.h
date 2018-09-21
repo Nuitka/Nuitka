@@ -20,23 +20,18 @@
 
 // TODO: Provide enhanced form of PySequence_Contains with less overhead.
 
-NUITKA_MAY_BE_UNUSED static bool SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_t index, PyObject *value )
-{
-    CHECK_OBJECT( sequence );
-    CHECK_OBJECT( value );
+NUITKA_MAY_BE_UNUSED static bool SEQUENCE_SETITEM(PyObject *sequence, Py_ssize_t index, PyObject *value) {
+    CHECK_OBJECT(sequence);
+    CHECK_OBJECT(value);
 
-    PySequenceMethods *sequence_methods = Py_TYPE( sequence )->tp_as_sequence;
+    PySequenceMethods *sequence_methods = Py_TYPE(sequence)->tp_as_sequence;
 
-    if ( sequence_methods != NULL && sequence_methods->sq_ass_item )
-    {
-        if ( index < 0 )
-        {
-            if ( sequence_methods->sq_length )
-            {
-                Py_ssize_t length = (*sequence_methods->sq_length)( sequence );
+    if (sequence_methods != NULL && sequence_methods->sq_ass_item) {
+        if (index < 0) {
+            if (sequence_methods->sq_length) {
+                Py_ssize_t length = (*sequence_methods->sq_length)(sequence);
 
-                if ( length < 0 )
-                {
+                if (length < 0) {
                     return false;
                 }
 
@@ -44,22 +39,15 @@ NUITKA_MAY_BE_UNUSED static bool SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_
             }
         }
 
-        int res = sequence_methods->sq_ass_item( sequence, index, value );
+        int res = sequence_methods->sq_ass_item(sequence, index, value);
 
-        if (unlikely( res == -1 ))
-        {
+        if (unlikely(res == -1)) {
             return false;
         }
 
         return true;
-    }
-    else
-    {
-        PyErr_Format(
-            PyExc_TypeError,
-            "'%s' object does not support item assignment",
-            Py_TYPE( sequence )->tp_name
-        );
+    } else {
+        PyErr_Format(PyExc_TypeError, "'%s' object does not support item assignment", Py_TYPE(sequence)->tp_name);
 
         return false;
     }

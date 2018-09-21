@@ -21,37 +21,35 @@
  *
  **/
 
-void Nuitka_PreserveHeap( void *dest, ... )
-{
-    va_list( ap );
-    va_start( ap, dest );
+void Nuitka_PreserveHeap(void *dest, ...) {
+    va_list(ap);
+    va_start(ap, dest);
 
     char *w = (char *)dest;
 
-    for(;;)
-    {
-        void *source = va_arg( ap, void * );
-        if (source == NULL) break;
+    for (;;) {
+        void *source = va_arg(ap, void *);
+        if (source == NULL)
+            break;
 
-        ssize_t size = va_arg( ap, ssize_t );
+        ssize_t size = va_arg(ap, ssize_t);
         memcpy(w, source, size);
         w += size;
     }
 }
 
-void Nuitka_RestoreHeap( void *source, ... )
-{
-    va_list( ap );
-    va_start( ap, source );
+void Nuitka_RestoreHeap(void *source, ...) {
+    va_list(ap);
+    va_start(ap, source);
 
     char *w = (char *)source;
 
-    for(;;)
-    {
-        void *dest = va_arg( ap, void * );
-        if (dest == NULL) break;
+    for (;;) {
+        void *dest = va_arg(ap, void *);
+        if (dest == NULL)
+            break;
 
-        ssize_t size = va_arg( ap, ssize_t );
+        ssize_t size = va_arg(ap, ssize_t);
         memcpy(dest, w, size);
         w += size;
     }

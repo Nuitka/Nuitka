@@ -18,20 +18,17 @@
 #ifndef __NUITKA_HELPER_BYTEARRAYS_H__
 #define __NUITKA_HELPER_BYTEARRAYS_H__
 
-NUITKA_MAY_BE_UNUSED static PyObject *BYTEARRAY_COPY( PyObject *bytearray )
-{
-    CHECK_OBJECT( bytearray );
-    assert( PyByteArray_CheckExact( bytearray ) );
+NUITKA_MAY_BE_UNUSED static PyObject *BYTEARRAY_COPY(PyObject *bytearray) {
+    CHECK_OBJECT(bytearray);
+    assert(PyByteArray_CheckExact(bytearray));
 
-    PyObject *result = PyByteArray_FromObject( bytearray );
+    PyObject *result = PyByteArray_FromObject(bytearray);
 
-    if (unlikely( result == NULL ))
-    {
+    if (unlikely(result == NULL)) {
         return NULL;
     }
 
     return result;
 }
-
 
 #endif

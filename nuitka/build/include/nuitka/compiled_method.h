@@ -32,7 +32,7 @@
 struct Nuitka_MethodObject {
     PyObject_HEAD
 
-    struct Nuitka_FunctionObject *m_function;
+        struct Nuitka_FunctionObject *m_function;
 
     PyObject *m_weakrefs;
 
@@ -43,11 +43,8 @@ struct Nuitka_MethodObject {
 extern PyTypeObject Nuitka_Method_Type;
 
 // Make a method out of a function.
-extern PyObject *Nuitka_Method_New( struct Nuitka_FunctionObject *function, PyObject *object, PyObject *klass );
+extern PyObject *Nuitka_Method_New(struct Nuitka_FunctionObject *function, PyObject *object, PyObject *klass);
 
-static inline bool Nuitka_Method_Check( PyObject *object )
-{
-    return Py_TYPE( object ) == &Nuitka_Method_Type;
-}
+static inline bool Nuitka_Method_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Method_Type; }
 
 #endif

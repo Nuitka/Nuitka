@@ -19,8 +19,8 @@
 #define __NUITKA_COMPILED_GENERATOR_H__
 
 #include "Python.h"
-#include "methodobject.h"
 #include "frameobject.h"
+#include "methodobject.h"
 
 // Compiled generator function type.
 
@@ -46,7 +46,7 @@ static const int status_Finished = 2;
 struct Nuitka_GeneratorObject {
     PyObject_VAR_HEAD
 
-    PyObject *m_name;
+        PyObject *m_name;
 
     // TODO: Only to make traceback for non-started throw
     PyObject *m_module;
@@ -101,34 +101,24 @@ struct Nuitka_GeneratorObject {
 
 extern PyTypeObject Nuitka_Generator_Type;
 
-typedef PyObject *(*generator_code)( struct Nuitka_GeneratorObject *, PyObject * );
+typedef PyObject *(*generator_code)(struct Nuitka_GeneratorObject *, PyObject *);
 
-extern PyObject *Nuitka_Generator_New(
-    generator_code code,
-    PyObject *module,
-    PyObject *name,
+extern PyObject *Nuitka_Generator_New(generator_code code, PyObject *module, PyObject *name,
 #if PYTHON_VERSION >= 350
-    PyObject *qualname,
+                                      PyObject *qualname,
 #endif
-    PyCodeObject *code_object,
-    Py_ssize_t closure_given,
-    Py_ssize_t heap_storage_size
-);
+                                      PyCodeObject *code_object, Py_ssize_t closure_given,
+                                      Py_ssize_t heap_storage_size);
 
-extern PyObject *Nuitka_Generator_qiter( struct Nuitka_GeneratorObject *generator, bool *finished );
+extern PyObject *Nuitka_Generator_qiter(struct Nuitka_GeneratorObject *generator, bool *finished);
 
-static inline bool Nuitka_Generator_Check( PyObject *object )
-{
-    return Py_TYPE( object ) == &Nuitka_Generator_Type;
-}
+static inline bool Nuitka_Generator_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Generator_Type; }
 
-static inline PyObject *Nuitka_Generator_GetName( PyObject *object )
-{
+static inline PyObject *Nuitka_Generator_GetName(PyObject *object) {
     return ((struct Nuitka_GeneratorObject *)object)->m_name;
 }
 
-static inline void SAVE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *generator )
-{
+static inline void SAVE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *generator) {
     /* Before Python3.7: When yielding from an exception handler in Python3,
      * the exception preserved to the frame is restored, while the current one
      * is put as there.
@@ -155,7 +145,7 @@ static inline void SAVE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *gene
 
 #if _DEBUG_EXCEPTIONS
     PRINT_STRING("YIELD exit:\n");
-    PRINT_EXCEPTION( thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback );
+    PRINT_EXCEPTION(thread_state->exc_type, thread_state->exc_value, (PyObject *)thread_state->exc_traceback);
 #endif
 
 #if PYTHON_VERSION < 370
@@ -164,13 +154,13 @@ static inline void SAVE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *gene
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 #else
     generator->m_exc_state.exc_type = saved_exception_type;
-    generator->m_exc_state.exc_value = saved_exception_value;;
+    generator->m_exc_state.exc_value = saved_exception_value;
+    ;
     generator->m_exc_state.exc_traceback = saved_exception_traceback;
 #endif
 }
 
-static inline void RESTORE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *generator )
-{
+static inline void RESTORE_GENERATOR_EXCEPTION(struct Nuitka_GeneratorObject *generator) {
     // When returning from yield, the exception of the frame is preserved, and
     // the one that enters should be there.
     PyThreadState *thread_state = PyThreadState_GET();
@@ -200,7 +190,7 @@ static inline void RESTORE_GENERATOR_EXCEPTION( struct Nuitka_GeneratorObject *g
 
 // Functions to preserver and restore from heap area temporary values during
 // yield/yield from/await exits of generator functions.
-extern void Nuitka_PreserveHeap( void *dest, ... );
-extern void Nuitka_RestoreHeap( void *source, ... );
+extern void Nuitka_PreserveHeap(void *dest, ...);
+extern void Nuitka_RestoreHeap(void *source, ...);
 
 #endif

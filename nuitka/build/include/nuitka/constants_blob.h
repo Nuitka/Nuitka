@@ -27,7 +27,7 @@
  */
 
 #if defined(_NUITKA_CONSTANTS_FROM_RESOURCE)
-extern const unsigned char* constant_bin;
+extern const unsigned char *constant_bin;
 #else
 #ifdef __cplusplus
 extern "C" const unsigned char constant_bin[];
