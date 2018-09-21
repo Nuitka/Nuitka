@@ -84,13 +84,6 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
         )
         condition = self.getCondition()
 
-        condition_may_raise = condition.mayRaiseException(BaseException)
-
-        if condition_may_raise:
-            trace_collection.onExceptionRaiseExit(
-                BaseException
-            )
-
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
         if condition.willRaiseException(BaseException):
@@ -98,10 +91,10 @@ class ExpressionConditional(ExpressionChildrenHavingBase):
 Conditional expression already raises implicitly in condition, removing \
 branches."""
 
-        if not condition_may_raise and condition.mayRaiseExceptionBool(BaseException):
-            trace_collection.onExceptionRaiseExit(
-                BaseException
-            )
+        # Tell it we are evaluation it for boolean value only, it may demote
+        # itself possibly.
+        condition.computeExpressionBool(trace_collection)
+        condition = self.getCondition()
 
         # Decide this based on truth value of condition.
         truth_value = condition.getTruthValue()
@@ -287,12 +280,6 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
         )
         left = self.getLeft()
 
-        left_may_raise = left.mayRaiseException(BaseException)
-
-        if left_may_raise:
-            trace_collection.onExceptionRaiseExit(
-                BaseException
-            )
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
         if left.willRaiseException(BaseException):
@@ -300,7 +287,8 @@ class ExpressionConditionalBoolBase(ExpressionChildrenHavingBase):
 Conditional %s statements already raises implicitly in condition, removing \
 branches.""" % self.conditional_kind
 
-        if not left_may_raise and left.mayRaiseExceptionBool(BaseException):
+        if not left.mayRaiseException(BaseException) and \
+           left.mayRaiseExceptionBool(BaseException):
             trace_collection.onExceptionRaiseExit(
                 BaseException
             )
@@ -547,13 +535,6 @@ class StatementConditional(StatementChildrenHavingBase):
         )
         condition = self.getCondition()
 
-        condition_may_raise = condition.mayRaiseException(BaseException)
-
-        if condition_may_raise:
-            trace_collection.onExceptionRaiseExit(
-                BaseException
-            )
-
         # No need to look any further, if the condition raises, the branches do
         # not matter at all.
         if condition.willRaiseException(BaseException):
@@ -566,10 +547,10 @@ class StatementConditional(StatementChildrenHavingBase):
 Conditional statements already raises implicitly in condition, removing \
 branches."""
 
-        if not condition_may_raise and condition.mayRaiseExceptionBool(BaseException):
-            trace_collection.onExceptionRaiseExit(
-                BaseException
-            )
+        # Tell it we are evaluation it for boolean value only, it may demote
+        # itself possibly.
+        condition.computeExpressionBool(trace_collection)
+        condition = self.getCondition()
 
         # Query the truth value after the expression is evaluated, once it is
         # evaluated in onExpression, it is known.
