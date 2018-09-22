@@ -100,7 +100,7 @@ def main():
     elif nuitka:
         sys.exit("Error, nuitka binary '%s' not found." % nuitka)
 
-    python_version = setup(silent = True)
+    python_version = setup(silent = True, go_main = False)
 
     assert os.path.exists(test_case), (test_case, os.getcwd())
 
