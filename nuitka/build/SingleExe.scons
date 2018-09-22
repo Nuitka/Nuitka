@@ -1736,13 +1736,8 @@ if show_scons_mode:
 
 # Inject ccache if it happens to be installed.
 if win_target and gcc_mode:
-    for location in [
-        r"c:\msys64",
-        r"c:\msys32",
-        r"\msys64",
-        r"\msys32",
-    ]:
-        candidate = os.path.join(location, r"usr\bin\ccache.exe")
+    if "NUITKA_CCACHE_BINARY" in os.environ:
+        candidate = os.environ["NUITKA_CCACHE_BINARY"]
 
         if os.path.exists(candidate):
             env["CC"] = "%s %s" % (
@@ -1752,13 +1747,13 @@ if win_target and gcc_mode:
 
             # Do not consider scons cache anymore.
             if show_scons_mode:
-                print("scons: Found MSYS2 %s to cache object files." % candidate)
+                print("scons: Found ccache '%s' to cache object files." % candidate)
+
             cache_mode = False
 
-            break
     else:
         if show_scons_mode:
-            print("scons: Unable to find MSYS2 ccache.exe, consider user manual.")
+            print("scons: Unable to find ccache.exe, consider user manual.")
 
 # Inject clcache if it happens to be provided via environment.
 if win_target and msvc_mode:
@@ -1776,6 +1771,8 @@ if win_target and msvc_mode:
                         env._dict["ENV"]["CLCACHE_CL"]
                     )
                 )
+
+            cache_mode = False
     else:
         if show_scons_mode:
             print("scons: Unable to find clcache.exe, consider user manual.")
