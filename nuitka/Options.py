@@ -136,10 +136,6 @@ def shallNotDoExecCCompilerCall():
     return options.generate_c_only
 
 
-def shallHaveStatementLines():
-    return options.statement_lines
-
-
 def getFileReferenceMode():
     if options.file_reference_mode is None:
         value = ("runtime"

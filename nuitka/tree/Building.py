@@ -1030,9 +1030,6 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
         )
         sys.exit(2)
 
-    if not Options.shallHaveStatementLines():
-        source_ref = source_ref.atInternal()
-
     return result, source_ref, source_filename
 
 

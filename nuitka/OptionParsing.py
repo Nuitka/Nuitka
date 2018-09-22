@@ -341,17 +341,6 @@ only and should not be necessary for normal use.""",
 )
 
 codegen_group.add_option(
-    "--code-gen-no-statement-lines",
-    action  = "store_false",
-    dest    = "statement_lines",
-    default = True,
-    help    = SUPPRESS_HELP,
-#     help    = """\
-# Statements shall have their line numbers set. Disable this for less precise
-# exceptions and slightly faster code. Not recommended. Defaults to off."""
-)
-
-codegen_group.add_option(
     "--file-reference-choice",
     action  = "store",
     dest    = "file_reference_mode",
