@@ -26,7 +26,6 @@ import os
 import sys
 from optparse import SUPPRESS_HELP, OptionGroup, OptionParser
 
-from nuitka.PythonVersions import getSupportedPythonVersions
 from nuitka.utils import Utils
 from nuitka.Version import getNuitkaVersion
 
@@ -74,21 +73,6 @@ implies these option: "--recurse-all". You may also want to use
 of code dependencies. Defaults to off.""",
 )
 
-
-parser.add_option(
-    "--python-version",
-    action  = "store",
-    dest    = "python_version",
-    choices = getSupportedPythonVersions(),
-    default = None,
-    help    = SUPPRESS_HELP
-#               """\
-# Major version of Python to be used, one of %s.
-# Defaults to what you run Nuitka with (currently %s)""" % (
-#        getSupportedPythonVersionStr(),
-#        python_version_str
-#     )
-)
 
 if os.name == "nt":
     parser.add_option(

@@ -332,10 +332,6 @@ def isRemoveBuildDir():
     return options.remove_build and not options.generate_c_only
 
 
-def getIntendedPythonVersion():
-    return options.python_version
-
-
 def getIntendedPythonArch():
     return options.python_arch
 
