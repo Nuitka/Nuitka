@@ -24,8 +24,9 @@ to the Python interpreter and compiles **every** construct that CPython 2.6,
 It then executes uncompiled code, and compiled code together in an extremely
 compatible manner.
 
-You can use all Python library modules or and all extension modules freely. It
-translates the Python into a C level program that then uses "libpython" to
+You can use all Python library modules or and all extension modules freely.
+
+It translates the Python into a C level program that then uses "libpython" to
 execute in the same way as CPython does. All optimization is aimed at avoiding
 overhead, where it's unnecessary. None is aimed at removing compatibility,
 although slight improvements will occassionally be done, where not every bug
@@ -275,6 +276,31 @@ feasible, use Nuitka like this:
    otherwise the package is empty. Data files located inside the package will
    not be embedded yet.
 
+Tips
+====
+
+Caching
+-------
+
+The C compiler when invoked with the same input files with take long time
+and much CPU to compile. Make sure you are having ``ccache`` installed and
+configured on non-Windows. It will make repeated compilations much faster,
+even if things are not yet not perfect, i.e. changes to the program can
+cause many C files to change, requiring a new compilation instead of using
+the cached result.
+
+On Windows, Nuitka supports using ``ccache.exe`` which is not easy to come
+by though for the non-MSVC compilers, and ``clcache.exe`` which is just one
+``pip install clcache`` command away. To make Nuitka use those, set either
+``NUITKA_CCACHE_BINARY`` to the full path of ``ccache.exe`` or
+``NUITKA_CLCACHE_BINARY`` to the full path of ``clcache.exe``, which will be
+in the scripts folder of the Python you installed it into.
+
+Runners
+-------
+
+Avoid running the ``nuitka`` binary, doing ``python -m nuitka`` will make a
+100% sure you are using what you think you are.
 
 Where to go next
 ================
@@ -290,6 +316,16 @@ Please visit the `mailing list page
 <http://www.nuitka.net/pages/mailinglist.html>`__ in order to subscribe the
 relatively low volume mailing list. All Nuitka issues can be discussed there.
 Also this is the place to stay informed of what's coming.
+
+Follow me on Twitter
+--------------------
+
+Nuitka announcements and interesting stuff is pointed to on the Twitter account,
+but obviously with no details. `@KayHayen <https://twitter.com/KayHayen>`_.
+
+I will not answer Nuitka issues via Twitter though, rather make occasional
+polls, and give important announcements, as well as low level posts about
+development ongoing.
 
 Report issues or bugs
 ---------------------
@@ -324,14 +360,6 @@ Best practices for reporting bugs:
 
 - Do not send screenshots of text, that is bad and lazy. Instead capture
   text outputs from the console.
-
-Follow me on Twitter
---------------------
-
-Nuitka announcements and interesting stuff is pointed to on the Twitter account,
-but obviously with no details. `@KayHayen <https://twitter.com/KayHayen>`_.
-
-I will not answer Nuitka issues via Twitter though.
 
 Word of Warning
 ---------------
