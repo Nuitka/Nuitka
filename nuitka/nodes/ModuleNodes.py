@@ -40,6 +40,7 @@ from nuitka.utils.FileOperations import relpath
 from .Checkers import checkStatementsSequenceOrNone
 from .FutureSpecs import FutureSpec, fromFlags
 from .IndicatorMixins import EntryPointMixin, MarkNeedsAnnotationsMixin
+from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeMixin,
@@ -240,6 +241,11 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
         # Often "None" until tree building finishes its part.
         self.future_spec = future_spec
+
+        self.module_dict_name = "globals_%s" % (
+            self.getCodeName(),
+        )
+        setLocalsDictType(self.module_dict_name, "module_dict")
 
     def getDetails(self):
         return {
@@ -524,6 +530,9 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
     def getFunctionLocalsScope():
         """ Modules have no locals scope. """
         return None
+
+    def getModuleDictScope(self):
+        return getLocalsDictHandle(self.module_dict_name)
 
 
 class CompiledPythonPackage(CompiledPythonModule):

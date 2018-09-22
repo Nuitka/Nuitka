@@ -37,6 +37,8 @@ def setLocalsDictType(locals_dict_name, kind):
         locals_scope = LocalsMappingHandle(locals_dict_name)
     elif kind == "python2_class":
         locals_scope = LocalsDictHandle(locals_dict_name)
+    elif kind == "module_dict":
+        locals_scope = GlobalsDictHandle(locals_dict_name)
     else:
         assert False, kind
 
@@ -135,8 +137,11 @@ class LocalsDictHandle(object):
 
         del self.variables
 
+
 class LocalsDictExecHandle(LocalsDictHandle):
-    pass
+    """ Locals dict of a Python2 function with an exec.
+
+    """
 
 
 class LocalsDictFunctionHandle(LocalsDictHandle):
@@ -144,7 +149,33 @@ class LocalsDictFunctionHandle(LocalsDictHandle):
 
 
 class LocalsMappingHandle(LocalsDictHandle):
+    """ Locals dict of a Python3 class with a mapping.
+
+    """
     @staticmethod
     def getTypeShape():
         # TODO: Make mapping available for this.
         return ShapeUnknown
+
+
+class GlobalsDictHandle(object):
+    __slots__ = (
+        "locals_name",
+        "variables",
+        "escaped"
+    )
+
+    @counted_init
+    def __init__(self, locals_name):
+        self.locals_name = locals_name
+
+        # For locals dict variables in this scope.
+        self.variables = {}
+
+        self.escaped = False
+
+    def markAsEscaped(self):
+        self.escaped = True
+
+    def isEscaped(self):
+        return self.escaped

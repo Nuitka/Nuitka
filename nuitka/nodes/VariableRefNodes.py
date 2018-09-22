@@ -249,6 +249,8 @@ Subscript look-up to dictionary lowered to dictionary look-up."""
         return lookup_node, tags, message
 
 
+_hard_names = ("dir", "eval", "exec", "execfile", "locals", "vars")
+
 class ExpressionVariableRef(ExpressionVariableRefBase):
     kind = "EXPRESSION_VARIABLE_REF"
 
@@ -314,6 +316,8 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             return ShapeUnknown
 
     def computeExpressionRaw(self, trace_collection):
+        # Terribly detailed, pylint: disable=too-many-branches,too-many-statements
+
         variable = self.variable
         assert variable is not None
 
@@ -347,32 +351,46 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
             variable_name = self.variable.getName()
 
             if variable_name in Builtins.builtin_exception_names:
-                from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
+                if not self.variable.getOwner().getModuleDictScope().isEscaped():
+                    from .BuiltinRefNodes import ExpressionBuiltinExceptionRef
 
-                new_node = ExpressionBuiltinExceptionRef(
-                    exception_name = self.variable.getName(),
-                    source_ref     = self.getSourceReference()
-                )
+                    new_node = ExpressionBuiltinExceptionRef(
+                        exception_name = self.variable.getName(),
+                        source_ref     = self.getSourceReference()
+                    )
 
-                change_tags = "new_builtin_ref"
-                change_desc = """\
+                    change_tags = "new_builtin_ref"
+                    change_desc = """\
 Module variable '%s' found to be built-in exception reference.""" % (
-                    variable_name
-                )
-            elif variable_name in Builtins.builtin_names and \
-                 variable_name != "pow":
-                from .BuiltinRefNodes import makeExpressionBuiltinRef
+                        variable_name
+                    )
+                else:
+                    self.variable_trace.addUsage()
 
-                new_node = makeExpressionBuiltinRef(
-                    builtin_name = variable_name,
-                    source_ref   = self.getSourceReference()
-                )
+                    new_node = self
+                    change_tags = None
+                    change_desc = None
 
-                change_tags = "new_builtin_ref"
-                change_desc = """\
+            elif variable_name in Builtins.builtin_names:
+                if variable_name in _hard_names or not self.variable.getOwner().getModuleDictScope().isEscaped():
+                    from .BuiltinRefNodes import makeExpressionBuiltinRef
+
+                    new_node = makeExpressionBuiltinRef(
+                        builtin_name = variable_name,
+                        source_ref   = self.getSourceReference()
+                    )
+
+                    change_tags = "new_builtin_ref"
+                    change_desc = """\
 Module variable '%s' found to be built-in reference.""" % (
-                    variable_name
-                )
+                        variable_name
+                    )
+                else:
+                    self.variable_trace.addUsage()
+
+                    new_node = self
+                    change_tags = None
+                    change_desc = None
             elif variable_name == "__name__":
                 new_node = ExpressionModuleAttributeNameRef(
                     variable   = variable,
@@ -445,7 +463,7 @@ local variable '%s' referenced before assignment""" % variable_name
         trace_collection.onControlFlowEscape(self)
 
         if not Variables.complete and \
-           self.variable.getName() in ("dir", "eval", "exec", "execfile", "locals", "vars") and \
+           self.variable.getName() in _hard_names and \
            self.variable.isModuleVariable():
             # Just inform the collection that all escaped.
             trace_collection.onLocalsUsage(self.getParentVariableProvider())

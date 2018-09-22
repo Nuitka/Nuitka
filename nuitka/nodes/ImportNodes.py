@@ -46,6 +46,7 @@ from .ExpressionBases import (
     ExpressionChildHavingBase,
     ExpressionChildrenHavingBase
 )
+from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
 from .shapes.BuiltinTypeShapes import ShapeTypeBuiltinModule, ShapeTypeModule
 
@@ -451,26 +452,30 @@ class StatementImportStar(StatementChildHavingBase):
 
     named_child = "module"
 
-    __slots__ = ("locals_scope",)
+    __slots__ = ("target_scope",)
 
-    def __init__(self, locals_scope, module_import, source_ref):
+    def __init__(self, target_scope, module_import, source_ref):
         StatementChildHavingBase.__init__(
             self,
             value      = module_import,
             source_ref = source_ref
         )
 
-        self.locals_scope = locals_scope
+        self.target_scope = target_scope
+
+        # TODO: Abstract these things.
+        if type(self.target_scope) is GlobalsDictHandle:
+            self.target_scope.markAsEscaped()
 
     getSourceModule = StatementChildHavingBase.childGetter("module")
 
-    def getLocalsDictScope(self):
-        return self.locals_scope
+    def getTargetDictScope(self):
+        return self.target_scope
 
     def computeStatement(self, trace_collection):
         trace_collection.onExpression(self.getSourceModule())
 
-        trace_collection.onLocalsDictEscaped(self.locals_scope)
+        trace_collection.onLocalsDictEscaped(self.target_scope)
 
         # Need to invalidate everything, and everything could be assigned to
         # something else now.
