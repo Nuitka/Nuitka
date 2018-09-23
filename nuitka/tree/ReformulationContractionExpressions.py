@@ -44,6 +44,7 @@ from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
     StatementSetOperationAdd
 )
+from nuitka.nodes.CoroutineNodes import ExpressionYieldFromWaitable
 from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.FrameNodes import (
     StatementsFrameFunction,
@@ -87,30 +88,42 @@ from .TreeHelpers import (
 
 def _makeIteratorCreation(provider, qual, source_ref):
     if getattr(qual, "is_async", 0):
-        iter_class = ExpressionAsyncIter
-    else:
-        iter_class = ExpressionBuiltinIter1
-
-    return iter_class(
-        value      = buildNode(
-            provider   = provider,
-            node       = qual.iter,
+        return ExpressionYieldFromWaitable(
+            expression = ExpressionAsyncIter(
+                value      = buildNode(
+                    provider   = provider,
+                    node       = qual.iter,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            ),
             source_ref = source_ref
-        ),
-        source_ref = source_ref
-    )
+        )
+    else:
+        return ExpressionBuiltinIter1(
+            value      = buildNode(
+                provider   = provider,
+                node       = qual.iter,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
 
 
 def _makeIteratorNext(qual, iterator_ref, source_ref):
     if getattr(qual, "is_async", 0):
-        next_class = ExpressionAsyncNext
+        return ExpressionYieldFromWaitable(
+            expression = ExpressionAsyncNext(
+                value      = iterator_ref,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
     else:
-        next_class = ExpressionBuiltinNext1
-
-    return next_class(
-        value      = iterator_ref,
-        source_ref = source_ref
-    )
+        return ExpressionBuiltinNext1(
+            value      = iterator_ref,
+            source_ref = source_ref
+        )
 
 
 def _getStopIterationName(qual):

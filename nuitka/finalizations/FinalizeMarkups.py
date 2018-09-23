@@ -152,7 +152,7 @@ of '--include-plugin-directory' or '--include-plugin-files'.""" % (
         if python_version >= 300:
             if node.isExpressionYield() or \
                node.isExpressionYieldFrom() or \
-               node.isExpressionAsyncWait():
+               node.isExpressionYieldFromWaitable():
                 search = node.getParent()
 
                 while not search.isExpressionGeneratorObjectBody() and \

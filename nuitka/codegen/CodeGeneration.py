@@ -92,6 +92,7 @@ from .CoroutineCodes import (
     generateAsyncNextCode,
     generateAsyncWaitCode,
     generateMakeCoroutineObjectCode,
+    generateYieldFromWaitableCode,
     getCoroutineObjectCode,
     getCoroutineObjectDeclCode
 )
@@ -656,12 +657,13 @@ setExpressionDispatchDict(
         "EXPRESSION_VARIABLE_REF"                     : generateVariableReferenceCode,
         "EXPRESSION_YIELD"                            : generateYieldCode,
         "EXPRESSION_YIELD_FROM"                       : generateYieldFromCode,
-        "EXPRESSION_SELECT_METACLASS"                 : generateSelectMetaclassCode,
+        "EXPRESSION_YIELD_FROM_WAITABLE"              : generateYieldFromWaitableCode,
         "EXPRESSION_ASYNC_WAIT"                       : generateAsyncWaitCode,
         "EXPRESSION_ASYNC_WAIT_ENTER"                 : generateAsyncWaitCode,
         "EXPRESSION_ASYNC_WAIT_EXIT"                  : generateAsyncWaitCode,
         "EXPRESSION_ASYNC_ITER"                       : generateAsyncIterCode,
         "EXPRESSION_ASYNC_NEXT"                       : generateAsyncNextCode,
+        "EXPRESSION_SELECT_METACLASS"                 : generateSelectMetaclassCode,
         "EXPRESSION_STRING_CONCATENATION"             : generateStringContenationCode,
         "EXPRESSION_BUILTIN_FORMAT"                   : generateBuiltinFormatCode,
         "EXPRESSION_BUILTIN_ASCII"                    : generateBuiltinAsciiCode,

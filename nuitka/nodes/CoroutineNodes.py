@@ -139,12 +139,6 @@ class ExpressionAsyncWait(ExpressionChildrenHavingBase):
     def isExpressionAsyncWait():
         return True
 
-    def markAsExceptionPreserving(self):
-        self.exception_preserving = True
-
-    def isExceptionPreserving(self):
-        return self.exception_preserving
-
     def computeExpression(self, trace_collection):
         # TODO: Might be predictable based awaitable analysis or for constants.
 
@@ -161,3 +155,35 @@ class ExpressionAsyncWaitEnter(ExpressionAsyncWait):
 
 class ExpressionAsyncWaitExit(ExpressionAsyncWait):
     kind = "EXPRESSION_ASYNC_WAIT_EXIT"
+
+
+class ExpressionYieldFromWaitable(ExpressionChildrenHavingBase):
+    kind = "EXPRESSION_YIELD_FROM_WAITABLE"
+
+    named_children = ("expression",)
+
+    def __init__(self, expression, source_ref):
+        ExpressionChildrenHavingBase.__init__(
+            self,
+            values     = {
+                "expression" : expression
+            },
+            source_ref = source_ref
+        )
+
+        self.exception_preserving = False
+
+    def markAsExceptionPreserving(self):
+        self.exception_preserving = True
+
+    def isExceptionPreserving(self):
+        return self.exception_preserving
+
+    def computeExpression(self, trace_collection):
+        # TODO: Might be predictable based awaitable analysis or for constants.
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    getValue = ExpressionChildrenHavingBase.childGetter("expression")

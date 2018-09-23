@@ -77,7 +77,10 @@ from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantNoneRef,
     makeConstantRefNode
 )
-from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
+from nuitka.nodes.CoroutineNodes import (
+    ExpressionAsyncWait,
+    ExpressionYieldFromWaitable
+)
 from nuitka.nodes.ExceptionNodes import (
     StatementRaiseException,
     StatementReraiseException
@@ -620,8 +623,11 @@ def buildConditionalExpressionNode(provider, node, source_ref):
 
 
 def buildAwaitNode(provider, node, source_ref):
-    return ExpressionAsyncWait(
-        expression = buildNode(provider, node.value, source_ref),
+    return ExpressionYieldFromWaitable(
+        expression = ExpressionAsyncWait(
+            expression = buildNode(provider, node.value, source_ref),
+            source_ref = source_ref
+        ),
         source_ref = source_ref
     )
 
