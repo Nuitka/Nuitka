@@ -30,7 +30,7 @@ Milestones
 
    Feature parity has been reached for CPython 2.6 and 2.7. We do not target any
    older CPython release. For CPython 3.3 up to 3.7 it also has been reached. We
-   do not target the older and practically unused CPython 3.1 and 3.0 releases.
+   do not target the older and practically unused CPython 3.0 to 3.2 releases.
 
    This milestone was reached. Dropping support for Python 2.6 and 3.3 is an
    option, should this prove to be any benefit. Currently it is not, as it
@@ -78,13 +78,15 @@ should express which of these, we consider done.
 
   Before milestone 2 and 3, we used ``0.3.x`` version numbers. After almost
   reaching 3, and beginning with 4, we use "0.4.x" version numbers. Due to an
-  interface change, "0.5.x" version numbers are being used.
+  interface change, ``0.5.x`` version numbers are being used.
+
+  Due to reaching type inference in code generation, even if only starting,
+  the `0.6.x`` version numbers were started to be used. This stage should
+  allow quick progress in performance for individual releases.
 
 - Future:
 
-  When we start to have sufficient amount of type inference in a stable release,
-  that will be ``0.6.x`` version numbers. With ``ctypes`` bindings in a usable
-  state it will be ``0.7.x``.
+  With ``ctypes`` bindings in a usable state it will be ``0.7.x``.
 
 - Final:
 
@@ -123,8 +125,8 @@ Regarding Types, the state is:
 
 The limitation to only do ``PyObject *`` will soon go away.
 
-Coding Rules
-============
+Coding Rules Python
+===================
 
 These rules should generally be adhered when working on Nuitka code. It's not
 library code and it's optimized for readability, and avoids all performance
@@ -284,6 +286,11 @@ For an external API you may exactly want to hide things, but internally that has
 no use, and in Nuitka, every API is internal API. One exception may be the
 ``hints`` module, which will gladly use such tricks for an easier write syntax.
 
+Coding Rules C
+==============
+
+For the static C parts, e.g. compiled types, helper codes, the ``clang-format``
+from LLVM project is used.
 
 The "git flow" model
 ====================
