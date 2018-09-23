@@ -185,8 +185,9 @@ def detectFunctionBodyKind(nodes, start_value = None):
                     _check(field[0].iter)
 
                     # New syntax in 3.7 allows these to be present in functions not
-                    # declared with "async def", so we need to check them.
-                    if python_version >= 370:
+                    # declared with "async def", so we need to check them, but
+                    # only if top level.
+                    if python_version >= 370 and node in nodes:
                         for gen in field:
                             if gen.is_async:
                                 indications.add("Coroutine")
