@@ -77,10 +77,7 @@ from nuitka.nodes.ConstantRefNodes import (
     ExpressionConstantNoneRef,
     makeConstantRefNode
 )
-from nuitka.nodes.CoroutineNodes import (
-    ExpressionAsyncWait,
-    ExpressionYieldFromWaitable
-)
+from nuitka.nodes.CoroutineNodes import ExpressionAsyncWait
 from nuitka.nodes.ExceptionNodes import (
     StatementRaiseException,
     StatementReraiseException
@@ -106,6 +103,7 @@ from nuitka.nodes.ReturnNodes import (
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
+from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
