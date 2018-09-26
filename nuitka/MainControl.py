@@ -732,8 +732,7 @@ def handleSyntaxError(e):
     # versions he wants, tell him about the potential version problem.
     error_message = SyntaxErrors.formatOutput(e)
 
-    if not Options.isFullCompat() and \
-       Options.getIntendedPythonVersion() is None:
+    if not Options.isFullCompat():
         if python_version < 300:
             suggested_python_version_str = getSupportedPythonVersions()[-1]
         else:

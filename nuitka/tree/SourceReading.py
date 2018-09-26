@@ -168,7 +168,7 @@ def checkPythonVersionFromCode(source_code):
         else:
             result = None
 
-        if result is False and Options.getIntendedPythonVersion() is None:
+        if result is False:
             sys.exit("""\
 The program you compiled wants to be run with: %s.
 

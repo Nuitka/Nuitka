@@ -967,9 +967,9 @@ Predicted '%s' on compiled time constant values.""" % in_node.comparator
             )
 
             trace_collection.signalChange(
-                tags = "new_constant",
+                tags       = "new_constant",
                 source_ref = self.source_ref,
-                message = "Predicted compile time constant true value."
+                message    = "Predicted compile time constant true value."
             )
 
 

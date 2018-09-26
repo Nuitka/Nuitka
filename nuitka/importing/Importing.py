@@ -402,7 +402,7 @@ _egg_files = {}
 
 def _unpackPathElement(path_entry):
     if not path_entry:
-        return "." # empty means current directory
+        return '.' # empty means current directory
 
     if os.path.isfile(path_entry) and path_entry.lower().endswith(".egg"):
         if path_entry not in _egg_files:
