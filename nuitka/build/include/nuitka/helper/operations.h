@@ -267,11 +267,14 @@ NUITKA_MAY_BE_UNUSED static bool STRING_ADD_INCREMENTAL(PyObject **operand1, PyO
 
     return true;
 }
-#else
+#endif
+
 NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
+    Py_ssize_t operand2_size = PyUnicode_GET_SIZE(operand2);
+    if (operand2_size == 0) return true;
+
 #if PYTHON_VERSION < 300
     Py_ssize_t operand1_size = PyUnicode_GET_SIZE(*operand1);
-    Py_ssize_t operand2_size = PyUnicode_GET_SIZE(operand2);
 
     Py_ssize_t new_size = operand1_size + operand2_size;
 
@@ -285,18 +288,17 @@ NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL(PyObject **operand1, Py
         return false;
     }
 
-    /* copy 'w' into the newly allocated area of 'v' */
     memcpy(PyUnicode_AS_UNICODE(*operand1) + operand1_size, PyUnicode_AS_UNICODE(operand2),
            operand2_size * sizeof(Py_UNICODE));
 
     return true;
 #else
+    assert(!PyUnicode_CHECK_INTERNED(*operand1));
+
     PyUnicode_Append(operand1, operand2);
     return !ERROR_OCCURRED();
 #endif
 }
-
-#endif
 
 static bool FLOAT_ADD_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
     assert(PyFloat_CheckExact(*operand1));
