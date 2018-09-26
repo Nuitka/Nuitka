@@ -35,10 +35,10 @@ from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.CoroutineNodes import ExpressionYieldFromWaitable
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode

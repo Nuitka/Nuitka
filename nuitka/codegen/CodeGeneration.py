@@ -92,7 +92,6 @@ from .CoroutineCodes import (
     generateAsyncNextCode,
     generateAsyncWaitCode,
     generateMakeCoroutineObjectCode,
-    generateYieldFromWaitableCode,
     getCoroutineObjectCode,
     getCoroutineObjectDeclCode
 )
@@ -256,7 +255,11 @@ from .VariableCodes import (
     generateVariableReferenceCode,
     generateVariableReleaseCode
 )
-from .YieldCodes import generateYieldCode, generateYieldFromCode
+from .YieldCodes import (
+    generateYieldCode,
+    generateYieldFromCode,
+    generateYieldFromWaitableCode
+)
 
 _generated_functions = {}
 

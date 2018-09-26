@@ -44,7 +44,6 @@ from nuitka.nodes.ContainerOperationNodes import (
     StatementListOperationAppend,
     StatementSetOperationAdd
 )
-from nuitka.nodes.CoroutineNodes import ExpressionYieldFromWaitable
 from nuitka.nodes.DictionaryNodes import StatementDictOperationSet
 from nuitka.nodes.FrameNodes import (
     StatementsFrameFunction,
@@ -68,7 +67,10 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.YieldNodes import ExpressionYield
+from nuitka.nodes.YieldNodes import (
+    ExpressionYield,
+    ExpressionYieldFromWaitable
+)
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements

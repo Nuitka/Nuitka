@@ -25,44 +25,39 @@ Often it will be used as a statement, which should also be reflected in a
 dedicated node.
 """
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from nuitka.PythonVersions import python_version
+
+from .ExpressionBases import ExpressionChildHavingBase
 
 
-class ExpressionYield(ExpressionChildrenHavingBase):
-    """ Yielding an expression.
+class ExpressionYieldBase(ExpressionChildHavingBase):
+    if python_version >= 300:
+        __slots__ = ("exception_preserving",)
+    else:
+        __slots__ = ()
 
-        Typical code: yield expression
-
-        Can only happen in a generator. Kind of explicitly suspends and
-        resumes the execution. The user may inject any kind of exception
-        or give any return value. The value of "None" is the most common
-        though, esp. if it's not used.
-
-    """
-
-
-    kind = "EXPRESSION_YIELD"
-
-    named_children = ("expression",)
-
-    def __init__(self, expression, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+    def __init__(self, value, source_ref):
+        ExpressionChildHavingBase.__init__(
             self,
-            values     = {
-                "expression" : expression
-            },
+            value      = value,
             source_ref = source_ref
         )
 
-        self.exception_preserving = False
+        if python_version >= 300:
+            self.exception_preserving = False
 
-    def markAsExceptionPreserving(self):
-        self.exception_preserving = True
+    if python_version >= 300:
+        def markAsExceptionPreserving(self):
+            self.exception_preserving = True
 
-    def isExceptionPreserving(self):
-        return self.exception_preserving
+        def isExceptionPreserving(self):
+            return self.exception_preserving
+    else:
+        @staticmethod
+        def isExceptionPreserving():
+            return False
 
-    getExpression = ExpressionChildrenHavingBase.childGetter("expression")
+    getExpression = ExpressionChildHavingBase.childGetter("expression")
 
     def computeExpression(self, trace_collection):
         trace_collection.removeKnowledge(self.getExpression())
@@ -75,7 +70,32 @@ class ExpressionYield(ExpressionChildrenHavingBase):
         return self, None, None
 
 
-class ExpressionYieldFrom(ExpressionChildrenHavingBase):
+class ExpressionYield(ExpressionYieldBase):
+    """ Yielding an expression.
+
+        Typical code: yield expression
+
+        Can only happen in a generator. Kind of explicitly suspends and
+        resumes the execution. The user may inject any kind of exception
+        or give any return value. The value of "None" is the most common
+        though, esp. if it's not used.
+
+    """
+
+    kind = "EXPRESSION_YIELD"
+
+    named_child = "expression"
+
+    def __init__(self, expression, source_ref):
+        ExpressionYieldBase.__init__(
+            self,
+            value      = expression,
+            source_ref = source_ref
+        )
+
+
+
+class ExpressionYieldFrom(ExpressionYieldBase):
     """ Yielding from an expression.
 
         Typical code: yield from expression (Python3)
@@ -89,34 +109,34 @@ class ExpressionYieldFrom(ExpressionChildrenHavingBase):
     """
     kind = "EXPRESSION_YIELD_FROM"
 
-    named_children = ("expression",)
+    named_child = "expression"
 
     def __init__(self, expression, source_ref):
-        ExpressionChildrenHavingBase.__init__(
+        ExpressionYieldBase.__init__(
             self,
-            values     = {
-                "expression" : expression
-            },
+            value      = expression,
             source_ref = source_ref
         )
 
-        self.exception_preserving = False
 
-    def markAsExceptionPreserving(self):
-        self.exception_preserving = True
+class ExpressionYieldFromWaitable(ExpressionYieldBase):
+    """ Yielding from an expression.
 
-    def isExceptionPreserving(self):
-        return self.exception_preserving
+        Typical code: await x, async for ..., async with (Python3.5)
 
-    getExpression = ExpressionChildrenHavingBase.childGetter("expression")
+        Can only happen in a coroutine or asyncgen and only in Python3.5
+        or higher.
 
-    def computeExpression(self, trace_collection):
-        trace_collection.removeKnowledge(self.getExpression())
+        Similar to yield from. The actual lookups of awaitable go through
+        slots and have dedicated nodes.
+    """
+    kind = "EXPRESSION_YIELD_FROM_WAITABLE"
 
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
+    named_child = "expression"
 
-        trace_collection.onExceptionRaiseExit(BaseException)
-
-        # Nothing possible really here.
-        return self, None, None
+    def __init__(self, expression, source_ref):
+        ExpressionYieldBase.__init__(
+            self,
+            value      = expression,
+            source_ref = source_ref
+        )

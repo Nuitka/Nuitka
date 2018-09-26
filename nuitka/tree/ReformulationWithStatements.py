@@ -41,8 +41,7 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.CoroutineNodes import (
     ExpressionAsyncWaitEnter,
-    ExpressionAsyncWaitExit,
-    ExpressionYieldFromWaitable
+    ExpressionAsyncWaitExit
 )
 from nuitka.nodes.ExceptionNodes import (
     ExpressionCaughtExceptionTracebackRef,
@@ -54,6 +53,7 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
