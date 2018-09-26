@@ -1185,6 +1185,8 @@ def compileLibraryTest(search_mode, stage_dir, decide, action):
             action      = action
         )
 
+    search_mode.finish()
+
 
 def run_async(coro):
     """ Execute a coroutine until it's done. """

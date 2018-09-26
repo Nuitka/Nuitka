@@ -153,10 +153,9 @@ class SearchModeResume(SearchModeBase):
         return self.active
 
     def finish(self):
-        if not self.active:
-            sys.exit("Error, became never active.")
-
         os.unlink(self.cache_filename)
+        if not self.active:
+            sys.exit("Error, became never active, restarting next time.")
 
 
 class SearchModeCoverage(SearchModeBase):
