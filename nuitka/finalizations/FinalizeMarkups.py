@@ -134,11 +134,11 @@ of '--include-plugin-directory' or '--include-plugin-files'.""" % (
                 left_arg = assign_source.getLeft()
 
                 if left_arg.isExpressionVariableRef():
-                    if assign_source.getLeft().getVariable().isModuleVariable():
-                        assign_source.unmarkAsInplaceSuspect()
-                    elif assign_source.getLeft().getVariable() is target_var:
+                    if assign_source.getLeft().getVariable() is target_var:
                         if assign_source.isInplaceSuspect():
                             node.markAsInplaceSuspect()
+                elif left_arg.isExpressionLocalsVariableRefORFallback():
+                    assign_source.unmarkAsInplaceSuspect()
 
         if node.isStatementLocalsDictOperationSet():
             assign_source = node.getAssignSource()

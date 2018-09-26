@@ -311,6 +311,29 @@ NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT0(PyDictObject *dict, Nuitka_
     }
 }
 
+NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT_INPLACE(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
+    Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
+
+#if PYTHON_VERSION >= 360
+    if (entry == NULL) {
+        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+        Py_DECREF(value);
+        return;
+    }
+#endif
+
+    PyObject *old = GET_DICT_ENTRY_VALUE(entry);
+
+    // Values are more likely (more often) set than not set, in that case
+    // speculatively try the quickest access method.
+    if (likely(old != NULL)) {
+        SET_DICT_ENTRY_VALUE(entry, value);
+    } else {
+        DICT_SET_ITEM((PyObject *)dict, (PyObject *)key, value);
+        Py_DECREF(value);
+    }
+}
+
 NUITKA_MAY_BE_UNUSED static void UPDATE_STRING_DICT1(PyDictObject *dict, Nuitka_StringObject *key, PyObject *value) {
     Nuitka_DictEntryHandle entry = GET_STRING_DICT_ENTRY(dict, key);
 

@@ -380,6 +380,9 @@ class PythonContextBase(ContextMetaClassBase):
         # self.last_source_ref = None
         return result
 
+    def getInplaceLeftName(self):
+        return self.allocateTempName("inplace_orig", "PyObject *", True)
+
     @abstractmethod
     def getConstantCode(self, constant):
         pass

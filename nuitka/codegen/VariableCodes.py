@@ -67,7 +67,7 @@ def generateAssignmentVariableCode(statement, emit, context):
         variable       = variable,
         variable_trace = variable_trace,
         needs_release  = statement.needsReleasePreviousValue(),
-        in_place       = statement.inplace_suspect,
+        in_place       = statement.isInplaceSuspect(),
         emit           = emit,
         context        = context
     )

@@ -56,7 +56,7 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
     assert not inplace or not expression.getLeft().isCompileTimeConstant(),  \
         expression
 
-    _getOperationCode(
+    _getBinaryOperationCode(
         to_name     = to_name,
         expression  = expression,
         operator    = expression.getOperator(),
@@ -106,12 +106,11 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
         context    = context
     )
 
-    _getOperationCode(
+    _getUnaryOperationCode(
         to_name     = to_name,
         expression  = expression,
         operator    = expression.getOperator(),
-        arg_names   = (arg_name,),
-        in_place    = False,
+        arg_name    = arg_name,
         needs_check = expression.mayRaiseException(BaseException),
         emit        = emit,
         context     = context
@@ -155,14 +154,18 @@ _iadd_helpers_set = set(
         "BINARY_OPERATION_ADD_LONG_OBJECT_INPLACE",
         "BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE",
 
+        "BINARY_OPERATION_ADD_INT_INT_INPLACE",
         "BINARY_OPERATION_ADD_LIST_LIST_INPLACE",
+        "BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE",
+        "BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE",
     ]
 )
 
-def _getOperationCode(to_name, expression, operator, arg_names, in_place,
-                      needs_check, emit, context):
+def _getBinaryOperationCode(to_name, expression, operator, arg_names, in_place,
+                            needs_check, emit, context):
     # This needs to have one case per operation of Python, and there are many
     # of these, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    left = expression.getLeft()
 
     prefix_args = ()
     ref_count = 1
@@ -176,7 +179,7 @@ def _getOperationCode(to_name, expression, operator, arg_names, in_place,
     elif operator == "Add":
         helper = "BINARY_OPERATION_ADD"
     elif operator == "IAdd" and in_place:
-        left_shape = expression.getLeft().getTypeShape()
+        left_shape = left.getTypeShape()
         right_shape = expression.getRight().getTypeShape()
 
         left_part = _shape_to_helper_code.get(left_shape, "OBJECT")
@@ -184,7 +187,7 @@ def _getOperationCode(to_name, expression, operator, arg_names, in_place,
 
         ideal_helper = "BINARY_OPERATION_ADD_%s_%s_INPLACE" % (
             left_part,
-            right_part
+            right_part,
         )
 
         if ideal_helper not in _iadd_helpers_set:
@@ -214,13 +217,6 @@ def _getOperationCode(to_name, expression, operator, arg_names, in_place,
         prefix_args = (
             OperatorCodes.binary_operator_codes[ operator ],
         )
-    elif len(arg_names) == 1:
-        impl_helper, ref_count = OperatorCodes.unary_operator_codes[ operator ]
-
-        helper = "UNARY_OPERATION"
-        prefix_args = (
-            impl_helper,
-        )
     else:
         assert False, operator
 
@@ -228,6 +224,15 @@ def _getOperationCode(to_name, expression, operator, arg_names, in_place,
     # a constant reference. That was asserted before calling us.
     if in_place:
         res_name = context.getBoolResName()
+
+        # For module variable C type to reference later.
+        if left.getVariable().isModuleVariable():
+            emit(
+                "%s = %s;" % (
+                    context.getInplaceLeftName(),
+                    arg_names[0]
+                )
+            )
 
         # We may have not specialized this one yet, so lets use generic in-place
         # code, or the helper specified.
@@ -252,19 +257,19 @@ def _getOperationCode(to_name, expression, operator, arg_names, in_place,
 
             ref_count = 0
 
-        emit(
-            "%s = %s;" % (
-                to_name,
-                arg_names[0]
-            )
-        )
-
         getErrorExitBoolCode(
             condition     = "%s == false" % res_name,
             release_names = arg_names,
             needs_check   = needs_check,
             emit          = emit,
             context       = context
+        )
+
+        emit(
+            "%s = %s;" % (
+                to_name,
+                arg_names[0]
+            )
         )
 
         if ref_count:
@@ -296,3 +301,39 @@ def _getOperationCode(to_name, expression, operator, arg_names, in_place,
 
             if ref_count:
                 context.addCleanupTempName(value_name)
+
+
+def _getUnaryOperationCode(to_name, expression, operator, arg_name, needs_check,
+                           emit, context):
+    impl_helper, ref_count = OperatorCodes.unary_operator_codes[ operator ]
+
+    helper = "UNARY_OPERATION"
+    prefix_args = (
+        impl_helper,
+    )
+
+    with withObjectCodeTemporaryAssignment(to_name, "op_%s_res" % operator.lower(), expression, emit, context) \
+      as value_name:
+
+        emit(
+            "%s = %s( %s );" % (
+                value_name,
+                helper,
+                ", ".join(
+                    str(arg_name)
+                    for arg_name in
+                    prefix_args + (arg_name,)
+                )
+            )
+        )
+
+        getErrorExitCode(
+            check_name   = value_name,
+            release_name = arg_name,
+            needs_check  = needs_check,
+            emit         = emit,
+            context      = context
+        )
+
+        if ref_count:
+            context.addCleanupTempName(value_name)
