@@ -20,224 +20,34 @@
 Branches, conditions, truth checks.
 """
 
-from nuitka import Options
-
-from .AttributeCodes import getAttributeCheckBoolCode
-from .CodeHelpers import generateExpressionCode
-from .ComparisonCodes import (
-    getBuiltinIsinstanceBoolCode,
-    getComparisonExpressionBoolCode
-)
+from .CodeHelpers import decideConversionCheckNeeded, generateExpressionCode
 from .Emission import SourceCodeCollector
-from .ErrorCodes import getErrorExitBoolCode, getReleaseCode
+from .ErrorCodes import getReleaseCode
 from .LabelCodes import getBranchingCode, getGotoCode, getLabelCode
 
 
 def generateConditionCode(condition, emit, context):
-    # The complexity is needed to avoid unnecessary complex generated C
-    # pylint: disable=too-many-locals,too-many-statements
+    compare_name = context.allocateTempName("condition_result", "nuitka_bool")
 
-    if condition.isExpressionComparison():
-        left_name = context.allocateTempName("compare_left")
-
-        generateExpressionCode(
-            to_name    = left_name,
-            expression = condition.getLeft(),
-            emit       = emit,
-            context    = context
-        )
-
-        right_name = context.allocateTempName("compare_right")
-
-        generateExpressionCode(
-            to_name    = right_name,
-            expression = condition.getRight(),
-            emit       = emit,
-            context    = context
-        )
-
-        old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
-        getComparisonExpressionBoolCode(
-            comparator  = condition.getComparator(),
-            left_name   = left_name,
-            right_name  = right_name,
-            needs_check = condition.mayRaiseExceptionBool(BaseException),
-            emit        = emit,
-            context     = context
-        )
-        context.setCurrentSourceCodeReference(old_source_ref)
-    elif condition.isExpressionOperationNOT():
-        # Lets just switch the targets temporarily to get at "NOT" without
-        # any effort really.
-        true_target = context.getTrueBranchTarget()
-        false_target = context.getFalseBranchTarget()
-
-        context.setTrueBranchTarget(false_target)
-        context.setFalseBranchTarget(true_target)
-
-        generateConditionCode(
-            condition = condition.getOperand(),
-            emit      = emit,
-            context   = context
-        )
-
-        context.setTrueBranchTarget(true_target)
-        context.setFalseBranchTarget(false_target)
-    elif condition.isExpressionConditional():
-        expression_yes = condition.getExpressionYes()
-        expression_no = condition.getExpressionNo()
-
-        condition = condition.getCondition()
-
-        old_true_target = context.getTrueBranchTarget()
-        old_false_target = context.getFalseBranchTarget()
-
-        select_true = context.allocateLabel("select_true")
-        select_false = context.allocateLabel("select_false")
-
-        # TODO: Could be avoided in some cases.
-        select_end = context.allocateLabel("select_end")
-
-        context.setTrueBranchTarget(select_true)
-        context.setFalseBranchTarget(select_false)
-
-        generateConditionCode(
-            condition = condition,
-            emit      = emit,
-            context   = context,
-        )
-
-        context.setTrueBranchTarget(old_true_target)
-        context.setFalseBranchTarget(old_false_target)
-
-        getLabelCode(select_true,emit)
-        generateConditionCode(
-            condition = expression_yes,
-            emit      = emit,
-            context   = context,
-        )
-        getGotoCode(select_end, emit)
-        getLabelCode(select_false,emit)
-        generateConditionCode(
-            condition = expression_no,
-            emit      = emit,
-            context   = context,
-        )
-        getLabelCode(select_end,emit)
-    elif condition.isExpressionBuiltinHasattr():
-        source_name = context.allocateTempName("hasattr_source")
-        attr_name = context.allocateTempName("hasattr_attr")
-
-        generateExpressionCode(
-            to_name    = source_name,
-            expression = condition.getLookupSource(),
-            emit       = emit,
-            context    = context
-        )
-        generateExpressionCode(
-            to_name    = attr_name,
-            expression = condition.getAttribute(),
-            emit       = emit,
-            context    = context
-        )
-
-        old_source_ref = context.setCurrentSourceCodeReference(
-            condition.getAttribute().getSourceReference()
-               if Options.isFullCompat() else
-            condition.getSourceReference()
-        )
-
-        getAttributeCheckBoolCode(
-            source_name = source_name,
-            attr_name   = attr_name,
-            needs_check = condition.getLookupSource().mayRaiseExceptionAttributeCheckObject(
-                exception_type = BaseException,
-                attribute      = condition.getAttribute()
-            ),
-            emit        = emit,
-            context     = context
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
-    elif condition.isExpressionBuiltinIsinstance():
-        inst_name = context.allocateTempName("isinstance_inst")
-        cls_name = context.allocateTempName("isinstance_cls")
-
-        generateExpressionCode(
-            to_name    = inst_name,
-            expression = condition.getInstance(),
-            emit       = emit,
-            context    = context
-        )
-        generateExpressionCode(
-            to_name    = cls_name,
-            expression = condition.getCls(),
-            emit       = emit,
-            context    = context
-        )
-
-        old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
-
-        getBuiltinIsinstanceBoolCode(
-            inst_name = inst_name,
-            cls_name  = cls_name,
-            emit      = emit,
-            context   = context
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
-    elif condition.isCompileTimeConstant():
-        getBranchingCode(
-            condition = '1' if condition.getCompileTimeConstant() else '0',
-            emit      = emit,
-            context   = context
-        )
-    else:
-        condition_name = context.allocateTempName("cond_value")
-        truth_name = context.allocateTempName("cond_truth", "int")
-
-        generateExpressionCode(
-            to_name    = condition_name,
-            expression = condition,
-            emit       = emit,
-            context    = context
-        )
-
-        old_source_ref = context.setCurrentSourceCodeReference(condition.getSourceReference())
-
-        getConditionCheckTrueCode(
-            to_name     = truth_name,
-            value_name  = condition_name,
-            needs_check = condition.mayRaiseExceptionBool(BaseException),
-            emit        = emit,
-            context     = context
-        )
-
-        context.setCurrentSourceCodeReference(old_source_ref)
-
-        getReleaseCode(
-            release_name = condition_name,
-            emit         = emit,
-            context      = context
-        )
-
-        getBranchingCode(
-            condition = "%s == 1" % truth_name,
-            emit      = emit,
-            context   = context
-        )
-
-
-def getConditionCheckTrueCode(to_name, value_name, needs_check, emit, context):
-    emit(
-        "%s = CHECK_IF_TRUE( %s );" % (
-            to_name,
-            value_name
-        )
+    generateExpressionCode(
+        to_name    = compare_name,
+        expression = condition,
+        emit       = emit,
+        context    = context
     )
 
-    getErrorExitBoolCode(
-        condition   = "%s == -1" % to_name,
+    getBranchingCode(
+        condition = "%s == NUITKA_BOOL_TRUE" % compare_name,
+        emit      = emit,
+        context   = context
+    )
+
+
+# TODO: Inline this once "enable_bool_ctype" is completed
+def getConditionCheckTrueCode(to_name, value_name, needs_check, emit, context):
+    value_name.getCType().emitTruthCheckCode(
+        to_name     = to_name,
+        value_name  = value_name,
         needs_check = needs_check,
         emit        = emit,
         context     = context
@@ -262,8 +72,8 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
 
     truth_name = context.allocateTempName(prefix + "left_truth", "int")
 
-    left_name = context.allocateTempName(prefix + "left_value")
-    right_name = context.allocateTempName(prefix + "right_value")
+    left_name = context.allocateTempName(prefix + "left_value", to_name.c_type)
+    right_name = context.allocateTempName(prefix + "right_value", to_name.c_type)
 
     left_value = expression.getLeft()
 
@@ -278,14 +88,6 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     # this, and we better do this manually later.
     needs_ref1 = context.needsCleanup(left_name)
 
-    getConditionCheckTrueCode(
-        to_name     = truth_name,
-        value_name  = left_name,
-        needs_check = left_value.mayRaiseExceptionBool(BaseException),
-        emit        = emit,
-        context     = context
-    )
-
     if expression.isExpressionConditionalOR():
         context.setTrueBranchTarget(true_target)
         context.setFalseBranchTarget(false_target)
@@ -293,13 +95,21 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
         context.setTrueBranchTarget(false_target)
         context.setFalseBranchTarget(true_target)
 
+    left_name.getCType().emitTruthCheckCode(
+        to_name     = truth_name,
+        value_name  = left_name,
+        needs_check = left_value.mayRaiseExceptionBool(BaseException),
+        emit        = emit,
+        context     = context
+    )
+
     getBranchingCode(
         condition = "%s == 1" % truth_name,
         emit      = emit,
         context   = context
     )
 
-    getLabelCode(false_target,emit)
+    getLabelCode(false_target, emit)
 
     # So it's not the left value, then lets release that one right away, it
     # is not needed, but we remember if it should be added above.
@@ -309,10 +119,12 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
        context      = context
     )
 
+    right_value = expression.getRight()
+
     # Evaluate the "right" value then.
     generateExpressionCode(
         to_name    = right_name,
-        expression = expression.getRight(),
+        expression = right_value,
         emit       = emit,
         context    = context
     )
@@ -326,11 +138,12 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     if not needs_ref2 and needs_ref1:
         emit("Py_INCREF( %s );" % right_name)
 
-    emit(
-        "%s = %s;" % (
-            to_name,
-            right_name
-        )
+    to_name.getCType().emitAssignConversionCode(
+        to_name     = to_name,
+        value_name  = right_name,
+        needs_check = decideConversionCheckNeeded(to_name, right_value),
+        emit        = emit,
+        context     = context
     )
 
     getGotoCode(end_target, emit)
@@ -340,11 +153,12 @@ def generateConditionalAndOrCode(to_name, expression, emit, context):
     if not needs_ref1 and needs_ref2:
         emit("Py_INCREF( %s );" % left_name)
 
-    emit(
-        "%s = %s;" % (
-            to_name,
-            left_name
-        )
+    to_name.getCType().emitAssignConversionCode(
+        to_name     = to_name,
+        value_name  = left_name,
+        needs_check = decideConversionCheckNeeded(to_name, left_value),
+        emit        = emit,
+        context     = context
     )
 
     getLabelCode(end_target, emit)

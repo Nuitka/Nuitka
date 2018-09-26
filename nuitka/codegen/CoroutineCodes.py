@@ -21,7 +21,8 @@
 
 from .CodeHelpers import (
     generateChildExpressionsCode,
-    generateStatementSequenceCode
+    generateStatementSequenceCode,
+    withObjectCodeTemporaryAssignment
 )
 from .Emission import SourceCodeCollector
 from .ErrorCodes import getErrorExitCode
@@ -42,7 +43,7 @@ from .templates.CodeTemplatesCoroutines import (
     template_coroutine_return_exit,
     template_make_coroutine
 )
-from .YieldCodes import _getYieldPreserveCode, getYieldReturnDispatchCode
+from .YieldCodes import getYieldPreserveCode, getYieldReturnDispatchCode
 
 
 def getCoroutineObjectDeclCode(function_identifier):
@@ -206,28 +207,33 @@ return NULL;
         "yield_from"  : iter_name,
     }
 
-    _getYieldPreserveCode(
-        to_name            = to_name,
-        value_name         = (value_name, iter_name),
-        yield_code         = yield_code,
-        preserve_exception = preserve_exception,
-        emit               = emit,
-        context            = context
-    )
+    resume_code = """\
+%(object_name)s->m_awaiting = false;
+""" % {
+        "object_name" : context.getContextObjectName(),
+    }
 
-    emit(
-        "%(object_name)s->m_awaiting = false;" % {
-            "object_name" : context.getContextObjectName(),
-        }
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "await_result", expression, emit, context) \
+      as result_name:
+        getYieldPreserveCode(
+            to_name            = result_name,
+            value_name         = (value_name, iter_name),
+            yield_code         = yield_code,
+            resume_code        = resume_code,
+            preserve_exception = preserve_exception,
+            emit               = emit,
+            context            = context
+        )
 
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
+        # TODO: Seems to be redundant with and getYieldPreserveCode doing
+        # it and could be removed
+        getErrorExitCode(
+            check_name = result_name,
+            emit       = emit,
+            context    = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)
 
 
 def generateAsyncIterCode(to_name, expression, emit, context):
@@ -269,22 +275,25 @@ return NULL;
         "yield_from"       : iter_name,
     }
 
-    _getYieldPreserveCode(
-        to_name            = to_name,
-        value_name         = (value_name, iter_name),
-        yield_code         = yield_code,
-        preserve_exception = preserve_exception,
-        emit               = emit,
-        context            = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "aiter_result", expression, emit, context) \
+      as result_name:
+        getYieldPreserveCode(
+            to_name            = result_name,
+            value_name         = (value_name, iter_name),
+            yield_code         = yield_code,
+            resume_code        = None,
+            preserve_exception = preserve_exception,
+            emit               = emit,
+            context            = context
+        )
 
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
+        getErrorExitCode(
+            check_name = result_name,
+            emit       = emit,
+            context    = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)
 
 
 def generateAsyncNextCode(to_name, expression, emit, context):
@@ -326,19 +335,22 @@ return NULL;
         "yield_from"       : iter_name,
     }
 
-    _getYieldPreserveCode(
-        to_name            = to_name,
-        value_name         = (value_name, iter_name),
-        yield_code         = yield_code,
-        preserve_exception = preserve_exception,
-        emit               = emit,
-        context            = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "anext_result", expression, emit, context) \
+      as result_name:
+        getYieldPreserveCode(
+            to_name            = result_name,
+            value_name         = (value_name, iter_name),
+            yield_code         = yield_code,
+            resume_code        = None,
+            preserve_exception = preserve_exception,
+            emit               = emit,
+            context            = context
+        )
 
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
+        getErrorExitCode(
+            check_name = result_name,
+            emit       = emit,
+            context    = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)

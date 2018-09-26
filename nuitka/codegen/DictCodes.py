@@ -22,7 +22,11 @@
 from nuitka import Options
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 
 
@@ -40,60 +44,65 @@ def generateBuiltinDictCode(to_name, expression, emit, context):
     else:
         seq_name = None
 
-    if expression.getNamedArgumentPairs():
-        # If there is no sequence to mix in, then directly generate
-        # into to_name.
+    with withObjectCodeTemporaryAssignment(to_name, "dict_result", expression, emit, context) \
+      as value_name:
 
-        if seq_name is None:
-            getDictionaryCreationCode(
-                to_name = to_name,
-                pairs   = expression.getNamedArgumentPairs(),
-                emit    = emit,
-                context = context
-            )
+        if expression.getNamedArgumentPairs():
+            # If there is no sequence to mix in, then directly generate
+            # into to_name.
 
-            dict_name = None
+            if seq_name is None:
+                _getDictionaryCreationCode(
+                    to_name = value_name,
+                    pairs   = expression.getNamedArgumentPairs(),
+                    emit    = emit,
+                    context = context
+                )
+
+                dict_name = None
+            else:
+                dict_name = context.allocateTempName("dict_arg")
+
+                _getDictionaryCreationCode(
+                    to_name = dict_name,
+                    pairs   = expression.getNamedArgumentPairs(),
+                    emit    = emit,
+                    context = context
+                )
         else:
-            dict_name = context.allocateTempName("dict_arg")
+            dict_name = None
 
-            getDictionaryCreationCode(
-                to_name = dict_name,
-                pairs   = expression.getNamedArgumentPairs(),
-                emit    = emit,
-                context = context
+        if seq_name is not None:
+            emit(
+                "%s = TO_DICT( %s, %s );" % (
+                    value_name,
+                    seq_name,
+                    "NULL" if dict_name is None else dict_name
+                )
             )
-    else:
-        dict_name = None
 
-    if seq_name is not None:
-        emit(
-            "%s = TO_DICT( %s, %s );" % (
-                to_name,
-                seq_name,
-                "NULL" if dict_name is None else dict_name
+            getErrorExitCode(
+                check_name    = value_name,
+                release_names = (seq_name, dict_name),
+                emit          = emit,
+                context       = context
             )
-        )
 
-        getErrorExitCode(
-            check_name    = to_name,
-            release_names = (seq_name, dict_name),
-            emit          = emit,
-            context       = context
-        )
-
-        context.addCleanupTempName(to_name)
+            context.addCleanupTempName(value_name)
 
 
 def generateDictionaryCreationCode(to_name, expression, emit, context):
-    getDictionaryCreationCode(
-        to_name = to_name,
-        pairs   = expression.getPairs(),
-        emit    = emit,
-        context = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "dict_result", expression, emit, context) \
+      as value_name:
+        _getDictionaryCreationCode(
+            to_name = value_name,
+            pairs   = expression.getPairs(),
+            emit    = emit,
+            context = context
+        )
 
 
-def getDictionaryCreationCode(to_name, pairs, emit, context):
+def _getDictionaryCreationCode(to_name, pairs, emit, context):
     def generateValueCode(dict_value_name, pair):
         generateExpressionCode(
             to_name    = dict_value_name,
@@ -204,6 +213,7 @@ def generateDictOperationUpdateCode(statement, emit, context):
 
     old_source_ref = context.setCurrentSourceCodeReference(old_source_ref)
 
+
 def generateDictOperationGetCode(to_name, expression, emit, context):
     dict_name, key_name = generateChildExpressionsCode(
         expression = expression,
@@ -211,23 +221,25 @@ def generateDictOperationGetCode(to_name, expression, emit, context):
         context    = context
     )
 
-    emit(
-        "%s = DICT_GET_ITEM( %s, %s );" % (
-            to_name,
-            dict_name,
-            key_name
+    with withObjectCodeTemporaryAssignment(to_name, "dict_value", expression, emit, context) \
+      as value_name:
+        emit(
+            "%s = DICT_GET_ITEM( %s, %s );" % (
+                value_name,
+                dict_name,
+                key_name
+            )
         )
-    )
 
-    getErrorExitCode(
-        check_name    = to_name,
-        release_names = (dict_name, key_name),
-        needs_check   = expression.mayRaiseException(BaseException),
-        emit          = emit,
-        context       = context
-    )
+        getErrorExitCode(
+            check_name    = value_name,
+            release_names = (dict_name, key_name),
+            needs_check   = expression.mayRaiseException(BaseException),
+            emit          = emit,
+            context       = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(value_name)
 
 
 def generateDictOperationInCode(to_name, expression, emit, context):
@@ -249,7 +261,6 @@ def generateDictOperationInCode(to_name, expression, emit, context):
         )
     )
 
-
     getErrorExitBoolCode(
         condition     = "%s == -1" % res_name,
         release_names = (dict_name, key_name),
@@ -258,12 +269,13 @@ def generateDictOperationInCode(to_name, expression, emit, context):
         context       = context
     )
 
-    emit(
-        "%s = BOOL_FROM( %s == %s );" % (
-            to_name,
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name   = to_name,
+        condition = "%s %s 0" % (
             res_name,
-            '1' if not inverted else '0'
-        )
+            "==" if inverted else "!="
+        ),
+        emit      = emit
     )
 
 

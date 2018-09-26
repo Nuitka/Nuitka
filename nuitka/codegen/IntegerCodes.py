@@ -21,7 +21,11 @@
 
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateChildExpressionsCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateChildExpressionsCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import generateCAPIObjectCode
 
@@ -32,15 +36,16 @@ def generateBuiltinLong1Code(to_name, expression, emit, context):
     value = expression.getValue()
 
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "PyNumber_Long",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "PyNumber_Long",
+        arg_desc         = (
             ("long_arg", value),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )
 
 
@@ -53,37 +58,41 @@ def generateBuiltinLong2Code(to_name, expression, emit, context):
         context    = context
     )
 
-    emit(
-        "%s = TO_LONG2( %s, %s );" % (
-            to_name,
-            value_name,
-            base_name
+    with withObjectCodeTemporaryAssignment(to_name, "long_value", expression, emit, context) \
+      as result_name:
+
+        emit(
+            "%s = TO_LONG2( %s, %s );" % (
+                result_name,
+                value_name,
+                base_name
+            )
         )
-    )
 
-    getErrorExitCode(
-        check_name    = to_name,
-        release_names = (value_name, base_name),
-        emit          = emit,
-        context       = context
-    )
+        getErrorExitCode(
+            check_name    = result_name,
+            release_names = (value_name, base_name),
+            emit          = emit,
+            context       = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)
 
 
 def generateBuiltinInt1Code(to_name, expression, emit, context):
     value = expression.getValue()
 
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "PyNumber_Int",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "PyNumber_Int",
+        arg_desc         = (
             ("int_arg", value),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context,
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context,
     )
 
 
@@ -94,19 +103,22 @@ def generateBuiltinInt2Code(to_name, expression, emit, context):
         context    = context
     )
 
-    emit(
-        "%s = TO_INT2( %s, %s );" % (
-            to_name,
-            value_name,
-            base_name
+    with withObjectCodeTemporaryAssignment(to_name, "int_value", expression, emit, context) \
+      as result_name:
+
+        emit(
+            "%s = TO_INT2( %s, %s );" % (
+                result_name,
+                value_name,
+                base_name
+            )
         )
-    )
 
-    getErrorExitCode(
-        check_name    = to_name,
-        release_names = (value_name, base_name),
-        emit          = emit,
-        context       = context
-    )
+        getErrorExitCode(
+            check_name    = result_name,
+            release_names = (value_name, base_name),
+            emit          = emit,
+            context       = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)

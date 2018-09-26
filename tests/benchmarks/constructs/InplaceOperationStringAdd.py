@@ -35,11 +35,12 @@ def calledRepeatedly():
 # construct_begin
     s += additiv
 # construct_end
+    s += additiv
 
     return s
 
 import itertools
-for x in itertools.repeat(None, 50000):
+for x in itertools.repeat(None, 10000):
     calledRepeatedly()
 
 print("OK.")

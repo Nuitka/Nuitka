@@ -40,6 +40,7 @@ def getCodeObjectsDeclCode(context):
 
     return statements
 
+
 def getCodeObjectsInitCode(context):
     # There is a bit of details to this, code objects have many flags to deal
     # with, and we are making some optimizations as well as customization to

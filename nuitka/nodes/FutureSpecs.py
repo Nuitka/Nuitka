@@ -119,6 +119,8 @@ class FutureSpec(object):
 
 def fromFlags(flags):
     flags = flags.split(',')
+    if "" in flags:
+        flags.remove("")
 
     result = FutureSpec()
 

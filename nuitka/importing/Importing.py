@@ -37,9 +37,11 @@ the ``os`` module like it's done in ``isStandardLibraryPath`` of this module.
 
 from __future__ import print_function
 
+import hashlib
 import imp
 import os
 import sys
+import zipfile
 from logging import warning
 
 from nuitka import Options
@@ -47,6 +49,7 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.importing import StandardLibrary
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
+from nuitka.utils.AppDirs import getCacheDir
 from nuitka.utils.FileOperations import listDir
 
 from .PreloadedPackages import getPreloadedPackagePath, isPreloadedPackagePath
@@ -78,7 +81,7 @@ def isPackageDir(dirname):
         extra packages provided via "*.pth" file tricks by "site.py" loading.
     """
 
-    return "." not in os.path.basename(dirname) and \
+    return '.' not in os.path.basename(dirname) and \
            os.path.isdir(dirname) and \
            (
                python_version >= 300 or
@@ -395,14 +398,39 @@ def _findModuleInPath2(module_name, search_path):
     # Nothing found.
     raise ImportError
 
+_egg_files = {}
+
+def _unpackPathElement(path_entry):
+    if not path_entry:
+        return '.' # empty means current directory
+
+    if os.path.isfile(path_entry) and path_entry.lower().endswith(".egg"):
+        if path_entry not in _egg_files:
+            checksum = hashlib.md5(open(path_entry, "rb").read()).hexdigest()
+
+            target_dir = os.path.join(
+                getCacheDir(),
+                "egg-content",
+                checksum
+            )
+
+            zip_ref = zipfile.ZipFile(path_entry, 'r')
+            zip_ref.extractall(target_dir)
+            zip_ref.close()
+
+            _egg_files[path_entry] = target_dir
+
+        return _egg_files[path_entry]
+
+    return path_entry
 
 def getPackageSearchPath(package_name):
     assert main_path is not None
 
     if package_name is None:
         return [os.getcwd(), main_path] + [
-            element or "." # empty means current directory
-            for element in
+            _unpackPathElement(path_element)
+            for path_element in
             sys.path
         ]
     elif '.' in package_name:

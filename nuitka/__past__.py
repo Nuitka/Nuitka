@@ -29,6 +29,11 @@ import sys
 
 # pylint: disable=I0021,invalid-name,redefined-builtin
 
+if str is bytes:
+    import __builtin__ as builtins  # @UnresolvedImport @UnusedImport pylint: disable=I0021,import-error
+else:
+    import builtins  # @UnresolvedImport @Reimport pylint: disable=I0021,import-error
+
 # Work around for CPython 3.x renaming "long" to "int".
 if str is bytes:
     long = long  # @ReservedAssignment pylint: disable=I0021,undefined-variable
@@ -59,14 +64,14 @@ else:
 
 
 if str is bytes:
-    from urllib import urlretrieve # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+    from urllib import urlretrieve # @UnresolvedImport @UnusedImport pylint: disable=I0021,import-error,no-name-in-module
 else:
-    from urllib.request import urlretrieve # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+    from urllib.request import urlretrieve # @UnresolvedImport @Reimport pylint: disable=I0021,import-error,no-name-in-module
 
 if str is bytes:
-    from cStringIO import StringIO # @UnresolvedImport pylint: disable=I0021,import-error
+    from cStringIO import StringIO # @UnresolvedImport @UnusedImport pylint: disable=I0021,import-error
 else:
-    from io import StringIO # @UnresolvedImport pylint: disable=I0021,import-error
+    from io import StringIO # @UnresolvedImport @Reimport pylint: disable=I0021,import-error
 
 try:
     from functools import total_ordering
@@ -94,3 +99,4 @@ assert StringIO
 assert type(xrange) is type, xrange
 assert total_ordering
 assert intern
+assert builtins

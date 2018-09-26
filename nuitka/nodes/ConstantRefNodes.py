@@ -292,8 +292,9 @@ class ExpressionConstantRefBase(CompileTimeConstantExpressionBase):
         return pairs
 
 
-    def isBoolConstant(self):
-        return type(self.constant) is bool
+    @staticmethod
+    def isBoolConstant():
+        return False
 
     def mayHaveSideEffects(self):
         # Constants have no side effects
@@ -403,44 +404,50 @@ class ExpressionConstantNoneRef(ExpressionConstantRefBase):
         return ShapeTypeNoneType
 
 
-class ExpressionConstantTrueRef(ExpressionConstantRefBase):
+
+class ExpressionConstantBoolRefBase(ExpressionConstantRefBase):
+
+    @staticmethod
+    def isBoolConstant():
+        return True
+
+    def computeExpressionBool(self, trace_collection):
+        # Best case already.
+        pass
+
+    def getDetails(self):
+        return {}
+
+    def getTypeShape(self):
+        return ShapeTypeBool
+
+
+class ExpressionConstantTrueRef(ExpressionConstantBoolRefBase):
     kind = "EXPRESSION_CONSTANT_TRUE_REF"
 
     __slots__ = ()
 
     def __init__(self, source_ref, user_provided = False):
-        ExpressionConstantRefBase.__init__(
+        ExpressionConstantBoolRefBase.__init__(
             self,
             constant      = True,
             user_provided = user_provided,
             source_ref    = source_ref
         )
 
-    def getDetails(self):
-        return {}
 
-    def getTypeShape(self):
-        return ShapeTypeBool
-
-
-class ExpressionConstantFalseRef(ExpressionConstantRefBase):
+class ExpressionConstantFalseRef(ExpressionConstantBoolRefBase):
     kind = "EXPRESSION_CONSTANT_FALSE_REF"
 
     __slots__ = ()
 
     def __init__(self, source_ref, user_provided = False):
-        ExpressionConstantRefBase.__init__(
+        ExpressionConstantBoolRefBase.__init__(
             self,
             constant      = False,
             user_provided = user_provided,
             source_ref    = source_ref
         )
-
-    def getDetails(self):
-        return {}
-
-    def getTypeShape(self):
-        return ShapeTypeBool
 
 
 class ExpressionConstantEllipsisRef(ExpressionConstantRefBase):

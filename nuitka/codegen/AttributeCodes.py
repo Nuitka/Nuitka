@@ -22,9 +22,13 @@ Attribute lookup, setting.
 
 from nuitka import Options
 
-from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
-from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
-from .LabelCodes import getBranchingCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateChildExpressionsCode,
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
+from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .PythonAPICodes import generateCAPIObjectCode, generateCAPIObjectCode0
 
 
@@ -120,75 +124,45 @@ def generateAttributeLookupCode(to_name, expression, emit, context):
 
     attribute_name = expression.getAttributeName()
 
-    getAttributeLookupCode(
-        to_name        = to_name,
-        source_name    = source_name,
-        attribute_name = attribute_name,
-        needs_check    = expression.getLookupSource().mayRaiseExceptionAttributeLookup(
-            exception_type = BaseException,
-            attribute_name = attribute_name
-        ),
-        emit           = emit,
-        context        = context
+    needs_check    = expression.getLookupSource().mayRaiseExceptionAttributeLookup(
+        exception_type = BaseException,
+        attribute_name = attribute_name
     )
 
-
-def getAttributeLookupCode(to_name, source_name, attribute_name, needs_check,
-                           emit, context):
-    if attribute_name == "__dict__":
-        emit(
-            "%s = LOOKUP_ATTRIBUTE_DICT_SLOT( %s );" % (
-                to_name,
-                source_name
+    with withObjectCodeTemporaryAssignment(to_name, "attribute_value", expression, emit, context) \
+      as value_name:
+        if attribute_name == "__dict__":
+            emit(
+                "%s = LOOKUP_ATTRIBUTE_DICT_SLOT( %s );" % (
+                    value_name,
+                    source_name
+                )
             )
-        )
-    elif attribute_name == "__class__":
-        emit(
-            "%s = LOOKUP_ATTRIBUTE_CLASS_SLOT( %s );" % (
-                to_name,
-                source_name
+        elif attribute_name == "__class__":
+            emit(
+                "%s = LOOKUP_ATTRIBUTE_CLASS_SLOT( %s );" % (
+                    value_name,
+                    source_name
+                )
             )
-        )
-    else:
-        emit(
-            "%s = LOOKUP_ATTRIBUTE( %s, %s );" % (
-                to_name,
-                source_name,
-                context.getConstantCode(attribute_name)
+        else:
+            emit(
+                "%s = LOOKUP_ATTRIBUTE( %s, %s );" % (
+                    value_name,
+                    source_name,
+                    context.getConstantCode(attribute_name)
+                )
             )
+
+        getErrorExitCode(
+            check_name   = value_name,
+            release_name = source_name,
+            needs_check  = needs_check,
+            emit         = emit,
+            context      = context
         )
 
-    getErrorExitCode(
-        check_name   = to_name,
-        release_name = source_name,
-        needs_check  = needs_check,
-        emit         = emit,
-        context      = context
-    )
-
-    context.addCleanupTempName(to_name)
-
-
-def getAttributeCheckBoolCode(source_name, attr_name, needs_check, emit, context):
-    res_name = context.getIntResName()
-
-    emit(
-        "%s = PyObject_HasAttr( %s, %s );" % (
-            res_name,
-            source_name,
-            attr_name
-        )
-    )
-
-    getErrorExitBoolCode(
-        condition     = "%s == -1" % res_name,
-        release_names = (source_name, attr_name),
-        needs_check   = needs_check,
-        emit          = emit,
-        context       = context
-    )
-
-    getBranchingCode("%s == 1" % res_name, emit, context)
+        context.addCleanupTempName(value_name)
 
 
 def getAttributeAssignmentCode(target_name, attribute_name, value_name, emit,
@@ -319,48 +293,100 @@ def getAttributeLookupSpecialCode(to_name, source_name, attr_name, needs_check,
 
 
 def generateBuiltinHasattrCode(to_name, expression, emit, context):
-    generateCAPIObjectCode0(
-        to_name    = to_name,
-        capi       = "BUILTIN_HASATTR",
-        arg_desc   = (
-            ("hasattr_value", expression.getLookupSource()),
-            ("hasattr_attr", expression.getAttribute()),
-        ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
+    source_name, attr_name = generateChildExpressionsCode(
+        expression = expression,
         emit       = emit,
         context    = context
     )
 
+    res_name = context.getIntResName()
+
+    emit(
+        "%s = BUILTIN_HASATTR_BOOL( %s, %s );" % (
+            res_name,
+            source_name,
+            attr_name
+        )
+    )
+
+    getErrorExitBoolCode(
+        condition     = "%s == -1" % res_name,
+        release_names = (source_name, attr_name),
+        needs_check   = expression.mayRaiseException(BaseException),
+        emit          = emit,
+        context       = context
+    )
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name   = to_name,
+        condition = "%s != 0" % res_name,
+        emit      = emit
+    )
+
+
+def generateAttributeCheckCode(to_name, expression, emit, context):
+    source_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    res_name = context.getIntResName()
+
+    emit(
+        "%s = PyObject_HasAttr( %s, %s );" % (
+            res_name,
+            source_name,
+            context.getConstantCode(
+                constant = expression.getAttributeName()
+            )
+        )
+    )
+
+    getReleaseCode(
+        release_name = source_name,
+        emit         = emit,
+        context      = context
+    )
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
+        to_name   = to_name,
+        condition = "%s != 0" % res_name,
+        emit      = emit
+    )
+
+
 
 def generateBuiltinGetattrCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "BUILTIN_GETATTR",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "BUILTIN_GETATTR",
+        arg_desc         = (
             ("getattr_target", expression.getLookupSource()),
             ("getattr_attr", expression.getAttribute()),
             ("getattr_default", expression.getDefault()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        none_null  = True,
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        none_null        = True,
+        emit             = emit,
+        context          = context
     )
 
 
 def generateBuiltinSetattrCode(to_name, expression, emit, context):
     generateCAPIObjectCode0(
-        to_name    = to_name,
-        capi       = "BUILTIN_SETATTR",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "BUILTIN_SETATTR",
+        arg_desc         = (
             ("setattr_target", expression.getLookupSource()),
             ("setattr_attr", expression.getAttribute()),
             ("setattr_value", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context,
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context,
     )

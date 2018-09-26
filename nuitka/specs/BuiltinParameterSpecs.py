@@ -23,6 +23,7 @@ from __future__ import print_function
 import math
 import sys
 
+from nuitka.__past__ import builtins
 from nuitka.PythonVersions import python_version
 
 from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
@@ -43,7 +44,7 @@ class BuiltinParameterSpec(ParameterSpec):
             ps_kw_only_args  = ()
         )
 
-        self.builtin = __builtins__[name]
+        self.builtin = getattr(builtins, name)
 
         assert default_count <= len(arg_names)
 

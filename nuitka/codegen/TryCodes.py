@@ -296,8 +296,7 @@ def generateTryNextExceptStopIterationCode(statement, emit, context):
     if len(no_statements) != 1:
         return False
 
-    if not no_statements[0].isStatementReraiseException() or \
-       not no_statements[0].isStatementReraiseException():
+    if not no_statements[0].isStatementReraiseException():
         return False
 
     tmp_name = context.allocateTempName("next_source")

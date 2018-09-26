@@ -18,7 +18,6 @@
 #ifndef __NUITKA_UNFREEZING_H__
 #define __NUITKA_UNFREEZING_H__
 
-
 /* Modes for loading modules, can be compiled, external shared library, or
  * bytecode. */
 #define NUITKA_COMPILED_MODULE 0
@@ -27,13 +26,12 @@
 #define NUITKA_BYTECODE_FLAG 4
 
 #if PYTHON_VERSION < 300
-typedef void (*module_initfunc)( void );
+typedef void (*module_initfunc)(void);
 #else
-typedef PyObject * (*module_initfunc)( void );
+typedef PyObject *(*module_initfunc)(void);
 #endif
 
-struct Nuitka_MetaPathBasedLoaderEntry
-{
+struct Nuitka_MetaPathBasedLoaderEntry {
     /* Full module name, including package name. */
     char const *name;
 
@@ -51,7 +49,7 @@ struct Nuitka_MetaPathBasedLoaderEntry
 /* For embedded modules, register the meta path based loader. Used by main
  * program/package only.
  */
-extern void registerMetaPathBasedUnfreezer( struct Nuitka_MetaPathBasedLoaderEntry *loader_entries );
+extern void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *loader_entries);
 
 /* For use as the "__loader__" attribute of compiled modules in newer Python
  * versions.

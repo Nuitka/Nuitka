@@ -23,19 +23,15 @@
 
 timespec diff(timespec start, timespec end);
 
-static timespec getTimespecDiff( timespec start, timespec end )
-{
+static timespec getTimespecDiff(timespec start, timespec end) {
     timespec temp;
 
-    if ( ( end.tv_nsec - start.tv_nsec ) < 0 )
-    {
-        temp.tv_sec = end.tv_sec-start.tv_sec-1;
-        temp.tv_nsec = 1000000000+end.tv_nsec-start.tv_nsec;
-    }
-    else
-    {
-        temp.tv_sec = end.tv_sec-start.tv_sec;
-        temp.tv_nsec = end.tv_nsec-start.tv_nsec;
+    if ((end.tv_nsec - start.tv_nsec) < 0) {
+        temp.tv_sec = end.tv_sec - start.tv_sec - 1;
+        temp.tv_nsec = 1000000000 + end.tv_nsec - start.tv_nsec;
+    } else {
+        temp.tv_sec = end.tv_sec - start.tv_sec;
+        temp.tv_nsec = end.tv_nsec - start.tv_nsec;
     }
 
     return temp;
@@ -46,29 +42,25 @@ static PyObject *vmprof_module;
 
 static timespec time1, time2;
 
-void startProfiling( void )
-{
+void startProfiling(void) {
     tempfile_profile = fopen("nuitka-performance.dat", "wb");
 
     // Might be necessary to import "site" module to find "vmprof", lets just
     // hope we don't suffer too much from that. If we do, what might be done
     // is to try and just have the "PYTHONPATH" from it from out user.
-    PyImport_ImportModule( "site" );
-    vmprof_module = PyImport_ImportModule( "vmprof" );
+    PyImport_ImportModule("site");
+    vmprof_module = PyImport_ImportModule("vmprof");
 
     // Abort if it's not there.
-    if ( vmprof_module == NULL )
-    {
+    if (vmprof_module == NULL) {
         PyErr_Print();
         abort();
     }
 
-    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(
-        PyObject_GetAttrString( vmprof_module, "enable"),
-         PyInt_FromLong( fileno( tempfile_profile ) )
-    );
+    PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(PyObject_GetAttrString(vmprof_module, "enable"),
+                                                     PyInt_FromLong(fileno(tempfile_profile)));
 
-    if ( result == NULL ) {
+    if (result == NULL) {
         PyErr_Print();
         abort();
     }
@@ -76,33 +68,31 @@ void startProfiling( void )
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time1);
 }
 
-void stopProfiling( void )
-{
+void stopProfiling(void) {
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &time2);
 
     // Save the current exception, if any, we must preserve it.
     PyObject *save_exception_type, *save_exception_value;
     PyTracebackObject *save_exception_tb;
-    FETCH_ERROR_OCCURRED( &save_exception_type, &save_exception_value, &save_exception_tb );
+    FETCH_ERROR_OCCURRED(&save_exception_type, &save_exception_value, &save_exception_tb);
 
-    PyObject *result = CALL_FUNCTION_NO_ARGS(
-        PyObject_GetAttrString( vmprof_module, "disable")
-    );
+    PyObject *result = CALL_FUNCTION_NO_ARGS(PyObject_GetAttrString(vmprof_module, "disable"));
 
-    if ( result == NULL ) CLEAR_ERROR_OCCURRED();
+    if (result == NULL)
+        CLEAR_ERROR_OCCURRED();
 
-    fclose( tempfile_profile );
+    fclose(tempfile_profile);
 
-    FILE *tempfile_times = fopen( "nuitka-times.dat", "wb" );
+    FILE *tempfile_times = fopen("nuitka-times.dat", "wb");
 
-    timespec diff = getTimespecDiff( time1, time2 );
+    timespec diff = getTimespecDiff(time1, time2);
 
     long delta_ns = diff.tv_sec * 1000000000 + diff.tv_nsec;
-    fprintf( tempfile_times, "%ld\n", delta_ns);
+    fprintf(tempfile_times, "%ld\n", delta_ns);
 
-    fclose( tempfile_times );
+    fclose(tempfile_times);
 
-    RESTORE_ERROR_OCCURRED( save_exception_type, save_exception_value, save_exception_tb );
+    RESTORE_ERROR_OCCURRED(save_exception_type, save_exception_value, save_exception_tb);
 }
 
 #endif

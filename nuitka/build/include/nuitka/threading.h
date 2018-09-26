@@ -26,40 +26,35 @@ extern volatile int _Py_Ticker;
 #define _Py_CheckInterval 20
 #endif
 
-NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING( void )
-{
+NUITKA_MAY_BE_UNUSED static inline bool CONSIDER_THREADING(void) {
     // Decrease ticker
-    if ( --_Py_Ticker < 0 )
-    {
+    if (--_Py_Ticker < 0) {
         _Py_Ticker = _Py_CheckInterval;
 
         int res = Py_MakePendingCalls();
 
-        if (unlikely( res < 0 && ERROR_OCCURRED() ))
-        {
+        if (unlikely(res < 0 && ERROR_OCCURRED())) {
             return false;
         }
 
         PyThreadState *tstate = PyThreadState_GET();
-        assert( tstate );
+        assert(tstate);
 
-        if ( PyEval_ThreadsInitialized() )
-        {
+        if (PyEval_ThreadsInitialized()) {
             // Release and acquire the GIL, it's very inefficient, because we
             // don't even know if it makes sense to do it. A controlling thread
             // should be used to determine if it's needed at all.
             PyEval_SaveThread();
-            PyEval_AcquireThread( tstate );
+            PyEval_AcquireThread(tstate);
         }
 
-        if (unlikely( tstate->async_exc != NULL ))
-        {
+        if (unlikely(tstate->async_exc != NULL)) {
             PyObject *async_exc = tstate->async_exc;
             tstate->async_exc = NULL;
 
-            Py_INCREF( async_exc );
+            Py_INCREF(async_exc);
 
-            RESTORE_ERROR_OCCURRED( async_exc, NULL, NULL );
+            RESTORE_ERROR_OCCURRED(async_exc, NULL, NULL);
 
             return false;
         }

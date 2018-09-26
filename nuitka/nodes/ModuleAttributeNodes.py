@@ -32,25 +32,27 @@ from .ExpressionBases import ExpressionBase
 class ExpressionModuleAttributeBase(ExpressionBase):
     # Base classes can be abstract, pylint: disable=abstract-method
 
-    __slots__ = ("module",)
+    __slots__ = ("variable",)
 
-    def __init__(self, module, source_ref):
+    def __init__(self, variable, source_ref):
         ExpressionBase.__init__(
             self,
             source_ref = source_ref
         )
 
-        self.module = module
+        self.variable = variable
 
     def finalize(self):
         del self.parent
-        del self.module
+        del self.variable
 
     def getDetails(self):
         return {
-            "module" : self.module
+            "variable" : self.variable
         }
 
+    def getVariable(self):
+        return self.variable
 
     def mayRaiseException(self, exception_type):
         return False
@@ -65,8 +67,8 @@ class ExpressionModuleAttributeFileRef(ExpressionModuleAttributeBase):
         # time, but options may disable that and make it predictable.
         if Options.getFileReferenceMode() != "runtime":
             result = makeConstantRefNode(
-                constant   = self.module.getRunTimeFilename(),
-                source_ref = self.module.getSourceReference()
+                constant   = self.variable.getModule().getRunTimeFilename(),
+                source_ref = self.getSourceReference()
             )
 
             return result, "new_expression", "Using original '__file__' value."
@@ -82,7 +84,7 @@ class ExpressionModuleAttributeNameRef(ExpressionModuleAttributeBase):
 
         if not Options.shallMakeModule():
             result = makeConstantRefNode(
-                constant   = self.module.getFullName(),
+                constant   = self.variable.getModule().getFullName(),
                 source_ref = self.getSourceReference()
             )
 
@@ -98,7 +100,7 @@ class ExpressionModuleAttributePackageRef(ExpressionModuleAttributeBase):
         # For binaries, we can know it definite, but not for modules.
 
         if not Options.shallMakeModule():
-            provider = self.module
+            provider = self.variable.getModule()
 
             if provider.isCompiledPythonPackage():
                 value = provider.getFullName()
@@ -126,7 +128,7 @@ class ExpressionModuleAttributeSpecRef(ExpressionModuleAttributeBase):
     kind = "EXPRESSION_MODULE_ATTRIBUTE_SPEC_REF"
 
     def computeExpressionRaw(self, trace_collection):
-        if self.module.isMainModule():
+        if self.variable.getModule().isMainModule():
             result = makeConstantRefNode(
                 constant   = None,
                 source_ref = self.source_ref

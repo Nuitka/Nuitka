@@ -20,52 +20,41 @@
 
 /* For built-in built-in range() functionality. */
 
-extern PyObject *BUILTIN_RANGE3( PyObject *low, PyObject *high, PyObject *step );
-extern PyObject *BUILTIN_RANGE2( PyObject *low, PyObject *high );
-extern PyObject *BUILTIN_RANGE( PyObject *boundary );
+extern PyObject *BUILTIN_RANGE3(PyObject *low, PyObject *high, PyObject *step);
+extern PyObject *BUILTIN_RANGE2(PyObject *low, PyObject *high);
+extern PyObject *BUILTIN_RANGE(PyObject *boundary);
 
 /* For built-in built-in xrange() functionality. */
 
-extern PyObject *BUILTIN_XRANGE1( PyObject *high );
-extern PyObject *BUILTIN_XRANGE2( PyObject *low, PyObject *high );
-extern PyObject *BUILTIN_XRANGE3( PyObject *low, PyObject *high, PyObject *step );
+extern PyObject *BUILTIN_XRANGE1(PyObject *high);
+extern PyObject *BUILTIN_XRANGE2(PyObject *low, PyObject *high);
+extern PyObject *BUILTIN_XRANGE3(PyObject *low, PyObject *high, PyObject *step);
 
 #if PYTHON_VERSION >= 300
 
 /* Python3 range objects */
 struct _rangeobject3 {
-    PyObject_HEAD
-    PyObject *start;
+    PyObject_HEAD PyObject *start;
     PyObject *stop;
     PyObject *step;
     PyObject *length;
-} ;
+};
 
-NUITKA_MAY_BE_UNUSED static PyObject *PyRange_Start( PyObject *range )
-{
-    return ((struct _rangeobject3 *)range)->start;
-}
+NUITKA_MAY_BE_UNUSED static PyObject *PyRange_Start(PyObject *range) { return ((struct _rangeobject3 *)range)->start; }
 
-NUITKA_MAY_BE_UNUSED static PyObject *PyRange_Stop( PyObject *range )
-{
-    return ((struct _rangeobject3 *)range)->stop;
-}
+NUITKA_MAY_BE_UNUSED static PyObject *PyRange_Stop(PyObject *range) { return ((struct _rangeobject3 *)range)->stop; }
 
-NUITKA_MAY_BE_UNUSED static PyObject *PyRange_Step( PyObject *range )
-{
-    return ((struct _rangeobject3 *)range)->step;
-}
+NUITKA_MAY_BE_UNUSED static PyObject *PyRange_Step(PyObject *range) { return ((struct _rangeobject3 *)range)->step; }
 
 #else
 
 struct _rangeobject2 {
-    PyObject_HEAD
-    long        start;
-    long        step;
-    long        len;
+    PyObject_HEAD long start;
+    long step;
+    long len;
 };
 
-extern PyObject *MAKE_XRANGE( long start, long stop, long step );
+extern PyObject *MAKE_XRANGE(long start, long stop, long step);
 
 #endif
 

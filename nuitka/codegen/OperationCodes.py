@@ -22,9 +22,25 @@ of course types could play into it. Then there is also the added difficulty of
 in-place assignments, which have other operation variants.
 """
 
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    ShapeTypeBytes,
+    ShapeTypeFloat,
+    ShapeTypeInt,
+    ShapeTypeList,
+    ShapeTypeLong,
+    ShapeTypeStr,
+    ShapeTypeTuple,
+    ShapeTypeUnicode
+)
+from nuitka.PythonVersions import python_version
+
 from . import OperatorCodes
-from .CodeHelpers import generateChildExpressionsCode
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
+from .Reports import onMissingHelper
 
 
 def generateOperationBinaryCode(to_name, expression, emit, context):
@@ -34,18 +50,52 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
         context    = context
     )
 
+    # TODO: Decide and use one single spelling, inplace or in_place
     inplace = expression.isInplaceSuspect()
 
     assert not inplace or not expression.getLeft().isCompileTimeConstant(),  \
         expression
 
-    getOperationCode(
+    _getOperationCode(
+        to_name     = to_name,
+        expression  = expression,
+        operator    = expression.getOperator(),
+        arg_names   = (left_arg_name, right_arg_name),
+        in_place    = inplace,
+        needs_check = expression.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
+    )
+
+
+def generateOperationNotCode(to_name, expression, emit, context):
+    arg_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    res_name = context.getIntResName()
+
+    emit(
+         "%s = CHECK_IF_TRUE( %s );" % (
+            res_name,
+            arg_name
+        )
+    )
+
+    getErrorExitBoolCode(
+        condition    = "%s == -1" % res_name,
+        release_name = arg_name,
+        needs_check  = expression.getOperand().mayRaiseExceptionBool(BaseException),
+        emit         = emit,
+        context      = context
+    )
+
+    to_name.getCType().emitAssignmentCodeFromBoolCondition(
         to_name   = to_name,
-        operator  = expression.getOperator(),
-        arg_names = (left_arg_name, right_arg_name),
-        in_place  = inplace,
-        emit      = emit,
-        context   = context
+        condition = "%s == 0" % res_name,
+        emit      = emit
     )
 
 
@@ -56,24 +106,63 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
         context    = context
     )
 
-    inplace = expression.isInplaceSuspect()
-
-    assert not inplace or not expression.getOperand().isCompileTimeConstant(), \
-        expression
-
-    getOperationCode(
-        to_name   = to_name,
-        operator  = expression.getOperator(),
-        arg_names = (arg_name,),
-        in_place  = inplace,
-        emit      = emit,
-        context   = context
+    _getOperationCode(
+        to_name     = to_name,
+        expression  = expression,
+        operator    = expression.getOperator(),
+        arg_names   = (arg_name,),
+        in_place    = False,
+        needs_check = expression.mayRaiseException(BaseException),
+        emit        = emit,
+        context     = context
     )
 
+# TODO: Have these for even more types, esp. long values, construct from the
+# list of keys the helper name automatically.
+_shape_to_helper_code = {
+    ShapeTypeList    : "LIST",
+    ShapeTypeFloat   : "FLOAT",
+    ShapeTypeTuple   : "TUPLE",
+    ShapeTypeUnicode : "UNICODE",
+}
 
-def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
+if python_version < 300:
+    _shape_to_helper_code[ShapeTypeInt] = "INT"
+    _shape_to_helper_code[ShapeTypeStr] = "STR"
+else:
+    _shape_to_helper_code[ShapeTypeLong] = "LONG"
+    _shape_to_helper_code[ShapeTypeBytes] = "BYTES"
+
+_iadd_helpers_set = set(
+    [
+        "BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE",
+
+        "BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_FLOAT_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_INT_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_STR_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE",
+        "BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE",
+
+        "BINARY_OPERATION_ADD_LIST_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_FLOAT_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_TUPLE_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_INT_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_STR_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_LONG_OBJECT_INPLACE",
+        "BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE",
+
+        "BINARY_OPERATION_ADD_LIST_LIST_INPLACE",
+    ]
+)
+
+def _getOperationCode(to_name, expression, operator, arg_names, in_place,
+                      needs_check, emit, context):
     # This needs to have one case per operation of Python, and there are many
-    # of these, pylint: disable=too-many-branches,too-many-statements
+    # of these, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     prefix_args = ()
     ref_count = 1
@@ -87,7 +176,23 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
     elif operator == "Add":
         helper = "BINARY_OPERATION_ADD"
     elif operator == "IAdd" and in_place:
-        helper = "BINARY_OPERATION_ADD_INPLACE"
+        left_shape = expression.getLeft().getTypeShape()
+        right_shape = expression.getRight().getTypeShape()
+
+        left_part = _shape_to_helper_code.get(left_shape, "OBJECT")
+        right_part = _shape_to_helper_code.get(right_shape, "OBJECT")
+
+        ideal_helper = "BINARY_OPERATION_ADD_%s_%s_INPLACE" % (
+            left_part,
+            right_part
+        )
+
+        if ideal_helper not in _iadd_helpers_set:
+            onMissingHelper(ideal_helper)
+
+            helper = "BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE"
+        else:
+            helper = ideal_helper
     elif operator == "IMult" and in_place:
         helper = "BINARY_OPERATION_MUL_INPLACE"
     elif operator == "Sub":
@@ -157,6 +262,7 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
         getErrorExitBoolCode(
             condition     = "%s == false" % res_name,
             release_names = arg_names,
+            needs_check   = needs_check,
             emit          = emit,
             context       = context
         )
@@ -165,24 +271,28 @@ def getOperationCode(to_name, operator, arg_names, in_place, emit, context):
             context.addCleanupTempName(to_name)
 
     else:
-        emit(
-            "%s = %s( %s );" % (
-                to_name,
-                helper,
-                ", ".join(
-                    str(arg_name)
-                    for arg_name in
-                    prefix_args + arg_names
+        with withObjectCodeTemporaryAssignment(to_name, "op_%s_res" % operator.lower(), expression, emit, context) \
+          as value_name:
+
+            emit(
+                "%s = %s( %s );" % (
+                    value_name,
+                    helper,
+                    ", ".join(
+                        str(arg_name)
+                        for arg_name in
+                        prefix_args + arg_names
+                    )
                 )
             )
-        )
 
-        getErrorExitCode(
-            check_name    = to_name,
-            release_names = arg_names,
-            emit          = emit,
-            context       = context
-        )
+            getErrorExitCode(
+                check_name    = value_name,
+                release_names = arg_names,
+                needs_check   = needs_check,
+                emit          = emit,
+                context       = context
+            )
 
-        if ref_count:
-            context.addCleanupTempName(to_name)
+            if ref_count:
+                context.addCleanupTempName(value_name)

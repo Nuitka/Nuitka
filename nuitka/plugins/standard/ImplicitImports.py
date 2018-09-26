@@ -60,6 +60,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         if full_name == "enum":
             return False
 
+        if full_name in ("sip", "PyQt5.sip"):
+            return False
+
         return True
 
 
@@ -78,7 +81,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             if python_version < 300:
                 yield "atexit"
 
+            # These are alternatives now:
+            # TODO: One day it should avoid including both.
             yield "sip"
+            if elements[0] == "PyQt5":
+                yield "PyQt5.sip"
 
             child = elements[1] if len(elements) > 1 else None
 

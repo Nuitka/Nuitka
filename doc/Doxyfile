@@ -819,7 +819,6 @@ INPUT += nuitka/finalizations
 INPUT += nuitka/optimizations
 INPUT += nuitka/utils
 INPUT += nuitka/importing
-INPUT += nuitka/gui
 INPUT += nuitka/freezer
 INPUT += nuitka/plugins
 INPUT += nuitka/plugins/user

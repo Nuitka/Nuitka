@@ -135,6 +135,26 @@ def simpleFunction4():
 
     ai.__anext__().__next__()
 
+
+def simpleFunction5():
+    t = 2
+
+    class C:
+        exec("u=2")
+        x : int = 2
+        y : float = 2.0
+
+        z = x+y+t*u
+
+        rawdata = b"The quick brown fox jumps over the lazy dog.\r\n"
+        # Be slow so we don't depend on other modules
+        rawdata += bytes(range(256))
+
+
+    return C()
+
+
+
 # These need stderr to be wrapped.
 tests_stderr = ()
 

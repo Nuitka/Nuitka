@@ -287,10 +287,7 @@ setup(
             "include/*.h",
             "include/*/*.h",
             "include/*/*/*.h",
-        ] + scons_files,
-        "nuitka.gui" : [
-            "dialogs/*.ui",
-        ],
+        ] + scons_files
     },
 
     # metadata for upload to PyPI

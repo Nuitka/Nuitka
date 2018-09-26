@@ -18,26 +18,19 @@
 #ifndef __NUITKA_MAPPINGS_H__
 #define __NUITKA_MAPPINGS_H__
 
-NUITKA_MAY_BE_UNUSED static int MAPPING_HAS_ITEM( PyObject *mapping, PyObject *key )
-{
-    PyObject *result = PyObject_GetItem( mapping, key );
+NUITKA_MAY_BE_UNUSED static int MAPPING_HAS_ITEM(PyObject *mapping, PyObject *key) {
+    PyObject *result = PyObject_GetItem(mapping, key);
 
-    if ( result == NULL )
-    {
+    if (result == NULL) {
         PyObject *error = GET_ERROR_OCCURRED();
 
-        if ( EXCEPTION_MATCH_BOOL_SINGLE( error, PyExc_KeyError ) )
-        {
+        if (EXCEPTION_MATCH_BOOL_SINGLE(error, PyExc_KeyError)) {
             CLEAR_ERROR_OCCURRED();
             return 0;
-        }
-        else
-        {
+        } else {
             return -1;
         }
-    }
-    else
-    {
+    } else {
         return 1;
     }
 }

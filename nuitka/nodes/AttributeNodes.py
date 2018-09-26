@@ -36,7 +36,10 @@ and annotation is happening in the nodes that implement these compute slots.
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 
-from .ExpressionBases import ExpressionChildrenHavingBase
+from .ExpressionBases import (
+    ExpressionChildHavingBase,
+    ExpressionChildrenHavingBase
+)
 from .NodeBases import StatementChildHavingBase, StatementChildrenHavingBase
 from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 
@@ -406,3 +409,56 @@ class ExpressionBuiltinHasattr(ExpressionChildrenHavingBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
+
+
+class ExpressionAttributeCheck(ExpressionChildHavingBase):
+    kind = "EXPRESSION_ATTRIBUTE_CHECK"
+
+    named_child = "source"
+
+    __slots__ = ("attribute_name",)
+
+    @calledWithBuiltinArgumentNamesDecorator
+    def __init__(self, object_arg, attribute_name, source_ref):
+        ExpressionChildHavingBase.__init__(
+            self,
+            value      = object_arg,
+            source_ref = source_ref
+        )
+
+        self.attribute_name = attribute_name
+
+    getLookupSource = ExpressionChildHavingBase.childGetter("source")
+
+    def computeExpression(self, trace_collection):
+        # We do at least for compile time constants optimization here, but more
+        # could be done, were we to know shapes.
+        source = self.getLookupSource()
+
+        if source.isCompileTimeConstant():
+            result, tags, change_desc = trace_collection.getCompileTimeComputationResult(
+                node        = self,
+                computation = lambda : hasattr(
+                    source.getCompileTimeConstant(),
+                    self.attribute_name
+                ),
+                description = "Attribute check has been pre-computed."
+            )
+
+            # If source has has side effects, they must be evaluated.
+            result = wrapExpressionWithNodeSideEffects(
+                new_node = result,
+                old_node = source
+            )
+
+            return result, tags, change_desc
+
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        return False
+
+    def getAttributeName(self):
+        return self.attribute_name

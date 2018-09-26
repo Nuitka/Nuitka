@@ -248,11 +248,17 @@ def decideRecursion(module_filename, module_name, module_package, module_kind,
             True,
             "Lives in plug-in directory."
         )
-    else:
+
+    if Options.shallMakeModule():
         return (
-            None,
-            "Default behavior, not recursing without request."
+            False,
+            "Making a module, not following any imports by default."
         )
+
+    return (
+        None,
+        "Default behavior, not recursing without request."
+    )
 
 
 def considerFilename(module_filename):

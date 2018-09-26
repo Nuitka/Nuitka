@@ -17,6 +17,13 @@
 #     limitations under the License.
 #
 
+""" Test Nuitka compiling itself and compiling itself in compiled form again.
+
+This should not only give no errors, but the same source for modules being
+compiled when Nuitka is running compiled and uncompiled, so we can discover
+changes in order of execution in this test.
+"""
+
 import difflib
 import os
 import shutil
@@ -56,7 +63,6 @@ PACKAGE_LIST = (
     "nuitka/importing",
     "nuitka/build",
     "nuitka/freezer",
-    "nuitka/gui",
     "nuitka/codegen",
     "nuitka/codegen/templates",
     "nuitka/codegen/c_types",
@@ -68,6 +74,8 @@ PACKAGE_LIST = (
     "nuitka/containers",
     "nuitka/utils",
 )
+
+exe_suffix = ".exe" if os.name == "nt" else ".bin"
 
 def readSource(filename):
     if python_version < "3":
@@ -169,7 +177,6 @@ def executePASS1():
                     os.environ["PYTHON"],
                     nuitka_main_path,
                     "--module",
-                    "--recurse-none",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s" % target_dir,
                     "--no-pyi-file",
@@ -194,7 +201,7 @@ def executePASS1():
     command = [
         os.environ["PYTHON"],
         nuitka_main_path,
-        "--recurse-none",
+        "--nofollow-imports",
         "--plugin-enable=pylint-warnings",
         "--output-dir=.",
         "--python-flag=-S",
@@ -209,7 +216,7 @@ def executePASS1():
     if result != 0:
         sys.exit(result)
 
-    shutil.move("nuitka-runner.exe", "nuitka.exe")
+    shutil.move("nuitka-runner" + exe_suffix, "nuitka" + exe_suffix)
 
     scons_inline_copy_path = os.path.join(
         base_dir,
@@ -273,7 +280,6 @@ def compileAndCompareWith(nuitka):
                 command = [
                     nuitka,
                     "--module",
-                    "--recurse-none",
                     "--plugin-enable=pylint-warnings",
                     "--output-dir=%s"% tmp_dir,
                     "--no-pyi-file",
@@ -310,7 +316,7 @@ def executePASS2():
     if os.name == "nt":
         os.environ["PYTHONPATH"] = ':'.join(PACKAGE_LIST)
 
-    compileAndCompareWith(os.path.join('.', "nuitka.exe"))
+    compileAndCompareWith(os.path.join('.', "nuitka" + exe_suffix))
 
     # Undo the damage from above.
     if os.name == "nt":
@@ -324,7 +330,7 @@ def executePASS3():
         "PASS 3: Compiling from compiler running from .py files to single .exe."
     )
 
-    exe_path = os.path.join(tmp_dir, "nuitka.exe")
+    exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
 
     if os.path.exists(exe_path):
         os.unlink(exe_path)
@@ -344,7 +350,7 @@ def executePASS3():
         path,
         "--output-dir=%s" % tmp_dir,
         "--python-flag=-S",
-        "--recurse-all"
+        "--follow-imports"
     ]
     result = subprocess.call(
         command
@@ -361,7 +367,7 @@ def executePASS3():
 def executePASS4():
     my_print("PASS 4: Compiling the compiler running from single exe.")
 
-    exe_path = os.path.join(tmp_dir, "nuitka.exe")
+    exe_path = os.path.join(tmp_dir, "nuitka" + exe_suffix)
 
     compileAndCompareWith(exe_path)
 
@@ -380,11 +386,11 @@ def executePASS5():
         nuitka_main_path,
         "--plugin-enable=pylint-warnings",
         "--output-dir=%s" % tmp_dir,
-        "--recurse-all",
-        "--recurse-not-to=PyQt5",
-        "--recurse-not-to=nuitka.build.inline_copy",
-        "--recurse-not-to=nuitka.build.include",
-        "--recurse-dir=%s" % path,
+        "--include-plugin-dir=%s" % path,
+        "--follow-imports",
+        "--nofollow-import-to=nuitka.build.inline_copy",
+        "--nofollow-import-to=nuitka.build.include",
+        "--nofollow-import-to=nuitka.build.static_src",
         "--module",
         path
 
@@ -421,5 +427,5 @@ shutil.rmtree("nuitka")
 
 executePASS5()
 
-os.unlink(os.path.join(tmp_dir, "nuitka.exe"))
+os.unlink(os.path.join(tmp_dir, "nuitka" + exe_suffix))
 os.rmdir(tmp_dir)

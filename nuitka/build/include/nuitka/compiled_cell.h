@@ -24,48 +24,40 @@
 
 extern PyTypeObject Nuitka_Cell_Type;
 
-static inline bool Nuitka_Cell_Check( PyObject *object )
-{
-    return Py_TYPE( object ) == &Nuitka_Cell_Type;
-}
+static inline bool Nuitka_Cell_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Cell_Type; }
 
-struct Nuitka_CellObject
-{
-    PyObject_HEAD
-    PyObject *ob_ref;   /* Content of the cell or NULL when empty */
+struct Nuitka_CellObject {
+    PyObject_HEAD PyObject *ob_ref; /* Content of the cell or NULL when empty */
 };
 
-extern struct Nuitka_CellObject *Nuitka_Cell_New( void );
+extern struct Nuitka_CellObject *Nuitka_Cell_New(void);
 
-extern void Nuitka_Cells_New( struct Nuitka_CellObject **closure, int count );
+extern void Nuitka_Cells_New(struct Nuitka_CellObject **closure, int count);
 
-NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_NEW0( PyObject *value )
-{
-    CHECK_OBJECT( value );
+NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_NEW0(PyObject *value) {
+    CHECK_OBJECT(value);
 
     struct Nuitka_CellObject *result = Nuitka_Cell_New();
-    assert( result != NULL );
+    assert(result != NULL);
 
     result->ob_ref = value;
-    Py_INCREF( value );
+    Py_INCREF(value);
 
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_NEW1( PyObject *value )
-{
-    CHECK_OBJECT( value );
+NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_NEW1(PyObject *value) {
+    CHECK_OBJECT(value);
 
     struct Nuitka_CellObject *result = Nuitka_Cell_New();
-    assert( result != NULL );
+    assert(result != NULL);
 
     result->ob_ref = value;
 
     return result;
 }
 
-NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_EMPTY( void )
-{
+NUITKA_MAY_BE_UNUSED static struct Nuitka_CellObject *PyCell_EMPTY(void) {
     struct Nuitka_CellObject *result = Nuitka_Cell_New();
     result->ob_ref = NULL;
 

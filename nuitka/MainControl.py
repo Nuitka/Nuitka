@@ -54,7 +54,7 @@ from nuitka.utils.FileOperations import (
 
 from . import ModuleRegistry, Options, TreeXML
 from .build import SconsInterface
-from .codegen import CodeGeneration, ConstantCodes
+from .codegen import CodeGeneration, ConstantCodes, Reports
 from .finalizations import Finalization
 from .freezer.BytecodeModuleFreezer import generateBytecodeFrozenCode
 from .freezer.Standalone import copyUsedDLLs, detectEarlyImports
@@ -167,14 +167,6 @@ def dumpTreeXML(tree):
     TreeXML.dump(xml_root)
 
 
-def displayTree(tree): # pragma: no cover
-    # Import only locally so the Qt4 dependency doesn't normally come into play
-    # when it's not strictly needed.
-    from .gui import TreeDisplay
-
-    TreeDisplay.displayTreeInspector(tree)
-
-
 def getTreeFilenameWithSuffix(tree, suffix):
     return tree.getOutputFilename() + suffix
 
@@ -216,12 +208,21 @@ def getResultBasepath(main_module):
 
 
 def getResultFullpath(main_module):
+    """ Get the final output binary result full path.
+
+    """
+
     result = getResultBasepath(main_module)
 
     if Options.shallMakeModule():
         result += Utils.getSharedLibrarySuffix()
     else:
-        result += ".exe"
+        if Options.getOutputFilename() is not None:
+            result = Options.getOutputFilename()
+        elif Utils.getOS() == "Windows":
+            result += ".exe"
+        elif not Options.isStandaloneMode():
+            result += ".bin"
 
     return result
 
@@ -476,7 +477,8 @@ def _asBoolStr(value):
 
 def runScons(main_module, quiet):
     # Scons gets transported many details, that we express as variables, and
-    # have checks for them, leading to many branches, pylint: disable=too-many-branches
+    # have checks for them, leading to many branches and statements,
+    # pylint: disable=too-many-branches,too-many-statements
 
     options = {
         "name"            : os.path.basename(
@@ -502,6 +504,9 @@ def runScons(main_module, quiet):
             len(ModuleRegistry.getUncompiledNonTechnicalModules())
         )
     }
+
+    if not Options.shallMakeModule():
+        options["result_exe"] = getResultFullpath(main_module)
 
     # Ask Scons to cache on Windows, except where the directory is thrown
     # away. On non-Windows you can should use ccache instead.
@@ -530,7 +535,7 @@ def runScons(main_module, quiet):
     if Options.isShowScons():
         options["show_scons"] = "true"
 
-    if Options.isMingw():
+    if Options.isMingw64():
         options["mingw_mode"] = "true"
 
     if Options.getMsvcVersion():
@@ -706,6 +711,9 @@ def compileTree(main_module):
     if Options.isShowMemory():
         InstanceCounters.printStats()
 
+    if Options.isDebug():
+        Reports.doMissingOptimizationReport()
+
     if Options.shallNotDoExecCCompilerCall():
         return True, {}
 
@@ -724,8 +732,7 @@ def handleSyntaxError(e):
     # versions he wants, tell him about the potential version problem.
     error_message = SyntaxErrors.formatOutput(e)
 
-    if not Options.isFullCompat() and \
-       Options.getIntendedPythonVersion() is None:
+    if not Options.isFullCompat():
         if python_version < 300:
             suggested_python_version_str = getSupportedPythonVersions()[-1]
         else:
@@ -791,12 +798,9 @@ def main():
         handleSyntaxError(e)
 
     if Options.shallDumpBuiltTreeXML():
-        # XML only.
+        # XML output only.
         for module in ModuleRegistry.getDoneModules():
             dumpTreeXML(module)
-    elif Options.shallDisplayBuiltTree():
-        # GUI only.
-        displayTree(main_module)
     else:
         # Make the actual compilation.
         result, options = compileTree(
@@ -814,7 +818,7 @@ def main():
             sys.exit(0)
 
         if Options.isStandaloneMode():
-            binary_filename = options["result_name"] + ".exe"
+            binary_filename = options["result_exe"]
 
             standalone_entry_points.insert(
                 0,
@@ -865,7 +869,7 @@ def main():
             )
 
         # Modules should not be executable, but Scons creates them like it, fix
-        # it up here.
+        # it up here. TODO: Move inside scons file and avoid subprocess call.
         if Utils.getOS() != "Windows" and Options.shallMakeModule():
             subprocess.call(
                 (

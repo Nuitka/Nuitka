@@ -21,7 +21,10 @@
 
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateExpressionCode
+from .CodeHelpers import (
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
 from .templates.CodeTemplatesExceptions import (
     template_publish_exception_to_handler
 )
@@ -39,15 +42,15 @@ def getExceptionIdentifier(exception_type):
 def generateExceptionRefCode(to_name, expression, emit, context):
     exception_type = expression.getExceptionName()
 
-    emit(
-        "%s = %s;" % (
-            to_name,
-            getExceptionIdentifier(exception_type),
-        )
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "exception_name", expression, emit, context) \
+      as value_name:
 
-    # Lets have context in the API for consistency with everything else.
-    assert context
+        emit(
+            "%s = %s;" % (
+                value_name,
+                getExceptionIdentifier(exception_type),
+            )
+        )
 
 
 def getTracebackMakingIdentifier(context, lineno_name):
@@ -61,71 +64,71 @@ def getTracebackMakingIdentifier(context, lineno_name):
 
 
 def generateExceptionCaughtTypeCode(to_name, expression, emit, context):
-    # Functions used for generation all accept expression, but this one does
-    # not use it. pylint: disable=unused-argument
-
     keeper_variables = context.getExceptionKeeperVariables()
 
-    if keeper_variables[0] is None:
-        emit(
-            "%s = EXC_TYPE(PyThreadState_GET());" % (
-                to_name,
-            )
-        )
-    else:
-        emit(
-            "%s = %s;" % (
-                to_name,
-                keeper_variables[0]
-            )
-        )
+    with withObjectCodeTemporaryAssignment(to_name, "exception_caught_type", expression, emit, context) \
+      as value_name:
 
-
-def generateExceptionCaughtValueCode(to_name, expression, emit, context):
-    # Functions used for generation all accept expression, but this one does
-    # not use it. pylint: disable=unused-argument
-
-    keeper_variables = context.getExceptionKeeperVariables()
-
-    if keeper_variables[1] is None:
-        emit(
-            "%s = EXC_VALUE(PyThreadState_GET());" % (
-                to_name,
-            )
-        )
-    else:
-        if python_version >= 270:
+        if keeper_variables[0] is None:
             emit(
-                "%s = %s;" % (
-                    to_name,
-                    keeper_variables[1]
+                "%s = EXC_TYPE(PyThreadState_GET());" % (
+                    value_name,
                 )
             )
         else:
             emit(
-                "%s = %s ? %s : Py_None;" % (
-                    to_name,
-                    keeper_variables[1],
-                    keeper_variables[1]
+                "%s = %s;" % (
+                    value_name,
+                    keeper_variables[0]
                 )
             )
 
 
-def generateExceptionCaughtTracebackCode(to_name, expression, emit, context):
-    # Functions used for generation all accept expression, but this one does
-    # not use it. pylint: disable=unused-argument
-
+def generateExceptionCaughtValueCode(to_name, expression, emit, context):
     keeper_variables = context.getExceptionKeeperVariables()
 
-    if keeper_variables[2] is None:
-        emit(
-            "%s = EXC_TRACEBACK(PyThreadState_GET());" % (
-                to_name,
+    with withObjectCodeTemporaryAssignment(to_name, "exception_caught_value", expression, emit, context) \
+      as value_name:
+
+        if keeper_variables[1] is None:
+            emit(
+                "%s = EXC_VALUE(PyThreadState_GET());" % (
+                    value_name,
+                )
             )
-        )
-    else:
-        emit(
-            """\
+        else:
+            if python_version >= 270:
+                emit(
+                    "%s = %s;" % (
+                        value_name,
+                        keeper_variables[1]
+                    )
+                )
+            else:
+                emit(
+                    "%s = %s ? %s : Py_None;" % (
+                        value_name,
+                        keeper_variables[1],
+                        keeper_variables[1]
+                    )
+                )
+
+
+def generateExceptionCaughtTracebackCode(to_name, expression, emit, context):
+    keeper_variables = context.getExceptionKeeperVariables()
+
+    with withObjectCodeTemporaryAssignment(to_name, "exception_caught_tb", expression, emit, context) \
+      as value_name:
+
+        if keeper_variables[2] is None:
+            emit(
+                "%s = EXC_TRACEBACK(PyThreadState_GET());" % (
+                    value_name,
+                )
+            )
+        else:
+            emit(
+                """\
 if ( %(keeper_tb)s != NULL )
 {
     %(to_name)s = (PyObject *)%(keeper_tb)s;
@@ -136,16 +139,16 @@ else
     %(to_name)s = (PyObject *)%(tb_making)s;
 }
 """ % {
-                "to_name"   : to_name,
-                "keeper_tb" : keeper_variables[2],
-                "tb_making" : getTracebackMakingIdentifier(
-                                 context     = context,
-                                 lineno_name = keeper_variables[3]
-                              )
-            }
-        )
+                    "to_name"   : value_name,
+                    "keeper_tb" : keeper_variables[2],
+                    "tb_making" : getTracebackMakingIdentifier(
+                                     context     = context,
+                                     lineno_name = keeper_variables[3]
+                                  )
+                }
+            )
 
-        context.addCleanupTempName(to_name)
+            context.addCleanupTempName(value_name)
 
 
 def getExceptionUnpublishedReleaseCode(emit, context):
@@ -221,21 +224,24 @@ def generateBuiltinMakeExceptionCode(to_name, expression, emit, context):
 
     exception_type = expression.getExceptionName()
 
-    if exception_arg_names:
-        getCallCodePosArgsQuick(
-            to_name     = to_name,
-            called_name = getExceptionIdentifier(exception_type),
-            arg_names   = exception_arg_names,
-            needs_check = False,
-            emit        = emit,
-            context     = context
-        )
+    with withObjectCodeTemporaryAssignment(to_name, "exception_made", expression, emit, context) \
+      as value_name:
 
-    else:
-        getCallCodeNoArgs(
-            to_name     = to_name,
-            called_name = getExceptionIdentifier(exception_type),
-            needs_check = False,
-            emit        = emit,
-            context     = context
-        )
+        if exception_arg_names:
+            getCallCodePosArgsQuick(
+                to_name     = value_name,
+                called_name = getExceptionIdentifier(exception_type),
+                arg_names   = exception_arg_names,
+                needs_check = False,
+                emit        = emit,
+                context     = context
+            )
+
+        else:
+            getCallCodeNoArgs(
+                to_name     = value_name,
+                called_name = getExceptionIdentifier(exception_type),
+                needs_check = False,
+                emit        = emit,
+                context     = context
+            )

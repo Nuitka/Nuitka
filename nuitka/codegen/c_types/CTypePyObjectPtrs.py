@@ -20,11 +20,7 @@
 """
 
 
-from nuitka.codegen.ErrorCodes import (
-    getAssertionCode,
-    getCheckObjectCode,
-    getLocalVariableReferenceErrorCode
-)
+from nuitka.codegen.ErrorCodes import getCheckObjectCode, getErrorExitBoolCode
 from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_del_local_intolerant,
     template_del_local_known,
@@ -32,8 +28,6 @@ from nuitka.codegen.templates.CodeTemplatesVariables import (
     template_del_shared_intolerant,
     template_del_shared_known,
     template_del_shared_tolerant,
-    template_read_local,
-    template_read_shared_unclear,
     template_release_clear,
     template_release_unclear,
     template_write_local_clear_ref0,
@@ -55,8 +49,8 @@ from .CTypeBases import CTypeBase
 
 class CPythonPyObjectPtrBase(CTypeBase):
     @classmethod
-    def getLocalVariableAssignCode(cls, variable_code_name, needs_release,
-                                   tmp_name, ref_count, in_place):
+    def emitVariableAssignCode(cls, value_name, needs_release, tmp_name,
+                               ref_count, in_place, emit, context):
         if in_place:
             # Releasing is not an issue here, local variable reference never
             # gave a reference, and the in-place code deals with possible
@@ -78,37 +72,34 @@ class CPythonPyObjectPtrBase(CTypeBase):
                 else:
                     template = template_write_local_unclear_ref1
 
-        return template % {
-            "identifier" : variable_code_name,
-            "tmp_name"   : tmp_name
-        }
-
-
-
-    @classmethod
-    def getVariableObjectAccessCode(cls, to_name, needs_check, variable_code_name,
-                                    variable, emit, context):
-        template = template_read_local
-
         emit(
             template % {
-                "tmp_name"   : to_name,
-                "identifier" : cls.getLocalVariableObjectAccessCode(variable_code_name)
+                "identifier" : value_name,
+                "tmp_name"   : tmp_name
             }
         )
 
+    @classmethod
+    def getTruthCheckCode(cls, value_name):
+        return "CHECK_IF_TRUE( %s )" % value_name
+
+    @classmethod
+    def emitTruthCheckCode(cls, to_name, value_name, needs_check, emit, context):
+        emit(
+            "%s = CHECK_IF_TRUE( %s );" % (
+                to_name,
+                value_name
+            )
+        )
+
         if needs_check:
-            getLocalVariableReferenceErrorCode(
-                variable  = variable,
-                condition = "%s == NULL" % to_name,
-                emit      = emit,
-                context   = context
+            getErrorExitBoolCode(
+                condition   = "%s == -1" % to_name,
+                needs_check = needs_check,
+                emit        = emit,
+                context     = context
             )
-        else:
-            getCheckObjectCode(
-                check_name = to_name,
-                emit       = emit
-            )
+
 
     @classmethod
     def getReleaseCode(cls, variable_code_name, needs_check, emit):
@@ -122,6 +113,48 @@ class CPythonPyObjectPtrBase(CTypeBase):
                 "identifier" : variable_code_name
             }
         )
+
+    @classmethod
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        emit(
+            "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % {
+                "to_name"   : to_name,
+                "condition" : condition
+            }
+        )
+
+
+    @classmethod
+    def emitAssignmentCodeToNuitkaBool(cls, to_name, value_name, needs_check, emit, context):
+        if needs_check:
+            truth_name = context.allocateTempName("truth_name", "int")
+
+            emit(
+                "%s = CHECK_IF_TRUE( %s );" % (
+                    truth_name,
+                    value_name
+                )
+            )
+
+            getErrorExitBoolCode(
+                condition   = "%s == -1" % truth_name,
+                emit        = emit,
+                context     = context,
+                needs_check = True
+            )
+
+            emit(
+                "%s = %s == 1 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % (
+                    to_name,
+                    truth_name
+                )
+            )
+        else:
+            cls.emitAssignmentCodeFromBoolCondition(
+                to_name   = to_name,
+                condition = "%s == 1",
+                emit      = emit
+            )
 
 
 class CTypePyObjectPtr(CPythonPyObjectPtrBase):
@@ -143,15 +176,11 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         return "&%s" % variable_code_name
 
     @classmethod
-    def getLocalVariableObjectAccessCode(cls, variable_code_name):
-        """ Code to access value as object.
-
-        """
-        return variable_code_name
-
-    @classmethod
-    def getLocalVariableInitTestCode(cls, variable_code_name):
-        return "%s != NULL" % variable_code_name
+    def getLocalVariableInitTestCode(cls, value_name, inverted):
+        return "%s %s NULL" % (
+            value_name,
+            "==" if inverted else "!="
+        )
 
     @classmethod
     def getCellObjectAssignmentCode(cls, target_cell_code, variable_code_name, emit):
@@ -163,42 +192,68 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
         )
 
     @classmethod
-    def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,
-                            variable, emit, context):
+    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
+                            emit, context):
         if not needs_check:
             emit(
                 template_del_local_known % {
-                    "identifier" : variable_code_name
+                    "identifier" : value_name
                 }
             )
         elif tolerant:
             emit(
                 template_del_local_tolerant % {
-                    "identifier" : variable_code_name
+                    "identifier" : value_name
                 }
             )
         else:
-            res_name = context.getBoolResName()
-
             emit(
                 template_del_local_intolerant % {
-                    "identifier" : variable_code_name,
-                    "result" : res_name
+                    "identifier" : value_name,
+                    "result"     : to_name
                 }
             )
 
-            if variable.isLocalVariable():
-                getLocalVariableReferenceErrorCode(
-                    variable  = variable,
-                    condition = "%s == false" % res_name,
-                    emit      = emit,
-                    context   = context
+    @classmethod
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        emit(
+            "%(to_name)s = ( %(condition)s ) ? Py_True : Py_False;" % {
+                "to_name"   : to_name,
+                "condition" : condition
+            }
+        )
+
+    @classmethod
+    def emitValueAccessCode(cls, value_name, emit, context):
+        # Nothing to do for this type, pylint: disable=unused-argument
+        return value_name
+
+    @classmethod
+    def emitValueAssertionCode(cls, value_name, emit, context):
+        # Not using the context, pylint: disable=unused-argument
+        getCheckObjectCode(
+            check_name = value_name,
+            emit       = emit
+        )
+
+    @classmethod
+    def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
+        # Nothing done for this type yet, pylint: disable=unused-argument
+        if value_name.c_type == cls.c_type:
+            emit(
+                "%s = %s;" % (
+                    to_name,
+                    value_name
                 )
-            else:
-                getAssertionCode(
-                    check = "%s != false" % res_name,
-                    emit  = emit
-                )
+            )
+        elif value_name.c_type == "nuitka_bool":
+            cls.emitAssignmentCodeFromBoolCondition(
+                condition = value_name.getCType().getTruthCheckCode(value_name),
+                to_name   = to_name,
+                emit      = emit
+            )
+        else:
+            assert False, to_name.c_type
 
 
 class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
@@ -213,12 +268,33 @@ class CTypePyObjectPtrPtr(CPythonPyObjectPtrBase):
         return variable_code_name
 
     @classmethod
-    def getLocalVariableObjectAccessCode(cls, variable_code_name):
-        return "*%s" % variable_code_name
+    def emitValueAccessCode(cls, value_name, emit, context):
+        # No code needed for this type, pylint: disable=unused-argument
+        from ..VariableDeclarations import VariableDeclaration
+
+        # Use the object pointed to.
+        return VariableDeclaration(
+            "PyObject *",
+            "*%s" % value_name,
+            None,
+            None
+        )
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, variable_code_name):
-        return "*%s != NULL" % variable_code_name
+    def getLocalVariableInitTestCode(cls, value_name, inverted):
+        return "*%s %s NULL" % (
+            value_name,
+            "==" if inverted else "!="
+        )
+
+    @classmethod
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        emit(
+            "*%(to_name)s = ( %(condition)s ) ? Py_True : Py_False;" % {
+                "to_name" : to_name,
+                "condition" : condition
+            }
+        )
 
 
 class CTypeCellObject(CTypeBase):
@@ -249,8 +325,8 @@ class CTypeCellObject(CTypeBase):
         )
 
     @classmethod
-    def getLocalVariableAssignCode(cls, variable_code_name, needs_release,
-                                   tmp_name, ref_count, in_place):
+    def emitVariableAssignCode(cls, value_name, needs_release, tmp_name,
+                               ref_count, in_place, emit, context):
         if in_place:
             # Releasing is not an issue here, local variable reference never
             # gave a reference, and the in-place code deals with possible
@@ -269,35 +345,25 @@ class CTypeCellObject(CTypeBase):
                 else:
                     template = template_write_shared_unclear_ref1
 
-        return template % {
-            "identifier" : variable_code_name,
-            "tmp_name"   : tmp_name
-        }
-
-    @classmethod
-    def getVariableObjectAccessCode(cls, to_name, needs_check, variable_code_name,
-                                    variable, emit, context):
-        template = template_read_shared_unclear
-
         emit(
             template % {
-                "tmp_name"   : to_name,
-                "identifier" : variable_code_name
+                "identifier" : value_name,
+                "tmp_name"   : tmp_name
             }
         )
 
-        if needs_check:
-            getLocalVariableReferenceErrorCode(
-                variable  = variable,
-                condition = "%s == NULL" % to_name,
-                emit      = emit,
-                context   = context
-            )
-        else:
-            getCheckObjectCode(
-                check_name = to_name,
-                emit       = emit
-            )
+    @classmethod
+    def emitValueAccessCode(cls, value_name, emit, context):
+        # No code needed for this type, pylint: disable=unused-argument
+        from ..VariableDeclarations import VariableDeclaration
+
+        # Use the object pointed to.
+        return VariableDeclaration(
+            "PyObject *",
+            "PyCell_GET( %s )" % value_name,
+            None,
+            None
+        )
 
     @classmethod
     def getVariableArgDeclarationCode(cls, variable_code_name):
@@ -308,51 +374,43 @@ class CTypeCellObject(CTypeBase):
         return variable_code_name
 
     @classmethod
-    def getLocalVariableObjectAccessCode(cls,variable_code_name):
-        return "%s->ob_ref" % variable_code_name
+    def getLocalVariableInitTestCode(cls, value_name, inverted):
+        return "%s->ob_ref %s NULL" % (
+            value_name,
+            "==" if inverted else "!="
+        )
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, variable_code_name):
-        return "%s->ob_ref != NULL" % variable_code_name
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        emit(
+            "%(to_name)s->ob_ref = ( %(condition)s ) ? Py_True : Py_False;" % {
+                "to_name" : to_name,
+                "condition" : condition
+            }
+        )
 
     @classmethod
-    def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,
-                            variable, emit, context):
+    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
+                            emit, context):
         if not needs_check:
             emit(
                 template_del_shared_known % {
-                    "identifier" : variable_code_name
+                    "identifier" : value_name
                 }
             )
         elif tolerant:
             emit(
                 template_del_shared_tolerant % {
-                    "identifier" : variable_code_name
+                    "identifier" : value_name
                 }
             )
         else:
-            res_name = context.getBoolResName()
-
             emit(
                 template_del_shared_intolerant % {
-                    "identifier" : variable_code_name,
-                    "result" : res_name
+                    "identifier" : value_name,
+                    "result"     : to_name
                 }
             )
-
-
-            if variable.isLocalVariable():
-                getLocalVariableReferenceErrorCode(
-                    variable  = variable,
-                    condition = "%s == false" % res_name,
-                    emit      = emit,
-                    context   = context
-                )
-            else:
-                getAssertionCode(
-                    check = "%s != false" % res_name,
-                    emit  = emit
-                )
 
     @classmethod
     def getReleaseCode(cls, variable_code_name, needs_check, emit):

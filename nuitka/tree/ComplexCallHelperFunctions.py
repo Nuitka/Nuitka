@@ -24,8 +24,8 @@ from nuitka.nodes.AssignNodes import (
     StatementReleaseVariable
 )
 from nuitka.nodes.AttributeNodes import (
-    ExpressionAttributeLookup,
-    ExpressionBuiltinHasattr
+    ExpressionAttributeCheck,
+    ExpressionAttributeLookup
 )
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
@@ -381,21 +381,21 @@ def _makeStarListArgumentToTupleStatement(called_variable,
     if python_version >= 350:
         non_tuple_code = makeStatementConditional(
             condition  = ExpressionConditionalOR(
-                left       = ExpressionBuiltinHasattr(
-                    object_arg = ExpressionVariableRef(
+                left       = ExpressionAttributeCheck(
+                    object_arg     = ExpressionVariableRef(
                         variable   = star_list_variable,
                         source_ref = internal_source_ref
                     ),
-                    name       = makeConstantRefNode("__iter__", internal_source_ref),
-                    source_ref = internal_source_ref
+                    attribute_name = "__iter__",
+                    source_ref     = internal_source_ref
                 ),
-                right      = ExpressionBuiltinHasattr(
-                    object_arg = ExpressionVariableRef(
+                right      = ExpressionAttributeCheck(
+                    object_arg     = ExpressionVariableRef(
                         variable   = star_list_variable,
                         source_ref = internal_source_ref
                     ),
-                    name       = makeConstantRefNode("__getitem__", internal_source_ref),
-                    source_ref = internal_source_ref
+                    attribute_name = "__getitem__",
+                    source_ref     = internal_source_ref
                 ),
                 source_ref = internal_source_ref
             ),

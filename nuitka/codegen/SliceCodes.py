@@ -29,7 +29,8 @@ from nuitka.PythonVersions import python_version
 from .CodeHelpers import (
     generateChildExpressionsCode,
     generateExpressionCode,
-    generateExpressionsCode
+    generateExpressionsCode,
+    withObjectCodeTemporaryAssignment
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .IndexCodes import (
@@ -40,7 +41,7 @@ from .IndexCodes import (
 )
 
 
-def generateSliceRangeIdentifier(lower, upper, scope, emit, context):
+def _generateSliceRangeIdentifier(lower, upper, scope, emit, context):
     lower_name = context.allocateTempName(
         scope + "slicedel_index_lower",
         "Py_ssize_t"
@@ -128,7 +129,7 @@ def generateSliceLookupCode(to_name, expression, emit, context):
     upper = expression.getUpper()
 
     if _decideSlicing(lower, upper):
-        lower_name, upper_name = generateSliceRangeIdentifier(
+        lower_name, upper_name = _generateSliceRangeIdentifier(
             lower   = lower,
             upper   = upper,
             scope   = "slice",
@@ -145,14 +146,17 @@ def generateSliceLookupCode(to_name, expression, emit, context):
             context    = context
         )
 
-        getSliceLookupIndexesCode(
-            to_name     = to_name,
-            source_name = source_name,
-            lower_name  = lower_name,
-            upper_name  = upper_name,
-            emit        = emit,
-            context     = context
-        )
+        with withObjectCodeTemporaryAssignment(to_name, "slice_result", expression, emit, context) \
+          as result_name:
+
+            _getSliceLookupIndexesCode(
+                to_name     = result_name,
+                source_name = source_name,
+                lower_name  = lower_name,
+                upper_name  = upper_name,
+                emit        = emit,
+                context     = context
+            )
     else:
         source_name, lower_name, upper_name = generateExpressionsCode(
             names       = ("slice_source", "slice_lower", "slice_upper"),
@@ -165,14 +169,16 @@ def generateSliceLookupCode(to_name, expression, emit, context):
             context     = context
         )
 
-        getSliceLookupCode(
-            to_name     = to_name,
-            source_name = source_name,
-            lower_name  = lower_name,
-            upper_name  = upper_name,
-            emit        = emit,
-            context     = context
-        )
+        with withObjectCodeTemporaryAssignment(to_name, "slice_result", expression, emit, context) \
+          as result_name:
+            _getSliceLookupCode(
+                to_name     = result_name,
+                source_name = source_name,
+                lower_name  = lower_name,
+                upper_name  = upper_name,
+                emit        = emit,
+                context     = context
+            )
 
 
 def generateAssignmentSliceCode(statement, emit, context):
@@ -201,9 +207,8 @@ def generateAssignmentSliceCode(statement, emit, context):
         context    = context
     )
 
-
     if _decideSlicing(lower, upper):
-        lower_name, upper_name = generateSliceRangeIdentifier(
+        lower_name, upper_name = _generateSliceRangeIdentifier(
             lower   = lower,
             upper   = upper,
             scope   = "sliceass",
@@ -217,7 +222,7 @@ def generateAssignmentSliceCode(statement, emit, context):
             statement.getSourceReference()
         )
 
-        getSliceAssignmentIndexesCode(
+        _getSliceAssignmentIndexesCode(
             target_name = target_name,
             lower_name  = lower_name,
             upper_name  = upper_name,
@@ -246,7 +251,7 @@ def generateAssignmentSliceCode(statement, emit, context):
             statement.getSourceReference()
         )
 
-        getSliceAssignmentCode(
+        _getSliceAssignmentCode(
             target_name = target_name,
             upper_name  = upper_name,
             lower_name  = lower_name,
@@ -275,7 +280,7 @@ def generateDelSliceCode(statement, emit, context):
     )
 
     if _decideSlicing(lower, upper):
-        lower_name, upper_name = generateSliceRangeIdentifier(
+        lower_name, upper_name = _generateSliceRangeIdentifier(
             lower   = lower,
             upper   = upper,
             scope   = "slicedel",
@@ -289,7 +294,7 @@ def generateDelSliceCode(statement, emit, context):
             statement.getSourceReference()
         )
 
-        getSliceDelIndexesCode(
+        _getSliceDelIndexesCode(
             target_name = target_name,
             lower_name  = lower_name,
             upper_name  = upper_name,
@@ -317,7 +322,7 @@ def generateDelSliceCode(statement, emit, context):
             statement.getSourceReference()
         )
 
-        getSliceDelCode(
+        _getSliceDelCode(
             target_name = target_name,
             lower_name  = lower_name,
             upper_name  = upper_name,
@@ -328,9 +333,6 @@ def generateDelSliceCode(statement, emit, context):
         context.setCurrentSourceCodeReference(old_source_ref)
 
 
-
-
-
 def generateBuiltinSliceCode(to_name, expression, emit, context):
     lower_name, upper_name, step_name = generateChildExpressionsCode(
         expression = expression,
@@ -338,29 +340,30 @@ def generateBuiltinSliceCode(to_name, expression, emit, context):
         context    = context
     )
 
-    emit(
-        "%s = MAKE_SLICEOBJ3( %s, %s, %s );" % (
-            to_name,
-            lower_name if lower_name is not None else "Py_None",
-            upper_name if upper_name is not None else "Py_None",
-            step_name if step_name is not None else "Py_None",
+    with withObjectCodeTemporaryAssignment(to_name, "sliceobj_value", expression, emit, context) \
+      as result_name:
+        emit(
+            "%s = MAKE_SLICEOBJ3( %s, %s, %s );" % (
+                result_name,
+                lower_name if lower_name is not None else "Py_None",
+                upper_name if upper_name is not None else "Py_None",
+                step_name if step_name is not None else "Py_None",
+            )
         )
-    )
 
-    getErrorExitCode(
-        check_name    = to_name,
-        release_names = (lower_name, upper_name, step_name),
-        needs_check   = False, # Note: Cannot fail
-        emit          = emit,
-        context       = context
-    )
+        getErrorExitCode(
+            check_name    = result_name,
+            release_names = (lower_name, upper_name, step_name),
+            needs_check   = False, # Note: Cannot fail
+            emit          = emit,
+            context       = context
+        )
 
-
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)
 
 
-def getSliceLookupCode(to_name, source_name, lower_name, upper_name, emit,
-                       context):
+def _getSliceLookupCode(to_name, source_name, lower_name, upper_name, emit,
+                        context):
     emit(
         "%s = LOOKUP_SLICE( %s, %s, %s );" % (
             to_name,
@@ -380,8 +383,8 @@ def getSliceLookupCode(to_name, source_name, lower_name, upper_name, emit,
     context.addCleanupTempName(to_name)
 
 
-def getSliceLookupIndexesCode(to_name, lower_name, upper_name, source_name,
-                              emit, context):
+def _getSliceLookupIndexesCode(to_name, lower_name, upper_name, source_name,
+                               emit, context):
     emit(
         "%s = LOOKUP_INDEX_SLICE( %s, %s, %s );" % (
             to_name,
@@ -401,10 +404,8 @@ def getSliceLookupIndexesCode(to_name, lower_name, upper_name, source_name,
     context.addCleanupTempName(to_name)
 
 
-
-
-def getSliceAssignmentIndexesCode(target_name, lower_name, upper_name,
-                                  value_name, emit, context):
+def _getSliceAssignmentIndexesCode(target_name, lower_name, upper_name,
+                                   value_name, emit, context):
     res_name = context.getBoolResName()
 
     emit(
@@ -425,8 +426,8 @@ def getSliceAssignmentIndexesCode(target_name, lower_name, upper_name,
     )
 
 
-def getSliceAssignmentCode(target_name, lower_name, upper_name, value_name,
-                           emit, context):
+def _getSliceAssignmentCode(target_name, lower_name, upper_name, value_name,
+                            emit, context):
     res_name = context.getBoolResName()
 
     emit(
@@ -447,7 +448,7 @@ def getSliceAssignmentCode(target_name, lower_name, upper_name, value_name,
     )
 
 
-def getSliceDelIndexesCode(target_name, lower_name, upper_name, emit, context):
+def _getSliceDelIndexesCode(target_name, lower_name, upper_name, emit, context):
     res_name = context.getBoolResName()
 
     emit(
@@ -467,7 +468,7 @@ def getSliceDelIndexesCode(target_name, lower_name, upper_name, emit, context):
     )
 
 
-def getSliceDelCode(target_name, lower_name, upper_name, emit, context):
+def _getSliceDelCode(target_name, lower_name, upper_name, emit, context):
     res_name = context.getBoolResName()
 
     emit(

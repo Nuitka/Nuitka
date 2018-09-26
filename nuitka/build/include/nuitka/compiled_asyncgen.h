@@ -30,7 +30,7 @@
 struct Nuitka_AsyncgenObject {
     PyObject_VAR_HEAD
 
-    PyObject *m_name;
+        PyObject *m_name;
 
     // TODO: Only to make traceback for non-started throw
     PyObject *m_module;
@@ -92,25 +92,14 @@ struct Nuitka_AsyncgenObject {
 
 extern PyTypeObject Nuitka_Asyncgen_Type;
 
-typedef PyObject *(*asyncgen_code)( struct Nuitka_AsyncgenObject *, PyObject * );
+typedef PyObject *(*asyncgen_code)(struct Nuitka_AsyncgenObject *, PyObject *);
 
-extern PyObject *Nuitka_Asyncgen_New(
-    asyncgen_code code,
-    PyObject *module,
-    PyObject *name,
-    PyObject *qualname,
-    PyCodeObject *code_object,
-    Py_ssize_t closure_given,
-    Py_ssize_t heap_storage_size
-);
+extern PyObject *Nuitka_Asyncgen_New(asyncgen_code code, PyObject *module, PyObject *name, PyObject *qualname,
+                                     PyCodeObject *code_object, Py_ssize_t closure_given, Py_ssize_t heap_storage_size);
 
-static inline bool Nuitka_Asyncgen_Check( PyObject *object )
-{
-    return Py_TYPE( object ) == &Nuitka_Asyncgen_Type;
-}
+static inline bool Nuitka_Asyncgen_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Asyncgen_Type; }
 
-static inline void SAVE_ASYNCGEN_EXCEPTION( struct Nuitka_AsyncgenObject *asyncgen )
-{
+static inline void SAVE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyncgen) {
     /* Before Python3.7: When yielding from an exception handler in Python3,
      * the exception preserved to the frame is restored, while the current one
      * is put as there.
@@ -141,13 +130,13 @@ static inline void SAVE_ASYNCGEN_EXCEPTION( struct Nuitka_AsyncgenObject *asyncg
     thread_state->frame->f_exc_traceback = saved_exception_traceback;
 #else
     asyncgen->m_exc_state.exc_type = saved_exception_type;
-    asyncgen->m_exc_state.exc_value = saved_exception_value;;
+    asyncgen->m_exc_state.exc_value = saved_exception_value;
+    ;
     asyncgen->m_exc_state.exc_traceback = saved_exception_traceback;
 #endif
 }
 
-static inline void RESTORE_ASYNCGEN_EXCEPTION( struct Nuitka_AsyncgenObject *asyncgen )
-{
+static inline void RESTORE_ASYNCGEN_EXCEPTION(struct Nuitka_AsyncgenObject *asyncgen) {
     // When returning from yield, the exception of the frame is preserved, and
     // the one that enters should be there.
     PyThreadState *thread_state = PyThreadState_GET();

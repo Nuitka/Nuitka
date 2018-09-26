@@ -21,12 +21,15 @@ from nuitka import Options
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateExpressionCode
+from .CodeHelpers import (
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
 from .VariableCodes import getVariableAssignmentCode
 
 
-def getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
+def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
     for variable, variable_trace in variable_traces:
         if not variable.isModuleVariable():
             key_name = context.getConstantCode(
@@ -80,7 +83,6 @@ def getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
 
 
 def generateBuiltinCompileCode(to_name, expression, emit, context):
-
     source_name = context.allocateTempName("compile_source")
     filename_name = context.allocateTempName("compile_filename")
     mode_name = context.allocateTempName("compile_mode")
@@ -144,20 +146,23 @@ def generateBuiltinCompileCode(to_name, expression, emit, context):
         expression.getCompatibleSourceReference()
     )
 
-    getBuiltinCompileCode(
-        to_name           = to_name,
-        source_name       = source_name,
-        filename_name     = filename_name,
-        mode_name         = mode_name,
-        flags_name        = flags_name,
-        dont_inherit_name = dont_inherit_name,
-        optimize_name     = optimize_name,
-        emit              = emit,
-        context           = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "compile_result", expression, emit, context) \
+      as value_name:
+
+        _getBuiltinCompileCode(
+            to_name           = value_name,
+            source_name       = source_name,
+            filename_name     = filename_name,
+            mode_name         = mode_name,
+            flags_name        = flags_name,
+            dont_inherit_name = dont_inherit_name,
+            optimize_name     = optimize_name,
+            emit              = emit,
+            context           = context
+        )
 
 
-def getBuiltinCompileCode(to_name, source_name, filename_name, mode_name,
+def _getBuiltinCompileCode(to_name, source_name, filename_name, mode_name,
                           flags_name, dont_inherit_name, optimize_name, emit,
                           context):
     if python_version < 300:
@@ -210,7 +215,7 @@ def getBuiltinEvalCode(to_name, source_name, filename_name, globals_name,
                        locals_name, mode_name, emit, context):
     compiled_name = context.allocateTempName("eval_compiled")
 
-    getBuiltinCompileCode(
+    _getBuiltinCompileCode(
         to_name           = compiled_name,
         source_name       = source_name,
         filename_name     = filename_name,
@@ -291,7 +296,7 @@ def generateExecCode(statement, emit, context):
 
     compiled_name = context.allocateTempName("exec_compiled")
 
-    getBuiltinCompileCode(
+    _getBuiltinCompileCode(
         to_name           = compiled_name,
         source_name       = source_name,
         filename_name     = filename_name,
@@ -333,7 +338,6 @@ def generateExecCode(statement, emit, context):
     )
 
     context.setCurrentSourceCodeReference(old_source_ref)
-
 
 
 def _generateEvalCode(to_name, node, emit, context):
@@ -385,23 +389,27 @@ def _generateEvalCode(to_name, node, emit, context):
 
 
 def generateEvalCode(to_name, expression, emit, context):
-    return _generateEvalCode(
-        to_name = to_name,
-        node    = expression,
-        emit    = emit,
-        context = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "eval_result", expression, emit, context) \
+      as value_name:
+        _generateEvalCode(
+            to_name = value_name,
+            node    = expression,
+            emit    = emit,
+            context = context
+        )
 
 
 def generateExecfileCode(to_name, expression, emit, context):
     assert python_version < 300
 
-    return _generateEvalCode(
-        to_name = to_name,
-        node    = expression,
-        emit    = emit,
-        context = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "execfile_result", expression, emit, context) \
+      as value_name:
+        _generateEvalCode(
+            to_name = value_name,
+            node    = expression,
+            emit    = emit,
+            context = context
+        )
 
 
 def generateLocalsDictSyncCode(statement, emit, context):
@@ -419,7 +427,7 @@ def generateLocalsDictSyncCode(statement, emit, context):
         statement.getSourceReference()
     )
 
-    getStoreLocalsCode(
+    _getStoreLocalsCode(
         locals_name     = locals_name,
         variable_traces = statement.getPreviousVariablesTraces(),
         is_dict         = locals_arg.getTypeShape() is ShapeTypeDict,

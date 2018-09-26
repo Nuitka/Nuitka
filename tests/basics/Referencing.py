@@ -909,10 +909,14 @@ def simpleFunction110():
     open("me", buffering = True)
     __builtins__.open = orig_open
 
+####################################
+
 u = u'__name__'
 
 def simpleFunction111():
     return getattr(simpleFunction111, u)
+
+####################################
 
 def simpleFunction112():
     TESTFN = "tmp.txt"
@@ -936,6 +940,8 @@ def simpleFunction112():
             pass
 
 
+####################################
+
 def simpleFunction113():
     class A(object):
         pass
@@ -946,7 +952,6 @@ def simpleFunction113():
 
 
 ####################################
-
 
 # These need stderr to be wrapped.
 tests_stderr = (63,)

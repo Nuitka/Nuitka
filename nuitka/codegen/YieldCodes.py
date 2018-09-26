@@ -20,13 +20,17 @@
 The normal "yield", and the Python 3.3 or higher "yield from" variant.
 """
 
-from .CodeHelpers import generateChildExpressionsCode
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ErrorCodes import getErrorExitCode
 from .PythonAPICodes import getReferenceExportCode
+from .VariableDeclarations import VariableDeclaration
 
 
-def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
-                          emit, context):
+def getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
+                          resume_code, emit, context):
     yield_return_label = context.allocateLabel("yield_return")
     yield_return_index = yield_return_label.split('_')[-1]
 
@@ -112,10 +116,28 @@ def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
             )
         )
 
+    if resume_code:
+        emit(resume_code)
+
+    yield_return_name = VariableDeclaration(
+        "PyObject *",
+        "yield_return_value",
+        None,
+        None
+    )
+
+    getErrorExitCode(
+        check_name = yield_return_name,
+        emit       = emit,
+        context    = context
+    )
+
+    # Called with object
     emit(
-        "%(to_name)s = yield_return_value;" % {
-            "to_name" : to_name
-        }
+        "%s = %s;" % (
+            to_name,
+            yield_return_name
+        )
     )
 
     if preserve_exception:
@@ -125,6 +147,7 @@ def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
                 context.getContextObjectName()
             )
         )
+
 
 def generateYieldCode(to_name, expression, emit, context):
     value_name, = generateChildExpressionsCode(
@@ -141,26 +164,29 @@ def generateYieldCode(to_name, expression, emit, context):
         context.removeCleanupTempName(value_name)
 
     yield_code = "return %(yielded_value)s;" % {
-        "yielded_value"       : value_name,
+        "yielded_value" : value_name,
     }
 
-    _getYieldPreserveCode(
-        to_name            = to_name,
-        value_name         = value_name,
-        yield_code         = yield_code,
-        preserve_exception = preserve_exception,
-        emit               = emit,
-        context            = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "yield_result", expression, emit, context) \
+      as result_name:
 
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
+        getYieldPreserveCode(
+            to_name            = result_name,
+            value_name         = value_name,
+            yield_code         = yield_code,
+            resume_code        = None,
+            preserve_exception = preserve_exception,
+            emit               = emit,
+            context            = context
+        )
 
-    # Comes as only borrowed.
-    # context.addCleanupTempName(to_name)
+        # This conversion will not use it, and since it is borrowed, debug mode
+        # would otherwise complain.
+        if to_name.c_type == "void":
+            result_name.maybe_unused = True
+
+        # Comes as only borrowed.
+        # context.addCleanupTempName(result_name)
 
 
 def generateYieldFromCode(to_name, expression, emit, context):
@@ -184,22 +210,20 @@ return NULL;
         "yield_from"       : value_name,
     }
 
-    _getYieldPreserveCode(
-        to_name            = to_name,
-        value_name         = value_name,
-        yield_code         = yield_code,
-        preserve_exception = preserve_exception,
-        emit               = emit,
-        context            = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "yieldfrom_result", expression, emit, context) \
+      as result_name:
 
-    getErrorExitCode(
-        check_name = to_name,
-        emit       = emit,
-        context    = context
-    )
+        getYieldPreserveCode(
+            to_name            = result_name,
+            value_name         = value_name,
+            yield_code         = yield_code,
+            resume_code        = None,
+            preserve_exception = preserve_exception,
+            emit               = emit,
+            context            = context
+        )
 
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(result_name)
 
 
 def getYieldReturnDispatchCode(context):

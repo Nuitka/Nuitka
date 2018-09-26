@@ -24,15 +24,14 @@
  *
  **/
 
-static PyObject *CALL_BUILTIN_KW_ARGS( PyObject *callable, PyObject **args, char const **arg_names, int max_args )
-{
+static PyObject *CALL_BUILTIN_KW_ARGS(PyObject *callable, PyObject **args, char const **arg_names, int max_args) {
     int i = 0;
 
-    while( i < max_args )
-    {
-        if ( args[i] == NULL ) break;
+    while (i < max_args) {
+        if (args[i] == NULL)
+            break;
 
-        CHECK_OBJECT( args[i] );
+        CHECK_OBJECT(args[i]);
 
         i++;
     }
@@ -41,100 +40,92 @@ static PyObject *CALL_BUILTIN_KW_ARGS( PyObject *callable, PyObject **args, char
 
     PyObject *kw_dict = NULL;
 
-    while( i < max_args )
-    {
-        if ( args[i] != NULL )
-        {
-            CHECK_OBJECT( args[i] );
+    while (i < max_args) {
+        if (args[i] != NULL) {
+            CHECK_OBJECT(args[i]);
 
-            if ( kw_dict == NULL )
-            {
+            if (kw_dict == NULL) {
                 kw_dict = PyDict_New();
             }
 
-            int res = PyDict_SetItemString( kw_dict, arg_names[i], args[i] );
-            assert( res == 0 );
+            int res = PyDict_SetItemString(kw_dict, arg_names[i], args[i]);
+            assert(res == 0);
         }
 
         i++;
     }
 
-    PyObject *args_tuple = PyTuple_New( usable_args );
-    for ( i = 0; i < usable_args; i++ )
-    {
-        PyTuple_SET_ITEM( args_tuple, i, args[i] );
+    PyObject *args_tuple = PyTuple_New(usable_args);
+    for (i = 0; i < usable_args; i++) {
+        PyTuple_SET_ITEM(args_tuple, i, args[i]);
 
-        Py_INCREF( args[i] );
+        Py_INCREF(args[i]);
     }
 
-    PyObject *result = CALL_FUNCTION( callable, args_tuple, kw_dict );
-    Py_XDECREF( kw_dict );
-    Py_DECREF( args_tuple );
+    PyObject *result = CALL_FUNCTION(callable, args_tuple, kw_dict);
+    Py_XDECREF(kw_dict);
+    Py_DECREF(args_tuple);
 
     return result;
 }
-
 
 /** The "compile" built-in.
  *
  */
 
-NUITKA_DEFINE_BUILTIN( compile )
+NUITKA_DEFINE_BUILTIN(compile)
 
 #if PYTHON_VERSION < 300
-PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags, PyObject *dont_inherit )
+PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags,
+                       PyObject *dont_inherit)
 #else
-PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags, PyObject *dont_inherit, PyObject *optimize )
+PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags,
+                       PyObject *dont_inherit, PyObject *optimize)
 #endif
 {
     // May be a source, but also could already be a compiled object, in which
     // case this should just return it.
-    if ( PyCode_Check( source_code ) )
-    {
-        Py_INCREF( source_code );
+    if (PyCode_Check(source_code)) {
+        Py_INCREF(source_code);
         return source_code;
     }
 
     PyObject *pos_args = PyTuple_New(3);
-    PyTuple_SET_ITEM( pos_args, 0, source_code );
-    Py_INCREF( source_code );
-    PyTuple_SET_ITEM( pos_args, 1, file_name );
-    Py_INCREF( file_name );
-    PyTuple_SET_ITEM( pos_args, 2, mode );
-    Py_INCREF( mode );
+    PyTuple_SET_ITEM(pos_args, 0, source_code);
+    Py_INCREF(source_code);
+    PyTuple_SET_ITEM(pos_args, 1, file_name);
+    Py_INCREF(file_name);
+    PyTuple_SET_ITEM(pos_args, 2, mode);
+    Py_INCREF(mode);
 
     PyObject *kw_args = NULL;
 
-    if ( flags != NULL )
-    {
-        if ( kw_args == NULL ) kw_args = PyDict_New();
-        PyDict_SetItemString( kw_args, "flags", flags );
+    if (flags != NULL) {
+        if (kw_args == NULL)
+            kw_args = PyDict_New();
+        PyDict_SetItemString(kw_args, "flags", flags);
     }
 
-    if ( dont_inherit != NULL )
-    {
-        if ( kw_args == NULL ) kw_args = PyDict_New();
-        PyDict_SetItemString( kw_args, "dont_inherit", dont_inherit );
+    if (dont_inherit != NULL) {
+        if (kw_args == NULL)
+            kw_args = PyDict_New();
+        PyDict_SetItemString(kw_args, "dont_inherit", dont_inherit);
     }
 
 #if PYTHON_VERSION >= 300
-    if ( optimize != NULL )
-    {
-        if ( kw_args == NULL ) kw_args = PyDict_New();
-        PyDict_SetItemString( kw_args, "optimize", optimize );
+    if (optimize != NULL) {
+        if (kw_args == NULL)
+            kw_args = PyDict_New();
+        PyDict_SetItemString(kw_args, "optimize", optimize);
     }
 #endif
 
-    NUITKA_ASSIGN_BUILTIN( compile );
+    NUITKA_ASSIGN_BUILTIN(compile);
 
-    PyObject *result = CALL_FUNCTION(
-        NUITKA_ACCESS_BUILTIN( compile ),
-        pos_args,
-        kw_args
-    );
+    PyObject *result = CALL_FUNCTION(NUITKA_ACCESS_BUILTIN(compile), pos_args, kw_args);
 
-    Py_DECREF( pos_args );
-    Py_XDECREF( kw_args );
+    Py_DECREF(pos_args);
+    Py_XDECREF(kw_args);
 
     return result;
 }
@@ -143,48 +134,40 @@ PyObject *COMPILE_CODE( PyObject *source_code, PyObject *file_name, PyObject *mo
  *  The "eval" implementation, used for "exec" too.
  */
 
+PyObject *EVAL_CODE(PyObject *code, PyObject *globals, PyObject *locals) {
+    CHECK_OBJECT(code);
+    CHECK_OBJECT(globals);
+    CHECK_OBJECT(locals);
 
-PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
-{
-    CHECK_OBJECT( code );
-    CHECK_OBJECT( globals );
-    CHECK_OBJECT( locals );
-
-    if ( PyDict_Check( globals ) == 0 )
-    {
-        PyErr_Format( PyExc_TypeError, "exec: arg 2 must be a dictionary or None" );
+    if (PyDict_Check(globals) == 0) {
+        PyErr_Format(PyExc_TypeError, "exec: arg 2 must be a dictionary or None");
         return NULL;
     }
 
     // TODO: Our re-formulation prevents this externally, doesn't it.
-    if ( locals == Py_None )
-    {
+    if (locals == Py_None) {
         locals = globals;
     }
 
-    if ( PyMapping_Check( locals ) == 0 )
-    {
-        PyErr_Format( PyExc_TypeError, "exec: arg 3 must be a mapping or None" );
+    if (PyMapping_Check(locals) == 0) {
+        PyErr_Format(PyExc_TypeError, "exec: arg 3 must be a mapping or None");
         return NULL;
     }
 
     // Set the __builtins__ in globals, it is expected to be present.
-    if ( PyDict_GetItem( globals, const_str_plain___builtins__ ) == NULL )
-    {
-        if ( PyDict_SetItem( globals, const_str_plain___builtins__, (PyObject *)builtin_module ) != 0 )
-        {
+    if (PyDict_GetItem(globals, const_str_plain___builtins__) == NULL) {
+        if (PyDict_SetItem(globals, const_str_plain___builtins__, (PyObject *)builtin_module) != 0) {
             return NULL;
         }
     }
 
 #if PYTHON_VERSION < 300
-    PyObject *result = PyEval_EvalCode( (PyCodeObject *)code, globals, locals );
+    PyObject *result = PyEval_EvalCode((PyCodeObject *)code, globals, locals);
 #else
-    PyObject *result = PyEval_EvalCode( code, globals, locals );
+    PyObject *result = PyEval_EvalCode(code, globals, locals);
 #endif
 
-    if (unlikely( result == NULL ))
-    {
+    if (unlikely(result == NULL)) {
         return NULL;
     }
 
@@ -198,60 +181,28 @@ PyObject *EVAL_CODE( PyObject *code, PyObject *globals, PyObject *locals )
  *
  **/
 
-
-NUITKA_DEFINE_BUILTIN( open );
+NUITKA_DEFINE_BUILTIN(open);
 
 #if PYTHON_VERSION < 300
-PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering )
-{
-    NUITKA_ASSIGN_BUILTIN( open );
+PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering) {
+    NUITKA_ASSIGN_BUILTIN(open);
 
-    PyObject *args[] =
-    {
-        file_name,
-        mode,
-        buffering
-    };
+    PyObject *args[] = {file_name, mode, buffering};
 
-    char const *arg_names[] = {
-        "file_name",
-        "mode",
-        "buffering"
-    };
+    char const *arg_names[] = {"file_name", "mode", "buffering"};
 
-    return CALL_BUILTIN_KW_ARGS( NUITKA_ACCESS_BUILTIN( open ), args, arg_names, 3 );
+    return CALL_BUILTIN_KW_ARGS(NUITKA_ACCESS_BUILTIN(open), args, arg_names, 3);
 }
 #else
-PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering,
-                        PyObject *encoding, PyObject *errors, PyObject *newline,
-                        PyObject *closefd, PyObject *opener)
-{
-    NUITKA_ASSIGN_BUILTIN( open );
+PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering, PyObject *encoding, PyObject *errors,
+                       PyObject *newline, PyObject *closefd, PyObject *opener) {
+    NUITKA_ASSIGN_BUILTIN(open);
 
-    PyObject *args[] =
-    {
-        file_name,
-        mode,
-        buffering,
-        encoding,
-        errors,
-        newline,
-        closefd,
-        opener
-    };
+    PyObject *args[] = {file_name, mode, buffering, encoding, errors, newline, closefd, opener};
 
-    char const *arg_names[] = {
-        "file_name",
-        "mode",
-        "buffering",
-        "encoding",
-        "errors",
-        "newline",
-        "closefd",
-        "opener"
-    };
+    char const *arg_names[] = {"file_name", "mode", "buffering", "encoding", "errors", "newline", "closefd", "opener"};
 
-    return CALL_BUILTIN_KW_ARGS( NUITKA_ACCESS_BUILTIN( open ), args, arg_names, 8 );
+    return CALL_BUILTIN_KW_ARGS(NUITKA_ACCESS_BUILTIN(open), args, arg_names, 8);
 }
 
 #endif
@@ -260,17 +211,12 @@ PyObject *BUILTIN_OPEN( PyObject *file_name, PyObject *mode, PyObject *buffering
  *
  **/
 
-
 NUITKA_DEFINE_BUILTIN(staticmethod)
 
-PyObject *BUILTIN_STATICMETHOD( PyObject *value )
-{
-    NUITKA_ASSIGN_BUILTIN( staticmethod );
+PyObject *BUILTIN_STATICMETHOD(PyObject *value) {
+    NUITKA_ASSIGN_BUILTIN(staticmethod);
 
-    return CALL_FUNCTION_WITH_SINGLE_ARG(
-        NUITKA_ACCESS_BUILTIN( staticmethod ),
-        value
-    );
+    return CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(staticmethod), value);
 }
 
 /** The "classmethod" built-in.
@@ -279,14 +225,10 @@ PyObject *BUILTIN_STATICMETHOD( PyObject *value )
 
 NUITKA_DEFINE_BUILTIN(classmethod)
 
-PyObject *BUILTIN_CLASSMETHOD( PyObject *value )
-{
-    NUITKA_ASSIGN_BUILTIN( classmethod );
+PyObject *BUILTIN_CLASSMETHOD(PyObject *value) {
+    NUITKA_ASSIGN_BUILTIN(classmethod);
 
-    return CALL_FUNCTION_WITH_SINGLE_ARG(
-        NUITKA_ACCESS_BUILTIN( classmethod ),
-        value
-    );
+    return CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(classmethod), value);
 }
 
 #if PYTHON_VERSION >= 300
@@ -299,37 +241,22 @@ PyObject *BUILTIN_CLASSMETHOD( PyObject *value )
  *
  **/
 
-NUITKA_DEFINE_BUILTIN( bytes );
+NUITKA_DEFINE_BUILTIN(bytes);
 
-PyObject *BUILTIN_BYTES1( PyObject *value )
-{
-    NUITKA_ASSIGN_BUILTIN( bytes );
+PyObject *BUILTIN_BYTES1(PyObject *value) {
+    NUITKA_ASSIGN_BUILTIN(bytes);
 
-    return CALL_FUNCTION_WITH_SINGLE_ARG(
-        NUITKA_ACCESS_BUILTIN( bytes ),
-        value
-    );
+    return CALL_FUNCTION_WITH_SINGLE_ARG(NUITKA_ACCESS_BUILTIN(bytes), value);
 }
 
+PyObject *BUILTIN_BYTES3(PyObject *value, PyObject *encoding, PyObject *errors) {
+    NUITKA_ASSIGN_BUILTIN(bytes);
 
-PyObject *BUILTIN_BYTES3( PyObject *value, PyObject *encoding, PyObject *errors )
-{
-    NUITKA_ASSIGN_BUILTIN( bytes );
+    PyObject *args[] = {value, encoding, errors};
 
-    PyObject *args[] =
-    {
-        value,
-        encoding,
-        errors
-    };
+    char const *arg_names[] = {"value", "encoding", "errors"};
 
-    char const *arg_names[] = {
-        "value",
-        "encoding",
-        "errors"
-    };
-
-    return CALL_BUILTIN_KW_ARGS( NUITKA_ACCESS_BUILTIN( bytes ), args, arg_names, 3 );
+    return CALL_BUILTIN_KW_ARGS(NUITKA_ACCESS_BUILTIN(bytes), args, arg_names, 3);
 }
 #endif
 
@@ -337,13 +264,11 @@ PyObject *BUILTIN_BYTES3( PyObject *value, PyObject *encoding, PyObject *errors 
  *
  **/
 
-PyObject *BUILTIN_BIN( PyObject *value )
-{
+PyObject *BUILTIN_BIN(PyObject *value) {
     // Note: I don't really know why "oct" and "hex" don't use this as well.
-    PyObject *result = PyNumber_ToBase( value, 2 );
+    PyObject *result = PyNumber_ToBase(value, 2);
 
-    if ( unlikely( result == NULL ))
-    {
+    if (unlikely(result == NULL)) {
         return NULL;
     }
 
@@ -354,41 +279,35 @@ PyObject *BUILTIN_BIN( PyObject *value )
  *
  **/
 
-PyObject *BUILTIN_OCT( PyObject *value )
-{
+PyObject *BUILTIN_OCT(PyObject *value) {
 #if PYTHON_VERSION >= 300
-    PyObject *result = PyNumber_ToBase( value, 8 );
+    PyObject *result = PyNumber_ToBase(value, 8);
 
-    if ( unlikely( result == NULL ))
-    {
+    if (unlikely(result == NULL)) {
         return NULL;
     }
 
     return result;
 #else
-    if (unlikely( value == NULL ))
-    {
-        PyErr_Format( PyExc_TypeError, "oct() argument can't be converted to oct" );
+    if (unlikely(value == NULL)) {
+        PyErr_Format(PyExc_TypeError, "oct() argument can't be converted to oct");
         return NULL;
     }
 
-    PyNumberMethods *nb = Py_TYPE( value )->tp_as_number;
+    PyNumberMethods *nb = Py_TYPE(value)->tp_as_number;
 
-    if (unlikely( nb == NULL || nb->nb_oct == NULL ))
-    {
-        PyErr_Format( PyExc_TypeError, "oct() argument can't be converted to oct" );
+    if (unlikely(nb == NULL || nb->nb_oct == NULL)) {
+        PyErr_Format(PyExc_TypeError, "oct() argument can't be converted to oct");
         return NULL;
     }
 
-    PyObject *result = (*nb->nb_oct)( value );
+    PyObject *result = (*nb->nb_oct)(value);
 
-    if ( result )
-    {
-        if (unlikely( !PyString_Check( result ) ))
-        {
-            PyErr_Format( PyExc_TypeError, "__oct__ returned non-string (type %s)", Py_TYPE( result )->tp_name );
+    if (result) {
+        if (unlikely(!PyString_Check(result))) {
+            PyErr_Format(PyExc_TypeError, "__oct__ returned non-string (type %s)", Py_TYPE(result)->tp_name);
 
-            Py_DECREF( result );
+            Py_DECREF(result);
             return NULL;
         }
     }
@@ -401,41 +320,35 @@ PyObject *BUILTIN_OCT( PyObject *value )
  *
  **/
 
-PyObject *BUILTIN_HEX( PyObject *value )
-{
+PyObject *BUILTIN_HEX(PyObject *value) {
 #if PYTHON_VERSION >= 300
-    PyObject *result = PyNumber_ToBase( value, 16 );
+    PyObject *result = PyNumber_ToBase(value, 16);
 
-    if ( unlikely( result == NULL ))
-    {
+    if (unlikely(result == NULL)) {
         return NULL;
     }
 
     return result;
 #else
-    if (unlikely( value == NULL ))
-    {
-        PyErr_Format( PyExc_TypeError, "hex() argument can't be converted to hex" );
+    if (unlikely(value == NULL)) {
+        PyErr_Format(PyExc_TypeError, "hex() argument can't be converted to hex");
         return NULL;
     }
 
-    PyNumberMethods *nb = Py_TYPE( value )->tp_as_number;
+    PyNumberMethods *nb = Py_TYPE(value)->tp_as_number;
 
-    if (unlikely( nb == NULL || nb->nb_hex == NULL ))
-    {
-        PyErr_Format( PyExc_TypeError, "hex() argument can't be converted to hex" );
+    if (unlikely(nb == NULL || nb->nb_hex == NULL)) {
+        PyErr_Format(PyExc_TypeError, "hex() argument can't be converted to hex");
         return NULL;
     }
 
-    PyObject *result = (*nb->nb_hex)( value );
+    PyObject *result = (*nb->nb_hex)(value);
 
-    if (likely( result ))
-    {
-        if (unlikely( !PyString_Check( result ) ))
-        {
-            PyErr_Format( PyExc_TypeError, "__hex__ returned non-string (type %s)", Py_TYPE( result )->tp_name );
+    if (likely(result)) {
+        if (unlikely(!PyString_Check(result))) {
+            PyErr_Format(PyExc_TypeError, "__hex__ returned non-string (type %s)", Py_TYPE(result)->tp_name);
 
-            Py_DECREF( result );
+            Py_DECREF(result);
             return NULL;
         }
     }
@@ -448,19 +361,17 @@ PyObject *BUILTIN_HEX( PyObject *value )
  *
  **/
 
-PyObject *BUILTIN_HASH( PyObject *value )
-{
-    Py_hash_t hash = PyObject_Hash( value );
+PyObject *BUILTIN_HASH(PyObject *value) {
+    Py_hash_t hash = PyObject_Hash(value);
 
-    if (unlikely( hash == -1 ))
-    {
+    if (unlikely(hash == -1)) {
         return NULL;
     }
 
 #if PYTHON_VERSION < 300
-    return PyInt_FromLong( hash );
+    return PyInt_FromLong(hash);
 #else
-    return PyLong_FromSsize_t( hash );
+    return PyLong_FromSsize_t(hash);
 #endif
 }
 
@@ -472,46 +383,34 @@ PyObject *BUILTIN_HASH( PyObject *value )
  *
  **/
 
-PyObject *BUILTIN_BYTEARRAY1( PyObject *value )
-{
-    PyObject *result = PyByteArray_FromObject( value );
+PyObject *BUILTIN_BYTEARRAY1(PyObject *value) {
+    PyObject *result = PyByteArray_FromObject(value);
 
-    if ( unlikely( result == NULL ))
-    {
+    if (unlikely(result == NULL)) {
         return NULL;
     }
 
     return result;
 }
 
-NUITKA_DEFINE_BUILTIN( bytearray )
+NUITKA_DEFINE_BUILTIN(bytearray)
 
-PyObject *BUILTIN_BYTEARRAY3( PyObject *string, PyObject *encoding, PyObject *errors )
-{
-    CHECK_OBJECT( string );
-    CHECK_OBJECT( encoding );
+PyObject *BUILTIN_BYTEARRAY3(PyObject *string, PyObject *encoding, PyObject *errors) {
+    CHECK_OBJECT(string);
+    CHECK_OBJECT(encoding);
 
-    NUITKA_ASSIGN_BUILTIN( bytearray );
+    NUITKA_ASSIGN_BUILTIN(bytearray);
 
-    if ( errors == NULL )
-    {
-        PyObject *args[] = { string, encoding };
+    if (errors == NULL) {
+        PyObject *args[] = {string, encoding};
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS2(
-            NUITKA_ACCESS_BUILTIN( bytearray ),
-            args
-        );
+        PyObject *result = CALL_FUNCTION_WITH_ARGS2(NUITKA_ACCESS_BUILTIN(bytearray), args);
 
         return result;
-    }
-    else
-    {
-        PyObject *args[] = { string, encoding, errors };
+    } else {
+        PyObject *args[] = {string, encoding, errors};
 
-        PyObject *result = CALL_FUNCTION_WITH_ARGS3(
-            NUITKA_ACCESS_BUILTIN( bytearray ),
-            args
-        );
+        PyObject *result = CALL_FUNCTION_WITH_ARGS3(NUITKA_ACCESS_BUILTIN(bytearray), args);
 
         return result;
     }
@@ -526,30 +425,26 @@ PyObject *BUILTIN_BYTEARRAY3( PyObject *string, PyObject *encoding, PyObject *er
  *
  **/
 
-
 // From CPython:
 typedef struct {
-    PyObject_HEAD
-    PyObject *it_callable;
+    PyObject_HEAD PyObject *it_callable;
     PyObject *it_sentinel;
 } calliterobject;
 
-PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
-{
-    calliterobject *result = PyObject_GC_New( calliterobject, &PyCallIter_Type );
+PyObject *BUILTIN_ITER2(PyObject *callable, PyObject *sentinel) {
+    calliterobject *result = PyObject_GC_New(calliterobject, &PyCallIter_Type);
 
-    if (unlikely( result == NULL ))
-    {
+    if (unlikely(result == NULL)) {
         return NULL;
     }
 
     // Note: References were taken at call site already.
     result->it_callable = callable;
-    Py_INCREF( callable );
+    Py_INCREF(callable);
     result->it_sentinel = sentinel;
-    Py_INCREF( sentinel );
+    Py_INCREF(sentinel);
 
-    Nuitka_GC_Track( result );
+    Nuitka_GC_Track(result);
 
     return (PyObject *)result;
 }
@@ -561,67 +456,54 @@ PyObject *BUILTIN_ITER2( PyObject *callable, PyObject *sentinel )
  *
  **/
 
-PyObject *BUILTIN_TYPE1( PyObject *arg )
-{
-    PyObject *result = (PyObject *)Py_TYPE( arg );
+PyObject *BUILTIN_TYPE1(PyObject *arg) {
+    PyObject *result = (PyObject *)Py_TYPE(arg);
 
-    Py_INCREF( result );
+    Py_INCREF(result);
     return result;
 }
 
 extern PyObject *const_str_plain___module__;
 
-PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict )
-{
+PyObject *BUILTIN_TYPE3(PyObject *module_name, PyObject *name, PyObject *bases, PyObject *dict) {
     PyObject *pos_args = PyTuple_New(3);
-    PyTuple_SET_ITEM( pos_args, 0, name );
-    Py_INCREF( name );
-    PyTuple_SET_ITEM( pos_args, 1, bases );
-    Py_INCREF( bases );
-    PyTuple_SET_ITEM( pos_args, 2, dict );
-    Py_INCREF( dict );
+    PyTuple_SET_ITEM(pos_args, 0, name);
+    Py_INCREF(name);
+    PyTuple_SET_ITEM(pos_args, 1, bases);
+    Py_INCREF(bases);
+    PyTuple_SET_ITEM(pos_args, 2, dict);
+    Py_INCREF(dict);
 
-    PyObject *result = PyType_Type.tp_new(
-        &PyType_Type,
-        pos_args,
-        NULL
-    );
+    PyObject *result = PyType_Type.tp_new(&PyType_Type, pos_args, NULL);
 
-
-    if (unlikely( result == NULL ))
-    {
-        Py_DECREF( pos_args );
+    if (unlikely(result == NULL)) {
+        Py_DECREF(pos_args);
         return NULL;
     }
 
-    PyTypeObject *type = Py_TYPE( result );
+    PyTypeObject *type = Py_TYPE(result);
 
-    if (likely( PyType_IsSubtype( type, &PyType_Type ) ))
-    {
+    if (likely(PyType_IsSubtype(type, &PyType_Type))) {
         if (
 #if PYTHON_VERSION < 300
-            PyType_HasFeature( type, Py_TPFLAGS_HAVE_CLASS ) &&
+            PyType_HasFeature(type, Py_TPFLAGS_HAVE_CLASS) &&
 #endif
-            type->tp_init != NULL
-           )
-        {
-            int res = type->tp_init( result, pos_args, NULL );
+            type->tp_init != NULL) {
+            int res = type->tp_init(result, pos_args, NULL);
 
-            if (unlikely( res < 0 ))
-            {
-                Py_DECREF( pos_args );
-                Py_DECREF( result );
+            if (unlikely(res < 0)) {
+                Py_DECREF(pos_args);
+                Py_DECREF(result);
                 return NULL;
             }
         }
     }
 
-    Py_DECREF( pos_args );
+    Py_DECREF(pos_args);
 
-    int res = PyObject_SetAttr( result, const_str_plain___module__, module_name );
+    int res = PyObject_SetAttr(result, const_str_plain___module__, module_name);
 
-    if ( res < 0 )
-    {
+    if (res < 0) {
         return NULL;
     }
 
@@ -635,88 +517,68 @@ PyObject *BUILTIN_TYPE3( PyObject *module_name, PyObject *name, PyObject *bases,
  **/
 
 typedef struct {
-    PyObject_HEAD
-    PyTypeObject *type;
+    PyObject_HEAD PyTypeObject *type;
     PyObject *obj;
     PyTypeObject *obj_type;
 } superobject;
 
 extern PyObject *const_str_plain___class__;
 
-PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
-{
-    CHECK_OBJECT( type );
+PyObject *BUILTIN_SUPER(PyObject *type, PyObject *object) {
+    CHECK_OBJECT(type);
 
-    superobject *result = PyObject_GC_New( superobject, &PySuper_Type );
-    assert( result );
+    superobject *result = PyObject_GC_New(superobject, &PySuper_Type);
+    assert(result);
 
-    if ( object == Py_None )
-    {
+    if (object == Py_None) {
         object = NULL;
     }
 
-    if (unlikely( PyType_Check( type ) == false ))
-    {
-        PyErr_Format( PyExc_RuntimeError, "super(): __class__ is not a type (%s)", Py_TYPE( type )->tp_name );
+    if (unlikely(PyType_Check(type) == false)) {
+        PyErr_Format(PyExc_RuntimeError, "super(): __class__ is not a type (%s)", Py_TYPE(type)->tp_name);
 
         return NULL;
     }
 
     result->type = (PyTypeObject *)type;
-    Py_INCREF( type );
-    if ( object )
-    {
+    Py_INCREF(type);
+    if (object) {
         result->obj = object;
-        Py_INCREF( object );
+        Py_INCREF(object);
 
-        if ( PyType_Check( object ) && PyType_IsSubtype( (PyTypeObject *)object, (PyTypeObject *)type ))
-        {
+        if (PyType_Check(object) && PyType_IsSubtype((PyTypeObject *)object, (PyTypeObject *)type)) {
             result->obj_type = (PyTypeObject *)object;
-            Py_INCREF( object );
-        }
-        else if ( PyType_IsSubtype( Py_TYPE(object ), (PyTypeObject *)type) )
-        {
-            result->obj_type = Py_TYPE( object );
-            Py_INCREF( result->obj_type );
-        }
-        else
-        {
-            PyObject *class_attr = PyObject_GetAttr( object, const_str_plain___class__);
+            Py_INCREF(object);
+        } else if (PyType_IsSubtype(Py_TYPE(object), (PyTypeObject *)type)) {
+            result->obj_type = Py_TYPE(object);
+            Py_INCREF(result->obj_type);
+        } else {
+            PyObject *class_attr = PyObject_GetAttr(object, const_str_plain___class__);
 
-            if (likely( class_attr != NULL && PyType_Check( class_attr ) && (PyTypeObject *)class_attr != Py_TYPE( object ) ))
-            {
+            if (likely(class_attr != NULL && PyType_Check(class_attr) &&
+                       (PyTypeObject *)class_attr != Py_TYPE(object))) {
                 result->obj_type = (PyTypeObject *)class_attr;
-            }
-            else
-            {
-                if ( class_attr == NULL )
-                {
+            } else {
+                if (class_attr == NULL) {
                     CLEAR_ERROR_OCCURRED();
-                }
-                else
-                {
-                    Py_DECREF( class_attr );
+                } else {
+                    Py_DECREF(class_attr);
                 }
 
-                PyErr_Format(
-                    PyExc_TypeError,
-                    "super(type, obj): obj must be an instance or subtype of type"
-                );
+                PyErr_Format(PyExc_TypeError, "super(type, obj): obj must be an instance or subtype of type");
 
                 return NULL;
             }
         }
-    }
-    else
-    {
+    } else {
         result->obj = NULL;
         result->obj_type = NULL;
     }
 
-    Nuitka_GC_Track( result );
+    Nuitka_GC_Track(result);
 
-    CHECK_OBJECT( (PyObject *)result );
-    assert( Py_TYPE( result ) == &PySuper_Type );
+    CHECK_OBJECT((PyObject *)result);
+    assert(Py_TYPE(result) == &PySuper_Type);
 
     return (PyObject *)result;
 }
@@ -725,11 +587,10 @@ PyObject *BUILTIN_SUPER( PyObject *type, PyObject *object )
  *
  **/
 
-PyObject *BUILTIN_CALLABLE( PyObject *value )
-{
-    int res = PyCallable_Check( value );
-    PyObject *result = BOOL_FROM( res != 0 );
-    Py_INCREF( result );
+PyObject *BUILTIN_CALLABLE(PyObject *value) {
+    int res = PyCallable_Check(value);
+    PyObject *result = BOOL_FROM(res != 0);
+    Py_INCREF(result);
     return result;
 }
 
@@ -739,50 +600,39 @@ PyObject *BUILTIN_CALLABLE( PyObject *value )
  *
  **/
 
-PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *default_value )
-{
+PyObject *BUILTIN_GETATTR(PyObject *object, PyObject *attribute, PyObject *default_value) {
 #if PYTHON_VERSION < 300
-    if ( PyUnicode_Check( attribute ) )
-    {
-        attribute = _PyUnicode_AsDefaultEncodedString( attribute, NULL );
+    if (PyUnicode_Check(attribute)) {
+        attribute = _PyUnicode_AsDefaultEncodedString(attribute, NULL);
 
-        if (unlikely( attribute == NULL ))
-        {
+        if (unlikely(attribute == NULL)) {
             return NULL;
         }
     }
 
-    if (unlikely( !PyString_Check( attribute ) ))
-    {
-        PyErr_Format( PyExc_TypeError, "getattr(): attribute name must be string" );
+    if (unlikely(!PyString_Check(attribute))) {
+        PyErr_Format(PyExc_TypeError, "getattr(): attribute name must be string");
         return NULL;
     }
 #else
-    if (!PyUnicode_Check( attribute ))
-    {
-        PyErr_Format( PyExc_TypeError, "getattr(): attribute name must be string" );
+    if (!PyUnicode_Check(attribute)) {
+        PyErr_Format(PyExc_TypeError, "getattr(): attribute name must be string");
         return NULL;
     }
 #endif
 
-    PyObject *result = PyObject_GetAttr( object, attribute );
+    PyObject *result = PyObject_GetAttr(object, attribute);
 
-    if ( result == NULL )
-    {
-        if ( default_value != NULL && EXCEPTION_MATCH_BOOL_SINGLE( GET_ERROR_OCCURRED(), PyExc_AttributeError ) )
-        {
+    if (result == NULL) {
+        if (default_value != NULL && EXCEPTION_MATCH_BOOL_SINGLE(GET_ERROR_OCCURRED(), PyExc_AttributeError)) {
             CLEAR_ERROR_OCCURRED();
 
-            Py_INCREF( default_value );
+            Py_INCREF(default_value);
             return default_value;
-        }
-        else
-        {
+        } else {
             return NULL;
         }
-    }
-    else
-    {
+    } else {
         return result;
     }
 }
@@ -791,16 +641,14 @@ PyObject *BUILTIN_GETATTR( PyObject *object, PyObject *attribute, PyObject *defa
  *
  **/
 
-PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *value )
-{
-    int res = PyObject_SetAttr( object, attribute, value );
+PyObject *BUILTIN_SETATTR(PyObject *object, PyObject *attribute, PyObject *value) {
+    int res = PyObject_SetAttr(object, attribute, value);
 
-    if ( res < 0 )
-    {
+    if (res < 0) {
         return NULL;
     }
 
-    Py_INCREF( Py_None );
+    Py_INCREF(Py_None);
     return Py_None;
 }
 
@@ -811,114 +659,94 @@ PyObject *BUILTIN_SETATTR( PyObject *object, PyObject *attribute, PyObject *valu
  *
  **/
 
-PyObject *BUILTIN_DIVMOD( PyObject *operand1, PyObject *operand2 )
-{
-    CHECK_OBJECT( operand1 );
-    CHECK_OBJECT( operand2 );
+PyObject *BUILTIN_DIVMOD(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
 
     binaryfunc slot1 = NULL;
     binaryfunc slot2 = NULL;
 
-    PyTypeObject *type1 = Py_TYPE( operand1 );
-    PyTypeObject *type2 = Py_TYPE( operand2 );
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if ( type1->tp_as_number != NULL && NEW_STYLE_NUMBER( operand1 ) )
-    {
+    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
         slot1 = type1->tp_as_number->nb_divmod;
     }
 
-    if ( type1 != type2 )
-    {
-        if ( type2->tp_as_number != NULL && NEW_STYLE_NUMBER( operand2 ) )
-        {
+    if (type1 != type2) {
+        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
             slot2 = type2->tp_as_number->nb_divmod;
 
-            if ( slot1 == slot2 )
-            {
+            if (slot1 == slot2) {
                 slot2 = NULL;
             }
         }
     }
 
-    if ( slot1 != NULL )
-    {
-        if ( slot2 && PyType_IsSubtype( type2, type1 ) )
-        {
-            PyObject *x = slot2( operand1, operand2 );
+    if (slot1 != NULL) {
+        if (slot2 && PyType_IsSubtype(type2, type1)) {
+            PyObject *x = slot2(operand1, operand2);
 
-            if ( x != Py_NotImplemented )
-            {
-                if (unlikely( x == NULL ))
-                {
+            if (x != Py_NotImplemented) {
+                if (unlikely(x == NULL)) {
                     return NULL;
                 }
 
                 return x;
             }
 
-            Py_DECREF( x );
+            Py_DECREF(x);
             slot2 = NULL;
         }
 
-        PyObject *x = slot1( operand1, operand2 );
+        PyObject *x = slot1(operand1, operand2);
 
-        if ( x != Py_NotImplemented )
-        {
-            if (unlikely( x == NULL ))
-            {
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
                 return NULL;
             }
 
             return x;
         }
 
-        Py_DECREF( x );
+        Py_DECREF(x);
     }
 
-    if ( slot2 != NULL )
-    {
-        PyObject *x = slot2( operand1, operand2 );
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
 
-        if ( x != Py_NotImplemented )
-        {
-            if (unlikely( x == NULL ))
-            {
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
                 return NULL;
             }
 
             return x;
         }
 
-        Py_DECREF( x );
+        Py_DECREF(x);
     }
 
 #if PYTHON_VERSION < 300
-    if ( !NEW_STYLE_NUMBER( operand1 ) || !NEW_STYLE_NUMBER( operand2 ) )
-    {
-        int err = PyNumber_CoerceEx( &operand1, &operand2 );
+    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
+        int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if ( err < 0 )
-        {
+        if (err < 0) {
             return NULL;
         }
 
-        if ( err == 0 )
-        {
-            PyNumberMethods *mv = Py_TYPE( operand1 )->tp_as_number;
+        if (err == 0) {
+            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
 
-            if ( mv )
-            {
+            if (mv) {
                 binaryfunc slot = mv->nb_divmod;
 
-                if ( slot != NULL )
-                {
-                    PyObject *x = slot( operand1, operand2 );
+                if (slot != NULL) {
+                    PyObject *x = slot(operand1, operand2);
 
-                    Py_DECREF( operand1 );
-                    Py_DECREF( operand2 );
+                    Py_DECREF(operand1);
+                    Py_DECREF(operand2);
 
-                    if (unlikely( x == NULL ))
-                    {
+                    if (unlikely(x == NULL)) {
                         return NULL;
                     }
 
@@ -927,18 +755,14 @@ PyObject *BUILTIN_DIVMOD( PyObject *operand1, PyObject *operand2 )
             }
 
             // CoerceEx did that
-            Py_DECREF( operand1 );
-            Py_DECREF( operand2 );
+            Py_DECREF(operand1);
+            Py_DECREF(operand2);
         }
     }
 #endif
 
-    PyErr_Format(
-        PyExc_TypeError,
-        "unsupported operand type(s) for divmod(): '%s' and '%s'",
-        type1->tp_name,
-        type2->tp_name
-    );
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for divmod(): '%s' and '%s'", type1->tp_name,
+                 type2->tp_name);
 
     return NULL;
 }

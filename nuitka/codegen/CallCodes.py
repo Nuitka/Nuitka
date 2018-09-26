@@ -23,7 +23,11 @@ able to execute them without creating the argument dictionary at all.
 
 """
 
-from .CodeHelpers import generateChildExpressionCode, generateExpressionCode
+from .CodeHelpers import (
+    generateChildExpressionCode,
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
@@ -86,7 +90,7 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
                     context     = context
                 )
             else:
-                getInstanceCallCodePosArgsQuick(
+                _getInstanceCallCodePosArgsQuick(
                     to_name               = to_name,
                     called_name           = called_name,
                     called_attribute_name = called_attribute_name,
@@ -97,7 +101,7 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
                 )
         elif call_args_value:
             if called_attribute_name is None:
-                getCallCodeFromTuple(
+                _getCallCodeFromTuple(
                     to_name     = to_name,
                     called_name = called_name,
                     arg_tuple   = context.getConstantCode(
@@ -109,7 +113,7 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
                     context     = context
                 )
             else:
-                getInstanceCallCodeFromTuple(
+                _getInstanceCallCodeFromTuple(
                     to_name               = to_name,
                     called_name           = called_name,
                     called_attribute_name = called_attribute_name,
@@ -131,7 +135,7 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
                     context     = context
                 )
             else:
-                getInstanceCallCodeNoArgs(
+                _getInstanceCallCodeNoArgs(
                     to_name               = to_name,
                     called_name           = called_name,
                     called_attribute_name = called_attribute_name,
@@ -166,7 +170,7 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
                 context     = context
             )
         else:
-            getInstanceCallCodePosArgsQuick(
+            _getInstanceCallCodePosArgsQuick(
                 to_name               = to_name,
                 called_name           = called_name,
                 called_attribute_name = called_attribute_name,
@@ -187,7 +191,7 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
         )
 
         if called_attribute_name is None:
-            getCallCodePosArgs(
+            _getCallCodePosArgs(
                 to_name     = to_name,
                 called_name = called_name,
                 args_name   = args_name,
@@ -196,7 +200,7 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
                 context     = context
             )
         else:
-            getInstanceCallCodePosArgs(
+            _getInstanceCallCodePosArgs(
                 to_name               = to_name,
                 called_name           = called_name,
                 called_attribute_name = called_attribute_name,
@@ -272,57 +276,59 @@ def generateCallCode(to_name, expression, emit, context):
             context    = context
         )
 
+    with withObjectCodeTemporaryAssignment(to_name, "call_result", expression, emit, context) \
+      as result_name:
 
-    if call_kw is None or \
-       (call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}):
-        _generateCallCodePosOnly(
-            to_name               = to_name,
-            called_name           = called_name,
-            called_attribute_name = called_attribute_name,
-            expression            = expression,
-            emit                  = emit,
-            context               = context
-        )
-    else:
-        call_args = expression.getCallArgs()
-
-        if call_args is None or \
-           (call_args.isExpressionConstantRef() and \
-            call_args.getConstant() == ()):
-            _generateCallCodeKwOnly(
-                to_name               = to_name,
+        if call_kw is None or \
+           (call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}):
+            _generateCallCodePosOnly(
+                to_name               = result_name,
                 called_name           = called_name,
                 called_attribute_name = called_attribute_name,
                 expression            = expression,
-                call_kw               = call_kw,
                 emit                  = emit,
                 context               = context
             )
         else:
-            call_args_name = generateChildExpressionCode(
-                expression = call_args,
-                emit       = emit,
-                context    = context
-            )
+            call_args = expression.getCallArgs()
 
-            call_kw_name = generateChildExpressionCode(
-                expression = call_kw,
-                emit       = emit,
-                context    = context
-            )
+            if call_args is None or \
+               (call_args.isExpressionConstantRef() and \
+                call_args.getConstant() == ()):
+                _generateCallCodeKwOnly(
+                    to_name               = result_name,
+                    called_name           = called_name,
+                    called_attribute_name = called_attribute_name,
+                    expression            = expression,
+                    call_kw               = call_kw,
+                    emit                  = emit,
+                    context               = context
+                )
+            else:
+                call_args_name = generateChildExpressionCode(
+                    expression = call_args,
+                    emit       = emit,
+                    context    = context
+                )
 
-            context.setCurrentSourceCodeReference(
-                expression.getCompatibleSourceReference()
-            )
+                call_kw_name = generateChildExpressionCode(
+                    expression = call_kw,
+                    emit       = emit,
+                    context    = context
+                )
 
-            getCallCodePosKeywordArgs(
-                to_name        = to_name,
-                called_name    = called_name,
-                call_args_name = call_args_name,
-                call_kw_name   = call_kw_name,
-                emit           = emit,
-                context        = context
-            )
+                context.setCurrentSourceCodeReference(
+                    expression.getCompatibleSourceReference()
+                )
+
+                _getCallCodePosKeywordArgs(
+                    to_name        = result_name,
+                    called_name    = called_name,
+                    call_args_name = call_args_name,
+                    call_kw_name   = call_kw_name,
+                    emit           = emit,
+                    context        = context
+                )
 
 
 def getCallCodeNoArgs(to_name, called_name, needs_check, emit, context):
@@ -346,7 +352,7 @@ def getCallCodeNoArgs(to_name, called_name, needs_check, emit, context):
     context.addCleanupTempName(to_name)
 
 
-def getInstanceCallCodeNoArgs(to_name, called_name, called_attribute_name,
+def _getInstanceCallCodeNoArgs(to_name, called_name, called_attribute_name,
                               needs_check, emit, context):
     emitLineNumberUpdateCode(emit, context)
 
@@ -377,8 +383,8 @@ quick_calls_used = set([1, 2, 3, 4, 5])
 quick_instance_calls_used = set()
 
 
-def getInstanceCallCodePosArgsQuick(to_name, called_name, called_attribute_name,
-                                    arg_names, needs_check, emit, context):
+def _getInstanceCallCodePosArgsQuick(to_name, called_name, called_attribute_name,
+                                     arg_names, needs_check, emit, context):
     arg_size = len(arg_names)
     quick_instance_calls_used.add(arg_size)
 
@@ -457,8 +463,9 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
     context.addCleanupTempName(to_name)
 
 
-def getInstanceCallCodeFromTuple(to_name, called_name, called_attribute_name,
-                                 arg_tuple, arg_size, needs_check, emit, context):
+def _getInstanceCallCodeFromTuple(to_name, called_name, called_attribute_name,
+                                  arg_tuple, arg_size, needs_check,
+                                  emit, context):
     quick_instance_calls_used.add(arg_size)
 
     # For 0 arguments, NOARGS is supposed to be used.
@@ -492,7 +499,7 @@ def getInstanceCallCodeFromTuple(to_name, called_name, called_attribute_name,
     context.addCleanupTempName(to_name)
 
 
-def getCallCodeFromTuple(to_name, called_name, arg_tuple, arg_size,
+def _getCallCodeFromTuple(to_name, called_name, arg_tuple, arg_size,
                          needs_check, emit, context):
     quick_calls_used.add(arg_size)
 
@@ -523,8 +530,8 @@ def getCallCodeFromTuple(to_name, called_name, arg_tuple, arg_size,
     context.addCleanupTempName(to_name)
 
 
-def getInstanceCallCodePosArgs(to_name, called_name, called_attribute_name,
-                               args_name, needs_check, emit, context):
+def _getInstanceCallCodePosArgs(to_name, called_name, called_attribute_name,
+                                args_name, needs_check, emit, context):
     emitLineNumberUpdateCode(emit, context)
 
     emit(
@@ -547,8 +554,8 @@ def getInstanceCallCodePosArgs(to_name, called_name, called_attribute_name,
     context.addCleanupTempName(to_name)
 
 
-def getCallCodePosArgs(to_name, called_name, args_name, needs_check, emit,
-                       context):
+def _getCallCodePosArgs(to_name, called_name, args_name, needs_check,
+                        emit, context):
     emitLineNumberUpdateCode(emit, context)
 
     emit(
@@ -591,8 +598,8 @@ def _getCallCodeKeywordArgs(to_name, called_name, call_kw_name, emit, context):
     context.addCleanupTempName(to_name)
 
 
-def getCallCodePosKeywordArgs(to_name, called_name, call_args_name,
-                              call_kw_name, emit, context):
+def _getCallCodePosKeywordArgs(to_name, called_name, call_args_name,
+                               call_kw_name, emit, context):
     emitLineNumberUpdateCode(emit, context)
 
     emit(
@@ -657,6 +664,5 @@ def getCallsCode():
                 "args_count" : quick_call_used
             }
         )
-
 
     return '\n'.join(result)

@@ -25,8 +25,15 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 known_data_files = {
-    "nose.core" : ("usage.txt",),
-    "scrapy"    : ("VERSION",),
+    "nose.core" : (
+        (None, "usage.txt"),
+    ),
+    "scrapy"    : (
+        (None, "VERSION"),
+    ),
+    "requests"  : (
+        ("certifi", "../certifi/cacert.pem"),
+    )
 }
 
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
@@ -38,18 +45,21 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
 
     def considerDataFiles(self, module):
         if module.getFullName() in known_data_files:
-            for filename in known_data_files[module.getFullName()]:
+            for target_dir, filename in known_data_files[module.getFullName()]:
                 source_path = os.path.join(
                     os.path.dirname(module.getCompileTimeFilename()),
                     filename
                 )
 
                 if os.path.isfile(source_path):
+                    if target_dir is None:
+                        target_dir = module.getFullName().replace('.', os.path.sep)
+
                     yield (
                         source_path,
                         os.path.normpath(
                             os.path.join(
-                                module.getFullName().replace('.', os.path.sep),
+                                target_dir,
                                 filename
                             )
                         )

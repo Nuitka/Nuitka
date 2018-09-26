@@ -24,8 +24,9 @@ to the Python interpreter and compiles **every** construct that CPython 2.6,
 It then executes uncompiled code, and compiled code together in an extremely
 compatible manner.
 
-You can use all Python library modules or and all extension modules freely. It
-translates the Python into a C level program that then uses "libpython" to
+You can use all Python library modules or and all extension modules freely.
+
+It translates the Python into a C level program that then uses "libpython" to
 execute in the same way as CPython does. All optimization is aimed at avoiding
 overhead, where it's unnecessary. None is aimed at removing compatibility,
 although slight improvements will occassionally be done, where not every bug
@@ -42,26 +43,28 @@ Requirements
 - C Compiler: You need a compiler with support for C11 or alternatively
   for C++03 [#]_
 
-  Currently this means, you need to use either of these compilers:
+  Currently this means, you need to use one of these compilers:
 
   * `The ``gcc`` compiler of at least version 5.1, or the ``g++`` compiler of
     at least version 4.4 as an alternative.
 
-  * The ``clang`` compiler on MacOS X or FreeBSD, based on LLVM version 3.2
-    or higher.
+  * The ``clang`` compiler on MacOS X or FreeBSD.
 
   * The MinGW64 [#]_ C11 compiler on Windows, ideally the one based on gcc
-    5.1 or higher. Or the C++ compiler of at least version 4.4 as an
-    alternative.
+    6 or higher.
 
   * Visual Studio 2017 or higher on Windows [#]_, older versions may work,
     but are not officially supported. Configure to use English language
     pack for best results (Nuitka filters away garbage outputs, but only
     for that language).
 
+  * On Windows the ``clang-cl`` compiler on Windows can be used if provided if
+    you use the ``CC`` environmentvariable to point to it, *and* you also have MSVC installed.
+
+
 - Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7
 
-  .. admonition:: Python3, but for 3.3, and 3.4 and only those versions,
+  .. admonition:: Python3, but for 3.3, and 3.4 and *only* those versions,
      we need other Python versions as a *compile time* dependency
 
      Nuitka itself is fully compatible with all mentioned versions, Scons as
@@ -72,16 +75,20 @@ Requirements
      (which orchestrates the C compilation), which does not support the same
      Python versions as Nuitka.
 
-  .. admonition:: Moving to other machines
+  .. admonition:: Moving binaries to other machines
 
      The created binaries can be made executable independent of the Python
      installation, with ``--standalone`` option.
 
-  .. admonition:: Binary filename suffix ``.exe`` even on non-Windows
+  .. admonition:: Binary filename suffix
 
-     The created binaries have an ``.exe`` suffix, that you are free to remove
-     that and yes, they are still native binaries. The suffix is just to be sure
-     that the original script name and the binary name do not ever collide.
+     The created binaries have an ``.exe`` suffix on Windows. On other platforms
+     they have no suffix for standalone mode, or ``.bin`` suffix, that you ar
+     free to remove or change, or specifiy with the ``-o`` option.
+
+     The suffix for acceleration mode is added just to be sure that the original
+     script name and the binary name do not ever collide, so we can safely do
+     an overwrite without destroying the original source file.
 
   .. admonition:: It **has to** be CPython, AnaConda or MiniConda Python.
 
@@ -97,7 +104,8 @@ Requirements
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
 
   Others may work as well. The portability is expected to be generally good, but
-  the e.g. Scons usage may have to be adapted.
+  the e.g. Scons usage may have to be adapted. Make sure to match Windows Python
+  and C compiler architecture, or else you will get cryptic error messages.
 
 - Architectures: x86, x86_64 (amd64), and arm, likely many more
 
@@ -190,11 +198,11 @@ that is the main program, do it like this:
 
 .. code-block:: bash
 
-    python -m nuitka --recurse-all program.py
+    python -m nuitka --follow-imports program.py
 
 .. note::
 
-   There are more fine grained controls than ``--recurse-all`` available.
+   There are more fine grained controls than ``--follow-imports`` available.
    Consider the output of ``nuitka --help``.
 
 In case you have a plugin directory, i.e. one which cannot be found by recursing
@@ -204,16 +212,21 @@ included in the executable:
 
 .. code-block:: bash
 
-    python -m nuitka --recurse-all --recurse-directory=plugin_dir program.py
+    python -m nuitka --follow-imports --include-plugin-directory=plugin_dir program.py
 
 .. note::
 
    If you don't do any dynamic imports, simply setting your ``PYTHONPATH`` at
    compilation time will be sufficient for all your needs normally.
 
-   Use ``--recurse-directory`` only if you make ``__import__()`` calls that
-   Nuitka cannot predict, because they e.g. depend on command line
+   Use ``--include-plugin-directory`` only if you make ``__import__()`` calls
+   that Nuitka cannot predict, because they e.g. depend on command line
    parameters. Nuitka also warns about these, and point to the option.
+
+.. note::
+
+   The resulting filename will be ``program.exe`` on Windows, ``program.bin``
+   on other platforms.
 
 .. note::
 
@@ -222,14 +235,8 @@ included in the executable:
 
    If you want to be able to copy it to another machine, use ``--standalone``
    and copy the created ``program.dist`` directory and execute the
-   ``program.exe`` put inside.
+   ``program.exe`` (Windows) or ``program`` (other platforms) put inside.
 
-.. note::
-
-   The resulting filename will be ``program.exe`` on all platforms, that
-   doesn't mean it doesn't run on non-Windows! But if you compile ``program``
-   we wouldn't want to overwrite it, or be unsure which one is the compiled
-   form, and which one is not.
 
 Use Case 2 - Extension Module compilation
 -----------------------------------------
@@ -240,13 +247,18 @@ If you want to compile a single extension module, all you have to do is this:
 
     python -m nuitka --module some_module.py
 
-The resulting file "some_module.so" can then be used instead of
-"some_module.py". It's left as an exercise to the reader, what happens if both
-are present.
+The resulting file ``some_module.so`` can then be used instead of
+``some_module.py``.
 
 .. note::
 
-   The option ``--recurse-all`` and other variants work as well.
+   It's left as an exercise to the reader, what happens if both are present.
+
+.. note::
+
+   The option ``--follow-imports`` and other variants work as well, but the
+   included modules will only become importable *after* you imported the
+   ``some_module`` name.
 
 Use Case 3 - Package compilation
 --------------------------------
@@ -264,6 +276,46 @@ feasible, use Nuitka like this:
    otherwise the package is empty. Data files located inside the package will
    not be embedded yet.
 
+Tips
+====
+
+Caching
+-------
+
+The C compiler when invoked with the same input files with take long time
+and much CPU to compile. Make sure you are having ``ccache`` installed and
+configured on non-Windows. It will make repeated compilations much faster,
+even if things are not yet not perfect, i.e. changes to the program can
+cause many C files to change, requiring a new compilation instead of using
+the cached result.
+
+On Windows, Nuitka supports using ``ccache.exe`` which is not easy to come
+by though for the non-MSVC compilers, and ``clcache.exe`` which is just one
+``pip install clcache`` command away. To make Nuitka use those, set either
+``NUITKA_CCACHE_BINARY`` to the full path of ``ccache.exe`` or
+``NUITKA_CLCACHE_BINARY`` to the full path of ``clcache.exe``, which will be
+in the scripts folder of the Python you installed it into.
+
+Runners
+-------
+
+Avoid running the ``nuitka`` binary, doing ``python -m nuitka`` will make a
+100% sure you are using what you think you are.
+
+Fastest C Compilers
+-------------------
+
+The fastest binaries of ``pystone.exe`` on Windows with 64 bits Python proved
+to be signicantly faster with MinGW64, roughly 20% better score. So it is
+recommended for use over MSVC. Using ``clang-cl.exe`` of Clang7 was faster
+than MSVC, but still significantly slower than MinGW64, and it will be harder
+to use, so it is not recommened.
+
+On Linux for ``pystone.bin`` the binary produced by ``clang6`` was faster
+than ``gcc-6.3``, but not by a significant margin. Since gcc is more often
+already installed, that is the recommened use for now.
+
+Differences in C compilation times have not yet been examined.
 
 Where to go next
 ================
@@ -280,6 +332,16 @@ Please visit the `mailing list page
 relatively low volume mailing list. All Nuitka issues can be discussed there.
 Also this is the place to stay informed of what's coming.
 
+Follow me on Twitter
+--------------------
+
+Nuitka announcements and interesting stuff is pointed to on the Twitter account,
+but obviously with no details. `@KayHayen <https://twitter.com/KayHayen>`_.
+
+I will not answer Nuitka issues via Twitter though, rather make occasional
+polls, and give important announcements, as well as low level posts about
+development ongoing.
+
 Report issues or bugs
 ---------------------
 
@@ -288,7 +350,7 @@ tracker <https://github.com/kayhayen/Nuitka/issues>`__ and report them.
 
 Best practices for reporting bugs:
 
-- Please aways include the following information in your report, for the
+- Please always include the following information in your report, for the
   underlying Python version. You can easily copy&paste this into your
   report.
 
@@ -304,19 +366,15 @@ Best practices for reporting bugs:
 - If the problem occurs spuriously (i.e. not each time), try to set the
   environment variable ``PYTHONHASHSEED`` to ``0``, disabling hash
   randomization. If that makes the problem go away, try increasing in
-  steps of 1 to a hash seed value that makes it happen every time.
+  steps of 1 to a hash seed value that makes it happen every time, include
+  it in your report.
 
 - Do not include the created code in your report. Given proper input,
   it's redundant, and it's not likely that I will look at it without
   the ability to change the Python or Nuitka source and re-run it.
 
-Follow me on Twitter
---------------------
-
-Nuitka announcements and interesting stuff is pointed to on the Twitter account,
-but obviously with no details. `@KayHayen <https://twitter.com/KayHayen>`_.
-
-I will not answer Nuitka questions via Twitter though.
+- Do not send screenshots of text, that is bad and lazy. Instead capture
+  text outputs from the console.
 
 Word of Warning
 ---------------
@@ -324,10 +382,6 @@ Word of Warning
 Consider using this software with caution. Even though many tests are applied
 before releases, things are potentially breaking. Your feedback and patches to
 Nuitka are very welcome.
-
-Especially report it please, if you find that anything doesn't work, because the
-project is now at the stage that this should not happen and most definitely will
-mean you encountered an unknown bug.
 
 
 Join Nuitka
@@ -363,12 +417,8 @@ The development of Nuitka occurs in git. We currently have these 3 branches:
 
 .. note::
 
-   I accept patch files, git formatted patch queues (use ``git format-patch
-   origin`` command), or if you prefer git pull on the social code platforms.
-
-   I will do the integration work. If you base your work on "master" or
-   "develop" at any given time, I will do any re-basing required and keep your
-   authorship intact.
+   I accept requests on the social code platforms, also patch files, if they
+   are good.
 
 .. note::
 
@@ -394,6 +444,10 @@ The code objects are empty for for native compiled functions. There is no
 bytecode with Nuitka's compiled function objects, so there is no way to provide
 it.
 
+PDB
+---
+
+There is no tracing of compiled functions to attach a debugger to.
 
 Optimization
 ============

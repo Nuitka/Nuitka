@@ -23,7 +23,11 @@ Exceptions from other operations are consider ErrorCodes domain.
 
 from nuitka.Options import isDebug
 
-from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ErrorCodes import getFrameVariableTypeDescriptionCode
 from .LabelCodes import getGotoCode
 from .LineNumberCodes import (
@@ -78,7 +82,7 @@ def generateRaiseCode(statement, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(exception_cause.getSourceReference())
 
-        getRaiseExceptionWithCauseCode(
+        _getRaiseExceptionWithCauseCode(
             raise_type_name  = raise_type_name,
             raise_cause_name = raise_cause_name,
             emit             = emit,
@@ -102,7 +106,7 @@ def generateRaiseCode(statement, emit, context):
             value = exception_type.getCompatibleSourceReference()
         )
 
-        getRaiseExceptionWithTypeCode(
+        _getRaiseExceptionWithTypeCode(
             raise_type_name = raise_type_name,
             emit            = emit,
             context         = context
@@ -134,7 +138,7 @@ def generateRaiseCode(statement, emit, context):
             statement.getCompatibleSourceReference()
         )
 
-        getRaiseExceptionWithValueCode(
+        _getRaiseExceptionWithValueCode(
             raise_type_name  = raise_type_name,
             raise_value_name = raise_value_name,
             implicit         = statement.isStatementRaiseExceptionImplicit(),
@@ -173,7 +177,7 @@ def generateRaiseCode(statement, emit, context):
 
         old_source_ref = context.setCurrentSourceCodeReference(exception_tb.getSourceReference())
 
-        getRaiseExceptionWithTracebackCode(
+        _getRaiseExceptionWithTracebackCode(
             raise_type_name  = raise_type_name,
             raise_value_name = raise_value_name,
             raise_tb_name    = raise_tb_name,
@@ -203,16 +207,19 @@ def generateRaiseExpressionCode(to_name, expression, emit, context):
                parent.isExpressionLocalsVariableRefORFallback(), \
                (expression, expression.parent, expression.asXmlText())
 
-    # That's how we indicate exception to the surrounding world.
-    emit("%s = NULL;" % to_name)
+    with withObjectCodeTemporaryAssignment(to_name, "raise_exception_result", expression, emit, context) \
+      as value_name:
 
-    getRaiseExceptionWithValueCode(
-        raise_type_name  = arg_names[0],
-        raise_value_name = arg_names[1],
-        implicit         = True,
-        emit             = emit,
-        context          = context
-    )
+        # That's how we indicate exception to the surrounding world.
+        emit("%s = NULL;" % value_name)
+
+        _getRaiseExceptionWithValueCode(
+            raise_type_name  = arg_names[0],
+            raise_value_name = arg_names[1],
+            implicit         = True,
+            emit             = emit,
+            context          = context
+        )
 
 
 def getReRaiseExceptionCode(emit, context):
@@ -279,7 +286,7 @@ if (%(exception_tb)s && %(exception_tb)s->tb_frame == &%(frame_identifier)s->m_f
     getGotoCode(context.getExceptionEscape(), emit)
 
 
-def getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit,
+def _getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit,
                                    context):
     exception_type, exception_value, exception_tb, _exception_lineno = \
       context.variable_storage.getExceptionVariableDescriptions()
@@ -320,7 +327,7 @@ def getRaiseExceptionWithCauseCode(raise_type_name, raise_cause_name, emit,
         context.removeCleanupTempName(raise_cause_name)
 
 
-def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
+def _getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
     exception_type, exception_value, exception_tb, _exception_lineno = \
       context.variable_storage.getExceptionVariableDescriptions()
 
@@ -351,7 +358,7 @@ def getRaiseExceptionWithTypeCode(raise_type_name, emit, context):
         context.removeCleanupTempName(raise_type_name)
 
 
-def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
+def _getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
                                    emit, context):
     exception_type, exception_value, exception_tb, _exception_lineno = \
       context.variable_storage.getExceptionVariableDescriptions()
@@ -393,7 +400,7 @@ def getRaiseExceptionWithValueCode(raise_type_name, raise_value_name, implicit,
         context.removeCleanupTempName(raise_value_name)
 
 
-def getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
+def _getRaiseExceptionWithTracebackCode(raise_type_name, raise_value_name,
                                        raise_tb_name, emit, context):
     exception_type, exception_value, exception_tb, _exception_lineno = \
       context.variable_storage.getExceptionVariableDescriptions()

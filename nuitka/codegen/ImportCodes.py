@@ -22,7 +22,11 @@ That is import as expression, and star import.
 
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
+from .CodeHelpers import (
+    generateChildExpressionsCode,
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
 from .LineNumberCodes import emitLineNumberUpdateCode
 from .ModuleCodes import getModuleAccessCode
@@ -37,21 +41,25 @@ def generateBuiltinImportCode(to_name, expression, emit, context):
         context    = context
     )
 
-    getBuiltinImportCode(
-        to_name          = to_name,
-        module_name      = module_name,
-        globals_name     = globals_name,
-        locals_name      = locals_name,
-        import_list_name = import_list_name,
-        level_name       = level_name,
-        needs_check      = expression.mayRaiseException(BaseException),
-        emit             = emit,
-        context          = context
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "imported_value", expression, emit, context) \
+      as value_name:
+
+        _getBuiltinImportCode(
+            to_name          = value_name,
+            module_name      = module_name,
+            globals_name     = globals_name,
+            locals_name      = locals_name,
+            import_list_name = import_list_name,
+            level_name       = level_name,
+            needs_check      = expression.mayRaiseException(BaseException),
+            emit             = emit,
+            context          = context
+        )
 
 
-def getCountedArgumentsHelperCallCode(helper_prefix, to_name, args, min_args,
-                                      needs_check, emit, context):
+# TODO: Maybe use this for other cases too, not just import.
+def _getCountedArgumentsHelperCallCode(helper_prefix, to_name, args, min_args,
+                                       needs_check, emit, context):
     orig_args = args
     args = list(args)
     while args[-1] is None:
@@ -97,13 +105,13 @@ def getCountedArgumentsHelperCallCode(helper_prefix, to_name, args, min_args,
     context.addCleanupTempName(to_name)
 
 
-def getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
-                         import_list_name, level_name, needs_check, emit,
-                         context):
+def _getBuiltinImportCode(to_name, module_name, globals_name, locals_name,
+                          import_list_name, level_name, needs_check, emit,
+                          context):
 
     emitLineNumberUpdateCode(emit, context)
 
-    getCountedArgumentsHelperCallCode(
+    _getCountedArgumentsHelperCallCode(
         helper_prefix = "IMPORT_MODULE",
         to_name       = to_name,
         args          = (
@@ -126,19 +134,22 @@ def generateImportModuleHardCode(to_name, expression, emit, context):
 
     emitLineNumberUpdateCode(emit, context)
 
-    emit(
-        """%s = PyImport_ImportModule("%s");""" % (
-            to_name,
-            module_name
-        )
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "imported_value", expression, emit, context) \
+      as value_name:
 
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
-    )
+        emit(
+            """%s = PyImport_ImportModule("%s");""" % (
+                value_name,
+                module_name
+            )
+        )
+
+        getErrorExitCode(
+            check_name  = value_name,
+            needs_check = needs_check,
+            emit        = emit,
+            context     = context
+        )
 
 
 def generateImportModuleNameHardCode(to_name, expression, emit, context):
@@ -146,18 +157,21 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
     import_name = expression.getImportName()
     needs_check = expression.mayRaiseException(BaseException)
 
-    if module_name == "sys":
-        emit(
-            """%s = PySys_GetObject( (char *)"%s" );""" % (
-                to_name,
-                import_name
-            )
-        )
-    elif module_name in ("os", "__future__", "importlib._bootstrap"):
-        emitLineNumberUpdateCode(emit, context)
+    with withObjectCodeTemporaryAssignment(to_name, "imported_value", expression, emit, context) \
+      as value_name:
 
-        emit(
-             """\
+        if module_name == "sys":
+            emit(
+                """%s = PySys_GetObject( (char *)"%s" );""" % (
+                    value_name,
+                    import_name
+                )
+            )
+        elif module_name in ("os", "__future__", "importlib._bootstrap"):
+            emitLineNumberUpdateCode(emit, context)
+
+            emit(
+                 """\
 {
     PyObject *module = PyImport_ImportModule("%(module_name)s");
     if (likely( module != NULL ))
@@ -170,20 +184,20 @@ def generateImportModuleNameHardCode(to_name, expression, emit, context):
     }
 }
 """ % {
-                "to_name"     : to_name,
-                "module_name" : module_name,
-                "import_name" : context.getConstantCode(import_name)
-            }
-        )
-    else:
-        assert False, module_name
+                    "to_name"     : value_name,
+                    "module_name" : module_name,
+                    "import_name" : context.getConstantCode(import_name)
+                }
+            )
+        else:
+            assert False, module_name
 
-    getErrorExitCode(
-        check_name  = to_name,
-        needs_check = needs_check,
-        emit        = emit,
-        context     = context
-    )
+        getErrorExitCode(
+            check_name  = value_name,
+            needs_check = needs_check,
+            emit        = emit,
+            context     = context
+        )
 
 
 def generateImportStarCode(statement, emit, context):
@@ -247,9 +261,12 @@ def generateImportNameCode(to_name, expression, emit, context):
 
     level = expression.getImportLevel()
 
-    if level and python_version >= 350:
-        emit(
-            """\
+    with withObjectCodeTemporaryAssignment(to_name, "imported_value", expression, emit, context) \
+      as value_name:
+
+        if level and python_version >= 350:
+            emit(
+                """\
 if ( PyModule_Check( %(from_arg_name)s ) )
 {
    %(to_name)s = IMPORT_NAME_OR_MODULE(
@@ -264,34 +281,34 @@ else
    %(to_name)s = IMPORT_NAME( %(from_arg_name)s, %(import_name)s );
 }
 """ % {
-                "to_name"       : to_name,
-                "from_arg_name" : from_arg_name,
-                "import_name"   : context.getConstantCode(
-                    constant = expression.getImportName()
-                ),
-                "import_level"   : context.getConstantCode(
-                    constant = expression.getImportLevel()
-                )
-            }
-        )
-    else:
-        emit(
-            "%s = IMPORT_NAME( %s, %s );" % (
-                to_name,
-                from_arg_name,
-                context.getConstantCode(
-                    constant = expression.getImportName()
+                    "to_name"       : value_name,
+                    "from_arg_name" : from_arg_name,
+                    "import_name"   : context.getConstantCode(
+                        constant = expression.getImportName()
+                    ),
+                    "import_level"   : context.getConstantCode(
+                        constant = expression.getImportLevel()
+                    )
+                }
+            )
+        else:
+            emit(
+                "%s = IMPORT_NAME( %s, %s );" % (
+                    value_name,
+                    from_arg_name,
+                    context.getConstantCode(
+                        constant = expression.getImportName()
+                    )
                 )
             )
+
+
+        getErrorExitCode(
+            check_name   = value_name,
+            release_name = from_arg_name,
+            needs_check  = expression.mayRaiseException(BaseException),
+            emit         = emit,
+            context      = context
         )
 
-
-    getErrorExitCode(
-        check_name   = to_name,
-        release_name = from_arg_name,
-        needs_check  = expression.mayRaiseException(BaseException),
-        emit         = emit,
-        context      = context
-    )
-
-    context.addCleanupTempName(to_name)
+        context.addCleanupTempName(value_name)

@@ -45,11 +45,13 @@ from nuitka.tools.testing.Common import (  # isort:skip
     check_output,
     convertUsing2to3,
     createSearchMode,
+    decideFilenameVersionSkip,
     hasModule,
     my_print,
     setup
 )
 
+from nuitka.TreeXML import toString
 
 python_version = setup()
 
@@ -100,6 +102,7 @@ def isConstantExpression(expression):
 def checkSequence(statements):
     for statement in statements:
         kind = getKind(statement)
+
         # Printing is fine.
         if kind == "PrintValue":
             print_arg, = getRole(statement, "value")
@@ -128,7 +131,20 @@ def checkSequence(statements):
                     if called_expression.attrib["builtin_name"] == "print":
                         continue
 
+        # Trying of printing is fine, but not needed
+        if kind == "Try" and False:
+            tried = getRole(statement, "tried")
+
+            checkSequence(getRole(tried[0], "statements"))
+
+            continue
+
         if kind == "FrameModule":
+            checkSequence(getRole(statement, "statements"))
+
+            continue
+
+        if kind == "FrameFunction":
             checkSequence(getRole(statement, "statements"))
 
             continue
@@ -151,13 +167,19 @@ def checkSequence(statements):
 
             continue
 
-        print(lxml.etree.tostring(statement, pretty_print = True))
+        if kind in ("ReturnNone", "ReturnConstant"):
+            continue
 
+
+        print(toString(statement))
         sys.exit("Error, non-print statement of unknown kind '%s'." % kind)
 
 
 for filename in sorted(os.listdir('.')):
     if not filename.endswith(".py") or filename.startswith("run_"):
+        continue
+
+    if not decideFilenameVersionSkip(filename):
         continue
 
     active = search_mode.consider(
@@ -179,7 +201,7 @@ for filename in sorted(os.listdir('.')):
         command = [
             os.environ["PYTHON"],
             os.path.abspath(os.path.join("..", "..", "bin", "nuitka")),
-            "--dump-xml",
+            "--xml",
             "--module",
             filename
         ]

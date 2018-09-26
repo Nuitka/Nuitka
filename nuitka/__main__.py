@@ -60,7 +60,7 @@ def main():
     from nuitka import Options                  # isort:skip
     Options.parseArgs()
 
-    from nuitka.utils import Utils, Execution   # isort:skip
+
 
     import logging # isort:skip
     logging.basicConfig(format = "Nuitka:%(levelname)s:%(message)s")
@@ -75,34 +75,6 @@ def main():
     needs_reexec = False
 
     current_version = "%d.%d" % (sys.version_info[0], sys.version_info[1])
-
-    # We support to execute with a specified version.
-    intended_version = Options.getIntendedPythonVersion()
-    if intended_version is None:
-        intended_version = current_version
-
-    # If it's a different version, we find it by guessing it, otherwise we use the
-    # one previously used.
-    if current_version != intended_version:
-        if Utils.getOS() == "Windows":
-            python_binary = Execution.getPythonExePathWindows(
-                intended_version,
-                Options.getIntendedPythonArch()
-            )
-        else:
-            python_binary = Execution.getExecutablePath("python" + intended_version)
-
-        if python_binary is None:
-            sys.exit(
-                "Error, cannot find Python %s binary in PATH (%s)." % (
-                    intended_version,
-                    os.environ.get("PATH", "")
-                )
-            )
-
-        needs_reexec = True
-    else:
-        python_binary = sys.executable
 
     if sys.flags.no_site == 0:
         needs_reexec = True
@@ -122,22 +94,11 @@ def main():
 
         our_filename = sys.modules[__name__].__file__
 
-        # Workaround for --python-version which will choke on existing, but
-        # not matching .pyc files.
-        if current_version != intended_version:
-            pyc_filename = our_filename[:-2] + ".pyc"
-
-            if os.path.exists(pyc_filename):
-                try:
-                    os.unlink(pyc_filename)
-                except OSError:
-                    pass
-
         # Execute with full path as the process name, so it can find itself and its
         # libraries.
         args = [
-            python_binary,
-            python_binary,
+            sys.executable,
+            sys.executable,
             "-S",
             our_filename,
         ]
@@ -150,20 +111,19 @@ def main():
         # Same arguments as before.
         args += sys.argv[1:] + list(Options.getMainArgs())
 
-        if current_version == intended_version:
-            os.environ["NUITKA_PYTHONPATH"] = repr(
-                sys.path
-            )
+        os.environ["NUITKA_PYTHONPATH"] = repr(
+            sys.path
+        )
 
-            from nuitka.importing.PreloadedPackages import detectPreLoadedPackagePaths, detectPthImportedPackages
-            os.environ["NUITKA_NAMESPACES"] = repr(
-                detectPreLoadedPackagePaths()
-            )
+        from nuitka.importing.PreloadedPackages import detectPreLoadedPackagePaths, detectPthImportedPackages
+        os.environ["NUITKA_NAMESPACES"] = repr(
+            detectPreLoadedPackagePaths()
+        )
 
-            if "site" in sys.modules:
-                os.environ["NUITKA_SITE_FILENAME"] = sys.modules["site"].__file__
+        if "site" in sys.modules:
+            os.environ["NUITKA_SITE_FILENAME"] = sys.modules["site"].__file__
 
-                os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
+            os.environ["NUITKA_PTH_IMPORTED"] = repr(detectPthImportedPackages())
 
 
         os.environ["NUITKA_SITE_FLAG"] = str(sys.flags.no_site) \
@@ -172,6 +132,7 @@ def main():
 
         os.environ["PYTHONHASHSEED"] = '0'
 
+        from nuitka.utils import Execution   # isort:skip
         Execution.callExec(args)
 
     if Options.isShowMemory():
@@ -179,7 +140,8 @@ def main():
         MemoryUsage.startMemoryTracing()
 
     # Inform the user about potential issues.
-    if current_version not in Options.getSupportedPythonVersions():
+    from nuitka.PythonVersions import getSupportedPythonVersions
+    if current_version not in getSupportedPythonVersions():
 
         # Do not disturb run of automatic tests, detected from the presence of
         # that environment variable.

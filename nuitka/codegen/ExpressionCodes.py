@@ -22,6 +22,8 @@ only statement.
 
 """
 
+from nuitka import Options
+
 from .CodeHelpers import generateExpressionCode
 from .ErrorCodes import getReleaseCode
 
@@ -35,11 +37,20 @@ def generateExpressionOnlyCode(statement, emit, context):
 
 
 def getStatementOnlyCode(value, emit, context):
-    tmp_name = context.allocateTempName(
-        base_name = "unused",
-        type_name = "NUITKA_MAY_BE_UNUSED PyObject *",
-        unique    = True
-    )
+    # TODO: Introduce "void" as a C type, which discards all assignments
+    # as a no-op.
+    if Options.isExperimental("enable_void_ctype"):
+        tmp_name = context.allocateTempName(
+            base_name = "unused",
+            type_name = "void",
+            unique    = True
+        )
+    else:
+        tmp_name = context.allocateTempName(
+            base_name = "unused",
+            type_name = "NUITKA_MAY_BE_UNUSED PyObject *",
+            unique    = True
+        )
 
     generateExpressionCode(
         expression = value,

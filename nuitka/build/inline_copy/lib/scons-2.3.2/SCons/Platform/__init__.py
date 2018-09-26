@@ -205,7 +205,7 @@ class TempFileMunge(object):
             prefix = '@'
 
         args = list(map(SCons.Subst.quote_spaces, cmd[1:]))
-        os.write(fd, " ".join(args) + "\n")
+        os.write(fd, "\n".join(args) + "\n")
         os.close(fd)
         # XXX Using the SCons.Action.print_actions value directly
         # like this is bogus, but expedient.  This class should

@@ -23,93 +23,45 @@ added later on.
 
 from nuitka.PythonVersions import needsSetLiteralReverseInsertion
 
-from .CodeHelpers import generateChildExpressionsCode, generateExpressionCode
-from .ErrorCodes import getErrorExitBoolCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateChildExpressionsCode,
+    generateExpressionCode,
+    withObjectCodeTemporaryAssignment
+)
+from .ErrorCodes import getAssertionCode, getErrorExitBoolCode
 from .PythonAPICodes import generateCAPIObjectCode
 
 
 def generateSetCreationCode(to_name, expression, emit, context):
     element_name = context.allocateTempName("set_element")
 
-    for count, element in enumerate(expression.getElements()):
-        generateExpressionCode(
-            to_name    = element_name,
-            expression = element,
-            emit       = emit,
-            context    = context
-        )
-
-        if count == 0:
-            emit(
-                "%s = PySet_New( NULL );" % (
-                    to_name,
-                )
-            )
-
-            context.addCleanupTempName(to_name)
-
-        res_name = context.getIntResName()
-
-        emit(
-            "%s = PySet_Add( %s, %s );" % (
-                res_name,
-                to_name,
-                element_name
-            )
-        )
-
-        getErrorExitBoolCode(
-            condition   = "%s != 0" % res_name,
-            needs_check = not element.isKnownToBeHashable(),
-            emit        = emit,
-            context     = context
-        )
-
-        if context.needsCleanup(element_name):
-            emit("Py_DECREF( %s );" % element_name)
-            context.removeCleanupTempName(element_name)
-
-
-def generateSetLiteralCreationCode(to_name, expression, emit, context):
-    if not needsSetLiteralReverseInsertion():
-        return generateSetCreationCode(to_name, expression, emit, context)
-
-    emit(
-        "%s = PySet_New( NULL );" % (
-            to_name,
-        )
-    )
-
-    context.addCleanupTempName(to_name)
-
     elements = expression.getElements()
 
-    element_names = []
+    # Supposed to optimize empty set to constant value.
+    assert elements, expression
 
-    for count, element in enumerate(elements):
-        element_name = context.allocateTempName(
-            "set_element_%d" % (count+1)
-        )
-        element_names.append(element_name)
+    with withObjectCodeTemporaryAssignment(to_name, "set_result", expression, emit, context) \
+      as result_name:
 
-        generateExpressionCode(
-            to_name    = element_name,
-            expression = element,
-            emit       = emit,
-            context    = context
-        )
-
-    for count, element in enumerate(elements):
-        element_name = element_names[len(elements)-count-1]
-
-        if element.isKnownToBeHashable():
-            emit(
-                "PySet_Add( %s, %s );" % (
-                    to_name,
-                    element_name
-                )
+        for count, element in enumerate(elements):
+            generateExpressionCode(
+                to_name    = element_name,
+                expression = element,
+                emit       = emit,
+                context    = context
             )
-        else:
+
+            if count == 0:
+                emit(
+                    "%s = PySet_New( NULL );" % (
+                        result_name,
+                    )
+                )
+                getAssertionCode(result_name, emit)
+
+                context.addCleanupTempName(to_name)
+
             res_name = context.getIntResName()
 
             emit(
@@ -121,14 +73,79 @@ def generateSetLiteralCreationCode(to_name, expression, emit, context):
             )
 
             getErrorExitBoolCode(
-                condition = "%s != 0" % res_name,
-                emit      = emit,
-                context   = context
+                condition   = "%s != 0" % res_name,
+                needs_check = not element.isKnownToBeHashable(),
+                emit        = emit,
+                context     = context
             )
 
-        if context.needsCleanup(element_name):
-            emit("Py_DECREF( %s );" % element_name)
-            context.removeCleanupTempName(element_name)
+            if context.needsCleanup(element_name):
+                emit("Py_DECREF( %s );" % element_name)
+                context.removeCleanupTempName(element_name)
+
+
+def generateSetLiteralCreationCode(to_name, expression, emit, context):
+    if not needsSetLiteralReverseInsertion():
+        return generateSetCreationCode(to_name, expression, emit, context)
+
+    with withObjectCodeTemporaryAssignment(to_name, "set_result", expression, emit, context) \
+      as result_name:
+
+        emit(
+            "%s = PySet_New( NULL );" % (
+                result_name,
+            )
+        )
+
+        context.addCleanupTempName(result_name)
+
+        elements = expression.getElements()
+
+        element_names = []
+
+        for count, element in enumerate(elements):
+            element_name = context.allocateTempName(
+                "set_element_%d" % (count+1)
+            )
+            element_names.append(element_name)
+
+            generateExpressionCode(
+                to_name    = element_name,
+                expression = element,
+                emit       = emit,
+                context    = context
+            )
+
+        for count, element in enumerate(elements):
+            element_name = element_names[len(elements)-count-1]
+
+            if element.isKnownToBeHashable():
+                emit(
+                    "PySet_Add( %s, %s );" % (
+                        result_name,
+                        element_name
+                    )
+                )
+            else:
+                res_name = context.getIntResName()
+
+                emit(
+                    "%s = PySet_Add( %s, %s );" % (
+                        res_name,
+                        result_name,
+                        element_name
+                    )
+                )
+
+                getErrorExitBoolCode(
+                    condition = "%s != 0" % res_name,
+                    emit      = emit,
+                    context   = context
+                )
+
+            if context.needsCleanup(element_name):
+                emit("Py_DECREF( %s );" % element_name)
+                context.removeCleanupTempName(element_name)
 
 
 def generateSetOperationAddCode(statement, emit, context):
@@ -194,34 +211,44 @@ def generateSetOperationUpdateCode(to_name, expression, emit, context):
         context       = context
     )
 
-    emit(
-        "%s = Py_None;" % to_name
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "setupdate_result", expression, emit, context) \
+      as result_name:
+        emit(
+            "%s = Py_None;" % result_name
+        )
+
+        # This conversion will not use it, and since it is borrowed, debug mode
+        # would otherwise complain.
+        if to_name.c_type == "void":
+            result_name.maybe_unused = True
+
 
 
 def generateBuiltinSetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "PySet_New",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "PySet_New",
+        arg_desc         = (
             ("set_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )
 
 
 def generateBuiltinFrozensetCode(to_name, expression, emit, context):
     generateCAPIObjectCode(
-        to_name    = to_name,
-        capi       = "PyFrozenSet_New",
-        arg_desc   = (
+        to_name          = to_name,
+        capi             = "PyFrozenSet_New",
+        arg_desc         = (
             ("frozenset_arg", expression.getValue()),
         ),
-        may_raise  = expression.mayRaiseException(BaseException),
-        source_ref = expression.getCompatibleSourceReference(),
-        emit       = emit,
-        context    = context
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
     )

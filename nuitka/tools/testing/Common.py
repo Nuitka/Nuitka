@@ -72,8 +72,9 @@ _python_version = None
 _python_arch = None
 _python_executable = None
 
-def setup(needs_io_encoding = False, silent = False):
-    goMainDir()
+def setup(needs_io_encoding = False, silent = False, go_main = True):
+    if go_main:
+        goMainDir()
 
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
@@ -1233,6 +1234,13 @@ def getTestingCacheDir():
     makePath(result)
     return result
 
+
+def getTestingCPythonOutputsCacheDir():
+    cache_dir = getCacheDir()
+
+    result = os.path.join(cache_dir, "cpython_outputs")
+    makePath(result)
+    return result
 
 @contextmanager
 def withDirectoryChange(path, allow_none = False):

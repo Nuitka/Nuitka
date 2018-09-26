@@ -39,6 +39,7 @@ from nuitka.specs.ParameterSpecs import (
 from nuitka.tree.Extractions import updateVariableUsage
 
 from .Checkers import checkStatementsSequenceOrNone
+from .CodeObjectSpecs import CodeObjectSpec
 from .ExpressionBases import (
     CompileTimeConstantExpressionBase,
     ExpressionBase,
@@ -74,7 +75,7 @@ class ExpressionFunctionBodyBase(ClosureTakerMixin, ClosureGiverNodeMixin,
 
     checker = checkStatementsSequenceOrNone
 
-    def __init__(self, provider, name, code_prefix, flags, source_ref, body):
+    def __init__(self, provider, name, body, code_prefix, flags, source_ref):
         while provider.isExpressionOutlineBody():
             provider = provider.getParentVariableProvider()
 
@@ -483,11 +484,13 @@ class ExpressionFunctionBody(MarkUnoptimizedFunctionIndicatorMixin,
 
     def getDetails(self):
         return {
-            "name"       : self.getFunctionName(),
-            "ref_name"   : self.getCodeName(),
-            "parameters" : self.getParameters(),
-            "provider"   : self.provider.getCodeName(),
-            "doc"        : self.doc
+            "name"        : self.getFunctionName(),
+            "ref_name"    : self.getCodeName(),
+            "parameters"  : self.getParameters(),
+            "code_object" : self.code_object,
+            "provider"    : self.provider.getCodeName(),
+            "doc"         : self.doc,
+            "flags"       : self.flags
         }
 
     def getDetailsForDisplay(self):
@@ -499,6 +502,9 @@ class ExpressionFunctionBody(MarkUnoptimizedFunctionIndicatorMixin,
 
         result.update(self.parameters.getDetails())
 
+        if self.code_object:
+            result.update(self.code_object.getDetails())
+
         if self.doc is not None:
             result["doc"] = self.doc
 
@@ -509,17 +515,21 @@ class ExpressionFunctionBody(MarkUnoptimizedFunctionIndicatorMixin,
         assert provider is not None
 
         parameter_spec_args = {}
+        code_object_args = {}
         other_args = {}
 
         for key, value in args.items():
             if key.startswith("ps_"):
                 parameter_spec_args[key] = value
+            elif key.startswith("co_"):
+                code_object_args[key] = value
             elif key == "code_flags":
-                source_ref.future_spec = fromFlags(value)
+                code_object_args["future_spec"] = fromFlags(args["code_flags"])
             else:
                 other_args[key] = value
 
         parameters = ParameterSpec(**parameter_spec_args)
+        code_object = CodeObjectSpec(**code_object_args)
 
         # The empty doc string and no doc string are distinguished by presence. The
         # most common case is going to be not present.
@@ -527,9 +537,10 @@ class ExpressionFunctionBody(MarkUnoptimizedFunctionIndicatorMixin,
             other_args["doc"] = None
 
         return cls(
-            provider   = provider,
-            parameters = parameters,
-            source_ref = source_ref,
+            provider    = provider,
+            parameters  = parameters,
+            code_object = code_object,
+            source_ref  = source_ref,
             **other_args
         )
 

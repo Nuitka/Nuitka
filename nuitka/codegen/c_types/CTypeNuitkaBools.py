@@ -19,10 +19,6 @@
 
 """
 
-from nuitka.codegen.ErrorCodes import (
-    getAssertionCode,
-    getLocalVariableReferenceErrorCode
-)
 
 from .CTypeBases import CTypeBase
 
@@ -31,74 +27,81 @@ class CTypeNuitkaBoolEnum(CTypeBase):
     c_type = "nuitka_bool"
 
     @classmethod
-    def getLocalVariableAssignCode(cls, variable_code_name, needs_release,
-                                   tmp_name, ref_count, in_place):
+    def emitVariableAssignCode(cls, value_name, needs_release, tmp_name,
+                               ref_count, in_place, emit, context):
 
         assert not in_place
         assert not ref_count
 
-        return """\
-if (%(tmp_name)s == Py_True)
-{
-    %(variable_code_name)s = NUITKA_BOOL_TRUE;
-}
-else
-{
-    %(variable_code_name)s = NUITKA_BOOL_FALSE;
-}
-        """ % {
-            "variable_code_name" : variable_code_name,
-            "tmp_name"            : tmp_name,
-        }
+        if tmp_name.c_type == "nuitka_bool":
+            emit(
+                "%s = %s;" % (
+                    value_name,
+                    tmp_name
+                )
+            )
+        else:
+            if tmp_name.c_type == "PyObject *":
+                test_code = "%s == Py_True" % tmp_name
+            else:
+                assert False, tmp_name
 
+            cls.emitAssignmentCodeFromBoolCondition(
+                to_name   = value_name,
+                condition = test_code,
+                emit      = emit
+            )
 
     @classmethod
-    def getVariableObjectAccessCode(cls, to_name, needs_check, variable_code_name,
-                                    variable, emit, context):
-        emit(
-            """\
-switch (%(variable_code_name)s)
-{
-    case NUITKA_BOOL_TRUE:
-    {
-        %(to_name)s = Py_True;
-        break;
-    }
-    case NUITKA_BOOL_FALSE:
-    {
-        %(to_name)s = Py_False;
-        break;
-    }
-    // case NUITKA_BOOL_UNASSIGNED: (MSVC wants default to believe it). We may
-    // try to add an illegal default instead, but that may trigger warnings
-    // from better compilers.
-    default:
-    {
-#if %(needs_check)s
-        %(to_name)s = NULL;
-#else
-        NUITKA_CANNOT_GET_HERE(%(identifier)s);
-#endif
-        break;
-    }
-}""" % {
-        "variable_code_name" : variable_code_name,
-        "to_name"            : to_name,
-        "identifier"         : context.getOwner().getCodeName(),
-        "needs_check"        : '1' if needs_check else '0'
-    }
+    def getLocalVariableInitTestCode(cls, value_name, inverted):
+        return "%s %s NUITKA_BOOL_UNASSIGNED" % (
+            value_name,
+            "==" if inverted else "!="
         )
 
-        if 0: # Future work, pylint: disable=using-constant-test
-            context.reportObjectConversion(variable)
+    @classmethod
+    def getTruthCheckCode(cls, value_name):
+        return "%s == NUITKA_BOOL_TRUE" % value_name
 
     @classmethod
-    def getLocalVariableInitTestCode(cls, variable_code_name):
-        return "%s != NUITKA_BOOL_UNASSIGNED" % variable_code_name
+    def emitTruthCheckCode(cls, to_name, value_name, needs_check, emit, context):
+        # Not using needs_check, pylint: disable=unused-argument
+        emit(
+            "%s = %s ? 1 : 0;" % (
+                to_name,
+                cls.getTruthCheckCode(value_name)
+            )
+        )
 
     @classmethod
-    def getLocalVariableObjectAccessCode(cls, variable_code_name):
-        return "%s == NUITKA_BOOL_TRUE ? Py_True : Py_False" % variable_code_name
+    def emitValueAccessCode(cls, value_name, emit, context):
+        # Nothing to do for this type, pylint: disable=unused-argument
+        return value_name
+
+    @classmethod
+    def emitValueAssertionCode(cls, value_name, emit, context):
+        # Not using the context, pylint: disable=unused-argument
+        emit(
+            "assert( %s != NUITKA_BOOL_UNASSIGNED);" % value_name
+        )
+
+    @classmethod
+    def emitAssignConversionCode(cls, to_name, value_name, needs_check, emit, context):
+        if value_name.c_type == cls.c_type:
+            emit(
+                "%s = %s;" % (
+                    to_name,
+                    value_name
+                )
+            )
+        else:
+            value_name.getCType().emitAssignmentCodeToNuitkaBool(
+                to_name     = to_name,
+                value_name  = value_name,
+                needs_check = needs_check,
+                emit        = emit,
+                context     = context
+            )
 
     @classmethod
     def getInitValue(cls, init_from):
@@ -114,38 +117,32 @@ switch (%(variable_code_name)s)
         pass
 
     @classmethod
-    def getDeleteObjectCode(cls, variable_code_name, needs_check, tolerant,
-                            variable, emit, context):
+    def getDeleteObjectCode(cls, to_name, value_name, needs_check, tolerant,
+                            emit, context):
         if not needs_check:
             emit(
-                "%s = NUITKA_BOOL_UNASSIGNED;" % variable_code_name
+                "%s = NUITKA_BOOL_UNASSIGNED;" % value_name
             )
         elif tolerant:
             emit(
-                "%s = NUITKA_BOOL_UNASSIGNED;" % variable_code_name
+                "%s = NUITKA_BOOL_UNASSIGNED;" % value_name
             )
         else:
-            res_name = context.getBoolResName()
-
             emit(
                 "%s = %s == NUITKA_BOOL_UNASSIGNED;" % (
-                    res_name,
-                    variable_code_name,
+                    to_name,
+                    value_name,
                 )
             )
             emit(
-                "%s = NUITKA_BOOL_UNASSIGNED;" % variable_code_name
+                "%s = NUITKA_BOOL_UNASSIGNED;" % value_name
             )
 
-            if variable.isLocalVariable():
-                getLocalVariableReferenceErrorCode(
-                    variable  = variable,
-                    condition = "%s == false" % res_name,
-                    emit      = emit,
-                    context   = context
-                )
-            else:
-                getAssertionCode(
-                    check = "%s != false" % res_name,
-                    emit  = emit
-                )
+    @classmethod
+    def emitAssignmentCodeFromBoolCondition(cls, to_name, condition, emit):
+        emit(
+            "%(to_name)s = ( %(condition)s ) ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % {
+                "to_name"   : to_name,
+                "condition" : condition
+            }
+        )

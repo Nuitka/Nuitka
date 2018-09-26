@@ -582,6 +582,13 @@ class ExpressionBase(NodeBase):
 
         return statement, None, None
 
+    def computeExpressionBool(self, trace_collection):
+        if not self.mayRaiseException(BaseException) and \
+           self.mayRaiseExceptionBool(BaseException):
+            trace_collection.onExceptionRaiseExit(
+                BaseException
+            )
+
     def onContentEscapes(self, trace_collection):
         pass
 
@@ -949,6 +956,21 @@ Predicted '%s' on compiled time constant values.""" % in_node.comparator
         trace_collection.onExceptionRaiseExit(BaseException)
 
         return in_node, None, None
+
+    def computeExpressionBool(self, trace_collection):
+        constant = self.getCompileTimeConstant()
+
+        if type(constant) is not bool:
+            self.parent.replaceChild(
+                self,
+                makeConstantReplacementNode(bool(constant), self)
+            )
+
+            trace_collection.signalChange(
+                tags       = "new_constant",
+                source_ref = self.source_ref,
+                message    = "Predicted compile time constant true value."
+            )
 
 
 class ExpressionChildrenHavingBase(ChildrenHavingMixin, ExpressionBase):

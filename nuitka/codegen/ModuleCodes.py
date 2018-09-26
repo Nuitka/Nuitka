@@ -23,7 +23,11 @@ from nuitka.__past__ import iterItems
 from nuitka.codegen import Emission
 from nuitka.Version import getNuitkaVersion, getNuitkaVersionYear
 
-from .CodeHelpers import generateStatementSequenceCode
+from .CodeHelpers import (
+    decideConversionCheckNeeded,
+    generateStatementSequenceCode,
+    withObjectCodeTemporaryAssignment
+)
 from .CodeObjectCodes import getCodeObjectsDeclCode, getCodeObjectsInitCode
 from .ConstantCodes import allocateNestedConstants, getConstantInitCodes
 from .Indentation import indented
@@ -33,7 +37,7 @@ from .templates.CodeTemplatesModules import (
     template_module_exception_exit,
     template_module_noexception_exit
 )
-from .VariableCodes import generateModuleVariableAccessCode
+from .VariableCodes import getVariableReferenceCode
 
 
 def getModuleAccessCode(context):
@@ -155,64 +159,25 @@ def getModuleCode(module_context, template_values):
 
 
 def generateModuleAttributeFileCode(to_name, expression, emit, context):
-    # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=unused-argument
-
-    emit(
-        "%s = module_filename_obj;" % (
-            to_name,
-        )
-    )
-
+    # TODO: Special treatment justified?
     context.markAsNeedsModuleFilenameObject()
 
-
-def generateModuleAttributeNameCode(to_name, expression, emit, context):
-    # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=unused-argument
-    generateModuleVariableAccessCode(
-        to_name       = to_name,
-        variable_name = "__name__",
-        needs_check   = False,
-        emit          = emit,
-        context       = context
-
-    )
+    with withObjectCodeTemporaryAssignment(to_name, "module_fileattr_value", expression, emit, context) \
+      as result_name:
+        emit(
+            "%s = module_filename_obj;" % (
+                result_name,
+            )
+        )
 
 
-def generateModuleAttributePackageCode(to_name, expression, emit, context):
-    # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=unused-argument
-    generateModuleVariableAccessCode(
-        to_name       = to_name,
-        variable_name = "__package__",
-        needs_check   = False,
-        emit          = emit,
-        context       = context
-    )
-
-
-def generateModuleAttributeLoaderCode(to_name, expression, emit, context):
-    # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=unused-argument
-
-    generateModuleVariableAccessCode(
-        to_name       = to_name,
-        variable_name = "__loader__",
-        needs_check   = False,
-        emit          = emit,
-        context       = context
-    )
-
-
-def generateModuleAttributeSpecCode(to_name, expression, emit, context):
-    # The expression doesn't really matter, but it is part of the API for
-    # the expression registry, pylint: disable=unused-argument
-
-    generateModuleVariableAccessCode(
-        to_name       = to_name,
-        variable_name = "__spec__",
-        needs_check   = False,
-        emit          = emit,
-        context       = context
+def generateModuleAttributeCode(to_name, expression, emit, context):
+    getVariableReferenceCode(
+        to_name          = to_name,
+        variable         = expression.getVariable(),
+        variable_trace   = None,
+        needs_check      = False,
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        emit             = emit,
+        context          = context
     )

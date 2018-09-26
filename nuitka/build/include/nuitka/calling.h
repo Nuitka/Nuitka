@@ -22,52 +22,39 @@
 
 extern PyObject *const_tuple_empty;
 
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, PyObject *positional_args, PyObject *named_args )
-{
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION(PyObject *function_object, PyObject *positional_args,
+                                                    PyObject *named_args) {
     // Not allowed to enter with an error set. This often catches leaked errors from
     // elsewhere.
-    assert( !ERROR_OCCURRED() );
+    assert(!ERROR_OCCURRED());
 
-    CHECK_OBJECT( function_object );
-    CHECK_OBJECT( positional_args );
-    assert( named_args == NULL || Py_REFCNT( named_args ) > 0 );
+    CHECK_OBJECT(function_object);
+    CHECK_OBJECT(positional_args);
+    assert(named_args == NULL || Py_REFCNT(named_args) > 0);
 
-    ternaryfunc call_slot = Py_TYPE( function_object )->tp_call;
+    ternaryfunc call_slot = Py_TYPE(function_object)->tp_call;
 
-    if (unlikely( call_slot == NULL ))
-    {
-        PyErr_Format(
-            PyExc_TypeError,
-            "'%s' object is not callable",
-            function_object->ob_type->tp_name
-        );
+    if (unlikely(call_slot == NULL)) {
+        PyErr_Format(PyExc_TypeError, "'%s' object is not callable", function_object->ob_type->tp_name);
 
         return NULL;
     }
 
-    if (unlikely( Py_EnterRecursiveCall( (char *)" while calling a Python object") ))
-    {
+    if (unlikely(Py_EnterRecursiveCall((char *)" while calling a Python object"))) {
         return NULL;
     }
 
-    PyObject *result = (*call_slot)( function_object, positional_args, named_args );
+    PyObject *result = (*call_slot)(function_object, positional_args, named_args);
 
     Py_LeaveRecursiveCall();
 
-    if ( result == NULL )
-    {
-        if (unlikely( !ERROR_OCCURRED() ))
-        {
-            PyErr_Format(
-                PyExc_SystemError,
-                "NULL result without error in CALL_FUNCTION"
-            );
+    if (result == NULL) {
+        if (unlikely(!ERROR_OCCURRED())) {
+            PyErr_Format(PyExc_SystemError, "NULL result without error in CALL_FUNCTION");
         }
 
         return NULL;
-    }
-    else
-    {
+    } else {
         // Some buggy C functions do this, and Nuitka inner workings can get
         // upset from it.
         DROP_ERROR_OCCURRED();
@@ -77,40 +64,29 @@ NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION( PyObject *function_object, 
 }
 
 // Function call variant with no arguments provided at all.
-extern PyObject *CALL_FUNCTION_NO_ARGS( PyObject *called );
+extern PyObject *CALL_FUNCTION_NO_ARGS(PyObject *called);
 
 // Function call variants with positional arguments tuple.
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POSARGS( PyObject *function_object, PyObject *positional_args )
-{
-    return CALL_FUNCTION(
-        function_object,
-        positional_args,
-        NULL
-    );
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_POSARGS(PyObject *function_object, PyObject *positional_args) {
+    return CALL_FUNCTION(function_object, positional_args, NULL);
 }
 
 // Method call variants with positional arguments tuple.
-extern PyObject *CALL_METHOD_WITH_POSARGS( PyObject *source, PyObject *attr_name, PyObject *positional_args );
+extern PyObject *CALL_METHOD_WITH_POSARGS(PyObject *source, PyObject *attr_name, PyObject *positional_args);
 
-NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS( PyObject *function_object, PyObject *named_args )
-{
-    return CALL_FUNCTION(
-        function_object,
-        const_tuple_empty,
-        named_args
-    );
+NUITKA_MAY_BE_UNUSED static PyObject *CALL_FUNCTION_WITH_KEYARGS(PyObject *function_object, PyObject *named_args) {
+    return CALL_FUNCTION(function_object, const_tuple_empty, named_args);
 }
 
 // Method call variant with no arguments provided at all.
-extern PyObject *CALL_METHOD_NO_ARGS( PyObject *source, PyObject *attribute );
+extern PyObject *CALL_METHOD_NO_ARGS(PyObject *source, PyObject *attribute);
 
 // Convinience wrapper for single argument calls to not require an array
 // of args. TODO: Maybe fully specialize this too.
-NUITKA_MAY_BE_UNUSED static inline PyObject *CALL_FUNCTION_WITH_SINGLE_ARG( PyObject *called, PyObject *arg )
-{
-    PyObject *args[1] = { arg };
+NUITKA_MAY_BE_UNUSED static inline PyObject *CALL_FUNCTION_WITH_SINGLE_ARG(PyObject *called, PyObject *arg) {
+    PyObject *args[1] = {arg};
 
-    return CALL_FUNCTION_WITH_ARGS1( called, args );
+    return CALL_FUNCTION_WITH_ARGS1(called, args);
 }
 
 #endif

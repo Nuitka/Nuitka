@@ -16,6 +16,7 @@
 #     limitations under the License.
 #
 """ Namify constants.
+
 This determines the identifier names of constants in the generated code. We
 try to have readable names where possible, and resort to hash codes only when
 it is really necessary.

@@ -662,11 +662,16 @@ def buildFormattedValueNode(provider, node, source_ref):
 
 
 def buildJoinedStrNode(provider, node, source_ref):
-    return ExpressionStringConcatenation(
-        values     = buildNodeList(provider, node.values, source_ref),
-        source_ref = source_ref
-    )
-
+    if node.values:
+        return ExpressionStringConcatenation(
+            values     = buildNodeList(provider, node.values, source_ref),
+            source_ref = source_ref
+        )
+    else:
+        return makeConstantRefNode(
+            constant   = "",
+            source_ref = source_ref
+        )
 
 
 setBuildingDispatchers(
@@ -809,7 +814,7 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 provider      = provider,
                 variable_name = "__file__",
                 source        = ExpressionModuleAttributeFileRef(
-                    module     = provider,
+                    variable   = provider.getVariableForReference("__file__"),
                     source_ref = internal_source_ref,
                 ),
                 source_ref    = internal_source_ref
@@ -1024,9 +1029,6 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             )
         )
         sys.exit(2)
-
-    if not Options.shallHaveStatementLines():
-        source_ref = source_ref.atInternal()
 
     return result, source_ref, source_filename
 

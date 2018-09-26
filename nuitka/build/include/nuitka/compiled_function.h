@@ -29,14 +29,14 @@
 struct Nuitka_FunctionObject;
 
 // The actual function code with arguments as an array.
-typedef PyObject *(*function_impl_code)( struct Nuitka_FunctionObject const *, PyObject ** );
+typedef PyObject *(*function_impl_code)(struct Nuitka_FunctionObject const *, PyObject **);
 
 // The Nuitka_FunctionObject is the storage associated with a compiled function
 // instance of which there can be many for each code.
 struct Nuitka_FunctionObject {
     PyObject_VAR_HEAD
 
-    PyObject *m_name;
+        PyObject *m_name;
 
     PyObject *m_module;
     PyObject *m_doc;
@@ -84,36 +84,41 @@ struct Nuitka_FunctionObject {
 
 extern PyTypeObject Nuitka_Function_Type;
 
-
 // Make a function with context.
 #if PYTHON_VERSION < 300
-extern struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyCodeObject *code_object, PyObject *defaults, PyObject *module, PyObject *doc, Py_ssize_t closure_given );
+extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name,
+                                                         PyCodeObject *code_object, PyObject *defaults,
+                                                         PyObject *module, PyObject *doc, Py_ssize_t closure_given);
 #else
-extern struct Nuitka_FunctionObject *Nuitka_Function_New( function_impl_code c_code, PyObject *name, PyObject *qualname, PyCodeObject *code_object, PyObject *defaults, PyObject *kwdefaults, PyObject *annotations, PyObject *module, PyObject *doc, Py_ssize_t closure_given );
+extern struct Nuitka_FunctionObject *Nuitka_Function_New(function_impl_code c_code, PyObject *name, PyObject *qualname,
+                                                         PyCodeObject *code_object, PyObject *defaults,
+                                                         PyObject *kwdefaults, PyObject *annotations, PyObject *module,
+                                                         PyObject *doc, Py_ssize_t closure_given);
 #endif
 
-static inline bool Nuitka_Function_Check( PyObject *object )
-{
-    return Py_TYPE( object ) == &Nuitka_Function_Type;
-}
+static inline bool Nuitka_Function_Check(PyObject *object) { return Py_TYPE(object) == &Nuitka_Function_Type; }
 
-static inline PyObject *Nuitka_Function_GetName( PyObject *object )
-{
+static inline PyObject *Nuitka_Function_GetName(PyObject *object) {
     return ((struct Nuitka_FunctionObject *)object)->m_name;
 }
 
-extern bool parseArgumentsPos( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args, Py_ssize_t args_size );
-extern bool parseArgumentsMethodPos( struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject *object, PyObject **args, Py_ssize_t args_size );
+extern bool parseArgumentsPos(struct Nuitka_FunctionObject const *function, PyObject **python_pars, PyObject **args,
+                              Py_ssize_t args_size);
+extern bool parseArgumentsMethodPos(struct Nuitka_FunctionObject const *function, PyObject **python_pars,
+                                    PyObject *object, PyObject **args, Py_ssize_t args_size);
 
-extern PyObject *Nuitka_CallFunctionPosArgsKwArgs( struct Nuitka_FunctionObject const *function, PyObject **args, Py_ssize_t args_size, PyObject *kw );
+extern PyObject *Nuitka_CallFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject **args,
+                                                  Py_ssize_t args_size, PyObject *kw);
 
 // These are fast calls of known compiled methods, without an actual object
 // of that kind. The object is that first argument, "self" or whatever, to
 // which the function would be bound.
-extern PyObject *Nuitka_CallMethodFunctionNoArgs( struct Nuitka_FunctionObject const *function, PyObject *object );
-extern PyObject *Nuitka_CallMethodFunctionPosArgs( struct Nuitka_FunctionObject const *function, PyObject *object, PyObject **args, Py_ssize_t args_size );
+extern PyObject *Nuitka_CallMethodFunctionNoArgs(struct Nuitka_FunctionObject const *function, PyObject *object);
+extern PyObject *Nuitka_CallMethodFunctionPosArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
+                                                  PyObject **args, Py_ssize_t args_size);
 
 // This is also used by bound compiled methods
-extern PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs( struct Nuitka_FunctionObject const *function, PyObject *object, PyObject **args, Py_ssize_t args_size, PyObject *kw );
+extern PyObject *Nuitka_CallMethodFunctionPosArgsKwArgs(struct Nuitka_FunctionObject const *function, PyObject *object,
+                                                        PyObject **args, Py_ssize_t args_size, PyObject *kw);
 
 #endif

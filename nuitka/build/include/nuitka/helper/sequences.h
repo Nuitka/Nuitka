@@ -18,71 +18,20 @@
 #ifndef __NUITKA_HELPER_SEQUENCES_H__
 #define __NUITKA_HELPER_SEQUENCES_H__
 
-NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS( PyObject *element, PyObject *sequence )
-{
-    int result = PySequence_Contains( sequence, element );
+// TODO: Provide enhanced form of PySequence_Contains with less overhead.
 
-    if (unlikely( result == -1 ))
-    {
-        return NULL;
-    }
+NUITKA_MAY_BE_UNUSED static bool SEQUENCE_SETITEM(PyObject *sequence, Py_ssize_t index, PyObject *value) {
+    CHECK_OBJECT(sequence);
+    CHECK_OBJECT(value);
 
-    return BOOL_FROM( result == 1 );
-}
+    PySequenceMethods *sequence_methods = Py_TYPE(sequence)->tp_as_sequence;
 
-NUITKA_MAY_BE_UNUSED static PyObject *SEQUENCE_CONTAINS_NOT( PyObject *element, PyObject *sequence )
-{
-    int result = PySequence_Contains( sequence, element );
+    if (sequence_methods != NULL && sequence_methods->sq_ass_item) {
+        if (index < 0) {
+            if (sequence_methods->sq_length) {
+                Py_ssize_t length = (*sequence_methods->sq_length)(sequence);
 
-    if (unlikely( result == -1 ))
-    {
-        return NULL;
-    }
-
-    return BOOL_FROM( result == 0 );
-}
-
-NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_BOOL( PyObject *element, PyObject *sequence )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        return false;
-    }
-
-    return result == 1;
-}
-
-NUITKA_MAY_BE_UNUSED static bool SEQUENCE_CONTAINS_NOT_BOOL( PyObject *element, PyObject *sequence )
-{
-    int result = PySequence_Contains( sequence, element );
-
-    if (unlikely( result == -1 ))
-    {
-        return false;
-    }
-
-    return result == 0;
-}
-
-NUITKA_MAY_BE_UNUSED static bool SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_t index, PyObject *value )
-{
-    CHECK_OBJECT( sequence );
-    CHECK_OBJECT( value );
-
-    PySequenceMethods *sequence_methods = Py_TYPE( sequence )->tp_as_sequence;
-
-    if ( sequence_methods != NULL && sequence_methods->sq_ass_item )
-    {
-        if ( index < 0 )
-        {
-            if ( sequence_methods->sq_length )
-            {
-                Py_ssize_t length = (*sequence_methods->sq_length)( sequence );
-
-                if ( length < 0 )
-                {
+                if (length < 0) {
                     return false;
                 }
 
@@ -90,22 +39,15 @@ NUITKA_MAY_BE_UNUSED static bool SEQUENCE_SETITEM( PyObject *sequence, Py_ssize_
             }
         }
 
-        int res = sequence_methods->sq_ass_item( sequence, index, value );
+        int res = sequence_methods->sq_ass_item(sequence, index, value);
 
-        if (unlikely( res == -1 ))
-        {
+        if (unlikely(res == -1)) {
             return false;
         }
 
         return true;
-    }
-    else
-    {
-        PyErr_Format(
-            PyExc_TypeError,
-            "'%s' object does not support item assignment",
-            Py_TYPE( sequence )->tp_name
-        );
+    } else {
+        PyErr_Format(PyExc_TypeError, "'%s' object does not support item assignment", Py_TYPE(sequence)->tp_name);
 
         return false;
     }

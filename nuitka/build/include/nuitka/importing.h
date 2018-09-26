@@ -24,25 +24,27 @@
  * calls using default values, the _KW helper is used.
  *
  */
-extern PyObject *IMPORT_MODULE1( PyObject *module_name );
-extern PyObject *IMPORT_MODULE2( PyObject *module_name, PyObject *globals );
-extern PyObject *IMPORT_MODULE3( PyObject *module_name, PyObject *globals, PyObject *locals );
-extern PyObject *IMPORT_MODULE4( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items );
-extern PyObject *IMPORT_MODULE5( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level );
-extern PyObject *IMPORT_MODULE_KW( PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items, PyObject *level );
+extern PyObject *IMPORT_MODULE1(PyObject *module_name);
+extern PyObject *IMPORT_MODULE2(PyObject *module_name, PyObject *globals);
+extern PyObject *IMPORT_MODULE3(PyObject *module_name, PyObject *globals, PyObject *locals);
+extern PyObject *IMPORT_MODULE4(PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items);
+extern PyObject *IMPORT_MODULE5(PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items,
+                                PyObject *level);
+extern PyObject *IMPORT_MODULE_KW(PyObject *module_name, PyObject *globals, PyObject *locals, PyObject *import_items,
+                                  PyObject *level);
 
-extern bool IMPORT_MODULE_STAR( PyObject *target, bool is_module, PyObject *module );
+extern bool IMPORT_MODULE_STAR(PyObject *target, bool is_module, PyObject *module);
 
-extern PyObject *IMPORT_EMBEDDED_MODULE( PyObject *module_name, char const *name );
+extern PyObject *IMPORT_EMBEDDED_MODULE(PyObject *module_name, char const *name);
 
 extern PyObject *const_str_plain___name__;
 
 // Import a name from a module.
-extern PyObject *IMPORT_NAME( PyObject *module, PyObject *import_name );
+extern PyObject *IMPORT_NAME(PyObject *module, PyObject *import_name);
 
 // import a name from a module, potentially making an import of it if necessary.
 #if PYTHON_VERSION >= 350
-extern PyObject *IMPORT_NAME_OR_MODULE( PyObject *module, PyObject *globals, PyObject *import_name, PyObject *level );
+extern PyObject *IMPORT_NAME_OR_MODULE(PyObject *module, PyObject *globals, PyObject *import_name, PyObject *level);
 #endif
 
 #endif

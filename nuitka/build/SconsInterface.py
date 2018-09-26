@@ -98,7 +98,7 @@ def _getPythonSconsExePathWindows():
 
     # Windows only code, pylint: disable=I0021,import-error,undefined-variable
     if python_version < 300:
-        import _winreg as winreg # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+        import _winreg as winreg # @UnresolvedImport @UnusedImport pylint: disable=I0021,import-error,no-name-in-module
     else:
         import winreg  # @Reimport @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
 

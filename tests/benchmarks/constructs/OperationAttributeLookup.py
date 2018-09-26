@@ -28,14 +28,16 @@ def calledRepeatedly():
     local_value = module_value1
 
     s = module_value1
+    s.append
 # construct_begin
     s.append
 # construct_end
+    s.append
 
     return s, local_value
 
 import itertools
-for x in itertools.repeat(None, 50000):
+for x in itertools.repeat(None, 25000):
     calledRepeatedly()
 
 print("OK.")
