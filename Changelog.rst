@@ -1,8 +1,15 @@
 Nuitka Release 0.6.0 (Draft)
 ============================
 
-This release is not done yet.
+This release adds massive improvements for optimization and a couple of
+bug fixes.
 
+It also indicates reaching the mile stone of doing actual type inference,
+even if only very limited.
+
+And with the new version numbers, lots of UI changes go along. The options
+to control recursion into modules have all been renamed, some now have
+different defaults, and finally the filenames output have changed.
 
 Bug Fixes
 ---------
@@ -11,8 +18,8 @@ Bug Fixes
   into a coroutine, so next time it appeared to be awaiting instead of
   finished.
 
-- Classes in generators that were using built-in functions crashed the
-  compilation with C errors.
+- Python3: Classes in generators that were using built-in functions crashed
+  the compilation with C errors.
 
 - Some regressions for XML outputs from previous changes were fixed.
 
@@ -20,7 +27,7 @@ Bug Fixes
   attributes.
 
 - For really large compilations, MSVC linker could choke on the input file,
-  which is now fixed for the inline copy of Scons.
+  line length limits, which is now fixed for the inline copy of Scons.
 
 - Standalone: Follow changed hidden dependency of ``PyQt5`` to ``PyQt5.sip``
   for newer versions
@@ -91,14 +98,16 @@ New Features
   suffix to avoid collision with files that have no suffix.
 
 - Windows: It's now possible to use ``clang-cl.exe`` for ``CC`` with Nuitka
-  as a third compiler on Windows.
+  as a third compiler on Windows, but it requires an existing MSVC install
+  to be used for resource compilation and linking.
 
 - Windows: Added support for using ``ccache.exe`` and ``clcache.exe``, so that
   object files can now be cached for re-compilation.
 
 - For debug mode, report missing in-place helpers. These kinds of reports are
   to become more universal and are aimed at recognizing missed optimization
-  chances in Nuitka.
+  chances in Nuitka. This features is still in its infancy. Subsequent releases
+  will add more like these.
 
 Organizational
 --------------
@@ -122,7 +131,7 @@ Organizational
   are more powerful anyway, and it had been in disrepair for a long time.
 
 - Removed long deprecated options, e.g. ``--exe`` which has long been the
-  default.
+  default and is no more accepted.
 
 - Renamed options to include plugin files to ``--include-plugin-directory`` and
   ``--include-plugin-files`` for more clarity.
@@ -179,7 +188,7 @@ Summary
 This release marks a point, from which on performance improvements are likely
 in every coming release. The C target types are a major milestone. More C target
 types are in the work, e.g. ``void`` is coming for expressions that are done,
-but not used.
+but not used, that is scheduled for the next release.
 
 Although there will be a need to also adapt optimization to take full advantage
 of it, progress should be quick from here. There is a lot of ground to cover,
