@@ -152,10 +152,9 @@ Cannot recurse to import module '%s' (%s) because code is too complex.""",
 def recurseTo(module_package, module_filename, module_relpath, module_kind,
               reason):
     if ImportCache.isImportedModuleByPath(module_relpath):
-        module = ImportCache.getImportedModuleByPath(module_relpath)
-
-        if module.getCompileTimeFilename().endswith("__init__.py") and \
-           module.getPackage() != module_package:
+        try:
+            module = ImportCache.getImportedModuleByPath(module_relpath, module_package)
+        except KeyError:
             module = None
     else:
         module = None
