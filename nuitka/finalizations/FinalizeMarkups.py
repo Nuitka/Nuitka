@@ -137,6 +137,8 @@ of '--include-plugin-directory' or '--include-plugin-files'.""" % (
                     if assign_source.getLeft().getVariable() is target_var:
                         if assign_source.isInplaceSuspect():
                             node.markAsInplaceSuspect()
+                elif left_arg.isExpressionLocalsVariableRefORFallback():
+                    assign_source.unmarkAsInplaceSuspect()
 
         if node.isStatementLocalsDictOperationSet():
             assign_source = node.getAssignSource()

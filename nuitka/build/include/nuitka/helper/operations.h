@@ -269,6 +269,42 @@ NUITKA_MAY_BE_UNUSED static bool STRING_ADD_INCREMENTAL(PyObject **operand1, PyO
 }
 #endif
 
+#if PYTHON_VERSION >= 300
+NUITKA_MAY_BE_UNUSED static bool BYTES_ADD_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
+    assert(PyBytes_CheckExact(*operand1));
+    assert(PyBytes_CheckExact(operand2));
+
+    // Buffer
+    Py_buffer wb;
+    wb.len = -1;
+
+    if (PyObject_GetBuffer(operand2, &wb, PyBUF_SIMPLE) != 0) {
+        PyErr_Format(PyExc_TypeError, "can't concat %s to %s",
+                     Py_TYPE(operand2)->tp_name,
+                     Py_TYPE(*operand1)->tp_name);
+
+        return false;
+    }
+
+    Py_ssize_t oldsize = PyBytes_GET_SIZE(*operand1);
+
+    if (oldsize > PY_SSIZE_T_MAX - wb.len) {
+        PyErr_NoMemory();
+        PyBuffer_Release(&wb);
+        return false;
+    }
+    if (_PyBytes_Resize( operand1, oldsize + wb.len) < 0)
+    {
+        PyBuffer_Release(&wb);
+        return false;
+    }
+
+    memcpy(PyBytes_AS_STRING(*operand1) + oldsize, wb.buf, wb.len);
+    PyBuffer_Release(&wb);
+    return true;
+}
+#endif
+
 NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
     Py_ssize_t operand2_size = PyUnicode_GET_SIZE(operand2);
     if (operand2_size == 0) return true;
@@ -578,13 +614,16 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_STR_INPLACE(PyObjec
 #endif
 
 #if PYTHON_VERSION >= 300
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE_COMMON(PyObject **operand1, PyObject *operand2, Py_ssize_t owned_count) {
     assert(operand1);
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(operand2));
 
-    // TODO: Find special code for bytes to work in-place.
+    if ( Py_REFCNT(*operand1) == owned_count && PyBytes_CheckExact(*operand1))
+    {
+        return BYTES_ADD_INCREMENTAL(operand1, operand2);
+    }
 
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
@@ -600,6 +639,86 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE(PyObj
     *operand1 = result;
 
     return true;
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE_COMMON(operand1, operand2, 1);
+}
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_BYTES_MVAR_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE_COMMON(operand1, operand2, 2);
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE_COMMON(PyObject **operand1, PyObject *operand2, Py_ssize_t owned_count) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyBytes_CheckExact(*operand1));
+
+    if ( Py_REFCNT(*operand1) == owned_count && PyBytes_CheckExact(operand2))
+    {
+        return BYTES_ADD_INCREMENTAL(operand1, operand2);
+    }
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE_COMMON(operand1, operand2, 1);
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_BYTES_OBJECT_MVAR_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE_COMMON(operand1, operand2, 2);
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE_COMMON(PyObject **operand1, PyObject *operand2, Py_ssize_t owned_count) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyBytes_CheckExact(*operand1));
+    assert(PyBytes_CheckExact(operand2));
+
+    if ( Py_REFCNT(*operand1) == owned_count)
+    {
+        return BYTES_ADD_INCREMENTAL(operand1, operand2);
+    }
+
+    // Could concat bytes here more directly.
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE_COMMON(operand1, operand2, 1);
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_BYTES_BYTES_MVAR_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE_COMMON(operand1, operand2, 2);
 }
 #endif
 
@@ -609,8 +728,6 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE(PyObje
     CHECK_OBJECT(operand2);
     assert(PyLong_CheckExact(operand2));
 
-    // TODO: Find special code for bytes to work in-place.
-
     PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
 
     if (unlikely(result == NULL)) {
@@ -627,7 +744,9 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE(PyObje
     return true;
 }
 
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE_COMMON(PyObject **operand1, PyObject *operand2, Py_ssize_t owned_count ) {
+#define BINARY_OPERATION_ADD_OBJECT_LONG_MVAR_INPLACE BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE_COMMON(PyObject **operand1, PyObject *operand2, Py_ssize_t owned_count) {
     assert(operand1);
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
@@ -899,11 +1018,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL(PyObject *operand1, P
 
     // Special case for "+", also works as sequence concat.
     PySequenceMethods *seq_methods1 = Py_TYPE(operand1)->tp_as_sequence;
-    PySequenceMethods *seq_methods2 = Py_TYPE(operand2)->tp_as_sequence;
 
     if (seq_methods1 != NULL && seq_methods1->sq_repeat) {
         return SEQUENCE_REPEAT(seq_methods1->sq_repeat, operand1, operand2);
     }
+
+    PySequenceMethods *seq_methods2 = Py_TYPE(operand2)->tp_as_sequence;
 
     if (seq_methods2 != NULL && seq_methods2->sq_repeat) {
         return SEQUENCE_REPEAT(seq_methods2->sq_repeat, operand2, operand1);
