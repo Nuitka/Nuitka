@@ -51,16 +51,16 @@ Requirements
   * The ``clang`` compiler on MacOS X or FreeBSD.
 
   * The MinGW64 [#]_ C11 compiler on Windows, ideally the one based on gcc
-    5.1 or higher. Or the C++ compiler of at least version 4.4 as an
-    alternative.
-
-  * The ``clang-cl`` compiler on Windows can be used if provided if you use
-    the ``CC`` environment variable to point to it.
+    6 or higher.
 
   * Visual Studio 2017 or higher on Windows [#]_, older versions may work,
     but are not officially supported. Configure to use English language
     pack for best results (Nuitka filters away garbage outputs, but only
     for that language).
+
+  * On Windows the ``clang-cl`` compiler on Windows can be used if provided if
+    you use the ``CC`` environmentvariable to point to it, *and* you also have MSVC installed.
+
 
 - Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7
 
@@ -301,6 +301,21 @@ Runners
 
 Avoid running the ``nuitka`` binary, doing ``python -m nuitka`` will make a
 100% sure you are using what you think you are.
+
+Fastest C Compilers
+-------------------
+
+The fastest binaries of ``pystone.exe`` on Windows with 64 bits Python proved
+to be signicantly faster with MinGW64, roughly 20% better score. So it is
+recommended for use over MSVC. Using ``clang-cl.exe`` of Clang7 was faster
+than MSVC, but still significantly slower than MinGW64, and it will be harder
+to use, so it is not recommened.
+
+On Linux for ``pystone.bin`` the binary produced by ``clang6`` was faster
+than ``gcc-6.3``, but not by a significant margin. Since gcc is more often
+already installed, that is the recommened use for now.
+
+Differences in C compilation times have not yet been examined.
 
 Where to go next
 ================
