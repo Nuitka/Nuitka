@@ -32,6 +32,7 @@ from .ErrorCodes import (
     getLocalVariableReferenceErrorCode,
     getNameReferenceErrorCode
 )
+from .PythonAPICodes import getReferenceExportCode
 from .VariableDeclarations import VariableDeclaration
 
 
@@ -62,6 +63,18 @@ def generateAssignmentVariableCode(statement, emit, context):
         context    = context
     )
 
+    if assign_source.isExpressionOperationBinary() and \
+       assign_source.isInplaceSuspect() and \
+       variable.isModuleVariable():
+        orig_name = context.getInplaceLeftName()
+
+    else:
+        orig_name = None
+
+    if orig_name is not None:
+        emit("if (%s != %s) {" % (orig_name, tmp_name))
+        getReferenceExportCode(orig_name, emit, context)
+
     getVariableAssignmentCode(
         tmp_name       = tmp_name,
         variable       = variable,
@@ -71,6 +84,9 @@ def generateAssignmentVariableCode(statement, emit, context):
         emit           = emit,
         context        = context
     )
+
+    if orig_name is not None:
+        emit('}')
 
     # Ownership of that reference must have been transfered.
     assert not context.needsCleanup(tmp_name)

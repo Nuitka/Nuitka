@@ -627,7 +627,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE(PyObje
     return true;
 }
 
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE_COMMON(PyObject **operand1, PyObject *operand2, Py_ssize_t owned_count ) {
     assert(operand1);
     CHECK_OBJECT(*operand1);
     CHECK_OBJECT(operand2);
@@ -657,7 +657,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyOb
 #endif
 
 #if PYTHON_VERSION < 300
-    if (Py_REFCNT(*operand1) == 1) {
+    if (Py_REFCNT(*operand1) == owned_count) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
         if (PyString_CheckExact(*operand1) && !PyString_CHECK_INTERNED(*operand1) && PyString_CheckExact(operand2)) {
@@ -673,7 +673,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyOb
         return !ERROR_OCCURRED();
     }
 #else
-    if (Py_REFCNT(*operand1) == 1) {
+    if (Py_REFCNT(*operand1) == owned_count) {
         // We more or less own the operand, so we might re-use its storage and
         // execute stuff in-place.
         if (PyUnicode_CheckExact(*operand1) && !PyUnicode_CHECK_INTERNED(*operand1) && PyUnicode_CheckExact(operand2)) {
@@ -712,6 +712,14 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyOb
     *operand1 = result;
 
     return true;
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_MVAR_INPLACE(PyObject **operand1, PyObject *operand2 ) {
+    return BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE_COMMON(operand1, operand2, 2);
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE_COMMON(operand1, operand2, 1);
 }
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_MUL_INPLACE(PyObject **operand1, PyObject *operand2) {
