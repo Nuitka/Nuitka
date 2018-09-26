@@ -64,6 +64,10 @@ def checkNoPermissionError(output):
                  b".*(@test|totest|xx|Error 145)", output):
         return False
 
+    # Give those a retry as well.
+    if b"clcache.__main__.CacheLockException" in output:
+        return False
+
     return True
 
 
