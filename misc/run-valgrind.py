@@ -51,7 +51,7 @@ tempdir = tempfile.mkdtemp(
 
 output_binary = os.path.join(
     tempdir,
-    ( basename[:-3] if input_file.endswith(".py") else basename ) + ".exe"
+    ( basename[:-3] if input_file.endswith(".py") else basename ) + ".bin"
 )
 
 os.environ[ "PYTHONHASHSEED" ] = '0'
@@ -61,7 +61,7 @@ os.environ[ "PYTHONHASHSEED" ] = '0'
 os.environ["PYTHONPATH"] = os.pathsep.join(sys.path)
 
 os.system(
-    "%s %s --exe --python-flag=-S --output-dir=%s %s %s %s" % (
+    "%s %s --python-flag=-S --output-dir=%s %s %s %s" % (
         sys.executable,
         nuitka_binary,
         tempdir,
@@ -72,7 +72,7 @@ os.system(
 )
 
 if not os.path.exists(output_binary):
-    sys.exit("Seeming failure of Nuitka to compile.")
+    sys.exit("Seeming failure of Nuitka to compile, no %r." % output_binary)
 
 log_base = basename[:-3] if input_file.endswith(".py") else basename
 
@@ -80,6 +80,8 @@ if "number" in sys.argv or "numbers" in sys.argv:
     log_file = log_base + ".log"
 else:
     log_file = None
+
+log_file = log_base + ".log"
 
 sys.stdout.flush()
 
