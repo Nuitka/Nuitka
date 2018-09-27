@@ -388,6 +388,8 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LIST_OBJECT_INPLACE(PyObje
     return true;
 }
 
+#define BINARY_OPERATION_ADD_LIST_OBJECT_MVAR_INPLACE BINARY_OPERATION_ADD_LIST_OBJECT_INPLACE
+
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1);
     CHECK_OBJECT(*operand1);
@@ -418,6 +420,8 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE(PyObje
     return true;
 }
 
+#define BINARY_OPERATION_ADD_OBJECT_LIST_MVAR_INPLACE BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE
+
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LIST_LIST_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1);
     CHECK_OBJECT(*operand1);
@@ -427,6 +431,8 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LIST_LIST_INPLACE(PyObject
 
     return LIST_EXTEND_FROM_LIST(*operand1, operand2);
 }
+
+#define BINARY_OPERATION_ADD_LIST_LIST_MVAR_INPLACE
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1);
@@ -505,6 +511,102 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_INT_INPLACE(PyObjec
 
     return true;
 }
+
+#define BINARY_OPERATION_ADD_OBJECT_INT_MVAR_INPLACE BINARY_OPERATION_ADD_OBJECT_INT_INPLACE
+
+
+// This is Python2 int, for Python3 the LONG variant is to be used.
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(*operand1));
+
+    // Something similar for Python3 should exist too.
+    if (PyInt_CheckExact(operand2)) {
+        long a, b, i;
+
+        a = PyInt_AS_LONG(*operand1);
+        b = PyInt_AS_LONG(operand2);
+
+        i = a + b;
+
+        // Detect overflow, in which case, a "long" object would have to be
+        // created, which we won't handle here. TODO: Add an else for that
+        // case.
+        if (likely(!((i ^ a) < 0 && (i ^ b) < 0))) {
+            PyObject *result = PyInt_FromLong(i);
+            Py_DECREF(*operand1);
+
+            *operand1 = result;
+
+            return true;
+        }
+    }
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+#define BINARY_OPERATION_ADD_INT_OBJECT_MVAR_INPLACE BINARY_OPERATION_ADD_INT_OBJECT_INPLACE
+
+// This is Python2 int, for Python3 the LONG variant is to be used.
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_INT_INT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyInt_CheckExact(*operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long a, b, i;
+
+    a = PyInt_AS_LONG(*operand1);
+    b = PyInt_AS_LONG(operand2);
+
+    i = a + b;
+
+    // Detect overflow, in which case, a "long" object would have to be
+    // created, which we won't handle here. TODO: Add an else for that
+    // case.
+    if (likely(!((i ^ a) < 0 && (i ^ b) < 0))) {
+        PyObject *result = PyInt_FromLong(i);
+        Py_DECREF(*operand1);
+
+        *operand1 = result;
+
+        return true;
+    }
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+#define BINARY_OPERATION_ADD_INT_INT_MVAR_INPLACE BINARY_OPERATION_ADD_INT_INT_INPLACE
+
 #endif
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
@@ -578,6 +680,85 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE(PyO
 
     return true;
 }
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyUnicode_CheckExact(*operand1));
+
+    if (likely(PyUnicode_CheckExact(operand2))) {
+#if PYTHON_VERSION >= 300
+        if (Py_REFCNT(*operand1) == 1 && !PyUnicode_CHECK_INTERNED(*operand1)) {
+            // We more or less own the operand, so we might re-use its storage and
+            // execute stuff in-place.
+            return UNICODE_ADD_INCREMENTAL(operand1, operand2);
+        }
+#endif
+
+        PyObject *result = PyUnicode_Concat(*operand1, operand2);
+
+        if (unlikely(result == NULL)) {
+            return false;
+        }
+
+        Py_DECREF(*operand1);
+        *operand1 = result;
+
+        return true;
+    }
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE_COMMON(PyObject **operand1, PyObject *operand2, Py_ssize_t owned_count) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyUnicode_CheckExact(*operand1));
+    assert(PyUnicode_CheckExact(operand2));
+
+#if PYTHON_VERSION >= 300
+    if (Py_REFCNT(*operand1) == owned_count && !PyUnicode_CHECK_INTERNED(*operand1)) {
+        // We more or less own the operand, so we might re-use its storage and
+        // execute stuff in-place.
+        return UNICODE_ADD_INCREMENTAL(operand1, operand2);
+    }
+#endif
+
+    PyObject *result = PyUnicode_Concat(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    Py_DECREF(*operand1);
+    *operand1 = result;
+
+    return true;
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE_COMMON(operand1, operand2, 1);
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_UNICODE_UNICODE_MVAR_INPLACE(PyObject **operand1, PyObject *operand2) {
+    return BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE_COMMON(operand1, operand2, 2);
+}
+
 
 #if PYTHON_VERSION < 300
 // This is Python2 str, for Python3 the UNICODE variant is to be used.
