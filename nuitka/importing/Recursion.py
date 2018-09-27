@@ -45,7 +45,7 @@ def matchesModuleNameToPatterns(module_name, patterns):
     for pattern in patterns:
         if module_name == pattern:
             return True, "is exact match of %r" % pattern
-        elif module_name.startswith(pattern):
+        elif module_name.startswith(pattern + '.'):
             return True, "is package content of %r" % pattern
         elif fnmatch.fnmatch(module_name, pattern):
             return True, "matches pattern %r" % pattern
