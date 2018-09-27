@@ -389,7 +389,7 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals
+    # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # Note: The assign_provider is only to cover Python2 list contractions,
     # assigning one of the loop variables to the outside scope.
@@ -400,7 +400,6 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
 
     if container_tmp is not None:
         tmp_variables.append(container_tmp)
-
 
     statements = []
 
