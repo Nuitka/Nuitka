@@ -3,6 +3,70 @@ Nuitka Release 0.6.1 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Fix, the options ``--[no]follow-import-to=package_name`` was supposed
+  to not follow into the given package, but the check was executed too
+  broadly so that e.g. ``package_name2`` was also affected. Fixed in 0.6.0.1
+  already.
+
+- Fix, wasn't detecting multiple recursions into the same package in module
+  mode, when attempting to compile a whole sub-package. Fixed in 0.6.0.1
+  already.
+
+- Fix, star imports on the module level should disable built-in name
+  optimization except for the most critical ones, otherwise e.g. names
+  like ``all`` or ``pow`` can become wrong. Previous workarounds for ``pow``
+  were not good enough.
+
+- Python3.7: Fix, asyncgen expressions can be created in normal functions
+  without an immediate awaiting of the iterator to be done.
+
+New Optimization
+----------------
+
+- Enabled C target type ``void`` which will catch creating unused stuff more
+  immediately and give better code for expression only statements.
+
+- Enabled in-place optimization for module variables, avoiding write back to
+  the module dict for unchanged values, accelerating these operations.
+
+- Compile time memory savings for the ``yield`` node of Python2, no need to
+  track if it is in an exception handler, not relevant there.
+
+- Using the single child node for the ``yield`` nodes gives memory savings at
+  compile time for these, while also making them operate faster.
+
+- More kinds of in-place operations are now optimized, e.g. ``int += int`` and
+  the ``bytes`` ones were specialized to perform real in-place extension where
+  possible.
+
+Cleanups
+--------
+
+- The operations used for ``async for``, ``async with``, and ``await`` were
+  all doing a look-up of an awaitable, and then executing the ``yield from``
+  that awaitable as one thing. Now this is split into two parts, with a new
+  ``ExpressionYieldFromAwaitable`` as a dedicated node.
+
+- The ``yield`` node types, now 3 share a base class and common computation
+  for now, enhancing the one for awaitiable, which was not fully annotating
+  everything that can happen.
+
+Tests
+-----
+
+- Fixups for the manual Valgrind runner and the UI changes.
+
+- Test runner detects lock issue of ``clcache`` on Windows and considers it
+  a permission problem that causes a retry.
+
+
+Summary
+-------
+
+This release is not done yet.
 
 Nuitka Release 0.6.0
 ====================
