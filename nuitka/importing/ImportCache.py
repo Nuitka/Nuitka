@@ -72,6 +72,17 @@ def getImportedModuleByName(full_name):
     return imported_by_name[full_name]
 
 
+def getImportedModuleByNameAndPath(full_name, module_relpath):
+    if module_relpath is None:
+        # pyi deps only
+        return getImportedModuleByName(full_name)
+
+    if os.path.basename(module_relpath) == "__init__.py":
+        module_relpath = os.path.dirname(module_relpath)
+
+    return imported_modules[module_relpath, full_name]
+
+
 def getImportedModuleByPath(module_relpath, module_package):
     for key in imported_modules:
         if key[0] == module_relpath:

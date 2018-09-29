@@ -31,6 +31,7 @@ from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.containers.oset import OrderedSet
 from nuitka.importing.ImportCache import (
     getImportedModuleByName,
+    getImportedModuleByNameAndPath,
     isImportedModuleByName
 )
 from nuitka.ModuleRegistry import addUsedModule
@@ -38,6 +39,7 @@ from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceLine
+from nuitka.utils.FileOperations import relpath
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .ValueTraces import (
@@ -409,8 +411,8 @@ class TraceCollectionBase(CollectionTracingMixin):
         # This is monkey patched from another module.
         signalChange(tags, source_ref, message)
 
-    def onUsedModule(self, module_name):
-        return self.parent.onUsedModule(module_name)
+    def onUsedModule(self, module_name, module_relpath):
+        return self.parent.onUsedModule(module_name, module_relpath)
 
     @staticmethod
     def mustAlias(a, b):
@@ -848,14 +850,19 @@ class TraceCollectionModule(CollectionStartpointMixin,
 
         self.used_modules = OrderedSet()
 
-    def onUsedModule(self, module_name):
+    def onUsedModule(self, module_name, module_relpath):
         assert type(module_name) is str, module_name
 
-        self.used_modules.add(module_name)
+        # TODO: Make users provide this through a method that has already
+        # done this.
+        module_relpath = relpath(module_relpath)
 
-        if isImportedModuleByName(module_name):
-            module = getImportedModuleByName(module_name)
-            addUsedModule(module)
+        self.used_modules.add(
+            (module_name, module_relpath)
+        )
+
+        module = getImportedModuleByNameAndPath(module_name, module_relpath)
+        addUsedModule(module)
 
     def getUsedModules(self):
         return self.used_modules

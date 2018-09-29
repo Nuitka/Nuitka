@@ -174,15 +174,15 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
         self.recurse_attempted = False
 
         # The module actually referenced in that import.
-        self.imported_module = None
+        self.imported_module_desc = None
 
         # The fromlist imported modules if any.
-        self.import_list_modules = []
+        self.import_list_modules_desc = []
 
         # For "package.sub_package.module" we also need to import the package,
         # because the imported_module not be found, as it's not a module, e.g.
         # in the case of "os.path" or "six.moves".
-        self.package_modules = None
+        self.package_modules_desc = None
 
         self.finding = None
 
@@ -285,13 +285,18 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         )
 
         if module_filename is not None:
-            self.imported_module = self._consider(
+            imported_module = self._consider(
                 trace_collection = trace_collection,
                 module_filename  = module_filename,
                 module_package   = module_package
             )
 
-            if self.imported_module is not None:
+            if imported_module is not None:
+                self.imported_module_desc = (
+                    imported_module.getFullName(),
+                    imported_module.getFilename()
+                )
+
                 import_list = self.getFromList()
 
                 if import_list is not None:
@@ -302,7 +307,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         import_list = None
 
                 if import_list and \
-                   self.imported_module.isCompiledPythonPackage():
+                   imported_module.isCompiledPythonPackage():
                     for import_item in import_list:
                         if import_item == '*':
                             continue
@@ -310,7 +315,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                         module_package, module_filename, _finding = findModule(
                             importing      = self,
                             module_name    = import_item,
-                            parent_package = self.imported_module.getFullName(),
+                            parent_package = imported_module.getFullName(),
                             level          = -1, # Relative import, so child is used.
                             warn           = False
                         )
@@ -323,8 +328,11 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                             )
 
                             if sub_imported_module is not None:
-                                self.import_list_modules.append(
-                                    sub_imported_module.getFullName()
+                                self.import_list_modules_desc.append(
+                                    (
+                                        sub_imported_module.getFullName(),
+                                        sub_imported_module.getFilename()
+                                    )
                                 )
         else:
             while '.' in module_name:
@@ -346,24 +354,36 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                     )
 
                     if package_module is not None:
-                        if self.package_modules is None:
-                            self.package_modules = []
+                        if self.package_modules_desc is None:
+                            self.package_modules_desc = []
 
-                        self.package_modules.append(package_module)
+                        self.package_modules_desc.append(
+                            package_module.getFullName(),
+                            package_module.getFilename()
+                        )
 
 
     def _addUsedModules(self, trace_collection):
         if self.finding != "not-found":
-            if self.imported_module is not None:
-                trace_collection.onUsedModule(self.imported_module.getFullName())
+            if self.imported_module_desc is not None:
+                trace_collection.onUsedModule(
+                    module_name    = self.imported_module_desc[0],
+                    module_relpath = self.imported_module_desc[1]
+                )
 
-            for import_list_module in self.import_list_modules:
-                trace_collection.onUsedModule(import_list_module)
+            for import_list_module_desc in self.import_list_modules_desc:
+                trace_collection.onUsedModule(
+                    import_list_module_desc[0],
+                    import_list_module_desc[1]
+                )
 
         # These are added in any case.
-        if self.package_modules is not None:
-            for package_module in self.package_modules:
-                trace_collection.onUsedModule(package_module.getFullName())
+        if self.package_modules_desc is not None:
+            for package_module_desc in self.package_modules_desc:
+                trace_collection.onUsedModule(
+                    package_module_desc[0],
+                    package_module_desc[1]
+                )
 
 
 

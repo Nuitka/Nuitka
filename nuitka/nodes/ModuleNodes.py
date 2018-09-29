@@ -70,6 +70,11 @@ class PythonModuleBase(NodeBase):
         self.package_name = package_name
         self.package = None
 
+    def getDetails(self):
+        return {
+            "name" : self.name
+        }
+
     def getName(self):
         return self.name
 
@@ -556,7 +561,7 @@ class CompiledPythonPackage(CompiledPythonModule):
         if os.path.isdir(result):
             return result
         else:
-            return os.path.dirname(self.getFilename())
+            return os.path.dirname(result)
 
     @staticmethod
     def canHaveExternalImports():
@@ -870,7 +875,11 @@ class PythonShlibModule(PythonModuleBase):
                 if "typing" in pyi_deps:
                     pyi_deps.discard("typing")
 
-                self.used_modules = tuple(pyi_deps)
+                self.used_modules = tuple(
+                    (pyi_dep, None)
+                    for pyi_dep in
+                    pyi_deps
+                )
             else:
                 self.used_modules = ()
 
