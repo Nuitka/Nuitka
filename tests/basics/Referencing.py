@@ -950,6 +950,30 @@ def simpleFunction113():
 
     return a
 
+l = []
+
+def simpleFunction114():
+    global l
+    l += ["something"]
+
+    # Erase it to avoid reference change.
+    del l[:]
+
+
+i = 2**16+1
+
+def simpleFunction115():
+    global i
+    i += 1
+
+t = tuple(range(259))
+
+def simpleFunction116():
+    global t
+    t += (2, 3)
+
+    t = tuple(range(259))
+
 
 ####################################
 
