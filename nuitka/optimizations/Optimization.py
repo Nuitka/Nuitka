@@ -139,7 +139,7 @@ def optimizeUncompiledPythonModule(module):
             )
         )
 
-    for used_module_name in module.getUsedModules():
+    for used_module_name in module.getUsedModuleNames():
         used_module = ImportCache.getImportedModuleByName(used_module_name)
         ModuleRegistry.addUsedModule(used_module)
 

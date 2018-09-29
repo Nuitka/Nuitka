@@ -848,14 +848,15 @@ class TraceCollectionModule(CollectionStartpointMixin,
 
         self.used_modules = OrderedSet()
 
-    def onUsedModule(self, module_name):
-        assert type(module_name) is str, module_name
+    def onUsedModule(self, module):
+        assert type(module) is not str, module
 
-        self.used_modules.add(module_name)
+        self.used_modules.add(module)
+        addUsedModule(module)
 
-        if isImportedModuleByName(module_name):
-            module = getImportedModuleByName(module_name)
-            addUsedModule(module)
-
-    def getUsedModules(self):
-        return self.used_modules
+    def getUsedModuleNames(self):
+        return [
+            module.getFullName()
+            for module in
+            self.used_modules
+        ]

@@ -556,7 +556,7 @@ class CompiledPythonPackage(CompiledPythonModule):
         if os.path.isdir(result):
             return result
         else:
-            return os.path.dirname(self.getFilename())
+            return os.path.dirname(result)
 
     @staticmethod
     def canHaveExternalImports():
@@ -600,7 +600,10 @@ class UncompiledPythonModule(PythonModuleBase):
 
     kind = "UNCOMPILED_PYTHON_MODULE"
 
-    __slots__ = "bytecode", "filename", "user_provided", "technical", "used_modules"
+    __slots__ = (
+        "bytecode", "filename", "user_provided", "technical",
+        "used_module_names"
+    )
 
     def __init__(self, name, package_name, bytecode, filename, user_provided,
                  technical, source_ref):
@@ -617,7 +620,7 @@ class UncompiledPythonModule(PythonModuleBase):
         self.user_provided = user_provided
         self.technical = technical
 
-        self.used_modules = ()
+        self.used_module_names = ()
 
     def finalize(self):
         del self.used_modules
@@ -640,11 +643,11 @@ class UncompiledPythonModule(PythonModuleBase):
     def getFilename(self):
         return self.filename
 
-    def getUsedModules(self):
-        return self.used_modules
+    def getUsedModuleNames(self):
+        return self.used_module_names
 
-    def setUsedModules(self, used_modules):
-        self.used_modules = used_modules
+    def setUsedModuleNames(self, used_module_names):
+        self.used_module_names = used_module_names
 
     def startTraversal(self):
         pass
@@ -776,7 +779,7 @@ class PythonInternalModule(CompiledPythonModule):
 class PythonShlibModule(PythonModuleBase):
     kind = "PYTHON_SHLIB_MODULE"
 
-    __slots__ = ("used_modules",)
+    __slots__ = ("used_module_names",)
 
     avoid_duplicates = set()
 
@@ -799,7 +802,7 @@ class PythonShlibModule(PythonModuleBase):
         assert self.getFullName() not in self.avoid_duplicates, self.getFullName()
         self.avoid_duplicates.add(self.getFullName())
 
-        self.used_modules = None
+        self.used_module_names = None
 
     def finalize(self):
         del self.used_modules
@@ -828,7 +831,7 @@ class PythonShlibModule(PythonModuleBase):
     def _readPyPIFile(self):
         """ Read the .pyi file if present and scan for dependencies. """
 
-        if self.used_modules is None:
+        if self.used_module_names is None:
             pyi_filename = self.getPyIFilename()
 
             if os.path.exists(pyi_filename):
@@ -870,14 +873,14 @@ class PythonShlibModule(PythonModuleBase):
                 if "typing" in pyi_deps:
                     pyi_deps.discard("typing")
 
-                self.used_modules = tuple(pyi_deps)
+                self.used_module_names = tuple(pyi_deps)
             else:
-                self.used_modules = ()
+                self.used_module_names = ()
 
-    def getUsedModules(self):
+    def getUsedModuleNames(self):
         self._readPyPIFile()
 
-        return self.used_modules
+        return self.used_module_names
 
     def getParentModule(self):
         return self

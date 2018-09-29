@@ -80,4 +80,4 @@ def demoteCompiledModuleToBytecode(module):
     )
 
     assert module.trace_collection is not None
-    uncompiled_module.setUsedModules(module.trace_collection.getUsedModules())
+    uncompiled_module.setUsedModuleNames(module.trace_collection.getUsedModuleNames())

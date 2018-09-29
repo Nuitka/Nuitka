@@ -47,7 +47,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             return False
 
         if module.isPythonShlibModule():
-            if full_name in module.getUsedModules():
+            if full_name in module.getUsedModuleNames():
                 return False
 
         if full_name == "gi._gobject":
@@ -71,8 +71,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         full_name = module.getFullName()
 
         if module.isPythonShlibModule():
-            for used_module in module.getUsedModules():
-                yield used_module
+            for used_module_name in module.getUsedModuleNames():
+                yield used_module_name
 
         # TODO: Move this out to some kind of configuration format.
         elements = full_name.split('.')

@@ -324,7 +324,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
                             if sub_imported_module is not None:
                                 self.import_list_modules.append(
-                                    sub_imported_module.getFullName()
+                                    sub_imported_module
                                 )
         else:
             while '.' in module_name:
@@ -355,7 +355,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
     def _addUsedModules(self, trace_collection):
         if self.finding != "not-found":
             if self.imported_module is not None:
-                trace_collection.onUsedModule(self.imported_module.getFullName())
+                trace_collection.onUsedModule(self.imported_module)
 
             for import_list_module in self.import_list_modules:
                 trace_collection.onUsedModule(import_list_module)
@@ -363,7 +363,7 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
         # These are added in any case.
         if self.package_modules is not None:
             for package_module in self.package_modules:
-                trace_collection.onUsedModule(package_module.getFullName())
+                trace_collection.onUsedModule(package_module)
 
 
 
