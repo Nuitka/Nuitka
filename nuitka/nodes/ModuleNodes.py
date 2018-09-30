@@ -70,6 +70,11 @@ class PythonModuleBase(NodeBase):
         self.package_name = package_name
         self.package = None
 
+    def getDetails(self):
+        return {
+            "name" : self.name
+        }
+
     def getName(self):
         return self.name
 

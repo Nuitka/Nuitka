@@ -29,10 +29,6 @@ from logging import debug
 from nuitka import Tracing, Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.containers.oset import OrderedSet
-from nuitka.importing.ImportCache import (
-    getImportedModuleByName,
-    isImportedModuleByName
-)
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
@@ -409,8 +405,8 @@ class TraceCollectionBase(CollectionTracingMixin):
         # This is monkey patched from another module.
         signalChange(tags, source_ref, message)
 
-    def onUsedModule(self, module_name):
-        return self.parent.onUsedModule(module_name)
+    def onUsedModule(self, module):
+        return self.parent.onUsedModule(module)
 
     @staticmethod
     def mustAlias(a, b):
