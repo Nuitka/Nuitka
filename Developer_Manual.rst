@@ -1461,16 +1461,16 @@ multiple simple assignments instead.
 .. code-block:: python
 
    _tmp = c
-   b = _tmp
    a = _tmp
+   b = _tmp
    del _tmp
 
 
 This is possible, because in Python, if one assignment fails, it can just be
 interrupted, so in fact, they are sequential, and all that is required is to not
-calculate ``c`` twice, which the temporary variable takes care of. Were ``a``
-a more complex expression, e.g. ``a.some_attribute`` that might raise an
-exception, ``b`` would still be assigned.
+calculate ``c`` twice, which the temporary variable takes care of. Were ``b``
+a more complex expression, e.g. ``b.some_attribute`` that might raise an
+exception, ``a`` would still be assigned.
 
 
 Unpacking Assignments
