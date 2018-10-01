@@ -132,8 +132,14 @@ else:
     _shape_to_helper_code[ShapeTypeLong] = "LONG"
     _shape_to_helper_code[ShapeTypeBytes] = "BYTES"
 
+_add_helpers_set = set(
+    (
+        "BINARY_OPERATION_ADD_OBJECT_OBJECT",
+    )
+)
+
 _iadd_helpers_set = set(
-    [
+    (
         "BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE",
 
         "BINARY_OPERATION_ADD_OBJECT_LIST_INPLACE",
@@ -156,15 +162,42 @@ _iadd_helpers_set = set(
 
         "BINARY_OPERATION_ADD_INT_INT_INPLACE",
         "BINARY_OPERATION_ADD_LIST_LIST_INPLACE",
+        "BINARY_OPERATION_ADD_TUPLE_TUPLE_INPLACE",
         "BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE",
         "BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE",
-    ]
+    )
 )
+
+def _pickHelper(prefix, suffix, left_shape, right_shape, helpers):
+    left_part = _shape_to_helper_code.get(left_shape, "OBJECT")
+    right_part = _shape_to_helper_code.get(right_shape, "OBJECT")
+
+    ideal_helper = "%s_%s_%s%s" % (
+        prefix,
+        left_part,
+        right_part,
+        suffix
+    )
+
+    if ideal_helper in helpers:
+        return ideal_helper
+
+    onMissingHelper(ideal_helper)
+
+    fallback_helper = "%s_%s_%s%s" % (
+        prefix,
+        "OBJECT",
+        "OBJECT",
+        suffix
+    )
+
+    return fallback_helper
+
 
 def _getBinaryOperationCode(to_name, expression, operator, arg_names, in_place,
                             needs_check, emit, context):
     # This needs to have one case per operation of Python, and there are many
-    # of these, pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    # of these, pylint: disable=too-many-branches,too-many-statements
     left = expression.getLeft()
 
     prefix_args = ()
@@ -177,25 +210,21 @@ def _getBinaryOperationCode(to_name, expression, operator, arg_names, in_place,
     elif operator == "IPow":
         helper = "POWER_OPERATION2"
     elif operator == "Add":
-        helper = "BINARY_OPERATION_ADD"
-    elif operator == "IAdd" and in_place:
-        left_shape = left.getTypeShape()
-        right_shape = expression.getRight().getTypeShape()
-
-        left_part = _shape_to_helper_code.get(left_shape, "OBJECT")
-        right_part = _shape_to_helper_code.get(right_shape, "OBJECT")
-
-        ideal_helper = "BINARY_OPERATION_ADD_%s_%s_INPLACE" % (
-            left_part,
-            right_part,
+        helper = _pickHelper(
+            prefix      = "BINARY_OPERATION_ADD",
+            suffix      = "",
+            left_shape  = left.getTypeShape(),
+            right_shape = expression.getRight().getTypeShape(),
+            helpers     = _add_helpers_set
         )
-
-        if ideal_helper not in _iadd_helpers_set:
-            onMissingHelper(ideal_helper)
-
-            helper = "BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE"
-        else:
-            helper = ideal_helper
+    elif operator == "IAdd" and in_place:
+        helper = _pickHelper(
+            prefix      = "BINARY_OPERATION_ADD",
+            suffix      = "_INPLACE",
+            left_shape  = left.getTypeShape(),
+            right_shape = expression.getRight().getTypeShape(),
+            helpers     = _iadd_helpers_set
+        )
     elif operator == "IMult" and in_place:
         helper = "BINARY_OPERATION_MUL_INPLACE"
     elif operator == "Sub":
