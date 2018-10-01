@@ -749,6 +749,10 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
     env.Append(CCFLAGS = ["-fno-var-tracking"])
 
 if msvc_mode:
+    # With Clang on Windows, there is also an linker to use.
+    if "clang" in the_cc_name and "-cl" in the_cc_name:
+        env["LINK"] = "lld-link"
+
     env.Append(CCFLAGS = ["/EHsc", "/J", "/Gd"])
 
     # No incremental linking.

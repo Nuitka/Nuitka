@@ -250,7 +250,14 @@ def isMarshalConstant(constant_value):
     if getConstantWeight(constant_value) < 20:
         return False
 
-    marshal_value = marshal.dumps(constant_value)
+    try:
+        marshal_value = marshal.dumps(constant_value)
+    except ValueError:
+        if Options.isDebug():
+            warning("Failed to marshal constant %r." % constant_value)
+
+        return False
+
     restored = marshal.loads(marshal_value)
 
     r = compareConstants(constant_value, restored)

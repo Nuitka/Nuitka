@@ -228,14 +228,15 @@ def getResultFullpath(main_module):
 
 
 def cleanSourceDirectory(source_dir):
+    extensions = (
+        ".bin", ".c", ".cpp", ".exp", ".h",
+        ".lib", ".manifest", ".o", ".obj",
+        ".os", ".rc", ".res", ".S"
+    )
+
     if os.path.isdir(source_dir):
         for path, _filename in listDir(source_dir):
-            if hasFilenameExtension(
-                path       = path,
-                extensions = (".c", ".h", ".o", ".os", ".obj",
-                              ".bin", ".res", ".rc", ".S", ".cpp",
-                              ".manifest")
-            ):
+            if hasFilenameExtension(path, extensions):
                 deleteFile(path, must_exist = True)
     else:
         makePath(source_dir)

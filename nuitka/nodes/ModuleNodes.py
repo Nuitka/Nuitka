@@ -551,7 +551,12 @@ class CompiledPythonPackage(CompiledPythonModule):
         )
 
     def getOutputFilename(self):
-        return os.path.dirname(self.getFilename())
+        result = self.getFilename()
+
+        if os.path.isdir(result):
+            return result
+        else:
+            return os.path.dirname(self.getFilename())
 
     @staticmethod
     def canHaveExternalImports():

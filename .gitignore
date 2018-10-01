@@ -19,6 +19,7 @@
 Nuitka.egg-info
 tests/reflected/nuitka/
 tests/reflected/nuitka.py
+tests/reflected/nuitka-runner.py
 tests/basics/BigConstants.py
 dist
 MANIFEST

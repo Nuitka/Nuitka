@@ -72,9 +72,15 @@ def getImportedModuleByName(full_name):
     return imported_by_name[full_name]
 
 
-def getImportedModuleByPath(module_relpath):
+def getImportedModuleByPath(module_relpath, module_package):
     for key in imported_modules:
         if key[0] == module_relpath:
+            module = imported_modules[key]
+
+            if module.getCompileTimeFilename().endswith("__init__.py") and \
+               module.getPackage() != module_package:
+                continue
+
             return imported_modules[key]
 
     raise KeyError(module_relpath)
