@@ -76,7 +76,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE(binary_api api, PyObje
     return true;
 }
 
-NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD(PyObject *operand1, PyObject *operand2) {
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
 
@@ -459,6 +459,66 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_TUPLE_INPLACE(PyObj
 
     return true;
 }
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_TUPLE_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyTuple_CheckExact(*operand1));
+
+    PyObject *result;
+
+    if (PyTuple_CheckExact(operand2)) {
+        // TODO: No tuple specific code, create one and use it, although it
+        // is probably not too common to in-place to them.
+        result = PySequence_InPlaceConcat(*operand1, operand2);
+    } else if (PySequence_Check(operand2)) {
+        result = PySequence_InPlaceConcat(*operand1, operand2);
+    } else {
+        result = PyNumber_InPlaceAdd(*operand1, operand2);
+    }
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_TUPLE_TUPLE_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyTuple_CheckExact(*operand1));
+    assert(PyTuple_CheckExact(operand2));
+
+    PyObject *result;
+
+    // TODO: No tuple specific code, create one and use it, although it
+    // is probably not too common to in-place to them.
+    result = PySequence_InPlaceConcat(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
 
 #if PYTHON_VERSION < 300
 // This is Python2 int, for Python3 the LONG variant is to be used.
