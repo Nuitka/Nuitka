@@ -884,6 +884,27 @@ PyObject *UNSTREAM_STRING(unsigned char const *buffer, Py_ssize_t size, bool int
     return result;
 }
 
+#if PYTHON_VERSION >= 300
+PyObject *UNSTREAM_STRING_ASCII(unsigned char const *buffer, Py_ssize_t size, bool intern) {
+    PyObject *result = PyUnicode_FromKindAndData(PyUnicode_1BYTE_KIND, (char const *)buffer, size);
+
+    assert(!ERROR_OCCURRED());
+    CHECK_OBJECT(result);
+    assert(Nuitka_String_Check(result));
+
+    if (intern) {
+        Nuitka_StringIntern(&result);
+
+        CHECK_OBJECT(result);
+        assert(Nuitka_String_Check(result));
+
+        assert(PyUnicode_GET_SIZE(result) == size);
+    }
+
+    return result;
+}
+#endif
+
 PyObject *UNSTREAM_CHAR(unsigned char value, bool intern) {
 #if PYTHON_VERSION < 300
     PyObject *result = PyString_FromStringAndSize((char const *)&value, 1);

@@ -473,13 +473,23 @@ CHECK_OBJECT( const_int_pos_1 );
                     )
                 )
             else:
-                emit(
-                    "%s = UNSTREAM_STRING( %s, %d );" % (
-                        constant_identifier,
-                        stream_data.getStreamDataCode(encoded),
-                        1 if _isAttributeName(constant_value) else 0
+                if str is not bytes and \
+                   len(constant_value) == len(encoded):
+                    emit(
+                        "%s = UNSTREAM_STRING_ASCII( %s, %d );" % (
+                            constant_identifier,
+                            stream_data.getStreamDataCode(encoded),
+                            1 if _isAttributeName(constant_value) else 0
+                        )
                     )
-                )
+                else:
+                    emit(
+                        "%s = UNSTREAM_STRING( %s, %d );" % (
+                            constant_identifier,
+                            stream_data.getStreamDataCode(encoded),
+                            1 if _isAttributeName(constant_value) else 0
+                        )
+                    )
 
             return
         except UnicodeEncodeError:

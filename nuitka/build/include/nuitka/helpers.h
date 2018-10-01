@@ -310,6 +310,7 @@ extern PyObject *UNSTREAM_CHAR(unsigned char value, bool intern);
 extern PyObject *UNSTREAM_UNICODE(unsigned char const *buffer, Py_ssize_t size);
 #else
 extern PyObject *UNSTREAM_BYTES(unsigned char const *buffer, Py_ssize_t size);
+extern PyObject *UNSTREAM_STRING_ASCII(unsigned char const *buffer, Py_ssize_t size, bool intern);
 #endif
 extern PyObject *UNSTREAM_FLOAT(unsigned char const *buffer);
 extern PyObject *UNSTREAM_BYTEARRAY(unsigned char const *buffer, Py_ssize_t size);
