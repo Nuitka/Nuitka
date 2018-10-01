@@ -387,7 +387,6 @@ def executePASS5():
         "--plugin-enable=pylint-warnings",
         "--output-dir=%s" % tmp_dir,
         "--include-plugin-dir=%s" % path,
-        "--follow-imports",
         "--nofollow-import-to=nuitka.build.inline_copy",
         "--nofollow-import-to=nuitka.build.include",
         "--nofollow-import-to=nuitka.build.static_src",

@@ -939,8 +939,8 @@ def checkDebugPython():
     if not hasattr(sys, "gettotalrefcount"):
         my_print("Warning, using non-debug Python makes this test ineffective.")
         sys.gettotalrefcount = lambda : 0
-    elif sys.version_info >= (3,7,0) and sys.version_info < (3,7,1):
-        my_print("Warning, bug of CPython 3.7.0 breaks reference counting and makes this test ineffective.")
+    elif sys.version_info >= (3,7,0) and sys.version_info < (3,7,2):
+        my_print("Warning, bug of CPython 3.7.0/1 breaks reference counting and makes this test ineffective.")
         sys.gettotalrefcount = lambda : 0
 
 

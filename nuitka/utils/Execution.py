@@ -24,7 +24,6 @@ binaries (needed for exec) and run them capturing outputs.
 
 import os
 import subprocess
-import sys
 from contextlib import contextmanager
 
 from .Utils import getArchitecture, getOS
@@ -50,8 +49,8 @@ def callExec(args):
                 args = args,
             )
             process.communicate()
-
-            sys.exit(process.wait())
+            # No point in cleaning up, pylint: disable=protected-access
+            os._exit(process.returncode)
         except KeyboardInterrupt:
             # There was a more relevant stack trace already, so abort this
             # right here, pylint: disable=protected-access
