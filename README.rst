@@ -206,7 +206,7 @@ that is the main program, do it like this:
    Consider the output of ``nuitka --help``.
 
 In case you have a plugin directory, i.e. one which cannot be found by recursing
-after normal import statements via the ``PYTHONPATH`` (which would be
+after normal import statements via the ``PYTHONPATH`` (which would be the
 recommended way), you can always require that a given directory shall also be
 included in the executable:
 
@@ -252,7 +252,7 @@ The resulting file ``some_module.so`` can then be used instead of
 
 .. note::
 
-   It's left as an exercise to the reader, what happens if both are present.
+   It's left as an exercise to the reader, to find out what happens if both are present.
 
 .. note::
 
@@ -263,7 +263,7 @@ The resulting file ``some_module.so`` can then be used instead of
 Use Case 3 - Package compilation
 --------------------------------
 
-If you need to compile a whole package and embedded all modules, that is also
+If you need to compile a whole package and embed all modules, that is also
 feasible, use Nuitka like this:
 
 .. code-block:: bash
@@ -282,7 +282,7 @@ Tips
 Caching
 -------
 
-The C compiler when invoked with the same input files with take long time
+The C compiler when invoked with the same input files will take a long time
 and much CPU to compile. Make sure you are having ``ccache`` installed and
 configured on non-Windows. It will make repeated compilations much faster,
 even if things are not yet not perfect, i.e. changes to the program can
@@ -313,7 +313,7 @@ to use, so it is not recommened.
 
 On Linux for ``pystone.bin`` the binary produced by ``clang6`` was faster
 than ``gcc-6.3``, but not by a significant margin. Since gcc is more often
-already installed, that is the recommened use for now.
+already installed, that is recommended to use for now.
 
 Differences in C compilation times have not yet been examined.
 
