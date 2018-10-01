@@ -272,13 +272,16 @@ blacklisted_tools = (
     "bk",
     "p4",
     "m4",
+    "ml",
     "sccs",
     "rcs",
-    "cvs"
+    "cvs",
     "as",
     "gas",
     "nasm",
 )
+
+v_cache = {}
 
 # From gcc.py of Scons
 def detectVersion(env, cc):
@@ -286,21 +289,28 @@ def detectVersion(env, cc):
     cc = env.subst(cc)
     if not cc:
         return None
+    if found_gcc and cc == "g++":
+        return None
+
     version = None
+
+    clvar = tuple(SCons.Util.CLVar(cc))
+
+    if clvar in v_cache:
+        return v_cache[clvar]
+
+    if show_scons_mode:
+        print("Scons CC '%s' version check" % cc)
+
     #pipe = SCons.Action._subproc(env, SCons.Util.CLVar(cc) + ['-dumpversion'],
     pipe = SCons.Action._subproc(
         env,
-        SCons.Util.CLVar(cc) + ["--version"],
+        list(clvar) + ["--version"],
         stdin  = "devnull",
         stderr = "devnull",
         stdout = subprocess.PIPE
     )
-    # -dumpversion was added in GCC 3.0.  As long as we're supporting
-    # GCC versions older than that, we should use --version and a
-    # regular expression.
-    #line = pipe.stdout.read().strip()
-    #if line:
-    #    version = line
+
     line = pipe.stdout.readline()
 
     if str is not bytes:
@@ -318,8 +328,12 @@ def detectVersion(env, cc):
     ret = pipe.wait()
     if ret != 0:
         return None
+
+    v_cache[clvar] = version
     return version
 
+import SCons.Tool.gcc
+SCons.Tool.gcc.detect_version = detectVersion
 
 def myDetect(self, progs):
     global found_gcc, gcc_version
@@ -341,25 +355,24 @@ def myDetect(self, progs):
 
     # Special considerations for gcc.
     if result in ("gcc", "cc"):
-        gcc_version = detectVersion(self, result)
+        if not found_gcc:
+            gcc_version = detectVersion(self, result)
 
-        # Ignore gcc before gcc version 5, no C11 support. We will find the
-        # C++ compiler of it though.
-        if gcc_version < '5':
-            progs = [
-                "gcc-6.5", "gcc-6.3", "gcc-6.1",
-                "gcc-5.5", "gcc-5.3", "gcc-5.1",
-            ]
+            # Ignore gcc before gcc version 5, no C11 support. We will find the
+            # C++ compiler of it though.
+            if gcc_version < '5':
+                progs = [
+                    "gcc-6.5", "gcc-6.3", "gcc-6.1",
+                    "gcc-5.5", "gcc-5.3", "gcc-5.1",
+                ]
 
-            result = orig_detect(self, progs)
+                result = orig_detect(self, progs)
+
+                if result is not None:
+                    gcc_version = detectVersion(self, result)
 
             if result is not None:
-                gcc_version = detectVersion(self, result)
-
-        if result is not None:
-            found_gcc = True
-
-    # print progs, result
+                found_gcc = True
 
     return result
 
