@@ -32,7 +32,7 @@ PR yet), drop a note in that issue before opening the PR.
  4. Make the tests pass.
  5. Push to your fork and submit a pull request.
     - for feature branches set base branch to `nuitka:develop`
-    - for bugfix branches set base branch to the latests maintenance branch, e.g. `nuitka:master`
+    - for bugfix branches set base branch to the latest maintenance branch, e.g. `nuitka:master`
  6. Wait for review, suggestions for improvements or alternative ideas may
     happen. Keep in mind that PR checklist items can be met after the pull
     request has been opened by adding more commits to the branch.
@@ -53,12 +53,12 @@ If you want to ask a question about a specific Nuitka aspect, please first of al
 If you want to post a problem/bug, to help us understand and resolve your issue
 please check that you have provided the information below:
 
-*  Nuitka version, full Python version and Platform (Windows, OSX, Linux ...)
+*  Nuitka version, full Python version and platform (Windows, OSX, Linux ...)
 *  How did you install Nuitka and Python (pip, anaconda, deb, rpm, from source,
-   what is a virtualenv ...), this is very important usually.
+   what is the virtualenv ...), this is very important usually.
 *  If possible please supply a [Short, Self Contained, Correct, Example](http://sscce.org/)
-      that demonstrates the issue i.e a small piece of code which reproduces
-      the issue and can be run with out any other (or as few as possible)
+      that demonstrates the issue i.e. a small piece of code which reproduces
+      the issue and can be run without any other (or as few as possible)
       external dependencies.
 *  If this is a regression (used to work in an earlier version of Nuitka),
    please note what you know about that.
