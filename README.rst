@@ -29,7 +29,7 @@ You can use all Python library modules or and all extension modules freely.
 It translates the Python into a C level program that then uses "libpython" to
 execute in the same way as CPython does. All optimization is aimed at avoiding
 overhead, where it's unnecessary. None is aimed at removing compatibility,
-although slight improvements will occassionally be done, where not every bug
+although slight improvements will occasionally be done, where not every bug
 of standard Python is emulated, e.g. more complete error messages are given,
 but there is a full compatibility mode to disable even that.
 
@@ -84,7 +84,7 @@ Requirements
 
      The created binaries have an ``.exe`` suffix on Windows. On other platforms
      they have no suffix for standalone mode, or ``.bin`` suffix, that you ar
-     free to remove or change, or specifiy with the ``-o`` option.
+     free to remove or change, or specify with the ``-o`` option.
 
      The suffix for acceleration mode is added just to be sure that the original
      script name and the binary name do not ever collide, so we can safely do
@@ -309,7 +309,7 @@ The fastest binaries of ``pystone.exe`` on Windows with 64 bits Python proved
 to be signicantly faster with MinGW64, roughly 20% better score. So it is
 recommended for use over MSVC. Using ``clang-cl.exe`` of Clang7 was faster
 than MSVC, but still significantly slower than MinGW64, and it will be harder
-to use, so it is not recommened.
+to use, so it is not recommended.
 
 On Linux for ``pystone.bin`` the binary produced by ``clang6`` was faster
 than ``gcc-6.3``, but not by a significant margin. Since gcc is more often

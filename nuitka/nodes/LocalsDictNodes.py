@@ -375,7 +375,7 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
     def getLocalsDictScope(self):
         return self.locals_scope
 
-    # TODO: Child name inconsisten with accessor name.
+    # TODO: Child name inconsistent with accessor name.
     getAssignSource = StatementChildHavingBase.childGetter("value")
 
     def computeStatement(self, trace_collection):
@@ -400,7 +400,7 @@ class StatementLocalsDictOperationSet(StatementChildHavingBase):
                 assert False, (new_result, result)
 
             self.finalize()
-            return result, "new_statements", "Replaced dictionary assigment with temporary variable."
+            return result, "new_statements", "Replaced dictionary assignment with temporary variable."
 
         result, change_tags, change_desc = self.computeStatementSubExpressions(
             trace_collection = trace_collection

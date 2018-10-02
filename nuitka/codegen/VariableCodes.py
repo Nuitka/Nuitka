@@ -72,7 +72,7 @@ def generateAssignmentVariableCode(statement, emit, context):
         context        = context
     )
 
-    # Ownership of that reference must have been transfered.
+    # Ownership of that reference must have been transferred.
     assert not context.needsCleanup(tmp_name)
 
 

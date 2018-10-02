@@ -178,7 +178,7 @@ class VariableClosureLookupVisitorPhase1(VisitorNoopMixin):
                 # Classes always assign to locals dictionary except for closure
                 # variables taken.
 
-                # TODO: This is loosing the "tolerant" annotation.
+                # TODO: This is losing the "tolerant" annotation.
                 new_node = StatementLocalsDictOperationDel(
                     locals_scope  = provider.getFunctionLocalsScope(),
                     variable_name = variable_name,

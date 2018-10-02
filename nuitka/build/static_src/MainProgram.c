@@ -518,7 +518,7 @@ int main(int argc, char **argv) {
     NUITKA_CANNOT_GET_HERE(main);
 }
 
-/* This is an inofficial API, not available on Windows, but on Linux and others
+/* This is an unofficial API, not available on Windows, but on Linux and others
  * it is exported, and has been used by some code.
  */
 #ifndef _WIN32

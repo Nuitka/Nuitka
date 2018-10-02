@@ -91,10 +91,10 @@ def _getFunctionEntryPointIdentifier(function_identifier):
 def getFunctionQualnameObj(owner, context):
     """ Get code to pass to function alike object creation for qualname.
 
-        Qualname for funcions existed for Python3, generators only after
+        Qualname for functions existed for Python3, generators only after
         3.5 and coroutines and asyncgen for as long as they existed.
 
-        If indentical to the name, we do not pass it as a value, but
+        If identical to the name, we do not pass it as a value, but
         NULL instead.
     """
 
@@ -358,7 +358,7 @@ def getDirectFunctionCallCode(to_name, function_identifier, arg_names,
 
     suffix_args = []
 
-    # TODO: Does this still have to be a tripple, we are stopping to use
+    # TODO: Does this still have to be a triple, we are stopping to use
     # versions later in the game.
     for closure_variable, variable_trace in closure_variables:
         variable_declaration = getLocalVariableDeclaration(

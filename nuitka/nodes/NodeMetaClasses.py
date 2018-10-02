@@ -31,7 +31,7 @@ def _checkBases(name, bases):
     # Avoid duplicate base classes.
     assert len(bases) == len(set(bases)), (name, bases)
 
-    # Insist on mixins being in proper place for inheritence.
+    # Insist on mixins being in proper place for inheritance.
     last_mixin = None
     for base in bases:
         base_name = base.__name__

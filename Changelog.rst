@@ -497,7 +497,7 @@ and become possible, what will be 0.6.0 and the next release.
 
 Third, the improved generator performance will be removing a lot of cases,
 where Nuitka wasn't as fast, as its current state not using "C types" yet,
-should allow. It is now consistenly faster than CPython for everything
+should allow. It is now consistently faster than CPython for everything
 related to generators.
 
 Fourth, the fibers were a burden for the debugging and linking of Nuitka on
@@ -518,7 +518,7 @@ Nuitka Release 0.5.32
 
 This release contains substantial new optimization, bug fixes, and already the
 full support for Python 3.7. Among the fixes, the enhanced coroutine work for
-compatiblity with uncompiled ones is most important.
+compatibility with uncompiled ones is most important.
 
 Bug Fixes
 ---------
@@ -593,7 +593,7 @@ Cleanups
   if necessary. Also do not have code for importing a name in the header file
   anymore, not performance relevant.
 
-- Disable Python warnings when running scons. These are particularily given
+- Disable Python warnings when running scons. These are particularly given
   when using a Python debug binary, which is happening when Nuitka is run with
   ``--python-debug`` option and the inline copy of Scons is used.
 
@@ -693,7 +693,7 @@ Bug Fixes
   module variable for annotations used after that which is wrong.
 
 - Fix, some built-in type conversions are allowed to return derived types,
-  but Nuitka assumed the excact type, this affected ``bytes``, ``int``,
+  but Nuitka assumed the exact type, this affected ``bytes``, ``int``,
   ``long``, ``unicode``.
 
 - Standalone: Fix, the ``_socket`` module was insisted on to be found, but
@@ -1232,7 +1232,7 @@ Bug Fixes
 - Standalone: Added some newly discovered missing hidden dependencies of
   extension modules.
 
-- Compatiblity: The name mangling of private names (e.g. ``__var``) in classes
+- Compatibility: The name mangling of private names (e.g. ``__var``) in classes
   was applied to variable names, and function declarations, but not to classes
   yet.
 
@@ -1289,7 +1289,7 @@ New Features
 - Experimental support for running tests against compiled installation with
   ``nose`` and ``py.test``.
 
-- When specifiying what to recurse to, now patterns can be used, e.g. like
+- When specifying what to recurse to, now patterns can be used, e.g. like
   this ``--recurse-not-to=*.tests`` which will skip all tests in submodules
   from compilation.
 
@@ -1346,7 +1346,7 @@ Organizational
 --------------
 
 - Added support for Scons 3.0 and running Scons with Python3.5 or higher. The
-  option to specifiy the Python to use for scons has been renamed to reflect
+  option to specify the Python to use for scons has been renamed to reflect
   that it may also be a Python3 now. Only for Python3.2 to Python3.4 we now
   need another Python installation.
 
@@ -1419,15 +1419,15 @@ Bug Fixes
 - Python3.5: For ``async def`` functions parameter variables could fail to
   properly work with in-place assignments to them. Fixed in 0.5.26.4 already.
 
-- Compatability: Decorators that overload type checks didn't pass the checks
+- Compatibility: Decorators that overload type checks didn't pass the checks
   for compiled types. Now ``isinstance`` and as a result ``inspect`` module
   work fine for them.
 
-- Compatiblity: Fix, imports from ``__init__`` were crashing the compiler. You
+- Compatibility: Fix, imports from ``__init__`` were crashing the compiler. You
   are not supposed to do them, because they duplicate the package code, but
   they work.
 
-- Compatiblity: Fix, the ``super`` built-in on module level was crashing the
+- Compatibility: Fix, the ``super`` built-in on module level was crashing the
   compiler.
 
 - Standalone: For Linux, BSD and MacOS extension modules and shared libraries
@@ -1814,12 +1814,12 @@ Cleanups
 - Now always uses the ``__import__`` built-in node for all kinds of imports
   and directly optimizes and recursion into other modules based on that kind
   of node, instead of a static variant. This removes duplication and some
-  incompatability regarding defaults usage when doing the actual imports at
+  incompatibility regarding defaults usage when doing the actual imports at
   run time.
 
 - Split the expression node bases and mixin classes to a dedicated module,
   moving methods that only belong to expressions outside of the node base,
-  making for a cleaner class hierachy.
+  making for a cleaner class hierarchy.
 
 - Cleaned up the class structure of nodes, added base classes for typical
   compositions, e.g. expression with and without children, computation based
@@ -1832,7 +1832,7 @@ Cleanups
   times beyond program ends, requiring second attempts.
 
 - Code generation for existing supported types, ``PyObject *``, ``PyObject **``,
-  and ``struct Nuitka_CellObject *`` is now done via a C type class hierachy
+  and ``struct Nuitka_CellObject *`` is now done via a C type class hierarchy
   instead of ``elif`` sequences.
 
 - Closure taking is now always done immediately correctly and references are
@@ -2212,7 +2212,7 @@ Tests
 - Enhanced constructs that test generator expressions to more clearly show the
   actual construct cost.
 
-- Added construct tests for the ``sum`` built-in on verious types of ``int``
+- Added construct tests for the ``sum`` built-in on various types of ``int``
   containers, making sure we can do all of those really fast.
 
 Summary
@@ -2371,7 +2371,7 @@ variable versions of certain known shapes seems feasible now.
 
 Then there is also the move towards pure C. This will make the backend
 compilation lighter, but due to using C11, we will not suffer any loss of
-convinience compared to "C-ish". The plan is to use continue to use C++ for
+convenience compared to "C-ish". The plan is to use continue to use C++ for
 compilation for compilers not capable of supporting C11.
 
 The amount of static analysis done in Nuitka is now going to quickly expand,
@@ -2418,7 +2418,7 @@ Bug Fixes
 
 - Standalone: Do not include system specific C libraries in the distribution
   created. This would lead to problems for some configurations on Linux in
-  cases the glibc is no longer compatible with newer oder older kernels.
+  cases the glibc is no longer compatible with newer or older kernels.
   Fixed in 0.5.22.2 already.
 
 - The ``--recurse-directory`` option didn't check with decision mechanisms
@@ -2472,7 +2472,7 @@ Cleanups
 Summary
 -------
 
-This release is the result of a couple of months work, and somwhat means that
+This release is the result of a couple of months work, and somewhat means that
 proper re-loading of cached results is becoming in sight. The reloading of
 modules still fails for some things, and more changes will be needed, but with
 that out of the way, Nuitka's footprint is about to drop and making it then
@@ -2495,12 +2495,12 @@ Bug Fixes
 - Windows: Support for newer MinGW64 was broken by a workaround for older
   MinGW64 versions.
 
-- Compatibility: Added support for the (inofficial) C-Python API
+- Compatibility: Added support for the (unofficial) C-Python API
   ``Py_GetArgcArgv`` that was causing ``prctl`` module to fail loading on ARM
   platforms.
 
 - Compatibility: The proper error message template for complex call arguments
-  is now detected as compile time. There are changes comming, that are already
+  is now detected as compile time. There are changes coming, that are already
   in some pre-releases of CPython.
 
 - Standalone: Wasn't properly ignoring ``Tools`` and other directories in the
@@ -3169,7 +3169,7 @@ Bug Fixes
   `Issue#219 <http://bugs.nuitka.net/issue219>`__.
 
 - Fix, when running under ``wine``, the check for scons binary was fooled by
-  existance of ``/usr/bin/scons``. `Issue#251
+  existence of ``/usr/bin/scons``. `Issue#251
   <http://bugs.nuitka.net/issue251>`__.
 
 New Features
@@ -3548,7 +3548,7 @@ Tests
 - Made the compile library test robust against modules that raise a syntax
   error, checking that Nuitka does the same.
 
-- Refined more tests to be directly execuable with Python3, this is an ongoing
+- Refined more tests to be directly executable with Python3, this is an ongoing
   effort.
 
 Summary
@@ -3789,7 +3789,7 @@ Bug Fixes
       # Inside "x.y" module:
       import x.y.exceptions
 
-- Similarily, the importing of modules with the same name as standard library
+- Similarly, the importing of modules with the same name as standard library
   modules could go wrong. This corrects `Issue#184
   <http://bugs.nuitka.net/issue184>`__.
 
@@ -3955,7 +3955,7 @@ Bug Fixes
 - Fix, generator objects didn't release weak references to them properly. Fixed
   in 0.5.10.2 already.
 
-- Compatiblity: The ``__closure__`` attributes of functions was so far not
+- Compatibility: The ``__closure__`` attributes of functions was so far not
   supported, and rarely missing. Recent changes made it easy to expose, so now
   it was added. This corrects `Issue#45 <http://bugs.nuitka.net/issue45>`__.
 
@@ -6473,7 +6473,7 @@ Bug Fixes
   looks at the name ``exec`` had received. It was ``python`` in all cases, but
   now it depends on the running version, so it propagates.
 
-- Keyword only functions with default values were loosing references to
+- Keyword only functions with default values were losing references to
   defaults.
 
   .. code-block:: python
@@ -8182,7 +8182,7 @@ required to cover ``with`` statements as well. And assignments will become no
 more complex than unpacking from a temporary variable.
 
 For this release, there is only minimal progress on the Python3 front, despite
-the syntax support, which is only miniscule progress. The remaining tasks appear
+the syntax support, which is only minuscule progress. The remaining tasks appear
 all more or less difficult work that I don't want to touch now.
 
 There are still remaining steps, but we can foresee that a release may be done
@@ -9181,7 +9181,7 @@ Bug fixes
   built-in. Fixed in 0.3.12c already.
 
 - The code generated for the ``__import__`` built-in with constant values was
-  doing relative imports only. It needs to attempt relative and absolut
+  doing relative imports only. It needs to attempt relative and absolute
   imports. Fixed in 0.3.12c already.
 
 - The code of packages in "__init__.py" believed it was outside of the package,
@@ -9858,7 +9858,7 @@ Iteration
 - The next on iterator got our own code too, which has simpler code flow,
   because it avoids the double check in case of NULL returned.
 
-- The unpack check got simlar code to the next iterator, it also has simpler
+- The unpack check got similar code to the next iterator, it also has simpler
   code flow now and avoids double checks.
 
 Built-ins
@@ -10492,7 +10492,7 @@ Cleanups
   ``PyObjectTemporary`` in more places in the C++ code, or not using
   ``str.find`` where ``x in y`` is a better choice.
 
-- The node structure got cleaned up towards the direction that assigments always
+- The node structure got cleaned up towards the direction that assignments always
   have an assignment as a child. A function definition, or a class definition,
   are effectively assignments, and in order to not have to treat this as special
   cases everywhere, they need to have assignment targets as child nodes.
