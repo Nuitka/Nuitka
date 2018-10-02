@@ -459,7 +459,7 @@ You can run the "basic" tests like this:
 
 These tests normally give sufficient coverage to assume that a change is
 correct, if these "basic" tests pass. The most important constructs and
-built-ins are excercised.
+built-ins are exercised.
 
 To control the Python version used for testing, you can set the ``PYTHON``
 environment variable to e.g. ``python3.5`` (can also be full path), or simply
@@ -1030,7 +1030,7 @@ SSA form for Nuitka
 The SSA form is critical to how optimization works. The so called trace
 collections builds up traces. These are facts about how this works:
 
-   * Assignments draw from a counter unqiue for the variable, which becomes the
+   * Assignments draw from a counter unique for the variable, which becomes the
      variable version. This happens during tree building phase.
 
    * References are associated to the version of the variable active. This can be
@@ -2222,7 +2222,7 @@ performed, so it becomes:
 
    a = side_effects(f(), g(), 2)
 
-Modelling side effects explicitely has the advantage of recognizing them easily
+Modelling side effects explicitly has the advantage of recognizing them easily
 and allowing to drop the call to the tuple building and checking its length,
 only to release it.
 

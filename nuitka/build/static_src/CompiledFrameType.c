@@ -487,7 +487,7 @@ PyTypeObject Nuitka_Frame_Type = {
 void _initCompiledFrameType(void) {
     PyType_Ready(&Nuitka_Frame_Type);
 
-    // These are to be used interchangably. Make sure that's true.
+    // These are to be used interchangeably. Make sure that's true.
     assert(offsetof(struct Nuitka_FrameObject, m_frame.f_localsplus) == offsetof(PyFrameObject, f_localsplus));
 }
 

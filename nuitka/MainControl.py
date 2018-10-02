@@ -894,7 +894,7 @@ def main():
 # standalone mode usage of the created library will need it.
 
 # In the future, this will also contain type information for values
-# in the module, so IDEs will use this. Therfore please include it
+# in the module, so IDEs will use this. Therefore please include it
 # when you make software releases of the extension module that it
 # describes.
 

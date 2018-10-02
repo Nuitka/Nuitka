@@ -76,7 +76,7 @@ class NuitkaPluginPmw(NuitkaPluginBase):
                         return 1
             return 0
 
-        # This mimicks the scan the __init__.py does.
+        # This mimics the scan the __init__.py does.
         candidates = []
         for _fullpath, candidate in listDir(pmw_path):
             if _hasLoader(candidate):

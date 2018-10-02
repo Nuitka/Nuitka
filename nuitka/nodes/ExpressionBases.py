@@ -1120,7 +1120,7 @@ class ExpressionChildHavingBase(ExpressionBase):
 
         attr_name = "subnode_" + name
 
-        # Determine old value, and inform it about loosing its parent.
+        # Determine old value, and inform it about losing its parent.
         old_value = getattr(self, attr_name)
 
         assert old_value is not value, value
