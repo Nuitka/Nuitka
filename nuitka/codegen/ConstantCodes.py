@@ -1043,15 +1043,29 @@ def getConstantAccess(to_name, constant, emit, context):
 
         ref_count = 0
 
+    if to_name.c_type == "PyObject *":
+        value_name = to_name
+    else:
+        value_name = context.allocateTempName("constant_value")
+
     emit(
         "%s = %s;" % (
-            to_name,
+            value_name,
             code,
         )
     )
 
     if ref_count:
-        context.addCleanupTempName(to_name)
+        context.addCleanupTempName(value_name)
+
+    if to_name is not value_name:
+        to_name.getCType().emitAssignConversionCode(
+            to_name     = to_name,
+            value_name  = value_name,
+            needs_check = False,
+            emit        = emit,
+            context     = context
+        )
 
 
 def getModuleConstantCode(constant):

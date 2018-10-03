@@ -126,35 +126,28 @@ class CPythonPyObjectPtrBase(CTypeBase):
 
     @classmethod
     def emitAssignmentCodeToNuitkaBool(cls, to_name, value_name, needs_check, emit, context):
-        if needs_check:
-            truth_name = context.allocateTempName("truth_name", "int")
+        truth_name = context.allocateTempName("truth_name", "int")
 
-            emit(
-                "%s = CHECK_IF_TRUE( %s );" % (
-                    truth_name,
-                    value_name
-                )
+        emit(
+            "%s = CHECK_IF_TRUE( %s );" % (
+                truth_name,
+                value_name
             )
+        )
 
-            getErrorExitBoolCode(
-                condition   = "%s == -1" % truth_name,
-                emit        = emit,
-                context     = context,
-                needs_check = True
-            )
+        getErrorExitBoolCode(
+            condition   = "%s == -1" % truth_name,
+            needs_check = needs_check,
+            emit        = emit,
+            context     = context
+        )
 
-            emit(
-                "%s = %s == 1 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % (
-                    to_name,
-                    truth_name
-                )
+        emit(
+            "%s = %s == 1 ? NUITKA_BOOL_TRUE : NUITKA_BOOL_FALSE;" % (
+                to_name,
+                truth_name
             )
-        else:
-            cls.emitAssignmentCodeFromBoolCondition(
-                to_name   = to_name,
-                condition = "%s == 1",
-                emit      = emit
-            )
+        )
 
 
 class CTypePyObjectPtr(CPythonPyObjectPtrBase):
