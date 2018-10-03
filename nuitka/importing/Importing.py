@@ -169,22 +169,23 @@ def warnAbout(importing, module_name, parent_package, level, tried_names):
             else:
                 level_desc = "%d package levels up" % level
 
-            if parent_package is not None:
-                warning(
-                    "%s: Cannot find '%s' in package '%s' %s (tried %s).",
-                    importing.getSourceReference().getAsString(),
-                    module_name,
-                    parent_package,
-                    level_desc,
-                    ','.join(tried_names)
-                )
-            else:
-                warning(
-                    "%s: Cannot find '%s' %s.",
-                    importing.getSourceReference().getAsString(),
-                    module_name,
-                    level_desc
-                )
+            if _debug_module_finding:
+                if parent_package is not None:
+                    warning(
+                        "%s: Cannot find '%s' in package '%s' %s (tried %s).",
+                        importing.getSourceReference().getAsString(),
+                        module_name,
+                        parent_package,
+                        level_desc,
+                        ','.join(tried_names)
+                    )
+                else:
+                    warning(
+                        "%s: Cannot find '%s' %s.",
+                        importing.getSourceReference().getAsString(),
+                        module_name,
+                        level_desc
+                    )
 
 
 def normalizePackageName(module_name):
