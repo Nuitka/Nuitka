@@ -141,7 +141,7 @@ def isWhiteListedImport(node):
 
 
 def warnAbout(importing, module_name, parent_package, level, tried_names):
-    # This probably should not be dealt with here.
+    # This probably should not be dealt with here, pylint: disable=too-many-branches
     if module_name == "":
         return
 
