@@ -35,6 +35,7 @@ import subprocess
 import sys
 
 import SCons
+import SCons.Tool.gcc
 
 
 def getArguments():
@@ -332,7 +333,6 @@ def detectVersion(env, cc):
     v_cache[clvar] = version
     return version
 
-import SCons.Tool.gcc
 SCons.Tool.gcc.detect_version = detectVersion
 
 def myDetect(self, progs):
@@ -1318,7 +1318,8 @@ if gcc_mode and sys.platform != "darwin" and not win_target and not module_mode:
             LINKFLAGS = ["-Wl,--disable-new-dtags"]
         )
 
-def getLinkerArch():
+
+def _getLinkerArch():
     if "linux" in sys.platform:
         python_exe = os.environ["NUITKA_PYTHON_EXE_PATH"]
         assert os.path.exists(python_exe), python_exe
@@ -1354,6 +1355,19 @@ def getLinkerArch():
     else:
         # TODO: Missing for MacOS, FreeBSD, other Linux
         return None
+
+_linker_arch_determined = False
+_linker_arch = None
+
+def getLinkerArch():
+    global _linker_arch_determined, _linker_arch
+
+    if not _linker_arch_determined:
+        _linker_arch = _getLinkerArch()
+        _linker_arch_determined = True
+
+    return _linker_arch
+
 
 constants_bin_filename = os.path.join(source_dir,"__constants.bin")
 
