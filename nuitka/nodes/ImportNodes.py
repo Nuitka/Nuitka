@@ -358,8 +358,10 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                             self.package_modules_desc = []
 
                         self.package_modules_desc.append(
-                            package_module.getFullName(),
-                            package_module.getFilename()
+                            (
+                                package_module.getFullName(),
+                                package_module.getFilename()
+                            )
                         )
 
 
