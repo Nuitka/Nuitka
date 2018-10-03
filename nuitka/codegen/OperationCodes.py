@@ -135,6 +135,10 @@ else:
 _add_helpers_set = set(
     (
         "BINARY_OPERATION_ADD_OBJECT_OBJECT",
+
+        "BINARY_OPERATION_ADD_OBJECT_INT",
+        "BINARY_OPERATION_ADD_OBJECT_STR",
+        "BINARY_OPERATION_ADD_OBJECT_UNICODE",
     )
 )
 
