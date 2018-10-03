@@ -275,7 +275,8 @@ class NodeBase(NodeMetaClassBase):
            self.source_ref != source_ref:
             # An attribute outside of "__init__", so we save one memory for the
             # most cases. Very few cases involve splitting across lines.
-            # pylint: disable=W0201
+            # false alarm for non-slot:
+            # pylint: disable=attribute-defined-outside-init,assigning-non-slot,I0021
             self.effective_source_ref = source_ref
 
 

@@ -35,7 +35,7 @@ class NuitkaNodeError(NuitkaErrorBase):
 
             parts = [""]
 
-            for arg in self.args:
+            for arg in self.args: # false alarm, pylint: disable=not-an-iterable,I0021
                 if hasattr(arg, "asXmlText"):
                     parts.append(indented("\n%s\n" % arg.asXmlText()))
                 else:
