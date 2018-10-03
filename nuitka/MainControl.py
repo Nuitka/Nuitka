@@ -231,7 +231,7 @@ def cleanSourceDirectory(source_dir):
     extensions = (
         ".bin", ".c", ".cpp", ".exp", ".h",
         ".lib", ".manifest", ".o", ".obj",
-        ".os", ".rc", ".res", ".S"
+        ".os", ".rc", ".res", ".S", ".txt"
     )
 
     if os.path.isdir(source_dir):
