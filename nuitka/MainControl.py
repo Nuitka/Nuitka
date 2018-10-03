@@ -560,6 +560,9 @@ def runScons(main_module, quiet):
     if "no_warnings" in getPythonFlags():
         options["no_python_warnings"] = "true"
 
+    if "no_asserts" in getPythonFlags():
+        options["python_sysflag_optimize"] = "true"
+
     if python_version < 300 and sys.flags.py3k_warning:
         options["python_sysflag_py3k_warning"] = "true"
 

@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
 #endif
     Py_InspectFlag = 0;
     Py_InteractiveFlag = 0;
-    Py_OptimizeFlag = 0;
+    Py_OptimizeFlag = _NUITKA_SYSFLAG_OPTIMIZE;
     Py_DontWriteBytecodeFlag = 0;
     Py_NoUserSiteDirectory = _NUITKA_SYSFLAG_NO_SITE;
     Py_IgnoreEnvironmentFlag = 0;
