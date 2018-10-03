@@ -757,6 +757,18 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
     if lto_mode and gcc_version < "4.6":
         print("Warning, LTO mode specified, but not available.", file = sys.stderr)
 
+    # Avoid them as appearing to be different files. TODO: Find out which
+    # clang version has this.
+    if gcc_version >= '8':
+        env.Append(
+            CCFLAGS = [
+                "-ffile-prefix-map=%s=%s" % (
+                    os.path.join(source_dir, "static_src"),
+                    os.path.join(nuitka_src, "static_src")
+                )
+            ]
+        )
+
     # The var-tracking does not scale, disable it. Should we really need it, we
     # can enable it. TODO: Does this cause a performance loss?
     env.Append(CCFLAGS = ["-fno-var-tracking"])
