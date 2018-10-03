@@ -885,6 +885,9 @@ class ExpressionFunctionRef(ExpressionBase):
         # Using a function has no side effects.
         return False
 
+    def mayRaiseException(self, exception_type):
+        return False
+
 
 class ExpressionFunctionCall(ExpressionChildrenHavingBase):
     """ Shared function call.
