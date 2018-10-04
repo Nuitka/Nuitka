@@ -30,6 +30,7 @@ The base class in PluginBase will serve as documentation of available.
 from __future__ import print_function
 
 import os
+from logging import info
 import sys
 
 from nuitka import Options
@@ -274,9 +275,10 @@ def importUserPlugins():
             if not isObjectAUserPluginBaseClass(obj):
                 continue
 
-            plugin_name = getattr(obj, 'plugin_name', None)
+            plugin_name = getattr(obj, "plugin_name", None)
             if plugin_name and plugin_name not in Options.getPluginsDisabled():
                 active_plugin_list.append(obj())
+                info("User plugin '%s' loaded." % plugin_filename)
 
 
 def initPlugins():
