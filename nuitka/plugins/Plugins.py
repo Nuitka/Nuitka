@@ -248,7 +248,7 @@ def importFilePy3NewWay(filename):
 
 def importFilePy3OldWay(filename):
     from importlib.machinery import SourceFileLoader  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
-    return SourceFileLoader(filename, filename).load_module(filename)   # pylint: disable=deprecated-method
+    return SourceFileLoader(filename, filename).load_module(filename)   # pylint: disable=I0021,deprecated-method
 
 
 def importFilePy2(filename):
