@@ -239,7 +239,7 @@ def isObjectAUserPluginBaseClass(obj):
 
 
 def importFilePy3NewWay(filename):
-    import importlib.util
+    import importlib.util   # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
     spec = importlib.util.spec_from_file_location(filename, filename)
     user_plugin_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(user_plugin_module)
@@ -247,8 +247,8 @@ def importFilePy3NewWay(filename):
 
 
 def importFilePy3OldWay(filename):
-    from importlib.machinery import SourceFileLoader
-    return SourceFileLoader(filename, filename).load_module()
+    from importlib.machinery import SourceFileLoader  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+    return SourceFileLoader(filename, filename).load_module(filename)   # pylint: disable=deprecated-method
 
 
 def importFilePy2(filename):
