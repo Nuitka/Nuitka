@@ -33,9 +33,10 @@ import os
 import sys
 
 from nuitka import Options
+from nuitka.PythonVersions import python_version
 from nuitka.ModuleRegistry import addUsedModule
 
-from .PluginBase import post_modules, pre_modules
+from .PluginBase import post_modules, pre_modules, UserPluginBase
 from .standard.DataFileCollectorPlugin import NuitkaPluginDataFileCollector
 from .standard.ImplicitImports import NuitkaPluginPopularImplicitImports
 from .standard.PmwPlugin import NuitkaPluginDetectorPmw, NuitkaPluginPmw
@@ -229,6 +230,55 @@ def listPlugins():
     sys.exit(0)
 
 
+def isObjectAUserPluginBaseClass(obj):
+    try:
+        return obj is not UserPluginBase and issubclass(obj, UserPluginBase)
+    except TypeError:
+        return False
+
+
+def importFilePy3NewWay(filename):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(filename, filename)
+    user_plugin_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(user_plugin_module)
+    return user_plugin_module
+
+
+def importFilePy3OldWay(filename):
+    from importlib.machinery import SourceFileLoader
+    return SourceFileLoader(filename, filename).load_module()
+
+
+def importFilePy2(filename):
+    import imp
+    return imp.load_source(filename, filename)
+
+
+def importFile(filename):
+    if python_version < 300:
+        return importFilePy2(filename)
+    if python_version < 350:
+        return importFilePy3OldWay(filename)
+    return importFilePy3NewWay(filename)
+
+
+def importUserPlugins():
+    for plugin_filename in Options.getUserPlugins():
+        if not os.path.exists(plugin_filename):
+            sys.exit("Error, cannot find '%s'." % plugin_filename)
+
+        user_plugin_module = importFile(plugin_filename)
+        for key in dir(user_plugin_module):
+            obj = getattr(user_plugin_module, key)
+            if not isObjectAUserPluginBaseClass(obj):
+                continue
+
+            plugin_name = getattr(obj, 'plugin_name', None)
+            if plugin_name and plugin_name not in Options.getPluginsDisabled():
+                active_plugin_list.append(obj())
+
+
 def initPlugins():
     for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
         if plugin_name not in plugin_name2plugin_classes:
@@ -250,6 +300,8 @@ def initPlugins():
                 active_plugin_list.append(
                     plugin_detector()
                 )
+
+    importUserPlugins()
 
 
 initPlugins()

@@ -444,6 +444,13 @@ def getPluginsDisabled():
     return tuple(set(options.plugins_disabled))
 
 
+def getUserPlugins():
+    if not options:
+        return ()
+
+    return tuple(set(options.user_plugins))
+
+
 def shallDetectMissingPlugins():
     return options is not None and options.detect_missing_plugins
 
