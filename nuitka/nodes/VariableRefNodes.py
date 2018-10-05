@@ -249,7 +249,7 @@ Subscript look-up to dictionary lowered to dictionary look-up."""
         return lookup_node, tags, message
 
 
-_hard_names = ("dir", "eval", "exec", "execfile", "locals", "vars")
+_hard_names = ("dir", "eval", "exec", "execfile", "locals", "vars", "super")
 
 class ExpressionVariableRef(ExpressionVariableRefBase):
     kind = "EXPRESSION_VARIABLE_REF"
