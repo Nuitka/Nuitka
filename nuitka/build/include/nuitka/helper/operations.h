@@ -2345,6 +2345,268 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_LIST_LIST(PyObject *o
     return NULL;
 }
 
+#if PYTHON_VERSION >= 300
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+
+    binaryfunc slot1 = NULL;
+    binaryfunc slot2 = NULL;
+
+    // TODO: Hardcode type2 knowledge.
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
+        slot1 = type1->tp_as_number->nb_add;
+    }
+
+    if (type1 != type2) {
+        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
+            slot2 = type2->tp_as_number->nb_add;
+
+            if (slot1 == slot2) {
+                slot2 = NULL;
+            }
+        }
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 && PyType_IsSubtype(type2, type1)) {
+            PyObject *x = slot2(operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                if (unlikely(x == NULL)) {
+                    return NULL;
+                }
+
+                return x;
+            }
+
+            Py_DECREF(x);
+            slot2 = NULL;
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    // Special case for "+", also works as sequence concat.
+    PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
+
+    if (seq_methods && seq_methods->sq_concat) {
+        PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
+
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        return result;
+    }
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
+
+    return NULL;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+
+
+    binaryfunc slot1 = NULL;
+    binaryfunc slot2 = NULL;
+
+    // TODO: Hardcode type1 knowledge.
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
+        slot1 = type1->tp_as_number->nb_add;
+    }
+
+    if (type1 != type2) {
+        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
+            slot2 = type2->tp_as_number->nb_add;
+
+            if (slot1 == slot2) {
+                slot2 = NULL;
+            }
+        }
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 && PyType_IsSubtype(type2, type1)) {
+            PyObject *x = slot2(operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                if (unlikely(x == NULL)) {
+                    return NULL;
+                }
+
+                return x;
+            }
+
+            Py_DECREF(x);
+            slot2 = NULL;
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    // Special case for "+", also works as sequence concat.
+    PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
+
+    if (seq_methods && seq_methods->sq_concat) {
+        PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
+
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        return result;
+    }
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
+
+    return NULL;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_BYTES_BYTES(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+
+    binaryfunc slot1 = NULL;
+    binaryfunc slot2 = NULL;
+
+    // TODO: Hardcode type1/type2 knowledge.
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
+        slot1 = type1->tp_as_number->nb_add;
+    }
+
+    if (type1 != type2) {
+        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
+            slot2 = type2->tp_as_number->nb_add;
+
+            if (slot1 == slot2) {
+                slot2 = NULL;
+            }
+        }
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 && PyType_IsSubtype(type2, type1)) {
+            PyObject *x = slot2(operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                if (unlikely(x == NULL)) {
+                    return NULL;
+                }
+
+                return x;
+            }
+
+            Py_DECREF(x);
+            slot2 = NULL;
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    // Special case for "+", also works as sequence concat.
+    PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
+
+    if (seq_methods && seq_methods->sq_concat) {
+        PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
+
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        return result;
+    }
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
+
+    return NULL;
+}
+#endif
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
