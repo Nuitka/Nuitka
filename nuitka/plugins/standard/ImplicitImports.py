@@ -72,7 +72,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         if module.isPythonShlibModule():
             for used_module in module.getUsedModules():
-                yield used_module
+                yield used_module[0]
 
         # TODO: Move this out to some kind of configuration format.
         elements = full_name.split('.')
