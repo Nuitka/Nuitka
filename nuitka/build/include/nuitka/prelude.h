@@ -46,20 +46,16 @@
 #include "methodobject.h"
 #include "pydebug.h"
 
-/* The bool type. From Python2 header or self defined for Python3. */
-#if PYTHON_VERSION < 300
-#include "asdl.h"
-#else
-#ifndef __cplusplus
-typedef enum { false, true } bool;
-#endif
-#endif
-
 /* See above. */
 #if PYTHON_VERSION < 300
 #undef initproc
 #undef initfunc
 #undef initstate
+#endif
+
+/* Type bool */
+#ifndef __cplusplus
+#include "stdbool.h"
 #endif
 
 /* Include the C header files most often used. */
