@@ -30,14 +30,14 @@ The base class in PluginBase will serve as documentation of available.
 from __future__ import print_function
 
 import os
-from logging import info
 import sys
+from logging import info
 
 from nuitka import Options
-from nuitka.PythonVersions import python_version
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.PythonVersions import python_version
 
-from .PluginBase import post_modules, pre_modules, UserPluginBase
+from .PluginBase import UserPluginBase, post_modules, pre_modules
 from .standard.DataFileCollectorPlugin import NuitkaPluginDataFileCollector
 from .standard.ImplicitImports import NuitkaPluginPopularImplicitImports
 from .standard.PmwPlugin import NuitkaPluginDetectorPmw, NuitkaPluginPmw

@@ -63,7 +63,7 @@ class NodeCheckMetaClass(ABCMeta):
         if "checker" in dictionary:
             dictionary["checker"] = staticmethod(dictionary["checker"])
 
-        # false alarm, pylint: disable=too-many-function-args,I0021
+        # false alarm, pylint: disable=I0021,too-many-function-args
         return ABCMeta.__new__(cls, name, bases, dictionary)
 
     def __init__(cls, name, bases, dictionary):  # @NoSelf
