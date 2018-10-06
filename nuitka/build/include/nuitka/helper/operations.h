@@ -1978,7 +1978,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_TUPLE_TUPLE(PyObject 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
-    assert(PyList_CheckExact(operand1));
+    assert(PyList_CheckExact(operand2));
 
     binaryfunc slot1 = NULL;
     binaryfunc slot2 = NULL;
