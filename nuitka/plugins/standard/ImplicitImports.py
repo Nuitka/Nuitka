@@ -47,7 +47,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             return False
 
         if module.isPythonShlibModule():
-            if full_name in module.getUsedModules():
+            if (full_name, None) in module.getUsedModules():
                 return False
 
         if full_name == "gi._gobject":
