@@ -72,12 +72,15 @@ _python_version = None
 _python_arch = None
 _python_executable = None
 
-def setup(needs_io_encoding = False, silent = False, go_main = True):
+def setup(suite = "", needs_io_encoding = False, silent = False, go_main = True):
     if go_main:
         goMainDir()
 
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
+
+    # Allow test code to use this to make caching specific.
+    os.environ["NUITKA_TEST_SUITE"] = suite
 
     # Allow providing 33, 27, and expand that to python2.7
     if len(os.environ["PYTHON"]) == 2 and \
@@ -1240,7 +1243,8 @@ def getTestingCacheDir():
 def getTestingCPythonOutputsCacheDir():
     cache_dir = getCacheDir()
 
-    result = os.path.join(cache_dir, "cpython_outputs")
+    result = os.path.join(cache_dir, "cpython_outputs", os.environ.get("NUITKA_TEST_SUITE", ""))
+
     makePath(result)
     return result
 

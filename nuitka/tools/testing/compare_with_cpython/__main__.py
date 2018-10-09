@@ -76,12 +76,15 @@ def getCPythonResults(cpython_cmd, cpython_cached):
     if cpython_cached:
         # TODO: Hashing stuff and creating cache filename is duplicate code
         # and should be shared.
-
         hash_input = " -- ".join(cpython_cmd)
         if str is not bytes:
             hash_input = hash_input.encode("utf8")
 
         command_hash = hashlib.md5(hash_input)
+
+        for element in cpython_cmd:
+            if os.path.exists(element):
+                command_hash.update(open(element, "rb").read())
 
         cache_filename = os.path.join(
             getTestingCPythonOutputsCacheDir(),
