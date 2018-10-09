@@ -17,6 +17,7 @@
 #
 """ Standard shapes that commonly appear. """
 from nuitka.codegen.c_types.CTypePyObjectPtrs import CTypePyObjectPtr
+from nuitka.codegen.Reports import onMissingOperation
 
 
 class ShapeBase(object):
@@ -39,6 +40,12 @@ class ShapeBase(object):
     @staticmethod
     def hasShapeSlotBytes():
         return None
+
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        onMissingOperation("Add", cls, right_shape)
+
+        return ShapeUnknown
 
 
 class ShapeUnknown(ShapeBase):
@@ -77,6 +84,10 @@ class ShapeUnknown(ShapeBase):
     @staticmethod
     def hasShapeSlotBytes():
         return None
+
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        return ShapeUnknown
 
 
 class ValueShapeBase(object):

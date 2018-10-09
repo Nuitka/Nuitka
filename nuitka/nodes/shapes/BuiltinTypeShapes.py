@@ -20,9 +20,10 @@
 """
 
 from nuitka.codegen.c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
+from nuitka.codegen.Reports import onMissingOperation
 from nuitka.PythonVersions import python_version
 
-from .StandardShapes import ShapeBase, ShapeIterator
+from .StandardShapes import ShapeBase, ShapeIterator, ShapeUnknown
 
 
 class ShapeTypeNoneType(ShapeBase):
@@ -105,6 +106,22 @@ class ShapeTypeBool(ShapeBase):
     def hasShapeSlotContains():
         return False
 
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown
+
+        # Int might turn into long when adding anything due to possible
+        # overflow.
+        if right_shape in (ShapeTypeInt, ShapeTypeIntOrLong, ShapeTypeBool):
+            return ShapeTypeIntOrLong
+
+        if right_shape is ShapeTypeLong:
+            return ShapeTypeLong
+
+        onMissingOperation("Add", cls, right_shape)
+        return ShapeUnknown
+
 
 class ShapeTypeInt(ShapeBase):
     @staticmethod
@@ -142,6 +159,23 @@ class ShapeTypeInt(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return False
+
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown
+
+        # Int might turn into long when adding anything due to possible
+        # overflow.
+        if right_shape in (ShapeTypeInt, ShapeTypeIntOrLong,
+                           ShapeTypeBool):
+            return ShapeTypeIntOrLong
+
+        if right_shape is ShapeTypeLong:
+            return ShapeTypeLong
+
+        onMissingOperation("Add", cls, right_shape)
+        return ShapeUnknown
 
 
 class ShapeTypeLong(ShapeBase):
@@ -181,6 +215,29 @@ class ShapeTypeLong(ShapeBase):
     def hasShapeSlotContains():
         return False
 
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown
+
+        # Long remains long when adding anything to it.
+        if right_shape in (ShapeTypeLong, ShapeTypeInt, ShapeTypeIntOrLong,
+                           ShapeTypeBool):
+            return ShapeTypeLong
+
+        onMissingOperation("Add", cls, right_shape)
+        return ShapeUnknown
+
+
+class ShapeTypeLongDerived(ShapeTypeLong):
+    @staticmethod
+    def getTypeName():
+        return None
+
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        return ShapeUnknown
+
 
 if python_version < 300:
     class ShapeTypeIntOrLong(ShapeBase):
@@ -215,8 +272,34 @@ if python_version < 300:
         @staticmethod
         def hasShapeSlotContains():
             return False
+
+        @classmethod
+        def addBinaryShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return ShapeUnknown
+
+            # Long remains long when adding anything to it.
+            if right_shape in (ShapeTypeInt, ShapeTypeIntOrLong, ShapeTypeBool):
+                return ShapeTypeIntOrLong
+
+            if right_shape is ShapeTypeLong:
+                return ShapeTypeLong
+
+            onMissingOperation("Add", cls, right_shape)
+            return ShapeUnknown
+
 else:
     ShapeTypeIntOrLong = ShapeTypeInt
+
+
+class ShapeTypeIntOrLongDerived(ShapeTypeIntOrLong):
+    @staticmethod
+    def getTypeName():
+        return None
+
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        return ShapeUnknown
 
 
 class ShapeTypeFloat(ShapeBase):
@@ -255,6 +338,29 @@ class ShapeTypeFloat(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return False
+
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown
+
+        # Long remains long when adding anything to it.
+        if right_shape in (ShapeTypeFloat, ShapeTypeLong, ShapeTypeInt,
+                           ShapeTypeIntOrLong, ShapeTypeBool):
+            return ShapeTypeFloat
+
+        onMissingOperation("Add", cls, right_shape)
+        return ShapeUnknown
+
+
+class ShapeTypeFloatDerived(ShapeTypeFloat):
+    @staticmethod
+    def getTypeName():
+        return None
+
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        return ShapeUnknown
 
 
 class ShapeTypeComplex(ShapeBase):
@@ -336,6 +442,15 @@ class ShapeTypeTuple(ShapeBase):
     def hasShapeSlotContains():
         return True
 
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown
+
+        onMissingOperation("Add", cls, right_shape)
+        return ShapeUnknown
+
+
 
 class ShapeTypeTupleIterator(ShapeIterator):
     @staticmethod
@@ -387,6 +502,17 @@ class ShapeTypeList(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return True
+
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown
+
+        if right_shape is ShapeTypeList:
+            return ShapeTypeList
+
+        onMissingOperation("Add", cls, right_shape)
+        return ShapeUnknown
 
 
 class ShapeTypeListIterator(ShapeIterator):
@@ -586,6 +712,30 @@ class ShapeTypeStr(ShapeBase):
     def hasShapeSlotContains():
         return True
 
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown
+
+        if right_shape is ShapeTypeStr:
+            return ShapeTypeStr
+
+        if right_shape is ShapeTypeStrDerived:
+            return ShapeUnknown
+
+        onMissingOperation("Add", cls, right_shape)
+        return ShapeUnknown
+
+
+class ShapeTypeStrDerived(ShapeTypeStr):
+    @staticmethod
+    def getTypeName():
+        return None
+
+    @classmethod
+    def addBinaryShape(cls, right_shape):
+        return ShapeUnknown
+
 
 class ShapeTypeStrIterator(ShapeIterator):
     @staticmethod
@@ -639,6 +789,17 @@ if python_version < 300:
         def hasShapeSlotContains():
             return True
 
+
+    class ShapeTypeUnicodeDerived(ShapeTypeUnicode):
+        @staticmethod
+        def getTypeName():
+            return None
+
+        @classmethod
+        def addBinaryShape(cls, right_shape):
+            return ShapeUnknown
+
+
     class ShapeTypeUnicodeIterator(ShapeIterator):
         @staticmethod
         def getTypeName():
@@ -650,6 +811,8 @@ if python_version < 300:
 else:
     ShapeTypeUnicode = ShapeTypeStr
     ShapeTypeUnicodeIterator = ShapeTypeStrIterator
+    ShapeTypeUnicodeDerived = ShapeTypeStrDerived
+
 
 if python_version < 300:
     class ShapeTypeStrOrUnicode(ShapeBase):
@@ -730,6 +893,28 @@ if python_version >= 300:
         def hasShapeSlotContains():
             return True
 
+        @classmethod
+        def addBinaryShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return ShapeUnknown
+
+            if right_shape is ShapeTypeBytes:
+                return ShapeTypeBytes
+
+            if right_shape is ShapeTypeBytesDerived:
+                return ShapeUnknown
+
+            onMissingOperation("Add", cls, right_shape)
+            return ShapeUnknown
+
+    class ShapeTypeBytesDerived(ShapeTypeBytes):
+        @staticmethod
+        def getTypeName():
+            return None
+
+        @classmethod
+        def addBinaryShape(cls, right_shape):
+            return ShapeUnknown
 
     class ShapeTypeBytesIterator(ShapeIterator):
         @staticmethod
@@ -744,6 +929,8 @@ else:
     ShapeTypeBytes = ShapeTypeStr
     ShapeTypeBytesIterator = ShapeTypeStrIterator
 
+    # Shoudln't happen with Python2
+    ShapeTypeBytesDerived = None
 
 class ShapeTypeBytearray(ShapeBase):
     @staticmethod

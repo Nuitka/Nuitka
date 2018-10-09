@@ -157,6 +157,12 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
     def getDetails(self):
         return {}
 
+    def getTypeShape(self):
+        left_shape = self.subnode_left.getTypeShape()
+        right_shape = self.subnode_right.getTypeShape()
+
+        return left_shape.addBinaryShape(right_shape)
+
     def computeExpression(self, trace_collection):
         # TODO: May go down to MemoryError for compile time constant overflow
         # ones.
