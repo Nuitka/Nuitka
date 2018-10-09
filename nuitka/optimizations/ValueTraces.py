@@ -32,6 +32,7 @@ Values can be seen as:
 
 from logging import debug
 
+from nuitka.nodes.shapes.StandardShapes import ShapeUnknown
 from nuitka.utils import InstanceCounters
 
 
@@ -159,6 +160,10 @@ class ValueTraceUninit(ValueTraceBase):
         )
 
     @staticmethod
+    def getTypeShape():
+        return ShapeUnknown
+
+    @staticmethod
     def isUninitTrace():
         return True
 
@@ -190,6 +195,10 @@ class ValueTraceInit(ValueTraceBase):
             owner = self.owner
         )
 
+    @staticmethod
+    def getTypeShape():
+        return ShapeUnknown
+
     def dump(self):
         debug("  Starts initialized")
 
@@ -216,6 +225,10 @@ class ValueTraceUnknown(ValueTraceBase):
         return "<ValueTraceUnknown of {owner}>".format(
             owner = self.owner
         )
+
+    @staticmethod
+    def getTypeShape():
+        return ShapeUnknown
 
     def dump(self):
         debug("  Starts unknown")
@@ -272,6 +285,13 @@ class ValueTraceAssign(ValueTraceBase):
             value      = self.assign_node.getAssignSource()
         )
 
+    @staticmethod
+    def isAssignTrace():
+        return True
+
+    def getTypeShape(self):
+        return self.assign_node.subnode_source.getTypeShape()
+
     def dump(self):
         debug("  Starts assigned")
 
@@ -280,10 +300,6 @@ class ValueTraceAssign(ValueTraceBase):
 
         if self.is_escaped:
             debug("  -> value escapes")
-
-    @staticmethod
-    def isAssignTrace():
-        return True
 
     def getAssignNode(self):
         return self.assign_node
@@ -323,6 +339,23 @@ class ValueTraceMerge(ValueTraceBase):
 <ValueTraceMerge of {previous}>""".format(
             previous = self.previous
         )
+
+    def getTypeShape(self):
+        type_shapes = set()
+
+        for trace in self.previous:
+            type_shape = trace.getTypeShape()
+
+            if type_shape is ShapeUnknown:
+                return ShapeUnknown
+
+            type_shapes.add(type_shape)
+
+        # TODO: Find the lowest common denominator.
+        if len(type_shapes) == 1:
+            return type_shapes.pop()
+        else:
+            return ShapeUnknown
 
     @staticmethod
     def isMergeTrace():
@@ -401,6 +434,11 @@ class ValueTraceLoopMerge(ValueTraceBase):
         self.loop_finished = False
 
         previous.addPotentialUsage()
+
+    def getTypeShape(self):
+        # TODO: Loop merge traces need not be unknown and this is severely
+        # going to limit performance. pylint: disable=no-self-use
+        return ShapeUnknown
 
     def hasDefiniteUsages(self):
         if not self.loop_finished:

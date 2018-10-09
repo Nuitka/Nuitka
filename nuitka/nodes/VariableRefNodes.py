@@ -133,6 +133,12 @@ class ExpressionVariableRefBase(ExpressionBase):
     def getVariableTrace(self):
         return self.variable_trace
 
+    def getTypeShape(self):
+        if self.variable_trace is None:
+            return ShapeUnknown
+        else:
+            return self.variable_trace.getTypeShape()
+
     def computeExpressionComparisonIn(self, in_node, value_node, trace_collection):
         tags = None
         message = None
@@ -308,12 +314,6 @@ class ExpressionVariableRef(ExpressionVariableRefBase):
         assert isinstance(variable, Variables.Variable), repr(variable)
 
         self.variable = variable
-
-    def getTypeShape(self):
-        if self.variable_trace.isAssignTrace():
-            return self.variable_trace.getAssignNode().getAssignSource().getTypeShape()
-        else:
-            return ShapeUnknown
 
     def computeExpressionRaw(self, trace_collection):
         # Terribly detailed, pylint: disable=too-many-branches,too-many-statements
@@ -529,14 +529,6 @@ class ExpressionTempVariableRef(ExpressionVariableRefBase):
     @staticmethod
     def isTargetVariableRef():
         return False
-
-    def getTypeShape(self):
-        if self.variable_trace is None:
-            return ShapeUnknown
-        elif self.variable_trace.isAssignTrace():
-            return self.variable_trace.getAssignNode().getAssignSource().getTypeShape()
-        else:
-            return ShapeUnknown
 
     def computeExpressionRaw(self, trace_collection):
         self.variable_trace = trace_collection.getVariableCurrentTrace(
