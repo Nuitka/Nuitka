@@ -708,7 +708,7 @@ if python_version >= 300:
 
         @staticmethod
         def hasShapeSlotFloat():
-            return False
+            return True
 
         @staticmethod
         def hasShapeSlotComplex():
