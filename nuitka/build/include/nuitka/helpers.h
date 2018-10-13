@@ -184,6 +184,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
 #include "nuitka/helper/bytearrays.h"
 #include "nuitka/helper/iterators.h"
 #include "nuitka/helper/lists.h"
+#include "nuitka/helper/tuples.h"
 #include "nuitka/helper/rangeobjects.h"
 #include "nuitka/helper/slices.h"
 #include "nuitka/helper/subscripts.h"

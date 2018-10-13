@@ -18,10 +18,46 @@
 #ifndef __NUITKA_OPERATIONS_H__
 #define __NUITKA_OPERATIONS_H__
 
+// This macro is necessary for Python2 to determine if the "coerce" slot
+// will have to be considered or not.
 #if PYTHON_VERSION < 300
 #define NEW_STYLE_NUMBER(o) PyType_HasFeature(Py_TYPE(o), Py_TPFLAGS_CHECKTYPES)
 #else
 #define NEW_STYLE_NUMBER(o) (true)
+#endif
+
+#if PYTHON_VERSION < 300
+// Coerce for known non-match types, where only first arg needs the check.
+NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE1(PyObject **pv, PyObject **pw)
+{
+    assert (NEW_STYLE_NUMBER(*pw));
+    assert(Py_TYPE(*pv) != Py_TYPE(pw));
+    assert((*pw)->ob_type->tp_as_number == NULL || (*pw)->ob_type->tp_as_number->nb_coerce == NULL);
+
+    PyObject *v = *pw;
+
+    if (v->ob_type->tp_as_number && v->ob_type->tp_as_number->nb_coerce) {
+        return (*v->ob_type->tp_as_number->nb_coerce)(pw, pv);
+    } else {
+        return 1;
+    }
+}
+
+// Coerce for known non-match types, where only second arg needs the check.
+NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE2(PyObject **pv, PyObject **pw)
+{
+    assert(NEW_STYLE_NUMBER(*pv));
+    assert(Py_TYPE(*pv) != Py_TYPE(pw));
+    assert((*pv)->ob_type->tp_as_number == NULL || (*pv)->ob_type->tp_as_number->nb_coerce == NULL);
+
+    PyObject *w = *pw;
+
+    if (w->ob_type->tp_as_number && w->ob_type->tp_as_number->nb_coerce) {
+        return (*w->ob_type->tp_as_number->nb_coerce)(pw, pv);
+    } else {
+        return 1;
+    }
+}
 #endif
 
 typedef PyObject *(unary_api)(PyObject *);
@@ -82,6 +118,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand2));
+    assert(NEW_STYLE_NUMBER(operand2));
 
     if (PyInt_CheckExact(operand1)) {
         long a, b, i;
@@ -98,20 +135,18 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *
         }
     }
 
-    // TODO: Ought to hard code stuff about type2.
-
     binaryfunc slot1 = NULL;
     binaryfunc slot2 = NULL;
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
+    PyTypeObject *type2 = &PyInt_Type;
 
     if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
         slot1 = type1->tp_as_number->nb_add;
     }
 
     if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
+        if (type2->tp_as_number != NULL) {
             slot2 = type2->tp_as_number->nb_add;
 
             if (slot1 == slot2) {
@@ -163,10 +198,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *
         Py_DECREF(x);
     }
 
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
+    if (!NEW_STYLE_NUMBER(operand1)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -219,6 +254,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
     assert(PyInt_CheckExact(operand1));
+    assert(NEW_STYLE_NUMBER(operand1));
 
     if (PyInt_CheckExact(operand2)) {
         long a, b, i;
@@ -235,17 +271,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *
         }
     }
 
-    // TODO: Ought to hard code stuff about type1.
-
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type1 = &PyInt_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_add;
-    }
+    binaryfunc slot1 = type1->tp_as_number->nb_add;
+    binaryfunc slot2 = NULL;
 
     if (type1 != type2) {
         if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
@@ -257,23 +287,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *
         }
     }
 
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
+    if (slot2 && PyType_IsSubtype(type2, type1)) {
+        PyObject *x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
             if (unlikely(x == NULL)) {
@@ -284,7 +299,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *
         }
 
         Py_DECREF(x);
+        slot2 = NULL;
     }
+
+    PyObject *x = slot1(operand1, operand2);
+
+    if (x != Py_NotImplemented) {
+        if (unlikely(x == NULL)) {
+            return NULL;
+        }
+
+        return x;
+    }
+
+    Py_DECREF(x);
 
     if (slot2 != NULL) {
         PyObject *x = slot2(operand1, operand2);
@@ -300,10 +328,10 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *
         Py_DECREF(x);
     }
 
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
+    if (!NEW_STYLE_NUMBER(operand2)) {
+        int err = PYNUMBER_COERCE2(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -372,120 +400,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_INT_INT(PyObject *ope
         return PyInt_FromLong(i);
     }
 
-    // TODO: Ought to hard code stuff about type1, type2
+    binaryfunc slot1 = PyInt_Type.tp_as_number->nb_add;
+    PyObject *x = slot1(operand1, operand2);
+    assert(x != Py_NotImplemented);
 
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_add;
-    }
-
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_add;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
-
-        if (err < 0) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_add;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-            }
-
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
-        }
-    }
-
-    // Special case for "+", also works as sequence concat.
-    PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
-
-    if (seq_methods && seq_methods->sq_concat) {
-        PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
-
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
-
-        return result;
-    }
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
-
-    return NULL;
+    return x;
 }
 
 #endif
@@ -565,7 +484,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_STR(PyObject *
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -686,7 +605,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_STR_OBJECT(PyObject *
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -809,7 +728,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_STR_STR(PyObject *ope
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -864,44 +783,20 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE(PyObje
     CHECK_OBJECT(operand2);
     assert(PyUnicode_CheckExact(operand2));
 
-    // TODO: Ought to hard code stuff about type2.
-
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
+    PyTypeObject *type2 = &PyUnicode_Type;
 
+    if (type1 == type2) {
+        return PyUnicode_Concat(operand1, operand2);
+    }
+
+    binaryfunc slot1 = NULL;
     if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
         slot1 = type1->tp_as_number->nb_add;
     }
 
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_add;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
     if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
         PyObject *x = slot1(operand1, operand2);
 
         if (x != Py_NotImplemented) {
@@ -915,26 +810,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE(PyObje
         Py_DECREF(x);
     }
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // TODO: unicode ought to be known !NEW_STYLE_NUMBER
 #if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
+    assert(NEW_STYLE_NUMBER(operand2));
+
+    if (!NEW_STYLE_NUMBER(operand1)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -963,10 +845,13 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE(PyObje
             Py_DECREF(operand2);
         }
     }
-#endif
 
     // Special case for "+", also works as sequence concat.
     PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
+#else
+    // Special case for "+", also works as sequence concat.
+    PySequenceMethods *seq_methods = type1->tp_as_sequence;
+#endif
 
     if (seq_methods && seq_methods->sq_concat) {
         PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
@@ -988,77 +873,42 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_UNICODE_OBJECT(PyObje
     CHECK_OBJECT(operand2);
     assert(PyUnicode_CheckExact(operand1));
 
-    // TODO: Ought to hard code stuff about type1.
-
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type1 = &PyUnicode_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_add;
-    }
 
     if (type1 != type2) {
         if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_add;
+            binaryfunc slot2 = type2->tp_as_number->nb_add;
 
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
+            if (slot2 != NULL) {
+                PyObject *x = slot2(operand1, operand2);
 
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
+                if (x != Py_NotImplemented) {
+                    if (unlikely(x == NULL)) {
+                        return NULL;
+                    }
 
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
+                    return x;
                 }
 
-                return x;
+                Py_DECREF(x);
             }
-
-            Py_DECREF(x);
-            slot2 = NULL;
         }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
+    }
+    else
+    {
+        return PyUnicode_Concat(operand1, operand2);
     }
 
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // TODO: unicode ought to be known !NEW_STYLE_NUMBER
 #if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
+    assert(NEW_STYLE_NUMBER(operand1));
 
-        if (err < 0) {
+    if (!NEW_STYLE_NUMBER(operand2)) {
+        assert(NEW_STYLE_NUMBER(operand1));
+
+        int err = PYNUMBER_COERCE2(&operand1, &operand2);
+
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -1087,7 +937,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_UNICODE_OBJECT(PyObje
             Py_DECREF(operand2);
         }
     }
-#endif
 
     // Special case for "+", also works as sequence concat.
     PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
@@ -1105,6 +954,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_UNICODE_OBJECT(PyObje
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
 
     return NULL;
+#else
+    return PyUnicode_Concat(operand1, operand2);
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_UNICODE_UNICODE(PyObject *operand1, PyObject *operand2) {
@@ -1113,123 +965,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_UNICODE_UNICODE(PyObj
     assert(PyUnicode_CheckExact(operand1));
     assert(PyUnicode_CheckExact(operand2));
 
-    // TODO: Ought to hard code stuff about type1, type2
-
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_add;
-    }
-
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_add;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    // TODO: unicode ought to be known !NEW_STYLE_NUMBER
-#if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
-
-        if (err < 0) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_add;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-            }
-
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
-        }
-    }
-#endif
-
-    // Special case for "+", also works as sequence concat.
-    PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
-
-    if (seq_methods && seq_methods->sq_concat) {
-        PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
-
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
-
-        return result;
-    }
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
-
-    return NULL;
+    return PyUnicode_Concat(operand1, operand2);
 }
 
 
@@ -1308,7 +1044,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT(PyObject
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -1431,7 +1167,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_FLOAT_OBJECT(PyObject
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -1555,7 +1291,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_FLOAT_FLOAT(PyObject 
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -1609,31 +1345,19 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_TUPLE(PyObject
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand2));
 
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    // TODO: Use type2 knowledge
-
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
+    PyTypeObject *type2 = &PyTuple_Type;
+
+    if (type1 == type2) {
+        return TUPLE_CONCAT(operand1, operand2);
+    }
 
     if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_add;
-    }
+        binaryfunc slot1 = type1->tp_as_number->nb_add;
 
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_add;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
+        if (slot1 != NULL)
+        {
+            PyObject *x = slot1(operand1, operand2);
 
             if (x != Py_NotImplemented) {
                 if (unlikely(x == NULL)) {
@@ -1644,73 +1368,46 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_TUPLE(PyObject
             }
 
             Py_DECREF(x);
-            slot2 = NULL;
         }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
     }
 
 #if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
+    int err = PYNUMBER_COERCE1(&operand1, &operand2);
 
-        if (err < 0) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_add;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-            }
-
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
-        }
+    if (unlikely(err < 0)) {
+        return NULL;
     }
-#endif
+
+    if (err == 0) {
+        PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
+
+        if (mv) {
+            binaryfunc slot = mv->nb_add;
+
+            if (slot != NULL) {
+                PyObject *x = slot(operand1, operand2);
+
+                Py_DECREF(operand1);
+                Py_DECREF(operand2);
+
+                if (unlikely(x == NULL)) {
+                    return NULL;
+                }
+
+                return x;
+            }
+        }
+
+        // CoerceEx did that
+        Py_DECREF(operand1);
+        Py_DECREF(operand2);
+    }
 
     // Special case for "+", also works as sequence concat.
     PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
+#else
+    PySequenceMethods *seq_methods = type1->tp_as_sequence;
+#endif
 
     if (seq_methods && seq_methods->sq_concat) {
         PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
@@ -1732,105 +1429,68 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_TUPLE_OBJECT(PyObject
     CHECK_OBJECT(operand2);
     assert(PyTuple_CheckExact(operand1));
 
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    // TODO: Use type1 knowledge
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type1 = &PyTuple_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_add;
-    }
-
+    // The object type may still have a way to add us.
     if (type1 != type2) {
         if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_add;
+            binaryfunc slot2 = type2->tp_as_number->nb_add;
 
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
+            if (slot2 != NULL) {
+                PyObject *x = slot2(operand1, operand2);
 
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
-
-        if (err < 0) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_add;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
+                if (x != Py_NotImplemented) {
                     if (unlikely(x == NULL)) {
                         return NULL;
                     }
 
                     return x;
                 }
-            }
 
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
+                Py_DECREF(x);
+            }
         }
+    } else {
+        return TUPLE_CONCAT(operand1, operand2);
     }
-#endif
+
+
+#if PYTHON_VERSION < 300
+    // Tuples are not new style numbers, therefore must attempt coerce with
+    // second argument in charge.
+    assert(!NEW_STYLE_NUMBER(operand1));
+
+    int err = PYNUMBER_COERCE2(&operand1, &operand2);
+
+    if (unlikely(err < 0)) {
+        return NULL;
+    }
+
+    if (err == 0) {
+        PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
+
+        if (mv) {
+            binaryfunc slot = mv->nb_add;
+
+            if (slot != NULL) {
+                PyObject *x = slot(operand1, operand2);
+
+                Py_DECREF(operand1);
+                Py_DECREF(operand2);
+
+                if (unlikely(x == NULL)) {
+                    return NULL;
+                }
+
+                return x;
+            }
+        }
+
+        // CoerceEx did that
+        Py_DECREF(operand1);
+        Py_DECREF(operand2);
+    }
 
     // Special case for "+", also works as sequence concat.
     PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
@@ -1846,8 +1506,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_TUPLE_OBJECT(PyObject
     }
 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
-
     return NULL;
+#else
+    // Without coerce and known tuple type, we can hard code this.
+    return PyTuple_Type.tp_as_sequence->sq_concat(operand1, operand2);
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_TUPLE_TUPLE(PyObject *operand1, PyObject *operand2) {
@@ -1856,123 +1519,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_TUPLE_TUPLE(PyObject 
     assert(PyTuple_CheckExact(operand1));
     assert(PyTuple_CheckExact(operand2));
 
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    // TODO: Use type1, type2 knowledge, this is probably TUPLE_CONCAT or
-    // something already existing.
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_add;
-    }
-
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_add;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
-
-        if (err < 0) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_add;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-            }
-
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
-        }
-    }
-#endif
-
-    // Special case for "+", also works as sequence concat.
-    PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
-
-    if (seq_methods && seq_methods->sq_concat) {
-        PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
-
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
-
-        return result;
-    }
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
-
-    return NULL;
+    return TUPLE_CONCAT(operand1, operand2);
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_LIST(PyObject *operand1, PyObject *operand2) {
@@ -1980,31 +1527,18 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_LIST(PyObject 
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand2));
 
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    // TODO: Use type2 knowledge.
-
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
+    PyTypeObject *type2 = &PyList_Type;
+
+    if (type1 == type2) {
+        return LIST_CONCAT(operand1, operand2);
+    }
 
     if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_add;
-    }
+        binaryfunc slot1 = type1->tp_as_number->nb_add;
 
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_add;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
+        if (slot1 != NULL) {
+            PyObject *x = slot1(operand1, operand2);
 
             if (x != Py_NotImplemented) {
                 if (unlikely(x == NULL)) {
@@ -2015,73 +1549,46 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_LIST(PyObject 
             }
 
             Py_DECREF(x);
-            slot2 = NULL;
         }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
     }
 
 #if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
+    int err = PYNUMBER_COERCE1(&operand1, &operand2);
 
-        if (err < 0) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_add;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-            }
-
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
-        }
+    if (unlikely(err < 0)) {
+        return NULL;
     }
-#endif
+
+    if (err == 0) {
+        PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
+
+        if (mv) {
+            binaryfunc slot = mv->nb_add;
+
+            if (slot != NULL) {
+                PyObject *x = slot(operand1, operand2);
+
+                Py_DECREF(operand1);
+                Py_DECREF(operand2);
+
+                if (unlikely(x == NULL)) {
+                    return NULL;
+                }
+
+                return x;
+            }
+        }
+
+        // CoerceEx did that
+        Py_DECREF(operand1);
+        Py_DECREF(operand2);
+    }
 
     // Special case for "+", also works as sequence concat.
     PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
+#else
+    PySequenceMethods *seq_methods = type1->tp_as_sequence;
+#endif
 
     if (seq_methods && seq_methods->sq_concat) {
         PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
@@ -2103,105 +1610,67 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_LIST_OBJECT(PyObject 
     CHECK_OBJECT(operand2);
     assert(PyList_CheckExact(operand1));
 
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    // TODO: Use type1 knowledge
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type1 = &PyList_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_add;
-    }
 
     if (type1 != type2) {
         if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_add;
+            binaryfunc slot2 = type2->tp_as_number->nb_add;
 
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
+            if (slot2 != NULL) {
+                PyObject *x = slot2(operand1, operand2);
 
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
-
-        if (err < 0) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_add;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
+                if (x != Py_NotImplemented) {
                     if (unlikely(x == NULL)) {
                         return NULL;
                     }
 
                     return x;
                 }
-            }
 
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
+                Py_DECREF(x);
+            }
         }
     }
-#endif
+    else
+    {
+        return LIST_CONCAT(operand1, operand2);
+    }
+
+#if PYTHON_VERSION < 300
+    // List are not new style numbers, therefore must attempt coerce with
+    assert(!NEW_STYLE_NUMBER(operand1));
+
+    int err = PYNUMBER_COERCE2(&operand1, &operand2);
+
+    if (unlikely(err < 0)) {
+        return NULL;
+    }
+
+    if (err == 0) {
+        PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
+
+        if (mv) {
+            binaryfunc slot = mv->nb_add;
+
+            if (slot != NULL) {
+                PyObject *x = slot(operand1, operand2);
+
+                Py_DECREF(operand1);
+                Py_DECREF(operand2);
+
+                if (unlikely(x == NULL)) {
+                    return NULL;
+                }
+
+                return x;
+            }
+        }
+
+        // CoerceEx did that
+        Py_DECREF(operand1);
+        Py_DECREF(operand2);
+    }
 
     // Special case for "+", also works as sequence concat.
     PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
@@ -2219,6 +1688,9 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_LIST_OBJECT(PyObject 
     PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
 
     return NULL;
+#else
+    return PyList_Type.tp_as_sequence->sq_concat(operand1, operand2);
+#endif
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_LIST_LIST(PyObject *operand1, PyObject *operand2) {
@@ -2227,128 +1699,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_LIST_LIST(PyObject *o
     assert(PyList_CheckExact(operand1));
     assert(PyList_CheckExact(operand2));
 
-    // TODO: Use list concat.
-
-    binaryfunc slot1 = NULL;
-    binaryfunc slot2 = NULL;
-
-    PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
-
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
-        slot1 = type1->tp_as_number->nb_add;
-    }
-
-    if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
-            slot2 = type2->tp_as_number->nb_add;
-
-            if (slot1 == slot2) {
-                slot2 = NULL;
-            }
-        }
-    }
-
-    if (slot1 != NULL) {
-        if (slot2 && PyType_IsSubtype(type2, type1)) {
-            PyObject *x = slot2(operand1, operand2);
-
-            if (x != Py_NotImplemented) {
-                if (unlikely(x == NULL)) {
-                    return NULL;
-                }
-
-                return x;
-            }
-
-            Py_DECREF(x);
-            slot2 = NULL;
-        }
-
-        PyObject *x = slot1(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-    if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
-
-        if (x != Py_NotImplemented) {
-            if (unlikely(x == NULL)) {
-                return NULL;
-            }
-
-            return x;
-        }
-
-        Py_DECREF(x);
-    }
-
-#if PYTHON_VERSION < 300
-    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
-        int err = PyNumber_CoerceEx(&operand1, &operand2);
-
-        if (err < 0) {
-            return NULL;
-        }
-
-        if (err == 0) {
-            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
-
-            if (mv) {
-                binaryfunc slot = mv->nb_add;
-
-                if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
-
-                    Py_DECREF(operand1);
-                    Py_DECREF(operand2);
-
-                    if (unlikely(x == NULL)) {
-                        return NULL;
-                    }
-
-                    return x;
-                }
-            }
-
-            // CoerceEx did that
-            Py_DECREF(operand1);
-            Py_DECREF(operand2);
-        }
-    }
-#endif
-
-    // Special case for "+", also works as sequence concat.
-    PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
-
-    if (seq_methods && seq_methods->sq_concat) {
-        PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
-
-        if (unlikely(result == NULL)) {
-            return NULL;
-        }
-
-        return result;
-    }
-
-    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
-
-    return NULL;
+    return LIST_CONCAT(operand1, operand2);
 }
 
 #if PYTHON_VERSION >= 300
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
+    assert(PyBytes_CheckExact(operand2));
 
     binaryfunc slot1 = NULL;
     binaryfunc slot2 = NULL;
@@ -2356,14 +1714,14 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_BYTES(PyObject
     // TODO: Hardcode type2 knowledge.
 
     PyTypeObject *type1 = Py_TYPE(operand1);
-    PyTypeObject *type2 = Py_TYPE(operand2);
+    PyTypeObject *type2 = &PyBytes_Type;
 
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
+    if (type1->tp_as_number != NULL) {
         slot1 = type1->tp_as_number->nb_add;
     }
 
     if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
+        if (type2->tp_as_number != NULL) {
             slot2 = type2->tp_as_number->nb_add;
 
             if (slot1 == slot2) {
@@ -2436,22 +1794,22 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_BYTES(PyObject
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_BYTES_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
-
+    assert(PyBytes_CheckExact(operand1));
 
     binaryfunc slot1 = NULL;
     binaryfunc slot2 = NULL;
 
     // TODO: Hardcode type1 knowledge.
 
-    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type1 = &PyBytes_Type;
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
+    if (type1->tp_as_number != NULL) {
         slot1 = type1->tp_as_number->nb_add;
     }
 
     if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
+        if (type2->tp_as_number != NULL) {
             slot2 = type2->tp_as_number->nb_add;
 
             if (slot1 == slot2) {
@@ -2524,6 +1882,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_BYTES_OBJECT(PyObject
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_BYTES_BYTES(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
+    assert(PyBytes_CheckExact(operand1));
+    assert(PyBytes_CheckExact(operand2));
 
     binaryfunc slot1 = NULL;
     binaryfunc slot2 = NULL;
@@ -2532,12 +1892,12 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_BYTES_BYTES(PyObject 
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = Py_TYPE(operand2);
 
-    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
+    if (type1->tp_as_number != NULL) {
         slot1 = type1->tp_as_number->nb_add;
     }
 
     if (type1 != type2) {
-        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
+        if (type2->tp_as_number != NULL) {
             slot2 = type2->tp_as_number->nb_add;
 
             if (slot1 == slot2) {
@@ -2697,7 +2057,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT(PyObjec
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -3704,7 +3064,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_MUL(PyObject *operand1, P
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -3824,7 +3184,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_SUB(PyObject *operand1, P
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -3931,7 +3291,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_DIV(PyObject *operand1, P
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -4038,7 +3398,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_FLOORDIV(PyObject *operan
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -4145,7 +3505,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_TRUEDIV(PyObject *operand
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
@@ -4252,7 +3612,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_REMAINDER(PyObject *opera
     if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
         int err = PyNumber_CoerceEx(&operand1, &operand2);
 
-        if (err < 0) {
+        if (unlikely(err < 0)) {
             return NULL;
         }
 
