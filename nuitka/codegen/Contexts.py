@@ -738,12 +738,6 @@ def _getConstantDefaultPopulation():
                 "long",
             )
 
-    # Disabling warnings at startup
-    if "no_warnings" in Options.getPythonFlags():
-        result.append(
-            "ignore"
-        )
-
     if python_version >= 340:
         # Setting the __spec__ module attribute.
         result += [

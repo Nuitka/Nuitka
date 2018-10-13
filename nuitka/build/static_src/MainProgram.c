@@ -19,10 +19,7 @@
  *
  * It needs to prepare the interpreter and then loads and executes
  * the "__main__" module.
- *
- * This is currently still C++ code, but should become C code eventually. Maybe
- * this finished sooner than others.
- *
+ * *
  */
 
 #include "nuitka/prelude.h"
@@ -34,16 +31,8 @@
 #include <windows.h>
 #endif
 
-#if _NUITKA_NO_WARNINGSSYSFLAGS
-extern PyObject *const_str_plain_ignore;
-#endif
-
 extern PyCodeObject *codeobj_main;
 extern PyObject *const_str_plain___main__;
-
-#if _NUITKA_NO_PYTHON_WARNINGS
-extern PyObject *const_str_plain_ignore;
-#endif
 
 /* For later use in "Py_GetArgcArgv" */
 static char **orig_argv;
@@ -419,29 +408,23 @@ int main(int argc, char **argv) {
 
     /* Disable CPython warnings if requested to. */
 #if _NUITKA_NO_PYTHON_WARNINGS
-    /* Should be same as:
-     *
-     *   warnings.simplefilter("ignore", UserWarning)
-     *   warnings.simplefilter("ignore", DeprecationWarning)
-     * There is no C-API to control warnings. We don't care if it actually
-     * works, i.e. return code of "simplefilter" function is not checked.
-     */
     {
-        PyObject *warnings = PyImport_ImportModule("warnings");
-        if (warnings != NULL) {
-            PyObject *simplefilter = PyObject_GetAttrString(warnings, "simplefilter");
+#if PYTHON_VERSION >= 300
+        wchar_t ignore[] = L"ignore";
+#else
+        char ignore[] = "ignore";
+#endif
 
-            if (simplefilter != NULL) {
-                PyObject *result1 =
-                    PyObject_CallFunctionObjArgs(simplefilter, const_str_plain_ignore, PyExc_UserWarning, NULL);
-                assert(result1);
-                Py_XDECREF(result1);
-                PyObject *result2 =
-                    PyObject_CallFunctionObjArgs(simplefilter, const_str_plain_ignore, PyExc_DeprecationWarning, NULL);
-                assert(result2);
-                Py_XDECREF(result2);
-            }
-        }
+        PySys_AddWarnOption(ignore);
+
+#if PYTHON_VERSION >= 340 && defined(_NUITKA_FULL_COMPAT)
+        // For full compatibility bump the warnings registry version,
+        // otherwise modules "__warningsregistry__" will mismatch.
+        PyObject *warnings_module = PyImport_ImportModule("warnings");
+        PyObject *meth = PyObject_GetAttrString(warnings_module, "_filters_mutated");
+
+        CALL_FUNCTION_NO_ARGS(meth);
+#endif
     }
 #endif
 
