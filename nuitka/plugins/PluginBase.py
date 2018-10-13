@@ -86,11 +86,9 @@ class NuitkaPluginBase(object):
             calls, as the "signal_change" part of this API is not to be cared
             about. Most prominently "getImplicitImports()".
         """
-        for full_name in self.getImplicitImports(module):
+        for full_name, required in self.getImplicitImports(module):
             module_name = full_name.split('.')[-1]
             module_package = '.'.join(full_name.split('.')[:-1]) or None
-
-            required = self.isRequiredImplicitImport(module, full_name)
 
             module_filename = self.locateModule(
                 importing      = module,

@@ -37,55 +37,26 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
         self.pkg_utils_externals = None
 
-    def isRequiredImplicitImport(self, module, full_name):
-        # Many cases of course, pylint: disable=too-many-return-statements
-
-        if full_name == "_tkinter":
-            return False
-
-        if full_name.startswith("pkg_resources._vendor"):
-            return False
-
-        if module.isPythonShlibModule():
-            if (full_name, None) in module.getUsedModules():
-                return False
-
-        if full_name == "gi._gobject":
-            return False
-
-        # Can be built-in.
-        if full_name == "_socket":
-            return False
-
-        if full_name == "enum":
-            return False
-
-        if full_name in ("sip", "PyQt5.sip"):
-            return False
-
-        return True
-
-
     def getImplicitImports(self, module):
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
         full_name = module.getFullName()
 
         if module.isPythonShlibModule():
             for used_module in module.getUsedModules():
-                yield used_module[0]
+                yield used_module[0], False
 
         # TODO: Move this out to some kind of configuration format.
         elements = full_name.split('.')
 
         if elements[0] in ("PyQt4", "PyQt5"):
             if python_version < 300:
-                yield "atexit"
+                yield "atexit", True
 
             # These are alternatives now:
             # TODO: One day it should avoid including both.
-            yield "sip"
+            yield "sip", False
             if elements[0] == "PyQt5":
-                yield "PyQt5.sip"
+                yield "PyQt5.sip", False
 
             child = elements[1] if len(elements) > 1 else None
 
@@ -98,16 +69,16 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                          "QtQuick", "QtWebChannel", "QtWebSockets", "QtX11Extras",
                          "_QOpenGLFunctions_2_0", "_QOpenGLFunctions_2_1",
                          "_QOpenGLFunctions_4_1_Core"):
-                yield elements[0] + ".QtCore"
+                yield elements[0] + ".QtCore", True
 
             if child in ("QtDeclarative", "QtWebKit", "QtXmlPatterns", "QtQml",
                          "QtPrintSupport", "QtWebKitWidgets", "QtMultimedia",
                          "QtMultimediaWidgets", "QtQuick", "QtQuickWidgets",
                          "QtWebSockets"):
-                yield elements[0] + ".QtNetwork"
+                yield elements[0] + ".QtNetwork", True
 
             if child == "QtScriptTools":
-                yield elements[0] + ".QtScript"
+                yield elements[0] + ".QtScript", True
 
             if child in ("QtWidgets", "QtDeclarative", "QtDesigner", "QtHelp",
                          "QtScriptTools", "QtSvg", "QtTest", "QtWebKit",
@@ -115,121 +86,121 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                          "QtMultimediaWidgets", "QtOpenGL", "QtQuick",
                          "QtQuickWidgets", "QtSql", "_QOpenGLFunctions_2_0",
                          "_QOpenGLFunctions_2_1", "_QOpenGLFunctions_4_1_Core"):
-                yield elements[0] + ".QtGui"
+                yield elements[0] + ".QtGui", True
 
             if full_name in ("PyQt5.QtDesigner", "PyQt5.QtHelp", "PyQt5.QtTest",
                              "PyQt5.QtPrintSupport", "PyQt5.QtSvg", "PyQt5.QtOpenGL",
                              "PyQt5.QtWebKitWidgets", "PyQt5.QtMultimediaWidgets",
                              "PyQt5.QtQuickWidgets", "PyQt5.QtSql"):
-                yield "PyQt5.QtWidgets"
+                yield "PyQt5.QtWidgets", True
 
             if full_name in ("PyQt5.QtPrintSupport",):
-                yield "PyQt5.QtSvg"
+                yield "PyQt5.QtSvg", True
 
             if full_name in ("PyQt5.QtWebKitWidgets",):
-                yield "PyQt5.QtWebKit"
-                yield "PyQt5.QtPrintSupport"
+                yield "PyQt5.QtWebKit", True
+                yield "PyQt5.QtPrintSupport", True
 
             if full_name in ("PyQt5.QtMultimediaWidgets",):
-                yield "PyQt5.QtMultimedia"
+                yield "PyQt5.QtMultimedia", True
 
             if full_name in ("PyQt5.QtQuick", "PyQt5.QtQuickWidgets"):
-                yield "PyQt5.QtQml"
+                yield "PyQt5.QtQml", True
 
             if full_name in ("PyQt5.QtQuickWidgets", "PyQt5.QtQml"):
-                yield "PyQt5.QtQuick"
+                yield "PyQt5.QtQuick", True
 
             if full_name == "PyQt5.Qt":
-                yield "PyQt5.QtCore"
-                yield "PyQt5.QtDBus"
-                yield "PyQt5.QtGui"
-                yield "PyQt5.QtNetwork"
-                yield "PyQt5.QtNetworkAuth"
-                yield "PyQt5.QtSensors"
-                yield "PyQt5.QtSerialPort"
-                yield "PyQt5.QtMultimedia"
-                yield "PyQt5.QtQml"
-                yield "PyQt5.QtWidgets"
+                yield "PyQt5.QtCore", True
+                yield "PyQt5.QtDBus", True
+                yield "PyQt5.QtGui", True
+                yield "PyQt5.QtNetwork", True
+                yield "PyQt5.QtNetworkAuth", False
+                yield "PyQt5.QtSensors", False
+                yield "PyQt5.QtSerialPort", False
+                yield "PyQt5.QtMultimedia", True
+                yield "PyQt5.QtQml", False
+                yield "PyQt5.QtWidgets", True
         elif full_name == "sip" and python_version < 300:
-            yield "enum"
+            yield "enum", False
         elif full_name == "PySide.QtDeclarative":
-            yield "PySide.QtGui"
+            yield "PySide.QtGui", True
         elif full_name == "PySide.QtHelp":
-            yield "PySide.QtGui"
+            yield "PySide.QtGui", True
         elif full_name == "PySide.QtOpenGL":
-            yield "PySide.QtGui"
+            yield "PySide.QtGui", True
         elif full_name == "PySide.QtScriptTools":
-            yield "PySide.QtScript"
-            yield "PySide.QtGui"
+            yield "PySide.QtScript", True
+            yield "PySide.QtGui", True
         elif full_name == "PySide.QtSql":
-            yield "PySide.QtGui"
+            yield "PySide.QtGui", True
         elif full_name == "PySide.QtSvg":
-            yield "PySide.QtGui"
+            yield "PySide.QtGui", True
         elif full_name == "PySide.QtTest":
-            yield "PySide.QtGui"
+            yield "PySide.QtGui", True
         elif full_name == "PySide.QtUiTools":
-            yield "PySide.QtGui"
-            yield "PySide.QtXml"
+            yield "PySide.QtGui", True
+            yield "PySide.QtXml", True
         elif full_name == "PySide.QtWebKit":
-            yield "PySide.QtGui"
+            yield "PySide.QtGui", True
         elif full_name == "PySide.phonon":
-            yield "PySide.QtGui"
+            yield "PySide.QtGui", True
         elif full_name == "lxml.etree":
-            yield "gzip"
-            yield "lxml._elementpath"
+            yield "gzip", True
+            yield "lxml._elementpath", True
         elif full_name == "gtk._gtk":
-            yield "pangocairo"
-            yield "pango"
-            yield "cairo"
-            yield "gio"
-            yield "atk"
+            yield "pangocairo", True
+            yield "pango", True
+            yield "cairo", True
+            yield "gio", True
+            yield "atk", True
         elif full_name == "atk":
-            yield "gobject"
+            yield "gobject", True
         elif full_name == "gtkunixprint":
-            yield "gobject"
-            yield "cairo"
-            yield "gtk"
+            yield "gobject", True
+            yield "cairo", True
+            yield "gtk", True
         elif full_name == "pango":
-            yield "gobject"
+            yield "gobject", True
         elif full_name == "pangocairo":
-            yield "pango"
-            yield "cairo"
+            yield "pango", True
+            yield "cairo", True
         elif full_name == "reportlab.rl_config":
-            yield "reportlab.rl_settings"
+            yield "reportlab.rl_settings", True
         elif full_name == "socket":
-            yield "_socket"
+            yield "_socket", False
         elif full_name == "ctypes":
-            yield "_ctypes"
+            yield "_ctypes", True
         elif full_name == "gi._gi":
-            yield "gi._error"
+            yield "gi._error", True
         elif full_name == "gi._gi_cairo":
-            yield "cairo"
+            yield "cairo", True
         elif full_name == "cairo._cairo":
-            yield "gi._gobject"
+            yield "gi._gobject", False
         elif full_name in ("Tkinter", "tkinter"):
-            yield "_tkinter"
+            yield "_tkinter", False
         elif full_name in ("cryptography.hazmat.bindings._openssl",
                            "cryptography.hazmat.bindings._constant_time",
                            "cryptography.hazmat.bindings._padding"):
-            yield "_cffi_backend"
+            yield "_cffi_backend", True
         elif full_name.startswith("cryptography._Cryptography_cffi_"):
-            yield "_cffi_backend"
+            yield "_cffi_backend", True
         elif full_name == "bcrypt._bcrypt":
-            yield "_cffi_backend"
+            yield "_cffi_backend", True
         elif full_name == "nacl._sodium":
-            yield "_cffi_backend"
+            yield "_cffi_backend", True
         elif full_name == "_dbus_glib_bindings":
-            yield "_dbus_bindings"
+            yield "_dbus_bindings", True
         elif full_name == "_mysql":
-            yield "_mysql_exceptions"
+            yield "_mysql_exceptions", True
         elif full_name == "lxml.objectify":
-            yield "lxml.etree"
+            yield "lxml.etree", True
         elif full_name == "_yaml":
-            yield "yaml"
+            yield "yaml", True
         elif full_name == "apt_inst":
-            yield "apt_pkg"
+            yield "apt_pkg", True
         elif full_name == "PIL._imagingtk":
-            yield "PIL._tkinter_finder"
+            yield "PIL._tkinter_finder", True
         elif full_name == "pkg_resources.extern":
             if self.pkg_utils_externals is None:
                 for line in open(module.getCompileTimeFilename()):
@@ -248,16 +219,17 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                     self.pkg_utils_externals = ()
 
             for pkg_util_external in self.pkg_utils_externals:
-                yield "pkg_resources._vendor." + pkg_util_external
+                yield "pkg_resources._vendor." + pkg_util_external, False
         elif full_name == "pkg_resources._vendor.packaging":
-            yield "pkg_resources._vendor.packaging.version"
-            yield "pkg_resources._vendor.packaging.specifiers"
-            yield "pkg_resources._vendor.packaging.requirements"
+            yield "pkg_resources._vendor.packaging.version", True
+            yield "pkg_resources._vendor.packaging.specifiers", True
+            yield "pkg_resources._vendor.packaging.requirements", True
         elif full_name == "uvloop.loop":
-            yield "uvloop._noop"
+            yield "uvloop._noop", True
         elif full_name == "fitz.fitz":
-            yield "fitz._fitz"
-
+            yield "fitz._fitz", True
+        elif full_name == "pandas._libs":
+            yield "pandas._libs.tslibs.np_datetime", False
 
     # We don't care about line length here, pylint: disable=line-too-long
 
