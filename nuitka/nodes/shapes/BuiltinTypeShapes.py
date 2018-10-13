@@ -447,6 +447,9 @@ class ShapeTypeTuple(ShapeBase):
         if right_shape is ShapeUnknown:
             return ShapeUnknown
 
+        if right_shape is ShapeTypeTuple:
+            return ShapeTypeTuple
+
         onMissingOperation("Add", cls, right_shape)
         return ShapeUnknown
 
@@ -788,6 +791,20 @@ if python_version < 300:
         @staticmethod
         def hasShapeSlotContains():
             return True
+
+        @classmethod
+        def addBinaryShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return ShapeUnknown
+
+            if right_shape is ShapeTypeUnicode:
+                return ShapeTypeUnicode
+
+            if right_shape is ShapeTypeUnicodeDerived:
+                return ShapeUnknown
+
+            onMissingOperation("Add", cls, right_shape)
+            return ShapeUnknown
 
 
     class ShapeTypeUnicodeDerived(ShapeTypeUnicode):
