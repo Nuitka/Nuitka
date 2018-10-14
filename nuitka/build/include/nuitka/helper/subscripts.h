@@ -134,10 +134,8 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
     PyTypeObject *type = Py_TYPE(source);
     PyMappingMethods *mapping = type->tp_as_mapping;
 
-    PyObject *result;
-
     if (mapping != NULL && mapping->mp_subscript != NULL) {
-        result = mapping->mp_subscript(source, subscript);
+        return mapping->mp_subscript(source, subscript);
     } else if (type->tp_as_sequence != NULL) {
         if (PyIndex_Check(subscript)) {
             Py_ssize_t index = PyNumber_AsSsize_t(subscript, NULL);
@@ -146,10 +144,11 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
                 return NULL;
             }
 
-            result = PySequence_GetItem(source, index);
+            return PySequence_GetItem(source, index);
         } else if (type->tp_as_sequence->sq_item) {
             PyErr_Format(PyExc_TypeError, "sequence index must be integer, not '%s'", Py_TYPE(subscript)->tp_name);
             return NULL;
+#if PYTHON_VERSION < 370
         } else {
             PyErr_Format(PyExc_TypeError,
 #if PYTHON_VERSION < 270
@@ -161,38 +160,34 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
 #endif
                          Py_TYPE(source)->tp_name);
             return NULL;
+#endif
         }
-    } else {
+
+    }
+
 #if PYTHON_VERSION >= 370
-        if (PyType_Check(source)) {
-            PyObject *meth = LOOKUP_ATTRIBUTE(source, const_str_plain___class_getitem__);
+    if (PyType_Check(source)) {
+        PyObject *meth = LOOKUP_ATTRIBUTE(source, const_str_plain___class_getitem__);
 
-            if (meth) {
-                result = CALL_FUNCTION_WITH_SINGLE_ARG(meth, subscript);
-                Py_DECREF(meth);
-                return result;
-            }
+        if (meth) {
+            PyObject *result = CALL_FUNCTION_WITH_SINGLE_ARG(meth, subscript);
+            Py_DECREF(meth);
+            return result;
         }
+    }
 #endif
 
-        PyErr_Format(PyExc_TypeError,
+    PyErr_Format(PyExc_TypeError,
 #if PYTHON_VERSION < 270
-                     "'%s' object is unsubscriptable",
+                 "'%s' object is unsubscriptable",
 #elif PYTHON_VERSION >= 300 || PYTHON_VERSION <= 272
-                     "'%s' object is not subscriptable",
+                 "'%s' object is not subscriptable",
 #else
-                     "'%s' object has no attribute '__getitem__'",
+                 "'%s' object has no attribute '__getitem__'",
 #endif
-                     Py_TYPE(source)->tp_name);
+                 Py_TYPE(source)->tp_name);
 
-        return NULL;
-    }
-
-    if (unlikely(result == NULL)) {
-        return NULL;
-    }
-
-    return result;
+    return NULL;
 }
 
 NUITKA_MAY_BE_UNUSED static bool SET_SUBSCRIPT_CONST(PyObject *target, PyObject *subscript, Py_ssize_t int_subscript,

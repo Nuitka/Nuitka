@@ -50,7 +50,12 @@ def callExec(args):
             )
             process.communicate()
             # No point in cleaning up, pylint: disable=protected-access
-            os._exit(process.returncode)
+            try:
+                os._exit(process.returncode)
+            except OverflowError:
+                # Seems negative values go wrong otherwise,
+                # see https://bugs.python.org/issue28474
+                os._exit(process.returncode - 2**32)
         except KeyboardInterrupt:
             # There was a more relevant stack trace already, so abort this
             # right here, pylint: disable=protected-access

@@ -591,8 +591,12 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
         entry->python_initfunc();
 
 #if PYTHON_VERSION >= 340
-        PyObject *result = LOOKUP_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
+        PyObject *exception_type = NULL;
+        PyObject *exception_value = NULL;
+        PyTracebackObject *exception_tb = NULL;
+        FETCH_ERROR_OCCURRED( &exception_type, &exception_value, &exception_tb );
 
+        PyObject *result = LOOKUP_SUBSCRIPT(PyImport_GetModuleDict(), module_name);
         PyObject *spec_value = LOOKUP_ATTRIBUTE(result, const_str_plain___spec__);
 
         if (spec_value != Py_None) {
@@ -600,6 +604,8 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
                 SET_ATTRIBUTE(spec_value, const_str_plain__initializing, Py_False);
             }
         }
+
+        RESTORE_ERROR_OCCURRED( exception_type, exception_value, exception_tb );
 #endif
     }
 
