@@ -417,7 +417,7 @@ int main(int argc, char **argv) {
 
         PySys_AddWarnOption(ignore);
 
-#if PYTHON_VERSION >= 340 && defined(_NUITKA_FULL_COMPAT)
+#if PYTHON_VERSION >= 342 && defined(_NUITKA_FULL_COMPAT)
         // For full compatibility bump the warnings registry version,
         // otherwise modules "__warningsregistry__" will mismatch.
         PyObject *warnings_module = PyImport_ImportModule("warnings");
