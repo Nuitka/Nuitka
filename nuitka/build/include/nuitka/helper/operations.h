@@ -315,7 +315,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *
     Py_DECREF(x);
 
     if (slot2 != NULL) {
-        PyObject *x = slot2(operand1, operand2);
+        x = slot2(operand1, operand2);
 
         if (x != Py_NotImplemented) {
             if (unlikely(x == NULL)) {
@@ -342,7 +342,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *
                 binaryfunc slot = mv->nb_add;
 
                 if (slot != NULL) {
-                    PyObject *x = slot(operand1, operand2);
+                    x = slot(operand1, operand2);
 
                     Py_DECREF(operand1);
                     Py_DECREF(operand2);
