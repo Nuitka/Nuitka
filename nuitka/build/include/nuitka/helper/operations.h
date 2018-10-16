@@ -30,7 +30,6 @@
 // Coerce for known non-match types, where only first arg needs the check.
 NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE1(PyObject **pv, PyObject **pw)
 {
-    assert (NEW_STYLE_NUMBER(*pw));
     assert(Py_TYPE(*pv) != Py_TYPE(pw));
     assert((*pw)->ob_type->tp_as_number == NULL || (*pw)->ob_type->tp_as_number->nb_coerce == NULL);
 
@@ -46,7 +45,6 @@ NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE1(PyObject **pv, PyObject **pw)
 // Coerce for known non-match types, where only second arg needs the check.
 NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE2(PyObject **pv, PyObject **pw)
 {
-    assert(NEW_STYLE_NUMBER(*pv));
     assert(Py_TYPE(*pv) != Py_TYPE(pw));
     assert((*pv)->ob_type->tp_as_number == NULL || (*pv)->ob_type->tp_as_number->nb_coerce == NULL);
 
