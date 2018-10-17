@@ -28,8 +28,7 @@
 
 #if PYTHON_VERSION < 300
 // Coerce for known non-match types, where only first arg needs the check.
-NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE1(PyObject **pv, PyObject **pw)
-{
+NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE1(PyObject **pv, PyObject **pw) {
     assert(Py_TYPE(*pv) != Py_TYPE(pw));
     assert((*pw)->ob_type->tp_as_number == NULL || (*pw)->ob_type->tp_as_number->nb_coerce == NULL);
 
@@ -43,8 +42,7 @@ NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE1(PyObject **pv, PyObject **pw)
 }
 
 // Coerce for known non-match types, where only second arg needs the check.
-NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE2(PyObject **pv, PyObject **pw)
-{
+NUITKA_MAY_BE_UNUSED static int PYNUMBER_COERCE2(PyObject **pv, PyObject **pw) {
     assert(Py_TYPE(*pv) != Py_TYPE(pw));
     assert((*pv)->ob_type->tp_as_number == NULL || (*pv)->ob_type->tp_as_number->nb_coerce == NULL);
 
@@ -377,7 +375,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_INT_OBJECT(PyObject *
     return NULL;
 }
 
-
 // This is Python2 int, for Python3 the LONG variant is to be used.
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_INT_INT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -651,7 +648,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_STR_OBJECT(PyObject *
     return NULL;
 }
 
-
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_STR_STR(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -781,7 +777,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE(PyObje
     CHECK_OBJECT(operand2);
     assert(PyUnicode_CheckExact(operand2));
 
-
     PyTypeObject *type1 = Py_TYPE(operand1);
     PyTypeObject *type2 = &PyUnicode_Type;
 
@@ -892,9 +887,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_UNICODE_OBJECT(PyObje
                 Py_DECREF(x);
             }
         }
-    }
-    else
-    {
+    } else {
         return PyUnicode_Concat(operand1, operand2);
     }
 
@@ -965,8 +958,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_UNICODE_UNICODE(PyObj
 
     return PyUnicode_Concat(operand1, operand2);
 }
-
-
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
@@ -1353,8 +1344,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_TUPLE(PyObject
     if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
         binaryfunc slot1 = type1->tp_as_number->nb_add;
 
-        if (slot1 != NULL)
-        {
+        if (slot1 != NULL) {
             PyObject *x = slot1(operand1, operand2);
 
             if (x != Py_NotImplemented) {
@@ -1452,7 +1442,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_TUPLE_OBJECT(PyObject
     } else {
         return TUPLE_CONCAT(operand1, operand2);
     }
-
 
 #if PYTHON_VERSION < 300
     // Tuples are not new style numbers, therefore must attempt coerce with
@@ -1629,9 +1618,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_LIST_OBJECT(PyObject 
                 Py_DECREF(x);
             }
         }
-    }
-    else
-    {
+    } else {
         return LIST_CONCAT(operand1, operand2);
     }
 
@@ -2169,9 +2156,7 @@ NUITKA_MAY_BE_UNUSED static bool BYTES_ADD_INCREMENTAL(PyObject **operand1, PyOb
     wb.len = -1;
 
     if (PyObject_GetBuffer(operand2, &wb, PyBUF_SIMPLE) != 0) {
-        PyErr_Format(PyExc_TypeError, "can't concat %s to %s",
-                     Py_TYPE(operand2)->tp_name,
-                     Py_TYPE(*operand1)->tp_name);
+        PyErr_Format(PyExc_TypeError, "can't concat %s to %s", Py_TYPE(operand2)->tp_name, Py_TYPE(*operand1)->tp_name);
 
         return false;
     }
@@ -2183,8 +2168,7 @@ NUITKA_MAY_BE_UNUSED static bool BYTES_ADD_INCREMENTAL(PyObject **operand1, PyOb
         PyBuffer_Release(&wb);
         return false;
     }
-    if (_PyBytes_Resize( operand1, oldsize + wb.len) < 0)
-    {
+    if (_PyBytes_Resize(operand1, oldsize + wb.len) < 0) {
         PyBuffer_Release(&wb);
         return false;
     }
@@ -2197,7 +2181,8 @@ NUITKA_MAY_BE_UNUSED static bool BYTES_ADD_INCREMENTAL(PyObject **operand1, PyOb
 
 NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
     Py_ssize_t operand2_size = PyUnicode_GET_SIZE(operand2);
-    if (operand2_size == 0) return true;
+    if (operand2_size == 0)
+        return true;
 
 #if PYTHON_VERSION < 300
     Py_ssize_t operand1_size = PyUnicode_GET_SIZE(*operand1);
@@ -2408,7 +2393,6 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_TUPLE_TUPLE_INPLACE(PyObje
 
     return true;
 }
-
 
 #if PYTHON_VERSION < 300
 // This is Python2 int, for Python3 the LONG variant is to be used.
@@ -2729,8 +2713,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_BYTES_INPLACE(PyObj
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(operand2));
 
-    if ( Py_REFCNT(*operand1) == 1 && PyBytes_CheckExact(*operand1))
-    {
+    if (Py_REFCNT(*operand1) == 1 && PyBytes_CheckExact(*operand1)) {
         return BYTES_ADD_INCREMENTAL(operand1, operand2);
     }
 
@@ -2756,8 +2739,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE(PyObj
     CHECK_OBJECT(operand2);
     assert(PyBytes_CheckExact(*operand1));
 
-    if ( Py_REFCNT(*operand1) == 1 && PyBytes_CheckExact(operand2))
-    {
+    if (Py_REFCNT(*operand1) == 1 && PyBytes_CheckExact(operand2)) {
         return BYTES_ADD_INCREMENTAL(operand1, operand2);
     }
 
@@ -2784,8 +2766,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE(PyObje
     assert(PyBytes_CheckExact(*operand1));
     assert(PyBytes_CheckExact(operand2));
 
-    if ( Py_REFCNT(*operand1) == 1)
-    {
+    if (Py_REFCNT(*operand1) == 1) {
         return BYTES_ADD_INCREMENTAL(operand1, operand2);
     }
 

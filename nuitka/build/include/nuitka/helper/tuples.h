@@ -51,5 +51,4 @@ NUITKA_MAY_BE_UNUSED static PyObject *TUPLE_CONCAT(PyObject *t1, PyObject *t2) {
     return (PyObject *)result;
 }
 
-
 #endif
