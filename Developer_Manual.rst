@@ -292,6 +292,10 @@ Coding Rules C
 For the static C parts, e.g. compiled types, helper codes, the ``clang-format``
 from LLVM project is used.
 
+.. code-block:: sh
+
+   find . -name \*.[ch] -exec clang-format-6.0 -i {} -style='{BasedOnStyle: llvm, IndentWidth: 4, ColumnLimit: 120}' \;
+
 The "git flow" model
 ====================
 
