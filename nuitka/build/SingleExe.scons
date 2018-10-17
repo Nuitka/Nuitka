@@ -118,6 +118,9 @@ trace_mode = getBoolOption("trace_mode", False)
 # support, the compiled result would not run correctly.
 lto_mode = getBoolOption("lto_mode", False)
 
+static_libpython = getBoolOption("static_libpython", False)
+# static_libpython = True
+
 # Windows target mode: Compile for Windows. Used to be an option, but we
 # no longer cross compile this way.
 win_target = os.name == "nt"
@@ -756,6 +759,11 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
                 "-freorder-functions",
             ]
         )
+    elif static_libpython:
+        env.Append(CCFLAGS = ["-fno-lto"])
+        env.Append(
+            LINKFLAGS = ["-fno-lto"]
+        )
 
     # Give a warning if LTO mode was specified, but won't be used.
     if lto_mode and gcc_version < "4.6":
@@ -1202,14 +1210,26 @@ if win_target:
     env.Append(LIBPATH = [win_lib_path])
     env.Append(LIBS = [win_lib_name])
 elif not module_mode:
-    # Debian and Ubuntu distinguish the system libraries like this.
-    if python_debug and \
-       python_prefix == "/usr" and \
-       not python_version.startswith('3') and \
-       platform.dist()[0].lower() in ("debian", "ubuntu"):
-        env.Append(LIBS = ["python" + python_abi_version + "_d"])
+    # Add the python library path to the library path
+    python_lib_path = os.path.join(python_prefix, "lib")
+    env.Append(LIBPATH = [python_lib_path])
+
+    static_lib_filename = os.path.join(
+        python_lib_path,
+        "libpython" + python_abi_version + ".a"
+    )
+
+    if static_libpython and os.path.exists(static_lib_filename):
+        env.Append(LIBS = [File(static_lib_filename)])  # @UndefinedVariable
     else:
-        env.Append(LIBS = ["python" + python_abi_version])
+        # Debian and Ubuntu distinguish the system libraries like this.
+        if python_debug and \
+           python_prefix == "/usr" and \
+           not python_version.startswith('3') and \
+           platform.dist()[0].lower() in ("debian", "ubuntu"):
+            env.Append(LIBS = ["python" + python_abi_version + "_d"])
+        else:
+            env.Append(LIBS = ["python" + python_abi_version])
 
     if python_prefix != "/usr" and "linux" in sys.platform:
         env.Append(
@@ -1220,10 +1240,6 @@ elif not module_mode:
             env.Append(
                 LINKFLAGS = ["-export-dynamic"]
             )
-
-    # Add the python library path to the library path
-    python_lib_path = os.path.join(python_prefix, "lib")
-    env.Append(LIBPATH = [python_lib_path])
 
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
     if "netbsd" in sys.platform:
