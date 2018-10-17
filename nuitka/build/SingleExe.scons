@@ -694,6 +694,8 @@ if "clang" in the_compiler:
 if gcc_mode and "clang" not in the_compiler:
     # Don't export anything by default, this should create smaller executables.
 
+    gcc_version = detectVersion(env, the_compiler)
+
     # Enforce the minimum version, selecting a potentially existing g++-4.5
     # binary if it's not high enough. This is esp. useful under Debian which
     # allows all compiler to exist next to each other and where g++ might not be
