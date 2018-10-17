@@ -704,7 +704,7 @@ if gcc_mode and "clang" not in the_compiler:
         sys.exit(
             """\
 The gcc compiler %s (version %s) doesn't have the sufficient \
-version (>= 4.4).""" % (env["CXX"], gcc_version)
+version (>= 4.4).""" % (the_compiler, gcc_version)
         )
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
