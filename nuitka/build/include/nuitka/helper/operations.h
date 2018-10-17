@@ -18,6 +18,16 @@
 #ifndef __NUITKA_OPERATIONS_H__
 #define __NUITKA_OPERATIONS_H__
 
+#if PYTHON_VERSION >= 300
+extern PyObject *UNICODE_CONCAT(PyObject *left, PyObject *right);
+extern bool UNICODE_APPEND(PyObject **p_left, PyObject *right);
+#else
+// TODO: Specialize for Python2 too.
+NUITKA_MAY_BE_UNUSED static PyObject *UNICODE_CONCAT(PyObject *left, PyObject *right) {
+    return PyUnicode_Concat(left, right);
+}
+#endif
+
 // This macro is necessary for Python2 to determine if the "coerce" slot
 // will have to be considered or not.
 #if PYTHON_VERSION < 300
@@ -781,7 +791,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_UNICODE(PyObje
     PyTypeObject *type2 = &PyUnicode_Type;
 
     if (type1 == type2) {
-        return PyUnicode_Concat(operand1, operand2);
+        return UNICODE_CONCAT(operand1, operand2);
     }
 
     binaryfunc slot1 = NULL;
@@ -888,7 +898,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_UNICODE_OBJECT(PyObje
             }
         }
     } else {
-        return PyUnicode_Concat(operand1, operand2);
+        return UNICODE_CONCAT(operand1, operand2);
     }
 
 #if PYTHON_VERSION < 300
@@ -956,7 +966,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_UNICODE_UNICODE(PyObj
     assert(PyUnicode_CheckExact(operand1));
     assert(PyUnicode_CheckExact(operand2));
 
-    return PyUnicode_Concat(operand1, operand2);
+    return UNICODE_CONCAT(operand1, operand2);
 }
 
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_FLOAT(PyObject *operand1, PyObject *operand2) {
@@ -2206,8 +2216,7 @@ NUITKA_MAY_BE_UNUSED static bool UNICODE_ADD_INCREMENTAL(PyObject **operand1, Py
 #else
     assert(!PyUnicode_CHECK_INTERNED(*operand1));
 
-    PyUnicode_Append(operand1, operand2);
-    return !ERROR_OCCURRED();
+    return UNICODE_APPEND(operand1, operand2);
 #endif
 }
 
@@ -2574,7 +2583,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE(PyO
         }
 #endif
 
-        PyObject *result = PyUnicode_Concat(*operand1, operand2);
+        PyObject *result = UNICODE_CONCAT(*operand1, operand2);
 
         if (unlikely(result == NULL)) {
             return false;
@@ -2617,7 +2626,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_UNICODE_OBJECT_INPLACE(PyO
         }
 #endif
 
-        PyObject *result = PyUnicode_Concat(*operand1, operand2);
+        PyObject *result = UNICODE_CONCAT(*operand1, operand2);
 
         if (unlikely(result == NULL)) {
             return false;
@@ -2660,7 +2669,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_UNICODE_UNICODE_INPLACE(Py
     }
 #endif
 
-    PyObject *result = PyUnicode_Concat(*operand1, operand2);
+    PyObject *result = UNICODE_CONCAT(*operand1, operand2);
 
     if (unlikely(result == NULL)) {
         return false;
@@ -2870,7 +2879,7 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyOb
 
     // Strings are to be treated differently.
     if (PyUnicode_CheckExact(*operand1) && PyUnicode_CheckExact(operand2)) {
-        PyObject *result = PyUnicode_Concat(*operand1, operand2);
+        PyObject *result = UNICODE_CONCAT(*operand1, operand2);
 
         if (unlikely(result == NULL)) {
             return false;

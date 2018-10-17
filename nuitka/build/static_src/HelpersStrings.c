@@ -128,7 +128,9 @@ PyObject *BUILTIN_ORD(PyObject *value) {
     return PyInt_FromLong(result);
 }
 
-#if PYTHON_VERSION >= 350
+#if PYTHON_VERSION >= 300
+
+extern PyObject *const_str_empty;
 
 #define _PyUnicode_UTF8_LENGTH(op) (((PyCompactUnicodeObject *)(op))->utf8_length)
 #define PyUnicode_UTF8_LENGTH(op)                                                                                      \
@@ -139,15 +141,14 @@ PyObject *BUILTIN_ORD(PyObject *value) {
 #define _PyUnicode_LENGTH(op) (((PyASCIIObject *)(op))->length)
 #define _PyUnicode_STATE(op) (((PyASCIIObject *)(op))->state)
 #define _PyUnicode_HASH(op) (((PyASCIIObject *)(op))->hash)
-#define _PyUnicode_KIND(op) (assert(_PyUnicode_CHECK(op)), ((PyASCIIObject *)(op))->state.kind)
+#define _PyUnicode_KIND(op) (((PyASCIIObject *)(op))->state.kind)
 #define _PyUnicode_DATA_ANY(op) (((PyUnicodeObject *)(op))->data.any)
 
 #undef PyUnicode_READY
-#define PyUnicode_READY(op) (assert(_PyUnicode_CHECK(op)), (PyUnicode_IS_READY(op) ? 0 : _PyUnicode_Ready(op)))
+#define PyUnicode_READY(op) ((PyUnicode_IS_READY(op) ? 0 : _PyUnicode_Ready(op)))
 
-#define _PyUnicode_SHARE_UTF8(op)                                                                                      \
-    (assert(_PyUnicode_CHECK(op)), assert(!PyUnicode_IS_COMPACT_ASCII(op)), (_PyUnicode_UTF8(op) == PyUnicode_DATA(op)))
-#define _PyUnicode_SHARE_WSTR(op) (assert(_PyUnicode_CHECK(op)), (_PyUnicode_WSTR(unicode) == PyUnicode_DATA(op)))
+#define _PyUnicode_SHARE_UTF8(op) (assert(!PyUnicode_IS_COMPACT_ASCII(op)), (_PyUnicode_UTF8(op) == PyUnicode_DATA(op)))
+#define _PyUnicode_SHARE_WSTR(op) ((_PyUnicode_WSTR(unicode) == PyUnicode_DATA(op)))
 
 #define _PyUnicode_HAS_UTF8_MEMORY(op)                                                                                 \
     ((!PyUnicode_IS_COMPACT_ASCII(op) && _PyUnicode_UTF8(op) && _PyUnicode_UTF8(op) != PyUnicode_DATA(op)))
@@ -225,7 +226,6 @@ static void _NuitkaUnicode_FastCopyCharacters(PyObject *to, Py_ssize_t to_start,
 }
 
 static int _NuitkaUnicode_modifiable(PyObject *unicode) {
-    assert(_PyUnicode_CHECK(unicode));
     if (Py_REFCNT(unicode) != 1)
         return 0;
     if (_PyUnicode_HASH(unicode) != -1)
@@ -271,8 +271,6 @@ static PyObject *_NuitkaUnicode_New(Py_ssize_t length) {
 
     _PyUnicode_WSTR(unicode)[0] = 0;
     _PyUnicode_WSTR(unicode)[length] = 0;
-
-    assert(_PyUnicode_CheckConsistency((PyObject *)unicode, 0));
 
     return (PyObject *)unicode;
 }
@@ -339,7 +337,7 @@ static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t len
 
     _PyUnicode_LENGTH(unicode) = length;
     if (share_wstr) {
-        _PyUnicode_WSTR(unicode) = PyUnicode_DATA(unicode);
+        _PyUnicode_WSTR(unicode) = (wchar_t *)PyUnicode_DATA(unicode);
         if (!PyUnicode_IS_ASCII(unicode)) {
             _PyUnicode_WSTR_LENGTH(unicode) = length;
         }
@@ -352,8 +350,6 @@ static PyObject *_NuitkaUnicode_resize_compact(PyObject *unicode, Py_ssize_t len
     }
 
     PyUnicode_WRITE(PyUnicode_KIND(unicode), PyUnicode_DATA(unicode), length, 0);
-
-    assert(_PyUnicode_CheckConsistency(unicode, 0));
 
     return unicode;
 }
@@ -387,18 +383,17 @@ static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
         }
         _PyUnicode_DATA_ANY(unicode) = data;
         if (share_wstr) {
-            _PyUnicode_WSTR(unicode) = data;
+            _PyUnicode_WSTR(unicode) = (wchar_t *)data;
             _PyUnicode_WSTR_LENGTH(unicode) = length;
         }
         if (share_utf8) {
-            _PyUnicode_UTF8(unicode) = data;
+            _PyUnicode_UTF8(unicode) = (char *)data;
             _PyUnicode_UTF8_LENGTH(unicode) = length;
         }
         _PyUnicode_LENGTH(unicode) = length;
         PyUnicode_WRITE(PyUnicode_KIND(unicode), data, length, 0);
 
         if (share_wstr || _PyUnicode_WSTR(unicode) == NULL) {
-            assert(_PyUnicode_CheckConsistency(unicode, 0));
             return 0;
         }
     }
@@ -410,7 +405,7 @@ static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
     }
     Py_ssize_t new_size = sizeof(wchar_t) * (length + 1);
     wchar_t *wstr = _PyUnicode_WSTR(unicode);
-    wstr = PyObject_REALLOC(wstr, new_size);
+    wstr = (wchar_t *)PyObject_REALLOC(wstr, new_size);
 
     if (!wstr) {
         PyErr_NoMemory();
@@ -419,8 +414,6 @@ static int _NuitkaUnicode_resize_inplace(PyObject *unicode, Py_ssize_t length) {
     _PyUnicode_WSTR(unicode) = wstr;
     _PyUnicode_WSTR(unicode)[length] = 0;
     _PyUnicode_WSTR_LENGTH(unicode) = length;
-
-    assert(_PyUnicode_CheckConsistency(unicode, 0));
 
     return 0;
 }
@@ -440,7 +433,8 @@ static int _NuitkaUnicode_resize(PyObject **p_unicode, Py_ssize_t length) {
     }
 
     if (length == 0) {
-        Py_SETREF(*p_unicode, const_str_empty);
+        Py_DECREF(*p_unicode);
+        *p_unicode = const_str_empty;
         return 0;
     }
 
@@ -448,7 +442,8 @@ static int _NuitkaUnicode_resize(PyObject **p_unicode, Py_ssize_t length) {
         PyObject *copy = _NuitkaUnicode_resize_copy(unicode, length);
         if (copy == NULL)
             return -1;
-        Py_SETREF(*p_unicode, copy);
+        Py_DECREF(*p_unicode);
+        *p_unicode = copy;
         return 0;
     }
 
@@ -461,6 +456,43 @@ static int _NuitkaUnicode_resize(PyObject **p_unicode, Py_ssize_t length) {
     }
 
     return _NuitkaUnicode_resize_inplace(unicode, length);
+}
+
+PyObject *UNICODE_CONCAT(PyObject *left, PyObject *right) {
+    if (left == const_str_empty) {
+        Py_INCREF(right);
+        return right;
+    }
+    if (right == const_str_empty) {
+        Py_INCREF(left);
+        return left;
+    }
+
+    if (PyUnicode_READY(left) == -1 || PyUnicode_READY(right) == -1) {
+        return NULL;
+    }
+
+    Py_ssize_t left_len = PyUnicode_GET_LENGTH(left);
+    Py_ssize_t right_len = PyUnicode_GET_LENGTH(right);
+    if (left_len > PY_SSIZE_T_MAX - right_len) {
+        PyErr_Format(PyExc_OverflowError, "strings are too large to concat");
+        return NULL;
+    }
+    Py_ssize_t new_len = left_len + right_len;
+
+    Py_UCS4 maxchar = PyUnicode_MAX_CHAR_VALUE(left);
+    Py_UCS4 maxchar2 = PyUnicode_MAX_CHAR_VALUE(right);
+    maxchar = Py_MAX(maxchar, maxchar2);
+
+    PyObject *result = PyUnicode_New(new_len, maxchar);
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    _NuitkaUnicode_FastCopyCharacters(result, 0, left, 0, left_len);
+    _NuitkaUnicode_FastCopyCharacters(result, left_len, right, 0, right_len);
+
+    return result;
 }
 
 bool UNICODE_APPEND(PyObject **p_left, PyObject *right) {
@@ -515,8 +547,6 @@ bool UNICODE_APPEND(PyObject **p_left, PyObject *right) {
         Py_DECREF(left);
         *p_left = res;
     }
-
-    assert(_PyUnicode_CheckConsistency(*p_left, 1));
 
     return true;
 }
