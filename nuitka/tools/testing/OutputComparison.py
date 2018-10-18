@@ -33,7 +33,7 @@ ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
 instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
 thread_re                    = re.compile(r"[Tt]hread 0x[0-9a-fA-F]+")
 compiled_types_re            = re.compile(
-    r"compiled_(module|function|generator|method|frame|coroutine|async_generator)"
+    r"compiled_(module|function|generator|method|frame|coroutine|async_generator|cell)"
 )
 module_repr_re               = re.compile(r"(\<module '.*?' from ').*?('\>)")
 
