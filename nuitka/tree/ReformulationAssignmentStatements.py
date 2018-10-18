@@ -589,7 +589,7 @@ def buildAnnAssignNode(provider, node, source_ref):
     """ Python3.6 annotation assignment.
 
     """
-    # There are cases to deal with here, pylint: disable=too-many-branches
+    # There are many cases to deal with here.
 
     if provider.isCompiledPythonModule() or provider.isExpressionClassBody():
         provider.markAsNeedsAnnotationsDictionary()
@@ -631,10 +631,7 @@ def buildAnnAssignNode(provider, node, source_ref):
     # Only annotations for modules and classes are really made, for functions
     # they are ignored like comments.
     if variable_name is not None:
-        if provider.isExpressionFunctionBody():
-            if node.simple:
-                provider.getVariableForAssignment(variable_name)
-        else:
+        if provider.isExpressionClassBody() or provider.isCompiledPythonModule():
             annotation = buildNode(provider, node.annotation, source_ref)
 
             # TODO: As CPython core considers this implementation detail, and it seems
@@ -661,6 +658,10 @@ def buildAnnAssignNode(provider, node, source_ref):
                     source_ref = source_ref
                 )
             )
+        else:
+            # Functions.
+            if node.simple:
+                provider.getVariableForAssignment(variable_name)
 
     return makeStatementsSequence(
         statements = statements,
