@@ -375,22 +375,6 @@ branches.""" % self.conditional_kind
 
         return False
 
-    def computeExpressionDrop(self, statement, trace_collection):
-        result = makeStatementConditional(
-            condition  = self.getLeft(),
-            yes_branch = None,
-            no_branch  = makeStatementExpressionOnlyReplacementNode(
-                expression = self.getRight(),
-                node       = self.getRight()
-            ),
-            source_ref = self.source_ref
-        )
-
-        del self.parent
-
-        return result, "new_statements", """\
-Convert conditional '%s' expression with unused result into conditional statement.""" % self.conditional_kind
-
     def mayHaveSideEffectsBool(self):
         if self.getLeft().mayHaveSideEffectsBool():
             return True
@@ -414,6 +398,22 @@ class ExpressionConditionalOR(ExpressionConditionalBoolBase):
 
         self.conditional_kind = "or"
 
+    def computeExpressionDrop(self, statement, trace_collection):
+        result = makeStatementConditional(
+            condition  =  self.getLeft(),
+            yes_branch = None,
+            no_branch  = makeStatementExpressionOnlyReplacementNode(
+                expression = self.getRight(),
+                node       = self.getRight()
+            ),
+            source_ref = self.source_ref
+        )
+
+        del self.parent
+
+        return result, "new_statements", """\
+Convert conditional 'or' expression with unused result into conditional statement."""
+
 
 class ExpressionConditionalAND(ExpressionConditionalBoolBase):
     kind = "EXPRESSION_CONDITIONAL_AND"
@@ -427,6 +427,22 @@ class ExpressionConditionalAND(ExpressionConditionalBoolBase):
         )
 
         self.conditional_kind = "and"
+
+    def computeExpressionDrop(self, statement, trace_collection):
+        result = makeStatementConditional(
+            condition  =  self.getLeft(),
+            no_branch  = None,
+            yes_branch = makeStatementExpressionOnlyReplacementNode(
+                expression = self.getRight(),
+                node       = self.getRight()
+            ),
+            source_ref = self.source_ref
+        )
+
+        del self.parent
+
+        return result, "new_statements", """\
+Convert conditional 'and' expression with unused result into conditional statement."""
 
 
 class StatementConditional(StatementChildrenHavingBase):
