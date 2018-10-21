@@ -2713,6 +2713,37 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_STR_INPLACE(PyObjec
 
     return true;
 }
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_STR_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyString_CheckExact(*operand1));
+
+    if (likely(PyString_CheckExact(operand2))) {
+        if (!PyString_CHECK_INTERNED(*operand1) && Py_REFCNT(*operand1) == 1) {
+            return STRING_ADD_INCREMENTAL(operand1, operand2);
+        }
+
+        PyString_Concat(operand1, operand2);
+        return !ERROR_OCCURRED();
+    }
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
 #endif
 
 #if PYTHON_VERSION >= 300
