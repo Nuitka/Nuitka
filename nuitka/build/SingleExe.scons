@@ -671,6 +671,12 @@ if gcc_mode:
             CCFLAGS = ["-std=c11"]
         )
 
+    # Make it clear how to handle integer overflows, namely by wraping around
+    # to negative values.
+    env.Append(
+        CCFLAGS = ["-fwrapv"]
+    )
+
 # Support for clang.
 if "clang" in the_compiler:
     env.Append(
