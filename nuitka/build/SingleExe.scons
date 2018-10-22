@@ -34,8 +34,8 @@ import signal
 import subprocess
 import sys
 
-import SCons
-import SCons.Tool.gcc
+import SCons  # @UnresolvedImport
+import SCons.Tool.gcc # @UnresolvedImport
 
 
 def getArguments():
@@ -245,7 +245,7 @@ def getExecutablePath(filename, initial):
 
 # Patch the compiler detection.
 
-orig_detect = Environment.Detect
+orig_detect = Environment.Detect  # @UndefinedVariable
 found_gcc = False
 gcc_version = None
 
@@ -381,7 +381,7 @@ def myDetect(self, progs):
 
     return result
 
-Environment.Detect = myDetect
+Environment.Detect = myDetect  # @UndefinedVariable
 
 def createEnvironment(compiler_tools):
     args = {}
@@ -1132,7 +1132,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
             stderr = subprocess.PIPE,
             shell  = False
         )
-    except WindowsError:
+    except WindowsError:  # @UndefinedVariable
         sys.exit('Error, cannot find "gendef.exe" which is required though.')
 
     defs, stderr = proc.communicate()
@@ -1520,7 +1520,7 @@ def discoverSourceFiles():
                     return
 
                 os.unlink(dst)
-            except OSError as e:
+            except OSError as _e:
                 # Broken links work like that, remove them, so we can replace
                 # them.
                 try:
@@ -1653,7 +1653,7 @@ Error, call to 'mt.exe' (%s) to extract manifest failed (error code %d.)""" % (
                         stderr = subprocess.PIPE,
                         shell  = False
                     )
-                except WindowsError:
+                except WindowsError:  # @UndefinedVariable
                     sys.exit("Error, cannot find 'windres.exe' but it is required.")
 
                 _stdout, stderr = proc.communicate()

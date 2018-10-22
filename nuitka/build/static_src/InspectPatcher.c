@@ -217,7 +217,7 @@ types._GeneratorWrapper = GeneratorWrapperEnhanced\
     PyObject *wrapper_enhencement_codeobject = Py_CompileString(wrapper_enhancement_code, "<exec>", Py_file_input);
     CHECK_OBJECT(wrapper_enhencement_codeobject);
 
-    PyImport_ExecCodeModuleEx("_types_patch", wrapper_enhencement_codeobject, "<frozen>");
+    PyImport_ExecCodeModuleEx("nuitka_types_patch", wrapper_enhencement_codeobject, "<frozen>");
 
 #endif
 
