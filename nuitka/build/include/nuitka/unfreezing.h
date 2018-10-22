@@ -54,8 +54,6 @@ extern void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntr
 /* For use as the "__loader__" attribute of compiled modules in newer Python
  * versions.
  */
-#if PYTHON_VERSION >= 300
 extern PyObject *metapath_based_loader;
-#endif
 
 #endif

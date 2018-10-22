@@ -180,6 +180,7 @@ class NuitkaPluginBase(object):
         trigger_module = CompiledPythonModule(
             name         = module_name,
             package_name = module.getPackage(),
+            is_top       = False,
             mode         = mode,
             future_spec  = None,
             source_ref   = source_ref

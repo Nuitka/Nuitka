@@ -135,6 +135,8 @@ extern void _initCompiledCoroutineTypes();
 extern void _initCompiledAsyncgenTypes();
 #endif
 
+extern PyObject *metapath_based_loader;
+
 // The exported interface to CPython. On import of the module, this function
 // gets called. It has to have an exact function name, in cases it's a shared
 // library export. This is hidden behind the MOD_INIT_DECL.
@@ -246,7 +248,6 @@ MOD_INIT_DECL( %(module_identifier)s )
             (Nuitka_StringObject *)const_str_plain___package__,
             module_name
         );
-
 #else
 
 #if PYTHON_VERSION < 300
@@ -285,7 +286,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 // doesn't automatically enter "sys.modules", so do it manually.
 #if PYTHON_VERSION >= 300
     {
-        int r = PyObject_SetItem( PySys_GetObject( (char *)"modules" ), %(module_name_obj)s, module_%(module_identifier)s );
+        int r = PyObject_SetItem( PyImport_GetModuleDict(), %(module_name_obj)s, module_%(module_identifier)s );
 
         assert( r != -1 );
     }
@@ -346,6 +347,23 @@ MOD_INIT_DECL( %(module_identifier)s )
 
     // Module code.
 %(module_code)s
+
+#if %(is_package)s && %(is_top_module)s
+    {
+        PyObject *path_value = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___path__ );
+
+        if (path_value && PyList_CheckExact(path_value) && PyList_Size(path_value) > 0)
+        {
+            PyObject *path_element = PyList_GetItem( path_value, 0 );
+
+            PyObject *path_importer_cache = PySys_GetObject((char *)"path_importer_cache");
+            CHECK_OBJECT( path_importer_cache );
+
+            int res = PyDict_SetItem( path_importer_cache, path_element, metapath_based_loader );
+            assert( res == 0 );
+        }
+    }
+#endif
 
     return MOD_RETURN_VALUE( module_%(module_identifier)s );
 %(module_exit)s

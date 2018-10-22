@@ -986,6 +986,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             result = CompiledPythonModule(
                 name         = module_name,
                 package_name = package,
+                is_top       = is_top,
                 mode         = Plugins.decideCompilation(full_name, source_ref),
                 future_spec  = None,
                 source_ref   = source_ref
@@ -1003,6 +1004,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             source_ref, result = createNamespacePackage(
                 module_name    = module_name,
                 package_name   = package,
+                is_top         = is_top,
                 module_relpath = filename
             )
             source_filename = None
@@ -1019,6 +1021,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             result = CompiledPythonPackage(
                 name         = module_name,
                 package_name = package,
+                is_top       = is_top,
                 mode         = Plugins.decideCompilation(full_name, source_ref),
                 future_spec  = None,
                 source_ref   = source_ref

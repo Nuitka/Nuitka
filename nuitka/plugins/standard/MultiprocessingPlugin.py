@@ -108,6 +108,7 @@ Monkey patching "multiprocessing" for compiled methods."""
         slave_main_module = CompiledPythonModule(
             name         = module_name,
             package_name = None,
+            is_top       = False,
             mode         = mode,
             future_spec  = None,
             source_ref   = root_module.getSourceReference()

@@ -92,6 +92,10 @@ class PythonModuleBase(NodeBase):
         return False
 
     @staticmethod
+    def isTopModule():
+        return False
+
+    @staticmethod
     def isInternalModule():
         return False
 
@@ -200,6 +204,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
     """
 
+    # This one has a few indicators, pylint: disable=too-many-instance-attributes
+
     kind = "COMPILED_PYTHON_MODULE"
 
     named_children = (
@@ -211,7 +217,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         "body": checkStatementsSequenceOrNone
     }
 
-    def __init__(self, name, package_name, mode, future_spec, source_ref):
+    def __init__(self, name, package_name, is_top, mode, future_spec, source_ref):
         PythonModuleBase.__init__(
             self,
             name         = name,
@@ -236,6 +242,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         MarkNeedsAnnotationsMixin.__init__(self)
 
         EntryPointMixin.__init__(self)
+
+        self.is_top = is_top
 
         self.mode = mode
 
@@ -274,6 +282,9 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
     def getFutureSpec(self):
         return self.future_spec
+
+    def isTopModule(self):
+        return self.is_top
 
     def asGraph(self, graph, desc):
         graph = graph.add_subgraph(
@@ -543,13 +554,14 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 class CompiledPythonPackage(CompiledPythonModule):
     kind = "COMPILED_PYTHON_PACKAGE"
 
-    def __init__(self, name, package_name, mode, future_spec, source_ref):
+    def __init__(self, name, package_name, is_top, mode, future_spec, source_ref):
         assert name, source_ref
 
         CompiledPythonModule.__init__(
             self,
             name         = name,
             package_name = package_name,
+            is_top       = is_top,
             mode         = mode,
             future_spec  = future_spec,
             source_ref   = source_ref
@@ -667,6 +679,7 @@ class PythonMainModule(CompiledPythonModule):
             self,
             name         = "__main__",
             package_name = None,
+            is_top       = True,
             mode         = mode,
             future_spec  = future_spec,
             source_ref   = source_ref
@@ -762,6 +775,7 @@ class PythonInternalModule(CompiledPythonModule):
             self,
             name         = "__internal__",
             package_name = None,
+            is_top       = False,
             mode         = "compiled",
             source_ref   = SourceCodeReference.fromFilenameAndLine(
                 filename = "internal",

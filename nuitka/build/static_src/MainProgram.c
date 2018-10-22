@@ -451,7 +451,7 @@ int main(int argc, char **argv) {
         NUITKA_PRINT_TRACE("main(): Calling __main__.");
 
         /* Execute the "__main__" module. */
-        PyDict_DelItem(PySys_GetObject((char *)"modules"), const_str_plain___main__);
+        PyDict_DelItem(PyImport_GetModuleDict(), const_str_plain___main__);
         IMPORT_EMBEDDED_MODULE(const_str_plain___main__, "__main__");
     }
 

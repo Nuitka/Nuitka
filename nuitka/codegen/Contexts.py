@@ -664,11 +664,11 @@ def _getConstantDefaultPopulation():
             "bytes"
         )
 
-        # For Python3 "__name__" to "__package__" parsing
-        result.append(
-            '.'
-        )
-
+    # For meta path based loader, iter_modules and Python3 "__name__" to
+    # "__package__" parsing
+    result.append(
+        '.'
+    )
 
     if python_version >= 300:
         # Modules have that attribute starting with 3.3

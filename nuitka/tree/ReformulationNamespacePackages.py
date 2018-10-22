@@ -175,7 +175,7 @@ def createPython3NamespacePath(package, module_relpath, source_ref):
     )
 
 
-def createNamespacePackage(module_name, package_name, module_relpath):
+def createNamespacePackage(module_name, package_name, is_top, module_relpath):
     source_ref = SourceCodeReference.fromFilenameAndLine(
         filename = module_relpath,
         line     = 1
@@ -186,8 +186,9 @@ def createNamespacePackage(module_name, package_name, module_relpath):
 
     package = CompiledPythonPackage(
         name         = module_name,
-        mode         = "compiled",
         package_name = package_name,
+        is_top       = is_top,
+        mode         = "compiled",
         future_spec  = FutureSpec(),
         source_ref   = source_ref,
     )
