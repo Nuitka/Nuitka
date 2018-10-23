@@ -185,3 +185,19 @@ def withEnvironmentPathAdded(env_var_name, path):
             del os.environ[env_var_name]
         else:
             os.environ[env_var_name] = old_path
+
+@contextmanager
+def withEnvironmentVarOverriden(env_var_name, value):
+    if env_var_name in os.environ:
+        old_value = os.environ[env_var_name]
+    else:
+        old_value = None
+
+    os.environ[env_var_name] = value
+
+    yield
+
+    if old_value is None:
+        del os.environ[env_var_name]
+    else:
+        os.environ[env_var_name] = old_value
