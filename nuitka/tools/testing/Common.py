@@ -728,17 +728,38 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
 
         # System C libraries are to be expected.
         if loaded_basename.startswith((
+            "ld-linux-x86-64.so",
             "libc.so.",
             "libpthread.so.",
-            "libdl.so.",
             "libm.so.",
+            "libdl.so.",
+            "libBrokenLocale.so.",
+            "libSegFault.so",
+            "libanl.so.",
+            "libcidn.so.",
+            "libcrypt.so.",
+            "libmemusage.so",
+            "libmvec.so.",
+            "libnsl.so.",
+            "libnss_compat.so.",
+            "libnss_db.so.",
+            "libnss_dns.so.",
+            "libnss_files.so.",
+            "libnss_hesiod.so.",
+            "libnss_nis.so.",
+            "libnss_nisplus.so.",
+            "libpcprofile.so",
+            "libresolv.so.",
+            "librt.so.",
+            "libthread_db-1.0.so",
+            "libthread_db.so.",
+            "libutil.so."
         )):
             continue
 
         # Taking these from system is harmless and desirable
         if loaded_basename.startswith((
             "libz.so",
-            "libutil.so",
             "libgcc_s.so",
         )):
             continue
