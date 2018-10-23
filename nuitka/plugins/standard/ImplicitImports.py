@@ -230,6 +230,9 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "fitz._fitz", True
         elif full_name == "pandas._libs":
             yield "pandas._libs.tslibs.np_datetime", False
+            yield "pandas._libs.tslibs.nattype", False
+        elif full_name == "pandas.core.window":
+            yield "pandas._libs.skiplist", False
 
     # We don't care about line length here, pylint: disable=line-too-long
 
