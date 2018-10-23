@@ -23,7 +23,12 @@ from nuitka.codegen.c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
 from nuitka.codegen.Reports import onMissingOperation
 from nuitka.PythonVersions import python_version
 
-from .StandardShapes import ShapeBase, ShapeIterator, ShapeUnknown
+from .StandardShapes import (
+    ShapeBase,
+    ShapeIterator,
+    ShapeLoopCompleteAlternative,
+    ShapeUnknown
+)
 
 
 class ShapeTypeNoneType(ShapeBase):
@@ -173,6 +178,9 @@ class ShapeTypeInt(ShapeBase):
 
         if right_shape is ShapeTypeLong:
             return ShapeTypeLong
+
+        if right_shape is ShapeTypeFloat:
+            return ShapeTypeFloat
 
         onMissingOperation("Add", cls, right_shape)
         return ShapeUnknown
@@ -726,6 +734,9 @@ class ShapeTypeStr(ShapeBase):
         if right_shape is ShapeTypeStrDerived:
             return ShapeUnknown
 
+        if type(right_shape) is ShapeLoopCompleteAlternative:
+            return right_shape.addBinaryShapeL(cls)
+
         onMissingOperation("Add", cls, right_shape)
         return ShapeUnknown
 
@@ -737,6 +748,10 @@ class ShapeTypeStrDerived(ShapeTypeStr):
 
     @classmethod
     def addBinaryShape(cls, right_shape):
+        return ShapeUnknown
+
+    @classmethod
+    def addBinaryShapeL(cls, left_shape):
         return ShapeUnknown
 
 

@@ -16,29 +16,34 @@
 #     limitations under the License.
 #
 """ Standard shapes that commonly appear. """
+
 from nuitka.codegen.c_types.CTypePyObjectPtrs import CTypePyObjectPtr
 from nuitka.codegen.Reports import onMissingOperation
 
 
 class ShapeBase(object):
     @staticmethod
-    def getShapeIter():
-        return ShapeUnknown
-
-    @staticmethod
     def getTypeName():
         return None
-
-    @staticmethod
-    def hasShapeModule():
-        return False
 
     @staticmethod
     def getCType():
         return CTypePyObjectPtr
 
     @staticmethod
+    def getShapeIter():
+        return ShapeUnknown
+
+    @staticmethod
+    def hasShapeModule():
+        return None
+
+    @staticmethod
     def hasShapeSlotBytes():
+        return None
+
+    @staticmethod
+    def hasShapeSlotComplex():
         return None
 
     @classmethod
@@ -46,6 +51,16 @@ class ShapeBase(object):
         onMissingOperation("Add", cls, right_shape)
 
         return ShapeUnknown
+
+    @classmethod
+    def addBinaryShapeL(cls, left_shape):
+        onMissingOperation("AddL", cls, left_shape)
+
+        return ShapeUnknown
+
+    @classmethod
+    def emitAlternatives(cls, emit):
+        emit(cls)
 
 
 class ShapeUnknown(ShapeBase):
@@ -87,6 +102,10 @@ class ShapeUnknown(ShapeBase):
 
     @classmethod
     def addBinaryShape(cls, right_shape):
+        return ShapeUnknown
+
+    @classmethod
+    def addBinaryShapeL(cls, left_shape):
         return ShapeUnknown
 
 
@@ -167,3 +186,167 @@ class ShapeIterator(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return True
+
+
+
+class ShapeLoopInitialAlternative(ShapeBase):
+    """ Merge of loop wrap around with loop start value.
+
+        Happens at the start of loop blocks. This is for loop closed SSA, to
+        make it clear, that the entered value, can be anything really, and
+        will only later be clarified.
+
+        They will start out with just one previous, and later be updated with
+        all of the variable versions at loop continue times.
+    """
+
+    __slots__ = ("type_shapes",)
+
+    def __init__(self, shapes):
+        self.type_shapes = shapes
+
+        assert ShapeLoopCompleteAlternative not in shapes
+
+    def emitAlternatives(self, emit):
+        for type_shape in self.type_shapes:
+            type_shape.emitAlternatives(emit)
+
+    def addBinaryShape(self, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown
+
+        result = set()
+
+        for type_shape in self.type_shapes:
+            entry = type_shape.addBinaryShape(right_shape)
+
+            if entry is ShapeUnknown:
+                return ShapeUnknown
+
+            result.add(entry)
+
+        return ShapeLoopInitialAlternative(result)
+
+    @staticmethod
+    def hasShapeSlotLen():
+        return None
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return None
+
+
+class ShapeLoopCompleteAlternative(ShapeBase):
+    """ Merge of loop wrap around with loop start value.
+
+        Happens at the start of loop blocks. This is for loop closed SSA, to
+        make it clear, that the entered value, can be one of multiple types,
+        but only those.
+
+        They will start out with just one previous, and later be updated with
+        all of the variable versions at loop continue times.
+    """
+
+    __slots__ = ("type_shapes",)
+
+    def __init__(self, shapes):
+        self.type_shapes = shapes
+
+        assert ShapeLoopCompleteAlternative not in shapes
+
+    def emitAlternatives(self, emit):
+        for type_shape in self.type_shapes:
+            type_shape.emitAlternatives(emit)
+
+    def addBinaryShapeL(self, left_shape):
+        if left_shape is ShapeUnknown:
+            return ShapeUnknown
+
+        result = None
+        single = True
+
+        for type_shape in self.type_shapes:
+            entry = type_shape.addBinaryShapeL(left_shape)
+
+            if entry is ShapeUnknown:
+                return ShapeUnknown
+
+            if single:
+                if result is None:
+                    # First entry, fine.
+                    result = entry
+                else:
+                    # Second entry, not the same, convert to set.
+                    if result is not entry:
+                        single = False
+                        result = set(
+                            (result, entry)
+                        )
+            else:
+                result.add(entry)
+
+        if single:
+            assert result is not None
+            return result
+        else:
+            return ShapeLoopCompleteAlternative(result)
+
+    def addBinaryShape(self, right_shape):
+        if right_shape is ShapeUnknown:
+            return ShapeUnknown
+
+        result = None
+        single = True
+
+        for type_shape in self.type_shapes:
+            entry = type_shape.addBinaryShape(right_shape)
+
+            if entry is ShapeUnknown:
+                return ShapeUnknown
+
+            if single:
+                if result is None:
+                    # First entry, fine.
+                    result = entry
+                else:
+                    # Second entry, not the same, convert to set.
+                    if result is not entry:
+                        single = False
+                        result = set(
+                            (result, entry)
+                        )
+            else:
+                result.add(entry)
+
+        if single:
+            assert result is not None
+            return result
+        else:
+            return ShapeLoopCompleteAlternative(result)
+
+    def _delegatedCheck(self, check):
+        result = None
+
+        for type_shape in self.type_shapes:
+            r = check(type_shape)
+
+            if r is None:
+                return None
+            elif r is True:
+                if result is False:
+                    return None
+                elif result is None:
+                    result = True
+            elif r is False:
+                if result is True:
+                    return None
+                elif result is None:
+                    result = False
+
+        return result
+
+    def hasShapeSlotLen(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotLen())
+
+    def hasShapeSlotIter(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotIter())

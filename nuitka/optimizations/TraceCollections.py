@@ -41,7 +41,8 @@ from nuitka.utils.InstanceCounters import counted_del, counted_init
 from .ValueTraces import (
     ValueTraceAssign,
     ValueTraceInit,
-    ValueTraceLoopMerge,
+    ValueTraceLoopComplete,
+    ValueTraceLoopInitial,
     ValueTraceMerge,
     ValueTraceUninit,
     ValueTraceUnknown
@@ -109,14 +110,25 @@ class CollectionTracingMixin(object):
 
             self.markCurrentVariableTrace(variable, version)
 
-    def markActiveVariableAsLoopMerge(self, variable):
+    def markActiveVariableAsLoopMerge(self, variable, shapes, initial):
         current = self.getVariableCurrentTrace(
             variable = variable,
         )
 
         version = variable.allocateTargetNumber()
 
-        result = ValueTraceLoopMerge(current)
+        current_shape = current.getTypeShape()
+
+        if current_shape not in shapes:
+            shapes = set(shapes)
+            shapes.add(current_shape)
+
+        # print(initial, shapes)
+
+        if initial:
+            result = ValueTraceLoopInitial(current, shapes)
+        else:
+            result = ValueTraceLoopComplete(current, shapes)
 
         self.addVariableTrace(
             variable = variable,

@@ -357,7 +357,8 @@ Removed assignment of %s from itself which is known to be defined.""" % variable
             last_trace = variable.getMatchingAssignTrace(self)
 
             if last_trace is not None:
-                if source.isCompileTimeConstant():
+                if source.isCompileTimeConstant() and \
+                   not last_trace.hasLoopUsages():
                     if not variable.isModuleVariable():
 
                         # Can safely forward propagate only non-mutable constants.

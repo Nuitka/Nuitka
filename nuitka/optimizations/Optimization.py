@@ -215,6 +215,10 @@ def areEmptyTraces(variable_traces):
                 # them as well.
                 empty = False
                 break
+
+        elif variable_trace.isLoopTrace():
+            empty = False
+            break
         else:
             assert False, variable_trace
 

@@ -224,6 +224,9 @@ class Variable(object):
                 result.add(ShapeUnknown)
             elif trace.isMergeTrace():
                 pass
+            # TODO: Remove this and be not unkown.
+            elif trace.isLoopTrace():
+                trace.getTypeShape().emitAlternatives(result.add)
             else:
                 assert False, trace
 
