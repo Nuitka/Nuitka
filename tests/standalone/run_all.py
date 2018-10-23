@@ -373,6 +373,15 @@ for filename in sorted(os.listdir('.')):
         if loaded_filename == "/usr/bin/python3.2mu":
             continue
 
+        # Current Python executable can actually be a symlink and
+        # the real executable which it points to will be on the
+        # loaded_filenames list. This is all fine, let's ignore it.
+        # Also, because the loaded_filename can be yet another symlink
+        # (this is weird, but it's true), let's better resolve its real
+        # path too.
+        if os.path.realpath(loaded_filename) == os.path.realpath(sys.executable):
+            continue
+
         # Accessing SE-Linux is OK.
         if loaded_filename in ("/sys/fs/selinux", "/selinux"):
             continue
