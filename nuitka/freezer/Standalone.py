@@ -625,12 +625,14 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
             if filename == "not found":
                 continue
 
+            # pylint: disable=line-too-long
+            #
             # Do not include kernel / glibc specific libraries. This list has been
             # assembled by looking what are the most common .so files provided by
             # glibc packages from ArchLinux, Debian Stretch and CentOS.
             #
             # Online sources:
-            #  - https://centos.pkgs.org/7/puias-computational-x86_64/glibc-aarch64-linux-gnu-2.24-2.sdl7.2.noarch.rpm.html # pylint: disable=line-too-long
+            #  - https://centos.pkgs.org/7/puias-computational-x86_64/glibc-aarch64-linux-gnu-2.24-2.sdl7.2.noarch.rpm.html
             #  - https://centos.pkgs.org/7/centos-x86_64/glibc-2.17-222.el7.x86_64.rpm.html
             #  - https://archlinux.pkgs.org/rolling/archlinux-core-x86_64/glibc-2.28-5-x86_64.pkg.tar.xz.html
             #  - https://packages.debian.org/stretch/amd64/libc6/filelist
@@ -639,6 +641,8 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
             # might be provided by glibc - it may vary between the package versions
             # and between Linux distros. It might or might not be a problem in the
             # future, but it should be enough for now.
+            #
+            # pylint: enable=line-too-long
             if os.path.basename(filename).startswith(
                     (
                         "ld-linux-x86-64.so",
