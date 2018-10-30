@@ -51,7 +51,8 @@ Requirements
   * The ``clang`` compiler on MacOS X or FreeBSD.
 
   * The MinGW64 [#]_ C11 compiler on Windows, ideally the one based on gcc
-    6 or higher.
+    6 or higher. The AnaConda compilers [#]_ are suitable too, even if you
+    use CPython, they are the easiest installation method.
 
   * Visual Studio 2017 or higher on Windows [#]_, older versions may work,
     but are not officially supported. Configure to use English language
@@ -126,6 +127,14 @@ Requirements
        ``\MinGW64`` (same disk root as Nuitka running) to find it automatically.
        Also, when prompted, use "posix" for threads and "dwarf" for exception
        model, although these currently do not matter at all.
+
+.. [#] Installation of matching MinGW64 is easiest of you have an AnaConda or
+       MiniConda installation and execute
+       ``<path_to_Anaconda>\Scripts\conda install m2w64-gcc libpython`` and then
+       before you run Nuitka do
+       ``setenv CC=<path_to_Anaconda>\Library\mingw-w64\bin\gcc.exe``
+       and then its use will be forced. Nuitka also uses it automatically,
+       if you run it like this ``<path_to_Anaconda>\python -m nuitka ...``.
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
