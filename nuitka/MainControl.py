@@ -517,6 +517,9 @@ def runScons(main_module, quiet):
     if Options.isLto():
         options["lto_mode"] = "true"
 
+    if "Anaconda" in sys.version:
+        options["static_libpython"] = "true"
+
     if Options.shallDisableConsoleWindow():
         options["win_disable_console"] = "true"
 

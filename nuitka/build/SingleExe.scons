@@ -119,7 +119,6 @@ trace_mode = getBoolOption("trace_mode", False)
 lto_mode = getBoolOption("lto_mode", False)
 
 static_libpython = getBoolOption("static_libpython", False)
-# static_libpython = True
 
 # Windows target mode: Compile for Windows. Used to be an option, but we
 # no longer cross compile this way.
@@ -434,6 +433,14 @@ env = createEnvironment(
 if win_target and \
    compiler_tools == ["default"] and \
    getExecutablePath(env["CC"], initial = False) is None:
+
+    # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
+    # been done.
+    anaconda_mingw_dir = os.path.join(python_prefix, r'Library\mingw-w64\bin')
+
+    if os.path.isdir(anaconda_mingw_dir):
+        os.environ["PATH"] = os.pathsep.join([anaconda_mingw_dir] + os.environ["PATH"].split(os.pathsep))
+
     env = createEnvironment(
         compiler_tools = ["mingw"]
     )
@@ -765,7 +772,7 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
                 "-freorder-functions",
             ]
         )
-    elif static_libpython:
+    elif static_libpython and not lto_mode:
         env.Append(CCFLAGS = ["-fno-lto"])
         env.Append(
             LINKFLAGS = ["-fno-lto"]
@@ -1194,27 +1201,37 @@ def makeWindowsMingGW64Lib(win_lib_path):
 
 
 if win_target:
-    # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
-    if python_debug:
-        win_lib_name ="python" + python_abi_version.replace('.', "") + "_d"
+    # Anaconda has this.
+    static_lib_filename = os.path.join(
+        python_prefix,
+        "libs",
+        "libpython" + python_abi_version.replace('.', "") + ".dll.a"
+    )
+
+    if gcc_mode and static_libpython and os.path.exists(static_lib_filename):
+        env.Append(LIBS = [File(static_lib_filename)])  # @UndefinedVariable
     else:
-        win_lib_name = "python" + python_abi_version.replace('.', "")
+        # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
+        if python_debug:
+            win_lib_name = "python" + python_abi_version.replace('.', "") + "_d"
+        else:
+            win_lib_name = "python" + python_abi_version.replace('.', "")
 
-    for candidate in ("libs", "PCBuild"):
-        win_lib_path = os.path.join(python_prefix, candidate)
+        for candidate in ("libs", "PCBuild"):
+            win_lib_path = os.path.join(python_prefix, candidate)
 
-        if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
-            break
-    else:
-        sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
+            if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
+                break
+        else:
+            sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
 
-    if target_arch == "x86_64" and gcc_mode:
-        win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
-    elif target_arch == "x86" and python_debug and gcc_mode:
-        win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+        if target_arch == "x86_64" and gcc_mode:
+            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+        elif target_arch == "x86" and python_debug and gcc_mode:
+            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
 
-    env.Append(LIBPATH = [win_lib_path])
-    env.Append(LIBS = [win_lib_name])
+        env.Append(LIBPATH = [win_lib_path])
+        env.Append(LIBS = [win_lib_name])
 elif not module_mode:
     # Add the python library path to the library path
     python_lib_path = os.path.join(python_prefix, "lib")
