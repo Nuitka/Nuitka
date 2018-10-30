@@ -34,8 +34,8 @@ import signal
 import subprocess
 import sys
 
-import SCons  # @UnresolvedImport
-import SCons.Tool.gcc # @UnresolvedImport
+import SCons  # @UnresolvedImport @UnusedImport
+import SCons.Tool.gcc # @UnresolvedImport @UnusedImport
 
 
 def getArguments():
@@ -1519,7 +1519,7 @@ def discoverSourceFiles():
             src = os.path.abspath(src)
 
             try:
-                link_target = os.readlink(dst)
+                link_target = os.readlink(dst)  # @UndefinedVariable
 
                 # If it's already a proper link, do nothing then.
                 if link_target == src:
@@ -1535,7 +1535,7 @@ def discoverSourceFiles():
                     pass
 
             try:
-                os.symlink(src, dst)
+                os.symlink(src, dst)  # @UndefinedVariable
             except OSError:
                 shutil.copy(src, dst)
 
