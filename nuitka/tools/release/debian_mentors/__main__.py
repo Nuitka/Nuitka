@@ -110,7 +110,7 @@ def main():
     os.chdir("dist/deb_dist")
 
     assert os.system(
-        "dput -s mentors *.changes"
-    )
+        "dput mentors *.changes"
+    ) == 0
 
     print("Finished.")
