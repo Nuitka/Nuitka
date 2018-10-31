@@ -305,7 +305,7 @@ def detectVersion(env, cc):
         return v_cache[clvar]
 
     if show_scons_mode:
-        print("Scons CC '%s' version check" % cc)
+        print("Scons CC %r version check" % cc)
 
     #pipe = SCons.Action._subproc(env, SCons.Util.CLVar(cc) + ['-dumpversion'],
     pipe = SCons.Action._subproc(
@@ -321,9 +321,12 @@ def detectVersion(env, cc):
     if str is not bytes and type(line) is bytes:
         line = line.decode("utf8")
 
-    match = re.search(r'[0-9]+(\.[0-9]+)+', line)
+    match = re.findall(r'[0-9]+(?:\.[0-9]+)+', line)
     if match:
-        version = match.group(0)
+        version = match[-1]
+
+    if show_scons_mode:
+        print("Scons CC %r version check gives %r" % (cc, version))
 
     # Non-GNU compiler's output (like AIX xlc's) may exceed the stdout buffer:
     # So continue with reading to let the child process actually terminate.
