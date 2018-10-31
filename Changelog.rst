@@ -15,13 +15,44 @@ Bug Fixes
   mode, when attempting to compile a whole sub-package. Fixed in 0.6.0.1
   already.
 
+- Python3.7: Fix, asyncgen expressions can be created in normal functions
+  without an immediate awaiting of the iterator to be done.
+
+- Fix, constant values are used as C boolean values still for some of the
+  cases. Fixed in 0.6.0.1 already.
+
+- Fix, referencing a function cannot raise an exception, but that was not
+  annotated. Fixed in 0.6.0.2 already.
+
+- MacOS: Use standard include of C bool type instead of rolling our own, which
+  was not compatible with newest Clang. Fixed in 0.6.0.3 already.
+
+- Python3: Fix, the `bytes` type actually does have a `__float__` slot.
+  Fixed in 0.6.0.4 already.
+
+- Python3.7: Types that are also sequences still need to call the method
+  `__class_getitem__` for consideration. Fixed in 0.6.0.4 already.
+
+- Python3.7: Error exits from program exit could get lost on Windows due to
+  `__spec__` handling not preserving errors. Fixed in 0.6.0.4 already.
+
+- Windows: Negative exit codes from Nuitka, e.g. due to a triggered assertion
+  in debug mode were not working. Fixed in 0.6.0.4 already.
+
+- Fix, conditional `and` expressions were mis-optimized when not used to not
+  execute the right hand side still. Fixed in 0.6.0.4 already.
+
+- Python3.6: Fix, generators, coroutines, and asyncgen were not properly
+  supporting annotations for local variables. Fixed in 0.6.0.5 already.
+
+- Python3.7: Fix, class declarations had memory leaks that were untestable
+  before 3.7.1 fixed reference count issues in CPython. Fixed in 0.6.0.6
+  already.
+
 - Fix, star imports on the module level should disable built-in name
   optimization except for the most critical ones, otherwise e.g. names
   like ``all`` or ``pow`` can become wrong. Previous workarounds for ``pow``
   were not good enough.
-
-- Python3.7: Fix, asyncgen expressions can be created in normal functions
-  without an immediate awaiting of the iterator to be done.
 
 New Optimization
 ----------------
@@ -41,6 +72,15 @@ New Optimization
 - More kinds of in-place operations are now optimized, e.g. ``int += int`` and
   the ``bytes`` ones were specialized to perform real in-place extension where
   possible.
+
+Organizational
+--------------
+
+- Corrected download link for Arch AUR link of develop package.
+
+- Added repository for Ubuntu Cosmic (18.10) for download.
+
+- Describe the exact format used for `clang-format` in the Developer Manual.
 
 Cleanups
 --------
