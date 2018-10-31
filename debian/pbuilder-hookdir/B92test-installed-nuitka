@@ -25,6 +25,7 @@ export NUITKA=/usr/bin/nuitka
 rm tests/basics/Referencing*.py
 
 # Run the basic tests with default options.
-./tests/basics/run_all.py search
+python2 ./tests/basics/run_all.py search
+python3 ./tests/basics/run_all.py search
 
 echo "Thanks passed the tests with installed package it seems."
