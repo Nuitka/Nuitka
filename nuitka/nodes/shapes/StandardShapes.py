@@ -235,6 +235,18 @@ class ShapeLoopInitialAlternative(ShapeBase):
     def hasShapeSlotIter():
         return None
 
+    @staticmethod
+    def hasShapeSlotInt():
+        return None
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return None
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return None
+
 
 class ShapeLoopCompleteAlternative(ShapeBase):
     """ Merge of loop wrap around with loop start value.
@@ -350,3 +362,27 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def hasShapeSlotIter(self):
         return self._delegatedCheck(lambda x: x.hasShapeSlotIter())
+
+    def hasShapeSlotNext(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotNext())
+
+    def hasShapeSlotContains(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotContains())
+
+    def hasShapeSlotInt(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotInt())
+
+    def hasShapeSlotLong(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotLong())
+
+    def hasShapeSlotFloat(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotFloat())
+
+    def hasShapeSlotComplex(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotComplex())
+
+    def hasShapeSlotBytes(self):
+        return self._delegatedCheck(lambda x: x.hasShapeSlotBytes())
+
+    def hasShapeModule(self):
+        return self._delegatedCheck(lambda x: x.hasShapeModule())
