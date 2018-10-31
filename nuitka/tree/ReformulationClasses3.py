@@ -697,6 +697,8 @@ def buildClassNode3(provider, node, source_ref):
     final = [tmp_class_decl_dict, tmp_metaclass, tmp_prepared]
     if node.bases:
         final.insert(0, tmp_bases)
+        if python_version >= 370:
+            final.insert(0, tmp_bases_orig)
 
     return makeTryFinallyStatement(
         provider   = provider,
@@ -708,8 +710,7 @@ def buildClassNode3(provider, node, source_ref):
             )
             for variable in
             final
-        )
-        ,
+        ),
         source_ref = source_ref
     )
 
@@ -846,6 +847,10 @@ def getClassBasesMroConversionHelper():
 
 
     final = (
+        StatementReleaseVariable(
+            variable   = args_variable,
+            source_ref = internal_source_ref
+        ),
         StatementReleaseVariable(
             variable   = tmp_result_variable,
             source_ref = internal_source_ref

@@ -303,7 +303,7 @@ def detectVersion(env, cc):
     #    version = line
     line = pipe.stdout.readline()
 
-    if str is not bytes:
+    if str is not bytes and type(line) is bytes:
         line = line.decode("utf8")
 
     match = re.search(r'[0-9]+(\.[0-9]+)+', line)
