@@ -75,6 +75,7 @@ from .ReformulationImportStatements import getFutureSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
+    buildAnnotationNode,
     buildNode,
     getKind,
     makeConstantRefNode,
@@ -632,7 +633,7 @@ def buildAnnAssignNode(provider, node, source_ref):
     # they are ignored like comments.
     if variable_name is not None:
         if provider.isExpressionClassBody() or provider.isCompiledPythonModule():
-            annotation = buildNode(provider, node.annotation, source_ref)
+            annotation = buildAnnotationNode(provider, node.annotation, source_ref)
 
             # TODO: As CPython core considers this implementation detail, and it seems
             # mostly useless to support having this as a closure taken name after a

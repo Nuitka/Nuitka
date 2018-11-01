@@ -124,6 +124,8 @@ def _enableFutureFeature(node, object_name, source_ref):
     elif object_name in ("nested_scopes", "generators", "with_statement"):
         # These are enabled in all cases already.
         pass
+    elif object_name == "annotations" and python_version >= 370:
+        future_spec.enableFutureAnnotations()
     else:
         raiseSyntaxError(
             "future feature %s is not defined" % object_name,
