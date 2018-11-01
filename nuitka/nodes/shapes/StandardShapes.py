@@ -46,6 +46,34 @@ class ShapeBase(object):
     def hasShapeSlotComplex():
         return None
 
+    @staticmethod
+    def hasShapeSlotLen():
+        return None
+
+    @staticmethod
+    def hasShapeSlotInt():
+        return None
+
+    @staticmethod
+    def hasShapeSlotLong():
+        return None
+
+    @staticmethod
+    def hasShapeSlotFloat():
+        return None
+
+    @staticmethod
+    def hasShapeSlotIter():
+        return None
+
+    @staticmethod
+    def hasShapeSlotNext():
+        return None
+
+    @staticmethod
+    def hasShapeSlotContains():
+        return None
+
     @classmethod
     def addBinaryShape(cls, right_shape):
         onMissingOperation("Add", cls, right_shape)
@@ -64,42 +92,6 @@ class ShapeBase(object):
 
 
 class ShapeUnknown(ShapeBase):
-    @staticmethod
-    def hasShapeSlotLen():
-        return None
-
-    @staticmethod
-    def hasShapeSlotInt():
-        return None
-
-    @staticmethod
-    def hasShapeSlotLong():
-        return None
-
-    @staticmethod
-    def hasShapeSlotFloat():
-        return None
-
-    @staticmethod
-    def hasShapeSlotComplex():
-        return None
-
-    @staticmethod
-    def hasShapeSlotIter():
-        return None
-
-    @staticmethod
-    def hasShapeSlotNext():
-        return None
-
-    @staticmethod
-    def hasShapeSlotContains():
-        return None
-
-    @staticmethod
-    def hasShapeSlotBytes():
-        return None
-
     @classmethod
     def addBinaryShape(cls, right_shape):
         return ShapeUnknown
