@@ -35,7 +35,7 @@ import subprocess
 import sys
 
 import SCons  # @UnresolvedImport @UnusedImport
-import SCons.Tool.gcc # @UnresolvedImport @UnusedImport
+import SCons.Tool.gcc  # @UnresolvedImport @UnusedImport
 
 
 def getArguments():
