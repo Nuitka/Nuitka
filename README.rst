@@ -919,6 +919,10 @@ The order is sorted by time.
   call the compiler. Also pull request to improve "bist_nuitka" and to do
   the registration.
 
+- Paweł K: Submitted github pull request to remove glibc from standalone
+  distribution, saving size and improving robustness considering the
+  various distributions.
+
 Projects used by Nuitka
 -----------------------
 
