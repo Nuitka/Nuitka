@@ -221,7 +221,47 @@ for filename in sorted(os.listdir('.')):
         needs_2to3  = False
     )
 
-    # Second use "strace" on the result.
+    # Second check if glibc libraries haven't been accidentaly
+    # shipped with the standalone executable
+    found_glibc_libs = []
+    for dist_filename in os.listdir(os.path.join(filename[:-3] + ".dist")):
+        if os.path.basename(dist_filename).startswith(
+            (
+                "ld-linux-x86-64.so",
+                "libc.so.",
+                "libpthread.so.",
+                "libm.so.",
+                "libdl.so.",
+                "libBrokenLocale.so.",
+                "libSegFault.so",
+                "libanl.so.",
+                "libcidn.so.",
+                "libcrypt.so.",
+                "libmemusage.so",
+                "libmvec.so.",
+                "libnsl.so.",
+                "libnss_compat.so.",
+                "libnss_db.so.",
+                "libnss_dns.so.",
+                "libnss_files.so.",
+                "libnss_hesiod.so.",
+                "libnss_nis.so.",
+                "libnss_nisplus.so.",
+                "libpcprofile.so",
+                "libresolv.so.",
+                "librt.so.",
+                "libthread_db-1.0.so",
+                "libthread_db.so.",
+                "libutil.so."
+            )
+        ):
+            found_glibc_libs.append(dist_filename)
+
+    if len(found_glibc_libs):
+        my_print("Should not ship glibc libraries with the standalone executable (found %s)" % found_glibc_libs)
+        sys.exit(1)
+
+    # Then use "strace" on the result.
     loaded_filenames = getRuntimeTraceOfLoadedFiles(
         path = os.path.join(
             filename[:-3] + ".dist",
@@ -278,18 +318,38 @@ for filename in sorted(os.listdir('.')):
         # Taking these from system is harmless and desirable
         if loaded_basename.startswith((
             "libz.so",
-            "libutil.so",
             "libgcc_s.so",
-            "libm.so.",
         )):
             continue
 
         # System C libraries are to be expected.
         if loaded_basename.startswith((
+            "ld-linux-x86-64.so",
             "libc.so.",
             "libpthread.so.",
-            "libdl.so.",
             "libm.so.",
+            "libdl.so.",
+            "libBrokenLocale.so.",
+            "libSegFault.so",
+            "libanl.so.",
+            "libcidn.so.",
+            "libcrypt.so.",
+            "libmemusage.so",
+            "libmvec.so.",
+            "libnsl.so.",
+            "libnss_compat.so.",
+            "libnss_db.so.",
+            "libnss_dns.so.",
+            "libnss_files.so.",
+            "libnss_hesiod.so.",
+            "libnss_nis.so.",
+            "libnss_nisplus.so.",
+            "libpcprofile.so",
+            "libresolv.so.",
+            "librt.so.",
+            "libthread_db-1.0.so",
+            "libthread_db.so.",
+            "libutil.so."
         )):
             continue
 
@@ -371,6 +431,15 @@ for filename in sorted(os.listdir('.')):
             continue
 
         if loaded_filename == "/usr/bin/python3.2mu":
+            continue
+
+        # Current Python executable can actually be a symlink and
+        # the real executable which it points to will be on the
+        # loaded_filenames list. This is all fine, let's ignore it.
+        # Also, because the loaded_filename can be yet another symlink
+        # (this is weird, but it's true), let's better resolve its real
+        # path too.
+        if os.path.realpath(loaded_filename) == os.path.realpath(sys.executable):
             continue
 
         # Accessing SE-Linux is OK.
