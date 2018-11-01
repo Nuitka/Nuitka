@@ -434,7 +434,6 @@ env = createEnvironment(
 # it and use that instead then as a fallback. Using both tools in one call
 # seems to not work in terms of fallback when both exist.
 if win_target and \
-   compiler_tools == ["default"] and \
    getExecutablePath(env["CC"], initial = False) is None:
 
     # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
