@@ -30,7 +30,7 @@ from .VariableCodes import getVariableAssignmentCode
 
 
 def _getStoreLocalsCode(locals_name, variable_traces, is_dict, emit, context):
-    for variable, variable_trace in variable_traces:
+    for variable, variable_trace in sorted(variable_traces, key = lambda x: x[0].getName()):
         if not variable.isModuleVariable():
             key_name = context.getConstantCode(
                 constant = variable.getName()
