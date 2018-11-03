@@ -21,3 +21,5 @@
 
 from win32com import storagecon
 from win32com.shell import shell, shellcon
+
+print("OK.")
