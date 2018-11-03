@@ -23,7 +23,6 @@ from nuitka import PythonOperators
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import (
-    makeComparisonNode,
     makeConstantReplacementNode,
     wrapExpressionWithSideEffects
 )
@@ -111,7 +110,7 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
         if self.comparator in PythonOperators.comparison_inversions:
             left, right = self.getOperands()
 
-            result = makeComparisonNode(
+            result = makeComparisonExpression(
                 left       = left,
                 right      = right,
                 comparator = PythonOperators.comparison_inversions[
@@ -124,6 +123,22 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
 Replaced negated comparison with inverse comparison."""
 
         return not_node, None, None
+
+
+class ExpressionComparisonLt(ExpressionComparisonBase):
+    kind = "EXPRESSION_COMPARISON_LT"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionComparisonBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            comparator = "Lt",
+            source_ref = source_ref
+        )
+
+    def getDetails(self):
+        return {}
 
 
 class ExpressionComparison(ExpressionComparisonBase):
@@ -335,3 +350,45 @@ class ExpressionComparisonNOTIn(ExpressionComparisonInNotInBase):
             comparator = "NotIn",
             source_ref = source_ref
         )
+
+
+def makeComparisonExpression(left, right, comparator, source_ref):
+    if comparator == "Is":
+        result = ExpressionComparisonIs(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "IsNot":
+        result = ExpressionComparisonIsNOT(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "In":
+        result = ExpressionComparisonIn(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "NotIn":
+        result = ExpressionComparisonNOTIn(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "Lt":
+        result = ExpressionComparisonLt(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    else:
+        result = ExpressionComparison(
+            left       = left,
+            right      = right,
+            comparator = comparator,
+            source_ref = source_ref
+        )
+
+    return result

@@ -42,6 +42,7 @@ from nuitka.nodes.ClassNodes import (
     ExpressionSelectMetaclass
 )
 from nuitka.nodes.CodeObjectSpecs import CodeObjectSpec
+from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
     makeStatementConditional
@@ -72,7 +73,6 @@ from nuitka.nodes.LocalsDictNodes import (
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.NodeMakingHelpers import (
-    makeComparisonNode,
     makeRaiseExceptionExpressionFromTemplate,
     mergeStatements
 )
@@ -291,7 +291,7 @@ def buildClassNode3(provider, node, source_ref):
     if python_version >= 370 and node.bases:
         statements.append(
             makeStatementConditional(
-                condition  = makeComparisonNode(
+                condition  = makeComparisonExpression(
                     comparator = "NotEq",
                     left       = ExpressionTempVariableRef(
                         variable   = tmp_bases,

@@ -42,11 +42,11 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinNextNodes import ExpressionSpecialUnpack
 from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinList
+from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
 from nuitka.nodes.ContainerOperationNodes import ExpressionListOperationPop
 from nuitka.nodes.NodeMakingHelpers import (
-    makeComparisonNode,
     makeRaiseExceptionExpressionFromTemplate
 )
 from nuitka.nodes.OperatorNodes import (
@@ -290,7 +290,7 @@ def buildAssignmentStatementsFromDecoded(provider, kind, detail, source,
             statements.insert(
                 starred_index+1,
                 makeStatementConditional(
-                    condition  = makeComparisonNode(
+                    condition  = makeComparisonExpression(
                         comparator = "Lt",
                         left       = ExpressionBuiltinLen(
                             value      = ExpressionTempVariableRef(

@@ -393,54 +393,6 @@ def makeStatementOnlyNodesFromExpressions(expressions):
         )
 
 
-def makeComparisonNode(left, right, comparator, source_ref):
-    from .ComparisonNodes import (
-        ExpressionComparison,
-        ExpressionComparisonIs,
-        ExpressionComparisonIsNOT,
-        ExpressionComparisonIn,
-        ExpressionComparisonNOTIn
-    )
-
-    if comparator == "Is":
-        result = ExpressionComparisonIs(
-            left       = left,
-            right      = right,
-            source_ref = source_ref
-        )
-    elif comparator == "IsNot":
-        result = ExpressionComparisonIsNOT(
-            left       = left,
-            right      = right,
-            source_ref = source_ref
-        )
-    elif comparator == "In":
-        result = ExpressionComparisonIn(
-            left       = left,
-            right      = right,
-            source_ref = source_ref
-        )
-    elif comparator == "NotIn":
-        result = ExpressionComparisonNOTIn(
-            left       = left,
-            right      = right,
-            source_ref = source_ref
-        )
-    else:
-        result = ExpressionComparison(
-            left       = left,
-            right      = right,
-            comparator = comparator,
-            source_ref = source_ref
-        )
-
-    result.setCompatibleSourceReference(
-        source_ref = right.getCompatibleSourceReference()
-    )
-
-    return result
-
-
 def makeVariableRefNode(variable, source_ref):
     if variable.isTempVariable():
         from .VariableRefNodes import ExpressionTempVariableRef
