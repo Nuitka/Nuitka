@@ -1258,7 +1258,7 @@ elif not module_mode:
 
     if python_prefix != "/usr" and "linux" in sys.platform:
         env.Append(
-            LIBS = ["dl", "pthread", "util", 'm']
+            LIBS = ["dl", "pthread", "util", "rt", 'm']
         )
 
         if gcc_mode and not clang_mode:
