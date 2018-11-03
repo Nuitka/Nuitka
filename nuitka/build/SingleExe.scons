@@ -455,7 +455,7 @@ if show_scons_mode:
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
-    env["CC"] = os.environ["CC"]
+    env["CC"] = os.path.expanduser(os.environ["CC"])
     env["CCVERSION"] = None
     found_gcc = True
 elif clang_mode:
