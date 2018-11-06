@@ -319,7 +319,7 @@ def detectVersion(env, cc):
     line = pipe.stdout.readline()
 
     if str is not bytes and type(line) is bytes:
-        line = line.decode("utf8")
+        line = line.decode(sys.stdout.encoding)
 
     match = re.findall(r'[0-9]+(?:\.[0-9]+)+', line)
     if match:
@@ -556,13 +556,13 @@ def setupSpawn(env):
                 print(cmdline)
 
             if str is not bytes:
-                data = data.decode("utf8")
+                data = data.decode(sys.stdout.encoding)
 
             print(data, end = "")
 
         if err:
             if str is not bytes:
-                err = err.decode("utf8")
+                err = err.decode(sys.stdout.encoding)
 
             print(err, end = "")
 
@@ -1157,7 +1157,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
         sys.exit('Error, unexpected error from "gendef.exe" %s.' % stderr)
 
     if str is not bytes:
-        defs = defs.decode("utf8")
+        defs = defs.decode(sys.stdout.encoding)
 
     defs_filename = os.path.join(
         new_win_lib_path,
@@ -1408,7 +1408,7 @@ def _getLinkerArch():
             return None
 
         if str is not bytes:
-            data = data.decode("utf8")
+            data = data.decode(sys.stdout.encoding)
 
         for line in data.splitlines():
             if " file format " in line:
