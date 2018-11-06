@@ -124,6 +124,8 @@ static_libpython = getBoolOption("static_libpython", False)
 # no longer cross compile this way.
 win_target = os.name == "nt"
 
+macosx_target = sys.platform == "darwin"
+
 # Windows subsystem mode: Disable console for windows builds.
 win_disable_console = getBoolOption("win_disable_console", False)
 
@@ -135,7 +137,7 @@ unstripped_mode = getBoolOption("unstripped_mode", False)
 
 # Clang compiler mode, forced on MacOS X and FreeBSD, optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
-if sys.platform == "darwin" or "freebsd" in sys.platform:
+if macosx_target or "freebsd" in sys.platform:
     clang_mode = True
 
 # MinGW compiler mode, optional and interesting to Windows only.
@@ -1234,7 +1236,7 @@ if win_target:
 
         env.Append(LIBPATH = [win_lib_path])
         env.Append(LIBS = [win_lib_name])
-elif not module_mode:
+elif not module_mode or (macosx_target and not static_libpython):
     # Add the python library path to the library path
     python_lib_path = os.path.join(python_prefix, "lib")
     env.Append(LIBPATH = [python_lib_path])
@@ -1244,7 +1246,9 @@ elif not module_mode:
         "libpython" + python_abi_version + ".a"
     )
 
-    if static_libpython and os.path.exists(static_lib_filename):
+    if not module_mode and \
+       static_libpython and \
+       os.path.exists(static_lib_filename):
         env.Append(LIBS = [File(static_lib_filename)])  # @UndefinedVariable
     else:
         # Debian and Ubuntu distinguish the system libraries like this.
@@ -1319,7 +1323,7 @@ if debug_mode or unstripped_mode:
         )
 else:
     if gcc_mode:
-        if sys.platform == "darwin":
+        if macosx_target:
             env.Append(
                 LINKFLAGS = ["-Wno-deprecated-declarations"]
             )
@@ -1361,7 +1365,7 @@ if win_target and target_arch == "x86_64" and gcc_mode:
     )
 
 # Set load libpython from binary directory default
-if gcc_mode and sys.platform != "darwin" and not win_target and not module_mode:
+if gcc_mode and not macosx_target and not win_target and not module_mode:
     if standalone_mode:
         rpath = "$$ORIGIN"
     else:
@@ -1928,7 +1932,7 @@ if uninstalled_python:
             getWindowsPythonDLLPath(),
             os.path.dirname(result_basepath) or '.'
         )
-    elif sys.platform == "darwin" and not module_mode:
+    elif macosx_target and not module_mode:
         # TODO: Move this to where we do it for Linux already.
 
         python_dll_filename = "libpython" + python_abi_version + ".dylib"
