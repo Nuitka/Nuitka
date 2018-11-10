@@ -15,7 +15,7 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Globals/locals/dir1 nodes
+""" Globals/locals/singe arg dir nodes
 
 These nodes give access to variables, highly problematic, because using them,
 the code may change or access anything about them, so nothing can be trusted
@@ -211,5 +211,13 @@ class ExpressionBuiltinDir1(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_DIR1"
 
     def computeExpression(self, trace_collection):
-        # TODO: Quite some cases should be possible to predict.
+        # TODO: Quite some cases should be possible to predict and this
+        # should be using a slot, with "__dir__" being overloaded or not.
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
