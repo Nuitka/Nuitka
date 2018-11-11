@@ -307,12 +307,17 @@ def detectVersion(env, cc):
         return v_cache[clvar]
 
     if show_scons_mode:
-        print("Scons CC %r version check" % cc)
+        print("Scons CC %r version check:" % cc)
+
+    if clvar[0] in ("gcc", "g++", "clang"):
+        command = list(clvar) + ["-dumpversion"]
+    else:
+        command = list(clvar) + ["--version"]
 
     #pipe = SCons.Action._subproc(env, SCons.Util.CLVar(cc) + ['-dumpversion'],
     pipe = SCons.Action._subproc(
         env,
-        list(clvar) + ["--version"],
+        command,
         stdin  = "devnull",
         stderr = "devnull",
         stdout = subprocess.PIPE
@@ -323,12 +328,17 @@ def detectVersion(env, cc):
     if str is not bytes and type(line) is bytes:
         line = line.decode(sys.stdout.encoding)
 
+    line = line.strip()
+
     match = re.findall(r'[0-9]+(?:\.[0-9]+)+', line)
     if match:
-        version = match[-1]
+        version = match[0]
+    elif line.isdigit():
+        # gcc 8 or higher
+        version = line.strip()
 
     if show_scons_mode:
-        print("Scons CC %r version check gives %r" % (cc, version))
+        print("Scons CC %r version check gives %r from %r" % (cc, version, line))
 
     # Non-GNU compiler's output (like AIX xlc's) may exceed the stdout buffer:
     # So continue with reading to let the child process actually terminate.
@@ -689,7 +699,7 @@ if gcc_mode:
     )
 
 # Support for clang.
-if "clang" in the_compiler:
+if "clang" in the_cc_name:
     env.Append(
         CCFLAGS = ["-w"]
     )
@@ -711,7 +721,7 @@ if "clang" in the_compiler:
         )
 
 # Support details for real g++, not clang++.
-if gcc_mode and "clang" not in the_compiler:
+if gcc_mode and "clang" not in the_cc_name:
     # Don't export anything by default, this should create smaller executables.
 
     gcc_version = detectVersion(env, the_compiler)
@@ -851,7 +861,7 @@ if mingw_mode:
     )
 
 # At least older MinGW64 has issues with this, so disable it.
-if mingw_mode and gcc_version < "6":
+if mingw_mode and gcc_version < '6':
     env.Append(
         LINKFLAGS = ["-Wl,--no-gc-sections"]
     )
@@ -1318,7 +1328,7 @@ if debug_mode or unstripped_mode:
             ASFLAGS = ["-g"]
         )
 
-        if "gcc" in the_compiler or "g++" in the_compiler:
+        if "gcc" in the_cc_name or "g++" in the_cc_name:
             env.Append(
                 CCFLAGS = ["-feliminate-unused-debug-types"]
             )
@@ -1511,7 +1521,7 @@ env.Append(
 
 # Tell compiler to create a shared library or program.
 if module_mode:
-    if "gcc" in the_compiler or "g++" in the_compiler:
+    if "gcc" in the_cc_name or "g++" in the_cc_name:
         env.Append(
             CCFLAGS = ["-shared"]
         )
@@ -1522,7 +1532,7 @@ if module_mode:
             CCFLAGS = ["/LD"]
         )
     else:
-        assert False
+        assert False, the_cc_name
 else:
     if msvc_mode:
         env.Append(
