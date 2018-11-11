@@ -727,6 +727,15 @@ The gcc compiler %s (version %s) doesn't have the sufficient \
 version (>= 4.4).""" % (the_compiler, gcc_version)
         )
 
+    # CondaCC or newer.
+    if mingw_mode and gcc_version < "5.3":
+        sys.exit(
+            """\
+The MinGW64 compiler %s (version %s) doesn't have the sufficient \
+version (>= 5.3).""" % (the_compiler, gcc_version)
+        )
+
+
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
     # care.
     if gcc_version < "4.5":
