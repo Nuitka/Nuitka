@@ -18,14 +18,14 @@ echo "Installing the Debian package."
 dpkg -i /tmp/buildd/*.deb || true
 apt-get install -y -f "${APTGETOPT[@]}"
 
-# Run tests with the installed one only.
-export NUITKA=/usr/bin/nuitka
 
 # Remove tests that only work in checkouts.
 rm tests/basics/Referencing*.py
 
-# Run the basic tests with default options.
+# Run the basic tests with default options and installed nuitka.
+export NUITKA=/usr/bin/nuitka
 python2 ./tests/basics/run_all.py search
+export NUITKA=/usr/bin/nuitka3
 python3 ./tests/basics/run_all.py search
 
 echo "Thanks passed the tests with installed package it seems."
