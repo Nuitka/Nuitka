@@ -84,7 +84,8 @@ def getCPythonResults(cpython_cmd, cpython_cached):
 
         for element in cpython_cmd:
             if os.path.exists(element):
-                command_hash.update(open(element, "rb").read())
+                with open(element, "rb") as element_file:
+                    command_hash.update(element_file.read())
 
         cache_filename = os.path.join(
             getTestingCPythonOutputsCacheDir(),
