@@ -181,7 +181,7 @@ class Variable(object):
     def hasWritesOutsideOf(self, user):
         if not complete:
             return None
-        elif user in self.writers:
+        elif self.writers is not None and user in self.writers:
             return len(self.writers) > 1
         else:
             return bool(self.writers)

@@ -451,12 +451,9 @@ class TraceCollectionBase(CollectionTracingMixin):
 
                 self.markActiveVariableAsUnknown(variable)
 
-            elif variable.isLocalVariable() and \
-                (python_version >= 300 or variable.isSharedTechnically() is not False):
-                # TODO: Could be limited to shared variables that are actually
-                # written to. Most of the time, that won't be the case.
-
-                self.markActiveVariableAsUnknown(variable)
+            elif variable.isLocalVariable():
+                if python_version >= 300 and variable.hasWritesOutsideOf(self.owner) is not False:
+                    self.markActiveVariableAsUnknown(variable)
 
     def removeAllKnowledge(self):
         self.markActiveVariablesAsUnknown()
