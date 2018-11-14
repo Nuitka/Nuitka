@@ -32,7 +32,12 @@ from nuitka.containers.oset import OrderedSet
 from nuitka.importing.ImportCache import getImportedModuleByNameAndPath
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
-from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    ShapeTypeDict,
+    ShapeTypeInt,
+    ShapeTypeIntOrLong,
+    ShapeTypeLong
+)
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceLine
 from nuitka.utils.FileOperations import relpath
@@ -122,6 +127,13 @@ class CollectionTracingMixin(object):
         if current_shape not in shapes:
             shapes = set(shapes)
             shapes.add(current_shape)
+
+        if python_version < 300:
+            if ShapeTypeIntOrLong in shapes:
+                if ShapeTypeInt in shapes:
+                    shapes.discard(ShapeTypeInt)
+                if ShapeTypeLong in shapes:
+                    shapes.discard(ShapeTypeLong)
 
         # print(initial, shapes)
 
