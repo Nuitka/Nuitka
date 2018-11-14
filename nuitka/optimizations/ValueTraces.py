@@ -361,7 +361,6 @@ class ValueTraceLoopInitial(ValueTraceBase):
             previous.addLoopUsage()
 
 
-
 class ValueTraceLoopComplete(ValueTraceLoopInitial):
     __slots__ = ()
 
@@ -372,7 +371,10 @@ class ValueTraceLoopComplete(ValueTraceLoopInitial):
 
     def getTypeShape(self):
         if self.type_shape is None:
-            self.type_shape = ShapeLoopCompleteAlternative(self.type_shapes)
+            if len(self.type_shapes) > 1:
+                self.type_shape = ShapeLoopCompleteAlternative(self.type_shapes)
+            else:
+                self.type_shape = next(iter(self.type_shapes))
 
         return self.type_shape
 
