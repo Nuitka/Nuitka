@@ -26,6 +26,6 @@ rm tests/basics/Referencing*.py
 export NUITKA=/usr/bin/nuitka
 python2 ./tests/basics/run_all.py search
 export NUITKA=/usr/bin/nuitka3
-python3 ./tests/basics/run_all.py search
+$(head -n1 /usr/bin/nuitka3 | cut -d'!' -f2) ./tests/basics/run_all.py search
 
 echo "Thanks passed the tests with installed package it seems."
