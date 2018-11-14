@@ -1963,6 +1963,269 @@ NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_BYTES_BYTES(PyObject 
 }
 #endif
 
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_LONG_OBJECT(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand1));
+    assert(NEW_STYLE_NUMBER(operand1));
+
+    binaryfunc slot1 = NULL;
+    binaryfunc slot2 = NULL;
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
+        slot1 = type1->tp_as_number->nb_add;
+    }
+
+    if (type1 != type2) {
+        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
+            slot2 = type2->tp_as_number->nb_add;
+
+            if (slot1 == slot2) {
+                slot2 = NULL;
+            }
+        }
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 && PyType_IsSubtype(type2, type1)) {
+            PyObject *x = slot2(operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                if (unlikely(x == NULL)) {
+                    return NULL;
+                }
+
+                return x;
+            }
+
+            Py_DECREF(x);
+            slot2 = NULL;
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 300
+    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
+        int err = PyNumber_CoerceEx(&operand1, &operand2);
+
+        if (unlikely(err < 0)) {
+            return NULL;
+        }
+
+        if (err == 0) {
+            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
+
+            if (mv) {
+                binaryfunc slot = mv->nb_add;
+
+                if (slot != NULL) {
+                    PyObject *x = slot(operand1, operand2);
+
+                    Py_DECREF(operand1);
+                    Py_DECREF(operand2);
+
+                    if (unlikely(x == NULL)) {
+                        return NULL;
+                    }
+
+                    return x;
+                }
+            }
+
+            // CoerceEx did that
+            Py_DECREF(operand1);
+            Py_DECREF(operand2);
+        }
+    }
+#endif
+
+    // Special case for "+", also works as sequence concat.
+    PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
+
+    if (seq_methods && seq_methods->sq_concat) {
+        PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
+
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        return result;
+    }
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
+
+    return NULL;
+}
+
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+
+    binaryfunc slot1 = NULL;
+    binaryfunc slot2 = NULL;
+
+    PyTypeObject *type1 = Py_TYPE(operand1);
+    PyTypeObject *type2 = Py_TYPE(operand2);
+
+    if (type1->tp_as_number != NULL && NEW_STYLE_NUMBER(operand1)) {
+        slot1 = type1->tp_as_number->nb_add;
+    }
+
+    if (type1 != type2) {
+        if (type2->tp_as_number != NULL && NEW_STYLE_NUMBER(operand2)) {
+            slot2 = type2->tp_as_number->nb_add;
+
+            if (slot1 == slot2) {
+                slot2 = NULL;
+            }
+        }
+    }
+
+    if (slot1 != NULL) {
+        if (slot2 && PyType_IsSubtype(type2, type1)) {
+            PyObject *x = slot2(operand1, operand2);
+
+            if (x != Py_NotImplemented) {
+                if (unlikely(x == NULL)) {
+                    return NULL;
+                }
+
+                return x;
+            }
+
+            Py_DECREF(x);
+            slot2 = NULL;
+        }
+
+        PyObject *x = slot1(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+    if (slot2 != NULL) {
+        PyObject *x = slot2(operand1, operand2);
+
+        if (x != Py_NotImplemented) {
+            if (unlikely(x == NULL)) {
+                return NULL;
+            }
+
+            return x;
+        }
+
+        Py_DECREF(x);
+    }
+
+#if PYTHON_VERSION < 300
+    if (!NEW_STYLE_NUMBER(operand1) || !NEW_STYLE_NUMBER(operand2)) {
+        int err = PyNumber_CoerceEx(&operand1, &operand2);
+
+        if (unlikely(err < 0)) {
+            return NULL;
+        }
+
+        if (err == 0) {
+            PyNumberMethods *mv = Py_TYPE(operand1)->tp_as_number;
+
+            if (mv) {
+                binaryfunc slot = mv->nb_add;
+
+                if (slot != NULL) {
+                    PyObject *x = slot(operand1, operand2);
+
+                    Py_DECREF(operand1);
+                    Py_DECREF(operand2);
+
+                    if (unlikely(x == NULL)) {
+                        return NULL;
+                    }
+
+                    return x;
+                }
+            }
+
+            // CoerceEx did that
+            Py_DECREF(operand1);
+            Py_DECREF(operand2);
+        }
+    }
+#endif
+
+    // Special case for "+", also works as sequence concat.
+    PySequenceMethods *seq_methods = Py_TYPE(operand1)->tp_as_sequence;
+
+    if (seq_methods && seq_methods->sq_concat) {
+        PyObject *result = (*seq_methods->sq_concat)(operand1, operand2);
+
+        if (unlikely(result == NULL)) {
+            return NULL;
+        }
+
+        return result;
+    }
+
+    PyErr_Format(PyExc_TypeError, "unsupported operand type(s) for +: '%s' and '%s'", type1->tp_name, type2->tp_name);
+
+    return NULL;
+}
+
+
+NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_LONG_LONG(PyObject *operand1, PyObject *operand2) {
+    CHECK_OBJECT(operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand1));
+    assert(PyLong_CheckExact(operand2));
+    assert(NEW_STYLE_NUMBER(operand1));
+    assert(NEW_STYLE_NUMBER(operand2));
+
+    binaryfunc slot1 = PyLong_Type.tp_as_number->nb_add;
+
+    PyObject *x = slot1(operand1, operand2);
+
+    if (unlikely(x == NULL)) {
+        return NULL;
+    }
+
+    return x;
+}
+
 NUITKA_MAY_BE_UNUSED static PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -2568,6 +2831,99 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_FLOAT_INPLACE(PyObj
     return true;
 }
 
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_FLOAT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(*operand1));
+
+    if (Py_REFCNT(*operand1) == 1 && PyFloat_CheckExact(operand2)) {
+        return FLOAT_ADD_INCREMENTAL(operand1, operand2);
+    }
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(operand2));
+
+    // TODO: Consider adding this shortcut, we might often be able to use
+    // existing values at least in case of smaller right hand side, but it
+    // may equally often not work out and not be worth it. CPython doesn't
+    // try it.
+#if 0
+    if (PyLong_CheckExact(*operand1)) {
+        // Adding floats to a new float could get special code too.
+        if (Py_REFCNT(*operand1) == 1) {
+            return LONG_ADD_INCREMENTAL(operand1, operand2);
+        }
+    }
+#endif
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LONG_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(*operand1));
+
+// TODO: Consider adding this shortcut, we might often be able to use
+// existing values at least in case of smaller right hand side, but it
+// may equally often not work out and not be worth it. CPython doesn't
+// try it.
+#if 0
+    if (Py_REFCNT(*operand1) == 1 && PyLong_CheckExact(operand2)) {
+        return LONG_ADD_INCREMENTAL(operand1, operand2);
+    }
+#endif
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1);
     CHECK_OBJECT(*operand1);
@@ -2829,28 +3185,6 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE(PyObje
 }
 
 #endif
-
-NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
-    assert(operand1);
-    CHECK_OBJECT(*operand1);
-    CHECK_OBJECT(operand2);
-    assert(PyLong_CheckExact(operand2));
-
-    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
-
-    if (unlikely(result == NULL)) {
-        return false;
-    }
-
-    // We got an object handed, that we have to release.
-    Py_DECREF(*operand1);
-
-    // That's our return value then. As we use a dedicated variable, it's
-    // OK that way.
-    *operand1 = result;
-
-    return true;
-}
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1);

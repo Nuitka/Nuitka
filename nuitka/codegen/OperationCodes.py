@@ -126,9 +126,10 @@ _shape_to_helper_code = {
 
 if python_version < 300:
     _shape_to_helper_code[ShapeTypeInt] = "INT"
+    _shape_to_helper_code[ShapeTypeLong] = "LONG"
     _shape_to_helper_code[ShapeTypeStr] = "STR"
 else:
-    _shape_to_helper_code[ShapeTypeLong] = "LONG"
+    _shape_to_helper_code[ShapeTypeInt] = "LONG"
     _shape_to_helper_code[ShapeTypeBytes] = "BYTES"
 
 _add_helpers_set = set(
@@ -136,6 +137,7 @@ _add_helpers_set = set(
         "BINARY_OPERATION_ADD_OBJECT_OBJECT",
 
         "BINARY_OPERATION_ADD_OBJECT_INT",
+        "BINARY_OPERATION_ADD_OBJECT_LONG",
         "BINARY_OPERATION_ADD_OBJECT_STR",
         "BINARY_OPERATION_ADD_FLOAT_OBJECT",
         "BINARY_OPERATION_ADD_OBJECT_UNICODE",
@@ -144,6 +146,7 @@ _add_helpers_set = set(
         "BINARY_OPERATION_ADD_OBJECT_BYTES",
 
         "BINARY_OPERATION_ADD_INT_OBJECT",
+        "BINARY_OPERATION_ADD_LONG_OBJECT",
         "BINARY_OPERATION_ADD_STR_OBJECT",
         "BINARY_OPERATION_ADD_OBJECT_FLOAT",
         "BINARY_OPERATION_ADD_UNICODE_OBJECT",
@@ -152,6 +155,7 @@ _add_helpers_set = set(
         "BINARY_OPERATION_ADD_BYTES_OBJECT",
 
         "BINARY_OPERATION_ADD_INT_INT",
+        "BINARY_OPERATION_ADD_LONG_LONG",
         "BINARY_OPERATION_ADD_STR_STR",
         "BINARY_OPERATION_ADD_FLOAT_FLOAT",
         "BINARY_OPERATION_ADD_UNICODE_UNICODE",
