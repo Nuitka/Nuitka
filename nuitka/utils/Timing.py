@@ -37,8 +37,13 @@ class StopWatch(object):
     def start(self):
         self.start_time = timer()
 
+    def restart(self):
+        self.start()
+
     def end(self):
         self.end_time = timer()
+
+    stop = end
 
     def delta(self):
         return self.end_time - self.start_time
