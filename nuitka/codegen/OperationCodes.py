@@ -62,7 +62,6 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
         operator    = expression.getOperator(),
         arg_names   = (left_arg_name, right_arg_name),
         in_place    = inplace,
-        needs_check = expression.mayRaiseException(BaseException),
         emit        = emit,
         context     = context
     )
@@ -219,13 +218,15 @@ def _pickHelper(prefix, suffix, left_shape, right_shape, helpers):
 
 
 def _getBinaryOperationCode(to_name, expression, operator, arg_names, in_place,
-                            needs_check, emit, context):
+                            emit, context):
     # This needs to have one case per operation of Python, and there are many
     # of these, pylint: disable=too-many-branches,too-many-statements
     left = expression.getLeft()
 
     prefix_args = ()
     ref_count = 1
+
+    needs_check = expression.mayRaiseExceptionOperation()
 
     if operator == "Pow":
         helper = "POWER_OPERATION"

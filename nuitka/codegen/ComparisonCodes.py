@@ -122,7 +122,7 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
 
         return
     elif comparator in OperatorCodes.rich_comparison_codes:
-        needs_check = expression.mayRaiseExceptionBool(BaseException)
+        needs_check = expression.mayRaiseExceptionComparison()
 
         c_type = to_name.getCType()
 

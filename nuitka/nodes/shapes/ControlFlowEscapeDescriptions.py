@@ -57,7 +57,7 @@ class ControlFlowDescriptionFullEscape(ControlFlowDescriptionBase):
 class ControlFlowDescriptionNoEscape(ControlFlowDescriptionBase):
     @staticmethod
     def getExceptionExit():
-        return BaseException
+        return None
 
     @staticmethod
     def isValueEscaping():

@@ -125,6 +125,10 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
     getLeft = ExpressionChildrenHavingBase.childGetter("left")
     getRight = ExpressionChildrenHavingBase.childGetter("right")
 
+    def mayRaiseExceptionOperation(self):
+        # TODO: This is to keep the same way as before before specializing to
+        # actual optimal stuff.
+        return self.mayRaiseException(BaseException)
 
 class ExpressionOperationBinary(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY"
@@ -212,6 +216,12 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
 
     def mayRaiseException(self, exception_type):
         # TODO: Match more precisely
+        return self.escape_desc is None or \
+               self.escape_desc.getExceptionExit() is not None or \
+               self.subnode_left.mayRaiseException(exception_type) or \
+               self.subnode_right.mayRaiseException(exception_type)
+
+    def mayRaiseExceptionOperation(self):
         return self.escape_desc is None or \
                self.escape_desc.getExceptionExit() is not None
 

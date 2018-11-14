@@ -175,6 +175,12 @@ class ExpressionComparisonRichBase(ExpressionComparisonBase):
     def mayRaiseException(self, exception_type):
         # TODO: Match more precisely
         return self.escape_desc is None or \
+               self.escape_desc.getExceptionExit() is not None or \
+               self.subnode_left.mayRaiseException(exception_type) or \
+               self.subnode_right.mayRaiseException(exception_type)
+
+    def mayRaiseExceptionComparison(self):
+        return self.escape_desc is None or \
                self.escape_desc.getExceptionExit() is not None
 
 
