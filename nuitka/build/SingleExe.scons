@@ -192,6 +192,14 @@ python_sysflag_utf8 = getBoolOption("python_sysflag_utf8", False)
 python_sysflag_optimize = getBoolOption("python_sysflag_optimize", False)
 
 
+# Mode to only output compiler information, for use in "nuitka --version"
+# only.
+compiler_version_mode = getBoolOption("compiler_version", False)
+
+def printCompilerVersionOutput(*args):
+    if compiler_version_mode or show_scons_mode:
+        print("SCONS: ", *args)
+
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")  # @UndefinedVariable
 
@@ -202,12 +210,15 @@ if "CC" in os.environ:
     if os.path.isdir(cc_dirname):
         os.environ["PATH"] = os.pathsep.join([cc_dirname] + os.environ["PATH"].split(os.pathsep))
 
+    printCompilerVersionOutput("CC=%r" % os.environ["CC"])
+
 if "CXX" in os.environ:
     cxx_dirname = os.path.dirname(os.environ["CXX"])
 
     if os.path.isdir(cxx_dirname):
         os.environ["PATH"] = os.pathsep.join([cxx_dirname] + os.environ["PATH"].split(os.pathsep))
 
+    printCompilerVersionOutput("CXX=%r" % os.environ["CXX"])
 
 def getExecutablePath(filename, initial):
     """ Find an execute in either normal PATH, or Scons detected PATH. """
@@ -436,6 +447,8 @@ else:
     # Everything else should use default.
     compiler_tools = ["default"]
 
+printCompilerVersionOutput("Tools=", compiler_tools)
+
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(
@@ -455,9 +468,11 @@ if win_target and \
     if os.path.isdir(anaconda_mingw_dir):
         os.environ["PATH"] = os.pathsep.join([anaconda_mingw_dir] + os.environ["PATH"].split(os.pathsep))
 
-    env = createEnvironment(
-        compiler_tools = ["mingw"]
-    )
+        env = createEnvironment(
+            compiler_tools = ["mingw"]
+        )
+
+        printCompilerVersionOutput("CC not found, attemping installed CondaCC")
 
 if show_scons_mode:
     print("Initial CC:", env.get("CC", None))
@@ -475,7 +490,6 @@ elif clang_mode:
     # said in environment.
     env["CC"] = "clang"
     env["CCVERSION"] = None
-
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
@@ -583,8 +597,10 @@ def setupSpawn(env):
     env["SPAWN"] = spawn
 
 the_compiler = env["CC"] or env["CXX"]
+printCompilerVersionOutput("Picked compiler=", the_compiler)
 
 the_cc_name = os.path.normcase(os.path.basename(the_compiler))
+printCompilerVersionOutput("Picked name=", the_cc_name)
 
 # Requested or user provided, detect if it's clang even from environment
 if "clang" in the_cc_name and "-cl" not in the_cc_name:
