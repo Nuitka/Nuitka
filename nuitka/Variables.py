@@ -172,6 +172,8 @@ class Variable(object):
 
             if trace.isAssignTrace():
                 writers.add(owner)
+            elif trace.isUninitTrace() and owner is not self.owner:
+                writers.add(owner)
 
         self.writers = writers
         self.users = users
