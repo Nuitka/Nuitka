@@ -80,6 +80,14 @@ class ExpressionBuiltinFormat(ExpressionChildrenHavingBase):
 Removed useless 'format' on '%s' value.""" % value.getTypeShape().getTypeName()
                 )
 
+        # TODO: Provide "__format__" slot based handling.
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
         return self, None, None
 
     getValue = ExpressionChildrenHavingBase.childGetter("value")
