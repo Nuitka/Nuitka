@@ -2857,6 +2857,34 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_FLOAT_OBJECT_INPLACE(PyObj
     return true;
 }
 
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_FLOAT_FLOAT_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyFloat_CheckExact(*operand1));
+    assert(PyFloat_CheckExact(operand2));
+
+    if (Py_REFCNT(*operand1) == 1) {
+        return FLOAT_ADD_INCREMENTAL(operand1, operand2);
+    }
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
+
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1);
     CHECK_OBJECT(*operand1);
@@ -2923,6 +2951,41 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LONG_OBJECT_INPLACE(PyObje
 
     return true;
 }
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_LONG_LONG_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyLong_CheckExact(*operand1));
+    assert(PyLong_CheckExact(operand2));
+
+    // TODO: Consider adding this shortcut, we might often be able to use
+    // existing values at least in case of smaller right hand side, but it
+    // may equally often not work out and not be worth it. CPython doesn't
+    // try it.
+#if 0
+    // Adding floats to a new float could get special code too.
+    if (Py_REFCNT(*operand1) == 1) {
+        return LONG_ADD_INCREMENTAL(operand1, operand2);
+    }
+#endif
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1);
@@ -3100,6 +3163,37 @@ NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_STR_OBJECT_INPLACE(PyObjec
 
     return true;
 }
+
+NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_ADD_STR_STR_INPLACE(PyObject **operand1, PyObject *operand2) {
+    assert(operand1);
+    CHECK_OBJECT(*operand1);
+    CHECK_OBJECT(operand2);
+    assert(PyString_CheckExact(*operand1));
+    assert(PyString_CheckExact(operand2));
+
+    if (!PyString_CHECK_INTERNED(*operand1) && Py_REFCNT(*operand1) == 1) {
+        return STRING_ADD_INCREMENTAL(operand1, operand2);
+    }
+
+    PyString_Concat(operand1, operand2);
+    return !ERROR_OCCURRED();
+
+    PyObject *result = PyNumber_InPlaceAdd(*operand1, operand2);
+
+    if (unlikely(result == NULL)) {
+        return false;
+    }
+
+    // We got an object handed, that we have to release.
+    Py_DECREF(*operand1);
+
+    // That's our return value then. As we use a dedicated variable, it's
+    // OK that way.
+    *operand1 = result;
+
+    return true;
+}
+
 #endif
 
 #if PYTHON_VERSION >= 300
