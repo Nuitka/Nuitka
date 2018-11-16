@@ -133,6 +133,12 @@ class ShapeTypeBool(ShapeBase):
         if right_shape is ShapeTypeIntOrLongDerived:
             return operation_result_unknown
 
+        if type(right_shape) is ShapeLoopCompleteAlternative:
+            return right_shape.getOperationBinaryAddLShape(cls)
+
+        if type(right_shape) is ShapeLoopInitialAlternative:
+            return operation_result_unknown
+
         onMissingOperation("Add", cls, right_shape)
         return operation_result_unknown
 
@@ -206,6 +212,12 @@ class ShapeTypeInt(ShapeBase):
         if right_shape is ShapeTypeFloat:
             return operation_result_float_noescape
 
+        if type(right_shape) is ShapeLoopCompleteAlternative:
+            return right_shape.getOperationBinaryAddLShape(cls)
+
+        if type(right_shape) is ShapeLoopInitialAlternative:
+            return operation_result_unknown
+
         onMissingOperation("Add", cls, right_shape)
         return operation_result_unknown
 
@@ -269,9 +281,14 @@ class ShapeTypeLong(ShapeBase):
                            ShapeTypeBool):
             return operation_result_long_noescape
 
+        if type(right_shape) is ShapeLoopCompleteAlternative:
+            return right_shape.getOperationBinaryAddLShape(cls)
+
+        if type(right_shape) is ShapeLoopInitialAlternative:
+            return operation_result_unknown
+
         onMissingOperation("Add", cls, right_shape)
         return operation_result_unknown
-
 
     @classmethod
     def getOperationBinaryAddLShape(cls, left_shape):
@@ -361,6 +378,12 @@ if python_version < 300:
 
             if right_shape is ShapeTypeLong:
                 return operation_result_long_noescape
+
+            if type(right_shape) is ShapeLoopCompleteAlternative:
+                return right_shape.getOperationBinaryAddLShape(cls)
+
+            if type(right_shape) is ShapeLoopInitialAlternative:
+                return operation_result_unknown
 
             onMissingOperation("Add", cls, right_shape)
             return operation_result_unknown
@@ -461,6 +484,12 @@ class ShapeTypeFloat(ShapeBase):
             return operation_result_float_noescape
 
         if right_shape is ShapeTypeFloatDerived:
+            return operation_result_unknown
+
+        if type(right_shape) is ShapeLoopCompleteAlternative:
+            return right_shape.getOperationBinaryAddLShape(cls)
+
+        if type(right_shape) is ShapeLoopInitialAlternative:
             return operation_result_unknown
 
         onMissingOperation("Add", cls, right_shape)
@@ -564,6 +593,12 @@ class ShapeTypeComplex(ShapeBase):
         if right_shape is ShapeTypeFloatDerived:
             return operation_result_unknown
 
+        if type(right_shape) is ShapeLoopCompleteAlternative:
+            return right_shape.getOperationBinaryAddLShape(cls)
+
+        if type(right_shape) is ShapeLoopInitialAlternative:
+            return operation_result_unknown
+
         onMissingOperation("Add", cls, right_shape)
         return operation_result_unknown
 
@@ -618,6 +653,12 @@ class ShapeTypeTuple(ShapeBase):
 
         if right_shape is ShapeTypeTuple:
             return operation_result_tuple_noescape
+
+        if type(right_shape) is ShapeLoopCompleteAlternative:
+            return right_shape.getOperationBinaryAddLShape(cls)
+
+        if type(right_shape) is ShapeLoopInitialAlternative:
+            return operation_result_unknown
 
         onMissingOperation("Add", cls, right_shape)
         return operation_result_unknown
@@ -697,6 +738,12 @@ class ShapeTypeList(ShapeBase):
 
         if right_shape is ShapeTypeList:
             return operation_result_list_noescape
+
+        if type(right_shape) is ShapeLoopCompleteAlternative:
+            return right_shape.getOperationBinaryAddLShape(cls)
+
+        if type(right_shape) is ShapeLoopInitialAlternative:
+            return operation_result_unknown
 
         onMissingOperation("Add", cls, right_shape)
         return operation_result_unknown
@@ -960,6 +1007,12 @@ class ShapeTypeStr(ShapeBase):
         if type(right_shape) is ShapeLoopInitialAlternative:
             return operation_result_unknown
 
+        if type(right_shape) is ShapeLoopCompleteAlternative:
+            return right_shape.getOperationBinaryAddLShape(cls)
+
+        if type(right_shape) is ShapeLoopInitialAlternative:
+            return operation_result_unknown
+
         onMissingOperation("Add", cls, right_shape)
         return operation_result_unknown
 
@@ -1062,6 +1115,12 @@ if python_version < 300:
                 return operation_result_unicode_noescape
 
             if right_shape is ShapeTypeUnicodeDerived:
+                return operation_result_unknown
+
+            if type(right_shape) is ShapeLoopCompleteAlternative:
+                return right_shape.getOperationBinaryAddLShape(cls)
+
+            if type(right_shape) is ShapeLoopInitialAlternative:
                 return operation_result_unknown
 
             onMissingOperation("Add", cls, right_shape)
@@ -1203,6 +1262,12 @@ if python_version >= 300:
             if right_shape is ShapeTypeBytesDerived:
                 return operation_result_unknown
 
+            if type(right_shape) is ShapeLoopCompleteAlternative:
+                return right_shape.getOperationBinaryAddLShape(cls)
+
+            if type(right_shape) is ShapeLoopInitialAlternative:
+                return operation_result_unknown
+
             onMissingOperation("Add", cls, right_shape)
             return operation_result_unknown
 
@@ -1327,6 +1392,12 @@ class ShapeTypeBytearray(ShapeBase):
             else:
                 # TODO: Exception actually for static optimization.
                 return operation_result_unknown
+
+        if type(right_shape) is ShapeLoopCompleteAlternative:
+            return right_shape.getOperationBinaryAddLShape(cls)
+
+        if type(right_shape) is ShapeLoopInitialAlternative:
+            return operation_result_unknown
 
         onMissingOperation("Add", cls, right_shape)
         return operation_result_unknown
