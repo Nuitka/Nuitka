@@ -2003,6 +2003,9 @@ void _initSlotIternext() {
 
 #include "HelpersAttributes.c"
 
+#include "HelpersOperationBinaryAdd.c"
+#include "HelpersOperationBinaryInplaceAdd.c"
+
 #if _NUITKA_PROFILE
 #include "HelpersProfiling.c"
 #endif
