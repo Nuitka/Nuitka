@@ -22,25 +22,14 @@ of course types could play into it. Then there is also the added difficulty of
 in-place assignments, which have other operation variants.
 """
 
-from nuitka.nodes.shapes.BuiltinTypeShapes import (
-    ShapeTypeBytes,
-    ShapeTypeFloat,
-    ShapeTypeInt,
-    ShapeTypeList,
-    ShapeTypeLong,
-    ShapeTypeStr,
-    ShapeTypeTuple,
-    ShapeTypeUnicode
-)
-from nuitka.PythonVersions import python_version
 
 from . import OperatorCodes
 from .CodeHelpers import (
     generateChildExpressionsCode,
+    pickCodeHelper,
     withObjectCodeTemporaryAssignment
 )
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode
-from .Reports import onMissingHelper
 
 
 def generateOperationBinaryCode(to_name, expression, emit, context):
@@ -57,13 +46,13 @@ def generateOperationBinaryCode(to_name, expression, emit, context):
         expression
 
     _getBinaryOperationCode(
-        to_name     = to_name,
-        expression  = expression,
-        operator    = expression.getOperator(),
-        arg_names   = (left_arg_name, right_arg_name),
-        in_place    = inplace,
-        emit        = emit,
-        context     = context
+        to_name    = to_name,
+        expression = expression,
+        operator   = expression.getOperator(),
+        arg_names  = (left_arg_name, right_arg_name),
+        in_place   = inplace,
+        emit       = emit,
+        context    = context
     )
 
 
@@ -114,23 +103,6 @@ def generateOperationUnaryCode(to_name, expression, emit, context):
         emit        = emit,
         context     = context
     )
-
-# TODO: Have these for even more types, esp. long values, construct from the
-# list of keys the helper name automatically.
-_shape_to_helper_code = {
-    ShapeTypeList    : "LIST",
-    ShapeTypeFloat   : "FLOAT",
-    ShapeTypeTuple   : "TUPLE",
-    ShapeTypeUnicode : "UNICODE",
-}
-
-if python_version < 300:
-    _shape_to_helper_code[ShapeTypeInt] = "INT"
-    _shape_to_helper_code[ShapeTypeLong] = "LONG"
-    _shape_to_helper_code[ShapeTypeStr] = "STR"
-else:
-    _shape_to_helper_code[ShapeTypeInt] = "LONG"
-    _shape_to_helper_code[ShapeTypeBytes] = "BYTES"
 
 _add_helpers_set = set(
     (
@@ -198,31 +170,6 @@ _iadd_helpers_set = set(
     )
 )
 
-def _pickHelper(prefix, suffix, left_shape, right_shape, helpers):
-    left_part = _shape_to_helper_code.get(left_shape, "OBJECT")
-    right_part = _shape_to_helper_code.get(right_shape, "OBJECT")
-
-    ideal_helper = "%s_%s_%s%s" % (
-        prefix,
-        left_part,
-        right_part,
-        suffix
-    )
-
-    if ideal_helper in helpers:
-        return ideal_helper
-
-    onMissingHelper(ideal_helper)
-
-    fallback_helper = "%s_%s_%s%s" % (
-        prefix,
-        "OBJECT",
-        "OBJECT",
-        suffix
-    )
-
-    return fallback_helper
-
 
 def _getBinaryOperationCode(to_name, expression, operator, arg_names, in_place,
                             emit, context):
@@ -242,7 +189,7 @@ def _getBinaryOperationCode(to_name, expression, operator, arg_names, in_place,
     elif operator == "IPow":
         helper = "POWER_OPERATION2"
     elif operator == "Add":
-        helper = _pickHelper(
+        helper = pickCodeHelper(
             prefix      = "BINARY_OPERATION_ADD",
             suffix      = "",
             left_shape  = left.getTypeShape(),
@@ -250,7 +197,7 @@ def _getBinaryOperationCode(to_name, expression, operator, arg_names, in_place,
             helpers     = _add_helpers_set
         )
     elif operator == "IAdd" and in_place:
-        helper = _pickHelper(
+        helper = pickCodeHelper(
             prefix      = "BINARY_OPERATION_ADD",
             suffix      = "_INPLACE",
             left_shape  = left.getTypeShape(),

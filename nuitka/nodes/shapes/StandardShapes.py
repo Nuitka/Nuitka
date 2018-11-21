@@ -28,6 +28,8 @@ class ShapeBase(object):
     def getTypeName():
         return None
 
+    helper_code = "OBJECT"
+
     @staticmethod
     def getCType():
         return CTypePyObjectPtr

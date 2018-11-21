@@ -24,8 +24,73 @@ Rich comparisons, "in", and "not in", also "is", and "is not", and the
 from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeBool
 
 from . import OperatorCodes
-from .CodeHelpers import generateExpressionCode
+from .CodeHelpers import generateExpressionCode, pickCodeHelper
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCodes
+
+_cmp_obj_result_helpers_set = set(
+    (
+        "RICH_COMPARE_xx_OBJECT_OBJECT",
+
+#        "RICH_COMPARE_xx_OBJECT_INT",
+#        "RICH_COMPARE_xx_OBJECT_LONG",
+#        "RICH_COMPARE_xx_OBJECT_STR",
+#        "RICH_COMPARE_xx_FLOAT_OBJECT",
+#        "RICH_COMPARE_xx_OBJECT_UNICODE",
+#        "RICH_COMPARE_xx_OBJECT_TUPLE",
+#        "RICH_COMPARE_xx_OBJECT_LIST",
+#        "RICH_COMPARE_xx_OBJECT_BYTES",
+
+#        "RICH_COMPARE_xx_INT_OBJECT",
+#        "RICH_COMPARE_xx_LONG_OBJECT",
+#        "RICH_COMPARE_xx_STR_OBJECT",
+#        "RICH_COMPARE_xx_OBJECT_FLOAT",
+#        "RICH_COMPARE_xx_UNICODE_OBJECT",
+#        "RICH_COMPARE_xx_TUPLE_OBJECT",
+#        "RICH_COMPARE_xx_LIST_OBJECT",
+#        "RICH_COMPARE_xx_BYTES_OBJECT",
+
+#        "RICH_COMPARE_xx_INT_INT",
+#        "RICH_COMPARE_xx_LONG_LONG",
+#        "RICH_COMPARE_xx_STR_STR",
+#        "RICH_COMPARE_xx_FLOAT_FLOAT",
+#        "RICH_COMPARE_xx_UNICODE_UNICODE",
+#        "RICH_COMPARE_xx_TUPLE_TUPLE",
+#        "RICH_COMPARE_xx_LIST_LIST",
+#        "RICH_COMPARE_xx_BYTES_BYTES",
+    )
+)
+
+_cmp_bool_result_helpers_set = set(
+    (
+        "RICH_COMPARE_BOOL_xx_OBJECT_OBJECT",
+        "RICH_COMPARE_BOOL_xx_OBJECT_INT",
+#        "RICH_COMPARE_BOOL_xx_OBJECT_LONG",
+#        "RICH_COMPARE_BOOL_xx_OBJECT_STR",
+#        "RICH_COMPARE_BOOL_xx_FLOAT_OBJECT",
+#        "RICH_COMPARE_BOOL_xx_OBJECT_UNICODE",
+#        "RICH_COMPARE_BOOL_xx_OBJECT_TUPLE",
+#        "RICH_COMPARE_BOOL_xx_OBJECT_LIST",
+#        "RICH_COMPARE_BOOL_xx_OBJECT_BYTES",
+
+        "RICH_COMPARE_BOOL_xx_INT_OBJECT",
+#        "RICH_COMPARE_BOOL_xx_LONG_OBJECT",
+#        "RICH_COMPARE_BOOL_xx_STR_OBJECT",
+#        "RICH_COMPARE_BOOL_xx_OBJECT_FLOAT",
+#        "RICH_COMPARE_BOOL_xx_UNICODE_OBJECT",
+#        "RICH_COMPARE_BOOL_xx_TUPLE_OBJECT",
+#        "RICH_COMPARE_BOOL_xx_LIST_OBJECT",
+#        "RICH_COMPARE_BOOL_xx_BYTES_OBJECT",
+
+        "RICH_COMPARE_BOOL_xx_INT_INT",
+#        "RICH_COMPARE_BOOL_xx_LONG_LONG",
+#        "RICH_COMPARE_BOOL_xx_STR_STR",
+#        "RICH_COMPARE_BOOL_xx_FLOAT_FLOAT",
+#        "RICH_COMPARE_BOOL_xx_UNICODE_UNICODE",
+#        "RICH_COMPARE_BOOL_xx_TUPLE_TUPLE",
+#        "RICH_COMPARE_BOOL_xx_LIST_LIST",
+#        "RICH_COMPARE_BOOL_xx_BYTES_BYTES",
+    )
+)
 
 
 def generateComparisonExpressionCode(to_name, expression, emit, context):
@@ -124,16 +189,38 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
     elif comparator in OperatorCodes.rich_comparison_codes:
         needs_check = expression.mayRaiseExceptionComparison()
 
+        if comparator == "Eq" and not context.mayRecurse():
+            suffix = "_NORECURSE"
+        else:
+            suffix = ""
+
         c_type = to_name.getCType()
 
         if c_type.c_type == "PyObject *":
-            helper = "RICH_COMPARE_%s" % (
-                OperatorCodes.rich_comparison_codes[ comparator ]
+            helper = pickCodeHelper(
+                prefix       = "RICH_COMPARE_xx",
+                suffix       = suffix,
+                left_shape   = left.getTypeShape(),
+                right_shape  = expression.getRight().getTypeShape(),
+                helpers      = _cmp_obj_result_helpers_set,
+                # TODO: Too many for now, so disable it
+                warn_missing = False
+            )
+        else:
+            helper = pickCodeHelper(
+                prefix       = "RICH_COMPARE_BOOL_xx",
+                suffix       = suffix,
+                left_shape   = left.getTypeShape(),
+                right_shape  = expression.getRight().getTypeShape(),
+                helpers      = _cmp_bool_result_helpers_set,
+                # TODO: Too many for now, so disable it
+                warn_missing = False
             )
 
-            if not context.mayRecurse() and comparator == "Eq":
-                helper += "_NORECURSE"
+        # Lets patch this up here, instead of having one set per operation.
+        helper = helper.replace("xx", comparator.upper())
 
+        if c_type.c_type == "PyObject *":
             emit(
                 "%s = %s( %s, %s );" % (
                     to_name,
@@ -155,12 +242,8 @@ def generateComparisonExpressionCode(to_name, expression, emit, context):
         elif c_type.c_type in ("nuitka_bool", "void"):
             res_name = context.getIntResName()
 
-            helper = OperatorCodes.rich_comparison_codes[comparator]
-            if not context.mayRecurse() and comparator == "Eq":
-                helper += "_NORECURSE"
-
             emit(
-                 "%s = RICH_COMPARE_BOOL_%s( %s, %s );" % (
+                 "%s = %s( %s, %s );" % (
                     res_name,
                     helper,
                     left_name,

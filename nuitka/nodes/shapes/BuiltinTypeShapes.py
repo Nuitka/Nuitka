@@ -37,6 +37,17 @@ from .StandardShapes import (
 )
 
 
+def _getOperationBinaryAddShapeGeneric(cls, right_shape):
+    if type(right_shape) is ShapeLoopCompleteAlternative:
+        return right_shape.getOperationBinaryAddLShape(cls)
+
+    if type(right_shape) is ShapeLoopInitialAlternative:
+        return operation_result_unknown
+
+    onMissingOperation("Add", cls, right_shape)
+    return operation_result_unknown
+
+
 class ShapeTypeNoneType(ShapeBase):
     @staticmethod
     def getTypeName():
@@ -133,14 +144,7 @@ class ShapeTypeBool(ShapeBase):
         if right_shape is ShapeTypeIntOrLongDerived:
             return operation_result_unknown
 
-        if type(right_shape) is ShapeLoopCompleteAlternative:
-            return right_shape.getOperationBinaryAddLShape(cls)
-
-        if type(right_shape) is ShapeLoopInitialAlternative:
-            return operation_result_unknown
-
-        onMissingOperation("Add", cls, right_shape)
-        return operation_result_unknown
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
     @classmethod
     def getComparisonLtShape(cls, right_shape):
@@ -162,6 +166,8 @@ class ShapeTypeInt(ShapeBase):
     @staticmethod
     def getTypeName():
         return "int"
+
+    helper_code = "INT" if python_version < 300 else "LONG"
 
     @staticmethod
     def hasShapeSlotLen():
@@ -212,14 +218,7 @@ class ShapeTypeInt(ShapeBase):
         if right_shape is ShapeTypeFloat:
             return operation_result_float_noescape
 
-        if type(right_shape) is ShapeLoopCompleteAlternative:
-            return right_shape.getOperationBinaryAddLShape(cls)
-
-        if type(right_shape) is ShapeLoopInitialAlternative:
-            return operation_result_unknown
-
-        onMissingOperation("Add", cls, right_shape)
-        return operation_result_unknown
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
     @classmethod
     def getComparisonLtShape(cls, right_shape):
@@ -238,6 +237,8 @@ class ShapeTypeLong(ShapeBase):
     @staticmethod
     def getTypeName():
         return "long"
+
+    helper_code = "LONG" if python_version < 300 else "INVALID"
 
     @staticmethod
     def hasShapeSlotLen():
@@ -281,14 +282,7 @@ class ShapeTypeLong(ShapeBase):
                            ShapeTypeBool):
             return operation_result_long_noescape
 
-        if type(right_shape) is ShapeLoopCompleteAlternative:
-            return right_shape.getOperationBinaryAddLShape(cls)
-
-        if type(right_shape) is ShapeLoopInitialAlternative:
-            return operation_result_unknown
-
-        onMissingOperation("Add", cls, right_shape)
-        return operation_result_unknown
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
     @classmethod
     def getOperationBinaryAddLShape(cls, left_shape):
@@ -379,14 +373,7 @@ if python_version < 300:
             if right_shape is ShapeTypeLong:
                 return operation_result_long_noescape
 
-            if type(right_shape) is ShapeLoopCompleteAlternative:
-                return right_shape.getOperationBinaryAddLShape(cls)
-
-            if type(right_shape) is ShapeLoopInitialAlternative:
-                return operation_result_unknown
-
-            onMissingOperation("Add", cls, right_shape)
-            return operation_result_unknown
+            return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
         @classmethod
         def getOperationBinaryAddLShape(cls, left_shape):
@@ -442,6 +429,8 @@ class ShapeTypeFloat(ShapeBase):
     def getTypeName():
         return "float"
 
+    helper_code = "FLOAT"
+
     @staticmethod
     def hasShapeSlotLen():
         return False
@@ -486,14 +475,7 @@ class ShapeTypeFloat(ShapeBase):
         if right_shape is ShapeTypeFloatDerived:
             return operation_result_unknown
 
-        if type(right_shape) is ShapeLoopCompleteAlternative:
-            return right_shape.getOperationBinaryAddLShape(cls)
-
-        if type(right_shape) is ShapeLoopInitialAlternative:
-            return operation_result_unknown
-
-        onMissingOperation("Add", cls, right_shape)
-        return operation_result_unknown
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
     @classmethod
     def getOperationBinaryAddLShape(cls, left_shape):
@@ -593,14 +575,7 @@ class ShapeTypeComplex(ShapeBase):
         if right_shape is ShapeTypeFloatDerived:
             return operation_result_unknown
 
-        if type(right_shape) is ShapeLoopCompleteAlternative:
-            return right_shape.getOperationBinaryAddLShape(cls)
-
-        if type(right_shape) is ShapeLoopInitialAlternative:
-            return operation_result_unknown
-
-        onMissingOperation("Add", cls, right_shape)
-        return operation_result_unknown
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
     # TODO: No < for complex
 
@@ -609,6 +584,8 @@ class ShapeTypeTuple(ShapeBase):
     @staticmethod
     def getTypeName():
         return "tuple"
+
+    helper_code = "TUPLE"
 
     @staticmethod
     def hasShapeSlotLen():
@@ -654,14 +631,7 @@ class ShapeTypeTuple(ShapeBase):
         if right_shape is ShapeTypeTuple:
             return operation_result_tuple_noescape
 
-        if type(right_shape) is ShapeLoopCompleteAlternative:
-            return right_shape.getOperationBinaryAddLShape(cls)
-
-        if type(right_shape) is ShapeLoopInitialAlternative:
-            return operation_result_unknown
-
-        onMissingOperation("Add", cls, right_shape)
-        return operation_result_unknown
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
     @classmethod
     def getOperationBinaryAddLShape(cls, left_shape):
@@ -694,6 +664,8 @@ class ShapeTypeList(ShapeBase):
     @staticmethod
     def getTypeName():
         return "list"
+
+    helper_code = "LIST"
 
     @staticmethod
     def hasShapeSlotLen():
@@ -739,14 +711,7 @@ class ShapeTypeList(ShapeBase):
         if right_shape is ShapeTypeList:
             return operation_result_list_noescape
 
-        if type(right_shape) is ShapeLoopCompleteAlternative:
-            return right_shape.getOperationBinaryAddLShape(cls)
-
-        if type(right_shape) is ShapeLoopInitialAlternative:
-            return operation_result_unknown
-
-        onMissingOperation("Add", cls, right_shape)
-        return operation_result_unknown
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
     @classmethod
     def getOperationBinaryAddLShape(cls, left_shape):
@@ -954,6 +919,8 @@ class ShapeTypeStr(ShapeBase):
     def getTypeName():
         return "str"
 
+    helper_code = "STR" if python_version < 300 else "UNICODE"
+
     @staticmethod
     def hasShapeSlotLen():
         return True
@@ -1001,20 +968,7 @@ class ShapeTypeStr(ShapeBase):
         if right_shape is ShapeTypeStrDerived:
             return operation_result_unknown
 
-        if type(right_shape) is ShapeLoopCompleteAlternative:
-            return right_shape.getOperationBinaryAddLShape(cls)
-
-        if type(right_shape) is ShapeLoopInitialAlternative:
-            return operation_result_unknown
-
-        if type(right_shape) is ShapeLoopCompleteAlternative:
-            return right_shape.getOperationBinaryAddLShape(cls)
-
-        if type(right_shape) is ShapeLoopInitialAlternative:
-            return operation_result_unknown
-
-        onMissingOperation("Add", cls, right_shape)
-        return operation_result_unknown
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
     @classmethod
     def getComparisonLtShape(cls, right_shape):
@@ -1070,6 +1024,8 @@ if python_version < 300:
         def getTypeName():
             return "unicode"
 
+        helper_code = "UNICODE"
+
         @staticmethod
         def hasShapeSlotLen():
             return True
@@ -1117,14 +1073,7 @@ if python_version < 300:
             if right_shape is ShapeTypeUnicodeDerived:
                 return operation_result_unknown
 
-            if type(right_shape) is ShapeLoopCompleteAlternative:
-                return right_shape.getOperationBinaryAddLShape(cls)
-
-            if type(right_shape) is ShapeLoopInitialAlternative:
-                return operation_result_unknown
-
-            onMissingOperation("Add", cls, right_shape)
-            return operation_result_unknown
+            return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
         @classmethod
         def getComparisonLtShape(cls, right_shape):
@@ -1215,6 +1164,8 @@ if python_version >= 300:
         def getTypeName():
             return "bytes"
 
+        helper_code = "BYTES"
+
         @staticmethod
         def hasShapeSlotLen():
             return True
@@ -1262,14 +1213,7 @@ if python_version >= 300:
             if right_shape is ShapeTypeBytesDerived:
                 return operation_result_unknown
 
-            if type(right_shape) is ShapeLoopCompleteAlternative:
-                return right_shape.getOperationBinaryAddLShape(cls)
-
-            if type(right_shape) is ShapeLoopInitialAlternative:
-                return operation_result_unknown
-
-            onMissingOperation("Add", cls, right_shape)
-            return operation_result_unknown
+            return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
         @classmethod
         def getOperationBinaryAddLShape(cls, left_shape):
@@ -1393,14 +1337,7 @@ class ShapeTypeBytearray(ShapeBase):
                 # TODO: Exception actually for static optimization.
                 return operation_result_unknown
 
-        if type(right_shape) is ShapeLoopCompleteAlternative:
-            return right_shape.getOperationBinaryAddLShape(cls)
-
-        if type(right_shape) is ShapeLoopInitialAlternative:
-            return operation_result_unknown
-
-        onMissingOperation("Add", cls, right_shape)
-        return operation_result_unknown
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
     @classmethod
     def getComparisonLtShape(cls, right_shape):

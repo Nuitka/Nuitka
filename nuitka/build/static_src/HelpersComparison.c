@@ -142,7 +142,7 @@ static int try_3way_compare(PyObject *a, PyObject *b) {
     return 2;
 }
 
-PyObject *MY_RICHCOMPARE(PyObject *a, PyObject *b, int op) {
+static PyObject *MY_RICHCOMPARE(PyObject *a, PyObject *b, int op) {
     CHECK_OBJECT(a);
     CHECK_OBJECT(b);
 
@@ -376,7 +376,7 @@ PyObject *MY_RICHCOMPARE(PyObject *a, PyObject *b, int op) {
     return result;
 }
 
-PyObject *MY_RICHCOMPARE_NORECURSE(PyObject *a, PyObject *b, int op) {
+static PyObject *MY_RICHCOMPARE_NORECURSE(PyObject *a, PyObject *b, int op) {
     CHECK_OBJECT(a);
     CHECK_OBJECT(b);
 
@@ -785,3 +785,557 @@ PyObject *MY_RICHCOMPARE_NORECURSE(PyObject *a, PyObject *b, int op) {
 }
 
 #endif
+
+static inline bool IS_SANE_TYPE(PyTypeObject *type) {
+    return
+#if PYTHON_VERSION < 300
+        type == &PyString_Type || type == &PyInt_Type ||
+#endif
+        type == &PyLong_Type || type == &PyList_Type || type == &PyTuple_Type;
+}
+
+
+#if PYTHON_VERSION < 300
+PyObject *RICH_COMPARE_LT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+
+    PyObject *result = MY_RICHCOMPARE(operand1, operand2, Py_LT);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    return result;
+}
+
+PyObject *RICH_COMPARE_LTE_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        Py_INCREF(Py_True);
+        return Py_True;
+    }
+
+    PyObject *result = MY_RICHCOMPARE(operand1, operand2, Py_LE);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    return result;
+}
+
+PyObject *RICH_COMPARE_EQ_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        Py_INCREF(Py_True);
+        return Py_True;
+    }
+
+    PyObject *result = MY_RICHCOMPARE(operand1, operand2, Py_EQ);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    return result;
+}
+
+PyObject *RICH_COMPARE_NOTEQ_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        Py_INCREF(Py_False);
+        return Py_False;
+    }
+
+    PyObject *result = MY_RICHCOMPARE(operand1, operand2, Py_NE);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    return result;
+}
+
+PyObject *RICH_COMPARE_GT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+
+    PyObject *result = MY_RICHCOMPARE(operand1, operand2, Py_GT);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    return result;
+}
+
+PyObject *RICH_COMPARE_GTE_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        Py_INCREF(Py_True);
+        return Py_True;
+    }
+
+    return MY_RICHCOMPARE(operand1, operand2, Py_GE);
+}
+
+PyObject *RICH_COMPARE_LT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand2));
+
+    PyObject *result = MY_RICHCOMPARE(operand1, operand2, Py_LT);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    return result;
+}
+
+PyObject *RICH_COMPARE_LTE_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand2));
+
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        Py_INCREF(Py_True);
+        return Py_True;
+    }
+
+    PyObject *result = MY_RICHCOMPARE(operand1, operand2, Py_LE);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    return result;
+}
+
+PyObject *RICH_COMPARE_EQ_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand2));
+
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        Py_INCREF(Py_True);
+        return Py_True;
+    }
+
+    PyObject *result = MY_RICHCOMPARE(operand1, operand2, Py_EQ);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    return result;
+}
+
+
+PyObject *RICH_COMPARE_LTE_INT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long aa = PyInt_AS_LONG(operand1);
+    long bb = PyInt_AS_LONG(operand2);
+
+    PyObject *result = BOOL_FROM(aa <= bb);
+    Py_INCREF(result);
+    return result;
+}
+
+PyObject *RICH_COMPARE_EQ_INT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long aa = PyInt_AS_LONG(operand1);
+    long bb = PyInt_AS_LONG(operand2);
+
+    PyObject *result = BOOL_FROM(aa == bb);
+    Py_INCREF(result);
+    return result;
+}
+
+PyObject *RICH_COMPARE_NOTEQ_INT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long aa = PyInt_AS_LONG(operand1);
+    long bb = PyInt_AS_LONG(operand2);
+
+    PyObject *result = BOOL_FROM(aa != bb);
+    Py_INCREF(result);
+    return result;
+}
+
+PyObject *RICH_COMPARE_GT_INT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long aa = PyInt_AS_LONG(operand1);
+    long bb = PyInt_AS_LONG(operand2);
+
+    PyObject *result = BOOL_FROM(aa > bb);
+    Py_INCREF(result);
+    return result;
+}
+
+PyObject *RICH_COMPARE_GTE_INT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long aa = PyInt_AS_LONG(operand1);
+    long bb = PyInt_AS_LONG(operand2);
+
+    PyObject *result = BOOL_FROM(aa >= bb);
+    Py_INCREF(result);
+    return result;
+}
+
+#endif
+
+PyObject *RICH_COMPARE_LT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    PyObject *result = MY_RICHCOMPARE(operand1, operand2, Py_LT);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    return result;
+}
+
+PyObject *RICH_COMPARE_LTE_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2 && IS_SANE_TYPE(Py_TYPE(operand1))) {
+        Py_INCREF(Py_True);
+        return Py_True;
+    }
+
+    PyObject *result = MY_RICHCOMPARE(operand1, operand2, Py_LE);
+
+    if (unlikely(result == NULL)) {
+        return NULL;
+    }
+
+    return result;
+}
+
+PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2 && IS_SANE_TYPE(Py_TYPE(operand1))) {
+        Py_INCREF(Py_True);
+        return Py_True;
+    }
+
+    return MY_RICHCOMPARE(operand1, operand2, Py_EQ);
+}
+
+PyObject *RICH_COMPARE_EQ_OBJECT_OBJECT_NORECURSE(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2 && IS_SANE_TYPE(Py_TYPE(operand1))) {
+        Py_INCREF(Py_True);
+        return Py_True;
+    }
+
+    return MY_RICHCOMPARE_NORECURSE(operand1, operand2, Py_EQ);
+}
+
+PyObject *RICH_COMPARE_NOTEQ_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2 && IS_SANE_TYPE(Py_TYPE(operand1))) {
+        Py_INCREF(Py_False);
+        return Py_False;
+    }
+
+    return MY_RICHCOMPARE(operand1, operand2, Py_NE);
+}
+
+PyObject *RICH_COMPARE_GT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    return MY_RICHCOMPARE(operand1, operand2, Py_GT);
+}
+
+PyObject *RICH_COMPARE_GTE_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2 && IS_SANE_TYPE(Py_TYPE(operand1))) {
+        Py_INCREF(Py_True);
+        return Py_True;
+    }
+
+    return MY_RICHCOMPARE(operand1, operand2, Py_GE);
+}
+
+// C bool result type variants
+static int MY_RICHCOMPARE_BOOL(PyObject *a, PyObject *b, int op) {
+    PyObject *rich_result = MY_RICHCOMPARE(a, b, op);
+
+    if (unlikely(rich_result == NULL)) {
+        return -1;
+    }
+
+    int result;
+
+    // Doing the quick tests on the outside spares the function call, with
+    // "partial inline" this should become unneeded.
+    if (rich_result == Py_True) {
+        result = 1;
+    } else if (rich_result == Py_False || rich_result == Py_None) {
+        result = 0;
+    } else {
+        result = CHECK_IF_TRUE(rich_result);
+    }
+
+    Py_DECREF(rich_result);
+
+    return result;
+}
+
+static int MY_RICHCOMPARE_BOOL_NORECURSE(PyObject *a, PyObject *b, int op) {
+    PyObject *rich_result = MY_RICHCOMPARE_NORECURSE(a, b, op);
+
+    if (unlikely(rich_result == NULL)) {
+        return -1;
+    }
+
+    int result;
+
+    // Doing the quick tests on the outside spares the function call, with
+    // "partial inline" this should become unneeded.
+    if (rich_result == Py_True) {
+        result = 1;
+    } else if (rich_result == Py_False || rich_result == Py_None) {
+        result = 0;
+    } else {
+        result = CHECK_IF_TRUE(rich_result);
+    }
+
+    Py_DECREF(rich_result);
+
+    return result;
+}
+
+
+#if PYTHON_VERSION < 300
+
+int RICH_COMPARE_BOOL_LT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_LT);
+}
+
+int RICH_COMPARE_BOOL_LTE_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_LE);
+}
+
+int RICH_COMPARE_BOOL_EQ_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_EQ);
+}
+
+int RICH_COMPARE_BOOL_EQ_INT_OBJECT_NORECURSE(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL_NORECURSE(operand1, operand2, Py_EQ);
+}
+
+int RICH_COMPARE_BOOL_NOTEQ_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        return 0;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_NE);
+}
+
+int RICH_COMPARE_BOOL_GT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_GT);
+}
+
+int RICH_COMPARE_BOOL_GTE_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_GE);
+}
+
+int RICH_COMPARE_BOOL_LT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_LT);
+}
+
+int RICH_COMPARE_BOOL_LTE_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_LE);
+}
+
+int RICH_COMPARE_BOOL_EQ_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_EQ);
+}
+
+int RICH_COMPARE_BOOL_EQ_OBJECT_INT_NORECURSE(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL_NORECURSE(operand1, operand2, Py_EQ);
+}
+
+int RICH_COMPARE_BOOL_NOTEQ_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        return 0;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_NE);
+}
+
+int RICH_COMPARE_BOOL_GT_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_GT);
+}
+
+int RICH_COMPARE_BOOL_GTE_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_GE);
+}
+
+int RICH_COMPARE_LT_BOOL_INT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long aa = PyInt_AS_LONG(operand1);
+    long bb = PyInt_AS_LONG(operand2);
+
+    return aa < bb;
+}
+
+int RICH_COMPARE_BOOL_LTE_INT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long aa = PyInt_AS_LONG(operand1);
+    long bb = PyInt_AS_LONG(operand2);
+
+    return aa <= bb;
+}
+
+int RICH_COMPARE_BOOL_EQ_INT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long aa = PyInt_AS_LONG(operand1);
+    long bb = PyInt_AS_LONG(operand2);
+
+    return aa == bb;
+}
+
+int RICH_COMPARE_BOOL_NOTEQ_INT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long aa = PyInt_AS_LONG(operand1);
+    long bb = PyInt_AS_LONG(operand2);
+
+    return aa != bb;
+}
+
+int RICH_COMPARE_BOOL_GT_INT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long aa = PyInt_AS_LONG(operand1);
+    long bb = PyInt_AS_LONG(operand2);
+
+    return aa > bb;
+}
+
+int RICH_COMPARE_BOOL_GTE_INT_INT(PyObject *operand1, PyObject *operand2) {
+    assert(PyInt_CheckExact(operand1));
+    assert(PyInt_CheckExact(operand2));
+
+    long aa = PyInt_AS_LONG(operand1);
+    long bb = PyInt_AS_LONG(operand2);
+
+    return aa >= bb;
+}
+
+#endif
+
+int RICH_COMPARE_BOOL_LT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_LT);
+}
+
+int RICH_COMPARE_BOOL_LTE_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2 && IS_SANE_TYPE(Py_TYPE(operand1))) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_LE);
+}
+
+int RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2 && IS_SANE_TYPE(Py_TYPE(operand1))) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_EQ);
+}
+
+int RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2 && IS_SANE_TYPE(Py_TYPE(operand1))) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL_NORECURSE(operand1, operand2, Py_EQ);
+}
+
+int RICH_COMPARE_BOOL_NOTEQ_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2 && IS_SANE_TYPE(Py_TYPE(operand1))) {
+        return 0;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_NE);
+}
+
+int RICH_COMPARE_BOOL_GT_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_GT);
+}
+
+int RICH_COMPARE_BOOL_GTE_OBJECT_OBJECT(PyObject *operand1, PyObject *operand2) {
+    // Quick path for avoidable checks, compatible with CPython.
+    if (operand1 == operand2 && IS_SANE_TYPE(Py_TYPE(operand1))) {
+        return 1;
+    }
+
+    return MY_RICHCOMPARE_BOOL(operand1, operand2, Py_GE);
+}

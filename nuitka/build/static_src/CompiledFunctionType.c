@@ -985,7 +985,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
             PyObject **varnames = function->m_varnames;
 
             for (Py_ssize_t i = 0; i < keywords_count; i++) {
-                if (RICH_COMPARE_BOOL_EQ_NORECURSE(varnames[i], key)) {
+                if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
 
