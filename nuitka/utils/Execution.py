@@ -193,11 +193,15 @@ def withEnvironmentVarOverriden(env_var_name, value):
     else:
         old_value = None
 
-    os.environ[env_var_name] = value
+    if value is not None:
+        os.environ[env_var_name] = value
+    elif old_value is not None:
+        del os.environ[env_var_name]
 
     yield
 
     if old_value is None:
-        del os.environ[env_var_name]
+        if value is not None:
+            del os.environ[env_var_name]
     else:
         os.environ[env_var_name] = old_value

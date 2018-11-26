@@ -527,7 +527,7 @@ Error, needs 'strace' on your system to scan used libraries."""
 
         # Ensure executable is not polluted with third party stuff,
         # tests may fail otherwise due to unexpected libs being loaded
-        with withEnvironmentVarOverriden("LD_PRELOAD", ""):
+        with withEnvironmentVarOverriden("LD_PRELOAD", None):
             process = subprocess.Popen(
                 args   = args,
                 stdout = subprocess.PIPE,
