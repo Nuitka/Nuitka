@@ -337,11 +337,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
     def considerExtraDlls(self, dist_dir, module):
         full_name = module.getFullName()
 
-        if getOS() == "Linux" and full_name == "uuid":
+        if full_name == "uuid" and getOS() == "Linux":
             uuid_dll_path = locateDLL("uuid")
             dist_dll_path = os.path.join(dist_dir, os.path.basename(uuid_dll_path))
 
-            shutil.copy(uuid_dll_path, dist_dir)
+            shutil.copy(uuid_dll_path, dist_dll_path)
 
             return (
                 (uuid_dll_path, dist_dll_path, None),

@@ -19,6 +19,7 @@
 
 """
 
+import os
 from sys import getfilesystemencoding
 
 from nuitka.PythonVersions import python_version
@@ -26,8 +27,21 @@ from nuitka.PythonVersions import python_version
 
 def locateDLL(dll_name):
     import ctypes.util
-
     dll_name = ctypes.util.find_library(dll_name)
+
+    if os.path.sep in dll_name:
+        # Use this from ctypes instead of rolling our own.
+        # pylint: disable=protected-access
+
+        so_name = ctypes.util._get_soname(dll_name)
+
+        if so_name is not None:
+            return os.path.join(
+                os.path.dirname(dll_name),
+                so_name
+            )
+        else:
+            return dll_name
 
     import subprocess
     process = subprocess.Popen(
