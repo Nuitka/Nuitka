@@ -85,12 +85,6 @@ class ShapeBase(object):
         return ShapeUnknown, ControlFlowDescriptionFullEscape
 
     @classmethod
-    def getOperationBinaryAddLShape(cls, left_shape):
-        onMissingOperation("AddL", cls, left_shape)
-
-        return ShapeUnknown, ControlFlowDescriptionFullEscape
-
-    @classmethod
     def getComparisonLtShape(cls, right_shape):
         onMissingOperation("Lt", cls, right_shape)
 
@@ -124,10 +118,6 @@ class ShapeBase(object):
 class ShapeUnknown(ShapeBase):
     @classmethod
     def getOperationBinaryAddShape(cls, right_shape):
-        return ShapeUnknown, ControlFlowDescriptionFullEscape
-
-    @classmethod
-    def getOperationBinaryAddLShape(cls, left_shape):
         return ShapeUnknown, ControlFlowDescriptionFullEscape
 
     @classmethod
@@ -264,17 +254,6 @@ class ShapeLoopInitialAlternative(ShapeBase):
                 ControlFlowDescriptionFullEscape
             )
 
-    def getOperationBinaryAddLShape(self, left_shape):
-        if left_shape is ShapeUnknown:
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
-        else:
-            return (
-                self._collectInitialShape(
-                    operation = lambda right_shape: right_shape.getOperationBinaryAddLShape(left_shape),
-                ),
-                ControlFlowDescriptionFullEscape
-            )
-
     def getComparisonLtShape(self, right_shape):
         if right_shape is ShapeUnknown:
             return ShapeUnknown, ControlFlowDescriptionFullEscape
@@ -377,12 +356,13 @@ class ShapeLoopCompleteAlternative(ShapeBase):
             operation = lambda left_shape: left_shape.getOperationBinaryAddShape(right_shape),
         )
 
+    # Special method to be called by other shapes encountering this type on
+    # the right side.
     def getOperationBinaryAddLShape(self, left_shape):
-        if left_shape is ShapeUnknown:
-            return ShapeUnknown, ControlFlowDescriptionFullEscape
+        assert left_shape is not ShapeUnknown
 
         return self._collectShapeOperation(
-            operation = lambda right_shape: right_shape.getOperationBinaryAddLShape(left_shape),
+            operation = left_shape.getOperationBinaryAddShape,
         )
 
     def getComparisonLtShape(self, right_shape):
@@ -391,6 +371,15 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
         return self._collectShapeOperation(
             operation = lambda left_shape: left_shape.getComparisonLtShape(right_shape),
+        )
+
+    # Special method to be called by other shapes encountering this type on
+    # the right side.
+    def getComparisonLtLShape(self, left_shape):
+        assert left_shape is not ShapeUnknown
+
+        return self._collectShapeOperation(
+            operation = left_shape.getComparisonLtShape,
         )
 
     def getComparisonLteShape(self, right_shape):

@@ -66,3 +66,7 @@ class ControlFlowDescriptionNoEscape(ControlFlowDescriptionBase):
     @staticmethod
     def isControlFlowEscape():
         return False
+
+
+class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionFullEscape):
+    pass
