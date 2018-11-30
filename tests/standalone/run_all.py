@@ -261,13 +261,13 @@ for filename in sorted(os.listdir('.')):
         my_print("Should not ship glibc libraries with the standalone executable (found %s)" % found_glibc_libs)
         sys.exit(1)
 
-    # Then use "strace" on the result.
-    loaded_filenames = getRuntimeTraceOfLoadedFiles(
-        path = os.path.join(
-            filename[:-3] + ".dist",
-            filename[:-3] + (".exe" if os.name == "nt" else "")
-        )
+    binary_filename = path = os.path.join(
+        filename[:-3] + ".dist",
+        filename[:-3] + (".exe" if os.name == "nt" else "")
     )
+
+    # Then use "strace" on the result.
+    loaded_filenames = getRuntimeTraceOfLoadedFiles(binary_filename)
 
     current_dir = os.path.normpath(os.getcwd())
     current_dir = os.path.normcase(current_dir)
@@ -529,6 +529,13 @@ for filename in sorted(os.listdir('.')):
         illegal_access = True
 
     if illegal_access:
+        if os.name != "nt":
+            my_print("Listing of dist folder:")
+            os.system("ls -Rla %s" % filename[:-3] + ".dist")
+
+            my_print("strace:")
+            os.system("strace -s4096 -e file %s" % binary_filename)
+
         sys.exit(1)
 
     removeDirectory(filename[:-3] + ".dist", ignore_errors = True)
