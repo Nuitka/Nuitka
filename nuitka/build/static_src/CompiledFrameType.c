@@ -139,7 +139,11 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *frame, void *
             case NUITKA_TYPE_DESCRIPTION_OBJECT:
             case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR: {
                 PyObject *value = *(PyObject **)t;
-                PyDict_SetItem(result, *varnames, value);
+
+                if (value != NULL)
+                {
+                    PyDict_SetItem(result, *varnames, value);
+                }
 
                 t += sizeof(value);
 
