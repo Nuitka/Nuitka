@@ -562,16 +562,16 @@ def _findModule2(module_name):
     # Need a real module name.
     assert module_name != ""
 
+    preloaded_path = getPreloadedPackagePath(module_name)
+
+    if preloaded_path is not None:
+        return preloaded_path[0]
+
     if '.' in module_name:
         package_part = module_name[ : module_name.rfind('.') ]
         module_name = module_name[ module_name.rfind('.') + 1 : ]
     else:
         package_part = None
-
-    preloaded_path = getPreloadedPackagePath(module_name)
-
-    if preloaded_path is not None:
-        return preloaded_path[0]
 
     return _findModuleInPath(
         module_name  = module_name,
