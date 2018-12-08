@@ -48,6 +48,26 @@ from .TreeHelpers import (
 from .VariableClosure import completeVariableClosures
 
 
+def _makeCall(module_name, import_name, attribute_name, source_ref, *args):
+    return ExpressionCallNoKeywords(
+        called     = ExpressionAttributeLookup(
+            source         = ExpressionImportModuleNameHard(
+                module_name = module_name,
+                import_name = import_name,
+                source_ref  = source_ref
+            ),
+            attribute_name = attribute_name,
+            source_ref     = source_ref
+        ),
+        args       = ExpressionMakeTuple(
+            elements   = args,
+            source_ref = source_ref
+        ),
+        source_ref = source_ref
+    )
+
+
+
 def createPathAssignment(package, source_ref):
     if Options.getFileReferenceMode() == "original":
         path_value = makeConstantRefNode(
@@ -84,45 +104,27 @@ def createPathAssignment(package, source_ref):
             )
         ]
 
-        def makeCall(module_name, import_name, attribute_name, *args):
-            return ExpressionCallNoKeywords(
-                called     = ExpressionAttributeLookup(
-                    source         = ExpressionImportModuleNameHard(
-                        module_name = module_name,
-                        import_name = import_name,
-                        source_ref  = source_ref
-                    ),
-                    attribute_name = attribute_name,
-                    source_ref     = source_ref
-                ),
-                args       = ExpressionMakeTuple(
-                    elements   = args,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            )
-
         if package.canHaveExternalImports():
             parts = package.getFullName().split('.')
 
             for count in range(len(parts)):
-                path_part = makeCall(
-                    "os", "environ", "get",
-                        makeConstantRefNode(
-                            constant   = "NUITKA_PACKAGE_%s" % '_'.join(
-                                parts[:count+1]
-                            ),
-                            source_ref = source_ref,
+                path_part = _makeCall(
+                    "os", "environ", "get", source_ref,
+                    makeConstantRefNode(
+                        constant   = "NUITKA_PACKAGE_%s" % '_'.join(
+                            parts[:count+1]
                         ),
-                        makeConstantRefNode(
-                            constant   = "/notexist",
-                            source_ref = source_ref,
-                        )
+                        source_ref = source_ref,
+                    ),
+                    makeConstantRefNode(
+                        constant   = "/notexist",
+                        source_ref = source_ref,
+                    )
                 )
 
                 if parts[count+1:]:
-                    path_part = makeCall(
-                        "os", "path", "join",
+                    path_part = _makeCall(
+                        "os", "path", "join", source_ref,
                         path_part,
                         makeConstantRefNode(
                             constant   = os.path.join(*parts[count+1:]),
