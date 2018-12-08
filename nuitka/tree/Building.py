@@ -1049,8 +1049,6 @@ class CodeTooComplexCode(Exception):
         Example of this is "idnadata".
     """
 
-    pass
-
 
 def createModuleTree(module, source_ref, source_code, is_main):
     if Options.isShowMemory():
