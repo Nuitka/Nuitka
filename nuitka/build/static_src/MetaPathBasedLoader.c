@@ -608,23 +608,25 @@ static PyObject *loadModule(PyObject *module_name, struct Nuitka_MetaPathBasedLo
         }
 #endif
 
-#if _NUITKA_STANDALONE || _NUITKA_MODULE
+#if _NUITKA_EXPERIMENTAL_PKGUTIL_ITERMODULES
         // For use by "pkgutil.walk_modules" add the runtime path to the
         // "sys.path_importer_cache" dictionary.
-        if ( entry->flags & NUITKA_PACKAGE_FLAG )
-        {
-            PyObject *path_value = LOOKUP_ATTRIBUTE( result, const_str_plain___path__ );
+        if (entry->flags & NUITKA_PACKAGE_FLAG) {
+            PyObject *path_value = LOOKUP_ATTRIBUTE(result, const_str_plain___path__);
 
-            if (path_value && PyList_CheckExact(path_value) && PyList_Size(path_value) > 0)
-            {
-                PyObject *path_element = PyList_GetItem( path_value, 0 );
-                CHECK_OBJECT( path_value );
+            if (path_value && PyList_CheckExact(path_value) && PyList_Size(path_value) > 0) {
+                PyObject *path_element = PyList_GetItem(path_value, 0);
+                CHECK_OBJECT(path_value);
 
                 PyObject *path_importer_cache = PySys_GetObject((char *)"path_importer_cache");
-                CHECK_OBJECT( path_importer_cache );
+                CHECK_OBJECT(path_importer_cache);
 
-                int res = PyDict_SetItem( path_importer_cache, path_element, metapath_based_loader );
-                assert( res == 0 );
+                PyObject *loader = CALL_FUNCTION_WITH_SINGLE_ARG(metapath_based_loader, module_name);
+
+                if (loader) {
+                    int res = PyDict_SetItem(path_importer_cache, path_element, loader);
+                    assert(res == 0);
+                }
             }
         }
 #endif
@@ -824,27 +826,45 @@ static PyObject *_path_unfreezer_find_spec(PyObject *self, PyObject *args, PyObj
 
 #endif
 
-static char *_kwlist_iter_modules[] = {(char *)"package", NULL};
+static char *_kwlist_iter_modules[] = {(char *)"self", (char *)"package", NULL};
+
+extern PyObject *const_str_plain_name;
 
 static PyObject *_path_unfreezer_iter_modules(PyObject *self, PyObject *args, PyObject *kwds) {
     PyObject *prefix;
 
-    int res = PyArg_ParseTupleAndKeywords(args, kwds, "O:iter_modules", _kwlist_iter_modules, &prefix );
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "OO:iter_modules", _kwlist_iter_modules, &self, &prefix);
 
     if (unlikely(res == 0)) {
         return NULL;
     }
+
+    // Search relativ to us only.
+    PyObject *asked_name = LOOKUP_ATTRIBUTE(self, const_str_plain_name);
 
     PyObject *result = PyList_New(0);
 
     struct Nuitka_MetaPathBasedLoaderEntry *current = loader_entries;
     assert(current);
 
-    while (current->name != NULL) {
-        char const *sub = strchr(current->name, '.');
+    char const *s = Nuitka_String_AsString(asked_name);
 
-        if ( sub == NULL )
-        {
+    while (current->name != NULL) {
+        int c = strncmp(s, current->name, strlen(s));
+
+        if (c != 0) {
+            current++;
+            continue;
+        }
+
+        if (current->name[strlen(s)] == 0) {
+            current++;
+            continue;
+        }
+
+        char const *sub = strchr(current->name + strlen(s) + 1, '.');
+
+        if (sub != NULL) {
             current++;
             continue;
         }
@@ -852,13 +872,12 @@ static PyObject *_path_unfreezer_iter_modules(PyObject *self, PyObject *args, Py
         PyObject *r = PyTuple_New(2);
 
 #if PYTHON_VERSION < 300
-        PyObject *name = PyString_FromString(sub+1);
+        PyObject *name = PyString_FromString(current->name + strlen(s) + 1);
 #else
-        PyObject *name = PyUnicode_FromString(sub+1);
+        PyObject *name = PyUnicode_FromString(current->name + strlen(s) + 1);
 #endif
 
-        if (CHECK_IF_TRUE(prefix))
-        {
+        if (CHECK_IF_TRUE(prefix)) {
             PyObject *old = name;
             name = PyUnicode_Concat(prefix, name);
             Py_DECREF(old);
@@ -876,6 +895,24 @@ static PyObject *_path_unfreezer_iter_modules(PyObject *self, PyObject *args, Py
     return result;
 }
 
+static char *_kwlist_dunder_init[] = {(char *)"self", (char *)"module_name", NULL};
+
+static PyObject *_path_unfreezer_dunder_init(PyObject *self, PyObject *args, PyObject *kwds) {
+    PyObject *loader_object;
+    PyObject *module_name;
+
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "OO:__init__", _kwlist_dunder_init, &loader_object, &module_name);
+
+    if (unlikely(res == 0)) {
+        return NULL;
+    }
+
+    SET_ATTRIBUTE(loader_object, const_str_plain_name, module_name);
+
+    PyObject *result = Py_None;
+    Py_INCREF(result);
+    return result;
+}
 
 static PyMethodDef _method_def_loader_get_data = {"get_data", (PyCFunction)_path_unfreezer_get_data,
                                                   METH_VARARGS | METH_KEYWORDS, NULL};
@@ -898,8 +935,10 @@ static PyMethodDef _method_def_loader_find_spec = {"module_repr", (PyCFunction)_
 #endif
 
 static PyMethodDef _method_def_loader_iter_modules = {"iter_modules", (PyCFunction)_path_unfreezer_iter_modules,
-                                                    METH_VARARGS | METH_KEYWORDS, NULL};
+                                                      METH_VARARGS | METH_KEYWORDS, NULL};
 
+static PyMethodDef _method_def_loader_dunder_init = {"__init__", (PyCFunction)_path_unfreezer_dunder_init,
+                                                     METH_VARARGS | METH_KEYWORDS, NULL};
 
 void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loader_entries) {
     // Do it only once.
@@ -909,13 +948,28 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
         return;
     }
 
+    if (isVerbose()) {
+        PySys_WriteStderr("Setup nuitka compiled module/bytecode/shlib importer.\n");
+    }
+
     loader_entries = _loader_entries;
 
-    // Build the dictionary of the "loader" object, which needs to have two
+    PyObject *method_dict = PyDict_New();
+
+#if PYTHON_VERSION < 300
+    PyObject *class_name = PyString_FromString("_nuitka_compiled_modules_loader");
+#else
+    PyObject *class_name = PyUnicode_FromString("_nuitka_compiled_modules_loader");
+#endif
+
+#if PYTHON_VERSION < 300
+    metapath_based_loader = PyClass_New(NULL, method_dict, class_name);
+    CHECK_OBJECT(metapath_based_loader);
+#endif
+
+    // Populate the dictionary of the "loader" object, which needs to have two
     // methods "find_module" where we acknowledge that we are capable of loading
     // the module, and "load_module" that does the actual thing.
-    PyObject *method_dict = PyDict_New();
-    CHECK_OBJECT(method_dict);
 
     PyObject *loader_get_data = PyCFunction_New(&_method_def_loader_get_data, NULL);
     CHECK_OBJECT(loader_get_data);
@@ -949,22 +1003,26 @@ void registerMetaPathBasedUnfreezer(struct Nuitka_MetaPathBasedLoaderEntry *_loa
 
     PyObject *loader_iter_modules = PyCFunction_New(&_method_def_loader_iter_modules, NULL);
     CHECK_OBJECT(loader_iter_modules);
+#if PYTHON_VERSION < 300
+    loader_iter_modules = PyMethod_New(loader_iter_modules, NULL, metapath_based_loader);
+    CHECK_OBJECT(loader_iter_modules);
+#endif
     PyDict_SetItemString(method_dict, "iter_modules", loader_iter_modules);
 
-    // Build the actual class.
-    metapath_based_loader = PyObject_CallFunctionObjArgs((PyObject *)&PyType_Type,
+    PyObject *loader_dunder_init = PyCFunction_New(&_method_def_loader_dunder_init, NULL);
+    CHECK_OBJECT(loader_dunder_init);
 #if PYTHON_VERSION < 300
-                                                         PyString_FromString("_nuitka_compiled_modules_loader"),
-#else
-                                                         PyUnicode_FromString("_nuitka_compiled_modules_loader"),
+    loader_dunder_init = PyMethod_New(loader_dunder_init, NULL, metapath_based_loader);
+    CHECK_OBJECT(loader_dunder_init);
 #endif
-                                                         const_tuple_empty, method_dict, NULL);
+    PyDict_SetItemString(method_dict, "__init__", loader_dunder_init);
 
+#if PYTHON_VERSION >= 300
+    // Build the actual class.
+    metapath_based_loader =
+        PyObject_CallFunctionObjArgs((PyObject *)&PyType_Type, class_name, const_tuple_empty, method_dict, NULL);
     CHECK_OBJECT(metapath_based_loader);
-
-    if (isVerbose()) {
-        PySys_WriteStderr("Setup nuitka compiled module/bytecode/shlib importer.\n");
-    }
+#endif
 
     // Register it as a meta path loader.
     int res = PyList_Insert(PySys_GetObject((char *)"meta_path"),

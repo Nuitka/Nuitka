@@ -348,6 +348,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     // Module code.
 %(module_code)s
 
+#if _NUITKA_EXPERIMENTAL_PKGUTIL_ITERMODULES
 #if %(is_package)s && %(is_top_module)s
     {
         PyObject *path_value = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___path__ );
@@ -363,6 +364,7 @@ MOD_INIT_DECL( %(module_identifier)s )
             assert( res == 0 );
         }
     }
+#endif
 #endif
 
     return MOD_RETURN_VALUE( module_%(module_identifier)s );
