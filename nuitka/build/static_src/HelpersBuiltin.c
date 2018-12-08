@@ -137,8 +137,7 @@ PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mod
 #if PYTHON_VERSION < 300
 
 extern PyObject *const_str_plain_read;
-bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name)
-{
+bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name) {
     CHECK_OBJECT(*prog);
     CHECK_OBJECT(*name);
 
@@ -148,17 +147,15 @@ bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name)
         Py_INCREF(*name);
         Py_DECREF(old);
 
-        if (unlikely(*name == NULL))
-        {
+        if (unlikely(*name == NULL)) {
             return false;
         }
 
         old = *prog;
-        *prog = CALL_METHOD_NO_ARGS( *prog, const_str_plain_read );
+        *prog = CALL_METHOD_NO_ARGS(*prog, const_str_plain_read);
         Py_DECREF(old);
 
-        if (unlikely(*prog == NULL))
-        {
+        if (unlikely(*prog == NULL)) {
             return false;
         }
     }
