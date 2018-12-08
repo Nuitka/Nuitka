@@ -100,6 +100,8 @@ Requirements
      need to copy the ``PythonXX.DLL`` alongside of it, something Nuitka does
      automatically.
 
+  .. admonition:: It **has to** be CPython, AnaConda or MiniConda Python.
+
      It is known that MacOS "pyenv" does **not** work.
 
 - Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
