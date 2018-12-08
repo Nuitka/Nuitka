@@ -131,6 +131,43 @@ PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mod
 }
 
 /**
+ * Helper used to deal with exec statement
+ */
+
+#if PYTHON_VERSION < 300
+
+extern PyObject *const_str_plain_read;
+bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name)
+{
+    CHECK_OBJECT(*prog);
+    CHECK_OBJECT(*name);
+
+    if (PyFile_Check(*prog)) {
+        PyObject *old = *name;
+        *name = PyFile_Name(*prog);
+        Py_INCREF(*name);
+        Py_DECREF(old);
+
+        if (unlikely(*name == NULL))
+        {
+            return false;
+        }
+
+        old = *prog;
+        *prog = CALL_METHOD_NO_ARGS( *prog, const_str_plain_read );
+        Py_DECREF(old);
+
+        if (unlikely(*prog == NULL))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+#endif
+
+/**
  *  The "eval" implementation, used for "exec" too.
  */
 

@@ -204,6 +204,10 @@ extern PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObje
                               PyObject *dont_inherit, PyObject *optimize);
 #endif
 
+#if PYTHON_VERSION < 300
+extern bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name);
+#endif
+
 // For quicker built-in open() functionality.
 #if PYTHON_VERSION < 300
 extern PyObject *BUILTIN_OPEN(PyObject *file_name, PyObject *mode, PyObject *buffering);

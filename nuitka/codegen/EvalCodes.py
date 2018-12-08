@@ -25,7 +25,9 @@ from .CodeHelpers import (
     generateExpressionCode,
     withObjectCodeTemporaryAssignment
 )
+from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitBoolCode, getErrorExitCode, getReleaseCode
+from .PythonAPICodes import getReferenceExportCode
 from .VariableCodes import getVariableAssignmentCode
 
 
@@ -278,20 +280,44 @@ def generateExecCode(statement, emit, context):
 
     source_ref = statement.getSourceReference()
 
-    # Filename with origin in improved mode.
-    if Options.isFullCompat():
-        filename_name = context.getConstantCode(
-            constant = "<string>"
-        )
-    else:
-        filename_name = context.getConstantCode(
-            constant = "<string at %s>" % source_ref.getAsString()
-        )
+    filename_name = context.allocateTempName("exec_filename")
+
+    # Default filename with origin in improved mode.
+    getConstantAccess(
+        to_name  = filename_name,
+        constant = "<string>"
+                     if Options.isFullCompat() else
+                   "<string at %s>" % source_ref.getAsString(),
+        emit     = emit,
+        context  = context
+    )
+
+    getReferenceExportCode(filename_name, emit, context)
+    context.addCleanupTempName(filename_name)
+
+    getReferenceExportCode(source_name, emit, context)
+    context.addCleanupTempName(source_name)
 
     old_source_ref = context.setCurrentSourceCodeReference(
         locals_arg.getSourceReference()
           if Options.isFullCompat() else
         statement.getSourceReference()
+    )
+
+    res_name = context.getBoolResName()
+
+    emit(
+        "%s = EXEC_FILE_ARG_HANDLING( &%s, &%s );" % (
+            res_name,
+            source_name,
+            filename_name
+        )
+    )
+
+    getErrorExitBoolCode(
+        condition = "%s == false" % res_name,
+        emit      = emit,
+        context   = context
     )
 
     compiled_name = context.allocateTempName("exec_compiled")
@@ -323,7 +349,7 @@ def generateExecCode(statement, emit, context):
 
     getErrorExitCode(
         check_name    = to_name,
-        release_names = (compiled_name, globals_name, locals_name),
+        release_names = (compiled_name, globals_name, locals_name, source_name, filename_name),
         emit          = emit,
         context       = context
     )

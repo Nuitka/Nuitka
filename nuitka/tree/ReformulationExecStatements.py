@@ -26,12 +26,7 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
-from nuitka.nodes.BuiltinRefNodes import (
-    ExpressionBuiltinAnonymousRef,
-    ExpressionBuiltinExceptionRef
-)
-from nuitka.nodes.CallNodes import ExpressionCallEmpty
+from nuitka.nodes.BuiltinRefNodes import ExpressionBuiltinExceptionRef
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
@@ -45,7 +40,6 @@ from nuitka.nodes.ExceptionNodes import StatementRaiseException
 from nuitka.nodes.ExecEvalNodes import StatementExec, StatementLocalsDictSync
 from nuitka.nodes.GlobalsLocalsNodes import ExpressionBuiltinGlobals
 from nuitka.nodes.NodeMakingHelpers import makeExpressionBuiltinLocals
-from nuitka.nodes.TypeNodes import ExpressionBuiltinIsinstance
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
 
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
@@ -390,38 +384,6 @@ exec: arg 1 must be a string, file, or code object""",
                     source_ref = source_ref
                 )
             ),
-            source_ref = source_ref
-        ),
-        # Source needs some special treatment for not done for "eval", if it's a
-        # file object, then  must be read.
-        makeStatementConditional(
-            condition  = ExpressionBuiltinIsinstance(
-                instance   = ExpressionTempVariableRef(
-                    variable   = source_variable,
-                    source_ref = source_ref
-                ),
-                classes    = ExpressionBuiltinAnonymousRef(
-                    builtin_name = "file",
-                    source_ref   = source_ref,
-                ),
-                source_ref = source_ref
-            ),
-            yes_branch = StatementAssignmentVariable(
-                variable   = source_variable,
-                source     = ExpressionCallEmpty(
-                    called     = ExpressionAttributeLookup(
-                        source         = ExpressionTempVariableRef(
-                            variable   = source_variable,
-                            source_ref = source_ref
-                        ),
-                        attribute_name = "read",
-                        source_ref     = source_ref
-                    ),
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
-            ),
-            no_branch  = None,
             source_ref = source_ref
         ),
         makeTryFinallyStatement(
