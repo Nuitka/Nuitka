@@ -36,6 +36,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
         NuitkaPluginBase.__init__(self)
 
         self.pkg_utils_externals = None
+        self.opengl_plugins = None
 
     def getImplicitImports(self, module):
         # Many variables, branches, due to the many cases, pylint: disable=too-many-branches,too-many-statements
@@ -233,6 +234,34 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pandas._libs.tslibs.nattype", False
         elif full_name == "pandas.core.window":
             yield "pandas._libs.skiplist", False
+        elif full_name == "OpenGL":
+            if self.opengl_plugins is None:
+                self.opengl_plugins = []
+
+                for line in open(module.getCompileTimeFilename()):
+                    if line.startswith("PlatformPlugin("):
+                        os_part, plugin_name_part = line[15:-1].split(',')
+                        os_part = os_part.strip("' ")
+                        plugin_name_part = plugin_name_part.strip(") '")
+                        plugin_name_part = plugin_name_part[:plugin_name_part.rfind('.')]
+                        if os_part == "nt":
+                            if getOS() == "Windows":
+                                self.opengl_plugins.append(plugin_name_part)
+                        elif os_part.startswith("linux"):
+                            if getOS() == "Linux":
+                                self.opengl_plugins.append(plugin_name_part)
+                        elif os_part.startswith("darwin"):
+                            if getOS() == "MacOS":
+                                self.opengl_plugins.append(plugin_name_part)
+                        elif os_part.startswith(("posix", "osmesa", "egl")):
+                            if getOS() != "Windows":
+                                self.opengl_plugins.append(plugin_name_part)
+                        else:
+                            assert False, os_part
+
+            for opengl_plugin in self.opengl_plugins:
+                yield opengl_plugin, True
+
 
     # We don't care about line length here, pylint: disable=line-too-long
 

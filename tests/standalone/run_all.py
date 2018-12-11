@@ -210,6 +210,14 @@ for filename in sorted(os.listdir('.')):
 
         extra_flags.append("plugin_enable:pmw-freeze")
 
+    if filename == "OpenGLUsing.py":
+        if not hasModule("OpenGL"):
+            reportSkip("OpenGL not installed for this Python version, but test needs it", ".", filename)
+            continue
+
+        # For the warnings.
+        extra_flags.append("ignore_stderr")
+
     my_print("Consider output of recursively compiled program:", filename)
 
     # First compare so we know the program behaves identical.
