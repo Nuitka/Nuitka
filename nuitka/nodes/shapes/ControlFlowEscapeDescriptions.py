@@ -70,3 +70,7 @@ class ControlFlowDescriptionNoEscape(ControlFlowDescriptionBase):
 
 class ControlFlowDescriptionComparisonUnorderable(ControlFlowDescriptionFullEscape):
     pass
+
+
+class ControlFlowDescriptionAddUnsupported(ControlFlowDescriptionFullEscape):
+    pass
