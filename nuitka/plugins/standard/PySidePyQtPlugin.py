@@ -48,11 +48,23 @@ class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
     def __init__(self):
         self.qt_dirs = {}
 
-    def getPyQtPluginDirs(self, qt_version):
+    def getPyQtPySide2PluginDirs(self, qt_version, is_pyside):
         if qt_version in self.qt_dirs:
             return self.qt_dirs[qt_version]
+        if is_pyside:
+            command = """\
+from __future__ import print_function
 
-        command = """\
+import PySide2.QtCore
+for v in PySide2.QtCore.QCoreApplication.libraryPaths():
+    print(v)
+import os
+guess_path = os.path.join(os.path.dirname(PySide2.__file__), "plugins")
+if os.path.exists(guess_path):
+    print("GUESS:", guess_path)
+"""
+        else:
+            command = """\
 from __future__ import print_function
 
 import PyQt%(qt_version)d.QtCore
@@ -63,8 +75,8 @@ guess_path = os.path.join(os.path.dirname(PyQt%(qt_version)d.__file__), "plugins
 if os.path.exists(guess_path):
     print("GUESS:", guess_path)
 """ % {
-           "qt_version" : qt_version
-        }
+               "qt_version" : qt_version
+            }
 
         output = Execution.check_output([sys.executable, "-c", command])
 
@@ -104,10 +116,14 @@ if os.path.exists(guess_path):
     def considerExtraDlls(self, dist_dir, module):
         full_name = module.getFullName()
 
-        if full_name in ("PyQt4", "PyQt5"):
-            qt_version = int(full_name[-1])
-
-            plugin_dir, = self.getPyQtPluginDirs(qt_version)
+        if full_name in ("PyQt4", "PyQt5", "PySide2"):
+            if full_name in ("PyQt4", "PyQt5"):
+                qt_version = int(full_name[-1])
+                plugin_dir, = self.getPyQtPySide2PluginDirs(qt_version, is_pyside=False)
+            else:
+                qt_version = int(5)
+                plugin_dir, = self.getPyQtPySide2PluginDirs(qt_version, is_pyside=True)
+    
 
             target_plugin_dir = os.path.join(
                 dist_dir,
@@ -262,10 +278,10 @@ if os.path.exists(guess_path):
 
         full_name = module.getFullName()
 
-        if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
-            qt_version = int(full_name.split('.')[0][-1])
-
-            code = """\
+        if full_name in ("PyQt4.QtCore", "PyQt5.QtCore", "PySide2.QtCore"):
+            if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
+                qt_version = int(full_name.split('.')[0][-1])
+                code = """\
 from PyQt%(qt_version)d.QtCore import QCoreApplication
 import os
 
@@ -280,6 +296,22 @@ QCoreApplication.setLibraryPaths(
 """ % {
                 "qt_version" : qt_version
             }
+
+
+            elif full_name in ("PySide2.QtCore"):
+                code = """\
+from PySide2.QtCore import QCoreApplication
+import os
+
+QCoreApplication.setLibraryPaths(
+    [
+        os.path.join(
+           os.path.dirname(__file__),
+           "qt-plugins"
+        )
+    ]
+)
+""" 
 
             return code, """\
 Setting Qt library path to distribution folder. Need to avoid loading target
@@ -296,5 +328,5 @@ class NuitkaPluginDetectorPyQtPySidePlugins(NuitkaPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):
-        if module.getFullName() in ("PyQt4.QtCore", "PyQt5.QtCore", "PySide"):
+        if module.getFullName() in ("PyQt4.QtCore", "PyQt5.QtCore", "PySide", "PySide2"):
             self.warnUnusedPlugin("Inclusion of Qt plugins.")
