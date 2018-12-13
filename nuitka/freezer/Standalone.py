@@ -1220,11 +1220,20 @@ different from
             dist_dir,
             dll_name
         )
+        try:
+            shutil.copyfile(
+                dll_filename,
+                target_path
+            )
+        except IOError as e:
+            using_cache = not Options.shallNotUseDependsExeCachedResults()
+            if using_cache:
+                print('IOError: Cache dependency missing or moved. Retrying with forced dependency cache update..', e)
+                if Options.options:
+                    setattr(Options.options, 'update_dependency_cache', True)
+                    return copyUsedDLLs(source_dir, dist_dir, standalone_entry_points)
 
-        shutil.copyfile(
-            dll_filename,
-            target_path
-        )
+            raise e
 
         dll_map.append(
             (dll_filename, dll_name)
