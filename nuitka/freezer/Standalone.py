@@ -71,6 +71,7 @@ def loadCodeObjectData(precompiled_filename):
 
 
 module_names = set()
+has_tried_forced_dep_cache_update = False
 
 def _detectedPrecompiledFile(filename, module_name, result, user_provided,
                              technical):
@@ -1227,11 +1228,11 @@ different from
             )
         except IOError as e:
             using_cache = not Options.shallNotUseDependsExeCachedResults()
-            if using_cache:
+            if using_cache and not has_tried_forced_dep_cache_update and Options.options:
                 print('IOError: Cache dependency missing or moved. Retrying with forced dependency cache update..', e)
-                if Options.options:
-                    setattr(Options.options, 'update_dependency_cache', True)
-                    return copyUsedDLLs(source_dir, dist_dir, standalone_entry_points)
+                has_tried_forced_dep_cache_update = True
+                setattr(Options.options, 'update_dependency_cache', True)
+                return copyUsedDLLs(source_dir, dist_dir, standalone_entry_points)
 
             raise e
 
