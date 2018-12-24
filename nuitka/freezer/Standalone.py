@@ -426,6 +426,10 @@ def scanStandardLibraryPath(stdlib_dir):
             if "tests" in dirs:
                 dirs.remove("tests")
 
+        if import_path == "asyncio":
+            if "test_utils.py" in filenames:
+                filenames.remove("test_utils.py")
+
         if python_version >= 340 and Utils.getOS() == "Windows":
             if import_path == "multiprocessing":
                 filenames.remove("popen_fork.py")
