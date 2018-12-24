@@ -24,8 +24,8 @@ from nuitka.codegen.Reports import onMissingOperation
 from nuitka.PythonVersions import python_version
 
 from .ControlFlowEscapeDescriptions import (
-    ControlFlowDescriptionComparisonUnorderable,
     ControlFlowDescriptionAddUnsupported,
+    ControlFlowDescriptionComparisonUnorderable,
     ControlFlowDescriptionElementBasedEscape,
     ControlFlowDescriptionFullEscape,
     ControlFlowDescriptionNoEscape
@@ -131,6 +131,8 @@ class ShapeTypeNoneType(ShapeBase):
             # difference with "=="
             # if right_shape.getTypeName() is not None:
             #     return operation_result_unorderable_comparison
+            if right_shape is ShapeTypeStr:
+                return operation_result_unknown
 
             return _getComparisonLtShapeGeneric(cls, right_shape)
 
@@ -937,6 +939,9 @@ class ShapeTypeStr(ShapeBase):
         if right_shape is ShapeTypeStrDerived:
             return operation_result_unknown
 
+        if right_shape is ShapeTypeUnicode:
+            return operation_result_unicode_noescape
+
         if right_shape is ShapeTypeBytearray:
             if python_version < 300:
                 return operation_result_bytearray_noescape
@@ -1033,7 +1038,7 @@ if python_version < 300:
             if right_shape is ShapeUnknown:
                 return operation_result_unknown
 
-            if right_shape is ShapeTypeUnicode:
+            if right_shape in (ShapeTypeUnicode, ShapeTypeStr):
                 return operation_result_unicode_noescape
 
             if right_shape is ShapeTypeUnicodeDerived:
