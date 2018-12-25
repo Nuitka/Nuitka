@@ -184,7 +184,7 @@ def convert_to_BuildError(status, exc_info=None):
             filename=filename,
             exc_info=exc_info)
 
-    elif isinstance(status, (EnvironmentError, OSError, IOError)):
+    elif isinstance(status, (__builtins__["EnvironmentError"], OSError, IOError)):
         # If an IOError/OSError happens, raise a BuildError.
         # Report the name of the file or directory that caused the
         # error, which might be different from the target being built
