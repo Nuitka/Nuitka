@@ -115,7 +115,6 @@ extern PyObject *const_str_plain___package__;
 extern PyObject *const_str_dot;
 
 extern PyObject *const_str_plain___loader__;
-extern PyObject *metapath_based_loader;
 #endif
 
 #if PYTHON_VERSION >= 340
@@ -136,7 +135,7 @@ extern void _initCompiledCoroutineTypes();
 extern void _initCompiledAsyncgenTypes();
 #endif
 
-extern PyObject *metapath_based_loader;
+extern PyTypeObject Nuitka_Loader_Type;
 
 // The exported interface to CPython. On import of the module, this function
 // gets called. It has to have an exact function name, in cases it's a shared
@@ -310,7 +309,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     }
 
 #if PYTHON_VERSION >= 300
-    UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, metapath_based_loader );
+    UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, (PyObject *)&Nuitka_Loader_Type );
 #endif
 
 #if PYTHON_VERSION >= 340
@@ -325,7 +324,7 @@ MOD_INIT_DECL( %(module_identifier)s )
 
         PyObject *args[] = {
             GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ ),
-            metapath_based_loader
+            (PyObject *)&Nuitka_Loader_Type
         };
 
         PyObject *spec_value = CALL_FUNCTION_WITH_ARGS2(
@@ -365,7 +364,7 @@ MOD_INIT_DECL( %(module_identifier)s )
             PyObject *path_importer_cache = PySys_GetObject((char *)"path_importer_cache");
             CHECK_OBJECT( path_importer_cache );
 
-            int res = PyDict_SetItem( path_importer_cache, path_element, metapath_based_loader );
+            int res = PyDict_SetItem( path_importer_cache, path_element, (PyObject *)&Nuitka_Loader_Type );
             assert( res == 0 );
         }
     }
