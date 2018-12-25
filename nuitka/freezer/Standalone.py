@@ -1274,3 +1274,80 @@ different from
             removeSharedLibraryRPATH(
                 os.path.join(dist_dir, dll_filename)
             )
+    elif Utils.getOS() == "Windows":
+        if python_version < 300:
+            # For Windows, we might have to remove SXS paths
+            for standalone_entry_point in standalone_entry_points[1:]:
+                removeSxsFromDLL(
+                    standalone_entry_point[1]
+                )
+
+            for _original_path, dll_filename in dll_map:
+                removeSxsFromDLL(
+                    os.path.join(dist_dir, dll_filename)
+                )
+
+
+def getSxsFromDLL(filename):
+    import ctypes
+    LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExA  # @UndefinedVariable
+    FreeLibrary = ctypes.windll.kernel32.FreeLibrary  # @UndefinedVariable
+    EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA  # @UndefinedVariable
+
+    EnumResourceNameCallback = ctypes.WINFUNCTYPE(
+        ctypes.wintypes.BOOL,
+        ctypes.wintypes.HMODULE, ctypes.wintypes.LONG,
+        ctypes.wintypes.LONG, ctypes.wintypes.LONG
+    )
+
+    DONT_RESOLVE_DLL_REFERENCES = 0x1
+    LOAD_LIBRARY_AS_DATAFILE = 0x2
+    LOAD_LIBRARY_AS_IMAGE_RESOURCE = 0x20
+
+    RT_MANIFEST = 24
+
+    hmodule = LoadLibraryEx(filename, 0, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE)
+    if hmodule == 0:
+        raise ctypes.WinError()
+    manifests = []
+
+    def callback(hModule, lpType, lpName, lParam):
+        manifests.append(lpName)
+
+        return True
+
+    EnumResourceNames(hmodule, RT_MANIFEST, EnumResourceNameCallback(callback), None)
+
+    FreeLibrary(hmodule)
+    return manifests
+
+
+def removeSxsFromDLL(filename):
+    # TODO: There may be more files that need this treatment.
+    if os.path.basename(filename) != "win32ui.pyd":
+        return
+
+    res_names = getSxsFromDLL(filename)
+
+    if res_names:
+        import ctypes
+        BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceA  # @UndefinedVariable
+        EndUpdateResource = ctypes.windll.kernel32.EndUpdateResourceA  # @UndefinedVariable
+        UpdateResource = ctypes.windll.kernel32.UpdateResourceA  # @UndefinedVariable
+        RT_MANIFEST = 24
+
+        update_handle = BeginUpdateResource(filename, False)
+
+        if not update_handle:
+            raise ctypes.WinError()
+
+        for res_name in res_names:
+            ret = UpdateResource(update_handle, RT_MANIFEST, res_name, 1033, None, 0)
+
+            if not ret:
+                raise ctypes.WinError()
+
+        ret = EndUpdateResource(update_handle, False)
+
+        if not ret:
+            raise ctypes.WinError()
