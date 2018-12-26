@@ -34,7 +34,7 @@ import sys
 from logging import debug, info, warning
 
 from nuitka import Options, SourceCodeReferences, Tracing
-from nuitka.__past__ import iterItems
+from nuitka.__past__ import iterItems, unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.containers.odict import OrderedDict
 from nuitka.importing import ImportCache
 from nuitka.importing.StandardLibrary import (
@@ -1199,6 +1199,18 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
 
                 continue
 
+            if Utils.getOS() == "Windows":
+                dll_version1 = getWindowsDLLVersion(dll_filename1)
+                dll_version2 = getWindowsDLLVersion(dll_filename2)
+
+                if dll_version2 < dll_version1:
+                    del used_dlls[dll_filename2]
+                    removed_dlls.add(dll_filename2)
+
+                    warning("Ignoring conflicting DLLs for '%s' and using newest file version." % dll_name)
+
+                    continue
+
             # So we have conflicting DLLs, in which case we do not proceed.
             sys.exit(
                 """Error, conflicting DLLs for '%s'.
@@ -1287,7 +1299,7 @@ different from
                     os.path.join(dist_dir, dll_filename)
                 )
 
-
+# TODO: Move to separate helper module
 def getSxsFromDLL(filename):
     import ctypes
     LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExA  # @UndefinedVariable
@@ -1322,6 +1334,7 @@ def getSxsFromDLL(filename):
     return manifests
 
 
+# TODO: Move to separate helper module
 def removeSxsFromDLL(filename):
     # TODO: There may be more files that need this treatment.
     if os.path.basename(filename) != "win32ui.pyd":
@@ -1351,3 +1364,62 @@ def removeSxsFromDLL(filename):
 
         if not ret:
             raise ctypes.WinError()
+
+def getWindowsDLLVersion(filename):
+    """ Return DLL version information from a file.
+
+        If not present, it will be (0, 0, 0, 0), otherwise it will be
+        a tuple of 4 numbers.
+    """
+    import ctypes
+    import array
+    # Get size needed for buffer (0 if no info)
+
+    if type(filename) is unicode:
+        size = ctypes.windll.version.GetFileVersionInfoSizeW(filename, None)
+    else:
+        size = ctypes.windll.version.GetFileVersionInfoSizeA(filename, None)
+
+    if not size:
+        return (0, 0, 0, 0)
+
+    # Create buffer
+    res = ctypes.create_string_buffer(size)
+    # Load file informations into buffer res
+
+    if type(filename) is unicode:
+        ctypes.windll.version.GetFileVersionInfoW(filename, None, size, res)
+    else:
+        ctypes.windll.version.GetFileVersionInfoA(filename, None, size, res)
+
+    r = ctypes.c_uint()
+    l = ctypes.c_uint()
+
+    # Look for codepages
+    ctypes.windll.version.VerQueryValueA(
+        res,
+        br'\VarFileInfo\Translation',
+        ctypes.byref(r),
+        ctypes.byref(l)
+    )
+
+    if not l.value:
+        return (0, 0, 0, 0)
+
+    codepages = array.array('H', ctypes.string_at(r.value, l.value))
+    codepage = tuple(codepages[:2].tolist())
+
+    # Extract information
+    ctypes.windll.version.VerQueryValueA(
+        res,
+        r"\StringFileInfo\%04x%04x\FileVersion" % codepage,
+        ctypes.byref(r),
+        ctypes.byref(l)
+    )
+
+    data = ctypes.string_at(r.value, l.value)[4*2:]
+
+    import struct
+    data = struct.unpack("HHHH", data[:4*2])
+
+    return data[1], data[0], data[3], data[2]
