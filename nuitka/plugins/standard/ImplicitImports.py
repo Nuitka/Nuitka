@@ -234,6 +234,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "pandas._libs.tslibs.nattype", False
         elif full_name == "pandas.core.window":
             yield "pandas._libs.skiplist", False
+        elif full_name == "zmq.backend":
+            yield "zmq.backend.cython", True
         elif full_name == "OpenGL":
             if self.opengl_plugins is None:
                 self.opengl_plugins = []
