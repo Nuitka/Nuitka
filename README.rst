@@ -17,22 +17,23 @@ This document is the recommended first read if you are interested in using
 Nuitka, understand its use cases, check what you can expect, license,
 requirements, credits, etc.
 
-Nuitka is **the** Python compiler. It is a seamless replacement or extension
-to the Python interpreter and compiles **every** construct that CPython 2.6,
-2.7, 3.3, 3.4, 3.5, 3.6, and 3.7 have, when itself run with that Python version.
+Nuitka is **the** Python compiler. It is written in Python. It is a seamless
+replacement or extension to the Python interpreter and compiles **every**
+construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, and 3.7 have, when itself
+run with that Python version.
 
 It then executes uncompiled code, and compiled code together in an extremely
 compatible manner.
 
 You can use all Python library modules or and all extension modules freely.
 
-It translates the Python into a C level program that then uses "libpython" to
-execute in the same way as CPython does. All optimization is aimed at avoiding
-overhead, where it's unnecessary. None is aimed at removing compatibility,
-although slight improvements will occasionally be done, where not every bug
-of standard Python is emulated, e.g. more complete error messages are given,
-but there is a full compatibility mode to disable even that.
-
+It translates the Python into a C level program that then uses ``libpython`` and
+a few C files of its own to execute in the same way as CPython does. All
+optimization is aimed at avoiding overhead, where it's unnecessary. None is
+aimed at removing compatibility, although slight improvements will occasionally
+be done, where not every bug of standard Python is emulated, e.g. more complete
+error messages are given, but there is a full compatibility mode to disable even
+that.
 
 Usage
 =====
@@ -45,7 +46,7 @@ Requirements
 
   Currently this means, you need to use one of these compilers:
 
-  * `The ``gcc`` compiler of at least version 5.1, or the ``g++`` compiler of
+  * The ``gcc`` compiler of at least version 5.1, or the ``g++`` compiler of
     at least version 4.4 as an alternative.
 
   * The ``clang`` compiler on MacOS X or FreeBSD.
@@ -60,7 +61,8 @@ Requirements
     for that language).
 
   * On Windows the ``clang-cl`` compiler on Windows can be used if provided if
-    you use the ``CC`` environmentvariable to point to it, *and* you also have MSVC installed.
+    you use the ``CC`` environmentvariable to point to it, *and* you also have
+    MSVC installed.
 
 
 - Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7
