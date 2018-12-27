@@ -1148,7 +1148,7 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     # trying to avoid duplicates, and detecting errors with them not
     # being binary identical, so we can report them. And then of course
     # we also need to handle OS specifics.
-    # pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
 
     used_dlls = detectUsedDLLs(source_dir, standalone_entry_points)
@@ -1208,13 +1208,22 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                     del used_dlls[dll_filename2]
                     removed_dlls.add(dll_filename2)
 
-                    warning("Ignoring conflicting DLLs for '%s' and using newest file version." % dll_name)
+                    solved = True
+                elif dll_version1 < dll_version2:
+                    del used_dlls[dll_filename1]
+                    removed_dlls.add(dll_filename1)
 
+                    solved = True
+                else:
+                    solved = False
+
+                if solved:
+                    warning("Ignoring conflicting DLLs for '%s' and using newest file version." % dll_name)
                     continue
 
             # So we have conflicting DLLs, in which case we do not proceed.
-            sys.exit(
-                """Error, conflicting DLLs for '%s'.
+            warning(
+                """Ignoring non-identical DLLs for '%s'.
 %s used by:
    %s
 different from
@@ -1227,6 +1236,9 @@ different from
                     "\n   ".join(sources2)
                 )
             )
+
+            del used_dlls[dll_filename2]
+            removed_dlls.add(dll_filename2)
 
     dll_map = []
 
