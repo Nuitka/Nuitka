@@ -937,9 +937,9 @@ Projects used by Nuitka
 
 * The `GCC project <http://gcc.gnu.org>`__
 
-  Thanks for not only the best compiler suite, but also thanks for supporting
-  C++11 which helped to get Nuitka off the ground. Your compiler was the first
-  usable for Nuitka and with little effort.
+  Thanks for not only the best compiler suite, but also thanks for making it
+  easy supporting to get Nuitka off the ground. Your compiler was the first
+  usable for Nuitka and with very little effort.
 
 * The `Scons project <http://www.scons.org>`__
 
