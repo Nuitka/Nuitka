@@ -125,9 +125,10 @@ def removeSxsFromDLL(filename):
 
     # There may be more files that need this treatment, these are from scans
     # with the "find_sxs_modules" tool.
-    if os.path.basename(filename) not in ("sip.pyd",
-                                          "win32ui.pyd",
-                                          "winxpgui.pyd"):
+    if os.path.normcase(os.path.basename(filename)) not in (
+        "sip.pyd",
+        "win32ui.pyd",
+        "winxpgui.pyd"):
         return
 
     res_names = getSxsFromDLL(filename)
