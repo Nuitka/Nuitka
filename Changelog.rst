@@ -54,6 +54,27 @@ Bug Fixes
   like ``all`` or ``pow`` can become wrong. Previous workarounds for ``pow``
   were not good enough.
 
+- Fix, the scons for Python3 failed to properly report build errors due to
+  a regression of the Scons version used for it. This would mask build errors
+  on Windows.
+
+- Python3.4: Fix, packages didn't indicate that they are packages in their
+  `__spec__` value, causing issues with `importlib_resources` module.
+
+- Fix, packages created from `.pth` files were also considered when checking
+  for sub-packages of a module.
+
+- Standalone: Handle cases of conflicting DLLs better. On Windows pick the
+  newest file version if different, and otherwise just report and pick randomly
+  because we cannot really decide which ought to be loaded.
+
+- Fix: The `exec` statement on file handles was not using the proper filename
+  when compiling, therefore breaking e.g. `inspect.getsource` on functions
+  defined there.
+
+- Standalone: Added support for OpenGL platform plugins to be included
+  automatically.
+
 New Optimization
 ----------------
 
