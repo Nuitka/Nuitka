@@ -377,6 +377,11 @@ for filename in sorted(os.listdir('.')):
             # Some systems load a lot more, this is Fedora 26 on OBS
             "libselinux.so.",
             "libpcre.so.",
+
+            # And this is Fedora 29 on OBS
+            "libblkid.so.",
+            "libmount.so.",
+            "libpcre2-8.so.",
         )):
             continue
 
