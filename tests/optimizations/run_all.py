@@ -167,6 +167,15 @@ def checkSequence(statements):
 
             continue
 
+        if kind == "AssignmentAttribute":
+            assign_source, = getRole(statement, "expression")
+
+            if getKind(assign_source) == "ModuleAttributeSpecRef":
+                continue
+            else:
+                sys.exit("Error, attribute assignment to '%s'." % getKind(assign_source))
+
+
         if kind in ("ReturnNone", "ReturnConstant"):
             continue
 

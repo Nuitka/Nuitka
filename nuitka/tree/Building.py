@@ -62,7 +62,10 @@ from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
 from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import (
+    ExpressionAttributeLookup,
+    StatementAssignmentAttribute
+)
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
     ExpressionBuiltinFormat
@@ -84,7 +87,10 @@ from nuitka.nodes.ExceptionNodes import (
 )
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
-from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeFileRef
+from nuitka.nodes.ModuleAttributeNodes import (
+    ExpressionModuleAttributeFileRef,
+    ExpressionModuleAttributeSpecRef
+)
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
     CompiledPythonPackage,
@@ -829,6 +835,22 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             # This assigns "__path__" value.
             statements.append(
                 createPathAssignment(provider, internal_source_ref)
+            )
+
+        if python_version >= 340 and not is_main:
+            statements.append(
+                StatementAssignmentAttribute(
+                    source = ExpressionModuleAttributeFileRef(
+                        variable   = provider.getVariableForReference("__file__"),
+                        source_ref = internal_source_ref,
+                    ),
+                    attribute_name = "origin",
+                    expression = ExpressionModuleAttributeSpecRef(
+                        variable   = provider.getVariableForReference("__spec__"),
+                        source_ref = internal_source_ref,
+                    ),
+                    source_ref = internal_source_ref,
+                )
             )
 
     if python_version >= 300:
