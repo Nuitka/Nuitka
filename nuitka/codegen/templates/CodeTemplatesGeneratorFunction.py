@@ -42,7 +42,7 @@ static PyObject *%(function_identifier)s_context( struct Nuitka_GeneratorObject 
     // Local variable initialization
 %(function_var_inits)s
 
-    // Actual function code.
+    // Actual generator function body.
 %(function_body)s
 
 %(generator_exit)s

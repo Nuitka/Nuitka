@@ -29,6 +29,7 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
 
 from .Emission import SourceCodeCollector
+from .Indentation import indented
 from .LabelCodes import getStatementTrace
 from .Reports import onMissingHelper
 
@@ -238,12 +239,19 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
                     context   = context
                 )
 
-                emit('{')
-                for s in context.variable_storage.makeCLocalDeclarations():
-                    emit(s)
+                statement_declarations = context.variable_storage.makeCLocalDeclarations()
 
-                statement_codes.emitTo(emit)
-                emit('}')
+                block = False
+                for s in statement_declarations:
+                    if not block:
+                        emit('{')
+
+                        block = True
+                    emit(indented(s))
+
+                statement_codes.emitTo(emit, 1 if statement_declarations else 0)
+                if block:
+                    emit('}')
 
             context.popCleanupScope()
 

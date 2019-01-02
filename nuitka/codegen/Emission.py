@@ -22,6 +22,8 @@ this is to collect them, providing the emit implementation. Sometimes nested
 use of these will occur.
 
 """
+from .Indentation import indented
+
 
 class SourceCodeCollector(object):
     def __init__(self):
@@ -34,8 +36,8 @@ class SourceCodeCollector(object):
         for line in code.split('\n'):
             self.codes.append(line)
 
-    def emitTo(self, emit):
+    def emitTo(self, emit, level):
         for code in self.codes:
-            emit(code)
+            emit(indented(code, level))
 
         self.codes = None

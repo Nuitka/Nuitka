@@ -38,14 +38,12 @@ template_write_local_unclear_ref1 = """\
 
 template_write_local_empty_ref0 = """\
 assert( %(identifier)s == NULL );
-%(identifier)s = %(tmp_name)s;
-"""
+%(identifier)s = %(tmp_name)s;"""
 
 template_write_local_empty_ref1 = """\
 assert( %(identifier)s == NULL );
 Py_INCREF( %(tmp_name)s );
-%(identifier)s = %(tmp_name)s;
-"""
+%(identifier)s = %(tmp_name)s;"""
 
 template_write_local_clear_ref0 = """\
 {

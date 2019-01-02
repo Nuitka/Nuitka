@@ -67,7 +67,7 @@ static PyObject *impl_%(function_identifier)s( %(parameter_objects_decl)s )
     // Local variable declarations.
 %(function_locals)s
 
-    // Actual function code.
+    // Actual function body.
 %(function_body)s
 
 %(function_exit)s
@@ -83,13 +83,16 @@ function_exception_exit:
     return NULL;
 """
 
-template_function_return_exit = """\
+template_function_return_exit = """
 function_return_exit:
+   // Function cleanup code if any.
 %(function_cleanup)s
-CHECK_OBJECT( tmp_return_value );
-assert( had_error || !ERROR_OCCURRED() );
-return tmp_return_value;
-"""
+
+   // Actual function exit with return value, making sure we did not make
+   // the error status worse despite non-NULL return.
+   CHECK_OBJECT( tmp_return_value );
+   assert( had_error || !ERROR_OCCURRED() );
+   return tmp_return_value;"""
 
 function_direct_body_template = """\
 %(file_scope)s PyObject *impl_%(function_identifier)s( %(direct_call_arg_spec)s )
@@ -102,7 +105,7 @@ function_direct_body_template = """\
     // Local variable declarations.
 %(function_locals)s
 
-    // Actual function code.
+    // Actual function body.
 %(function_body)s
 
 %(function_exit)s
