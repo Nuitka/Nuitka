@@ -25,43 +25,22 @@ from __future__ import print_function
 
 import os
 import sys
-
-if __name__ == "__main__":
-    # Unchanged, running from checkout, use the parent directory, the nuitka
-    # package ought be there.
-
-    nuitka_package_dir = os.path.normpath(
-        os.path.abspath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "..",
-                "..",
-                "..",
-                "..",
-            )
-        )
-    )
-
-    sys.path.insert(
-        0,
-        nuitka_package_dir
-    )
-
+import tempfile
 
 from nuitka.tools.testing.Common import (
-    setup,
+    compileLibraryTest,
     createSearchMode,
-    compileLibraryTest
+    setup
 )
 from nuitka.Tracing import my_print
 from nuitka.utils.SharedLibraries import getSxsFromDLL
 
-import tempfile
 
 def decide(root, filename):
     return filename.endswith((".so", ".pyd")) and \
            not filename.startswith("libpython") and \
            getSxsFromDLL(os.path.join(root,filename))
+
 
 def action(stage_dir, root, path):
     # We need only the actual path, pylint: disable=unused-argument
@@ -70,7 +49,11 @@ def action(stage_dir, root, path):
     if sxs:
         my_print(path, sxs)
 
+
 def main():
+    if os.name != "nt":
+        sys.exit("Error, this is only for use on Windows where SxS exists.")
+
     setup(needs_io_encoding = True)
     search_mode = createSearchMode()
 
@@ -85,8 +68,5 @@ def main():
 
     my_print("FINISHED, all extension modules checked.")
 
-
-
 if __name__ == "__main__":
-
     main()
