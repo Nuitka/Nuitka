@@ -25,6 +25,12 @@ from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 
 known_data_files = {
+    # Key is the package name to trigger it
+    # Value is a tuple of 2 element tuples, thus trailing commas, where
+    # the target path can be specified (None is just default, i.e. the
+    # package directory) and the filename relative to the source package
+    # directory
+
     "nose.core" : (
         (None, "usage.txt"),
     ),
@@ -33,6 +39,9 @@ known_data_files = {
     ),
     "requests"  : (
         ("certifi", "../certifi/cacert.pem"),
+    ),
+    "importlib_resources" : (
+        (None, "version.txt"),
     )
 }
 
