@@ -838,20 +838,29 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
             )
 
         if python_version >= 340 and not is_main:
-            statements.append(
+            statements += [
                 StatementAssignmentAttribute(
-                    source = ExpressionModuleAttributeFileRef(
+                    source         = ExpressionModuleAttributeFileRef(
                         variable   = provider.getVariableForReference("__file__"),
                         source_ref = internal_source_ref,
                     ),
                     attribute_name = "origin",
-                    expression = ExpressionModuleAttributeSpecRef(
+                    expression     = ExpressionModuleAttributeSpecRef(
                         variable   = provider.getVariableForReference("__spec__"),
                         source_ref = internal_source_ref,
                     ),
-                    source_ref = internal_source_ref,
+                    source_ref     = internal_source_ref,
+                ),
+                StatementAssignmentAttribute(
+                    source         = makeConstantRefNode(True, internal_source_ref),
+                    attribute_name = "has_location",
+                    expression     = ExpressionModuleAttributeSpecRef(
+                        variable   = provider.getVariableForReference("__spec__"),
+                        source_ref = internal_source_ref,
+                    ),
+                    source_ref     = internal_source_ref,
                 )
-            )
+            ]
 
     if python_version >= 300:
         statements.append(
