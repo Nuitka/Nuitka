@@ -16,4 +16,4 @@ https://github.com/kayhayen/Nuitka/blob/master/CONTRIBUTING.md
       are Travis tests that cover the most important things however, and you are
       welcome to rely on those, but they might not cover enough.
 - [ ] Ideally new features or fixed regressions ought to be covered via new tests.
-- [ ] Ideally new or changed features have documention updates.
+- [ ] Ideally new or changed features have documentation updates.

@@ -768,29 +768,29 @@ static void formatErrorTooFewArguments(struct Nuitka_FunctionObject const *funct
             if (missing == 0) {
                 PyObject *old = list_str;
 
-                list_str = PyUnicode_Concat(list_str, current);
+                list_str = UNICODE_CONCAT(list_str, current);
 
                 Py_DECREF(old);
             } else if (missing == 1) {
                 PyObject *old = list_str;
 
-                list_str = PyUnicode_Concat(and_str, list_str);
+                list_str = UNICODE_CONCAT(and_str, list_str);
 
                 Py_DECREF(old);
                 old = list_str;
 
-                list_str = PyUnicode_Concat(current, list_str);
+                list_str = UNICODE_CONCAT(current, list_str);
 
                 Py_DECREF(old);
             } else {
                 PyObject *old = list_str;
 
-                list_str = PyUnicode_Concat(comma_str, list_str);
+                list_str = UNICODE_CONCAT(comma_str, list_str);
 
                 Py_DECREF(old);
                 old = list_str;
 
-                list_str = PyUnicode_Concat(current, list_str);
+                list_str = UNICODE_CONCAT(current, list_str);
 
                 Py_DECREF(old);
             }
@@ -887,29 +887,29 @@ static void formatErrorTooFewKwOnlyArguments(struct Nuitka_FunctionObject const 
             if (missing == 0) {
                 PyObject *old = list_str;
 
-                list_str = PyUnicode_Concat(list_str, current);
+                list_str = UNICODE_CONCAT(list_str, current);
 
                 Py_DECREF(old);
             } else if (missing == 1) {
                 PyObject *old = list_str;
 
-                list_str = PyUnicode_Concat(and_str, list_str);
+                list_str = UNICODE_CONCAT(and_str, list_str);
 
                 Py_DECREF(old);
                 old = list_str;
 
-                list_str = PyUnicode_Concat(current, list_str);
+                list_str = UNICODE_CONCAT(current, list_str);
 
                 Py_DECREF(old);
             } else {
                 PyObject *old = list_str;
 
-                list_str = PyUnicode_Concat(comma_str, list_str);
+                list_str = UNICODE_CONCAT(comma_str, list_str);
 
                 Py_DECREF(old);
                 old = list_str;
 
-                list_str = PyUnicode_Concat(current, list_str);
+                list_str = UNICODE_CONCAT(current, list_str);
 
                 Py_DECREF(old);
             }
@@ -985,7 +985,7 @@ static Py_ssize_t handleKeywordArgs(struct Nuitka_FunctionObject const *function
             PyObject **varnames = function->m_varnames;
 
             for (Py_ssize_t i = 0; i < keywords_count; i++) {
-                if (RICH_COMPARE_BOOL_EQ_NORECURSE(varnames[i], key)) {
+                if (RICH_COMPARE_BOOL_EQ_OBJECT_OBJECT_NORECURSE(varnames[i], key)) {
                     assert(python_pars[i] == NULL);
                     python_pars[i] = value;
 

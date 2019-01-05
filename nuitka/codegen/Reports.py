@@ -27,6 +27,8 @@ from nuitka.containers.oset import OrderedSet
 
 _missing_helpers = OrderedSet()
 
+_missing_operations = OrderedSet()
+
 # _error_for_missing = True
 _error_for_missing = False
 
@@ -36,6 +38,13 @@ def doMissingOptimizationReport():
     for helper in _missing_helpers:
         level("Missing C helper code variant, used fallback: %s", helper)
 
+    for desc in _missing_operations:
+        level("Missing optimization, used fallback: %s", desc)
+
 
 def onMissingHelper(helper_name):
     _missing_helpers.add(helper_name)
+
+
+def onMissingOperation(*args):
+    _missing_operations.add(args)

@@ -32,7 +32,7 @@ import marshal
 import re
 import struct
 import sys
-from logging import warning
+from logging import info, warning
 
 from nuitka import Options
 from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
@@ -473,13 +473,23 @@ CHECK_OBJECT( const_int_pos_1 );
                     )
                 )
             else:
-                emit(
-                    "%s = UNSTREAM_STRING( %s, %d );" % (
-                        constant_identifier,
-                        stream_data.getStreamDataCode(encoded),
-                        1 if _isAttributeName(constant_value) else 0
+                if str is not bytes and \
+                   len(constant_value) == len(encoded):
+                    emit(
+                        "%s = UNSTREAM_STRING_ASCII( %s, %d );" % (
+                            constant_identifier,
+                            stream_data.getStreamDataCode(encoded),
+                            1 if _isAttributeName(constant_value) else 0
+                        )
                     )
-                )
+                else:
+                    emit(
+                        "%s = UNSTREAM_STRING( %s, %d );" % (
+                            constant_identifier,
+                            stream_data.getStreamDataCode(encoded),
+                            1 if _isAttributeName(constant_value) else 0
+                        )
+                    )
 
             return
         except UnicodeEncodeError:
@@ -962,7 +972,7 @@ def getConstantAccess(to_name, constant, emit, context):
     # empty.  pylint: disable=too-many-branches,too-many-statements
 
     if to_name.c_type == "nuitka_bool" and Options.isDebug():
-        assert False, constant
+        info("Missing optimization for constant to C bool.")
 
     if type(constant) is dict:
         if constant:

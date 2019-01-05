@@ -20,9 +20,47 @@
 """
 
 from nuitka.codegen.c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
+from nuitka.codegen.Reports import onMissingOperation
 from nuitka.PythonVersions import python_version
 
-from .StandardShapes import ShapeBase, ShapeIterator
+from .ControlFlowEscapeDescriptions import (
+    ControlFlowDescriptionAddUnsupported,
+    ControlFlowDescriptionComparisonUnorderable,
+    ControlFlowDescriptionElementBasedEscape,
+    ControlFlowDescriptionFullEscape,
+    ControlFlowDescriptionNoEscape
+)
+from .StandardShapes import (
+    ShapeBase,
+    ShapeIterator,
+    ShapeLoopCompleteAlternative,
+    ShapeLoopInitialAlternative,
+    ShapeUnknown
+)
+
+# Very many cases when deciding shapes
+# pylint: disable=too-many-return-statements
+
+def _getOperationBinaryAddShapeGeneric(cls, right_shape):
+    if type(right_shape) is ShapeLoopCompleteAlternative:
+        return right_shape.getOperationBinaryAddLShape(cls)
+
+    if type(right_shape) is ShapeLoopInitialAlternative:
+        return operation_result_unknown
+
+    onMissingOperation("Add", cls, right_shape)
+    return operation_result_unknown
+
+
+def _getComparisonLtShapeGeneric(cls, right_shape):
+    if type(right_shape) is ShapeLoopCompleteAlternative:
+        return right_shape.getComparisonLtLShape(cls)
+
+    if type(right_shape) is ShapeLoopInitialAlternative:
+        return operation_result_unknown
+
+    onMissingOperation("Lt", cls, right_shape)
+    return operation_result_unknown
 
 
 class ShapeTypeNoneType(ShapeBase):
@@ -61,6 +99,43 @@ class ShapeTypeNoneType(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return False
+
+    @classmethod
+    def getOperationBinaryAddShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        # TODO: A lot more should be here.
+        if right_shape in (ShapeTypeInt, ShapeTypeStr):
+            return operation_result_unsupported_add
+
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+    if python_version < 300:
+        @classmethod
+        def getComparisonLtShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return operation_result_unknown
+
+            if right_shape.getTypeName() is not None:
+                return operation_result_bool_noescape
+
+            return _getComparisonLtShapeGeneric(cls, right_shape)
+    else:
+        @classmethod
+        def getComparisonLtShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return operation_result_unknown
+
+            # TODO: Actually unorderable, but this requires making a
+            # difference with "=="
+            # if right_shape.getTypeName() is not None:
+            #     return operation_result_unorderable_comparison
+            if right_shape is ShapeTypeStr:
+                return operation_result_unknown
+
+            return _getComparisonLtShapeGeneric(cls, right_shape)
+
 
 
 class ShapeTypeBool(ShapeBase):
@@ -105,11 +180,45 @@ class ShapeTypeBool(ShapeBase):
     def hasShapeSlotContains():
         return False
 
+    @classmethod
+    def getOperationBinaryAddShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        # Int might turn into long when adding anything due to possible
+        # overflow.
+        if right_shape in (ShapeTypeInt, ShapeTypeIntOrLong, ShapeTypeBool):
+            return operation_result_intorlong_noescape
+
+        if right_shape is ShapeTypeLong:
+            return operation_result_long_noescape
+
+        if right_shape is ShapeTypeIntOrLongDerived:
+            return operation_result_unknown
+
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape in (ShapeTypeInt, ShapeTypeLong, ShapeTypeIntOrLong,
+                           ShapeTypeBool, ShapeTypeFloat):
+            return operation_result_bool_noescape
+
+        if right_shape is ShapeTypeIntOrLongDerived:
+            return operation_result_unknown
+
+        return _getComparisonLtShapeGeneric(cls, right_shape)
+
 
 class ShapeTypeInt(ShapeBase):
     @staticmethod
     def getTypeName():
         return "int"
+
+    helper_code = "INT" if python_version < 300 else "LONG"
 
     @staticmethod
     def hasShapeSlotLen():
@@ -142,6 +251,46 @@ class ShapeTypeInt(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return False
+
+    @classmethod
+    def getOperationBinaryAddShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        # Int might turn into long when adding anything due to possible
+        # overflow.
+        if right_shape in (ShapeTypeInt, ShapeTypeIntOrLong,
+                           ShapeTypeBool):
+            return operation_result_intorlong_noescape
+
+        if right_shape is ShapeTypeLong:
+            return operation_result_long_noescape
+
+        if right_shape in (ShapeTypeLongDerived, ShapeTypeIntOrLongDerived):
+            return operation_result_unknown
+
+        if right_shape is ShapeTypeFloat:
+            return operation_result_float_noescape
+
+        # TODO: There must be a lot more than this.
+        if right_shape in (ShapeTypeNoneType, ShapeTypeStr):
+            return operation_result_unsupported_add
+
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape in (ShapeTypeInt, ShapeTypeLong, ShapeTypeIntOrLong,
+                           ShapeTypeBool, ShapeTypeFloat):
+            return operation_result_bool_noescape
+
+        if right_shape in (ShapeTypeLongDerived, ShapeTypeIntOrLongDerived):
+            return operation_result_unknown
+
+        return _getComparisonLtShapeGeneric(cls, right_shape)
 
 
 class ShapeTypeLong(ShapeBase):
@@ -149,6 +298,8 @@ class ShapeTypeLong(ShapeBase):
     def getTypeName():
         return "long"
 
+    helper_code = "LONG" if python_version < 300 else "INVALID"
+
     @staticmethod
     def hasShapeSlotLen():
         return False
@@ -180,6 +331,41 @@ class ShapeTypeLong(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return False
+
+    @classmethod
+    def getOperationBinaryAddShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        # Long remains long when adding anything to it.
+        if right_shape in (ShapeTypeLong, ShapeTypeInt, ShapeTypeIntOrLong,
+                           ShapeTypeBool):
+            return operation_result_long_noescape
+
+        if right_shape in (ShapeTypeLongDerived, ShapeTypeIntOrLongDerived):
+            return operation_result_unknown
+
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape in (ShapeTypeInt, ShapeTypeLong, ShapeTypeIntOrLong,
+                           ShapeTypeBool, ShapeTypeFloat):
+            return operation_result_bool_noescape
+
+        if right_shape in (ShapeTypeLongDerived, ShapeTypeIntOrLongDerived):
+            return operation_result_unknown
+
+        return _getComparisonLtShapeGeneric(cls, right_shape)
+
+
+class ShapeTypeLongDerived(ShapeUnknown):
+    @staticmethod
+    def getTypeName():
+        return None
 
 
 if python_version < 300:
@@ -215,14 +401,53 @@ if python_version < 300:
         @staticmethod
         def hasShapeSlotContains():
             return False
+
+        @classmethod
+        def getOperationBinaryAddShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return operation_result_unknown
+
+            if right_shape in (ShapeTypeInt, ShapeTypeIntOrLong, ShapeTypeBool):
+                return operation_result_intorlong_noescape
+
+            if right_shape is ShapeTypeLong:
+                return operation_result_long_noescape
+
+            if right_shape in (ShapeTypeIntOrLongDerived, ShapeTypeLongDerived):
+                return operation_result_unknown
+
+            return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+
+        @classmethod
+        def getComparisonLtShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return operation_result_unknown
+
+            if right_shape in (ShapeTypeInt, ShapeTypeLong, ShapeTypeIntOrLong,
+                               ShapeTypeBool, ShapeTypeFloat):
+                return operation_result_bool_noescape
+
+            if right_shape is ShapeTypeIntOrLongDerived:
+                return operation_result_unknown
+
+            return _getComparisonLtShapeGeneric(cls, right_shape)
+
+
 else:
     ShapeTypeIntOrLong = ShapeTypeInt
+
+
+class ShapeTypeIntOrLongDerived(ShapeUnknown):
+    pass
 
 
 class ShapeTypeFloat(ShapeBase):
     @staticmethod
     def getTypeName():
         return "float"
+
+    helper_code = "FLOAT"
 
     @staticmethod
     def hasShapeSlotLen():
@@ -255,6 +480,38 @@ class ShapeTypeFloat(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return False
+
+    @classmethod
+    def getOperationBinaryAddShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape in (ShapeTypeFloat, ShapeTypeLong, ShapeTypeInt,
+                           ShapeTypeIntOrLong, ShapeTypeBool):
+            return operation_result_float_noescape
+
+        if right_shape is ShapeTypeFloatDerived:
+            return operation_result_unknown
+
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape in (ShapeTypeFloat, ShapeTypeLong, ShapeTypeInt,
+                          ShapeTypeIntOrLong, ShapeTypeBool):
+            return operation_result_bool_noescape
+
+        if right_shape is ShapeTypeFloatDerived:
+            return operation_result_unknown
+
+        return _getComparisonLtShapeGeneric(cls, right_shape)
+
+
+class ShapeTypeFloatDerived(ShapeUnknown):
+    pass
 
 
 class ShapeTypeComplex(ShapeBase):
@@ -294,11 +551,29 @@ class ShapeTypeComplex(ShapeBase):
     def hasShapeSlotContains():
         return False
 
+    @classmethod
+    def getOperationBinaryAddShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape in (ShapeTypeFloat, ShapeTypeLong, ShapeTypeInt,
+                           ShapeTypeIntOrLong, ShapeTypeBool):
+            return operation_result_complex_noescape
+
+        if right_shape is ShapeTypeFloatDerived:
+            return operation_result_unknown
+
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+    # TODO: No < for complex
+
 
 class ShapeTypeTuple(ShapeBase):
     @staticmethod
     def getTypeName():
         return "tuple"
+
+    helper_code = "TUPLE"
 
     @staticmethod
     def hasShapeSlotLen():
@@ -336,6 +611,24 @@ class ShapeTypeTuple(ShapeBase):
     def hasShapeSlotContains():
         return True
 
+    @classmethod
+    def getOperationBinaryAddShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape is ShapeTypeTuple:
+            return operation_result_tuple_noescape
+
+        if right_shape in (ShapeTypeNoneType, ShapeTypeList):
+            return operation_result_unsupported_add
+
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        # Need to consider value shape for this.
+        return operation_result_unknown
+
 
 class ShapeTypeTupleIterator(ShapeIterator):
     @staticmethod
@@ -351,6 +644,8 @@ class ShapeTypeList(ShapeBase):
     @staticmethod
     def getTypeName():
         return "list"
+
+    helper_code = "LIST"
 
     @staticmethod
     def hasShapeSlotLen():
@@ -387,6 +682,38 @@ class ShapeTypeList(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return True
+
+    @classmethod
+    def getOperationBinaryAddShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape is ShapeTypeList:
+            return operation_result_list_noescape
+
+        if right_shape in (ShapeTypeNoneType, ShapeTypeTuple):
+            return operation_result_unsupported_add
+
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        # Need to consider value shape for this.
+        if right_shape in (ShapeTypeList, ShapeTypeTuple):
+            return operation_result_bool_elementbased
+
+        if right_shape is ShapeTypeXrange:
+            if python_version < 300:
+                return operation_result_bool_elementbased
+            else:
+                # TODO: Actually unorderable, but this requires making a
+                # difference with "=="
+                return operation_result_unknown
+
+        return _getComparisonLtShapeGeneric(cls, right_shape)
 
 
 class ShapeTypeListIterator(ShapeIterator):
@@ -439,6 +766,11 @@ class ShapeTypeSet(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return True
+
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        # Need to consider value shape for this.
+        return operation_result_unknown
 
 
 class ShapeTypeSetIterator(ShapeIterator):
@@ -534,6 +866,14 @@ class ShapeTypeDict(ShapeBase):
     def hasShapeSlotContains():
         return True
 
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        # Need to consider value shape for this
+
+        # TODO: Could return bool with annotation that exception is still
+        # possible..
+        return operation_result_unknown
+
 
 class ShapeTypeDictIterator(ShapeIterator):
     @staticmethod
@@ -549,6 +889,8 @@ class ShapeTypeStr(ShapeBase):
     @staticmethod
     def getTypeName():
         return "str"
+
+    helper_code = "STR" if python_version < 300 else "UNICODE"
 
     @staticmethod
     def hasShapeSlotLen():
@@ -586,6 +928,56 @@ class ShapeTypeStr(ShapeBase):
     def hasShapeSlotContains():
         return True
 
+    @classmethod
+    def getOperationBinaryAddShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape is ShapeTypeStr:
+            return operation_result_str_noescape
+
+        if right_shape is ShapeTypeStrDerived:
+            return operation_result_unknown
+
+        if right_shape is ShapeTypeUnicode:
+            return operation_result_unicode_noescape
+
+        if right_shape is ShapeTypeBytearray:
+            if python_version < 300:
+                return operation_result_bytearray_noescape
+            else:
+                # TODO: Exception actually for static optimization.
+                return operation_result_unknown
+
+        if right_shape in (ShapeTypeNoneType, ShapeTypeInt, ShapeTypeLong,
+                           ShapeTypeIntOrLong):
+            return operation_result_unsupported_add
+
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape is ShapeTypeStr:
+            return operation_result_bool_noescape
+
+        if right_shape is ShapeTypeStrDerived:
+            return operation_result_unknown
+
+        if right_shape is ShapeTypeBytearray:
+            if python_version < 300:
+                return operation_result_bool_noescape
+            else:
+                return operation_result_unknown
+
+        return _getComparisonLtShapeGeneric(cls, right_shape)
+
+
+class ShapeTypeStrDerived(ShapeUnknown):
+    pass
+
 
 class ShapeTypeStrIterator(ShapeIterator):
     @staticmethod
@@ -602,6 +994,8 @@ if python_version < 300:
         @staticmethod
         def getTypeName():
             return "unicode"
+
+        helper_code = "UNICODE"
 
         @staticmethod
         def hasShapeSlotLen():
@@ -639,6 +1033,36 @@ if python_version < 300:
         def hasShapeSlotContains():
             return True
 
+        @classmethod
+        def getOperationBinaryAddShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return operation_result_unknown
+
+            if right_shape in (ShapeTypeUnicode, ShapeTypeStr):
+                return operation_result_unicode_noescape
+
+            if right_shape is ShapeTypeUnicodeDerived:
+                return operation_result_unknown
+
+            return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+        @classmethod
+        def getComparisonLtShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return operation_result_unknown
+
+            if right_shape is ShapeTypeUnicode:
+                return operation_result_bool_noescape
+
+            if right_shape is ShapeTypeUnicodeDerived:
+                return operation_result_unknown
+
+            return _getComparisonLtShapeGeneric(cls, right_shape)
+
+
+    class ShapeTypeUnicodeDerived(ShapeUnknown):
+        pass
+
     class ShapeTypeUnicodeIterator(ShapeIterator):
         @staticmethod
         def getTypeName():
@@ -650,6 +1074,8 @@ if python_version < 300:
 else:
     ShapeTypeUnicode = ShapeTypeStr
     ShapeTypeUnicodeIterator = ShapeTypeStrIterator
+    ShapeTypeUnicodeDerived = ShapeTypeStrDerived
+
 
 if python_version < 300:
     class ShapeTypeStrOrUnicode(ShapeBase):
@@ -694,6 +1120,8 @@ if python_version >= 300:
         def getTypeName():
             return "bytes"
 
+        helper_code = "BYTES"
+
         @staticmethod
         def hasShapeSlotLen():
             return True
@@ -730,6 +1158,36 @@ if python_version >= 300:
         def hasShapeSlotContains():
             return True
 
+        @classmethod
+        def getOperationBinaryAddShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return operation_result_unknown
+
+            if right_shape in (ShapeTypeBytes, ShapeTypeBytearray):
+                return operation_result_bytes_noescape
+
+            if right_shape is ShapeTypeBytesDerived:
+                return operation_result_unknown
+
+            return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+        @classmethod
+        def getComparisonLtShape(cls, right_shape):
+            if right_shape is ShapeUnknown:
+                return operation_result_unknown
+
+            if right_shape is ShapeTypeBytes:
+                return operation_result_bool_noescape
+
+            if right_shape is ShapeTypeBytesDerived:
+                return operation_result_unknown
+
+            return _getComparisonLtShapeGeneric(cls, right_shape)
+
+
+    class ShapeTypeBytesDerived(ShapeUnknown):
+        pass
+
 
     class ShapeTypeBytesIterator(ShapeIterator):
         @staticmethod
@@ -744,6 +1202,8 @@ else:
     ShapeTypeBytes = ShapeTypeStr
     ShapeTypeBytesIterator = ShapeTypeStrIterator
 
+    # Shoudln't happen with Python2
+    ShapeTypeBytesDerived = None
 
 class ShapeTypeBytearray(ShapeBase):
     @staticmethod
@@ -785,6 +1245,43 @@ class ShapeTypeBytearray(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return True
+
+    @classmethod
+    def getOperationBinaryAddShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape in (ShapeTypeBytearray, ShapeTypeBytes):
+            return operation_result_bytearray_noescape
+
+        if right_shape is ShapeTypeBytesDerived:
+            return operation_result_unknown
+
+        if right_shape is ShapeTypeStr:
+            if python_version < 300:
+                return operation_result_bytearray_noescape
+            else:
+                # TODO: Exception actually for static optimization.
+                return operation_result_unknown
+
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape in (ShapeTypeBytearray, ShapeTypeBytes):
+            return operation_result_bool_noescape
+
+        if right_shape is ShapeTypeStr:
+            if python_version < 300:
+                return operation_result_bool_noescape
+            else:
+                # TODO: Exception actually for static optimization.
+                return operation_result_unknown
+
+        return _getComparisonLtShapeGeneric(cls, right_shape)
 
 
 class ShapeTypeBytearrayIterator(ShapeIterator):
@@ -914,6 +1411,27 @@ class ShapeTypeXrange(ShapeBase):
     def hasShapeSlotContains():
         return True
 
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        # TODO: Maybe split in two shapes, they are quite different in the
+        # end when it comes to operations.
+        if python_version < 300:
+            # Need to consider value shape for this.
+            if right_shape in (ShapeTypeList, ShapeTypeTuple):
+                return operation_result_bool_elementbased
+
+            if right_shape is ShapeTypeXrange:
+                return operation_result_bool_elementbased
+        else:
+            # TODO: Actually unorderable, but this requires making a
+            # difference with "=="
+            return operation_result_unknown
+
+        return _getComparisonLtShapeGeneric(cls, right_shape)
+
 
 class ShapeTypeXrangeIterator(ShapeIterator):
     @staticmethod
@@ -961,6 +1479,16 @@ class ShapeTypeType(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return False
+
+    @classmethod
+    def getComparisonLtShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        if right_shape is ShapeTypeType:
+            return ShapeUnknown, ControlFlowDescriptionNoEscape
+
+        return _getComparisonLtShapeGeneric(cls, right_shape)
 
 
 class ShapeTypeModule(ShapeBase):
@@ -1121,3 +1649,23 @@ class ShapeTypeClassmethod(ShapeBase):
     @staticmethod
     def hasShapeSlotContains():
         return False
+
+# Precanned tuples to save creating return value tuples:
+operation_result_unknown = ShapeUnknown, ControlFlowDescriptionFullEscape
+operation_result_bool_noescape = ShapeTypeBool, ControlFlowDescriptionNoEscape
+operation_result_float_noescape = ShapeTypeFloat, ControlFlowDescriptionNoEscape
+operation_result_long_noescape = ShapeTypeLong, ControlFlowDescriptionNoEscape
+operation_result_intorlong_noescape = ShapeTypeIntOrLong, ControlFlowDescriptionNoEscape
+operation_result_complex_noescape = ShapeTypeComplex, ControlFlowDescriptionNoEscape
+operation_result_tuple_noescape = ShapeTypeTuple, ControlFlowDescriptionNoEscape
+operation_result_list_noescape = ShapeTypeList, ControlFlowDescriptionNoEscape
+operation_result_str_noescape = ShapeTypeStr, ControlFlowDescriptionNoEscape
+operation_result_unicode_noescape = ShapeTypeUnicode, ControlFlowDescriptionNoEscape
+operation_result_bytes_noescape = ShapeTypeBytes, ControlFlowDescriptionNoEscape
+operation_result_bytearray_noescape = ShapeTypeBytearray, ControlFlowDescriptionNoEscape
+
+operation_result_bool_elementbased = ShapeTypeBool, ControlFlowDescriptionElementBasedEscape
+
+operation_result_unorderable_comparison = ShapeUnknown, ControlFlowDescriptionComparisonUnorderable
+
+operation_result_unsupported_add = ShapeUnknown, ControlFlowDescriptionAddUnsupported

@@ -31,11 +31,13 @@ from __future__ import print_function
 
 import os
 import sys
+from logging import info
 
 from nuitka import Options
 from nuitka.ModuleRegistry import addUsedModule
+from nuitka.PythonVersions import python_version
 
-from .PluginBase import post_modules, pre_modules
+from .PluginBase import UserPluginBase, post_modules, pre_modules
 from .standard.DataFileCollectorPlugin import NuitkaPluginDataFileCollector
 from .standard.ImplicitImports import NuitkaPluginPopularImplicitImports
 from .standard.PmwPlugin import NuitkaPluginDetectorPmw, NuitkaPluginPmw
@@ -98,7 +100,21 @@ class Plugins(object):
 
         for plugin in active_plugin_list:
             for extra_dll in plugin.considerExtraDlls(dist_dir, module):
-                assert os.path.isfile(extra_dll[1]), extra_dll[1]
+                if not os.path.isfile(extra_dll[0]):
+                    sys.exit(
+                        "Error, attempting to copy plugin determinted filename %r for module %r that is not a file." % (
+                            extra_dll[0],
+                            module.getFullName()
+                        )
+                    )
+
+                if not os.path.isfile(extra_dll[1]):
+                    sys.exit(
+                        "Error, copied filename %r for module %r that is not a file." % (
+                            extra_dll[1],
+                            module.getFullName()
+                        )
+                    )
 
                 result.append(extra_dll)
 
@@ -229,6 +245,56 @@ def listPlugins():
     sys.exit(0)
 
 
+def isObjectAUserPluginBaseClass(obj):
+    try:
+        return obj is not UserPluginBase and issubclass(obj, UserPluginBase)
+    except TypeError:
+        return False
+
+
+def importFilePy3NewWay(filename):
+    import importlib.util   # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+    spec = importlib.util.spec_from_file_location(filename, filename)
+    user_plugin_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(user_plugin_module)
+    return user_plugin_module
+
+
+def importFilePy3OldWay(filename):
+    from importlib.machinery import SourceFileLoader  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module
+    return SourceFileLoader(filename, filename).load_module(filename)   # pylint: disable=I0021,deprecated-method
+
+
+def importFilePy2(filename):
+    import imp
+    return imp.load_source(filename, filename)
+
+
+def importFile(filename):
+    if python_version < 300:
+        return importFilePy2(filename)
+    if python_version < 350:
+        return importFilePy3OldWay(filename)
+    return importFilePy3NewWay(filename)
+
+
+def importUserPlugins():
+    for plugin_filename in Options.getUserPlugins():
+        if not os.path.exists(plugin_filename):
+            sys.exit("Error, cannot find '%s'." % plugin_filename)
+
+        user_plugin_module = importFile(plugin_filename)
+        for key in dir(user_plugin_module):
+            obj = getattr(user_plugin_module, key)
+            if not isObjectAUserPluginBaseClass(obj):
+                continue
+
+            plugin_name = getattr(obj, "plugin_name", None)
+            if plugin_name and plugin_name not in Options.getPluginsDisabled():
+                active_plugin_list.append(obj())
+                info("User plugin '%s' loaded." % plugin_filename)
+
+
 def initPlugins():
     for plugin_name in Options.getPluginsEnabled() + Options.getPluginsDisabled():
         if plugin_name not in plugin_name2plugin_classes:
@@ -250,6 +316,8 @@ def initPlugins():
                 active_plugin_list.append(
                     plugin_detector()
                 )
+
+    importUserPlugins()
 
 
 initPlugins()

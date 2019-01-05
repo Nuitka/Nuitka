@@ -40,6 +40,7 @@ from nuitka.utils.FileOperations import relpath
 from .Checkers import checkStatementsSequenceOrNone
 from .FutureSpecs import FutureSpec, fromFlags
 from .IndicatorMixins import EntryPointMixin, MarkNeedsAnnotationsMixin
+from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
 from .NodeBases import (
     ChildrenHavingMixin,
     ClosureGiverNodeMixin,
@@ -69,6 +70,11 @@ class PythonModuleBase(NodeBase):
         self.package_name = package_name
         self.package = None
 
+    def getDetails(self):
+        return {
+            "name" : self.name
+        }
+
     def getName(self):
         return self.name
 
@@ -83,6 +89,10 @@ class PythonModuleBase(NodeBase):
 
     @staticmethod
     def isMainModule():
+        return False
+
+    @staticmethod
+    def isTopModule():
         return False
 
     @staticmethod
@@ -194,6 +204,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
     """
 
+    # This one has a few indicators, pylint: disable=too-many-instance-attributes
+
     kind = "COMPILED_PYTHON_MODULE"
 
     named_children = (
@@ -205,7 +217,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         "body": checkStatementsSequenceOrNone
     }
 
-    def __init__(self, name, package_name, mode, future_spec, source_ref):
+    def __init__(self, name, package_name, is_top, mode, future_spec, source_ref):
         PythonModuleBase.__init__(
             self,
             name         = name,
@@ -231,6 +243,8 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
         EntryPointMixin.__init__(self)
 
+        self.is_top = is_top
+
         self.mode = mode
 
         self.variables = {}
@@ -240,6 +254,11 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
         # Often "None" until tree building finishes its part.
         self.future_spec = future_spec
+
+        self.module_dict_name = "globals_%s" % (
+            self.getCodeName(),
+        )
+        setLocalsDictType(self.module_dict_name, "module_dict")
 
     def getDetails(self):
         return {
@@ -263,6 +282,9 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
     def getFutureSpec(self):
         return self.future_spec
+
+    def isTopModule(self):
+        return self.is_top
 
     def asGraph(self, graph, desc):
         graph = graph.add_subgraph(
@@ -525,17 +547,21 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         """ Modules have no locals scope. """
         return None
 
+    def getModuleDictScope(self):
+        return getLocalsDictHandle(self.module_dict_name)
+
 
 class CompiledPythonPackage(CompiledPythonModule):
     kind = "COMPILED_PYTHON_PACKAGE"
 
-    def __init__(self, name, package_name, mode, future_spec, source_ref):
+    def __init__(self, name, package_name, is_top, mode, future_spec, source_ref):
         assert name, source_ref
 
         CompiledPythonModule.__init__(
             self,
             name         = name,
             package_name = package_name,
+            is_top       = is_top,
             mode         = mode,
             future_spec  = future_spec,
             source_ref   = source_ref
@@ -547,7 +573,7 @@ class CompiledPythonPackage(CompiledPythonModule):
         if os.path.isdir(result):
             return result
         else:
-            return os.path.dirname(self.getFilename())
+            return os.path.dirname(result)
 
     @staticmethod
     def canHaveExternalImports():
@@ -653,6 +679,7 @@ class PythonMainModule(CompiledPythonModule):
             self,
             name         = "__main__",
             package_name = None,
+            is_top       = True,
             mode         = mode,
             future_spec  = future_spec,
             source_ref   = source_ref
@@ -748,6 +775,7 @@ class PythonInternalModule(CompiledPythonModule):
             self,
             name         = "__internal__",
             package_name = None,
+            is_top       = False,
             mode         = "compiled",
             source_ref   = SourceCodeReference.fromFilenameAndLine(
                 filename = "internal",
@@ -861,7 +889,11 @@ class PythonShlibModule(PythonModuleBase):
                 if "typing" in pyi_deps:
                     pyi_deps.discard("typing")
 
-                self.used_modules = tuple(pyi_deps)
+                self.used_modules = tuple(
+                    (pyi_dep, None)
+                    for pyi_dep in
+                    pyi_deps
+                )
             else:
                 self.used_modules = ()
 

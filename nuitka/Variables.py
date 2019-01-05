@@ -172,6 +172,8 @@ class Variable(object):
 
             if trace.isAssignTrace():
                 writers.add(owner)
+            elif trace.isUninitTrace() and owner is not self.owner:
+                writers.add(owner)
 
         self.writers = writers
         self.users = users
@@ -179,7 +181,7 @@ class Variable(object):
     def hasWritesOutsideOf(self, user):
         if not complete:
             return None
-        elif user in self.writers:
+        elif self.writers is not None and user in self.writers:
             return len(self.writers) > 1
         else:
             return bool(self.writers)
@@ -224,6 +226,9 @@ class Variable(object):
                 result.add(ShapeUnknown)
             elif trace.isMergeTrace():
                 pass
+            # TODO: Remove this and be not unkown.
+            elif trace.isLoopTrace():
+                trace.getTypeShape().emitAlternatives(result.add)
             else:
                 assert False, trace
 

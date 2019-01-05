@@ -62,7 +62,10 @@ from nuitka.importing import Importing
 from nuitka.importing.ImportCache import addImportedModule
 from nuitka.importing.PreloadedPackages import getPthImportedPackages
 from nuitka.nodes.AssignNodes import StatementAssignmentVariableName
-from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
+from nuitka.nodes.AttributeNodes import (
+    ExpressionAttributeLookup,
+    StatementAssignmentAttribute
+)
 from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinAscii,
     ExpressionBuiltinFormat
@@ -84,7 +87,10 @@ from nuitka.nodes.ExceptionNodes import (
 )
 from nuitka.nodes.GeneratorNodes import StatementGeneratorReturn
 from nuitka.nodes.LoopNodes import StatementLoopBreak, StatementLoopContinue
-from nuitka.nodes.ModuleAttributeNodes import ExpressionModuleAttributeFileRef
+from nuitka.nodes.ModuleAttributeNodes import (
+    ExpressionModuleAttributeFileRef,
+    ExpressionModuleAttributeSpecRef
+)
 from nuitka.nodes.ModuleNodes import (
     CompiledPythonModule,
     CompiledPythonPackage,
@@ -103,6 +109,7 @@ from nuitka.nodes.ReturnNodes import (
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.StringConcatenationNodes import ExpressionStringConcatenation
 from nuitka.nodes.VariableRefNodes import ExpressionVariableNameRef
+from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.Options import shallWarnUnusualCode
 from nuitka.plugins.Plugins import Plugins
 from nuitka.PythonVersions import python_version
@@ -620,8 +627,11 @@ def buildConditionalExpressionNode(provider, node, source_ref):
 
 
 def buildAwaitNode(provider, node, source_ref):
-    return ExpressionAsyncWait(
-        expression = buildNode(provider, node.value, source_ref),
+    return ExpressionYieldFromWaitable(
+        expression = ExpressionAsyncWait(
+            expression = buildNode(provider, node.value, source_ref),
+            source_ref = source_ref
+        ),
         source_ref = source_ref
     )
 
@@ -827,6 +837,31 @@ def buildParseTree(provider, source_code, source_ref, is_module, is_main):
                 createPathAssignment(provider, internal_source_ref)
             )
 
+        if python_version >= 340 and not is_main:
+            statements += [
+                StatementAssignmentAttribute(
+                    source         = ExpressionModuleAttributeFileRef(
+                        variable   = provider.getVariableForReference("__file__"),
+                        source_ref = internal_source_ref,
+                    ),
+                    attribute_name = "origin",
+                    expression     = ExpressionModuleAttributeSpecRef(
+                        variable   = provider.getVariableForReference("__spec__"),
+                        source_ref = internal_source_ref,
+                    ),
+                    source_ref     = internal_source_ref,
+                ),
+                StatementAssignmentAttribute(
+                    source         = makeConstantRefNode(True, internal_source_ref),
+                    attribute_name = "has_location",
+                    expression     = ExpressionModuleAttributeSpecRef(
+                        variable   = provider.getVariableForReference("__spec__"),
+                        source_ref = internal_source_ref,
+                    ),
+                    source_ref     = internal_source_ref,
+                )
+            ]
+
     if python_version >= 300:
         statements.append(
             StatementAssignmentVariableName(
@@ -982,6 +1017,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             result = CompiledPythonModule(
                 name         = module_name,
                 package_name = package,
+                is_top       = is_top,
                 mode         = Plugins.decideCompilation(full_name, source_ref),
                 future_spec  = None,
                 source_ref   = source_ref
@@ -999,6 +1035,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             source_ref, result = createNamespacePackage(
                 module_name    = module_name,
                 package_name   = package,
+                is_top         = is_top,
                 module_relpath = filename
             )
             source_filename = None
@@ -1015,6 +1052,7 @@ def decideModuleTree(filename, package, is_shlib, is_top, is_main):
             result = CompiledPythonPackage(
                 name         = module_name,
                 package_name = package,
+                is_top       = is_top,
                 mode         = Plugins.decideCompilation(full_name, source_ref),
                 future_spec  = None,
                 source_ref   = source_ref
@@ -1041,8 +1079,6 @@ class CodeTooComplexCode(Exception):
 
         Example of this is "idnadata".
     """
-
-    pass
 
 
 def createModuleTree(module, source_ref, source_code, is_main):

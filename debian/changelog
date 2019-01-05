@@ -1,3 +1,11 @@
+nuitka (0.6.1+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+
+  * Depend on python-pil over python-imaging (Closes: 917694).
+
+ -- Kay Hayen <kay.hayen@gmail.com>  Sat, 05 Jan 2019 12:41:57 +0100
+
 nuitka (0.6.0.6+ds-1) unstable; urgency=medium
 
   * New upstream hotfix release.

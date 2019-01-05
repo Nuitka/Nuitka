@@ -36,6 +36,7 @@ from nuitka.tools.testing.Common import (
     setup,
     createSearchMode,
     compareWithCPython,
+    reportSkip,
     withPythonPathChange
 )
 
@@ -77,7 +78,8 @@ for filename in sorted(os.listdir('.')):
 
     if filename in ("reimport_main_static", "package_missing_init",
                     "dash_import", "package_contains_main", "case_imports3",
-                    "import_variants", "package_init_import"):
+                    "import_variants", "package_init_import",
+                    "pkgutil_itermodules"):
         extra_flags.append("ignore_warnings")
 
     extra_flags.append("remove_output")
@@ -85,8 +87,16 @@ for filename in sorted(os.listdir('.')):
     extra_flags.append("recurse_all")
 
     # Use the original __file__ value, at least one case warns about things
-    # with filename included.
-    extra_flags.append("original_file")
+    # with filename included, but for pkgutil iteration, make sure we do not
+    # see original Python dirs.
+    if filename != "pkgutil_itermodules":
+        extra_flags.append("original_file")
+    else:
+        extra_flags.append("runtime_file")
+
+        # TODO: Until this can be enabled again.
+        reportSkip("unsupported right now", ".", filename)
+        continue
 
     # Cannot include the files with syntax errors, these would then become
     # ImportError, but that's not the test. In all other cases, use two

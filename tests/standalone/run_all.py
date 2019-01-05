@@ -210,6 +210,14 @@ for filename in sorted(os.listdir('.')):
 
         extra_flags.append("plugin_enable:pmw-freeze")
 
+    if filename == "OpenGLUsing.py":
+        if not hasModule("OpenGL"):
+            reportSkip("OpenGL not installed for this Python version, but test needs it", ".", filename)
+            continue
+
+        # For the warnings.
+        extra_flags.append("ignore_stderr")
+
     my_print("Consider output of recursively compiled program:", filename)
 
     # First compare so we know the program behaves identical.
@@ -221,13 +229,53 @@ for filename in sorted(os.listdir('.')):
         needs_2to3  = False
     )
 
-    # Second use "strace" on the result.
-    loaded_filenames = getRuntimeTraceOfLoadedFiles(
-        path = os.path.join(
-            filename[:-3] + ".dist",
-            filename[:-3] + (".exe" if os.name == "nt" else "")
-        )
+    # Second check if glibc libraries haven't been accidentaly
+    # shipped with the standalone executable
+    found_glibc_libs = []
+    for dist_filename in os.listdir(os.path.join(filename[:-3] + ".dist")):
+        if os.path.basename(dist_filename).startswith(
+            (
+                "ld-linux-x86-64.so",
+                "libc.so.",
+                "libpthread.so.",
+                "libm.so.",
+                "libdl.so.",
+                "libBrokenLocale.so.",
+                "libSegFault.so",
+                "libanl.so.",
+                "libcidn.so.",
+                "libcrypt.so.",
+                "libmemusage.so",
+                "libmvec.so.",
+                "libnsl.so.",
+                "libnss_compat.so.",
+                "libnss_db.so.",
+                "libnss_dns.so.",
+                "libnss_files.so.",
+                "libnss_hesiod.so.",
+                "libnss_nis.so.",
+                "libnss_nisplus.so.",
+                "libpcprofile.so",
+                "libresolv.so.",
+                "librt.so.",
+                "libthread_db-1.0.so",
+                "libthread_db.so.",
+                "libutil.so."
+            )
+        ):
+            found_glibc_libs.append(dist_filename)
+
+    if len(found_glibc_libs):
+        my_print("Should not ship glibc libraries with the standalone executable (found %s)" % found_glibc_libs)
+        sys.exit(1)
+
+    binary_filename = path = os.path.join(
+        filename[:-3] + ".dist",
+        filename[:-3] + (".exe" if os.name == "nt" else "")
     )
+
+    # Then use "strace" on the result.
+    loaded_filenames = getRuntimeTraceOfLoadedFiles(binary_filename)
 
     current_dir = os.path.normpath(os.getcwd())
     current_dir = os.path.normcase(current_dir)
@@ -278,18 +326,38 @@ for filename in sorted(os.listdir('.')):
         # Taking these from system is harmless and desirable
         if loaded_basename.startswith((
             "libz.so",
-            "libutil.so",
             "libgcc_s.so",
-            "libm.so.",
         )):
             continue
 
         # System C libraries are to be expected.
         if loaded_basename.startswith((
+            "ld-linux-x86-64.so",
             "libc.so.",
             "libpthread.so.",
-            "libdl.so.",
             "libm.so.",
+            "libdl.so.",
+            "libBrokenLocale.so.",
+            "libSegFault.so",
+            "libanl.so.",
+            "libcidn.so.",
+            "libcrypt.so.",
+            "libmemusage.so",
+            "libmvec.so.",
+            "libnsl.so.",
+            "libnss_compat.so.",
+            "libnss_db.so.",
+            "libnss_dns.so.",
+            "libnss_files.so.",
+            "libnss_hesiod.so.",
+            "libnss_nis.so.",
+            "libnss_nisplus.so.",
+            "libpcprofile.so",
+            "libresolv.so.",
+            "librt.so.",
+            "libthread_db-1.0.so",
+            "libthread_db.so.",
+            "libutil.so."
         )):
             continue
 
@@ -297,6 +365,23 @@ for filename in sorted(os.listdir('.')):
         if loaded_basename.startswith((
             "libnss_",
             "libnsl",
+
+            # Some systems load a lot more, this is CentOS 7 on OBS
+            'libattr.so.',
+            'libbz2.so.',
+            'libcap.so.',
+            'libdw.so.',
+            'libelf.so.',
+            'liblzma.so.',
+
+            # Some systems load a lot more, this is Fedora 26 on OBS
+            "libselinux.so.",
+            "libpcre.so.",
+
+            # And this is Fedora 29 on OBS
+            "libblkid.so.",
+            "libmount.so.",
+            "libpcre2-8.so.",
         )):
             continue
 
@@ -371,6 +456,15 @@ for filename in sorted(os.listdir('.')):
             continue
 
         if loaded_filename == "/usr/bin/python3.2mu":
+            continue
+
+        # Current Python executable can actually be a symlink and
+        # the real executable which it points to will be on the
+        # loaded_filenames list. This is all fine, let's ignore it.
+        # Also, because the loaded_filename can be yet another symlink
+        # (this is weird, but it's true), let's better resolve its real
+        # path too.
+        if os.path.realpath(loaded_filename) == os.path.realpath(sys.executable):
             continue
 
         # Accessing SE-Linux is OK.
@@ -460,6 +554,13 @@ for filename in sorted(os.listdir('.')):
         illegal_access = True
 
     if illegal_access:
+        if os.name != "nt":
+            my_print("Listing of dist folder:")
+            os.system("ls -Rla %s" % filename[:-3] + ".dist")
+
+            my_print("strace:")
+            os.system("strace -s4096 -e file %s" % binary_filename)
+
         sys.exit(1)
 
     removeDirectory(filename[:-3] + ".dist", ignore_errors = True)

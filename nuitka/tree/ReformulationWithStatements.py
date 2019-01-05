@@ -53,6 +53,7 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
@@ -184,16 +185,25 @@ def _buildWithNode(provider, context_expr, assign_target, body, body_lineno,
 
     # For "async with", await the entered value and exit value must be awaited.
     if not sync:
-        enter_value = ExpressionAsyncWaitEnter(
-            expression = enter_value,
+        enter_value = ExpressionYieldFromWaitable(
+            expression = ExpressionAsyncWaitEnter(
+                expression = enter_value,
+                source_ref = source_ref
+            ),
             source_ref = source_ref
         )
-        exit_value_exception = ExpressionAsyncWaitExit(
-            expression = exit_value_exception,
+        exit_value_exception = ExpressionYieldFromWaitable(
+            expression = ExpressionAsyncWaitExit(
+                expression = exit_value_exception,
+                source_ref = source_ref
+            ),
             source_ref = source_ref
         )
-        exit_value_no_exception = ExpressionAsyncWaitExit(
-            expression = exit_value_no_exception,
+        exit_value_no_exception = ExpressionYieldFromWaitable(
+            ExpressionAsyncWaitExit(
+                expression = exit_value_no_exception,
+                source_ref = source_ref
+            ),
             source_ref = source_ref
         )
 

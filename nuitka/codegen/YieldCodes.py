@@ -29,7 +29,7 @@ from .PythonAPICodes import getReferenceExportCode
 from .VariableDeclarations import VariableDeclaration
 
 
-def getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
+def _getYieldPreserveCode(to_name, value_name, preserve_exception, yield_code,
                           resume_code, emit, context):
     yield_return_label = context.allocateLabel("yield_return")
     yield_return_index = yield_return_label.split('_')[-1]
@@ -170,7 +170,7 @@ def generateYieldCode(to_name, expression, emit, context):
     with withObjectCodeTemporaryAssignment(to_name, "yield_result", expression, emit, context) \
       as result_name:
 
-        getYieldPreserveCode(
+        _getYieldPreserveCode(
             to_name            = result_name,
             value_name         = value_name,
             yield_code         = yield_code,
@@ -213,7 +213,7 @@ return NULL;
     with withObjectCodeTemporaryAssignment(to_name, "yieldfrom_result", expression, emit, context) \
       as result_name:
 
-        getYieldPreserveCode(
+        _getYieldPreserveCode(
             to_name            = result_name,
             value_name         = value_name,
             yield_code         = yield_code,
@@ -221,6 +221,59 @@ return NULL;
             preserve_exception = preserve_exception,
             emit               = emit,
             context            = context
+        )
+
+        context.addCleanupTempName(result_name)
+
+
+def generateYieldFromWaitableCode(to_name, expression, emit, context):
+
+    # In handlers, we must preserve/restore the exception.
+    preserve_exception = expression.isExceptionPreserving()
+
+    awaited_name, = generateChildExpressionsCode(
+        expression = expression,
+        emit       = emit,
+        context    = context
+    )
+
+    yield_code = """\
+%(object_name)s->m_yieldfrom = %(yield_from)s;
+%(object_name)s->m_awaiting = true;
+return NULL;
+""" % {
+        "object_name" : context.getContextObjectName(),
+        "yield_from"  : awaited_name,
+    }
+
+    resume_code = """\
+%(object_name)s->m_awaiting = false;
+""" % {
+        "object_name" : context.getContextObjectName(),
+    }
+
+    getReferenceExportCode(awaited_name, emit, context)
+    if context.needsCleanup(awaited_name):
+        context.removeCleanupTempName(awaited_name)
+
+    with withObjectCodeTemporaryAssignment(to_name, "await_result", expression, emit, context) \
+      as result_name:
+        _getYieldPreserveCode(
+            to_name            = result_name,
+            value_name         = awaited_name,
+            yield_code         = yield_code,
+            resume_code        = resume_code,
+            preserve_exception = preserve_exception,
+            emit               = emit,
+            context            = context
+        )
+
+        # TODO: Seems to be redundant with and _getYieldPreserveCode doing
+        # it and could be removed
+        getErrorExitCode(
+            check_name = result_name,
+            emit       = emit,
+            context    = context
         )
 
         context.addCleanupTempName(result_name)

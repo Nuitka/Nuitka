@@ -39,6 +39,7 @@ from nuitka.tools.testing.Common import (
 )
 from nuitka.tools.testing.OutputComparison import compareOutput
 from nuitka.Tracing import my_print
+from nuitka.utils.Timing import StopWatch
 
 
 def displayOutput(stdout, stderr):
@@ -71,17 +72,53 @@ def checkNoPermissionError(output):
     return True
 
 
+def _getCPythonResults(cpython_cmd):
+    stop_watch = StopWatch()
+
+    # Try a coupile of times for permission denied, on Windows it can
+    # be transient.
+    for _i in range(5):
+        stop_watch.start()
+
+        with withPythonPathChange(os.getcwd()):
+            process = subprocess.Popen(
+                args   = cpython_cmd,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE
+            )
+
+        stdout_cpython, stderr_cpython = process.communicate()
+        exit_cpython = process.returncode
+
+        stop_watch.stop()
+
+        if checkNoPermissionError(stdout_cpython) and \
+           checkNoPermissionError(stderr_cpython):
+            break
+
+        my_print("Retrying CPython due to permission problems after delay.")
+        time.sleep(2)
+
+    cpython_time = stop_watch.delta()
+
+    return cpython_time, stdout_cpython, stderr_cpython, exit_cpython
+
+
 def getCPythonResults(cpython_cmd, cpython_cached):
     cached = False
     if cpython_cached:
         # TODO: Hashing stuff and creating cache filename is duplicate code
         # and should be shared.
-
         hash_input = " -- ".join(cpython_cmd)
         if str is not bytes:
             hash_input = hash_input.encode("utf8")
 
         command_hash = hashlib.md5(hash_input)
+
+        for element in cpython_cmd:
+            if os.path.exists(element):
+                with open(element, "rb") as element_file:
+                    command_hash.update(element_file.read())
 
         cache_filename = os.path.join(
             getTestingCPythonOutputsCacheDir(),
@@ -95,31 +132,7 @@ def getCPythonResults(cpython_cmd, cpython_cached):
                 cached = True
 
     if not cached:
-        start_time = time.time()
-
-        # Try a coupile of times for permission denied, on Windows it can
-        # be transient.
-        for _i in range(5):
-            with withPythonPathChange(os.getcwd()):
-                process = subprocess.Popen(
-                    args   = cpython_cmd,
-                    stdout = subprocess.PIPE,
-                    stderr = subprocess.PIPE
-                )
-
-            stdout_cpython, stderr_cpython = process.communicate()
-            exit_cpython = process.returncode
-
-            if checkNoPermissionError(stdout_cpython) and \
-               checkNoPermissionError(stderr_cpython):
-                break
-
-            my_print("Retrying CPython due to permission problems after delay.")
-            time.sleep(2)
-
-            start_time = time.time()
-
-        cpython_time = time.time() - start_time
+        cpython_time, stdout_cpython, stderr_cpython, exit_cpython = _getCPythonResults(cpython_cmd)
 
         if cpython_cached:
             with open(cache_filename, "wb") as cache_file:
@@ -168,6 +181,7 @@ def main():
     timing             = hasArg("timing")
     coverage_mode      = hasArg("coverage")
     original_file      = hasArg("original_file")
+    runtime_file       = hasArg("runtime_file")
     no_warnings        = not hasArg("warnings")
     full_compat        = not hasArg("improved")
     cpython_cached     = hasArg("cpython_cache")
@@ -352,6 +366,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
     if original_file:
         extra_options.append("--file-reference-choice=original")
 
+    if runtime_file:
+        extra_options.append("--file-reference-choice=runtime")
+
     if full_compat:
         extra_options.append("--full-compat")
 
@@ -489,7 +506,8 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
         if trace_command:
             my_print("Going to output directory", os.getcwd())
 
-    start_time = time.time()
+    stop_watch = StopWatch()
+    stop_watch.start()
 
     if not two_step_execution:
         if trace_command:
@@ -567,8 +585,8 @@ Stderr was:
                 exit_nuitka = exit_nuitka1
                 stdout_nuitka, stderr_nuitka = stdout_nuitka1, stderr_nuitka1
 
-
-    nuitka_time = time.time() - start_time
+    stop_watch.stop()
+    nuitka_time = stop_watch.delta()
 
     if not silent_mode:
         displayOutput(stdout_nuitka, stderr_nuitka)

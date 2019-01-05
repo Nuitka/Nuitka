@@ -67,7 +67,10 @@ from nuitka.nodes.StatementNodes import (
     StatementsSequence
 )
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
-from nuitka.nodes.YieldNodes import ExpressionYield
+from nuitka.nodes.YieldNodes import (
+    ExpressionYield,
+    ExpressionYieldFromWaitable
+)
 from nuitka.PythonVersions import python_version
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
@@ -85,32 +88,49 @@ from .TreeHelpers import (
 )
 
 
-def _makeIteratorCreation(provider, qual, source_ref):
+def _makeIteratorCreation(provider, qual, for_asyncgen, source_ref):
     if getattr(qual, "is_async", 0):
-        iter_class = ExpressionAsyncIter
-    else:
-        iter_class = ExpressionBuiltinIter1
-
-    return iter_class(
-        value      = buildNode(
-            provider   = provider,
-            node       = qual.iter,
+        result = ExpressionAsyncIter(
+            value      = buildNode(
+                provider   = provider,
+                node       = qual.iter,
+                source_ref = source_ref
+            ),
             source_ref = source_ref
-        ),
-        source_ref = source_ref
-    )
+        )
+
+        if not for_asyncgen or python_version < 370:
+            result = ExpressionYieldFromWaitable(
+                expression = result,
+                source_ref = source_ref
+            )
+
+        return result
+    else:
+        return ExpressionBuiltinIter1(
+            value      = buildNode(
+                provider   = provider,
+                node       = qual.iter,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
 
 
 def _makeIteratorNext(qual, iterator_ref, source_ref):
     if getattr(qual, "is_async", 0):
-        next_class = ExpressionAsyncNext
+        return ExpressionYieldFromWaitable(
+            expression = ExpressionAsyncNext(
+                value      = iterator_ref,
+                source_ref = source_ref
+            ),
+            source_ref = source_ref
+        )
     else:
-        next_class = ExpressionBuiltinNext1
-
-    return next_class(
-        value      = iterator_ref,
-        source_ref = source_ref
-    )
+        return ExpressionBuiltinNext1(
+            value      = iterator_ref,
+            source_ref = source_ref
+        )
 
 
 def _getStopIterationName(qual):
@@ -144,8 +164,6 @@ def _buildPython2ListContraction(provider, node, source_ref):
     )
 
     statements, release_statements = _buildContractionBodyNode(
-        function_body   = function_body,
-        assign_provider = True,
         provider        = provider,
         node            = node,
         emit_class      = StatementListOperationAppend,
@@ -153,6 +171,9 @@ def _buildPython2ListContraction(provider, node, source_ref):
         temp_scope      = None,
         start_value     = [],
         container_tmp   = container_tmp,
+        function_body   = function_body,
+        assign_provider = True,
+        for_asyncgen    = False,
         source_ref      = source_ref,
     )
 
@@ -289,7 +310,12 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         makeStatementsSequenceFromStatements(
             StatementAssignmentVariable(
                 variable   = iter_tmp,
-                source     = _makeIteratorCreation(provider, node.generators[0], source_ref),
+                source     = _makeIteratorCreation(
+                    provider     = provider,
+                    qual         = node.generators[0],
+                    for_asyncgen = is_async,
+                    source_ref   = source_ref
+                ),
                 source_ref = source_ref
             ),
             makeTryFinallyStatement(
@@ -314,7 +340,6 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
     )
 
     statements, release_statements = _buildContractionBodyNode(
-        function_body   = code_body,
         provider        = provider,
         node            = node,
         emit_class      = ExpressionYield,
@@ -322,7 +347,9 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
         temp_scope      = None,
         start_value     = None,
         container_tmp   = None,
+        function_body   = code_body,
         assign_provider = False,
+        for_asyncgen    = is_async,
         source_ref      = source_ref,
     )
 
@@ -357,12 +384,12 @@ def buildGeneratorExpressionNode(provider, node, source_ref):
 
 def _buildContractionBodyNode(provider, node, emit_class, start_value,
                               container_tmp, iter_tmp, temp_scope,
-                              assign_provider, function_body,
+                              assign_provider, function_body, for_asyncgen,
                               source_ref):
 
     # This uses lots of variables and branches. There is no good way
     # around that, and we deal with many cases, due to having generator
-    # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals
+    # expressions sharing this code, pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
     # Note: The assign_provider is only to cover Python2 list contractions,
     # assigning one of the loop variables to the outside scope.
@@ -374,19 +401,34 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
     if container_tmp is not None:
         tmp_variables.append(container_tmp)
 
+    statements = []
+
     # First assign the iterator if we are an outline.
     if assign_provider:
-
-
-        statements = [
+        statements.append(
             StatementAssignmentVariable(
                 variable   = iter_tmp,
-                source     = _makeIteratorCreation(provider, node.generators[0], source_ref),
+                source     = _makeIteratorCreation(
+                    provider     = provider,
+                    qual         = node.generators[0],
+                    for_asyncgen = False,
+                    source_ref   = source_ref
+                ),
                 source_ref = source_ref.atInternal()
             )
-        ]
-    else:
-        statements = []
+        )
+
+    if for_asyncgen and python_version >= 370 and node.generators[0].is_async:
+        statements.append(
+            StatementAssignmentVariable(
+                variable   = iter_tmp,
+                source     = ExpressionTempVariableRef(
+                    variable   = iter_tmp,
+                    source_ref = source_ref
+                ),
+                source_ref = source_ref
+            )
+        )
 
     if start_value is not None:
         statements.append(
@@ -470,15 +512,22 @@ def _buildContractionBodyNode(provider, node, emit_class, start_value,
                 source_ref = source_ref
             )
 
+            if for_asyncgen and python_version >= 370:
+                iterator_ref = ExpressionYieldFromWaitable(
+                    expression = iterator_ref,
+                    source_ref = source_ref
+                )
+
             tmp_iter_variable = None
 
             nested_statements = []
         else:
             # First create the iterator and store it, next should be loop body
             value_iterator = _makeIteratorCreation(
-                provider   = provider if assign_provider else function_body,
-                qual       = qual,
-                source_ref = source_ref
+                provider     = provider if assign_provider else function_body,
+                qual         = qual,
+                for_asyncgen = False,
+                source_ref   = source_ref
             )
 
             tmp_iter_variable = function_body.allocateTempVariable(
@@ -612,7 +661,6 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
     )
 
     statements, release_statements = _buildContractionBodyNode(
-        function_body   = function_body,
         provider        = provider,
         node            = node,
         emit_class      = emit_class,
@@ -620,12 +668,19 @@ def _buildContractionNode(provider, node, name, emit_class, start_value,
         temp_scope      = None,
         start_value     = start_value,
         container_tmp   = container_tmp,
+        function_body   = function_body,
         assign_provider = False,
+        for_asyncgen    = False,
         source_ref      = source_ref,
     )
 
     assign_iter_statement = StatementAssignmentVariable(
-        source     = _makeIteratorCreation(provider, node.generators[0], source_ref),
+        source     = _makeIteratorCreation(
+            provider     = provider,
+            qual         = node.generators[0],
+            for_asyncgen = False,
+            source_ref   = source_ref
+        ),
         variable   = iter_tmp,
         source_ref = source_ref
     )

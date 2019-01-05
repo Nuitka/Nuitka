@@ -33,13 +33,12 @@ from .ExpressionBases import (
     ExpressionChildrenHavingBase,
     ExpressionSpecBasedComputationBase
 )
-from .shapes.BuiltinTypeShapes import ShapeTypeIntOrLong, ShapeTypeLong
-
-
-class ShapeTypeIntOrLongDerived(ShapeTypeIntOrLong):
-    @staticmethod
-    def getTypeName():
-        return None
+from .shapes.BuiltinTypeShapes import (
+    ShapeTypeIntOrLong,
+    ShapeTypeIntOrLongDerived,
+    ShapeTypeLong,
+    ShapeTypeLongDerived
+)
 
 
 class ExpressionBuiltinInt1(ExpressionChildrenHavingBase):
@@ -140,11 +139,6 @@ class ExpressionBuiltinInt2(ExpressionBuiltinIntLong2Base):
 
 
 if python_version < 300:
-    class ShapeTypeLongDerived(ShapeTypeLong):
-        @staticmethod
-        def getTypeName():
-            return None
-
 
     class ExpressionBuiltinLong1(ExpressionChildrenHavingBase):
         kind = "EXPRESSION_BUILTIN_LONG1"

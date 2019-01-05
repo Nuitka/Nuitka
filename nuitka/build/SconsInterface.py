@@ -173,13 +173,6 @@ def _setupSconsEnvironment():
     """
 
     if Utils.getOS() == "Windows":
-        # On Windows this Scons variable must be set by us.
-        os.environ["SCONS_LIB_DIR"] = os.path.join(
-            _getSconsInlinePath(),
-            "lib",
-            "scons-2.3.2"
-        )
-
         # On Windows, we use the Python.DLL path for some things. We pass it
         # via environment variable
         os.environ["NUITKA_PYTHON_DLL_PATH"] = getTargetPythonDLLPath()

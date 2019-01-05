@@ -51,8 +51,6 @@ def visitModule(module, visitor):
 class VisitorNoopMixin(object):
     def onEnterNode(self, node):
         """ Overloaded for operation before the node children were done. """
-        pass
 
     def onLeaveNode(self, node):
         """ Overloaded for operation after the node children were done. """
-        pass

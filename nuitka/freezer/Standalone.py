@@ -58,6 +58,7 @@ from nuitka.utils.FileOperations import (
     listDir,
     makePath
 )
+from nuitka.utils.SharedLibraries import getWindowsDLLVersion, removeSxsFromDLL
 from nuitka.utils.ThreadedExecutor import Lock, ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
 
@@ -426,6 +427,10 @@ def scanStandardLibraryPath(stdlib_dir):
             if "tests" in dirs:
                 dirs.remove("tests")
 
+        if import_path == "asyncio":
+            if "test_utils.py" in filenames:
+                filenames.remove("test_utils.py")
+
         if python_version >= 340 and Utils.getOS() == "Windows":
             if import_path == "multiprocessing":
                 filenames.remove("popen_fork.py")
@@ -625,13 +630,52 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
             if filename == "not found":
                 continue
 
-            # Do not include kernel specific libraries.
+            # pylint: disable=line-too-long
+            #
+            # Do not include kernel / glibc specific libraries. This list has been
+            # assembled by looking what are the most common .so files provided by
+            # glibc packages from ArchLinux, Debian Stretch and CentOS.
+            #
+            # Online sources:
+            #  - https://centos.pkgs.org/7/puias-computational-x86_64/glibc-aarch64-linux-gnu-2.24-2.sdl7.2.noarch.rpm.html
+            #  - https://centos.pkgs.org/7/centos-x86_64/glibc-2.17-222.el7.x86_64.rpm.html
+            #  - https://archlinux.pkgs.org/rolling/archlinux-core-x86_64/glibc-2.28-5-x86_64.pkg.tar.xz.html
+            #  - https://packages.debian.org/stretch/amd64/libc6/filelist
+            #
+            # Note: This list may still be incomplete. Some additional libraries
+            # might be provided by glibc - it may vary between the package versions
+            # and between Linux distros. It might or might not be a problem in the
+            # future, but it should be enough for now.
+            #
+            # pylint: enable=line-too-long
             if os.path.basename(filename).startswith(
                     (
+                        "ld-linux-x86-64.so",
                         "libc.so.",
                         "libpthread.so.",
                         "libm.so.",
-                        "libdl.so."
+                        "libdl.so.",
+                        "libBrokenLocale.so.",
+                        "libSegFault.so",
+                        "libanl.so.",
+                        "libcidn.so.",
+                        "libcrypt.so.",
+                        "libmemusage.so",
+                        "libmvec.so.",
+                        "libnsl.so.",
+                        "libnss_compat.so.",
+                        "libnss_db.so.",
+                        "libnss_dns.so.",
+                        "libnss_files.so.",
+                        "libnss_hesiod.so.",
+                        "libnss_nis.so.",
+                        "libnss_nisplus.so.",
+                        "libpcprofile.so",
+                        "libresolv.so.",
+                        "librt.so.",
+                        "libthread_db-1.0.so",
+                        "libthread_db.so.",
+                        "libutil.so."
                     )
                 ):
                 continue
@@ -1104,7 +1148,7 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     # trying to avoid duplicates, and detecting errors with them not
     # being binary identical, so we can report them. And then of course
     # we also need to handle OS specifics.
-    # pylint: disable=too-many-branches,too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
 
 
     used_dlls = detectUsedDLLs(source_dir, standalone_entry_points)
@@ -1156,9 +1200,30 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
 
                 continue
 
+            if Utils.getOS() == "Windows":
+                dll_version1 = getWindowsDLLVersion(dll_filename1)
+                dll_version2 = getWindowsDLLVersion(dll_filename2)
+
+                if dll_version2 < dll_version1:
+                    del used_dlls[dll_filename2]
+                    removed_dlls.add(dll_filename2)
+
+                    solved = True
+                elif dll_version1 < dll_version2:
+                    del used_dlls[dll_filename1]
+                    removed_dlls.add(dll_filename1)
+
+                    solved = True
+                else:
+                    solved = False
+
+                if solved:
+                    warning("Ignoring conflicting DLLs for '%s' and using newest file version." % dll_name)
+                    continue
+
             # So we have conflicting DLLs, in which case we do not proceed.
-            sys.exit(
-                """Error, conflicting DLLs for '%s'.
+            warning(
+                """Ignoring non-identical DLLs for '%s'.
 %s used by:
    %s
 different from
@@ -1171,6 +1236,9 @@ different from
                     "\n   ".join(sources2)
                 )
             )
+
+            del used_dlls[dll_filename2]
+            removed_dlls.add(dll_filename2)
 
     dll_map = []
 
@@ -1231,3 +1299,15 @@ different from
             removeSharedLibraryRPATH(
                 os.path.join(dist_dir, dll_filename)
             )
+    elif Utils.getOS() == "Windows":
+        if python_version < 300:
+            # For Windows, we might have to remove SXS paths
+            for standalone_entry_point in standalone_entry_points[1:]:
+                removeSxsFromDLL(
+                    standalone_entry_point[1]
+                )
+
+            for _original_path, dll_filename in dll_map:
+                removeSxsFromDLL(
+                    os.path.join(dist_dir, dll_filename)
+                )

@@ -139,7 +139,10 @@ static PyObject *Nuitka_Frame_getlocals(struct Nuitka_FrameObject *frame, void *
             case NUITKA_TYPE_DESCRIPTION_OBJECT:
             case NUITKA_TYPE_DESCRIPTION_OBJECT_PTR: {
                 PyObject *value = *(PyObject **)t;
-                PyDict_SetItem(result, *varnames, value);
+
+                if (value != NULL) {
+                    PyDict_SetItem(result, *varnames, value);
+                }
 
                 t += sizeof(value);
 
@@ -487,7 +490,7 @@ PyTypeObject Nuitka_Frame_Type = {
 void _initCompiledFrameType(void) {
     PyType_Ready(&Nuitka_Frame_Type);
 
-    // These are to be used interchangably. Make sure that's true.
+    // These are to be used interchangeably. Make sure that's true.
     assert(offsetof(struct Nuitka_FrameObject, m_frame.f_localsplus) == offsetof(PyFrameObject, f_localsplus));
 }
 

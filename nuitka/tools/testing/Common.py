@@ -31,7 +31,7 @@ from contextlib import contextmanager
 
 from nuitka.Tracing import my_print
 from nuitka.utils.AppDirs import getAppDir, getCacheDir
-from nuitka.utils.Execution import check_output
+from nuitka.utils.Execution import check_output, withEnvironmentVarOverriden
 from nuitka.utils.FileOperations import makePath, removeDirectory
 
 from .SearchModes import (
@@ -72,12 +72,15 @@ _python_version = None
 _python_arch = None
 _python_executable = None
 
-def setup(needs_io_encoding = False, silent = False, go_main = True):
+def setup(suite = "", needs_io_encoding = False, silent = False, go_main = True):
     if go_main:
         goMainDir()
 
     if "PYTHON" not in os.environ:
         os.environ["PYTHON"] = sys.executable
+
+    # Allow test code to use this to make caching specific.
+    os.environ["NUITKA_TEST_SUITE"] = suite
 
     # Allow providing 33, 27, and expand that to python2.7
     if len(os.environ["PYTHON"]) == 2 and \
@@ -522,85 +525,88 @@ Error, needs 'strace' on your system to scan used libraries."""
                 path
             )
 
-        process = subprocess.Popen(
-            args   = args,
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE
-        )
-
-        _stdout_strace, stderr_strace = process.communicate()
-        exit_strace = process.returncode
-
-        if exit_strace != 0:
-            if str is not bytes:
-                stderr_strace = stderr_strace.decode("utf8")
-
-            my_print(stderr_strace, file = sys.stderr)
-            sys.exit("Failed to run strace.")
-
-        open(path+".strace","wb").write(stderr_strace)
-
-        for line in stderr_strace.split(b"\n"):
-            if process.returncode != 0 and trace_error:
-                my_print(line)
-
-            if not line:
-                continue
-
-            # Don't consider files not found. The "site" module checks lots
-            # of things.
-            if b"ENOENT" in line:
-                continue
-
-            if line.startswith(b"stat(") and b"S_IFDIR" in line:
-                continue
-
-            # Allow stats on the python binary, and stuff pointing to the
-            # standard library, just not uses of it. It will search there
-            # for stuff.
-            if line.startswith(b"lstat(") or \
-               line.startswith(b"stat(") or \
-               line.startswith(b"readlink("):
-                filename = line[line.find(b"(")+2:line.find(b", ")-1]
-
-                # At least Python3.7 considers the default Python3 path.
-                if filename == b"/usr/bin/python3":
-                    continue
-
-                if filename in (b"/usr/bin/python3." + version for version in (b"5", b"6", b"7")):
-                    continue
-
-                binary_path = _python_executable
-                if str is not bytes:
-                    binary_path = binary_path.encode("utf-8")
-
-                found = False
-                while binary_path:
-                    if filename == binary_path:
-                        found = True
-                        break
-
-                    if binary_path == os.path.dirname(binary_path):
-                        break
-
-                    binary_path = os.path.dirname(binary_path)
-
-                    if filename == os.path.join(binary_path, b"python" + _python_version[:3].encode("utf8")):
-                        found = True
-                        continue
-
-
-                if found:
-                    continue
-
-            result.extend(
-                os.path.abspath(match)
-                for match in
-                re.findall(b'"(.*?)(?:\\\\0)?"', line)
+        # Ensure executable is not polluted with third party stuff,
+        # tests may fail otherwise due to unexpected libs being loaded
+        with withEnvironmentVarOverriden("LD_PRELOAD", None):
+            process = subprocess.Popen(
+                args   = args,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE
             )
 
-        if sys.version.startswith('3'):
-            result = [s.decode("utf-8") for s in result]
+            _stdout_strace, stderr_strace = process.communicate()
+            exit_strace = process.returncode
+
+            if exit_strace != 0:
+                if str is not bytes:
+                    stderr_strace = stderr_strace.decode("utf8")
+
+                my_print(stderr_strace, file = sys.stderr)
+                sys.exit("Failed to run strace.")
+
+            open(path+".strace","wb").write(stderr_strace)
+
+            for line in stderr_strace.split(b"\n"):
+                if process.returncode != 0 and trace_error:
+                    my_print(line)
+
+                if not line:
+                    continue
+
+                # Don't consider files not found. The "site" module checks lots
+                # of things.
+                if b"ENOENT" in line:
+                    continue
+
+                if line.startswith(b"stat(") and b"S_IFDIR" in line:
+                    continue
+
+                # Allow stats on the python binary, and stuff pointing to the
+                # standard library, just not uses of it. It will search there
+                # for stuff.
+                if line.startswith(b"lstat(") or \
+                   line.startswith(b"stat(") or \
+                   line.startswith(b"readlink("):
+                    filename = line[line.find(b"(")+2:line.find(b", ")-1]
+
+                    # At least Python3.7 considers the default Python3 path.
+                    if filename == b"/usr/bin/python3":
+                        continue
+
+                    if filename in (b"/usr/bin/python3." + version for version in (b"5", b"6", b"7")):
+                        continue
+
+                    binary_path = _python_executable
+                    if str is not bytes:
+                        binary_path = binary_path.encode("utf-8")
+
+                    found = False
+                    while binary_path:
+                        if filename == binary_path:
+                            found = True
+                            break
+
+                        if binary_path == os.path.dirname(binary_path):
+                            break
+
+                        binary_path = os.path.dirname(binary_path)
+
+                        if filename == os.path.join(binary_path, b"python" + _python_version[:3].encode("utf8")):
+                            found = True
+                            continue
+
+
+                    if found:
+                        continue
+
+                result.extend(
+                    os.path.abspath(match)
+                    for match in
+                    re.findall(b'"(.*?)(?:\\\\0)?"', line)
+                )
+
+            if sys.version.startswith('3'):
+                result = [s.decode("utf-8") for s in result]
     elif os.name == "nt":
         subprocess.call(
             (
@@ -722,17 +728,38 @@ def checkRuntimeLoadedFilesForOutsideAccesses(loaded_filenames, white_list):
 
         # System C libraries are to be expected.
         if loaded_basename.startswith((
+            "ld-linux-x86-64.so",
             "libc.so.",
             "libpthread.so.",
-            "libdl.so.",
             "libm.so.",
+            "libdl.so.",
+            "libBrokenLocale.so.",
+            "libSegFault.so",
+            "libanl.so.",
+            "libcidn.so.",
+            "libcrypt.so.",
+            "libmemusage.so",
+            "libmvec.so.",
+            "libnsl.so.",
+            "libnss_compat.so.",
+            "libnss_db.so.",
+            "libnss_dns.so.",
+            "libnss_files.so.",
+            "libnss_hesiod.so.",
+            "libnss_nis.so.",
+            "libnss_nisplus.so.",
+            "libpcprofile.so",
+            "libresolv.so.",
+            "librt.so.",
+            "libthread_db-1.0.so",
+            "libthread_db.so.",
+            "libutil.so."
         )):
             continue
 
         # Taking these from system is harmless and desirable
         if loaded_basename.startswith((
             "libz.so",
-            "libutil.so",
             "libgcc_s.so",
         )):
             continue
@@ -1185,6 +1212,8 @@ def compileLibraryTest(search_mode, stage_dir, decide, action):
             action      = action
         )
 
+    search_mode.finish()
+
 
 def run_async(coro):
     """ Execute a coroutine until it's done. """
@@ -1238,7 +1267,8 @@ def getTestingCacheDir():
 def getTestingCPythonOutputsCacheDir():
     cache_dir = getCacheDir()
 
-    result = os.path.join(cache_dir, "cpython_outputs")
+    result = os.path.join(cache_dir, "cpython_outputs", os.environ.get("NUITKA_TEST_SUITE", ""))
+
     makePath(result)
     return result
 

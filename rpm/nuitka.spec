@@ -54,6 +54,7 @@ used in the same way as pure Python objects.
 %endif
 
 %check
+env
 %{__python} ./tests/run-tests --skip-reflection-test
 
 %install

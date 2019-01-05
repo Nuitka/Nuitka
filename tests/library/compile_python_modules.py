@@ -54,10 +54,16 @@ blacklist = (
     "__phello__.foo.py", # Triggers error for "." in module name
     "idnadata",          # Avoid too complex code for main program.
     "joined_strings.py",
+    # Incredible amount of memory in C compiler for test code
+    "test_spin.py",
+)
+
+nosyntax_errors = (
     # No syntax error with Python2 compileall, but run time only:
     "_identifier.py",
     "bench.py",
-    "_tweedie_compound_poisson.py"
+    "_tweedie_compound_poisson.py",
+    "session.py"
 )
 
 def decide(root, filename):
@@ -88,13 +94,16 @@ def action(stage_dir, root, path):
     try:
         subprocess.check_call(command)
     except subprocess.CalledProcessError:
-        my_print("Falling back to full comparison due to error exit.")
+        if os.path.basename(path) in nosyntax_errors:
+            my_print("Syntax error is known unreliable with file file.")
+        else:
+            my_print("Falling back to full comparison due to error exit.")
 
-        checkCompilesNotWithCPython(
-            dirname     = None,
-            filename    = path,
-            search_mode = search_mode,
-        )
+            checkCompilesNotWithCPython(
+                dirname     = None,
+                filename    = path,
+                search_mode = search_mode,
+            )
     else:
         my_print("OK")
 
@@ -120,3 +129,5 @@ compileLibraryTest(
     decide      = decide,
     action      = action
 )
+
+search_mode.finish()

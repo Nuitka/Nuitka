@@ -32,6 +32,7 @@ from nuitka.Builtins import (
     builtin_names,
     builtin_type_names
 )
+from nuitka.Options import getPythonFlags
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 
@@ -80,6 +81,7 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
             source_ref    = self.getSourceReference(),
         )
 
+_debug_value = "no_asserts" not in getPythonFlags()
 
 def makeExpressionBuiltinRef(builtin_name, source_ref):
     assert builtin_name in builtin_names, builtin_name
@@ -88,7 +90,7 @@ def makeExpressionBuiltinRef(builtin_name, source_ref):
         "None"      : None,
         "True"      : True,
         "False"     : False,
-        "__debug__" : __debug__,
+        "__debug__" : _debug_value,
         "Ellipsis"  : Ellipsis,
     }
 

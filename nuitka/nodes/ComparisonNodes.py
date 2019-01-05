@@ -23,10 +23,10 @@ from nuitka import PythonOperators
 
 from .ExpressionBases import ExpressionChildrenHavingBase
 from .NodeMakingHelpers import (
-    makeComparisonNode,
     makeConstantReplacementNode,
     wrapExpressionWithSideEffects
 )
+from .shapes.BuiltinTypeShapes import ShapeTypeBool
 
 
 class ExpressionComparisonBase(ExpressionChildrenHavingBase):
@@ -35,11 +35,9 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
         "right"
     )
 
-    def __init__(self, left, right, comparator, source_ref):
+    def __init__(self, left, right, source_ref):
         assert left.isExpression()
         assert right.isExpression()
-
-        assert comparator in PythonOperators.all_comparison_functions, comparator
 
         ExpressionChildrenHavingBase.__init__(
             self,
@@ -49,11 +47,6 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
             },
             source_ref = source_ref
         )
-
-        self.comparator = comparator
-
-        if comparator in ("Is", "IsNot", "In", "NotIn"):
-            assert self.__class__ is not ExpressionComparison
 
     def getOperands(self):
         return (
@@ -79,22 +72,25 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
     def getSimulator(self):
         return PythonOperators.all_comparison_functions[self.comparator]
 
+    def _computeCompileTimeConstantComparision(self, trace_collection):
+        left_value = self.subnode_left.getCompileTimeConstant()
+        right_value = self.subnode_right.getCompileTimeConstant()
+
+        return trace_collection.getCompileTimeComputationResult(
+            node        = self,
+            computation = lambda : self.getSimulator()(
+                left_value,
+                right_value
+            ),
+            description = "Comparison of constant arguments."
+        )
+
     def computeExpression(self, trace_collection):
-        left = self.getLeft()
-        right = self.getRight()
+        left = self.subnode_left
+        right = self.subnode_right
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
-            left_value = left.getCompileTimeConstant()
-            right_value = right.getCompileTimeConstant()
-
-            return trace_collection.getCompileTimeComputationResult(
-                node        = self,
-                computation = lambda : self.getSimulator()(
-                    left_value,
-                    right_value
-                ),
-                description = "Comparison of constant arguments."
-            )
+            return self._computeCompileTimeConstantComparision(trace_collection)
 
         # The value of these nodes escaped and could change its contents.
         trace_collection.removeKnowledge(left)
@@ -108,53 +104,213 @@ class ExpressionComparisonBase(ExpressionChildrenHavingBase):
         return self, None, None
 
     def computeExpressionOperationNot(self, not_node, trace_collection):
-        if self.comparator in PythonOperators.comparison_inversions:
-            left, right = self.getOperands()
-
-            result = makeComparisonNode(
-                left       = left,
-                right      = right,
+        if self.getTypeShape() is ShapeTypeBool:
+            result = makeComparisonExpression(
+                left       = self.subnode_left,
+                right      = self.subnode_right,
                 comparator = PythonOperators.comparison_inversions[
                     self.comparator
                 ],
                 source_ref = self.source_ref
             )
 
-            return result, "new_expression", """\
-Replaced negated comparison with inverse comparison."""
+            return (
+                result,
+                "new_expression",
+                """\
+Replaced negated comparison '%s' with inverse comparison '%s'.""" % (
+                    self.comparator,
+                    result.comparator
+                )
+            )
 
         return not_node, None, None
 
 
-class ExpressionComparison(ExpressionComparisonBase):
-    kind = "EXPRESSION_COMPARISON"
-
-    def __init__(self, left, right, comparator, source_ref):
+class ExpressionComparisonRichBase(ExpressionComparisonBase):
+    def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self,
             left       = left,
             right      = right,
-            comparator = comparator,
             source_ref = source_ref
         )
 
+        self.type_shape = None
+        self.escape_desc = None
 
-class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
-    def __init__(self, left, right, comparator, source_ref):
-        ExpressionComparisonBase.__init__(
-            self,
-            left       = left,
-            right      = right,
-            comparator = comparator,
-            source_ref = source_ref
-        )
-
-        assert comparator in ("Is", "IsNot")
-
-        self.match_value = comparator == "Is"
+    def getTypeShape(self):
+        return self.type_shape
 
     def getDetails(self):
         return {}
+
+    def computeExpression(self, trace_collection):
+        left = self.subnode_left
+        right = self.subnode_right
+
+        if left.isCompileTimeConstant() and right.isCompileTimeConstant():
+            return self._computeCompileTimeConstantComparision(trace_collection)
+
+        left_shape = left.getTypeShape()
+        right_shape = right.getTypeShape()
+
+        self.type_shape, self.escape_desc = self.getComparisonShape(left_shape, right_shape)
+
+        exception_raise_exit = self.escape_desc.getExceptionExit()
+        if exception_raise_exit is not None:
+            trace_collection.onExceptionRaiseExit(exception_raise_exit)
+
+        if self.escape_desc.isValueEscaping():
+            # The value of these nodes escaped and could change its contents.
+            trace_collection.removeKnowledge(left)
+            trace_collection.removeKnowledge(right)
+
+        if self.escape_desc.isControlFlowEscape():
+            # Any code could be run, note that.
+            trace_collection.onControlFlowEscape(self)
+
+        return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # TODO: Match more precisely
+        return self.escape_desc is None or \
+               self.escape_desc.getExceptionExit() is not None or \
+               self.subnode_left.mayRaiseException(exception_type) or \
+               self.subnode_right.mayRaiseException(exception_type)
+
+    def mayRaiseExceptionComparison(self):
+        return self.escape_desc is None or \
+               self.escape_desc.getExceptionExit() is not None
+
+
+class ExpressionComparisonLt(ExpressionComparisonRichBase):
+    kind = "EXPRESSION_COMPARISON_LT"
+
+    comparator = "Lt"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionComparisonRichBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+    @staticmethod
+    def getComparisonShape(left_shape, right_shape):
+        return left_shape.getComparisonLtShape(right_shape)
+
+
+class ExpressionComparisonLte(ExpressionComparisonRichBase):
+    kind = "EXPRESSION_COMPARISON_LTE"
+
+    comparator = "LtE"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionComparisonRichBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+    @staticmethod
+    def getComparisonShape(left_shape, right_shape):
+        return left_shape.getComparisonLteShape(right_shape)
+
+
+class ExpressionComparisonGt(ExpressionComparisonRichBase):
+    kind = "EXPRESSION_COMPARISON_GT"
+
+    comparator = "Gt"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionComparisonRichBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+    @staticmethod
+    def getComparisonShape(left_shape, right_shape):
+        return left_shape.getComparisonGtShape(right_shape)
+
+
+class ExpressionComparisonGte(ExpressionComparisonRichBase):
+    kind = "EXPRESSION_COMPARISON_GTE"
+
+    comparator = "GtE"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionComparisonRichBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+    @staticmethod
+    def getComparisonShape(left_shape, right_shape):
+        return left_shape.getComparisonGteShape(right_shape)
+
+
+class ExpressionComparisonEq(ExpressionComparisonRichBase):
+    kind = "EXPRESSION_COMPARISON_EQ"
+
+    comparator = "Eq"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionComparisonRichBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+    @staticmethod
+    def getComparisonShape(left_shape, right_shape):
+        return left_shape.getComparisonEqShape(right_shape)
+
+
+class ExpressionComparisonNeq(ExpressionComparisonRichBase):
+    kind = "EXPRESSION_COMPARISON_NEQ"
+
+    comparator = "NotEq"
+
+    def __init__(self, left, right, source_ref):
+        ExpressionComparisonRichBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+    @staticmethod
+    def getComparisonShape(left_shape, right_shape):
+        return left_shape.getComparisonLteShape(right_shape)
+
+
+class ExpressionComparisonIsIsNotBase(ExpressionComparisonBase):
+    def __init__(self, left, right, source_ref):
+        ExpressionComparisonBase.__init__(
+            self,
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+
+        assert self.comparator in ("Is", "IsNot")
+
+        # TODO: Forward propage this one.
+        self.match_value = self.comparator == "Is"
+
+    def getDetails(self):
+        return {}
+
+    def getTypeShape(self):
+        return ShapeTypeBool
 
     def mayRaiseException(self, exception_type):
         return self.getLeft().mayRaiseException(exception_type) or \
@@ -228,12 +384,13 @@ Removed %s comparison for unused result.""" % self.comparator
 class ExpressionComparisonIs(ExpressionComparisonIsIsNotBase):
     kind = "EXPRESSION_COMPARISON_IS"
 
+    comparator = "Is"
+
     def __init__(self, left, right, source_ref):
         ExpressionComparisonIsIsNotBase.__init__(
             self,
             left       = left,
             right      = right,
-            comparator = "Is",
             source_ref = source_ref
     )
 
@@ -241,12 +398,13 @@ class ExpressionComparisonIs(ExpressionComparisonIsIsNotBase):
 class ExpressionComparisonIsNOT(ExpressionComparisonIsIsNotBase):
     kind = "EXPRESSION_COMPARISON_IS_NOT"
 
+    comparator = "IsNot"
+
     def __init__(self, left, right, source_ref):
         ExpressionComparisonIsIsNotBase.__init__(
             self,
             left       = left,
             right      = right,
-            comparator = "IsNot",
             source_ref = source_ref
     )
 
@@ -254,12 +412,13 @@ class ExpressionComparisonIsNOT(ExpressionComparisonIsIsNotBase):
 class ExpressionComparisonExceptionMatch(ExpressionComparisonBase):
     kind = "EXPRESSION_COMPARISON_EXCEPTION_MATCH"
 
+    comparator = "exception_match"
+
     def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self,
             left       = left,
             right      = right,
-            comparator = "exception_match",
             source_ref = source_ref
         )
 
@@ -273,19 +432,21 @@ class ExpressionComparisonExceptionMatch(ExpressionComparisonBase):
 
 
 class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
-    def __init__(self, left, right, comparator, source_ref):
+    def __init__(self, left, right, source_ref):
         ExpressionComparisonBase.__init__(
             self,
             left       = left,
             right      = right,
-            comparator = comparator,
             source_ref = source_ref
         )
 
-        assert comparator in ("In", "NotIn")
+        assert self.comparator in ("In", "NotIn")
 
     def getDetails(self):
         return {}
+
+    def getTypeShape(self):
+        return ShapeTypeBool
 
     def mayRaiseException(self, exception_type):
         left = self.getLeft()
@@ -314,12 +475,13 @@ class ExpressionComparisonInNotInBase(ExpressionComparisonBase):
 class ExpressionComparisonIn(ExpressionComparisonInNotInBase):
     kind = "EXPRESSION_COMPARISON_IN"
 
+    comparator = "In"
+
     def __init__(self, left, right, source_ref):
         ExpressionComparisonInNotInBase.__init__(
             self,
             left       = left,
             right      = right,
-            comparator = "In",
             source_ref = source_ref
         )
 
@@ -327,11 +489,79 @@ class ExpressionComparisonIn(ExpressionComparisonInNotInBase):
 class ExpressionComparisonNOTIn(ExpressionComparisonInNotInBase):
     kind = "EXPRESSION_COMPARISON_NOT_IN"
 
+    comparator = "NotIn"
+
     def __init__(self, left, right, source_ref):
         ExpressionComparisonInNotInBase.__init__(
             self,
             left       = left,
             right      = right,
-            comparator = "NotIn",
             source_ref = source_ref
         )
+
+
+def makeComparisonExpression(left, right, comparator, source_ref):
+    if comparator == "Is":
+        result = ExpressionComparisonIs(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "IsNot":
+        result = ExpressionComparisonIsNOT(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "In":
+        result = ExpressionComparisonIn(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "NotIn":
+        result = ExpressionComparisonNOTIn(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "Lt":
+        result = ExpressionComparisonLt(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "LtE":
+        result = ExpressionComparisonLte(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "Gt":
+        result = ExpressionComparisonGt(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "GtE":
+        result = ExpressionComparisonGte(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "Eq":
+        result = ExpressionComparisonEq(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    elif comparator == "NotEq":
+        result = ExpressionComparisonNeq(
+            left       = left,
+            right      = right,
+            source_ref = source_ref
+        )
+    else:
+        assert False, comparator
+
+    return result

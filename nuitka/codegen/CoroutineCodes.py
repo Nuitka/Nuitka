@@ -43,7 +43,7 @@ from .templates.CodeTemplatesCoroutines import (
     template_coroutine_return_exit,
     template_make_coroutine
 )
-from .YieldCodes import getYieldPreserveCode, getYieldReturnDispatchCode
+from .YieldCodes import getYieldReturnDispatchCode
 
 
 def getCoroutineObjectDeclCode(function_identifier):
@@ -167,9 +167,6 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
         context    = context
     )
 
-    # In handlers, we must preserve/restore the exception.
-    preserve_exception = expression.isExceptionPreserving()
-
     if expression.isExpressionAsyncWaitEnter():
         wait_kind = "await_enter"
     elif expression.isExpressionAsyncWaitExit():
@@ -177,63 +174,23 @@ def generateAsyncWaitCode(to_name, expression, emit, context):
     else:
         wait_kind = "await_normal"
 
-    # In handlers, we must preserve/restore the exception.
-
-    iter_name = context.allocateTempName("async_wait")
 
     emit(
         "%s = ASYNC_AWAIT( %s, %s );" % (
-            iter_name,
+            to_name,
             value_name,
             wait_kind
         )
     )
 
     getErrorExitCode(
-        check_name   = iter_name,
+        check_name   = to_name,
         release_name = value_name,
         emit         = emit,
         context      = context
     )
 
-    assert not context.needsCleanup(iter_name)
-
-    yield_code = """\
-%(object_name)s->m_yieldfrom = %(yield_from)s;
-%(object_name)s->m_awaiting = true;
-return NULL;
-""" % {
-        "object_name" : context.getContextObjectName(),
-        "yield_from"  : iter_name,
-    }
-
-    resume_code = """\
-%(object_name)s->m_awaiting = false;
-""" % {
-        "object_name" : context.getContextObjectName(),
-    }
-
-    with withObjectCodeTemporaryAssignment(to_name, "await_result", expression, emit, context) \
-      as result_name:
-        getYieldPreserveCode(
-            to_name            = result_name,
-            value_name         = (value_name, iter_name),
-            yield_code         = yield_code,
-            resume_code        = resume_code,
-            preserve_exception = preserve_exception,
-            emit               = emit,
-            context            = context
-        )
-
-        # TODO: Seems to be redundant with and getYieldPreserveCode doing
-        # it and could be removed
-        getErrorExitCode(
-            check_name = result_name,
-            emit       = emit,
-            context    = context
-        )
-
-        context.addCleanupTempName(result_name)
+    context.addCleanupTempName(to_name)
 
 
 def generateAsyncIterCode(to_name, expression, emit, context):
@@ -243,54 +200,21 @@ def generateAsyncIterCode(to_name, expression, emit, context):
         context    = context
     )
 
-    # In handlers, we must preserve/restore the exception.
-
-    preserve_exception = False
-    # TODO: Really?
-    # preserve_exception = expression.isExceptionPreserving()
-
-    iter_name = context.allocateTempName("async_iter")
-
-    emit(
-        "%s = ASYNC_MAKE_ITERATOR( %s );" % (
-            iter_name,
-            value_name
-        )
-    )
-
-    getErrorExitCode(
-        check_name   = iter_name,
-        release_name = value_name,
-        emit         = emit,
-        context      = context
-    )
-
-    assert not context.needsCleanup(iter_name)
-
-    yield_code = """\
-%(object_name)s->m_yieldfrom = %(yield_from)s;
-return NULL;
-""" % {
-        "object_name"      : context.getContextObjectName(),
-        "yield_from"       : iter_name,
-    }
-
     with withObjectCodeTemporaryAssignment(to_name, "aiter_result", expression, emit, context) \
       as result_name:
-        getYieldPreserveCode(
-            to_name            = result_name,
-            value_name         = (value_name, iter_name),
-            yield_code         = yield_code,
-            resume_code        = None,
-            preserve_exception = preserve_exception,
-            emit               = emit,
-            context            = context
+
+        emit(
+            "%s = ASYNC_MAKE_ITERATOR( %s );" % (
+                result_name,
+                value_name
+            )
         )
 
         getErrorExitCode(
-            check_name = result_name,
-            emit       = emit,
-            context    = context
+            check_name   = result_name,
+            release_name = value_name,
+            emit         = emit,
+            context      = context
         )
 
         context.addCleanupTempName(result_name)
@@ -303,54 +227,21 @@ def generateAsyncNextCode(to_name, expression, emit, context):
         context    = context
     )
 
-    # In handlers, we must preserve/restore the exception.
-
-    preserve_exception = False
-    # TODO: Really?
-    # preserve_exception = expression.isExceptionPreserving()
-
-    iter_name = context.allocateTempName("async_next")
-
-    emit(
-        "%s = ASYNC_ITERATOR_NEXT( %s );" % (
-            iter_name,
-            value_name
-        )
-    )
-
-    getErrorExitCode(
-        check_name   = iter_name,
-        release_name = value_name,
-        emit         = emit,
-        context      = context
-    )
-
-    assert not context.needsCleanup(iter_name)
-
-    yield_code = """\
-%(object_name)s->m_yieldfrom = %(yield_from)s;
-return NULL;
-""" % {
-        "object_name"      : context.getContextObjectName(),
-        "yield_from"       : iter_name,
-    }
-
     with withObjectCodeTemporaryAssignment(to_name, "anext_result", expression, emit, context) \
       as result_name:
-        getYieldPreserveCode(
-            to_name            = result_name,
-            value_name         = (value_name, iter_name),
-            yield_code         = yield_code,
-            resume_code        = None,
-            preserve_exception = preserve_exception,
-            emit               = emit,
-            context            = context
+
+        emit(
+            "%s = ASYNC_ITERATOR_NEXT( %s );" % (
+                result_name,
+                value_name
+            )
         )
 
         getErrorExitCode(
-            check_name = result_name,
-            emit       = emit,
-            context    = context
+            check_name   = result_name,
+            release_name = value_name,
+            emit         = emit,
+            context      = context
         )
 
         context.addCleanupTempName(result_name)

@@ -191,6 +191,10 @@ exceeded while calling a Python object' in \
            "In function `posix_tmpnam'" in line:
             continue
 
+        # Ignore spurios clcache warning.
+        if "clcache: persistent json file" in line:
+            continue
+
         result.append(line)
 
     return result

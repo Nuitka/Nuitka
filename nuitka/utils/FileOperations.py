@@ -35,7 +35,7 @@ def areSamePaths(path1, path2):
     """ Are two paths the same.
 
     Same meaning here, that case differences ignored on platforms where
-    that is the norm, and with normalized, and turned absolut paths,
+    that is the norm, and with normalized, and turned absolute paths,
     there is no differences.
     """
 

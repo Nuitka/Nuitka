@@ -94,7 +94,13 @@ comparison_inversions = {
     "Is"    : "IsNot",
     "IsNot" : "Is",
     "In"    : "NotIn",
-    "NotIn" : "In"
+    "NotIn" : "In",
+    "Lt"    : "GtE",
+    "GtE"   : "Lt",
+    "Eq"    : "NotEq",
+    "NotEq" : "Eq",
+    "Gt"    : "LtE",
+    "LtE"   : "Gt",
 }
 
 all_comparison_functions = dict(rich_comparison_functions)

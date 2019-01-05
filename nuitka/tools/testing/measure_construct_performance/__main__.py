@@ -172,7 +172,7 @@ def main():
 
 
         # We want to compile under the same filename to minimize differences, and
-        # then copy te resulting files afterwards.
+        # then copy the resulting files afterwards.
         shutil.copyfile(test_case_1, os.path.basename(test_case))
 
         subprocess.check_call(nuitka_call)

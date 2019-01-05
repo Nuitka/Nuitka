@@ -723,7 +723,7 @@ Removed conditional statement without effect."""
             del self.parent
 
             return new_statement, "new_statements", """\
-Condition for branch was predicted to be always %s.""" % choice
+Condition for branch statement was predicted to be always %s.""" % choice
 
         # If there is no "yes" branch, remove that. Maybe a bad idea though.
         if yes_branch is None:

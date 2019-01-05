@@ -37,9 +37,10 @@ from .shapes.BuiltinTypeShapes import (
     ShapeTypeBool,
     ShapeTypeBytearray,
     ShapeTypeBytes,
-    ShapeTypeFloat,
-    ShapeTypeStr,
-    ShapeTypeUnicode
+    ShapeTypeBytesDerived,
+    ShapeTypeFloatDerived,
+    ShapeTypeStrDerived,
+    ShapeTypeUnicodeDerived
 )
 
 
@@ -114,11 +115,6 @@ class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
 
     builtin_spec = BuiltinParameterSpecs.builtin_frozenset_spec
 
-
-class ShapeTypeFloatDerived(ShapeTypeFloat):
-    @staticmethod
-    def getTypeName():
-        return None
 
 
 class ExpressionBuiltinFloat(ExpressionChildrenHavingBase):
@@ -229,12 +225,6 @@ class ExpressionBuiltinUnicodeBase(ExpressionSpecBasedComputationBase):
         )
 
 
-class ShapeTypeStrDerived(ShapeTypeStr):
-    @staticmethod
-    def getTypeName():
-        return None
-
-
 if python_version < 300:
     class ExpressionBuiltinStr(ExpressionBuiltinTypeBase):
         kind = "EXPRESSION_BUILTIN_STR"
@@ -265,12 +255,6 @@ if python_version < 300:
             return ShapeTypeStrDerived
 
 
-    class ShapeTypeUnicodeDerived(ShapeTypeUnicode):
-        @staticmethod
-        def getTypeName():
-            return None
-
-
     class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_UNICODE"
 
@@ -296,10 +280,6 @@ else:
         def getTypeShape(self):
             return ShapeTypeBytes
 
-    class ShapeTypeBytesDerived(ShapeTypeBytes):
-        @staticmethod
-        def getTypeName():
-            return None
 
     class ExpressionBuiltinBytes1(ExpressionChildrenHavingBase):
         kind = "EXPRESSION_BUILTIN_BYTES1"

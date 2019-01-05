@@ -29,7 +29,9 @@ from nuitka.PythonVersions import python_version
 from nuitka.Tracing import printError
 
 from .Emission import SourceCodeCollector
+from .Indentation import indented
 from .LabelCodes import getStatementTrace
+from .Reports import onMissingHelper
 
 expression_dispatch_dict = {}
 
@@ -237,19 +239,25 @@ def _generateStatementSequenceCode(statement_sequence, emit, context):
                     context   = context
                 )
 
-                emit('{')
-                for s in context.variable_storage.makeCLocalDeclarations():
-                    emit(s)
+                statement_declarations = context.variable_storage.makeCLocalDeclarations()
 
-                statement_codes.emitTo(emit)
-                emit('}')
+                block = False
+                for s in statement_declarations:
+                    if not block:
+                        emit('{')
+
+                        block = True
+                    emit(indented(s))
+
+                statement_codes.emitTo(emit, 1 if statement_declarations else 0)
+                if block:
+                    emit('}')
 
             context.popCleanupScope()
 
 
 def generateStatementSequenceCode(statement_sequence, emit, context,
                                   allow_none = False):
-
     if allow_none and statement_sequence is None:
         return None
 
@@ -291,3 +299,34 @@ def withObjectCodeTemporaryAssignment(to_name, value_name, expression, emit, con
 
         from .ErrorCodes import getReleaseCode
         getReleaseCode(value_name, emit, context)
+
+
+def pickCodeHelper(prefix, suffix, left_shape, right_shape, helpers,
+                   warn_missing = True):
+    left_part = left_shape.helper_code
+    right_part = right_shape.helper_code
+
+    assert left_part != "INVALID", left_shape
+    assert right_part != "INVALID", right_shape
+
+    ideal_helper = "%s_%s_%s%s" % (
+        prefix,
+        left_part,
+        right_part,
+        suffix
+    )
+
+    if ideal_helper in helpers:
+        return ideal_helper
+
+    if warn_missing:
+        onMissingHelper(ideal_helper)
+
+    fallback_helper = "%s_%s_%s%s" % (
+        prefix,
+        "OBJECT",
+        "OBJECT",
+        suffix
+    )
+
+    return fallback_helper

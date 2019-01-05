@@ -125,6 +125,10 @@ class ExpressionOperationBinaryBase(ExpressionChildrenHavingBase):
     getLeft = ExpressionChildrenHavingBase.childGetter("left")
     getRight = ExpressionChildrenHavingBase.childGetter("right")
 
+    def mayRaiseExceptionOperation(self):
+        # TODO: This is to keep the same way as before before specializing to
+        # actual optimal stuff.
+        return self.mayRaiseException(BaseException)
 
 class ExpressionOperationBinary(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY"
@@ -141,7 +145,6 @@ class ExpressionOperationBinary(ExpressionOperationBinaryBase):
         )
 
 
-
 class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
     kind = "EXPRESSION_OPERATION_BINARY_ADD"
 
@@ -154,18 +157,25 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
             source_ref = source_ref
         )
 
+        self.type_shape = None
+        self.escape_desc = None
+
     def getDetails(self):
         return {}
 
-    def computeExpression(self, trace_collection):
-        # TODO: May go down to MemoryError for compile time constant overflow
-        # ones.
-        trace_collection.onExceptionRaiseExit(BaseException)
+    def getTypeShape(self):
+        return self.type_shape
 
+    def computeExpression(self, trace_collection):
         operator = self.getOperator()
 
         left = self.subnode_left
         right = self.subnode_right
+
+        left_shape = left.getTypeShape()
+        right_shape = right.getTypeShape()
+
+        self.type_shape, self.escape_desc = left_shape.getOperationBinaryAddShape(right_shape)
 
         if left.isCompileTimeConstant() and right.isCompileTimeConstant():
             left_value = left.getCompileTimeConstant()
@@ -189,14 +199,31 @@ class ExpressionOperationBinaryAdd(ExpressionOperationBinaryBase):
                 description = "Operator '%s' with constant arguments." % operator
             )
 
-        # The value of these nodes escaped and could change its contents.
-        trace_collection.removeKnowledge(left)
-        trace_collection.removeKnowledge(right)
+        exception_raise_exit = self.escape_desc.getExceptionExit()
+        if exception_raise_exit is not None:
+            trace_collection.onExceptionRaiseExit(exception_raise_exit)
 
-        # Any code could be run, note that.
-        trace_collection.onControlFlowEscape(self)
+        if self.escape_desc.isValueEscaping():
+            # The value of these nodes escaped and could change its contents.
+            trace_collection.removeKnowledge(left)
+            trace_collection.removeKnowledge(right)
+
+        if self.escape_desc.isControlFlowEscape():
+            # Any code could be run, note that.
+            trace_collection.onControlFlowEscape(self)
 
         return self, None, None
+
+    def mayRaiseException(self, exception_type):
+        # TODO: Match more precisely
+        return self.escape_desc is None or \
+               self.escape_desc.getExceptionExit() is not None or \
+               self.subnode_left.mayRaiseException(exception_type) or \
+               self.subnode_right.mayRaiseException(exception_type)
+
+    def mayRaiseExceptionOperation(self):
+        return self.escape_desc is None or \
+               self.escape_desc.getExceptionExit() is not None
 
 
 class ExpressionOperationBinaryMult(ExpressionOperationBinaryBase):

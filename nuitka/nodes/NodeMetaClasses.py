@@ -31,7 +31,7 @@ def _checkBases(name, bases):
     # Avoid duplicate base classes.
     assert len(bases) == len(set(bases)), (name, bases)
 
-    # Insist on mixins being in proper place for inheritence.
+    # Insist on mixins being in proper place for inheritance.
     last_mixin = None
     for base in bases:
         base_name = base.__name__
@@ -63,6 +63,7 @@ class NodeCheckMetaClass(ABCMeta):
         if "checker" in dictionary:
             dictionary["checker"] = staticmethod(dictionary["checker"])
 
+        # false alarm, pylint: disable=I0021,too-many-function-args
         return ABCMeta.__new__(cls, name, bases, dictionary)
 
     def __init__(cls, name, bases, dictionary):  # @NoSelf

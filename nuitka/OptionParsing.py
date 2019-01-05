@@ -741,6 +741,13 @@ Show list of all available plugins and exit. Defaults to off."""
 
 parser.add_option_group(plugin_group)
 
+plugin_group.add_option(
+    "--user-plugin",
+    action  = "append",
+    dest    = "user_plugins",
+    default = [],
+    help    = "The file name of user plugin. Can be given multiple times. Default empty."
+)
 
 def parseOptions():
     # First, isolate the first non-option arguments.

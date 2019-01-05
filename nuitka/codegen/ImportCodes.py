@@ -20,6 +20,7 @@
 That is import as expression, and star import.
 """
 
+from nuitka.nodes.LocalsScopes import GlobalsDictHandle
 from nuitka.PythonVersions import python_version
 
 from .CodeHelpers import (
@@ -214,7 +215,9 @@ def generateImportStarCode(statement, emit, context):
 
     res_name = context.getBoolResName()
 
-    if statement.getLocalsDictScope() is None:
+    target_scope = statement.getTargetDictScope()
+
+    if type(target_scope) is GlobalsDictHandle:
         emit(
             "%s = IMPORT_MODULE_STAR( %s, true, %s );" % (
                 res_name,
@@ -226,7 +229,7 @@ def generateImportStarCode(statement, emit, context):
         )
     else:
         locals_declaration = context.addLocalsDictName(
-            statement.getLocalsDictScope().getCodeName()
+            target_scope.getCodeName()
         )
 
         emit(

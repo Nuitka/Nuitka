@@ -185,8 +185,9 @@ def detectFunctionBodyKind(nodes, start_value = None):
                     _check(field[0].iter)
 
                     # New syntax in 3.7 allows these to be present in functions not
-                    # declared with "async def", so we need to check them.
-                    if python_version >= 370:
+                    # declared with "async def", so we need to check them, but
+                    # only if top level.
+                    if python_version >= 370 and node in nodes:
                         for gen in field:
                             if gen.is_async:
                                 indications.add("Coroutine")
@@ -277,9 +278,6 @@ def buildNode(provider, node, source_ref, allow_none = False):
     if node is None and allow_none:
         return None
 
-    # Just to disable the warning in the default handler below, we
-    # catch some and re-raise instantly, pylint: disable=try-except-raise
-
     try:
         kind = getKind(node)
 
@@ -343,6 +341,37 @@ def buildNodeList(provider, nodes, source_ref, allow_none = False):
         return result
     else:
         return []
+
+
+_host_node = None
+
+def buildAnnotationNode(provider, node, source_ref):
+    if python_version >= 370 and \
+       provider.getParentModule().getFutureSpec().isFutureAnnotations():
+
+        # Using global value for cache, to avoid creating it over and over,
+        # avoiding the pylint: disable=global-statement
+        global _host_node
+
+        if _host_node is None:
+            _host_node = ast.parse("x:1")
+
+        _host_node.body[0].annotation = node
+
+        r = compile(_host_node, "<annotations>", "exec", 1048576, dont_inherit = True)
+
+        # Using exec here, to compile the ast node tree back to string,
+        # there is no accessible "ast.unparse", and this works as a hack
+        # to convert our node to a string annotation, pylint: disable=exec-used
+        m = {}
+        exec(r, m)  # @UndefinedVariable
+
+        return makeConstantRefNode(
+            constant   = m["__annotations__"]['x'],
+            source_ref = source_ref
+        )
+
+    return buildNode(provider, node, source_ref)
 
 
 def makeModuleFrame(module, statements, source_ref):

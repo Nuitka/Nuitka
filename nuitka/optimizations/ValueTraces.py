@@ -26,21 +26,27 @@ Values can be seen as:
 * Uninit (definitely not initialized, first version, or after "del" statement)
 * Init (definitely initialized, e.g. parameter variables)
 * Merge (result of diverged code paths, loop potentially)
-
+* LoopInitial (aggregation during loops, not yet fully known)
+* LoopComplete (complete knowledge of loop types)
 """
 
 
 from logging import debug
 
+from nuitka.nodes.shapes.StandardShapes import (
+    ShapeLoopCompleteAlternative,
+    ShapeLoopInitialAlternative,
+    ShapeUnknown
+)
 from nuitka.utils import InstanceCounters
 
 
 class ValueTraceBase(object):
-    # We are going to have many instance attributes
+    # We are going to have many instance attributes, pylint: disable=too-many-instance-attributes
 
     __slots__ = (
         "owner", "usage_count", "has_potential_usages",
-        "name_usages", "closure_usages", "is_escaped", "previous"
+        "name_usages", "loop_usages", "closure_usages", "is_escaped", "previous"
     )
 
     @InstanceCounters.counted_init
@@ -55,6 +61,8 @@ class ValueTraceBase(object):
 
         # If 0, this indicates, the variable name needs to be assigned as name.
         self.name_usages = 0
+
+        self.loop_usages = 0
 
         self.closure_usages = False
 
@@ -83,6 +91,10 @@ class ValueTraceBase(object):
         self.usage_count += 1
         self.name_usages += 1
 
+    def addLoopUsage(self):
+        self.usage_count += 1
+        self.loop_usages += 1
+
     def onValueEscape(self):
         self.is_escaped = True
 
@@ -100,6 +112,9 @@ class ValueTraceBase(object):
 
     def getNameUsageCount(self):
         return self.name_usages
+
+    def hasLoopUsages(self):
+        return self.loop_usages > 0
 
     def getPrevious(self):
         return self.previous
@@ -159,6 +174,10 @@ class ValueTraceUninit(ValueTraceBase):
         )
 
     @staticmethod
+    def getTypeShape():
+        return ShapeUnknown
+
+    @staticmethod
     def isUninitTrace():
         return True
 
@@ -190,6 +209,10 @@ class ValueTraceInit(ValueTraceBase):
             owner = self.owner
         )
 
+    @staticmethod
+    def getTypeShape():
+        return ShapeUnknown
+
     def dump(self):
         debug("  Starts initialized")
 
@@ -205,6 +228,8 @@ class ValueTraceInit(ValueTraceBase):
 
 
 class ValueTraceUnknown(ValueTraceBase):
+    __slots__ = ()
+
     def __init__(self, owner, previous):
         ValueTraceBase.__init__(
             self,
@@ -216,6 +241,10 @@ class ValueTraceUnknown(ValueTraceBase):
         return "<ValueTraceUnknown of {owner}>".format(
             owner = self.owner
         )
+
+    @staticmethod
+    def getTypeShape():
+        return ShapeUnknown
 
     def dump(self):
         debug("  Starts unknown")
@@ -243,6 +272,13 @@ class ValueTraceUnknown(ValueTraceBase):
         if self.name_usages <= 2 and self.previous is not None:
             self.previous.addNameUsage()
 
+    def addLoopUsage(self):
+        self.addUsage()
+        self.loop_usages += 1
+
+        if self.loop_usages <= 2 and self.previous is not None:
+            self.previous.addLoopUsage()
+
     def addPotentialUsage(self):
         old = self.has_potential_usages
 
@@ -251,6 +287,124 @@ class ValueTraceUnknown(ValueTraceBase):
 
             if self.previous is not None:
                 self.previous.addPotentialUsage()
+
+
+class ValueTraceLoopInitial(ValueTraceBase):
+    # Need them all, pylint: disable=too-many-instance-attributes
+
+    __slots__ = ("type_shapes", "type_shape", "incomplete")
+
+    def __init__(self, previous, type_shapes):
+        assert type_shapes
+
+        ValueTraceBase.__init__(
+            self,
+            owner    = previous.owner,
+            previous = (previous,)
+        )
+
+        self.type_shapes = type_shapes
+        self.type_shape = None
+
+        self.incomplete = True
+
+        assert ShapeLoopCompleteAlternative not in type_shapes
+        previous.addLoopUsage()
+
+    def __repr__(self):
+        return "<ValueTraceLoopInitial of {owner}>".format(
+            owner = self.owner
+        )
+
+    @staticmethod
+    def isLoopTrace():
+        return True
+
+    def getTypeShape(self):
+        if self.type_shape is None:
+            self.type_shape = ShapeLoopInitialAlternative(self.type_shapes)
+
+        return self.type_shape
+
+    def addUsage(self):
+        self.usage_count += 1
+
+        for previous in self.previous:
+            previous.addPotentialUsage()
+
+    def addNameUsage(self):
+        self.addUsage()
+        self.name_usages += 1
+
+        if self.name_usages <= 2 and self.previous is not None:
+            for previous in self.previous:
+                previous.addNameUsage()
+
+    def addLoopUsage(self):
+        self.addUsage()
+        self.loop_usages += 1
+
+        if self.loop_usages <= 2 and self.previous is not None:
+            for previous in self.previous:
+                previous.addLoopUsage()
+
+    def addPotentialUsage(self):
+        old = self.has_potential_usages
+
+        if not old:
+            self.has_potential_usages = True
+            for previous in self.previous:
+                previous.addPotentialUsage()
+
+    def addLoopContinueTraces(self, continue_traces):
+        self.previous += tuple(continue_traces)
+
+        self.addPotentialUsage()
+
+        for previous in continue_traces:
+            previous.addLoopUsage()
+
+        self.incomplete = False
+
+    def markLoopTraceComplete(self):
+        self.incomplete = False
+
+    def mustHaveValue(self):
+        if self.incomplete is True:
+            return False
+        elif self.incomplete is None:
+            # Lie to ourselves.
+            return True
+        else:
+            # To detect recursion.
+            self.incomplete = None
+
+            for previous in self.previous:
+                if not previous.mustHaveValue():
+                    self.incomplete = False
+                    return False
+
+            self.incomplete = False
+            return True
+
+
+class ValueTraceLoopComplete(ValueTraceLoopInitial):
+    __slots__ = ()
+
+    def __repr__(self):
+        return "<ValueTraceLoopComplete of {owner}>".format(
+            owner = self.owner
+        )
+
+    def getTypeShape(self):
+        if self.type_shape is None:
+            if len(self.type_shapes) > 1:
+                self.type_shape = ShapeLoopCompleteAlternative(self.type_shapes)
+            else:
+                self.type_shape = next(iter(self.type_shapes))
+
+        return self.type_shape
+
 
 
 class ValueTraceAssign(ValueTraceBase):
@@ -272,6 +426,13 @@ class ValueTraceAssign(ValueTraceBase):
             value      = self.assign_node.getAssignSource()
         )
 
+    @staticmethod
+    def isAssignTrace():
+        return True
+
+    def getTypeShape(self):
+        return self.assign_node.subnode_source.getTypeShape()
+
     def dump(self):
         debug("  Starts assigned")
 
@@ -280,10 +441,6 @@ class ValueTraceAssign(ValueTraceBase):
 
         if self.is_escaped:
             debug("  -> value escapes")
-
-    @staticmethod
-    def isAssignTrace():
-        return True
 
     def getAssignNode(self):
         return self.assign_node
@@ -324,6 +481,23 @@ class ValueTraceMerge(ValueTraceBase):
             previous = self.previous
         )
 
+    def getTypeShape(self):
+        type_shapes = set()
+
+        for trace in self.previous:
+            type_shape = trace.getTypeShape()
+
+            if type_shape is ShapeUnknown:
+                return ShapeUnknown
+
+            type_shapes.add(type_shape)
+
+        # TODO: Find the lowest common denominator.
+        if len(type_shapes) == 1:
+            return type_shapes.pop()
+        else:
+            return ShapeUnknown
+
     @staticmethod
     def isMergeTrace():
         return True
@@ -361,6 +535,13 @@ class ValueTraceMerge(ValueTraceBase):
             previous.addPotentialUsage()
             previous.addNameUsage()
 
+    def addLoopUsage(self):
+        self.loop_usages += 1
+
+        for previous in self.previous:
+            previous.addPotentialUsage()
+            previous.addLoopUsage()
+
     def addPotentialUsage(self):
         old = self.has_potential_usages
 
@@ -376,63 +557,3 @@ class ValueTraceMerge(ValueTraceBase):
                 return False
 
         return True
-
-
-class ValueTraceLoopMerge(ValueTraceBase):
-    """ Merge of loop wrap around with loop start value.
-
-        Happens at the start of loop blocks. This is for loop closed SSA, to
-        make it clear, that the entered value, cannot be trusted inside the
-        loop.
-
-        They will start out with just one previous, and later be updated with
-        all of the variable versions at loop continue times.
-    """
-
-    __slots__ = ("loop_finished",)
-
-    def __init__(self, previous):
-        ValueTraceBase.__init__(
-            self,
-            owner    = previous.owner,
-            previous = previous
-        )
-
-        self.loop_finished = False
-
-        previous.addPotentialUsage()
-
-    def hasDefiniteUsages(self):
-        if not self.loop_finished:
-            return True
-
-        return self.usage_count > 0
-
-    def hasPotentialUsages(self):
-        if not self.loop_finished:
-            return True
-
-        return self.has_potential_usages
-
-    def getNameUsageCount(self):
-        if not self.loop_finished:
-            return 10000
-
-        return self.name_usages
-
-    def getPrevious(self):
-        assert self.loop_finished
-
-        return self.previous
-
-    @staticmethod
-    def isMergeTrace():
-        return True
-
-    def addLoopContinueTraces(self, continue_traces):
-        self.previous.addPotentialUsage()
-
-        for continue_trace in continue_traces:
-            continue_trace.addPotentialUsage()
-
-        self.previous = (self.previous,) + tuple(continue_traces)

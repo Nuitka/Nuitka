@@ -124,6 +124,8 @@ def _enableFutureFeature(node, object_name, source_ref):
     elif object_name in ("nested_scopes", "generators", "with_statement"):
         # These are enabled in all cases already.
         pass
+    elif object_name == "annotations" and python_version >= 370:
+        future_spec.enableFutureAnnotations()
     else:
         raiseSyntaxError(
             "future feature %s is not defined" % object_name,
@@ -199,7 +201,9 @@ def buildImportFromNode(provider, node, source_ref):
             import_locals = makeConstantRefNode({}, source_ref, True)
 
         return StatementImportStar(
-            locals_scope  = provider.getFunctionLocalsScope(),
+            target_scope  = provider.getModuleDictScope()
+                              if provider.isCompiledPythonModule() else
+                            provider.getFunctionLocalsScope(),
             module_import = ExpressionBuiltinImport(
                 name        = makeConstantRefNode(module_name, source_ref, True),
                 globals_arg = import_globals,

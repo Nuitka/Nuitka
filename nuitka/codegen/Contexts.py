@@ -380,6 +380,9 @@ class PythonContextBase(ContextMetaClassBase):
         # self.last_source_ref = None
         return result
 
+    def getInplaceLeftName(self):
+        return self.allocateTempName("inplace_orig", "PyObject *", True)
+
     @abstractmethod
     def getConstantCode(self, constant):
         pass
@@ -661,11 +664,11 @@ def _getConstantDefaultPopulation():
             "bytes"
         )
 
-        # For Python3 "__name__" to "__package__" parsing
-        result.append(
-            '.'
-        )
-
+    # For meta path based loader, iter_modules and Python3 "__name__" to
+    # "__package__" parsing
+    result.append(
+        '.'
+    )
 
     if python_version >= 300:
         # Modules have that attribute starting with 3.3
@@ -735,17 +738,12 @@ def _getConstantDefaultPopulation():
                 "long",
             )
 
-    # Disabling warnings at startup
-    if "no_warnings" in Options.getPythonFlags():
-        result.append(
-            "ignore"
-        )
-
     if python_version >= 340:
         # Setting the __spec__ module attribute.
         result += [
             "__spec__",
-            "_initializing"
+            "_initializing",
+            "submodule_search_locations"
         ]
 
     if python_version >= 350:

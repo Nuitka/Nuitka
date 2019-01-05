@@ -34,7 +34,8 @@ import signal
 import subprocess
 import sys
 
-import SCons
+import SCons  # @UnresolvedImport @UnusedImport
+import SCons.Tool.gcc  # @UnresolvedImport @UnusedImport
 
 
 def getArguments():
@@ -117,9 +118,13 @@ trace_mode = getBoolOption("trace_mode", False)
 # support, the compiled result would not run correctly.
 lto_mode = getBoolOption("lto_mode", False)
 
+static_libpython = getBoolOption("static_libpython", False)
+
 # Windows target mode: Compile for Windows. Used to be an option, but we
 # no longer cross compile this way.
 win_target = os.name == "nt"
+
+macosx_target = sys.platform == "darwin"
 
 # Windows subsystem mode: Disable console for windows builds.
 win_disable_console = getBoolOption("win_disable_console", False)
@@ -132,7 +137,7 @@ unstripped_mode = getBoolOption("unstripped_mode", False)
 
 # Clang compiler mode, forced on MacOS X and FreeBSD, optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
-if sys.platform == "darwin" or "freebsd" in sys.platform:
+if macosx_target or "freebsd" in sys.platform:
     clang_mode = True
 
 # MinGW compiler mode, optional and interesting to Windows only.
@@ -183,7 +188,17 @@ python_sysflag_verbose = getBoolOption("python_sysflag_verbose", False)
 python_sysflag_unicode = getBoolOption("python_sysflag_unicode", False)
 # python_sysflag_utf8
 python_sysflag_utf8 = getBoolOption("python_sysflag_utf8", False)
+# python_sysflag_optimize
+python_sysflag_optimize = getBoolOption("python_sysflag_optimize", False)
 
+
+# Mode to only output compiler information, for use in "nuitka --version"
+# only.
+compiler_version_mode = getBoolOption("compiler_version", False)
+
+def printCompilerVersionOutput(*args):
+    if compiler_version_mode or show_scons_mode:
+        print("SCONS: ", *args)
 
 # Amount of jobs to use.
 job_count = GetOption("num_jobs")  # @UndefinedVariable
@@ -195,12 +210,15 @@ if "CC" in os.environ:
     if os.path.isdir(cc_dirname):
         os.environ["PATH"] = os.pathsep.join([cc_dirname] + os.environ["PATH"].split(os.pathsep))
 
+    printCompilerVersionOutput("CC=%r" % os.environ["CC"])
+
 if "CXX" in os.environ:
     cxx_dirname = os.path.dirname(os.environ["CXX"])
 
     if os.path.isdir(cxx_dirname):
         os.environ["PATH"] = os.pathsep.join([cxx_dirname] + os.environ["PATH"].split(os.pathsep))
 
+    printCompilerVersionOutput("CXX=%r" % os.environ["CXX"])
 
 def getExecutablePath(filename, initial):
     """ Find an execute in either normal PATH, or Scons detected PATH. """
@@ -239,7 +257,7 @@ def getExecutablePath(filename, initial):
 
 # Patch the compiler detection.
 
-orig_detect = Environment.Detect
+orig_detect = Environment.Detect  # @UndefinedVariable
 found_gcc = False
 gcc_version = None
 
@@ -272,13 +290,16 @@ blacklisted_tools = (
     "bk",
     "p4",
     "m4",
+    "ml",
     "sccs",
     "rcs",
-    "cvs"
+    "cvs",
     "as",
     "gas",
     "nasm",
 )
+
+v_cache = {}
 
 # From gcc.py of Scons
 def detectVersion(env, cc):
@@ -286,29 +307,49 @@ def detectVersion(env, cc):
     cc = env.subst(cc)
     if not cc:
         return None
+    if found_gcc and cc == "g++":
+        return None
+
     version = None
+
+    clvar = tuple(SCons.Util.CLVar(cc))
+
+    if clvar in v_cache:
+        return v_cache[clvar]
+
+    if show_scons_mode:
+        print("Scons CC %r version check:" % cc)
+
+    if clvar[0] in ("gcc", "g++", "clang"):
+        command = list(clvar) + ["-dumpversion"]
+    else:
+        command = list(clvar) + ["--version"]
+
     #pipe = SCons.Action._subproc(env, SCons.Util.CLVar(cc) + ['-dumpversion'],
     pipe = SCons.Action._subproc(
         env,
-        SCons.Util.CLVar(cc) + ["--version"],
+        command,
         stdin  = "devnull",
         stderr = "devnull",
         stdout = subprocess.PIPE
     )
-    # -dumpversion was added in GCC 3.0.  As long as we're supporting
-    # GCC versions older than that, we should use --version and a
-    # regular expression.
-    #line = pipe.stdout.read().strip()
-    #if line:
-    #    version = line
+
     line = pipe.stdout.readline()
 
     if str is not bytes and type(line) is bytes:
-        line = line.decode("utf8")
+        line = line.decode(sys.stdout.encoding)
 
-    match = re.search(r'[0-9]+(\.[0-9]+)+', line)
+    line = line.strip()
+
+    match = re.findall(r'[0-9]+(?:\.[0-9]+)+', line)
     if match:
-        version = match.group(0)
+        version = match[0]
+    elif line.isdigit():
+        # gcc 8 or higher
+        version = line.strip()
+
+    if show_scons_mode:
+        print("Scons CC %r version check gives %r from %r" % (cc, version, line))
 
     # Non-GNU compiler's output (like AIX xlc's) may exceed the stdout buffer:
     # So continue with reading to let the child process actually terminate.
@@ -318,8 +359,11 @@ def detectVersion(env, cc):
     ret = pipe.wait()
     if ret != 0:
         return None
+
+    v_cache[clvar] = version
     return version
 
+SCons.Tool.gcc.detect_version = detectVersion
 
 def myDetect(self, progs):
     global found_gcc, gcc_version
@@ -341,29 +385,28 @@ def myDetect(self, progs):
 
     # Special considerations for gcc.
     if result in ("gcc", "cc"):
-        gcc_version = detectVersion(self, result)
+        if not found_gcc:
+            gcc_version = detectVersion(self, result)
 
-        # Ignore gcc before gcc version 5, no C11 support. We will find the
-        # C++ compiler of it though.
-        if gcc_version < '5':
-            progs = [
-                "gcc-6.5", "gcc-6.3", "gcc-6.1",
-                "gcc-5.5", "gcc-5.3", "gcc-5.1",
-            ]
+            # Ignore gcc before gcc version 5, no C11 support. We will find the
+            # C++ compiler of it though.
+            if gcc_version < '5':
+                progs = [
+                    "gcc-6.5", "gcc-6.3", "gcc-6.1",
+                    "gcc-5.5", "gcc-5.3", "gcc-5.1",
+                ]
 
-            result = orig_detect(self, progs)
+                result = orig_detect(self, progs)
+
+                if result is not None:
+                    gcc_version = detectVersion(self, result)
 
             if result is not None:
-                gcc_version = detectVersion(self, result)
-
-        if result is not None:
-            found_gcc = True
-
-    # print progs, result
+                found_gcc = True
 
     return result
 
-Environment.Detect = myDetect
+Environment.Detect = myDetect  # @UndefinedVariable
 
 def createEnvironment(compiler_tools):
     args = {}
@@ -404,6 +447,8 @@ else:
     # Everything else should use default.
     compiler_tools = ["default"]
 
+printCompilerVersionOutput("Tools=", compiler_tools)
+
 # Create Scons environment, the main control tool. Don't include "mingw" on
 # Windows immediately, we will default to MSVC if available.
 env = createEnvironment(
@@ -414,11 +459,20 @@ env = createEnvironment(
 # it and use that instead then as a fallback. Using both tools in one call
 # seems to not work in terms of fallback when both exist.
 if win_target and \
-   compiler_tools == ["default"] and \
    getExecutablePath(env["CC"], initial = False) is None:
-    env = createEnvironment(
-        compiler_tools = ["mingw"]
-    )
+
+    # This will succeed to find "gcc.exe" when conda install m2w64-gcc has
+    # been done.
+    anaconda_mingw_dir = os.path.join(python_prefix, r'Library\mingw-w64\bin')
+
+    if os.path.isdir(anaconda_mingw_dir):
+        os.environ["PATH"] = os.pathsep.join([anaconda_mingw_dir] + os.environ["PATH"].split(os.pathsep))
+
+        env = createEnvironment(
+            compiler_tools = ["mingw"]
+        )
+
+        printCompilerVersionOutput("CC not found, attemping installed CondaCC")
 
 if show_scons_mode:
     print("Initial CC:", env.get("CC", None))
@@ -428,7 +482,7 @@ if show_scons_mode:
 
 if "CC" in os.environ:
     # If the environment variable CC is set, use that.
-    env["CC"] = os.environ["CC"]
+    env["CC"] = os.path.expanduser(os.environ["CC"])
     env["CCVERSION"] = None
     found_gcc = True
 elif clang_mode:
@@ -436,7 +490,6 @@ elif clang_mode:
     # said in environment.
     env["CC"] = "clang"
     env["CCVERSION"] = None
-
 
 # To work around Windows not supporting command lines of greater than 10K by
 # default:
@@ -529,13 +582,13 @@ def setupSpawn(env):
                 print(cmdline)
 
             if str is not bytes:
-                data = data.decode("utf8")
+                data = data.decode(sys.stdout.encoding)
 
             print(data, end = "")
 
         if err:
             if str is not bytes:
-                err = err.decode("utf8")
+                err = err.decode(sys.stdout.encoding)
 
             print(err, end = "")
 
@@ -544,8 +597,10 @@ def setupSpawn(env):
     env["SPAWN"] = spawn
 
 the_compiler = env["CC"] or env["CXX"]
+printCompilerVersionOutput("Picked compiler=", the_compiler)
 
 the_cc_name = os.path.normcase(os.path.basename(the_compiler))
+printCompilerVersionOutput("Picked name=", the_cc_name)
 
 # Requested or user provided, detect if it's clang even from environment
 if "clang" in the_cc_name and "-cl" not in the_cc_name:
@@ -653,8 +708,14 @@ if gcc_mode:
             CCFLAGS = ["-std=c11"]
         )
 
+    # Make it clear how to handle integer overflows, namely by wraping around
+    # to negative values.
+    env.Append(
+        CCFLAGS = ["-fwrapv"]
+    )
+
 # Support for clang.
-if "clang" in the_compiler:
+if "clang" in the_cc_name:
     env.Append(
         CCFLAGS = ["-w"]
     )
@@ -676,8 +737,10 @@ if "clang" in the_compiler:
         )
 
 # Support details for real g++, not clang++.
-if gcc_mode and "clang" not in the_compiler:
+if gcc_mode and "clang" not in the_cc_name:
     # Don't export anything by default, this should create smaller executables.
+
+    gcc_version = detectVersion(env, the_compiler)
 
     # Enforce the minimum version, selecting a potentially existing g++-4.5
     # binary if it's not high enough. This is esp. useful under Debian which
@@ -687,8 +750,17 @@ if gcc_mode and "clang" not in the_compiler:
         sys.exit(
             """\
 The gcc compiler %s (version %s) doesn't have the sufficient \
-version (>= 4.4).""" % (env["CXX"], gcc_version)
+version (>= 4.4).""" % (the_compiler, gcc_version)
         )
+
+    # CondaCC or newer.
+    if mingw_mode and gcc_version < "5.3":
+        sys.exit(
+            """\
+The MinGW64 compiler %s (version %s) doesn't have the sufficient \
+version (>= 5.3).""" % (the_compiler, gcc_version)
+        )
+
 
     # Older g++ complains about aliasing with Py_True and Py_False, but we don't
     # care.
@@ -739,10 +811,27 @@ version for lto mode (>= 4.6).""" % (env[ "CXX" ], env[ "CXXVERSION" ]))
                 "-freorder-functions",
             ]
         )
+    elif static_libpython and not lto_mode:
+        env.Append(CCFLAGS = ["-fno-lto"])
+        env.Append(
+            LINKFLAGS = ["-fno-lto"]
+        )
 
     # Give a warning if LTO mode was specified, but won't be used.
     if lto_mode and gcc_version < "4.6":
         print("Warning, LTO mode specified, but not available.", file = sys.stderr)
+
+    # Avoid them as appearing to be different files. TODO: Find out which
+    # clang version has this.
+    if gcc_version >= '8':
+        env.Append(
+            CCFLAGS = [
+                "-ffile-prefix-map=%s=%s" % (
+                    os.path.join(source_dir, "static_src"),
+                    os.path.join(nuitka_src, "static_src")
+                )
+            ]
+        )
 
     # The var-tracking does not scale, disable it. Should we really need it, we
     # can enable it. TODO: Does this cause a performance loss?
@@ -785,6 +874,12 @@ if mingw_mode:
     # Windows XP
     env.Append(
         CPPDEFINES = ["_WIN32_WINNT=0x0501"]
+    )
+
+# At least older MinGW64 has issues with this, so disable it.
+if mingw_mode and gcc_version < '6':
+    env.Append(
+        LINKFLAGS = ["-Wl,--no-gc-sections"]
     )
 
 if debug_mode:
@@ -894,6 +989,10 @@ env.Append(
 
 env.Append(
     CPPDEFINES = ["_NUITKA_SYSFLAG_UTF8=%d" % (1 if python_sysflag_utf8 else 0)]
+)
+
+env.Append(
+    CPPDEFINES = ["_NUITKA_SYSFLAG_OPTIMIZE=%d" % (1 if python_sysflag_optimize else 0)]
 )
 
 
@@ -1091,7 +1190,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
             stderr = subprocess.PIPE,
             shell  = False
         )
-    except WindowsError:
+    except WindowsError:  # @UndefinedVariable
         sys.exit('Error, cannot find "gendef.exe" which is required though.')
 
     defs, stderr = proc.communicate()
@@ -1101,7 +1200,7 @@ def makeWindowsMingGW64Lib(win_lib_path):
         sys.exit('Error, unexpected error from "gendef.exe" %s.' % stderr)
 
     if str is not bytes:
-        defs = defs.decode("utf8")
+        defs = defs.decode(sys.stdout.encoding)
 
     defs_filename = os.path.join(
         new_win_lib_path,
@@ -1147,50 +1246,70 @@ def makeWindowsMingGW64Lib(win_lib_path):
 
 
 if win_target:
-    # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
-    if python_debug:
-        win_lib_name ="python" + python_abi_version.replace('.', "") + "_d"
+    # Anaconda has this.
+    static_lib_filename = os.path.join(
+        python_prefix,
+        "libs",
+        "libpython" + python_abi_version.replace('.', "") + ".dll.a"
+    )
+
+    if gcc_mode and static_libpython and os.path.exists(static_lib_filename):
+        env.Append(LIBS = [File(static_lib_filename)])  # @UndefinedVariable
     else:
-        win_lib_name = "python" + python_abi_version.replace('.', "")
+        # MinGW for 64 bits needs this due to CPython being compiled with MSVC.
+        if python_debug:
+            win_lib_name = "python" + python_abi_version.replace('.', "") + "_d"
+        else:
+            win_lib_name = "python" + python_abi_version.replace('.', "")
 
-    for candidate in ("libs", "PCBuild"):
-        win_lib_path = os.path.join(python_prefix, candidate)
+        for candidate in ("libs", "PCBuild"):
+            win_lib_path = os.path.join(python_prefix, candidate)
 
-        if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
-            break
+            if os.path.exists(os.path.join(win_lib_path, win_lib_name + ".lib")):
+                break
+        else:
+            sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
+
+        if target_arch == "x86_64" and gcc_mode:
+            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+        elif target_arch == "x86" and python_debug and gcc_mode:
+            win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
+
+        env.Append(LIBPATH = [win_lib_path])
+        env.Append(LIBS = [win_lib_name])
+elif not module_mode or (macosx_target and not static_libpython):
+    # Add the python library path to the library path
+    python_lib_path = os.path.join(python_prefix, "lib")
+    env.Append(LIBPATH = [python_lib_path])
+
+    static_lib_filename = os.path.join(
+        python_lib_path,
+        "libpython" + python_abi_version + ".a"
+    )
+
+    if not module_mode and \
+       static_libpython and \
+       os.path.exists(static_lib_filename):
+        env.Append(LIBS = [File(static_lib_filename)])  # @UndefinedVariable
     else:
-        sys.exit("Error, cannot find '%s.lib' file." % win_lib_name)
-
-    if target_arch == "x86_64" and gcc_mode:
-        win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
-    elif target_arch == "x86" and python_debug and gcc_mode:
-        win_lib_path = makeWindowsMingGW64Lib(win_lib_path)
-
-    env.Append(LIBPATH = [win_lib_path])
-    env.Append(LIBS = [win_lib_name])
-elif not module_mode:
-    # Debian and Ubuntu distinguish the system libraries like this.
-    if python_debug and \
-       python_prefix == "/usr" and \
-       not python_version.startswith('3') and \
-       platform.dist()[0].lower() in ("debian", "ubuntu"):
-        env.Append(LIBS = ["python" + python_abi_version + "_d"])
-    else:
-        env.Append(LIBS = ["python" + python_abi_version])
+        # Debian and Ubuntu distinguish the system libraries like this.
+        if python_debug and \
+           python_prefix == "/usr" and \
+           not python_version.startswith('3') and \
+           platform.dist()[0].lower() in ("debian", "ubuntu"):
+            env.Append(LIBS = ["python" + python_abi_version + "_d"])
+        else:
+            env.Append(LIBS = ["python" + python_abi_version])
 
     if python_prefix != "/usr" and "linux" in sys.platform:
         env.Append(
-            LIBS = ["dl", "pthread", "util", 'm']
+            LIBS = ["dl", "pthread", "util", "rt", 'm']
         )
 
         if gcc_mode and not clang_mode:
             env.Append(
                 LINKFLAGS = ["-export-dynamic"]
             )
-
-    # Add the python library path to the library path
-    python_lib_path = os.path.join(python_prefix, "lib")
-    env.Append(LIBPATH = [python_lib_path])
 
     # For NetBSD the rpath is required, on FreeBSD it's warned as unused.
     if "netbsd" in sys.platform:
@@ -1225,7 +1344,7 @@ if debug_mode or unstripped_mode:
             ASFLAGS = ["-g"]
         )
 
-        if "gcc" in the_compiler or "g++" in the_compiler:
+        if "gcc" in the_cc_name or "g++" in the_cc_name:
             env.Append(
                 CCFLAGS = ["-feliminate-unused-debug-types"]
             )
@@ -1245,7 +1364,7 @@ if debug_mode or unstripped_mode:
         )
 else:
     if gcc_mode:
-        if sys.platform == "darwin":
+        if macosx_target:
             env.Append(
                 LINKFLAGS = ["-Wno-deprecated-declarations"]
             )
@@ -1287,7 +1406,7 @@ if win_target and target_arch == "x86_64" and gcc_mode:
     )
 
 # Set load libpython from binary directory default
-if gcc_mode and sys.platform != "darwin" and not win_target and not module_mode:
+if gcc_mode and not macosx_target and not win_target and not module_mode:
     if standalone_mode:
         rpath = "$$ORIGIN"
     else:
@@ -1305,7 +1424,8 @@ if gcc_mode and sys.platform != "darwin" and not win_target and not module_mode:
             LINKFLAGS = ["-Wl,--disable-new-dtags"]
         )
 
-def getLinkerArch():
+
+def _getLinkerArch():
     if "linux" in sys.platform:
         python_exe = os.environ["NUITKA_PYTHON_EXE_PATH"]
         assert os.path.exists(python_exe), python_exe
@@ -1333,7 +1453,7 @@ def getLinkerArch():
             return None
 
         if str is not bytes:
-            data = data.decode("utf8")
+            data = data.decode(sys.stdout.encoding)
 
         for line in data.splitlines():
             if " file format " in line:
@@ -1341,6 +1461,19 @@ def getLinkerArch():
     else:
         # TODO: Missing for MacOS, FreeBSD, other Linux
         return None
+
+_linker_arch_determined = False
+_linker_arch = None
+
+def getLinkerArch():
+    global _linker_arch_determined, _linker_arch
+
+    if not _linker_arch_determined:
+        _linker_arch = _getLinkerArch()
+        _linker_arch_determined = True
+
+    return _linker_arch
+
 
 constants_bin_filename = os.path.join(source_dir,"__constants.bin")
 
@@ -1404,7 +1537,7 @@ env.Append(
 
 # Tell compiler to create a shared library or program.
 if module_mode:
-    if "gcc" in the_compiler or "g++" in the_compiler:
+    if "gcc" in the_cc_name or "g++" in the_cc_name:
         env.Append(
             CCFLAGS = ["-shared"]
         )
@@ -1415,7 +1548,7 @@ if module_mode:
             CCFLAGS = ["/LD"]
         )
     else:
-        assert False
+        assert False, the_cc_name
 else:
     if msvc_mode:
         env.Append(
@@ -1450,14 +1583,14 @@ def discoverSourceFiles():
             src = os.path.abspath(src)
 
             try:
-                link_target = os.readlink(dst)
+                link_target = os.readlink(dst)  # @UndefinedVariable
 
                 # If it's already a proper link, do nothing then.
                 if link_target == src:
                     return
 
                 os.unlink(dst)
-            except OSError as e:
+            except OSError as _e:
                 # Broken links work like that, remove them, so we can replace
                 # them.
                 try:
@@ -1466,7 +1599,7 @@ def discoverSourceFiles():
                     pass
 
             try:
-                os.symlink(src, dst)
+                os.symlink(src, dst)  # @UndefinedVariable
             except OSError:
                 shutil.copy(src, dst)
 
@@ -1590,7 +1723,7 @@ Error, call to 'mt.exe' (%s) to extract manifest failed (error code %d.)""" % (
                         stderr = subprocess.PIPE,
                         shell  = False
                     )
-                except WindowsError:
+                except WindowsError:  # @UndefinedVariable
                     sys.exit("Error, cannot find 'windres.exe' but it is required.")
 
                 _stdout, stderr = proc.communicate()
@@ -1840,7 +1973,7 @@ if uninstalled_python:
             getWindowsPythonDLLPath(),
             os.path.dirname(result_basepath) or '.'
         )
-    elif sys.platform == "darwin" and not module_mode:
+    elif macosx_target and not module_mode:
         # TODO: Move this to where we do it for Linux already.
 
         python_dll_filename = "libpython" + python_abi_version + ".dylib"

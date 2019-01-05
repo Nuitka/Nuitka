@@ -38,6 +38,7 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.StatementNodes import StatementsSequence
 from nuitka.nodes.VariableRefNodes import ExpressionTempVariableRef
+from nuitka.nodes.YieldNodes import ExpressionYieldFromWaitable
 
 from .ReformulationAssignmentStatements import buildAssignmentStatements
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
@@ -121,9 +122,12 @@ def _buildForLoopNode(provider, node, sync, source_ref):
             source_ref = source_ref
         )
     else:
-        next_node = ExpressionAsyncNext(
-            value      = ExpressionTempVariableRef(
-                variable   = tmp_iter_variable,
+        next_node = ExpressionYieldFromWaitable(
+            expression = ExpressionAsyncNext(
+                value      = ExpressionTempVariableRef(
+                    variable   = tmp_iter_variable,
+                    source_ref = source_ref
+                ),
                 source_ref = source_ref
             ),
             source_ref = source_ref
@@ -198,8 +202,11 @@ def _buildForLoopNode(provider, node, sync, source_ref):
             source_ref = source.getSourceReference()
         )
     else:
-        iter_source = ExpressionAsyncIter(
-            value      = source,
+        iter_source = ExpressionYieldFromWaitable(
+            expression = ExpressionAsyncIter(
+                value      = source,
+                source_ref = source.getSourceReference()
+            ),
             source_ref = source.getSourceReference()
         )
 

@@ -38,7 +38,7 @@ class StatementLoop(StatementChildHavingBase):
 
     checker = checkStatementsSequenceOrNone
 
-    __slots__ = ("loop_variables",)
+    __slots__ = ("loop_variables", "loop_memory")
 
     def __init__(self, body, source_ref):
         StatementChildHavingBase.__init__(
@@ -48,6 +48,7 @@ class StatementLoop(StatementChildHavingBase):
         )
 
         self.loop_variables = None
+        self.loop_memory = None
 
     getLoopBody = StatementChildHavingBase.childGetter("body")
     setLoopBody = StatementChildHavingBase.childSetter("body")
@@ -85,6 +86,7 @@ class StatementLoop(StatementChildHavingBase):
         #         self.getLoopBody().mayRaiseException(exception_type)
 
     def computeLoopBody(self, trace_collection):
+        # Rather complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
         abort_context = trace_collection.makeAbortStackContext(
             catch_breaks     = True,
             catch_continues  = True,
@@ -92,31 +94,72 @@ class StatementLoop(StatementChildHavingBase):
             catch_exceptions = False,
         )
 
+        has_initial = False
+
         with abort_context:
             loop_body = self.getLoopBody()
 
             if loop_body is not None:
-                # Look ahead. what will be written and degrade about that if we
-                # are in the first iteration, later we will have more precise
-                # knowledge.
+                # Look ahead. what will be written and degrade to initial loop
+                # traces about that if we are in the first iteration, later we
+                # will have more precise knowledge.
                 if self.loop_variables is None:
-                    self.loop_variables = getVariablesWritten(
+                    early = True
+
+                    loop_variables = getVariablesWritten(
                         loop_body
                     )
 
+                    self.loop_variables = {}
+                    self.loop_memory = {}
+
+                    for loop_variable in loop_variables:
+                        self.loop_variables[loop_variable] = set()
+                        self.loop_memory[loop_variable] = None
+                else:
+                    early = False
+
                 loop_entry_traces = set()
+
+                # List of variables to remove. TODO: Benchmark if it has any
+                # value to avoid creating the normally empty list.
+                to_remove = None
 
                 # Mark all variables as loop wrap around that are written in
                 # the loop and hit a 'continue'.
-                for variable in self.loop_variables:
+                for loop_variable, current in self.loop_variables.items():
+                    # Loop variable became unused.
+                    if not current and not early:
+                        if to_remove is None:
+                            to_remove = []
+                        to_remove.append(loop_variable)
+                        continue
+
+                    last_ones = self.loop_memory[loop_variable]
+
+                    if last_ones is not True:
+                        last_ones = self.loop_memory[loop_variable] == self.loop_variables[loop_variable]
+
                     loop_entry_traces.add(
                         (
-                            variable,
+                            loop_variable,
                             trace_collection.markActiveVariableAsLoopMerge(
-                                variable = variable
+                                variable = loop_variable,
+                                shapes   = self.loop_variables[loop_variable],
+                                initial  = last_ones is not True
                             )
                         )
                     )
+
+                    has_initial = has_initial or last_ones is not True
+
+                    if last_ones is not True:
+                        self.loop_memory[loop_variable] = set(self.loop_variables[loop_variable])
+
+                if to_remove is not None:
+                    for loop_variable in to_remove:
+                        del self.loop_memory[loop_variable]
+                        del self.loop_variables[loop_variable]
 
                 # Forget all iterator and other value status.
                 trace_collection.resetValueStates()
@@ -137,8 +180,6 @@ class StatementLoop(StatementChildHavingBase):
 
                 continue_collections = trace_collection.getLoopContinueCollections()
 
-                self.loop_variables = set()
-
                 for variable, loop_entry_trace in loop_entry_traces:
                     loop_end_traces = set()
 
@@ -146,15 +187,24 @@ class StatementLoop(StatementChildHavingBase):
                         loop_end_trace = continue_collection.getVariableCurrentTrace(variable)
 
                         if loop_end_trace is not loop_entry_trace:
+                            loop_end_trace.getTypeShape().emitAlternatives(
+                                self.loop_variables[variable].add
+                            )
+
                             loop_end_traces.add(loop_end_trace)
 
                     if loop_end_traces:
                         loop_entry_trace.addLoopContinueTraces(loop_end_traces)
-                        self.loop_variables.add(variable)
+                    else:
+                        loop_entry_trace.markLoopTraceComplete()
+
 
             # If we break, the outer collections becomes a merge of all those breaks
             # or just the one, if there is only one.
             break_collections = trace_collection.getLoopBreakCollections()
+
+        if has_initial:
+            trace_collection.signalChange("new_expression", self.source_ref, "Loop has incomplete variable types.")
 
         return loop_body, break_collections
 

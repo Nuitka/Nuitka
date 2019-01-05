@@ -66,6 +66,7 @@ from nuitka.specs.ParameterSpecs import ParameterSpec
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
 from .SyntaxErrors import raiseSyntaxError
 from .TreeHelpers import (
+    buildAnnotationNode,
     buildFrameNode,
     buildNode,
     buildNodeList,
@@ -509,7 +510,7 @@ def buildParameterAnnotations(provider, node, source_ref):
             if arg.annotation is not None:
                 addAnnotation(
                     key   = arg.arg,
-                    value = buildNode(provider, arg.annotation, source_ref)
+                    value = buildAnnotationNode(provider, arg.annotation, source_ref)
                 )
         elif getKind(arg) == "Tuple":
             for sub_arg in arg.elts:
@@ -549,7 +550,7 @@ def buildParameterAnnotations(provider, node, source_ref):
     if hasattr(node, "returns") and node.returns is not None:
         addAnnotation(
             key   = "return",
-            value = buildNode(
+            value = buildAnnotationNode(
                 provider, node.returns, source_ref
             )
         )

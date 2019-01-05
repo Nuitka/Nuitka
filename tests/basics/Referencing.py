@@ -950,6 +950,121 @@ def simpleFunction113():
 
     return a
 
+l = []
+
+def simpleFunction114():
+    global l
+    l += ["something"]
+
+    # Erase it to avoid reference change.
+    del l[:]
+
+
+i = 2**16+1
+
+def simpleFunction115():
+    global i
+    i += 1
+
+t = tuple(range(259))
+
+def simpleFunction116():
+    global t
+    t += (2, 3)
+
+    t = tuple(range(259))
+
+def simpleFunction117():
+    # Operation tuple+object, error case.
+    try:
+        return tuple(t) + i
+    except TypeError:
+        pass
+
+
+def simpleFunction118():
+    # Operation tuple+object, error case.
+    try:
+        return i + tuple(t)
+    except TypeError:
+        pass
+
+t2 = tuple(range(9))
+
+def simpleFunction119():
+    # Operation tuple+object no error case.
+    return tuple(t) + t2
+
+def simpleFunction120():
+    # Operation object+tuple no error case.
+    return t2 + tuple(t)
+
+def simpleFunction121():
+    # Operation tuple+tuple
+    return tuple(t2) + tuple(t)
+
+
+def simpleFunction122():
+    # Operation list+object, error case.
+    try:
+        return list(t) + i
+    except TypeError:
+        pass
+
+
+def simpleFunction123():
+    # Operation list+object, error case.
+    try:
+        return i + list(t)
+    except TypeError:
+        pass
+
+l2 = list(range(9))
+
+def simpleFunction124():
+    # Operation list+object no error case.
+    return list(t) + l2
+
+def simpleFunction125():
+    # Operation object+list no error case.
+    return l2 + list(t)
+
+def simpleFunction126():
+    # Operation tuple+tuple
+    return list(l2) + list(t)
+
+
+class TupleWithSlots(tuple):
+    def __add__(self, other):
+        return 42
+
+    def __radd__(self, other):
+        return 42
+
+def simpleFunction127():
+    # Operation tuple+object with add slot.
+    return tuple(t) + TupleWithSlots()
+
+def simpleFunction128():
+    # Operation object+tuple with add slot.
+    return TupleWithSlots() + tuple(t)
+
+class ListWithSlots(list):
+    def __add__(self, other):
+        return 42
+
+    def __radd__(self, other):
+        return 42
+
+def simpleFunction129():
+    # Operation list+object with add slot.
+    return list(t) + ListWithSlots()
+
+def simpleFunction130():
+    # Operation list+object with add slot.
+    return ListWithSlots() + list(t)
+
+
 
 ####################################
 

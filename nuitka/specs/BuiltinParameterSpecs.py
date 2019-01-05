@@ -33,7 +33,7 @@ class BuiltinParameterSpec(ParameterSpec):
     __slots__ = ("builtin",)
 
     def __init__(self, name, arg_names, default_count, list_star_arg = None,
-                  dict_star_arg = None):
+                 dict_star_arg = None):
         ParameterSpec.__init__(
             self,
             ps_name          = name,
@@ -337,12 +337,12 @@ builtin_setattr_spec = BuiltinParameterSpecNoKeywords("setattr", ("object", "nam
 
 builtin_isinstance_spec = BuiltinParameterSpecNoKeywords("isinstance", ("instance", "classes"), 0)
 
-class BuiltinBytearraySpec(BuiltinParameterSpecNoKeywords):
+class BuiltinBytearraySpec(BuiltinParameterSpecPosArgs):
     def isCompileTimeComputable(self, values):
         # For bytearrays, we need to avoid the case of large bytearray
         # construction from an integer at compile time.
 
-        result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
+        result = BuiltinParameterSpec.isCompileTimeComputable(
             self,
             values = values
         )
@@ -357,10 +357,10 @@ class BuiltinBytearraySpec(BuiltinParameterSpecNoKeywords):
         else:
             return result
 
-builtin_bytearray_spec = BuiltinBytearraySpec("bytearray", ("string", "encoding", "errors"), 2)
+builtin_bytearray_spec = BuiltinBytearraySpec("bytearray", ("string", "encoding", "errors"), 2, 1)
 
 if python_version >= 300:
-    builtin_bytes_spec = BuiltinBytearraySpec("bytes", ("string", "encoding", "errors"), 3)
+    builtin_bytes_spec = BuiltinBytearraySpec("bytes", ("string", "encoding", "errors"), 3, 1)
 
 
 # Beware: One argument version defines "stop", not "start".

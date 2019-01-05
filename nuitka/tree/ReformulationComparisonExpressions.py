@@ -26,8 +26,8 @@ from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementReleaseVariable
 )
+from nuitka.nodes.ComparisonNodes import makeComparisonExpression
 from nuitka.nodes.ConditionalNodes import makeStatementConditional
-from nuitka.nodes.NodeMakingHelpers import makeComparisonNode
 from nuitka.nodes.OperatorNodes import ExpressionOperationNOT
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -39,6 +39,15 @@ from .TreeHelpers import (
     getKind,
     makeStatementsSequenceFromStatement
 )
+
+
+def _makeComparisonNode(left, right, comparator, source_ref):
+    result = makeComparisonExpression(left, right, comparator, source_ref)
+    result.setCompatibleSourceReference(
+        source_ref = right.getCompatibleSourceReference()
+    )
+
+    return result
 
 
 def buildComparisonNode(provider, node, source_ref):
@@ -65,7 +74,7 @@ def buildComparisonNode(provider, node, source_ref):
     # Normal, and simple case, we only have one comparison, which is what our
     # node handles only. Then we can handle it
     if len(rights) == 1:
-        return makeComparisonNode(
+        return _makeComparisonNode(
             left       = left,
             right      = rights[0],
             # TODO: The terminology of Nuitka might be messed up here.
@@ -117,7 +126,7 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
     def makeValueComparisonReturn(left, right, comparator):
         yield StatementAssignmentVariable(
             variable   = tmp_variable,
-            source     = makeComparisonNode(
+            source     = _makeComparisonNode(
                 left       = left,
                 right      = right,
                 comparator = comparator,
@@ -182,7 +191,7 @@ def buildComplexComparisonNode(provider, left, rights, comparators, source_ref):
         else:
             statements.append(
                 StatementReturn(
-                    expression = makeComparisonNode(
+                    expression = _makeComparisonNode(
                         left       = left,
                         right      = right,
                         comparator = comparator,

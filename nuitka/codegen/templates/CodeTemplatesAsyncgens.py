@@ -42,7 +42,7 @@ static PyObject *%(function_identifier)s_context( struct Nuitka_AsyncgenObject *
     // Local variable initialization
 %(function_var_inits)s
 
-    // Actual function code.
+    // Actual asyngen body.
 %(function_body)s
 
 %(asyncgen_exit)s

@@ -275,7 +275,8 @@ class NodeBase(NodeMetaClassBase):
            self.source_ref != source_ref:
             # An attribute outside of "__init__", so we save one memory for the
             # most cases. Very few cases involve splitting across lines.
-            # pylint: disable=W0201
+            # false alarm for non-slot:
+            # pylint: disable=I0021,assigning-non-slot,attribute-defined-outside-init
             self.effective_source_ref = source_ref
 
 
@@ -578,7 +579,7 @@ class ChildrenHavingMixin(object):
 
         attr_name = "subnode_" + name
 
-        # Determine old value, and inform it about loosing its parent.
+        # Determine old value, and inform it about losing its parent.
         old_value = getattr(self, attr_name)
 
         assert old_value is not value, value
@@ -1012,7 +1013,7 @@ class StatementChildHavingBase(StatementBase):
 
         attr_name = "subnode_" + name
 
-        # Determine old value, and inform it about loosing its parent.
+        # Determine old value, and inform it about losing its parent.
         old_value = getattr(self, attr_name)
 
         assert old_value is not value, value

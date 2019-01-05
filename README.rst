@@ -17,22 +17,23 @@ This document is the recommended first read if you are interested in using
 Nuitka, understand its use cases, check what you can expect, license,
 requirements, credits, etc.
 
-Nuitka is **the** Python compiler. It is a seamless replacement or extension
-to the Python interpreter and compiles **every** construct that CPython 2.6,
-2.7, 3.3, 3.4, 3.5, 3.6, and 3.7 have, when itself run with that Python version.
+Nuitka is **the** Python compiler. It is written in Python. It is a seamless
+replacement or extension to the Python interpreter and compiles **every**
+construct that CPython 2.6, 2.7, 3.3, 3.4, 3.5, 3.6, and 3.7 have, when itself
+run with that Python version.
 
 It then executes uncompiled code, and compiled code together in an extremely
 compatible manner.
 
 You can use all Python library modules or and all extension modules freely.
 
-It translates the Python into a C level program that then uses "libpython" to
-execute in the same way as CPython does. All optimization is aimed at avoiding
-overhead, where it's unnecessary. None is aimed at removing compatibility,
-although slight improvements will occassionally be done, where not every bug
-of standard Python is emulated, e.g. more complete error messages are given,
-but there is a full compatibility mode to disable even that.
-
+It translates the Python into a C level program that then uses ``libpython`` and
+a few C files of its own to execute in the same way as CPython does. All
+optimization is aimed at avoiding overhead, where it's unnecessary. None is
+aimed at removing compatibility, although slight improvements will occasionally
+be done, where not every bug of standard Python is emulated, e.g. more complete
+error messages are given, but there is a full compatibility mode to disable even
+that.
 
 Usage
 =====
@@ -45,13 +46,14 @@ Requirements
 
   Currently this means, you need to use one of these compilers:
 
-  * `The ``gcc`` compiler of at least version 5.1, or the ``g++`` compiler of
+  * The ``gcc`` compiler of at least version 5.1, or the ``g++`` compiler of
     at least version 4.4 as an alternative.
 
   * The ``clang`` compiler on MacOS X or FreeBSD.
 
   * The MinGW64 [#]_ C11 compiler on Windows, ideally the one based on gcc
-    6 or higher.
+    6 or higher. The AnaConda compilers [#]_ are suitable too, even if you
+    use CPython, they are the easiest installation method.
 
   * Visual Studio 2017 or higher on Windows [#]_, older versions may work,
     but are not officially supported. Configure to use English language
@@ -59,7 +61,8 @@ Requirements
     for that language).
 
   * On Windows the ``clang-cl`` compiler on Windows can be used if provided if
-    you use the ``CC`` environmentvariable to point to it, *and* you also have MSVC installed.
+    you use the ``CC`` environmentvariable to point to it, *and* you also have
+    MSVC installed.
 
 
 - Python: Version 2.6, 2.7 or 3.3, 3.4, 3.5, 3.6, 3.7
@@ -84,7 +87,7 @@ Requirements
 
      The created binaries have an ``.exe`` suffix on Windows. On other platforms
      they have no suffix for standalone mode, or ``.bin`` suffix, that you ar
-     free to remove or change, or specifiy with the ``-o`` option.
+     free to remove or change, or specify with the ``-o`` option.
 
      The suffix for acceleration mode is added just to be sure that the original
      script name and the binary name do not ever collide, so we can safely do
@@ -98,6 +101,8 @@ Requirements
      On Windows, for Python not installed system wide and acceleration mode, you
      need to copy the ``PythonXX.DLL`` alongside of it, something Nuitka does
      automatically.
+
+  .. admonition:: It **has to** be CPython, AnaConda or MiniConda Python.
 
      It is known that MacOS "pyenv" does **not** work.
 
@@ -126,6 +131,14 @@ Requirements
        ``\MinGW64`` (same disk root as Nuitka running) to find it automatically.
        Also, when prompted, use "posix" for threads and "dwarf" for exception
        model, although these currently do not matter at all.
+
+.. [#] Installation of matching MinGW64 is easiest of you have an AnaConda or
+       MiniConda installation and execute
+       ``<path_to_Anaconda>\Scripts\conda install m2w64-gcc libpython`` and then
+       before you run Nuitka do
+       ``setenv CC=<path_to_Anaconda>\Library\mingw-w64\bin\gcc.exe``
+       and then its use will be forced. Nuitka also uses it automatically,
+       if you run it like this ``<path_to_Anaconda>\python -m nuitka ...``.
 
 .. [#] Download for free from
        http://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx
@@ -206,7 +219,7 @@ that is the main program, do it like this:
    Consider the output of ``nuitka --help``.
 
 In case you have a plugin directory, i.e. one which cannot be found by recursing
-after normal import statements via the ``PYTHONPATH`` (which would be
+after normal import statements via the ``PYTHONPATH`` (which would be the
 recommended way), you can always require that a given directory shall also be
 included in the executable:
 
@@ -252,7 +265,7 @@ The resulting file ``some_module.so`` can then be used instead of
 
 .. note::
 
-   It's left as an exercise to the reader, what happens if both are present.
+   It's left as an exercise to the reader, to find out what happens if both are present.
 
 .. note::
 
@@ -263,7 +276,7 @@ The resulting file ``some_module.so`` can then be used instead of
 Use Case 3 - Package compilation
 --------------------------------
 
-If you need to compile a whole package and embedded all modules, that is also
+If you need to compile a whole package and embed all modules, that is also
 feasible, use Nuitka like this:
 
 .. code-block:: bash
@@ -282,7 +295,7 @@ Tips
 Caching
 -------
 
-The C compiler when invoked with the same input files with take long time
+The C compiler when invoked with the same input files will take a long time
 and much CPU to compile. Make sure you are having ``ccache`` installed and
 configured on non-Windows. It will make repeated compilations much faster,
 even if things are not yet not perfect, i.e. changes to the program can
@@ -309,11 +322,11 @@ The fastest binaries of ``pystone.exe`` on Windows with 64 bits Python proved
 to be signicantly faster with MinGW64, roughly 20% better score. So it is
 recommended for use over MSVC. Using ``clang-cl.exe`` of Clang7 was faster
 than MSVC, but still significantly slower than MinGW64, and it will be harder
-to use, so it is not recommened.
+to use, so it is not recommended.
 
 On Linux for ``pystone.bin`` the binary produced by ``clang6`` was faster
 than ``gcc-6.3``, but not by a significant margin. Since gcc is more often
-already installed, that is the recommened use for now.
+already installed, that is recommended to use for now.
 
 Differences in C compilation times have not yet been examined.
 
@@ -665,7 +678,7 @@ without any risk.
 .. admonition:: Status
 
    This is considered done. For every kind of operation, we trace if it may
-   raise an exception. We do however *not* track properly yes, what can do
+   raise an exception. We do however *not* track properly yet, what can do
    a ``ValueError`` and what cannot.
 
 
@@ -910,6 +923,10 @@ The order is sorted by time.
   call the compiler. Also pull request to improve "bist_nuitka" and to do
   the registration.
 
+- Paweł K: Submitted github pull request to remove glibc from standalone
+  distribution, saving size and improving robustness considering the
+  various distributions.
+
 Projects used by Nuitka
 -----------------------
 
@@ -920,9 +937,9 @@ Projects used by Nuitka
 
 * The `GCC project <http://gcc.gnu.org>`__
 
-  Thanks for not only the best compiler suite, but also thanks for supporting
-  C++11 which helped to get Nuitka off the ground. Your compiler was the first
-  usable for Nuitka and with little effort.
+  Thanks for not only the best compiler suite, but also thanks for making it
+  easy supporting to get Nuitka off the ground. Your compiler was the first
+  usable for Nuitka and with very little effort.
 
 * The `Scons project <http://www.scons.org>`__
 

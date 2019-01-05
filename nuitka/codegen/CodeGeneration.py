@@ -255,7 +255,11 @@ from .VariableCodes import (
     generateVariableReferenceCode,
     generateVariableReleaseCode
 )
-from .YieldCodes import generateYieldCode, generateYieldFromCode
+from .YieldCodes import (
+    generateYieldCode,
+    generateYieldFromCode,
+    generateYieldFromWaitableCode
+)
 
 _generated_functions = {}
 
@@ -471,6 +475,7 @@ def prepareModuleCode(global_context, module, module_name):
         temp_variables      = module.getTempVariables(),
         outline_variables   = module.getOutlineLocalVariables(),
         is_main_module      = module.isMainModule(),
+        is_top_module       = module.isTopModule(),
         is_internal_module  = module.isInternalModule(),
         is_package          = module.isCompiledPythonPackage(),
         context             = context
@@ -612,6 +617,12 @@ setExpressionDispatchDict(
         "EXPRESSION_COMPARISON_IN"                    : generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_NOT_IN"                : generateComparisonExpressionCode,
         "EXPRESSION_COMPARISON_EXCEPTION_MATCH"       : generateComparisonExpressionCode,
+        "EXPRESSION_COMPARISON_LT"                    : generateComparisonExpressionCode,
+        "EXPRESSION_COMPARISON_LTE"                   : generateComparisonExpressionCode,
+        "EXPRESSION_COMPARISON_GT"                    : generateComparisonExpressionCode,
+        "EXPRESSION_COMPARISON_GTE"                   : generateComparisonExpressionCode,
+        "EXPRESSION_COMPARISON_EQ"                    : generateComparisonExpressionCode,
+        "EXPRESSION_COMPARISON_NEQ"                   : generateComparisonExpressionCode,
         "EXPRESSION_DICT_OPERATION_GET"               : generateDictOperationGetCode,
         "EXPRESSION_DICT_OPERATION_IN"                : generateDictOperationInCode,
         "EXPRESSION_DICT_OPERATION_NOT_IN"            : generateDictOperationInCode,
@@ -656,12 +667,13 @@ setExpressionDispatchDict(
         "EXPRESSION_VARIABLE_REF"                     : generateVariableReferenceCode,
         "EXPRESSION_YIELD"                            : generateYieldCode,
         "EXPRESSION_YIELD_FROM"                       : generateYieldFromCode,
-        "EXPRESSION_SELECT_METACLASS"                 : generateSelectMetaclassCode,
+        "EXPRESSION_YIELD_FROM_WAITABLE"              : generateYieldFromWaitableCode,
         "EXPRESSION_ASYNC_WAIT"                       : generateAsyncWaitCode,
         "EXPRESSION_ASYNC_WAIT_ENTER"                 : generateAsyncWaitCode,
         "EXPRESSION_ASYNC_WAIT_EXIT"                  : generateAsyncWaitCode,
         "EXPRESSION_ASYNC_ITER"                       : generateAsyncIterCode,
         "EXPRESSION_ASYNC_NEXT"                       : generateAsyncNextCode,
+        "EXPRESSION_SELECT_METACLASS"                 : generateSelectMetaclassCode,
         "EXPRESSION_STRING_CONCATENATION"             : generateStringContenationCode,
         "EXPRESSION_BUILTIN_FORMAT"                   : generateBuiltinFormatCode,
         "EXPRESSION_BUILTIN_ASCII"                    : generateBuiltinAsciiCode,

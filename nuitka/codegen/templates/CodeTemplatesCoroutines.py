@@ -42,7 +42,7 @@ static PyObject *%(function_identifier)s_context( struct Nuitka_CoroutineObject 
     // Local variable initialization
 %(function_var_inits)s
 
-    // Actual function code.
+    // Actual coroutine body.
 %(function_body)s
 
 %(coroutine_exit)s

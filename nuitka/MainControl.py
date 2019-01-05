@@ -231,7 +231,7 @@ def cleanSourceDirectory(source_dir):
     extensions = (
         ".bin", ".c", ".cpp", ".exp", ".h",
         ".lib", ".manifest", ".o", ".obj",
-        ".os", ".rc", ".res", ".S"
+        ".os", ".rc", ".res", ".S", ".txt"
     )
 
     if os.path.isdir(source_dir):
@@ -517,6 +517,11 @@ def runScons(main_module, quiet):
     if Options.isLto():
         options["lto_mode"] = "true"
 
+    # For AnaConda default to trying static lib python library, which
+    # normally is just not available or if it is even unusable.
+    if "Anaconda" in sys.version:
+        options["static_libpython"] = "true"
+
     if Options.shallDisableConsoleWindow():
         options["win_disable_console"] = "true"
 
@@ -559,6 +564,9 @@ def runScons(main_module, quiet):
 
     if "no_warnings" in getPythonFlags():
         options["no_python_warnings"] = "true"
+
+    if "no_asserts" in getPythonFlags():
+        options["python_sysflag_optimize"] = "true"
 
     if python_version < 300 and sys.flags.py3k_warning:
         options["python_sysflag_py3k_warning"] = "true"
@@ -894,7 +902,7 @@ def main():
 # standalone mode usage of the created library will need it.
 
 # In the future, this will also contain type information for values
-# in the module, so IDEs will use this. Therfore please include it
+# in the module, so IDEs will use this. Therefore please include it
 # when you make software releases of the extension module that it
 # describes.
 

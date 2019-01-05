@@ -162,7 +162,6 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_SUBSCRIPT(PyObject *source, PyObjec
             return NULL;
 #endif
         }
-
     }
 
 #if PYTHON_VERSION >= 370

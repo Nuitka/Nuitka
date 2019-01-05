@@ -141,7 +141,7 @@ def isWhiteListedImport(node):
 
 
 def warnAbout(importing, module_name, parent_package, level, tried_names):
-    # This probably should not be dealt with here.
+    # This probably should not be dealt with here, pylint: disable=too-many-branches
     if module_name == "":
         return
 
@@ -169,22 +169,23 @@ def warnAbout(importing, module_name, parent_package, level, tried_names):
             else:
                 level_desc = "%d package levels up" % level
 
-            if parent_package is not None:
-                warning(
-                    "%s: Cannot find '%s' in package '%s' %s (tried %s).",
-                    importing.getSourceReference().getAsString(),
-                    module_name,
-                    parent_package,
-                    level_desc,
-                    ','.join(tried_names)
-                )
-            else:
-                warning(
-                    "%s: Cannot find '%s' %s.",
-                    importing.getSourceReference().getAsString(),
-                    module_name,
-                    level_desc
-                )
+            if _debug_module_finding:
+                if parent_package is not None:
+                    warning(
+                        "%s: Cannot find '%s' in package '%s' %s (tried %s).",
+                        importing.getSourceReference().getAsString(),
+                        module_name,
+                        parent_package,
+                        level_desc,
+                        ','.join(tried_names)
+                    )
+                else:
+                    warning(
+                        "%s: Cannot find '%s' %s.",
+                        importing.getSourceReference().getAsString(),
+                        module_name,
+                        level_desc
+                    )
 
 
 def normalizePackageName(module_name):
@@ -561,16 +562,16 @@ def _findModule2(module_name):
     # Need a real module name.
     assert module_name != ""
 
+    preloaded_path = getPreloadedPackagePath(module_name)
+
+    if preloaded_path is not None:
+        return preloaded_path[0]
+
     if '.' in module_name:
         package_part = module_name[ : module_name.rfind('.') ]
         module_name = module_name[ module_name.rfind('.') + 1 : ]
     else:
         package_part = None
-
-    preloaded_path = getPreloadedPackagePath(module_name)
-
-    if preloaded_path is not None:
-        return preloaded_path[0]
 
     return _findModuleInPath(
         module_name  = module_name,

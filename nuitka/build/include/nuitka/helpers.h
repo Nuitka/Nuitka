@@ -187,6 +187,7 @@ NUITKA_MAY_BE_UNUSED static PyObject *LOOKUP_VARS(PyObject *source) {
 #include "nuitka/helper/rangeobjects.h"
 #include "nuitka/helper/slices.h"
 #include "nuitka/helper/subscripts.h"
+#include "nuitka/helper/tuples.h"
 
 #include "nuitka/builtins.h"
 
@@ -201,6 +202,10 @@ extern PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObje
 #else
 extern PyObject *COMPILE_CODE(PyObject *source_code, PyObject *file_name, PyObject *mode, PyObject *flags,
                               PyObject *dont_inherit, PyObject *optimize);
+#endif
+
+#if PYTHON_VERSION < 300
+extern bool EXEC_FILE_ARG_HANDLING(PyObject **prog, PyObject **name);
 #endif
 
 // For quicker built-in open() functionality.
@@ -310,6 +315,7 @@ extern PyObject *UNSTREAM_CHAR(unsigned char value, bool intern);
 extern PyObject *UNSTREAM_UNICODE(unsigned char const *buffer, Py_ssize_t size);
 #else
 extern PyObject *UNSTREAM_BYTES(unsigned char const *buffer, Py_ssize_t size);
+extern PyObject *UNSTREAM_STRING_ASCII(unsigned char const *buffer, Py_ssize_t size, bool intern);
 #endif
 extern PyObject *UNSTREAM_FLOAT(unsigned char const *buffer);
 extern PyObject *UNSTREAM_BYTEARRAY(unsigned char const *buffer, Py_ssize_t size);

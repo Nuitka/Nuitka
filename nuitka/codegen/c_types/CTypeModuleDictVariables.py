@@ -36,16 +36,35 @@ class CTypeModuleDictVariable(CTypeBase):
     @classmethod
     def emitVariableAssignCode(cls, value_name, needs_release, tmp_name,
                                ref_count, in_place, emit, context):
-        emit(
-            "UPDATE_STRING_DICT%s( moduledict_%s, (Nuitka_StringObject *)%s, %s );" % (
-                ref_count,
-                context.getModuleCodeName(),
-                context.getConstantCode(
-                    constant = value_name.code_name,
-                ),
-                tmp_name
+        if in_place:
+            orig_name = context.getInplaceLeftName()
+
+            emit("if (%s != %s) {" % (orig_name, tmp_name))
+
+            emit(
+                "UPDATE_STRING_DICT_INPLACE( moduledict_%s, (Nuitka_StringObject *)%s, %s );" % (
+                    context.getModuleCodeName(),
+                    context.getConstantCode(
+                        constant = value_name.code_name,
+                    ),
+                    tmp_name
+                )
             )
-        )
+
+            emit('}')
+
+        else:
+            emit(
+                "UPDATE_STRING_DICT%s( moduledict_%s, (Nuitka_StringObject *)%s, %s );" % (
+                    ref_count,
+                    context.getModuleCodeName(),
+                    context.getConstantCode(
+                        constant = value_name.code_name,
+                    ),
+                    tmp_name
+                )
+            )
+
 
     @classmethod
     def emitValueAccessCode(cls, value_name, emit, context):

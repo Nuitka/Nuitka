@@ -29,12 +29,15 @@ def calledRepeatedly():
     # Make sure we have a local variable s anyway
     s = '2'
 
+    # Add an unknown, making 's' an unknown.
     additiv = additiv_global
-
     s += additiv
+
 # construct_begin
     s += additiv
 # construct_end
+
+    # Prevent optimization into direct return.
     s += additiv
 
     return s

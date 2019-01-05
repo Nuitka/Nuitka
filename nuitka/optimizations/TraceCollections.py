@@ -29,21 +29,25 @@ from logging import debug
 from nuitka import Tracing, Variables
 from nuitka.__past__ import iterItems  # Python3 compatibility.
 from nuitka.containers.oset import OrderedSet
-from nuitka.importing.ImportCache import (
-    getImportedModuleByName,
-    isImportedModuleByName
-)
+from nuitka.importing.ImportCache import getImportedModuleByNameAndPath
 from nuitka.ModuleRegistry import addUsedModule
 from nuitka.nodes.NodeMakingHelpers import getComputationResult
-from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeDict
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    ShapeTypeDict,
+    ShapeTypeInt,
+    ShapeTypeIntOrLong,
+    ShapeTypeLong
+)
 from nuitka.PythonVersions import python_version
 from nuitka.tree.SourceReading import readSourceLine
+from nuitka.utils.FileOperations import relpath
 from nuitka.utils.InstanceCounters import counted_del, counted_init
 
 from .ValueTraces import (
     ValueTraceAssign,
     ValueTraceInit,
-    ValueTraceLoopMerge,
+    ValueTraceLoopComplete,
+    ValueTraceLoopInitial,
     ValueTraceMerge,
     ValueTraceUninit,
     ValueTraceUnknown
@@ -111,14 +115,32 @@ class CollectionTracingMixin(object):
 
             self.markCurrentVariableTrace(variable, version)
 
-    def markActiveVariableAsLoopMerge(self, variable):
+    def markActiveVariableAsLoopMerge(self, variable, shapes, initial):
         current = self.getVariableCurrentTrace(
             variable = variable,
         )
 
         version = variable.allocateTargetNumber()
 
-        result = ValueTraceLoopMerge(current)
+        current_shape = current.getTypeShape()
+
+        if current_shape not in shapes:
+            shapes = set(shapes)
+            shapes.add(current_shape)
+
+        if python_version < 300:
+            if ShapeTypeIntOrLong in shapes:
+                if ShapeTypeInt in shapes:
+                    shapes.discard(ShapeTypeInt)
+                if ShapeTypeLong in shapes:
+                    shapes.discard(ShapeTypeLong)
+
+        # print(initial, shapes)
+
+        if initial:
+            result = ValueTraceLoopInitial(current, shapes)
+        else:
+            result = ValueTraceLoopComplete(current, shapes)
 
         self.addVariableTrace(
             variable = variable,
@@ -409,8 +431,8 @@ class TraceCollectionBase(CollectionTracingMixin):
         # This is monkey patched from another module.
         signalChange(tags, source_ref, message)
 
-    def onUsedModule(self, module_name):
-        return self.parent.onUsedModule(module_name)
+    def onUsedModule(self, module_name, module_relpath):
+        return self.parent.onUsedModule(module_name, module_relpath)
 
     @staticmethod
     def mustAlias(a, b):
@@ -441,12 +463,9 @@ class TraceCollectionBase(CollectionTracingMixin):
 
                 self.markActiveVariableAsUnknown(variable)
 
-            elif variable.isLocalVariable() and \
-                (python_version >= 300 or variable.isSharedTechnically() is not False):
-                # TODO: Could be limited to shared variables that are actually
-                # written to. Most of the time, that won't be the case.
-
-                self.markActiveVariableAsUnknown(variable)
+            elif variable.isLocalVariable():
+                if python_version >= 300 and variable.hasWritesOutsideOf(self.owner) is not False:
+                    self.markActiveVariableAsUnknown(variable)
 
     def removeAllKnowledge(self):
         self.markActiveVariablesAsUnknown()
@@ -848,14 +867,19 @@ class TraceCollectionModule(CollectionStartpointMixin,
 
         self.used_modules = OrderedSet()
 
-    def onUsedModule(self, module_name):
+    def onUsedModule(self, module_name, module_relpath):
         assert type(module_name) is str, module_name
 
-        self.used_modules.add(module_name)
+        # TODO: Make users provide this through a method that has already
+        # done this.
+        module_relpath = relpath(module_relpath)
 
-        if isImportedModuleByName(module_name):
-            module = getImportedModuleByName(module_name)
-            addUsedModule(module)
+        self.used_modules.add(
+            (module_name, module_relpath)
+        )
+
+        module = getImportedModuleByNameAndPath(module_name, module_relpath)
+        addUsedModule(module)
 
     def getUsedModules(self):
         return self.used_modules

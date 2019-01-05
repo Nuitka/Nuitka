@@ -139,8 +139,11 @@ def optimizeUncompiledPythonModule(module):
             )
         )
 
-    for used_module_name in module.getUsedModules():
-        used_module = ImportCache.getImportedModuleByName(used_module_name)
+    for used_module_name, used_module_path in module.getUsedModules():
+        used_module = ImportCache.getImportedModuleByNameAndPath(
+            used_module_name,
+            used_module_path
+        )
         ModuleRegistry.addUsedModule(used_module)
 
     package_name = module.getPackage()
@@ -212,6 +215,10 @@ def areEmptyTraces(variable_traces):
                 # them as well.
                 empty = False
                 break
+
+        elif variable_trace.isLoopTrace():
+            empty = False
+            break
         else:
             assert False, variable_trace
 
@@ -249,6 +256,8 @@ def optimizeUnusedClosureVariables(function_body):
 
 
 def optimizeLocalsDictsHandles():
+    # Lots of cases, pylint: disable=too-many-branches
+
     changed = False
 
     locals_scopes = getLocalsDictHandles()
@@ -272,13 +281,16 @@ def optimizeLocalsDictsHandles():
             for variable_trace in variable.traces:
                 if variable_trace.isAssignTrace():
                     # For assign traces we want the value to not have a side effect,
-                    # then we can push it down the line.
+                    # then we can push it down the line. TODO: Once temporary
+                    # variables and dictionary building allows for unset values
+                    # remove this
                     if variable_trace.getAssignNode().getAssignSource().mayHaveSideEffects():
                         propagate = False
                         break
                 elif variable_trace.isUninitTrace():
-                    pass
-
+                    if variable_trace.previous is not None:
+                        propagate = False
+                        break
                 elif variable_trace.isMergeTrace():
                     propagate = False
                     break
