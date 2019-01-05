@@ -1,22 +1,20 @@
 Nuitka Release 0.6.1 (Draft)
 ============================
 
-This release is not done yet.
+This release comes after a relatively long time, and contains important new
+optimization work, and even more bug fixes.
 
 Bug Fixes
 ---------
 
 - Fix, the options ``--[no]follow-import-to=package_name`` was supposed
   to not follow into the given package, but the check was executed too
-  broadly so that e.g. ``package_name2`` was also affected. Fixed in 0.6.0.1
+  broadly, so that e.g. ``package_name2`` was also affected. Fixed in 0.6.0.1
   already.
 
 - Fix, wasn't detecting multiple recursions into the same package in module
   mode, when attempting to compile a whole sub-package. Fixed in 0.6.0.1
   already.
-
-- Python3.7: Fix, asyncgen expressions can be created in normal functions
-  without an immediate awaiting of the iterator to be done.
 
 - Fix, constant values are used as C boolean values still for some of the
   cases. Fixed in 0.6.0.1 already.
@@ -27,7 +25,7 @@ Bug Fixes
 - MacOS: Use standard include of C bool type instead of rolling our own, which
   was not compatible with newest Clang. Fixed in 0.6.0.3 already.
 
-- Python3: Fix, the `bytes` type actually does have a `__float__` slot.
+- Python3: Fix, the `bytes` built-in type actually does have a `__float__` slot.
   Fixed in 0.6.0.4 already.
 
 - Python3.7: Types that are also sequences still need to call the method
@@ -49,6 +47,10 @@ Bug Fixes
   before 3.7.1 fixed reference count issues in CPython. Fixed in 0.6.0.6
   already.
 
+- Python3.7: Fix, asyncgen expressions can be created in normal functions
+  without an immediate awaiting of the iterator. This new feature was not
+  correctly supported.
+
 - Fix, star imports on the module level should disable built-in name
   optimization except for the most critical ones, otherwise e.g. names
   like ``all`` or ``pow`` can become wrong. Previous workarounds for ``pow``
@@ -61,6 +63,10 @@ Bug Fixes
 - Python3.4: Fix, packages didn't indicate that they are packages in their
   `__spec__` value, causing issues with `importlib_resources` module.
 
+- Python3.4: The `__spec__` values of compiled modules didn't have compatible
+  `origin` and `has_location` values preventing `importlib_resources` module
+  from working to load data files.
+
 - Fix, packages created from `.pth` files were also considered when checking
   for sub-packages of a module.
 
@@ -68,12 +74,23 @@ Bug Fixes
   newest file version if different, and otherwise just report and pick randomly
   because we cannot really decide which ought to be loaded.
 
+- Standalone: Warn about collisions of DLLs on non-Windows only as this can
+  happen with wheels apparently.
+
+- Standalone: For Windows Python extension modules `.pyd` files, remove the
+  SxS configuration for cases where it causes problems, not needed.
+
 - Fix: The `exec` statement on file handles was not using the proper filename
   when compiling, therefore breaking e.g. `inspect.getsource` on functions
   defined there.
 
 - Standalone: Added support for OpenGL platform plugins to be included
   automatically.
+
+- Standalone: Added missing implicit dependency for `zmq` module.
+
+- Python3.7: Fix, the `-X utf8` flag, aka utf8_mode was not preserved in
+  the compiled binary in all cases.
 
 New Optimization
 ----------------
@@ -94,6 +111,9 @@ New Optimization
   the ``bytes`` ones were specialized to perform real in-place extension where
   possible.
 
+- Loop variables no longer loose type information, but instead collect the set
+  of possible type shapes allowing optimization for them.
+
 Organizational
 --------------
 
@@ -101,7 +121,11 @@ Organizational
 
 - Added repository for Ubuntu Cosmic (18.10) for download.
 
+- Added repository for Fedora 29 for download.
+
 - Describe the exact format used for `clang-format` in the Developer Manual.
+
+- Added description how to use CondaCC on Windows to the User Manual.
 
 Cleanups
 --------
@@ -115,6 +139,9 @@ Cleanups
   for now, enhancing the one for awaitiable, which was not fully annotating
   everything that can happen.
 
+- In code generation avoid statement blocks that are not needed, because
+  there are no local C variables declared, and properly indent them.
+
 Tests
 -----
 
@@ -123,11 +150,31 @@ Tests
 - Test runner detects lock issue of ``clcache`` on Windows and considers it
   a permission problem that causes a retry.
 
-
 Summary
 -------
 
-This release is not done yet.
+This addresses even more corner cases not working correctly, the out of the
+box experience should be even better now.
+
+The push towards C level performance for integer operation was held up by the
+realization that loop SSA was not yet there really, and that it had to be
+implemented, which of course now makes a huge difference for the cases where
+e.g. ``bool`` are being used. There is no C type for ``int`` used yet, which
+limits the impact of optimization to only taking shortcuts for the supported
+types. These are useful and faster of course, but only building blocks for
+what is to come.
+
+Most of the effort went into specialized helpers that e.g. add a `float` and
+and `int` value in a dedicated fashion, as well as comparison operations, so
+we can fully operate some minimal examples with specialized code. This is too
+limited still, and must be applied to ever more operations.
+
+What's more is that the benchmarking situation has not improved. Work will be
+needed in this domain to make improvements more demonstrable. It may well end
+up being the focus for the next release to improve Nuitka speedcenter to give
+more fine grained insights across minor changes of Nuitka and graphs with more
+history.
+
 
 Nuitka Release 0.6.0
 ====================
