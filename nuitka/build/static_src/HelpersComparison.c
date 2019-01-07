@@ -794,7 +794,6 @@ static inline bool IS_SANE_TYPE(PyTypeObject *type) {
         type == &PyLong_Type || type == &PyList_Type || type == &PyTuple_Type;
 }
 
-
 #if PYTHON_VERSION < 300
 PyObject *RICH_COMPARE_LT_INT_OBJECT(PyObject *operand1, PyObject *operand2) {
     assert(PyInt_CheckExact(operand1));
@@ -933,7 +932,6 @@ PyObject *RICH_COMPARE_EQ_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
 
     return result;
 }
-
 
 PyObject *RICH_COMPARE_LTE_INT_INT(PyObject *operand1, PyObject *operand2) {
     assert(PyInt_CheckExact(operand1));
@@ -1115,7 +1113,6 @@ static int MY_RICHCOMPARE_BOOL_NORECURSE(PyObject *a, PyObject *b, int op) {
 
     return result;
 }
-
 
 #if PYTHON_VERSION < 300
 

@@ -126,7 +126,6 @@ extern PyObject *BINARY_OPERATION_ADD_OBJECT_OBJECT(PyObject *operand1, PyObject
 extern PyObject *BINARY_OPERATION_ADD_FLOAT_LONG(PyObject *operand1, PyObject *operand2);
 extern PyObject *BINARY_OPERATION_ADD_LONG_FLOAT(PyObject *operand1, PyObject *operand2);
 
-
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_INPLACE(binary_api api, PyObject **operand1, PyObject *operand2) {
     assert(operand1);
     CHECK_OBJECT(*operand1);
@@ -176,7 +175,6 @@ extern bool BINARY_OPERATION_ADD_BYTES_OBJECT_INPLACE(PyObject **operand1, PyObj
 extern bool BINARY_OPERATION_ADD_BYTES_BYTES_INPLACE(PyObject **operand1, PyObject *operand2);
 extern bool BINARY_OPERATION_ADD_OBJECT_OBJECT_INPLACE(PyObject **operand1, PyObject *operand2);
 
-
 static bool FLOAT_MUL_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
     assert(PyFloat_CheckExact(*operand1));
     assert(PyFloat_CheckExact(operand2));
@@ -187,7 +185,6 @@ static bool FLOAT_MUL_INCREMENTAL(PyObject **operand1, PyObject *operand2) {
 
     return true;
 }
-
 
 NUITKA_MAY_BE_UNUSED static bool BINARY_OPERATION_MUL_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1);

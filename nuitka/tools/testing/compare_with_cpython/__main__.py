@@ -181,6 +181,7 @@ def main():
     timing             = hasArg("timing")
     coverage_mode      = hasArg("coverage")
     original_file      = hasArg("original_file")
+    runtime_file       = hasArg("runtime_file")
     no_warnings        = not hasArg("warnings")
     full_compat        = not hasArg("improved")
     cpython_cached     = hasArg("cpython_cache")
@@ -364,6 +365,9 @@ Taking coverage of '{filename}' using '{python}' with flags {args} ...""".
 
     if original_file:
         extra_options.append("--file-reference-choice=original")
+
+    if runtime_file:
+        extra_options.append("--file-reference-choice=runtime")
 
     if full_compat:
         extra_options.append("--full-compat")

@@ -19,14 +19,16 @@
 
 """
 
+import array
+import ctypes.util
 import os
 from sys import getfilesystemencoding
 
+from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import python_version
 
 
 def locateDLL(dll_name):
-    import ctypes.util
     dll_name = ctypes.util.find_library(dll_name)
 
     if os.path.sep in dll_name:
@@ -67,3 +69,146 @@ def locateDLL(dll_name):
             dll_map[left] = right
 
     return dll_map[dll_name]
+
+
+def getSxsFromDLL(filename):
+    """ List the SxS manifests of a Windows DLL.
+
+    """
+    if type(filename) is unicode:
+        LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExW  # @UndefinedVariable
+    else:
+        LoadLibraryEx = ctypes.windll.kernel32.LoadLibraryExA  # @UndefinedVariable
+
+    EnumResourceNames = ctypes.windll.kernel32.EnumResourceNamesA  # @UndefinedVariable
+    FreeLibrary = ctypes.windll.kernel32.FreeLibrary  # @UndefinedVariable
+
+    import ctypes.wintypes as wintypes
+    EnumResourceNameCallback = ctypes.WINFUNCTYPE(
+        wintypes.BOOL,
+        wintypes.HMODULE, wintypes.LONG,
+        wintypes.LONG, wintypes.LONG
+    )
+
+    DONT_RESOLVE_DLL_REFERENCES = 0x1
+    LOAD_LIBRARY_AS_DATAFILE = 0x2
+    LOAD_LIBRARY_AS_IMAGE_RESOURCE = 0x20
+
+    RT_MANIFEST = 24
+
+    hmodule = LoadLibraryEx(
+        filename,
+        0,
+        DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE
+    )
+
+    if hmodule == 0:
+        raise ctypes.WinError()
+
+    manifests = []
+
+    def callback(_hModule, _lpType, lpName, _lParam):
+        manifests.append(lpName)
+
+        return True
+
+    EnumResourceNames(hmodule, RT_MANIFEST, EnumResourceNameCallback(callback), None)
+
+    FreeLibrary(hmodule)
+    return manifests
+
+
+def removeSxsFromDLL(filename):
+    """ Remove the Windows DLL SxS manifest.
+
+    """
+
+    # There may be more files that need this treatment, these are from scans
+    # with the "find_sxs_modules" tool.
+    if os.path.normcase(os.path.basename(filename)) not in (
+        "sip.pyd",
+        "win32ui.pyd",
+        "winxpgui.pyd"):
+        return
+
+    res_names = getSxsFromDLL(filename)
+
+    if res_names:
+        BeginUpdateResource = ctypes.windll.kernel32.BeginUpdateResourceA  # @UndefinedVariable
+        EndUpdateResource = ctypes.windll.kernel32.EndUpdateResourceA  # @UndefinedVariable
+        UpdateResource = ctypes.windll.kernel32.UpdateResourceA  # @UndefinedVariable
+        RT_MANIFEST = 24
+
+        update_handle = BeginUpdateResource(filename, False)
+
+        if not update_handle:
+            raise ctypes.WinError()
+
+        for res_name in res_names:
+            ret = UpdateResource(update_handle, RT_MANIFEST, res_name, 1033, None, 0)
+
+            if not ret:
+                raise ctypes.WinError()
+
+        ret = EndUpdateResource(update_handle, False)
+
+        if not ret:
+            raise ctypes.WinError()
+
+
+def getWindowsDLLVersion(filename):
+    """ Return DLL version information from a file.
+
+        If not present, it will be (0, 0, 0, 0), otherwise it will be
+        a tuple of 4 numbers.
+    """
+    # Get size needed for buffer (0 if no info)
+
+    if type(filename) is unicode:
+        size = ctypes.windll.version.GetFileVersionInfoSizeW(filename, None)
+    else:
+        size = ctypes.windll.version.GetFileVersionInfoSizeA(filename, None)
+
+    if not size:
+        return (0, 0, 0, 0)
+
+    # Create buffer
+    res = ctypes.create_string_buffer(size)
+    # Load file informations into buffer res
+
+    if type(filename) is unicode:
+        ctypes.windll.version.GetFileVersionInfoW(filename, None, size, res)
+    else:
+        ctypes.windll.version.GetFileVersionInfoA(filename, None, size, res)
+
+    r = ctypes.c_uint()
+    l = ctypes.c_uint()
+
+    # Look for codepages
+    ctypes.windll.version.VerQueryValueA(
+        res,
+        br'\VarFileInfo\Translation',
+        ctypes.byref(r),
+        ctypes.byref(l)
+    )
+
+    if not l.value:
+        return (0, 0, 0, 0)
+
+    codepages = array.array('H', ctypes.string_at(r.value, l.value))
+    codepage = tuple(codepages[:2].tolist())
+
+    # Extract information
+    ctypes.windll.version.VerQueryValueA(
+        res,
+        r"\StringFileInfo\%04x%04x\FileVersion" % codepage,
+        ctypes.byref(r),
+        ctypes.byref(l)
+    )
+
+    data = ctypes.string_at(r.value, l.value)[4*2:]
+
+    import struct
+    data = struct.unpack("HHHH", data[:4*2])
+
+    return data[1], data[0], data[3], data[2]

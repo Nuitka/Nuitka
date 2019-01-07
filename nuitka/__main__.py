@@ -98,7 +98,15 @@ def main():
         # libraries.
         args = [
             sys.executable,
-            sys.executable,
+            sys.executable
+        ]
+
+        if current_version >= "3.7" and sys.flags.utf8_mode:
+            args += [
+                "-X", "utf8"
+            ]
+
+        args += [
             "-S",
             our_filename,
         ]

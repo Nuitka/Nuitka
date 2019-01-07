@@ -17,7 +17,6 @@
 //
 /* C helpers for type specialized "+" (Add) operations */
 
-
 #if PYTHON_VERSION < 300
 // This is Python2 int, for Python3 the LONG variant is to be used.
 PyObject *BINARY_OPERATION_ADD_OBJECT_INT(PyObject *operand1, PyObject *operand2) {
@@ -1363,7 +1362,6 @@ PyObject *BINARY_OPERATION_ADD_FLOAT_LONG(PyObject *operand1, PyObject *operand2
     return NULL;
 }
 
-
 PyObject *BINARY_OPERATION_ADD_FLOAT_FLOAT(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);
     CHECK_OBJECT(operand2);
@@ -2355,7 +2353,6 @@ PyObject *BINARY_OPERATION_ADD_OBJECT_LONG(PyObject *operand1, PyObject *operand
 
     return NULL;
 }
-
 
 PyObject *BINARY_OPERATION_ADD_LONG_LONG(PyObject *operand1, PyObject *operand2) {
     CHECK_OBJECT(operand1);

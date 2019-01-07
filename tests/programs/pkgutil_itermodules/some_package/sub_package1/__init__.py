@@ -1,7 +1,7 @@
 #     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
 #
-#     Part of "Nuitka", an optimizing Python compiler that is compatible and
-#     integrates with CPython, but also works on its own.
+#     Python tests originally created or extracted from other peoples work. The
+#     parts were too small to be protected.
 #
 #     Licensed under the Apache License, Version 2.0 (the "License");
 #     you may not use this file except in compliance with the License.
@@ -15,16 +15,3 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" Nuitka version related stuff.
-
-"""
-
-version_string = """\
-Nuitka V0.6.2rc1
-Copyright (C) 2018 Kay Hayen."""
-
-def getNuitkaVersion():
-    return version_string.split()[1][1:]
-
-def getNuitkaVersionYear():
-    return int(version_string.split()[4])

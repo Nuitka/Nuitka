@@ -24,6 +24,7 @@ from nuitka.codegen.Reports import onMissingOperation
 from nuitka.PythonVersions import python_version
 
 from .ControlFlowEscapeDescriptions import (
+    ControlFlowDescriptionAddUnsupported,
     ControlFlowDescriptionComparisonUnorderable,
     ControlFlowDescriptionElementBasedEscape,
     ControlFlowDescriptionFullEscape,
@@ -37,6 +38,8 @@ from .StandardShapes import (
     ShapeUnknown
 )
 
+# Very many cases when deciding shapes
+# pylint: disable=too-many-return-statements
 
 def _getOperationBinaryAddShapeGeneric(cls, right_shape):
     if type(right_shape) is ShapeLoopCompleteAlternative:
@@ -97,6 +100,17 @@ class ShapeTypeNoneType(ShapeBase):
     def hasShapeSlotContains():
         return False
 
+    @classmethod
+    def getOperationBinaryAddShape(cls, right_shape):
+        if right_shape is ShapeUnknown:
+            return operation_result_unknown
+
+        # TODO: A lot more should be here.
+        if right_shape in (ShapeTypeInt, ShapeTypeStr):
+            return operation_result_unsupported_add
+
+        return _getOperationBinaryAddShapeGeneric(cls, right_shape)
+
     if python_version < 300:
         @classmethod
         def getComparisonLtShape(cls, right_shape):
@@ -116,7 +130,9 @@ class ShapeTypeNoneType(ShapeBase):
             # TODO: Actually unorderable, but this requires making a
             # difference with "=="
             # if right_shape.getTypeName() is not None:
-            #     return result_unorderable_comparison
+            #     return operation_result_unorderable_comparison
+            if right_shape is ShapeTypeStr:
+                return operation_result_unknown
 
             return _getComparisonLtShapeGeneric(cls, right_shape)
 
@@ -255,6 +271,10 @@ class ShapeTypeInt(ShapeBase):
 
         if right_shape is ShapeTypeFloat:
             return operation_result_float_noescape
+
+        # TODO: There must be a lot more than this.
+        if right_shape in (ShapeTypeNoneType, ShapeTypeStr):
+            return operation_result_unsupported_add
 
         return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
@@ -599,6 +619,9 @@ class ShapeTypeTuple(ShapeBase):
         if right_shape is ShapeTypeTuple:
             return operation_result_tuple_noescape
 
+        if right_shape in (ShapeTypeNoneType, ShapeTypeList):
+            return operation_result_unsupported_add
+
         return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
     @classmethod
@@ -667,6 +690,9 @@ class ShapeTypeList(ShapeBase):
 
         if right_shape is ShapeTypeList:
             return operation_result_list_noescape
+
+        if right_shape in (ShapeTypeNoneType, ShapeTypeTuple):
+            return operation_result_unsupported_add
 
         return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
@@ -913,12 +939,19 @@ class ShapeTypeStr(ShapeBase):
         if right_shape is ShapeTypeStrDerived:
             return operation_result_unknown
 
+        if right_shape is ShapeTypeUnicode:
+            return operation_result_unicode_noescape
+
         if right_shape is ShapeTypeBytearray:
             if python_version < 300:
                 return operation_result_bytearray_noescape
             else:
                 # TODO: Exception actually for static optimization.
                 return operation_result_unknown
+
+        if right_shape in (ShapeTypeNoneType, ShapeTypeInt, ShapeTypeLong,
+                           ShapeTypeIntOrLong):
+            return operation_result_unsupported_add
 
         return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
@@ -1005,7 +1038,7 @@ if python_version < 300:
             if right_shape is ShapeUnknown:
                 return operation_result_unknown
 
-            if right_shape is ShapeTypeUnicode:
+            if right_shape in (ShapeTypeUnicode, ShapeTypeStr):
                 return operation_result_unicode_noescape
 
             if right_shape is ShapeTypeUnicodeDerived:
@@ -1633,4 +1666,6 @@ operation_result_bytearray_noescape = ShapeTypeBytearray, ControlFlowDescription
 
 operation_result_bool_elementbased = ShapeTypeBool, ControlFlowDescriptionElementBasedEscape
 
-result_unorderable_comparison = ShapeUnknown, ControlFlowDescriptionComparisonUnorderable
+operation_result_unorderable_comparison = ShapeUnknown, ControlFlowDescriptionComparisonUnorderable
+
+operation_result_unsupported_add = ShapeUnknown, ControlFlowDescriptionAddUnsupported

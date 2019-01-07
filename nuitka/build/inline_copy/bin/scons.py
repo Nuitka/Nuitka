@@ -8,16 +8,20 @@ if __name__ == "__main__":
 
     sys.path.insert(
         0,
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "lib",
-            "scons-2.3.2"
-              if sys.version_info < (3,0) else
-            "scons-3.0.1"
+        os.path.normpath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "lib",
+                "scons-2.3.2"
+                  if sys.version_info < (3,0) else
+                "scons-3.0.1"
+            )
         )
     )
 
+    # On Windows this Scons variable must be set by us.
+    os.environ["SCONS_LIB_DIR"] = sys.path[0]
 
     import SCons.Script  # @UnresolvedImport
 

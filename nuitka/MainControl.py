@@ -517,6 +517,8 @@ def runScons(main_module, quiet):
     if Options.isLto():
         options["lto_mode"] = "true"
 
+    # For AnaConda default to trying static lib python library, which
+    # normally is just not available or if it is even unusable.
     if "Anaconda" in sys.version:
         options["static_libpython"] = "true"
 

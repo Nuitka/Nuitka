@@ -627,7 +627,6 @@ bool BINARY_OPERATION_ADD_LONG_LONG_INPLACE(PyObject **operand1, PyObject *opera
     return true;
 }
 
-
 bool BINARY_OPERATION_ADD_OBJECT_UNICODE_INPLACE(PyObject **operand1, PyObject *operand2) {
     assert(operand1);
     CHECK_OBJECT(*operand1);

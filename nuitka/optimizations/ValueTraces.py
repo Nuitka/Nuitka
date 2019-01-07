@@ -290,7 +290,9 @@ class ValueTraceUnknown(ValueTraceBase):
 
 
 class ValueTraceLoopInitial(ValueTraceBase):
-    __slots__ = ("type_shapes", "type_shape")
+    # Need them all, pylint: disable=too-many-instance-attributes
+
+    __slots__ = ("type_shapes", "type_shape", "incomplete")
 
     def __init__(self, previous, type_shapes):
         assert type_shapes
@@ -303,6 +305,8 @@ class ValueTraceLoopInitial(ValueTraceBase):
 
         self.type_shapes = type_shapes
         self.type_shape = None
+
+        self.incomplete = True
 
         assert ShapeLoopCompleteAlternative not in type_shapes
         previous.addLoopUsage()
@@ -359,6 +363,29 @@ class ValueTraceLoopInitial(ValueTraceBase):
 
         for previous in continue_traces:
             previous.addLoopUsage()
+
+        self.incomplete = False
+
+    def markLoopTraceComplete(self):
+        self.incomplete = False
+
+    def mustHaveValue(self):
+        if self.incomplete is True:
+            return False
+        elif self.incomplete is None:
+            # Lie to ourselves.
+            return True
+        else:
+            # To detect recursion.
+            self.incomplete = None
+
+            for previous in self.previous:
+                if not previous.mustHaveValue():
+                    self.incomplete = False
+                    return False
+
+            self.incomplete = False
+            return True
 
 
 class ValueTraceLoopComplete(ValueTraceLoopInitial):

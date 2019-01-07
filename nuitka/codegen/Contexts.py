@@ -742,7 +742,8 @@ def _getConstantDefaultPopulation():
         # Setting the __spec__ module attribute.
         result += [
             "__spec__",
-            "_initializing"
+            "_initializing",
+            "submodule_search_locations"
         ]
 
     if python_version >= 350:

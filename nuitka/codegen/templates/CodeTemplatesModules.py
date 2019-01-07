@@ -23,7 +23,7 @@ stuff related to importing, and of course the generated code license.
 """
 
 template_global_copyright = """\
-/* Generated code for Python source for module '%(name)s'
+/* Generated code for Python module '%(name)s'
  * created by Nuitka version %(version)s
  *
  * This code is in part copyright %(year)s Kay Hayen.
@@ -47,9 +47,9 @@ template_module_body_template = """
 
 #include "__helpers.h"
 
-/* The _module_%(module_identifier)s is a Python object pointer of module type. */
-
-/* Note: For full compatibility with CPython, every module variable access
+/* The "_module_%(module_identifier)s" is a Python object pointer of module type.
+ *
+ * Note: For full compatibility with CPython, every module variable access
  * needs to go through it except for cases where the module cannot possibly
  * have changed in the mean time.
  */
@@ -57,11 +57,13 @@ template_module_body_template = """
 PyObject *module_%(module_identifier)s;
 PyDictObject *moduledict_%(module_identifier)s;
 
-/* The module constants used, if any. */
+/* The declarations of module constants used, if any. */
 %(constant_decl_codes)s
 
+/* Indicator if this modules private constants were created yet. */
 static bool constants_created = false;
 
+/* Function to create module private constants. */
 static void createModuleConstants( void )
 {
 %(constant_init_codes)s
@@ -69,10 +71,11 @@ static void createModuleConstants( void )
     constants_created = true;
 }
 
+/* Function to verify module private constants for non-corruption. */
 #ifndef __NUITKA_NO_ASSERT__
 void checkModuleConstants_%(module_identifier)s( void )
 {
-    // The module may not have been used at all.
+    // The module may not have been used at all, then ignore this.
     if (constants_created == false) return;
 
 %(constant_check_codes)s
@@ -98,7 +101,7 @@ static void createModuleCodeObjects(void)
 static struct PyModuleDef mdef_%(module_identifier)s =
 {
     PyModuleDef_HEAD_INIT,
-    "%(module_name)s",   /* m_name */
+    "%(module_name)s",
     NULL,                /* m_doc */
     -1,                  /* m_size */
     NULL,                /* m_methods */
@@ -115,12 +118,12 @@ extern PyObject *const_str_plain___package__;
 extern PyObject *const_str_dot;
 
 extern PyObject *const_str_plain___loader__;
-extern PyObject *metapath_based_loader;
 #endif
 
 #if PYTHON_VERSION >= 340
 extern PyObject *const_str_plain___spec__;
 extern PyObject *const_str_plain__initializing;
+extern PyObject *const_str_plain_submodule_search_locations;
 #endif
 
 extern void _initCompiledCellType();
@@ -135,7 +138,7 @@ extern void _initCompiledCoroutineTypes();
 extern void _initCompiledAsyncgenTypes();
 #endif
 
-extern PyObject *metapath_based_loader;
+extern PyTypeObject Nuitka_Loader_Type;
 
 // The exported interface to CPython. On import of the module, this function
 // gets called. It has to have an exact function name, in cases it's a shared
@@ -309,13 +312,17 @@ MOD_INIT_DECL( %(module_identifier)s )
     }
 
 #if PYTHON_VERSION >= 300
-    UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, metapath_based_loader );
+    UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___loader__, (PyObject *)&Nuitka_Loader_Type );
 #endif
 
 #if PYTHON_VERSION >= 340
+// Set the "__spec__" value
+
 #if %(is_main_module)s
+    // Main modules just get "None" as spec.
     UPDATE_STRING_DICT0( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, Py_None );
 #else
+    // Other modules get a "ModuleSpec" from the standard mechanism.
     {
         PyObject *bootstrap_module = PyImport_ImportModule("importlib._bootstrap");
         CHECK_OBJECT( bootstrap_module );
@@ -324,23 +331,31 @@ MOD_INIT_DECL( %(module_identifier)s )
 
         PyObject *args[] = {
             GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___name__ ),
-            metapath_based_loader
+            (PyObject *)&Nuitka_Loader_Type
         };
 
         PyObject *spec_value = CALL_FUNCTION_WITH_ARGS2(
             module_spec_class,
             args
         );
+        Py_DECREF( module_spec_class );
 
+        // We can assume this to never fail, or else we are in trouble anyway.
+        CHECK_OBJECT( spec_value );
+
+// For packages set the submodule search locations as well, even if to empty
+// list, so investigating code will consider it a package.
+#if %(is_package)s
+        SET_ATTRIBUTE( spec_value, const_str_plain_submodule_search_locations, PyList_New(0) );
+#endif
+
+// Mark the execution in the "__spec__" value.
         SET_ATTRIBUTE( spec_value, const_str_plain__initializing, Py_True );
 
         UPDATE_STRING_DICT1( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___spec__, spec_value );
-
-        Py_DECREF( module_spec_class );
     }
 #endif
 #endif
-
 
     // Temp variables if any
 %(temps_decl)s
@@ -348,6 +363,7 @@ MOD_INIT_DECL( %(module_identifier)s )
     // Module code.
 %(module_code)s
 
+#if _NUITKA_EXPERIMENTAL_PKGUTIL_ITERMODULES
 #if %(is_package)s && %(is_top_module)s
     {
         PyObject *path_value = GET_STRING_DICT_VALUE( moduledict_%(module_identifier)s, (Nuitka_StringObject *)const_str_plain___path__ );
@@ -359,10 +375,11 @@ MOD_INIT_DECL( %(module_identifier)s )
             PyObject *path_importer_cache = PySys_GetObject((char *)"path_importer_cache");
             CHECK_OBJECT( path_importer_cache );
 
-            int res = PyDict_SetItem( path_importer_cache, path_element, metapath_based_loader );
+            int res = PyDict_SetItem( path_importer_cache, path_element, (PyObject *)&Nuitka_Loader_Type );
             assert( res == 0 );
         }
     }
+#endif
 #endif
 
     return MOD_RETURN_VALUE( module_%(module_identifier)s );

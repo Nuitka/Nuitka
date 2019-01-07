@@ -100,7 +100,21 @@ class Plugins(object):
 
         for plugin in active_plugin_list:
             for extra_dll in plugin.considerExtraDlls(dist_dir, module):
-                assert os.path.isfile(extra_dll[1]), extra_dll[1]
+                if not os.path.isfile(extra_dll[0]):
+                    sys.exit(
+                        "Error, attempting to copy plugin determinted filename %r for module %r that is not a file." % (
+                            extra_dll[0],
+                            module.getFullName()
+                        )
+                    )
+
+                if not os.path.isfile(extra_dll[1]):
+                    sys.exit(
+                        "Error, copied filename %r for module %r that is not a file." % (
+                            extra_dll[1],
+                            module.getFullName()
+                        )
+                    )
 
                 result.append(extra_dll)
 
