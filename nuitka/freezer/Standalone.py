@@ -1256,11 +1256,14 @@ different from
                 target_path
             )
         except IOError as e:
+            info(e)
+            # only force cache update if dll file does not exist (do not for existing locked target file)
+            dll_file_exists = os.path.exists(dll_filename) # catch existing locked target file
             using_cache = not Options.shallNotUseDependsExeCachedResults()
-            if using_cache and not has_tried_forced_dep_cache_update and Options.options:
-                print('IOError: Cache dependency missing or moved. Retrying with forced dependency cache update..', e)
+            if using_cache and not dll_file_exists and not has_tried_forced_dep_cache_update:
+                warning("IOError: Cache dependency missing or moved. Retrying with forced dependency cache update..")
                 has_tried_forced_dep_cache_update = True
-                setattr(Options.options, 'update_dependency_cache', True)
+                setattr(Options.options, "update_dependency_cache", True)
                 return copyUsedDLLs(source_dir, dist_dir, standalone_entry_points)
 
             raise e
