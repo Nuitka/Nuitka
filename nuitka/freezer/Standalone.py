@@ -72,7 +72,6 @@ def loadCodeObjectData(precompiled_filename):
 
 
 module_names = set()
-has_tried_forced_dep_cache_update = False
 
 def _detectedPrecompiledFile(filename, module_name, result, user_provided,
                              technical):
@@ -1144,7 +1143,7 @@ libraries that need to be removed."""
         assert retcode == 0, filename
 
 
-def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
+def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points, tried_cache_update=False):
     # This is terribly complex, because we check the list of used DLLs
     # trying to avoid duplicates, and detecting errors with them not
     # being binary identical, so we can report them. And then of course
@@ -1260,11 +1259,10 @@ different from
             # only force cache update if dll file does not exist (do not for existing locked target file)
             dll_file_exists = os.path.exists(dll_filename) # catch existing locked target file
             using_cache = not Options.shallNotUseDependsExeCachedResults()
-            if using_cache and not dll_file_exists and not has_tried_forced_dep_cache_update:
+            if using_cache and not dll_file_exists and not tried_cache_update:
                 warning("IOError: Cache dependency missing or moved. Retrying with forced dependency cache update..")
-                has_tried_forced_dep_cache_update = True
                 setattr(Options.options, "update_dependency_cache", True)
-                return copyUsedDLLs(source_dir, dist_dir, standalone_entry_points)
+                return copyUsedDLLs(source_dir, dist_dir, standalone_entry_points, True)
 
             raise e
 
