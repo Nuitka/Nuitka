@@ -15,7 +15,6 @@ matrix:
 # commands to install dependencies
 install:
   - "sudo apt-get install scons chrpath"
-  - "sudo apt-get install python3-distutils"
   # This will install PyLint but not where it does not work. It will fail
   # to install 2.6 and be buggy for 3.3
   - "pip install -r requirements-devel.txt"
