@@ -64,6 +64,12 @@ from nuitka.utils.Timing import TimerReport
 
 from .DependsExe import getDependsExePath
 
+# Use PE file analysis only on Windows
+if os.name == 'nt':
+    import pefile
+    # Finding site-packages directory when recursive internal dependency walker is used
+    from distutils.sysconfig import get_python_lib
+
 
 def loadCodeObjectData(precompiled_filename):
     # Ignoring magic numbers, etc. which we don't have to care for much as
@@ -987,6 +993,186 @@ SxS
     return result
 
 
+def _getPEFile(binary_filename):
+    try:
+        pe = pefile.PE(binary_filename)
+        return pe
+    except AttributeError:
+        assert False, 'Bogus PE header in ' + binary_filename
+
+
+def _getPEarch(pe_file):
+    pe = _getPEFile(pe_file)
+    arch = {pefile.OPTIONAL_HEADER_MAGIC_PE: 'x86',
+            pefile.OPTIONAL_HEADER_MAGIC_PE_PLUS: 'x64'}
+    try:
+        return arch[pe.PE_TYPE]
+    except KeyError:
+        # Support your architecture.
+        assert False, 'Unknown PE file architecture'
+
+
+def _parsePEFileOutput(binary_filename, scan_dirs, result, allow_missing=False):
+    pe = _getPEFile(binary_filename)
+
+    # Get DLL imports from PE file
+    for imported_module in pe.DIRECTORY_ENTRY_IMPORT:
+        dll_filename = imported_module.dll.decode()
+
+        # Try to guess DLL path from scan dirs
+        for scan_dir in scan_dirs:
+            guessed_path = os.path.join(scan_dir, dll_filename)
+            if os.path.isfile(guessed_path):
+                dll_filename = guessed_path
+                break
+
+        dll_name = os.path.basename(dll_filename).upper()
+
+        # Win API can be assumed.
+        if dll_name.startswith("API-MS-WIN-") or \
+                dll_name.startswith("EXT-MS-WIN-"):
+            continue
+
+        # MFC140U.DLL, MFCM140U.DLL may be excluded too since it comes with VC2015 redist, which we can assume
+        # is installed on target machine anyway, even if pythonwin distributes it's own copies of those DLLs
+        if dll_name in ("SHELL32.DLL", "USER32.DLL", "KERNEL32.DLL",
+                        "NTDLL.DLL", "NETUTILS.DLL", "LOGONCLI.DLL", "GDI32.DLL",
+                        "RPCRT4.DLL", "ADVAPI32.DLL", "SSPICLI.DLL", "SECUR32.DLL",
+                        "KERNELBASE.DLL", "WINBRAND.DLL", "DSROLE.DLL", "DNSAPI.DLL",
+                        "SAMCLI.DLL", "WKSCLI.DLL", "SAMLIB.DLL", "WLDAP32.DLL",
+                        "NTDSAPI.DLL", "CRYPTBASE.DLL", "W32TOPL", "WS2_32.DLL",
+                        "SPPC.DLL", "MSSIGN32.DLL", "CERTCLI.DLL", "WEBSERVICES.DLL",
+                        "AUTHZ.DLL", "CERTENROLL.DLL", "VAULTCLI.DLL", "REGAPI.DLL",
+                        "BROWCLI.DLL", "WINNSI.DLL", "DHCPCSVC6.DLL", "PCWUM.DLL",
+                        "CLBCATQ.DLL", "IMAGEHLP.DLL", "MSASN1.DLL", "DBGHELP.DLL",
+                        "DEVOBJ.DLL", "DRVSTORE.DLL", "CABINET.DLL", "SCECLI.DLL",
+                        "SPINF.DLL", "SPFILEQ.DLL", "GPAPI.DLL", "NETJOIN.DLL",
+                        "W32TOPL.DLL", "NETBIOS.DLL", "DXGI.DLL", "DWRITE.DLL",
+                        "D3D11.DLL", "WLANAPI.DLL", "WLANUTIL.DLL", "ONEX.DLL",
+                        "EAPPPRXY.DLL", "MFPLAT.DLL", "AVRT.DLL", "ELSCORE.DLL",
+                        "INETCOMM.DLL", "MSOERT2.DLL", "IEUI.DLL", "MSCTF.DLL",
+                        "MSFEEDS.DLL", "UIAUTOMATIONCORE.DLL", "PSAPI.DLL",
+                        "EFSADU.DLL", "MFC42U.DLL", "ODBC32.DLL", "OLEDLG.DLL",
+                        "NETAPI32.DLL", "LINKINFO.DLL", "DUI70.DLL", "ADVPACK.DLL",
+                        "NTSHRUI.DLL", "WINSPOOL.DRV", "EFSUTIL.DLL", "WINSCARD.DLL",
+                        "SHDOCVW.DLL", "IEFRAME.DLL", "D2D1.DLL", "GDIPLUS.DLL",
+                        "OCCACHE.DLL", "IEADVPACK.DLL", "MLANG.DLL", "MSI.DLL",
+                        "MSHTML.DLL", "COMDLG32.DLL", "PRINTUI.DLL", "PUIAPI.DLL",
+                        "ACLUI.DLL", "WTSAPI32.DLL", "FMS.DLL", "DFSCLI.DLL",
+                        "HLINK.DLL", "MSRATING.DLL", "PRNTVPT.DLL", "IMGUTIL.DLL",
+                        "MSLS31.DLL", "VERSION.DLL", "NORMALIZ.DLL", "IERTUTIL.DLL",
+                        "WININET.DLL", "WINTRUST.DLL", "XMLLITE.DLL", "APPHELP.DLL",
+                        "PROPSYS.DLL", "RSTRTMGR.DLL", "NCRYPT.DLL", "BCRYPT.DLL",
+                        "MMDEVAPI.DLL", "MSILTCFG.DLL", "DEVMGR.DLL", "DEVRTL.DLL",
+                        "NEWDEV.DLL", "VPNIKEAPI.DLL", "WINHTTP.DLL", "WEBIO.DLL",
+                        "NSI.DLL", "DHCPCSVC.DLL", "CRYPTUI.DLL", "ESENT.DLL",
+                        "DAVHLPR.DLL", "CSCAPI.DLL", "ATL.DLL", "OLEAUT32.DLL",
+                        "SRVCLI.DLL", "RASDLG.DLL", "MPRAPI.DLL", "RTUTILS.DLL",
+                        "RASMAN.DLL", "MPRMSG.DLL", "SLC.DLL", "CRYPTSP.DLL",
+                        "RASAPI32.DLL", "TAPI32.DLL", "EAPPCFG.DLL", "NDFAPI.DLL",
+                        "WDI.DLL", "COMCTL32.DLL", "UXTHEME.DLL", "IMM32.DLL",
+                        "OLEACC.DLL", "WINMM.DLL", "WINDOWSCODECS.DLL", "DWMAPI.DLL",
+                        "DUSER.DLL", "PROFAPI.DLL", "URLMON.DLL", "SHLWAPI.DLL",
+                        "LPK.DLL", "USP10.DLL", "CFGMGR32.DLL", "MSIMG32.DLL",
+                        "POWRPROF.DLL", "SETUPAPI.DLL", "WINSTA.DLL", "CRYPT32.DLL",
+                        "IPHLPAPI.DLL", "MPR.DLL", "CREDUI.DLL", "NETPLWIZ.DLL",
+                        "OLE32.DLL", "ACTIVEDS.DLL", "ADSLDPC.DLL", "USERENV.DLL",
+                        "APPREPAPI.DLL", "BCP47LANGS.DLL", "BCRYPTPRIMITIVES.DLL",
+                        "CERTCA.DLL", "CHARTV.DLL", "COMBASE.DLL", "COML2.DLL",
+                        "DCOMP.DLL", "DPAPI.DLL", "DSPARSE.DLL", "FECLIENT.DLL",
+                        "FIREWALLAPI.DLL", "FLTLIB.DLL", "MRMCORER.DLL", "NTASN1.DLL",
+                        "SECHOST.DLL", "SETTINGSYNCPOLICY.DLL", "SHCORE.DLL", "TBS.DLL",
+                        "TWINAPI.APPCORE.DLL", "TWINAPI.DLL", "VIRTDISK.DLL",
+                        "WEBSOCKET.DLL", "WEVTAPI.DLL", "WINMMBASE.DLL", "WMICLNT.DLL",
+                        "ICUUC.DLL", "MFC140U.DLL", "MFCM140U.DLL"):
+            continue
+
+        # Allow plugins to prevent inclusion.
+        blocked = Plugins.removeDllDependencies(
+            dll_filename=dll_filename,
+            dll_filenames=result
+        )
+
+        for to_remove in blocked:
+            result.discard(to_remove)
+
+        library_found = os.path.isfile(dll_filename)
+
+        if not allow_missing:
+            assert library_found, dll_filename
+
+        # Fix for recursive DLL lookup when no original_dir in scan_dirs
+        if library_found:
+            result.add(
+                os.path.normcase(os.path.abspath(dll_filename))
+            )
+
+def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir, binary_filename, package_name):
+    # This is complex, as it also includes the caching mechanism
+    # pylint: disable=too-many-branches
+
+    result = set()
+
+    cache_filename = _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filename)
+
+    if os.path.exists(cache_filename) and not Options.shallNotUseDependsExeCachedResults():
+        for line in open(cache_filename):
+            line = line.strip()
+
+            result.add(line)
+
+        return result
+
+    scan_dirs = [sys.prefix]
+
+    if package_name is not None:
+        from nuitka.importing.Importing import findModule
+
+        package_dir = findModule(None, package_name, None, 0, False)[1]
+
+        if os.path.isdir(package_dir):
+            scan_dirs.append(package_dir)
+            scan_dirs.extend(getSubDirectories(package_dir))
+
+    if original_dir is not None:
+        scan_dirs.append(original_dir)
+        scan_dirs.extend(getSubDirectories(original_dir))
+
+    # Fix for missing pywin32 inclusion when using pythonwin library, no way to detect that automagically
+    # Since there are more than one dependencies on pywintypes37.dll, let's include this anyway
+    # In recursive mode, using dirname(original_dir) won't always work, hence get_python_lib
+    try:
+        scan_dirs.append(os.path.join(get_python_lib(), 'pywin32_system32'))
+    except:
+        pass
+    #scan_dirs.append(os.path.join(os.path.dirname(original_dir), 'pywin32_system32'))
+
+    # Add native system directory based on pe file architecture
+    if _getPEarch(binary_filename) == 'x64':
+        scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'SysNative'))
+    else:
+        scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'System32'))
+
+    if Options.isExperimental('recursiveInternalDependencies'):
+        print('Running recursive dependency checkup')
+        # TODO: Recursing into sub dependencies may become an option like --recurse-lib-dependencies
+        # Recursive one level scanning of all .pyd and .dll in the original_dir too
+        # This shall fix a massive list of missing dependencies that may come with included libraries which themselves
+        # need to be scanned for inclusions
+        for root, dirnames, filenames in os.walk(original_dir):
+            for optional_libary in filenames:
+                if optional_libary.endswith('.dll') or optional_libary.endswith('.pyd'):
+                    _parsePEFileOutput(os.path.join(root, optional_libary), scan_dirs, result, allow_missing=True)
+
+    _parsePEFileOutput(binary_filename, scan_dirs, result)
+
+    if not Options.shallNotStoreDependsExeCachedResults():
+        with open(cache_filename, 'w') as cache_file:
+            for dll_filename in result:
+                print(dll_filename, file = cache_file)
+
+    return result
+
 def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
                      binary_filename, package_name):
     """ Detect the DLLs used by a binary.
@@ -995,20 +1181,30 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
         of used DLLs is retrieved.
     """
 
-
     if Utils.getOS() in ("Linux", "NetBSD", "FreeBSD"):
         return _detectBinaryPathDLLsLinuxBSD(
             dll_filename = original_filename
         )
     elif Utils.getOS() == "Windows":
         with TimerReport("Running depends.exe for %s took %%.2f seconds" % binary_filename):
-            return _detectBinaryPathDLLsWindows(
-                is_main_executable = is_main_executable,
-                source_dir         = source_dir,
-                original_dir       = os.path.dirname(original_filename),
-                binary_filename    = binary_filename,
-                package_name       = package_name
-            )
+            if Options.isExperimental('useInternalDependencyWalker'):
+                print('Using PEFile to get depends')
+                return _detectBinaryPathDLLsWindowsPE(
+                    is_main_executable=is_main_executable,
+                    source_dir=source_dir,
+                    original_dir=os.path.dirname(original_filename),
+                    binary_filename=binary_filename,
+                    package_name=package_name
+                )
+            else:
+                return _detectBinaryPathDLLsWindows(
+
+                    is_main_executable = is_main_executable,
+                    source_dir         = source_dir,
+                    original_dir       = os.path.dirname(original_filename),
+                    binary_filename    = binary_filename,
+                    package_name       = package_name
+                )
     elif Utils.getOS() == "Darwin":
         return _detectBinaryPathDLLsMacOS(
             original_dir    = os.path.dirname(original_filename),
@@ -1149,7 +1345,6 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
     # being binary identical, so we can report them. And then of course
     # we also need to handle OS specifics.
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
-
 
     used_dlls = detectUsedDLLs(source_dir, standalone_entry_points)
 
