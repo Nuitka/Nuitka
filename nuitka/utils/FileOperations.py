@@ -62,7 +62,10 @@ def makePath(path):
     """ Create a directory if it doesn'T exist."""
 
     if not os.path.isdir(path):
-        os.makedirs(path)
+        try:
+            os.makedirs(path)
+        except FileExistsError:
+            pass
 
 
 def listDir(path):
