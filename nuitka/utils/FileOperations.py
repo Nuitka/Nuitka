@@ -67,7 +67,6 @@ def makePath(path):
         except OSError as err:
             if err.errno is not os.errno.EEXIST:
                 raise
-            pass
 
 
 def listDir(path):
