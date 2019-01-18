@@ -64,7 +64,9 @@ def makePath(path):
     if not os.path.isdir(path):
         try:
             os.makedirs(path)
-        except FileExistsError:
+        except OSError as err:
+            if err.errno is not os.errno.EEXIST:
+                raise
             pass
 
 
