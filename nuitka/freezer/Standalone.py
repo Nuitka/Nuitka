@@ -66,9 +66,9 @@ from .DependsExe import getDependsExePath
 
 # Use PE file analysis only on Windows
 if os.name == 'nt':
-    import pefile
+    import pefile # pylint: disable=import-error
     # Finding site-packages directory when recursive internal dependency walker is used
-    from distutils.sysconfig import get_python_lib
+    from distutils.sysconfig import get_python_lib # pylint: disable=import-error
 
 
 def loadCodeObjectData(precompiled_filename):
