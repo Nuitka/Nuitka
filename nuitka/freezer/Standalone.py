@@ -1109,7 +1109,7 @@ def _parsePEFileOutput(binary_filename, scan_dirs, result, allow_missing=False):
 
 def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir, binary_filename, package_name):
     # This is complex, as it also includes the caching mechanism
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-locals
 
     result = set()
 
@@ -1143,7 +1143,7 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
     # In recursive mode, using dirname(original_dir) won't always work, hence get_python_lib
     try:
         scan_dirs.append(os.path.join(get_python_lib(), 'pywin32_system32'))
-    except:
+    except OSError:
         pass
     #scan_dirs.append(os.path.join(os.path.dirname(original_dir), 'pywin32_system32'))
 
@@ -1159,7 +1159,7 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
         # Recursive one level scanning of all .pyd and .dll in the original_dir too
         # This shall fix a massive list of missing dependencies that may come with included libraries which themselves
         # need to be scanned for inclusions
-        for root, dirnames, filenames in os.walk(original_dir):
+        for root, _, filenames in os.walk(original_dir):
             for optional_libary in filenames:
                 if optional_libary.endswith('.dll') or optional_libary.endswith('.pyd'):
                     _parsePEFileOutput(os.path.join(root, optional_libary), scan_dirs, result, allow_missing=True)
