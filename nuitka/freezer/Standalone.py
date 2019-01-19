@@ -1109,7 +1109,7 @@ def _parsePEFileOutput(binary_filename, scan_dirs, result, allow_missing=False):
 
 def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir, binary_filename, package_name):
     # This is complex, as it also includes the caching mechanism
-    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-branches,too-many-locals
 
     result = set()
 
