@@ -1154,8 +1154,6 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
         scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'System32'))
 
     if Options.isExperimental('recursiveInternalDependencies'):
-        print('Running recursive dependency checkup')
-        # TODO: Recursing into sub dependencies may become an option like --recurse-lib-dependencies
         # Recursive one level scanning of all .pyd and .dll in the original_dir too
         # This shall fix a massive list of missing dependencies that may come with included libraries which themselves
         # need to be scanned for inclusions
@@ -1186,9 +1184,8 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
             dll_filename = original_filename
         )
     elif Utils.getOS() == "Windows":
-        with TimerReport("Running depends.exe for %s took %%.2f seconds" % binary_filename):
-            if Options.isExperimental('useInternalDependencyWalker'):
-                print('Using PEFile to get depends')
+        if Options.isExperimental('useInternalDependencyWalker'):
+            with TimerReport("Running internal dependency walker for %s took %%.2f seconds" % binary_filename):
                 return _detectBinaryPathDLLsWindowsPE(
                     is_main_executable=is_main_executable,
                     source_dir=source_dir,
@@ -1196,7 +1193,8 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
                     binary_filename=binary_filename,
                     package_name=package_name
                 )
-            else:
+        else:
+            with TimerReport("Running depends.exe for %s took %%.2f seconds" % binary_filename):
                 return _detectBinaryPathDLLsWindows(
 
                     is_main_executable = is_main_executable,
