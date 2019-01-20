@@ -11,6 +11,10 @@ include bin/check-nuitka-with-pylint
 include bin/autoformat-nuitka-source
 include bin/measure-construct-performance
 
+# Runners, mainly for source distribution.
+include bin/nuitka
+include bin/nuitka-run
+
 include misc/*.sh
 include misc/*.bat
 include tests/run-tests
