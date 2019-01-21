@@ -1138,14 +1138,20 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
         scan_dirs.append(original_dir)
         scan_dirs.extend(getSubDirectories(original_dir))
 
-    # Fix for missing pywin32 inclusion when using pythonwin library, no way to detect that automagically
-    # Since there are more than one dependencies on pywintypes37.dll, let's include this anyway
-    # In recursive mode, using dirname(original_dir) won't always work, hence get_python_lib
-    try:
-        scan_dirs.append(os.path.join(get_python_lib(), 'pywin32_system32'))
-    except OSError:
-        pass
-    #scan_dirs.append(os.path.join(os.path.dirname(original_dir), 'pywin32_system32'))
+    if Options.isExperimental('recurseIntoSitePackagesDependencyWalker'):
+        try:
+            scan_dirs.append(get_python_lib())
+        except OSError:
+            print('Cannot recurse into site-packages for dependencies. Path not found.')
+    else:
+        # Fix for missing pywin32 inclusion when using pythonwin library, no way to detect that automagically
+        # Since there are more than one dependencies on pywintypes37.dll, let's include this anyway
+        # In recursive mode, using dirname(original_dir) won't always work, hence get_python_lib
+        try:
+            scan_dirs.append(os.path.join(get_python_lib(), 'pywin32_system32'))
+        except OSError:
+            pass
+        #scan_dirs.append(os.path.join(os.path.dirname(original_dir), 'pywin32_system32'))
 
     # Add native system directory based on pe file architecture
     if _getPEarch(binary_filename) == 'x64':
