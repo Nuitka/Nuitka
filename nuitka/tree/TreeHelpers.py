@@ -70,7 +70,7 @@ def extractDocFromBody(node):
        getKind(node.body[0]) == "Expr" and \
        getKind(node.body[0].value) == "Str":
 
-        if "no_asserts" not in Options.getPythonFlags():
+        if "no_docstrings" not in Options.getPythonFlags():
             doc = body[0].value.s
 
         body = body[1:]
