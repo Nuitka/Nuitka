@@ -1140,7 +1140,7 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
 
     if Options.isExperimental('recurseIntoSitePackagesDependencyWalker'):
         try:
-            scan_dirs.append(getSubDirectories(get_python_lib()))
+            scan_dirs.extend(getSubDirectories(get_python_lib()))
         except OSError:
             print('Cannot recurse into site-packages for dependencies. Path not found.')
     else:
