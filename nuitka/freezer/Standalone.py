@@ -379,7 +379,10 @@ ignore_modules = [
     "__init__.py",
     "antigravity.py",
 ]
-if Utils.getOS() != "Windows":
+
+if os.name != "nt":
+    # On posix systems, and posix Python veriants on Windows, this won't
+    # work.
     ignore_modules.append("wintypes.py")
     ignore_modules.append("cp65001.py")
 
@@ -469,7 +472,10 @@ def detectEarlyImports():
         if "__init__" not in filename
     ]
 
-    if Utils.getOS() != "Windows":
+
+    if os.name != "nt":
+        # On posix systems, and posix Python veriants on Windows, this won't
+        # work.
         for encoding_name in ("mbcs", "cp65001", "oem"):
             if encoding_name in encoding_names:
                 encoding_names.remove(encoding_name)

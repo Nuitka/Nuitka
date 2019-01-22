@@ -238,7 +238,7 @@ typedef long Py_hash_t;
  *
  * TODO: Make it work for 3.7 too.
  */
-#if defined(_WIN32) || PYTHON_VERSION >= 370
+#if defined(_WIN32) || defined(__MSYS__) || PYTHON_VERSION >= 370
 #define Nuitka_GC_Track PyObject_GC_Track
 #define Nuitka_GC_UnTrack PyObject_GC_UnTrack
 #else

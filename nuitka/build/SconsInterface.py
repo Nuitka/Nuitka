@@ -172,7 +172,7 @@ def _setupSconsEnvironment():
     "NUITKA_PYTHON_EXE_PATH" to find the Python binary itself.
     """
 
-    if Utils.getOS() == "Windows":
+    if os.name == "nt":
         # On Windows, we use the Python.DLL path for some things. We pass it
         # via environment variable
         os.environ["NUITKA_PYTHON_DLL_PATH"] = getTargetPythonDLLPath()
@@ -204,9 +204,10 @@ def _setupSconsEnvironment():
         if old_pythonhome is not None:
             os.environ["PYTHONHOME"] = old_pythonhome
 
-    if Utils.getOS() == "Windows":
+    if os.name == "nt":
         del os.environ["NUITKA_PYTHON_DLL_PATH"]
-        del os.environ["NUITKA_PYTHON_EXE_PATH"]
+
+    del os.environ["NUITKA_PYTHON_EXE_PATH"]
 
 
 def _buildSconsCommand(quiet, options):
