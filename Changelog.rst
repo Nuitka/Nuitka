@@ -3,6 +3,22 @@ Nuitka Release 0.6.2 (Draft)
 
 This release is not done yet.
 
+Bug Fixes
+---------
+
+- Fix, the python flag ``-O`` was removing doc strings, but that should only
+  be done with ``-OO`` which was added too.
+
+New Features
+------------
+
+- Added support for Python flag ``-OO``, which allows to remove doc strings.
+
+Summary
+-------
+
+This release is not done yet.
+
 
 Nuitka Release 0.6.1
 ====================
