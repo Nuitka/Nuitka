@@ -27,9 +27,26 @@ import shutil
 import tempfile
 import time
 from contextlib import contextmanager
+from nuitka.utils.ThreadedExecutor import Lock
 
 from .Utils import getOS
 
+# Locking seems to be only required for Windows currently, expressed that in the
+# lock name.
+file_lock = None
+
+@contextmanager
+def _with_file_Lock():
+    # This is a singleton, pylint: disable=global-statement
+    global file_lock
+
+    if file_lock is None:
+        file_lock = Lock()
+
+    file_lock.acquire()
+    yield
+    if file_lock is not None:
+        file_lock.release()
 
 def areSamePaths(path1, path2):
     """ Are two paths the same.
@@ -61,8 +78,9 @@ def relpath(path):
 def makePath(path):
     """ Create a directory if it doesn'T exist."""
 
-    if not os.path.isdir(path):
-        os.makedirs(path)
+    with _with_file_Lock():
+        if not os.path.isdir(path):
+            os.makedirs(path)
 
 
 def listDir(path):
@@ -103,9 +121,11 @@ def getSubDirectories(path):
     return result
 
 
+@contextmanager
 def deleteFile(path, must_exist):
-    if must_exist or os.path.isfile(path):
-        os.unlink(path)
+    with _with_file_Lock():
+        if must_exist or os.path.isfile(path):
+            os.unlink(path)
 
 
 def splitPath(path):
@@ -123,7 +143,7 @@ def hasFilenameExtension(path, extensions):
 
     return extension in extensions
 
-
+@contextmanager
 def removeDirectory(path, ignore_errors):
     """ Remove a directory recursively.
 
@@ -144,21 +164,22 @@ def removeDirectory(path, ignore_errors):
 
         func(path)
 
-    if os.path.exists(path):
-        try:
-            shutil.rmtree(
-                path,
-                ignore_errors = False,
-                onerror       = onError
-            )
-        except OSError:
-            if ignore_errors:
+    with _with_file_Lock():
+        if os.path.exists(path):
+            try:
                 shutil.rmtree(
                     path,
-                    ignore_errors = ignore_errors
+                    ignore_errors = False,
+                    onerror       = onError
                 )
-            else:
-                raise
+            except OSError:
+                if ignore_errors:
+                    shutil.rmtree(
+                        path,
+                        ignore_errors = ignore_errors
+                    )
+                else:
+                    raise
 
 @contextmanager
 def withTemporaryFilename():
