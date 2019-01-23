@@ -998,7 +998,7 @@ def _is_python_64():
     # import struct
     # return (struct.calcsize('P') == 8)
     return sys.maxsize > 2 ** 32
-    
+
 
 def _getPEFile(binary_filename):
     try:
