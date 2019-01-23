@@ -993,6 +993,13 @@ SxS
     return result
 
 
+def _is_python_64():
+    return sys.maxsize > 2 ** 32
+    # Can also work with
+    # import struct
+    # return (struct.calcsize('P') == 8)
+    
+
 def _getPEFile(binary_filename):
     try:
         pe = pefile.PE(binary_filename)
@@ -1153,9 +1160,15 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
             pass
         #scan_dirs.append(os.path.join(os.path.dirname(original_dir), 'pywin32_system32'))
 
-    # Add native system directory based on pe file architecture
+    # Add native system directory based on pe file architecture and python architecture
+    # Python 32: system32 = syswow64 = 32 bits systemdirectory
+    # Python 64: system32 = 64 bits systemdirectory, syswow64 = 32 bits systemdirectory
     if _getPEarch(binary_filename) == 'x64':
-        scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'SysNative'))
+        if _is_python_64():
+            scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'System32'))
+        else:
+            scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'SysWOW64'))
+    # We don't compile 32 bit code on 64 bit python so we don't need to check that case
     else:
         scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'System32'))
 
