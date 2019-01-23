@@ -1008,10 +1008,10 @@ def _getPEFile(binary_filename):
         assert False, 'Bogus PE header in ' + binary_filename
 
 
-def _getPEarch(pe_file):
+def _is_pe_64(pe_file):
     pe = _getPEFile(pe_file)
-    arch = {pefile.OPTIONAL_HEADER_MAGIC_PE: 'x86',
-            pefile.OPTIONAL_HEADER_MAGIC_PE_PLUS: 'x64'}
+    arch = {pefile.OPTIONAL_HEADER_MAGIC_PE: False,
+            pefile.OPTIONAL_HEADER_MAGIC_PE_PLUS: True}
     try:
         return arch[pe.PE_TYPE]
     except KeyError:
@@ -1160,15 +1160,20 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
             pass
         #scan_dirs.append(os.path.join(os.path.dirname(original_dir), 'pywin32_system32'))
 
-    # Add native system directory based on pe file architecture and python architecture
+    # Add native system directory based on pe file architecture and os architecture
     # Python 32: system32 = syswow64 = 32 bits systemdirectory
     # Python 64: system32 = 64 bits systemdirectory, syswow64 = 32 bits systemdirectory
-    if _getPEarch(binary_filename) == 'x64':
-        if _is_python_64():
+    binary_file_is_64bit = _is_pe_64(binary_filename)
+    python_is_64bit = _is_python_64()
+    if binary_file_is_64bit is not python_is_64bit:
+        print('Warning: Using Python x64=%s with x64=%s binary dependencies' % (binary_file_is_64bit, python_is_64bit))
+
+    if binary_file_is_64bit:
+        # This is actually not useful as of today since we don't compile 32 bits on 64 bits
+        if python_is_64bit:
             scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'System32'))
         else:
             scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'SysWOW64'))
-    # We don't compile 32 bit code on 64 bit python so we don't need to check that case
     else:
         scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'System32'))
 
