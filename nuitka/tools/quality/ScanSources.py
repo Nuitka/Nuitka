@@ -48,7 +48,7 @@ def addFromDirectory(path, suffixes, blacklist):
             if filename.startswith(".#"):
                 continue
             # Skip bytecode files
-            if filename.endswith(".pyc"):
+            if filename.endswith((".pyc", ".pyo")):
                 continue
 
             # Python files only. TODO: Provided this from the outside.

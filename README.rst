@@ -129,8 +129,8 @@ Requirements
        bits matching your Python. Use both MinGW64 and 64 bits Python if you
        have the choice of which Python to use. Install it to ``C:\MinGW64`` or
        ``\MinGW64`` (same disk root as Nuitka running) to find it automatically.
-       Also, when prompted, use "posix" for threads and "dwarf" for exception
-       model, although these currently do not matter at all.
+       Also, when prompted, use ``posix`` for threads and ```dwarf`` for
+       exception model, although these currently do not matter at all.
 
 .. [#] Installation of matching MinGW64 is easiest of you have an AnaConda or
        MiniConda installation and execute
@@ -185,6 +185,15 @@ default. It tries to compile *and* directly execute a Python script:
 These option that is different is ``--run``, and passing on arguments after the
 first non-option to the created binary, so it is somewhat more similar to what
 plain ``python`` will do.
+
+Installation
+------------
+
+For most systems there will be packages on the `download page
+<http://www.nuitka.net/pages/download.html>`__ of Nuitka. But you
+can also install it from source code as described aboe, but also like any other
+Python program it can be installed via the normal ``python setup.py install``
+routine.
 
 License
 -------
@@ -292,6 +301,14 @@ feasible, use Nuitka like this:
 Tips
 ====
 
+Python command line flags
+-------------------------
+
+For passing things like ``-O`` or `-S`` to your program, there is a command
+line option name `--python-flag=` which makes Nuitka emulate these options.
+
+The most important ones are supported, more can certainly be added.
+
 Caching
 -------
 
@@ -329,6 +346,18 @@ than ``gcc-6.3``, but not by a significant margin. Since gcc is more often
 already installed, that is recommended to use for now.
 
 Differences in C compilation times have not yet been examined.
+
+Unexpected Slowdowns
+--------------------
+
+Using the Python DLL, like standard CPython does can lead to unexpected
+slow downs, e.g. in uncompiled code that works with unicode strings. This is
+because calling to the DLL rather than residing in the DLL causes overhead,
+and this even happens to the DLL with itself, being slower, than a Python
+all contained in one binary.
+
+So if feasible, aim at static linking, which is currently only possible with
+AnaConda Python on non-Windows.
 
 Where to go next
 ================
