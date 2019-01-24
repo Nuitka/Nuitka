@@ -292,6 +292,14 @@ feasible, use Nuitka like this:
 Tips
 ====
 
+Python command line flags
+-------------------------
+
+For passing things like ``-O`` or `-S`` to your program, there is a command
+line option name `--python-flag=` which makes Nuitka emulate these options.
+
+The most important ones are supported, more can certainly be added.
+
 Caching
 -------
 
