@@ -35,6 +35,7 @@ def generateBuiltinLong1Code(to_name, expression, emit, context):
 
     value = expression.getValue()
 
+    # TODO: Have dedicated helper that inlines.
     generateCAPIObjectCode(
         to_name          = to_name,
         capi             = "PyNumber_Long",
@@ -62,7 +63,7 @@ def generateBuiltinLong2Code(to_name, expression, emit, context):
       as result_name:
 
         emit(
-            "%s = TO_LONG2( %s, %s );" % (
+            "%s = BUILTIN_LONG2( %s, %s );" % (
                 result_name,
                 value_name,
                 base_name
@@ -82,6 +83,7 @@ def generateBuiltinLong2Code(to_name, expression, emit, context):
 def generateBuiltinInt1Code(to_name, expression, emit, context):
     value = expression.getValue()
 
+    # TODO: Have dedicated helper that inlines.
     generateCAPIObjectCode(
         to_name          = to_name,
         capi             = "PyNumber_Int",
@@ -107,7 +109,7 @@ def generateBuiltinInt2Code(to_name, expression, emit, context):
       as result_name:
 
         emit(
-            "%s = TO_INT2( %s, %s );" % (
+            "%s = BUILTIN_INT2( %s, %s );" % (
                 result_name,
                 value_name,
                 base_name
