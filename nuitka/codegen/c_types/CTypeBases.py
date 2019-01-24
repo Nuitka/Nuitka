@@ -25,7 +25,8 @@ type_indicators = {
     "PyObject *" : 'o',
     "PyObject **" : 'O',
     "struct Nuitka_CellObject *" : 'c',
-    "nuitka_bool" : 'b'
+    "nuitka_bool" : 'b',
+    "nuitka_ilong" : 'L',
 }
 
 class CTypeBase(object):

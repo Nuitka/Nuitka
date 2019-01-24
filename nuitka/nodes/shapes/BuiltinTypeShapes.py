@@ -20,7 +20,9 @@
 """
 
 from nuitka.codegen.c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
+from nuitka.codegen.c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
 from nuitka.codegen.Reports import onMissingOperation
+from nuitka.Options import isExperimental
 from nuitka.PythonVersions import python_version
 
 from .ControlFlowEscapeDescriptions import (
@@ -145,7 +147,6 @@ class ShapeTypeBool(ShapeBase):
 
     @staticmethod
     def getCType():
-        # enum: "0: False", "1": True, "2": unassigned
         return CTypeNuitkaBoolEnum
 
     @staticmethod
@@ -370,6 +371,11 @@ class ShapeTypeLongDerived(ShapeUnknown):
 
 if python_version < 300:
     class ShapeTypeIntOrLong(ShapeBase):
+        if isExperimental("nuitka_ilong"):
+            @staticmethod
+            def getCType():
+                return CTypeNuitkaIntOrLongStruct
+
         @staticmethod
         def hasShapeSlotLen():
             return False

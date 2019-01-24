@@ -23,6 +23,7 @@ from contextlib import contextmanager
 
 from .c_types.CTypeModuleDictVariables import CTypeModuleDictVariable
 from .c_types.CTypeNuitkaBools import CTypeNuitkaBoolEnum
+from .c_types.CTypeNuitkaInts import CTypeNuitkaIntOrLongStruct
 from .c_types.CTypePyObjectPtrs import (
     CTypeCellObject,
     CTypePyObjectPtr,
@@ -84,6 +85,9 @@ class VariableDeclaration(object):
         )
 
     def getCType(self):
+        # TODO: This ought to become unnecessry function
+        # In the mean time, many cases: pylint: disable=too-many-return-statements
+
         c_type = self.c_type
 
         if c_type == "PyObject *":
@@ -94,13 +98,14 @@ class VariableDeclaration(object):
             return CTypePyObjectPtrPtr
         elif c_type == "nuitka_bool":
             return CTypeNuitkaBoolEnum
+        elif c_type == "nuitka_ilong":
+            return CTypeNuitkaIntOrLongStruct
         elif c_type == "module_var":
             return CTypeModuleDictVariable
         elif c_type == "void":
             return CTypeVoid
 
         assert False, c_type
-
 
     def __str__(self):
         if self.heap_name:

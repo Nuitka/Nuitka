@@ -19,7 +19,13 @@
 
 """
 
-from nuitka.nodes.shapes.BuiltinTypeShapes import ShapeTypeBool
+from nuitka.nodes.shapes.BuiltinTypeShapes import (
+    ShapeTypeBool,
+    ShapeTypeInt,
+    ShapeTypeIntOrLong,
+    ShapeTypeLong
+)
+from nuitka.PythonVersions import python_version
 
 from .c_types.CTypePyObjectPtrs import (
     CTypeCellObject,
@@ -52,6 +58,10 @@ def generateAssignmentVariableCode(statement, emit, context):
         if source_shape is ShapeTypeBool and \
            variable_declaration.c_type == "nuitka_bool":
             tmp_name = context.allocateTempName("assign_source", "nuitka_bool")
+        elif source_shape is ShapeTypeIntOrLong and \
+           variable_declaration.c_type == "nuitka_ilong":
+
+            tmp_name = context.allocateTempName("assign_source", "nuitka_ilong")
         else:
             tmp_name = context.allocateTempName("assign_source")
 
@@ -177,8 +187,10 @@ def _getVariableCodeName(in_context, variable):
         return "var_" + variable.getCodeName()
 
 
-def getPickedCType(variable, variable_trace, context):
+def getPickedCType(variable, context):
     """ Return type to use for specific context. """
+
+    # Necessarily complex, pylint: disable=too-many-branches
 
     user = context.getEntryPoint()
     owner = variable.getEntryPoint()
@@ -190,12 +202,19 @@ def getPickedCType(variable, variable_trace, context):
             shapes = variable.getTypeShapes()
 
             if len(shapes) > 1:
-                return CTypePyObjectPtr
-            else:
-                # We are avoiding this for now.
-                assert shapes, (variable, variable_trace)
+                # There are a few shapes that are included in one another.
+                if python_version < 300:
+                    if ShapeTypeIntOrLong in shapes:
+                        if ShapeTypeInt in shapes:
+                            shapes.discard(ShapeTypeInt)
+                        if ShapeTypeLong in shapes:
+                            shapes.discard(ShapeTypeLong)
 
-                return shapes.pop().getCType()
+                # Avoiding this for now.
+                if len(shapes) > 1:
+                    return CTypePyObjectPtr
+
+            return shapes.pop().getCType()
     elif context.isForDirectCall():
         if variable.isSharedTechnically():
             result = CTypeCellObject
@@ -207,7 +226,7 @@ def getPickedCType(variable, variable_trace, context):
     return result
 
 
-def decideLocalVariableCodeType(context, variable, variable_trace):
+def decideLocalVariableCodeType(context, variable):
     # Now must be local or temporary variable.
 
     user = context.getOwner()
@@ -223,7 +242,7 @@ def decideLocalVariableCodeType(context, variable, variable_trace):
         prefix = "outline_%d_" % entry_point.getTraceCollection().getOutlineFunctions().index(owner)
         owner = entry_point
 
-    c_type = getPickedCType(variable, variable_trace, context)
+    c_type = getPickedCType(variable, context)
 
     if owner is user:
         result = _getVariableCodeName(

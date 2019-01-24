@@ -223,6 +223,8 @@ def getTypeSizeOf(type_indicator):
         return "sizeof(void *)"
     elif type_indicator == 'b':
         return "sizeof(nuitka_bool)"
+    elif type_indicator == 'L':
+        return "sizeof(nuitka_ilong)"
     else:
         assert False, type_indicator
 

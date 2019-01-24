@@ -245,6 +245,15 @@ class CTypePyObjectPtr(CPythonPyObjectPtrBase):
                 to_name   = to_name,
                 emit      = emit
             )
+        elif value_name.c_type == "nuitka_ilong":
+            emit("ENFORCE_ILONG_OBJECT_VALUE(&%s);" % value_name)
+
+            emit(
+                "%s = %s.ilong_object;" % (
+                    to_name,
+                    value_name
+                )
+            )
         else:
             assert False, to_name.c_type
 

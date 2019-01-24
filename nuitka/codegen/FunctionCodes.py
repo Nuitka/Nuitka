@@ -19,6 +19,8 @@
 
 """
 
+from logging import warning
+
 from nuitka.PythonVersions import python_version
 
 from .c_types.CTypePyObjectPtrs import CTypeCellObject, CTypePyObjectPtrPtr
@@ -463,8 +465,7 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
         for count, variable in enumerate(parameters.getAllVariables()):
             variable_code_name, variable_c_type = decideLocalVariableCodeType(
                 context        = context,
-                variable       = variable,
-                variable_trace = None
+                variable       = variable
             )
 
             variable_declaration = context.variable_storage.addVariableDeclarationTop(
@@ -479,8 +480,7 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
     for variable in user_variables:
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
             context        = context,
-            variable       = variable,
-            variable_trace = None
+            variable       = variable
         )
 
         variable_declaration = context.variable_storage.addVariableDeclarationTop(
@@ -494,8 +494,7 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
     for variable in sorted(temp_variables, key = lambda variable: variable.getName()):
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
             context        = context,
-            variable       = variable,
-            variable_trace = None
+            variable       = variable
         )
 
         context.variable_storage.addVariableDeclarationTop(
@@ -507,8 +506,7 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
     for closure_variable in closure_variables:
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
             context        = context,
-            variable       = closure_variable,
-            variable_trace = None # TODO: Not used currently anyway but should
+            variable       = closure_variable
         )
 
         variable_declaration = context.variable_storage.addVariableDeclarationClosure(
