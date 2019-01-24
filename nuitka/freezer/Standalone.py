@@ -1019,8 +1019,13 @@ def _is_pe_64(pe_file):
         assert False, 'Unknown PE file architecture'
 
 
-def _parsePEFileOutput(binary_filename, scan_dirs, result, allow_missing=False):
+def _parsePEFileOutput(binary_filename, scan_dirs, result):
     pe = _getPEFile(binary_filename)
+
+    # Some DLLs (eg numpy) don't have imports
+    if not hasattr(pe, "DIRECTORY_ENTRY_IMPORT"):
+        info("Warning: no DIRECTORY_ENTRY_IMPORT PE section for library '%s'!" % binary_filename)
+        return
 
     # Get DLL imports from PE file
     for imported_module in pe.DIRECTORY_ENTRY_IMPORT:
@@ -1028,10 +1033,13 @@ def _parsePEFileOutput(binary_filename, scan_dirs, result, allow_missing=False):
 
         # Try to guess DLL path from scan dirs
         for scan_dir in scan_dirs:
-            guessed_path = os.path.join(scan_dir, dll_filename)
-            if os.path.isfile(guessed_path):
-                dll_filename = guessed_path
-                break
+            try:
+                guessed_path = os.path.join(scan_dir, dll_filename)
+                if os.path.isfile(guessed_path):
+                    dll_filename = guessed_path
+                    break
+            except TypeError:
+                pass
 
         dll_name = os.path.basename(dll_filename).upper()
 
@@ -1105,8 +1113,9 @@ def _parsePEFileOutput(binary_filename, scan_dirs, result, allow_missing=False):
 
         library_found = os.path.isfile(dll_filename)
 
-        if not allow_missing:
-            assert library_found, dll_filename
+        if not library_found:
+            info('Warning: %s could not be fonud, you might need to copy it manually from your Python dist.' \
+                 % dll_filename)
 
         # Fix for recursive DLL lookup when no original_dir in scan_dirs
         if library_found:
@@ -1141,7 +1150,7 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
             scan_dirs.append(package_dir)
             scan_dirs.extend(getSubDirectories(package_dir))
 
-    if original_dir is not None:
+    if os.path.isdir(original_dir):
         scan_dirs.append(original_dir)
         scan_dirs.extend(getSubDirectories(original_dir))
 
@@ -1158,7 +1167,6 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
             scan_dirs.append(os.path.join(get_python_lib(), 'pywin32_system32'))
         except OSError:
             pass
-        #scan_dirs.append(os.path.join(os.path.dirname(original_dir), 'pywin32_system32'))
 
     # Add native system directory based on pe file architecture and os architecture
     # Python 32: system32 = syswow64 = 32 bits systemdirectory
@@ -1184,7 +1192,7 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
         for root, _, filenames in os.walk(original_dir):
             for optional_libary in filenames:
                 if optional_libary.endswith('.dll') or optional_libary.endswith('.pyd'):
-                    _parsePEFileOutput(os.path.join(root, optional_libary), scan_dirs, result, allow_missing=True)
+                    _parsePEFileOutput(os.path.join(root, optional_libary), scan_dirs, result)
 
     _parsePEFileOutput(binary_filename, scan_dirs, result)
 
