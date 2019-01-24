@@ -379,11 +379,15 @@ def makeSourceDirectory(main_module):
         if module.isCompiledPythonModule():
             c_filename = module_filenames[module]
 
-            prepared_modules[c_filename] = CodeGeneration.prepareModuleCode(
-                global_context = global_context,
-                module         = module,
-                module_name    = module.getFullName(),
-            )
+            try:
+                prepared_modules[c_filename] = CodeGeneration.prepareModuleCode(
+                    global_context = global_context,
+                    module         = module,
+                    module_name    = module.getFullName(),
+                )
+            except Exception:
+                warning("Problem creating code for module %r." % module)
+                raise
 
             # Main code constants need to be allocated already too.
             if module is main_module and not Options.shallMakeModule():

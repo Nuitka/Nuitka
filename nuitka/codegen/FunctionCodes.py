@@ -537,8 +537,30 @@ def finalizeFunctionLocalVariables(context):
 
 
 def getFunctionCode(context, function_identifier, parameters, closure_variables,
-                    user_variables, outline_variables,
-                    temp_variables, function_doc, file_scope, needs_exception_exit):
+                    user_variables, outline_variables, temp_variables,
+                    function_doc, file_scope, needs_exception_exit):
+    try:
+        return _getFunctionCode(
+            context              = context,
+            function_identifier  = function_identifier,
+            parameters           = parameters,
+            closure_variables    = closure_variables,
+            user_variables       = user_variables,
+            outline_variables    = outline_variables,
+            temp_variables       = temp_variables,
+            function_doc         = function_doc,
+            file_scope           = file_scope,
+            needs_exception_exit = needs_exception_exit
+        )
+    except Exception:
+        warning("Problem creating function code %r." % function_identifier)
+        raise
+
+
+def _getFunctionCode(context, function_identifier, parameters,
+                     closure_variables, user_variables, outline_variables,
+                     temp_variables, function_doc, file_scope,
+                     needs_exception_exit):
 
     # Functions have many details, that we express as variables, with many
     # branches to decide, pylint: disable=too-many-locals
