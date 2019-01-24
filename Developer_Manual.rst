@@ -91,7 +91,7 @@ should express which of these, we consider done.
 - Final:
 
   We will then round it up and call it Nuitka ``1.0`` when this works as expected
-  for a bunch of people. The plan is to reach this goal during 2018. This is
+  for a bunch of people. The plan is to reach this goal during 2019. This is
   based on positive assumptions that may not hold up though.
 
 Of course, all of this may be subject to change.
