@@ -27,8 +27,8 @@ import shutil
 import tempfile
 import time
 from contextlib import contextmanager
-from nuitka.utils.ThreadedExecutor import Lock
 
+from .ThreadedExecutor import Lock
 from .Utils import getOS
 
 # Locking seems to be only required for Windows currently, expressed that in the
@@ -121,7 +121,6 @@ def getSubDirectories(path):
     return result
 
 
-@contextmanager
 def deleteFile(path, must_exist):
     with _with_file_Lock():
         if must_exist or os.path.isfile(path):
@@ -143,7 +142,7 @@ def hasFilenameExtension(path, extensions):
 
     return extension in extensions
 
-@contextmanager
+
 def removeDirectory(path, ignore_errors):
     """ Remove a directory recursively.
 
