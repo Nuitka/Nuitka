@@ -378,6 +378,9 @@ def getPythonFlags():
                     _python_flags.add("no_warnings")
                 elif part in ("-O", "no_asserts", "noasserts"):
                     _python_flags.add("no_asserts")
+                elif part in ("-OO", "no_docstrings", "nodocstrings"):
+                    _python_flags.add("no_docstrings")
+                    _python_flags.add("no_asserts")
                 else:
                     # Do not warn before executing in final context.
                     if "PYTHONHASHSEED" in os.environ:
