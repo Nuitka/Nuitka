@@ -1114,7 +1114,7 @@ def _parsePEFileOutput(binary_filename, scan_dirs, result):
         library_found = os.path.isfile(dll_filename)
 
         if not library_found:
-            info('Warning: %s could not be fonud, you might need to copy it manually from your Python dist.' \
+            info('Warning: %s could not be found, you might need to copy it manually from your Python dist.' \
                  % dll_filename)
 
         # Fix for recursive DLL lookup when no original_dir in scan_dirs
