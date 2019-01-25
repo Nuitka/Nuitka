@@ -1114,7 +1114,7 @@ def _parsePEFileOutput(binary_filename, scan_dirs, result):
         library_found = os.path.isfile(dll_filename)
 
         if not library_found:
-            info('Warning: %s could not be found, you might need to copy it manually from your Python dist.' \
+            info('Warning: %s could not be fonud, you might need to copy it manually from your Python dist.' \
                  % dll_filename)
 
         # Fix for recursive DLL lookup when no original_dir in scan_dirs
@@ -1154,7 +1154,7 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
         scan_dirs.append(original_dir)
         scan_dirs.extend(getSubDirectories(original_dir))
 
-    if Options.isExperimental('recurseIntoSitePackagesDependencyWalker'):
+    if Options.isExperimental('use_pefile_fullrecurse'):
         try:
             scan_dirs.extend(getSubDirectories(get_python_lib()))
         except OSError:
@@ -1185,7 +1185,7 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
     else:
         scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'System32'))
 
-    if Options.isExperimental('recursiveInternalDependencies'):
+    if Options.isExperimental('use_pefile_recurse'):
         # Recursive one level scanning of all .pyd and .dll in the original_dir too
         # This shall fix a massive list of missing dependencies that may come with included libraries which themselves
         # need to be scanned for inclusions
@@ -1216,7 +1216,7 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
             dll_filename = original_filename
         )
     elif Utils.getOS() == "Windows":
-        if Options.isExperimental('useInternalDependencyWalker'):
+        if Options.isExperimental('use_pefile'):
             with TimerReport("Running internal dependency walker for %s took %%.2f seconds" % binary_filename):
                 return _detectBinaryPathDLLsWindowsPE(
                     is_main_executable=is_main_executable,
