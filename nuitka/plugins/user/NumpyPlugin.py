@@ -31,7 +31,7 @@ import re
 from logging import info
 
 from nuitka import Options
-from nuitka.plugins.PluginBase import UserPluginBase, pre_modules
+from nuitka.plugins.PluginBase import UserPluginBase
 
 #------------------------------------------------------------------------------
 # The following code is largely inspired by PyInstaller hook_numpy.core.py
@@ -99,7 +99,7 @@ def get_numpy_core_binaries():
 
     # look for libraries in numpy package path
     # should already return MKLs in ordinary cases
-    pkg_base, pkg_dir = get_package_paths('numpy.core')
+    _, pkg_dir = get_package_paths('numpy.core')
     re_anylib = re.compile(r'\w+\.(?:dll|so|dylib)', re.IGNORECASE)
     dlls_pkg = [f for f in os.listdir(pkg_dir) if re_anylib.match(f)]
     binaries += [(os.path.join(pkg_dir, f), '.') for f in dlls_pkg]
