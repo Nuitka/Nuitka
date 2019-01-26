@@ -1,4 +1,4 @@
-#     Copyright 2018, Kay Hayen, mailto:kay.hayen@gmail.com
+#     Copyright 2019, Jorj McKie, mailto:lorj.x.mckie@outlook.de
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -15,10 +15,12 @@
 #     See the License for the specific language governing permissions and
 #     limitations under the License.
 #
-""" User plug-in to make tkinter scripts work well in standalone mode.
+"""
+Plug-in to ensure numpy scripts compile and work well in standalone mode.
 
-To run properly, scripts need copies of the TCL / TK libraries as sub-folders
-of the script's dist folder.
+In addition, if the numpy+MKL (Intel's Math Kernel Library) version is
+installed, this plugin will copy its binaries to the dist/numpy/core folder,
+because these are not detectable by dependency walkers.
 """
 
 import os
@@ -30,7 +32,7 @@ import re
 from logging import info
 
 from nuitka import Options
-from nuitka.plugins.PluginBase import NuitkaPluginBase, pre_modules, post_modules
+from nuitka.plugins.PluginBase import UserPluginBase, pre_modules, post_modules
 from nuitka.utils import Execution, Utils
 from nuitka.utils.FileOperations import (
     getFileList,
@@ -88,21 +90,28 @@ def get_package_paths(package):
     return pkg_base, pkg_dir
 
 def get_numpy_core_binaries():
+    """Return any binaries in numpy/core, whether or not actually used
+    by our script. This covers the special case of MKL binaries, which
+    cannot be detected by dependency managers.
+    """
+    # covers/unifies cases, where sys.base_prefix does not deliver
+    # everything we need and / or is not an abspath.
     base_prefix = getattr(sys, 'real_prefix',
                           getattr(sys, 'base_prefix', sys.prefix)
                          )
     base_prefix = os.path.abspath(base_prefix)
-    is_win = sys.platform == "win32"
+    is_win = os.name == "nt"
 
     binaries = []
 
     # look for libraries in numpy package path
+    # should already return MKLs in ordinary cases
     pkg_base, pkg_dir = get_package_paths('numpy.core')
     re_anylib = re.compile(r'\w+\.(?:dll|so|dylib)', re.IGNORECASE)
     dlls_pkg = [f for f in os.listdir(pkg_dir) if re_anylib.match(f)]
     binaries += [(os.path.join(pkg_dir, f), '.') for f in dlls_pkg]
 
-    # look for MKL libraries in pythons lib directory
+    # also look for MKL libraries in pythons lib directory if present
     if is_win:
         lib_dir = os.path.join(base_prefix, "Library", "bin")
     else:
@@ -119,70 +128,51 @@ def get_numpy_core_binaries():
 # END PyInstaller inspired code
 #------------------------------------------------------------------------------
 
-class NumpyPlugin(NuitkaPluginBase):
+class NumpyPlugin(UserPluginBase):
     """ This is for plugging in numpy support correctly.
     """
 
     plugin_name = "numpy-plugin"
 
     def __init__(self):
-        self.bin_copied = False        # indicate binaries copied yet
+        self.files_copied = False      # ensure one-time action
 
-    @staticmethod
-    def createPreModuleLoadCode(module):
-        """Ensure that module '_dtype_ctypes' is not missing.
-        """
-        code = """from numpy.core import _dtype_ctypes
-        """
+    def getImplicitImports(self, module):
         full_name = module.getFullName()
-        # select when to insert the code
         if full_name == "numpy":
-            return code, None
-        return None, None
-
-    def onModuleDiscovered(self, module):
-        """Make sure our pre-module code is recorded.
-        """
-
-        full_name = module.getFullName()
-
-        pre_code, reason = self.createPreModuleLoadCode(module)
-        if pre_code:
-            if full_name is pre_modules:
-                sys.exit("Error, conflicting plug-ins for %s" % full_name)
-
-            pre_modules[full_name] = self._createTriggerLoadedModule(
-                module       = module,
-                trigger_name = "-preLoad",
-                code         = pre_code
-            )
+            yield "numpy.core._dtype_ctypes", True
 
     def considerExtraDlls(self, dist_dir, module):
-        """Copy all binaries in 'numpy.core'.
+        """Copy the binaries in 'numpy.core'.
         """
-        if self.bin_copied is True:         # already done
+        if self.files_copied:
             return ()
-
-        info("Now copying binaries from 'numpy.core'.")
+        self.files_copied = True
 
         tar_dir  = os.path.join(dist_dir, "numpy", "core")
 
         binaries = get_numpy_core_binaries()
-        bin_total = len(binaries)
+        bin_total = len(binaries)      # anything there at all?
+        if bin_total == 0:
+            return ()
+
+        info("Now copying binaries from 'numpy.core'.")
         mkl_count = 0
+
         for f in binaries:
             core_file = f[0].lower()
             base_file = os.path.basename(core_file)
             if base_file.startswith(("mkl", "tbb", "lib", "svml")):
                 mkl_count += 1
             shutil.copy(core_file, tar_dir)
-        msg = "Done, copied %i 'numpy.core' binaries, thereof %i for MKL."
+
+        msg = "Copied %i 'numpy.core' binaries, of which %i are for MKL."
         msg = msg % (bin_total, mkl_count)
         info(msg)
-        self.bin_copied = True
+
         return ()
 
-class NumpyPluginDetector(NuitkaPluginBase):
+class NumpyPluginDetector(UserPluginBase):
     plugin_name = "numpy-plugin"
 
     @staticmethod
