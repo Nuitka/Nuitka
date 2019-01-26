@@ -29,13 +29,7 @@ import sys
 from logging import info
 
 from nuitka import Options
-from nuitka.plugins.PluginBase import UserPluginBase, pre_modules, post_modules
-from nuitka.utils import Execution, Utils
-from nuitka.utils.FileOperations import (
-    getFileList,
-    getSubDirectories,
-    removeDirectory
-)
+from nuitka.plugins.PluginBase import UserPluginBase, pre_modules
 
 class TkinterPlugin(UserPluginBase):
     """ This is for copying tkinter's TCL/TK libraries and making sure
@@ -78,7 +72,7 @@ if not os.environ.get("TCL_LIBRARY", None):
 
         full_name = module.getFullName()
 
-        pre_code, reason = self.createPreModuleLoadCode(module)
+        pre_code, _ = self.createPreModuleLoadCode(module)
         if pre_code:
             if full_name is pre_modules:
                 sys.exit("Error, conflicting plug-ins for %s" % full_name)

@@ -26,19 +26,12 @@ because these are not detectable by dependency walkers.
 import os
 import shutil
 import sys
-import glob
 import pkgutil
 import re
 from logging import info
 
 from nuitka import Options
-from nuitka.plugins.PluginBase import UserPluginBase, pre_modules, post_modules
-from nuitka.utils import Execution, Utils
-from nuitka.utils.FileOperations import (
-    getFileList,
-    getSubDirectories,
-    removeDirectory
-)
+from nuitka.plugins.PluginBase import UserPluginBase, pre_modules
 
 #------------------------------------------------------------------------------
 # The following code is largely inspired by PyInstaller hook_numpy.core.py
@@ -120,7 +113,7 @@ def get_numpy_core_binaries():
         re_mkllib = re.compile(r'^(?:lib)?mkl\w+\.(?:dll|so|dylib)', re.IGNORECASE)
         dlls_mkl = [f for f in os.listdir(lib_dir) if re_mkllib.match(f)]
         if dlls_mkl:
-            print("MKL libraries found when importing numpy. Adding MKL to binaries")
+            info("MKL libraries found when importing numpy. Adding MKL to binaries")
             binaries += [(os.path.join(lib_dir, f), '.') for f in dlls_mkl]
 
     return binaries
