@@ -1431,7 +1431,8 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
 
                 continue
 
-            if Utils.getOS() == "Windows":
+            # For Win32 we can check out file versions.
+            if os.name == "nt":
                 dll_version1 = getWindowsDLLVersion(dll_filename1)
                 dll_version2 = getWindowsDLLVersion(dll_filename2)
 
@@ -1530,9 +1531,9 @@ different from
             removeSharedLibraryRPATH(
                 os.path.join(dist_dir, dll_filename)
             )
-    elif Utils.getOS() == "Windows":
+    elif os.name == "nt":
         if python_version < 300:
-            # For Windows, we might have to remove SXS paths
+            # For Win32, we might have to remove SXS paths
             for standalone_entry_point in standalone_entry_points[1:]:
                 removeSxsFromDLL(
                     standalone_entry_point[1]
