@@ -61,11 +61,12 @@ from nuitka.utils.FileOperations import (
 from nuitka.utils.SharedLibraries import getWindowsDLLVersion, removeSxsFromDLL
 from nuitka.utils.ThreadedExecutor import Lock, ThreadPoolExecutor, waitWorkers
 from nuitka.utils.Timing import TimerReport
+from nuitka.utils.Utils import getArchitecture
 
 from .DependsExe import getDependsExePath
 
 # Use PE file analysis only on Windows
-if os.name == "nt":
+if os.name == "nt" and Options.isExperimental("use_pefile"):
     import pefile # @UnresolvedImport pylint: disable=I0021,import-error
     # Finding site-packages directory when recursive internal dependency walker is used
     from distutils.sysconfig import get_python_lib # @UnresolvedImport pylint: disable=I0021,import-error
@@ -779,7 +780,7 @@ def _getCacheFilename(is_main_executable, source_dir, original_dir, binary_filen
 
     cache_dir = os.path.join(
         getCacheDir(),
-        "library_deps",
+        "library_deps_pefile" if Options.isExperimental("use_pefile") else "library_deps",
     )
 
     makePath(cache_dir)
@@ -999,13 +1000,6 @@ SxS
     return result
 
 
-def _is_python_64():
-    # Can also work with
-    # import struct
-    # return (struct.calcsize('P') == 8)
-    return sys.maxsize > 2 ** 32
-
-
 def _getPEFile(binary_filename):
     try:
         pe = pefile.PE(binary_filename)
@@ -1014,7 +1008,7 @@ def _getPEFile(binary_filename):
         assert False, "Bogus PE header in " + binary_filename
 
 
-def _is_pe_64(pe_file):
+def _isPE64(pe_file):
     pe = _getPEFile(pe_file)
     arch = {pefile.OPTIONAL_HEADER_MAGIC_PE: False,
             pefile.OPTIONAL_HEADER_MAGIC_PE_PLUS: True}
@@ -1117,17 +1111,10 @@ def _parsePEFileOutput(binary_filename, scan_dirs, result):
         for to_remove in blocked:
             result.discard(to_remove)
 
-        library_found = os.path.isfile(dll_filename)
+        result.add(
+            os.path.normcase(os.path.abspath(dll_filename))
+        )
 
-        if not library_found:
-            info("Warning: %s could not be found, you might need to copy it manually from your Python dist." \
-                 % dll_filename)
-
-        # Fix for recursive DLL lookup when no original_dir in scan_dirs
-        if library_found:
-            result.add(
-                os.path.normcase(os.path.abspath(dll_filename))
-            )
 
 def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir, binary_filename, package_name):
     # This is complex, as it also includes the caching mechanism
@@ -1177,8 +1164,8 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
     # Add native system directory based on pe file architecture and os architecture
     # Python 32: system32 = syswow64 = 32 bits systemdirectory
     # Python 64: system32 = 64 bits systemdirectory, syswow64 = 32 bits systemdirectory
-    binary_file_is_64bit = _is_pe_64(binary_filename)
-    python_is_64bit = _is_python_64()
+    binary_file_is_64bit = _isPE64(binary_filename)
+    python_is_64bit = getArchitecture() == "x86_64"
     if binary_file_is_64bit is not python_is_64bit:
         print("Warning: Using Python x64=%s with x64=%s binary dependencies" % (binary_file_is_64bit, python_is_64bit))
 
@@ -1251,6 +1238,8 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
         assert False, Utils.getOS()
 
 
+_unfound_dlls = set()
+
 def detectUsedDLLs(source_dir, standalone_entry_points):
     def addDLLInfo(count, source_dir, original_filename, binary_filename, package_name):
         used_dlls = detectBinaryDLLs(
@@ -1260,6 +1249,19 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
             binary_filename    = binary_filename,
             package_name       = package_name
         )
+
+        for dll_filename in sorted(tuple(used_dlls)):
+            if not os.path.isfile(dll_filename):
+                if _unfound_dlls:
+                    warning(
+                        """\
+Dependency '%s' could not be found, you might need to copy it
+manually."""  % dll_filename
+                    )
+
+                    _unfound_dlls.add(dll_filename)
+
+                used_dlls.remove(dll_filename)
 
         return binary_filename, used_dlls
 
