@@ -253,7 +253,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                             if getOS() == "Linux":
                                 self.opengl_plugins.append(plugin_name_part)
                         elif os_part.startswith("darwin"):
-                            if getOS() == "MacOS":
+                            if getOS() == "Darwin":
                                 self.opengl_plugins.append(plugin_name_part)
                         elif os_part.startswith(("posix", "osmesa", "egl")):
                             if getOS() != "Windows":
