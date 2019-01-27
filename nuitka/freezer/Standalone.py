@@ -65,10 +65,10 @@ from nuitka.utils.Timing import TimerReport
 from .DependsExe import getDependsExePath
 
 # Use PE file analysis only on Windows
-if os.name == 'nt':
-    import pefile # pylint: disable=import-error
+if os.name == "nt":
+    import pefile # @UnresolvedImport pylint: disable=I0021,import-error
     # Finding site-packages directory when recursive internal dependency walker is used
-    from distutils.sysconfig import get_python_lib # pylint: disable=import-error
+    from distutils.sysconfig import get_python_lib # @UnresolvedImport pylint: disable=I0021,import-error
 
 
 def loadCodeObjectData(precompiled_filename):
@@ -1011,7 +1011,7 @@ def _getPEFile(binary_filename):
         pe = pefile.PE(binary_filename)
         return pe
     except AttributeError:
-        assert False, 'Bogus PE header in ' + binary_filename
+        assert False, "Bogus PE header in " + binary_filename
 
 
 def _is_pe_64(pe_file):
@@ -1022,7 +1022,7 @@ def _is_pe_64(pe_file):
         return arch[pe.PE_TYPE]
     except KeyError:
         # Support your architecture.
-        assert False, 'Unknown PE file architecture'
+        assert False, "Unknown PE file architecture"
 
 
 def _parsePEFileOutput(binary_filename, scan_dirs, result):
@@ -1110,8 +1110,8 @@ def _parsePEFileOutput(binary_filename, scan_dirs, result):
 
         # Allow plugins to prevent inclusion.
         blocked = Plugins.removeDllDependencies(
-            dll_filename=dll_filename,
-            dll_filenames=result
+            dll_filename  = dll_filename,
+            dll_filenames = result
         )
 
         for to_remove in blocked:
@@ -1120,7 +1120,7 @@ def _parsePEFileOutput(binary_filename, scan_dirs, result):
         library_found = os.path.isfile(dll_filename)
 
         if not library_found:
-            info('Warning: %s could not be found, you might need to copy it manually from your Python dist.' \
+            info("Warning: %s could not be found, you might need to copy it manually from your Python dist." \
                  % dll_filename)
 
         # Fix for recursive DLL lookup when no original_dir in scan_dirs
@@ -1160,17 +1160,17 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
         scan_dirs.append(original_dir)
         scan_dirs.extend(getSubDirectories(original_dir))
 
-    if Options.isExperimental('use_pefile_fullrecurse'):
+    if Options.isExperimental("use_pefile_fullrecurse"):
         try:
             scan_dirs.extend(getSubDirectories(get_python_lib()))
         except OSError:
-            print('Cannot recurse into site-packages for dependencies. Path not found.')
+            print("Cannot recurse into site-packages for dependencies. Path not found.")
     else:
         # Fix for missing pywin32 inclusion when using pythonwin library, no way to detect that automagically
         # Since there are more than one dependencies on pywintypes37.dll, let's include this anyway
         # In recursive mode, using dirname(original_dir) won't always work, hence get_python_lib
         try:
-            scan_dirs.append(os.path.join(get_python_lib(), 'pywin32_system32'))
+            scan_dirs.append(os.path.join(get_python_lib(), "pywin32_system32"))
         except OSError:
             pass
 
@@ -1180,24 +1180,24 @@ def _detectBinaryPathDLLsWindowsPE(is_main_executable, source_dir, original_dir,
     binary_file_is_64bit = _is_pe_64(binary_filename)
     python_is_64bit = _is_python_64()
     if binary_file_is_64bit is not python_is_64bit:
-        print('Warning: Using Python x64=%s with x64=%s binary dependencies' % (binary_file_is_64bit, python_is_64bit))
+        print("Warning: Using Python x64=%s with x64=%s binary dependencies" % (binary_file_is_64bit, python_is_64bit))
 
     if binary_file_is_64bit:
         # This is actually not useful as of today since we don't compile 32 bits on 64 bits
         if python_is_64bit:
-            scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'System32'))
+            scan_dirs.append(os.path.join(os.environ["SYSTEMROOT"], "System32"))
         else:
-            scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'SysWOW64'))
+            scan_dirs.append(os.path.join(os.environ["SYSTEMROOT"], "SysWOW64"))
     else:
-        scan_dirs.append(os.path.join(os.environ['SYSTEMROOT'], 'System32'))
+        scan_dirs.append(os.path.join(os.environ["SYSTEMROOT"], "System32"))
 
-    if Options.isExperimental('use_pefile_recurse'):
+    if Options.isExperimental("use_pefile_recurse"):
         # Recursive one level scanning of all .pyd and .dll in the original_dir too
         # This shall fix a massive list of missing dependencies that may come with included libraries which themselves
         # need to be scanned for inclusions
         for root, _, filenames in os.walk(original_dir):
             for optional_libary in filenames:
-                if optional_libary.endswith('.dll') or optional_libary.endswith('.pyd'):
+                if optional_libary.endswith(".dll") or optional_libary.endswith(".pyd"):
                     _parsePEFileOutput(os.path.join(root, optional_libary), scan_dirs, result)
 
     _parsePEFileOutput(binary_filename, scan_dirs, result)
@@ -1222,14 +1222,14 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
             dll_filename = original_filename
         )
     elif Utils.getOS() == "Windows":
-        if Options.isExperimental('use_pefile'):
+        if Options.isExperimental("use_pefile"):
             with TimerReport("Running internal dependency walker for %s took %%.2f seconds" % binary_filename):
                 return _detectBinaryPathDLLsWindowsPE(
-                    is_main_executable=is_main_executable,
-                    source_dir=source_dir,
-                    original_dir=os.path.dirname(original_filename),
-                    binary_filename=binary_filename,
-                    package_name=package_name
+                    is_main_executable = is_main_executable,
+                    source_dir         = source_dir,
+                    original_dir       = os.path.dirname(original_filename),
+                    binary_filename    = binary_filename,
+                    package_name       = package_name
                 )
         else:
             with TimerReport("Running depends.exe for %s took %%.2f seconds" % binary_filename):

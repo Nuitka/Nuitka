@@ -464,8 +464,8 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
     if parameters is not None:
         for count, variable in enumerate(parameters.getAllVariables()):
             variable_code_name, variable_c_type = decideLocalVariableCodeType(
-                context        = context,
-                variable       = variable
+                context  = context,
+                variable = variable
             )
 
             variable_declaration = context.variable_storage.addVariableDeclarationTop(
@@ -479,8 +479,8 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
     # User local variable initializations
     for variable in user_variables:
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
-            context        = context,
-            variable       = variable
+            context  = context,
+            variable = variable
         )
 
         variable_declaration = context.variable_storage.addVariableDeclarationTop(
@@ -493,8 +493,8 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
 
     for variable in sorted(temp_variables, key = lambda variable: variable.getName()):
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
-            context        = context,
-            variable       = variable
+            context  = context,
+            variable = variable
         )
 
         context.variable_storage.addVariableDeclarationTop(
@@ -505,8 +505,8 @@ def setupFunctionLocalVariables(context, parameters, closure_variables,
 
     for closure_variable in closure_variables:
         variable_code_name, variable_c_type = decideLocalVariableCodeType(
-            context        = context,
-            variable       = closure_variable
+            context  = context,
+            variable = closure_variable
         )
 
         variable_declaration = context.variable_storage.addVariableDeclarationClosure(

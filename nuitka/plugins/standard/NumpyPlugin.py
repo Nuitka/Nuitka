@@ -24,14 +24,15 @@ because these are not detectable by dependency walkers.
 """
 
 import os
-import shutil
-import sys
 import pkgutil
 import re
+import shutil
+import sys
 from logging import info
 
 from nuitka import Options
 from nuitka.plugins.PluginBase import UserPluginBase
+
 
 #------------------------------------------------------------------------------
 # The following code is largely inspired by PyInstaller hook_numpy.core.py
@@ -89,8 +90,8 @@ def get_numpy_core_binaries():
     """
     # covers/unifies cases, where sys.base_prefix does not deliver
     # everything we need and / or is not an abspath.
-    base_prefix = getattr(sys, 'real_prefix',
-                          getattr(sys, 'base_prefix', sys.prefix)
+    base_prefix = getattr(sys, "real_prefix",
+                          getattr(sys, "base_prefix", sys.prefix)
                          )
     base_prefix = os.path.abspath(base_prefix)
     is_win = os.name == "nt"
@@ -99,7 +100,7 @@ def get_numpy_core_binaries():
 
     # look for libraries in numpy package path
     # should already return MKLs in ordinary cases
-    _, pkg_dir = get_package_paths('numpy.core')
+    _, pkg_dir = get_package_paths("numpy.core")
     re_anylib = re.compile(r'\w+\.(?:dll|so|dylib)', re.IGNORECASE)
     dlls_pkg = [f for f in os.listdir(pkg_dir) if re_anylib.match(f)]
     binaries += [(os.path.join(pkg_dir, f), '.') for f in dlls_pkg]
@@ -173,6 +174,6 @@ class NumpyPluginDetector(UserPluginBase):
         return Options.isStandaloneMode()
 
     def onModuleDiscovered(self, module):
-        full_name = module.getFullName().split(".")
+        full_name = module.getFullName().split('.')
         if "numpy" in full_name:
             self.warnUnusedPlugin("numpy support.")

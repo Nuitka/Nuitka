@@ -31,6 +31,7 @@ from logging import info
 from nuitka import Options
 from nuitka.plugins.PluginBase import UserPluginBase, pre_modules
 
+
 class TkinterPlugin(UserPluginBase):
     """ This is for copying tkinter's TCL/TK libraries and making sure
     that requests are directed to these copies.
@@ -129,7 +130,7 @@ if not os.environ.get("TCL_LIBRARY", None):
 
         # Definitely don't need the demos, so remove them again.
         # TODO: Anything else?
-        shutil.rmtree(os.path.join(tar_tk, "demos"), ignore_errors=True)
+        shutil.rmtree(os.path.join(tar_tk, "demos"), ignore_errors = True)
 
         info(" Finished copying tkinter libraries.")
         return ()
@@ -142,6 +143,6 @@ class TkinterPluginDetector(UserPluginBase):
         return Options.isStandaloneMode() and os.name == "nt"
 
     def onModuleDiscovered(self, module):
-        full_name = module.getFullName().split(".")
+        full_name = module.getFullName().split('.')
         if full_name[0].lower() == "tkinter":
             self.warnUnusedPlugin("tkinter support.")
