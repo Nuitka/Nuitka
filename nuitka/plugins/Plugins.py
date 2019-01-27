@@ -54,6 +54,14 @@ from .standard.PySidePyQtPlugin import (  # isort:skip
     NuitkaPluginDetectorPyQtPySidePlugins,
     NuitkaPluginPyQtPySidePlugins
 )
+from .user.TkinterPlugin import (
+    TkinterPluginDetector,
+    TkinterPlugin
+)
+from .user.NumpyPlugin import (
+    NumpyPluginDetector,
+    NumpyPlugin
+)
 # The standard plug-ins have their list hard-coded here. User plug-ins will
 # be scanned later, TODO.
 
@@ -70,6 +78,8 @@ optional_plugin_classes = (
     (NuitkaPluginPyQtPySidePlugins, NuitkaPluginDetectorPyQtPySidePlugins),
     (NuitkaPluginPylintEclipseAnnotations, NuitkaPluginDetectorPylintEclipseAnnotations),
     (NuitkaPluginPmw, NuitkaPluginDetectorPmw),
+    (TkinterPlugin, TkinterPluginDetector),
+    (NumpyPlugin, NumpyPluginDetector),
 )
 
 plugin_name2plugin_classes = dict(
