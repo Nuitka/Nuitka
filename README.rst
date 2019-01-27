@@ -49,7 +49,7 @@ Requirements
   * The ``gcc`` compiler of at least version 5.1, or the ``g++`` compiler of
     at least version 4.4 as an alternative.
 
-  * The ``clang`` compiler on MacOS X or FreeBSD.
+  * The ``clang`` compiler on macOS X or FreeBSD.
 
   * The MinGW64 [#]_ C11 compiler on Windows, ideally the one based on gcc
     6 or higher. The AnaConda compilers [#]_ are suitable too, even if you
@@ -104,9 +104,9 @@ Requirements
 
   .. admonition:: It **has to** be CPython, AnaConda or MiniConda Python.
 
-     It is known that MacOS "pyenv" does **not** work.
+     It is known that macOS "pyenv" does **not** work.
 
-- Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
+- Operating System: Linux, FreeBSD, NetBSD, macOS X, and Windows (32/64 bits).
 
   Others may work as well. The portability is expected to be generally good, but
   the e.g. Scons usage may have to be adapted. Make sure to match Windows Python
@@ -976,7 +976,7 @@ The order is sorted by time.
 - Christopher Tott: Submitted patches for Windows, and general as well as
   structural cleanups.
 
-- Pete Hunt: Submitted patches for MacOS X support.
+- Pete Hunt: Submitted patches for macOS X support.
 
 - "ownssh": Submitted patches for built-ins module guarding, and made massive
   efforts to make high quality bug reports. Also the initial "standalone" mode
@@ -988,13 +988,13 @@ The order is sorted by time.
 
 - "dr. Equivalent": Submitted the Nuitka Logo.
 
-- Johan Holmberg: Submitted patch for Python3 support on MacOS X.
+- Johan Holmberg: Submitted patch for Python3 support on macOS X.
 
 - Umbra: Submitted patches to make the Windows port more usable, adding user
   provided application icons, as well as MSVC support for large constants and
   console applications.
 
-- David Cortesi: Submitted patches and test cases to make MacOS port more
+- David Cortesi: Submitted patches and test cases to make macOS port more
   usable, specifically for the Python3 standalone support of Qt.
 
 - Andrew Leech: Submitted github pull request to allow using "-m nuitka" to

@@ -91,14 +91,14 @@ def getStandardLibraryPaths():
                 )
             )
 
-        # And yet another possibility, for MacOS Homebrew created virtualenv
+        # And yet another possibility, for macOS Homebrew created virtualenv
         # at least is a link ".Python", which points to the original install.
         python_link_filename = os.path.join(os_path, "..", ".Python")
         if os.path.islink(python_link_filename):
             stdlib_paths.add(
                 os.path.normcase(
                     os.path.join(
-                        os.readlink(python_link_filename),
+                        os.readlink(python_link_filename),  # @UndefinedVariable
                         "lib"
                     )
                 )

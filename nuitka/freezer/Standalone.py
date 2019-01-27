@@ -18,7 +18,7 @@
 """ Pack and copy files for standalone mode.
 
 This is still under heavy evolution, but expected to work for
-MacOS, Windows, and Linux. Patches for other platforms are
+macOS, Windows, and Linux. Patches for other platforms are
 very welcome.
 """
 
@@ -1213,7 +1213,7 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
                      binary_filename, package_name):
     """ Detect the DLLs used by a binary.
 
-        Using "ldd" (Linux), "depends.exe" (Windows), or "otool" (MacOS) the list
+        Using "ldd" (Linux), "depends.exe" (Windows), or "otool" (macOS) the list
         of used DLLs is retrieved.
     """
 
@@ -1290,7 +1290,7 @@ def detectUsedDLLs(source_dir, standalone_entry_points):
 
 
 def fixupBinaryDLLPaths(binary_filename, is_exe, dll_map):
-    """ For MacOS, the binary needs to be told to use relative DLL paths """
+    """ For macOS, the binary needs to be told to use relative DLL paths """
 
     # There may be nothing to do, in case there are no DLLs.
     if not dll_map:
@@ -1499,7 +1499,7 @@ different from
             )
 
     if Utils.getOS() == "Darwin":
-        # For MacOS, the binary and the DLLs needs to be changed to reflect
+        # For macOS, the binary and the DLLs needs to be changed to reflect
         # the relative DLL location in the ".dist" folder.
         for standalone_entry_point in standalone_entry_points:
             fixupBinaryDLLPaths(
