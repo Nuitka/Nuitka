@@ -145,4 +145,5 @@ class TkinterPluginDetector(UserPluginBase):
     def onModuleDiscovered(self, module):
         full_name = module.getFullName().split('.')
         if full_name[0].lower() == "tkinter":
-            self.warnUnusedPlugin("tkinter support.")
+            # self.warnUnusedPlugin("tkinter support.")
+            pass
