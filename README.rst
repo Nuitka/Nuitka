@@ -375,18 +375,37 @@ Nuitka compilations by an order of magnitude.
 In order to use it, make sure you have pefile installed via ```python -m pip install pefile```
 Once installed, you may enable the internal dependency walker by using the
 following switch:
-```--experimental=use_pefile```
-The pefile dependency walker will test all dependencies of the distribution folder.
 
-Optionnaly, it is also possible to check all recursive dependencies of included libraries
-using the following switch along with the above one:
-```--experimental=use_pefile_recurse```
+.. code-block:: bash
 
-Some modules may have hidden dependencies outside of their directory. In order for
-the pefile dependency walker to find them, you may also scan the whole site-packages
-directory for missing dependencies using:
-```--experimental=use_pefile_fullrecurse``` along with the two above switches.
-Be aware that using this switch will increase compilation time alot.
+    python -m nuitka --standalone --experimental=use_pefile myprogram.py
+
+
+.. note::
+
+    The pefile dependency walker will test all dependencies of the distribution folder.
+
+    Optionnaly, it is also possible to check all recursive dependencies of included libraries
+    using the following switch along with the above one:
+
+.. code-block:: bash
+
+    python -m nuitka --standalone --experimental=use_pefile --experimental=use_pefile_recurse myprogram.py
+
+
+.. note::
+
+    Some modules may have hidden dependencies outside of their directory. In order for
+    the pefile dependency walker to find them, you may also scan the whole site-packages
+    directory for missing dependencies using the following switch along with the two above:
+
+.. code-block:: bash
+
+    python -m nuitka --standalone --experimental=use_pefile --experimental=use_pefile_recurse --experimental=use_pefile_fullrecurse myprogram.py
+
+.. note::
+
+    Be aware that using this switch will increase compilation time alot.
 
 
 Where to go next
