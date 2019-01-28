@@ -385,7 +385,7 @@ following switch:
 
     The pefile dependency walker will test all dependencies of the distribution folder.
 
-    Optionnaly, it is also possible to check all recursive dependencies of included libraries
+    Optionnally, it is also possible to check all recursive dependencies of included libraries
     using the following switch along with the above one:
 
 .. code-block:: bash
