@@ -65,8 +65,8 @@ from nuitka.utils.Utils import getArchitecture
 
 from .DependsExe import getDependsExePath
 
-# Use PE file analysis only on Windows
-if os.name == "nt" and Options.isExperimental("use_pefile"):
+# Use PE file analysis only on Win32
+if Utils.isWin32Windows() and Options.isExperimental("use_pefile"):
     import pefile # @UnresolvedImport pylint: disable=I0021,import-error
     # Finding site-packages directory when recursive internal dependency walker is used
     from distutils.sysconfig import get_python_lib # @UnresolvedImport pylint: disable=I0021,import-error
@@ -441,7 +441,7 @@ def scanStandardLibraryPath(stdlib_dir):
             if "test_utils.py" in filenames:
                 filenames.remove("test_utils.py")
 
-        if python_version >= 340 and Utils.getOS() == "Windows":
+        if python_version >= 340 and Utils.isWin32Windows():
             if import_path == "multiprocessing":
                 filenames.remove("popen_fork.py")
                 filenames.remove("popen_forkserver.py")
@@ -1434,7 +1434,7 @@ def copyUsedDLLs(source_dir, dist_dir, standalone_entry_points):
                 continue
 
             # For Win32 we can check out file versions.
-            if os.name == "nt":
+            if Utils.isWin32Windows():
                 dll_version1 = getWindowsDLLVersion(dll_filename1)
                 dll_version2 = getWindowsDLLVersion(dll_filename2)
 
@@ -1533,7 +1533,7 @@ different from
             removeSharedLibraryRPATH(
                 os.path.join(dist_dir, dll_filename)
             )
-    elif os.name == "nt":
+    elif Utils.isWin32Windows():
         if python_version < 300:
             # For Win32, we might have to remove SXS paths
             for standalone_entry_point in standalone_entry_points[1:]:
