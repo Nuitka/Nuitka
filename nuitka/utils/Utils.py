@@ -41,6 +41,19 @@ def getOS():
     else:
         assert False, os.name
 
+def isWin32Windows():
+    """ The Win32 variants of Python does have win32 only, not posix.
+
+    """
+    return os.name == "nt"
+
+
+def isPosixWindows():
+    """ The MSYS2 variant of Python does have posix only, not Win32.
+
+    """
+    return os.name == "posix" and getOS() == "Windows"
+
 
 def getArchitecture():
     if getOS() == "Windows":

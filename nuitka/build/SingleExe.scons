@@ -135,7 +135,7 @@ uninstalled_python = getBoolOption("uninstalled_python", False)
 # Unstriped mode: Do not remove debug symbols.
 unstripped_mode = getBoolOption("unstripped_mode", False)
 
-# Clang compiler mode, forced on MacOS X and FreeBSD, optional on Linux.
+# Clang compiler mode, forced on macOS X and FreeBSD, optional on Linux.
 clang_mode = getBoolOption("clang_mode", False)
 if macosx_target or "freebsd" in sys.platform:
     clang_mode = True
@@ -1068,7 +1068,7 @@ if gcc_mode and "linux" in sys.platform:
 # about building, and finding the headers to compile against that Python, we
 # do not care about any site packages, and so on.
 
-# Some virtualenv, at least on MacOS, have such handy links, pointing to the
+# Some virtualenv, at least on macOS, have such handy links, pointing to the
 # Python installation.
 
 if not win_target and os.path.islink(os.path.join(python_prefix, ".Python")):
@@ -1459,7 +1459,7 @@ def _getLinkerArch():
             if " file format " in line:
                 return line.split(" file format ")[-1]
     else:
-        # TODO: Missing for MacOS, FreeBSD, other Linux
+        # TODO: Missing for macOS, FreeBSD, other Linux
         return None
 
 _linker_arch_determined = False

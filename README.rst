@@ -49,7 +49,7 @@ Requirements
   * The ``gcc`` compiler of at least version 5.1, or the ``g++`` compiler of
     at least version 4.4 as an alternative.
 
-  * The ``clang`` compiler on MacOS X or FreeBSD.
+  * The ``clang`` compiler on macOS X or FreeBSD.
 
   * The MinGW64 [#]_ C11 compiler on Windows, ideally the one based on gcc
     6 or higher. The AnaConda compilers [#]_ are suitable too, even if you
@@ -104,9 +104,9 @@ Requirements
 
   .. admonition:: It **has to** be CPython, AnaConda or MiniConda Python.
 
-     It is known that MacOS "pyenv" does **not** work.
+     It is known that macOS "pyenv" does **not** work.
 
-- Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits).
+- Operating System: Linux, FreeBSD, NetBSD, macOS X, and Windows (32/64 bits).
 
   Others may work as well. The portability is expected to be generally good, but
   the e.g. Scons usage may have to be adapted. Make sure to match Windows Python
@@ -358,6 +358,55 @@ all contained in one binary.
 
 So if feasible, aim at static linking, which is currently only possible with
 AnaConda Python on non-Windows.
+
+Windows Standalone executables and dependecies
+----------------------------------------------
+
+The process of making Standalone executables for Windows traditionnaly involves
+using an external dependency walker in order to copy necessary libraries along
+with the compiled executables to the distribution folder.
+Usng the external dependency walker is quite time consuming, and may copy
+some unnecessary libraries along the way (better have too much than missing).
+Since Nuitka 0.6.2, there's an experimental alternative internal dependency
+walker that relies on pefile which analyses PE imports of executables / libraries.
+This implementation shall create smaller Standalone distributions since it won't
+include Windows' equivalent of the standard library, and will speed-up first
+Nuitka compilations by an order of magnitude.
+In order to use it, make sure you have pefile installed via ```python -m pip install pefile```
+Once installed, you may enable the internal dependency walker by using the
+following switch:
+
+.. code-block:: bash
+
+    python -m nuitka --standalone --experimental=use_pefile myprogram.py
+
+
+.. note::
+
+    The pefile dependency walker will test all dependencies of the distribution folder.
+
+    Optionnally, it is also possible to check all recursive dependencies of included libraries
+    using the following switch along with the above one:
+
+.. code-block:: bash
+
+    python -m nuitka --standalone --experimental=use_pefile --experimental=use_pefile_recurse myprogram.py
+
+
+.. note::
+
+    Some modules may have hidden dependencies outside of their directory. In order for
+    the pefile dependency walker to find them, you may also scan the whole site-packages
+    directory for missing dependencies using the following switch along with the two above:
+
+.. code-block:: bash
+
+    python -m nuitka --standalone --experimental=use_pefile --experimental=use_pefile_recurse --experimental=use_pefile_fullrecurse myprogram.py
+
+.. note::
+
+    Be aware that using this switch will increase compilation time alot.
+
 
 Where to go next
 ================
@@ -927,7 +976,7 @@ The order is sorted by time.
 - Christopher Tott: Submitted patches for Windows, and general as well as
   structural cleanups.
 
-- Pete Hunt: Submitted patches for MacOS X support.
+- Pete Hunt: Submitted patches for macOS X support.
 
 - "ownssh": Submitted patches for built-ins module guarding, and made massive
   efforts to make high quality bug reports. Also the initial "standalone" mode
@@ -939,13 +988,13 @@ The order is sorted by time.
 
 - "dr. Equivalent": Submitted the Nuitka Logo.
 
-- Johan Holmberg: Submitted patch for Python3 support on MacOS X.
+- Johan Holmberg: Submitted patch for Python3 support on macOS X.
 
 - Umbra: Submitted patches to make the Windows port more usable, adding user
   provided application icons, as well as MSVC support for large constants and
   console applications.
 
-- David Cortesi: Submitted patches and test cases to make MacOS port more
+- David Cortesi: Submitted patches and test cases to make macOS port more
   usable, specifically for the Python3 standalone support of Qt.
 
 - Andrew Leech: Submitted github pull request to allow using "-m nuitka" to

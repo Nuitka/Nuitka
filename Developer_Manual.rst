@@ -741,7 +741,7 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
 * ``clang_mode``
 
-  Clang compiler mode, default on MacOS X and FreeBSD, optional on Linux.
+  Clang compiler mode, default on macOS X and FreeBSD, optional on Linux.
 
 * ``mingw_mode``
 

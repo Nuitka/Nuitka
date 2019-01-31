@@ -1711,7 +1711,7 @@ char *getBinaryDirectoryUTF8Encoded() {
         abort();
     }
 
-    // On MacOS, the "dirname" call creates a separate internal string, we can
+    // On macOS, the "dirname" call creates a separate internal string, we can
     // safely copy back.
     strncpy(binary_directory, dirname(binary_directory), MAXPATHLEN);
 

@@ -44,7 +44,7 @@ Bug Fixes
 - Fix, referencing a function cannot raise an exception, but that was not
   annotated. Fixed in 0.6.0.2 already.
 
-- MacOS: Use standard include of C bool type instead of rolling our own, which
+- macOS: Use standard include of C bool type instead of rolling our own, which
   was not compatible with newest Clang. Fixed in 0.6.0.3 already.
 
 - Python3: Fix, the `bytes` built-in type actually does have a `__float__` slot.
@@ -438,7 +438,7 @@ Bug Fixes
   line 129, was considered the same. And that is what actually happened. Fixed
   in 0.5.32.3 already.
 
-- MacOS: Various fixes for newer Xcode versions to work as well. Fixed in
+- macOS: Various fixes for newer Xcode versions to work as well. Fixed in
   0.5.32.4 already.
 
 - Python3: Fix, the default ``__annotations__`` was the empty dict and could
@@ -1342,7 +1342,7 @@ Bug Fixes
   loading already.
 
 - Standalone: Resolve the ``@rpath`` and ``@loader_path`` from ``otool`` on
-  MacOS manually to actual paths, which adds support for libraries compiled
+  macOS manually to actual paths, which adds support for libraries compiled
   with that.
 
 - Fix, nested functions calling ``super`` could crash the compiler.
@@ -1560,7 +1560,7 @@ Bug Fixes
 - Compatibility: Fix, the ``super`` built-in on module level was crashing the
   compiler.
 
-- Standalone: For Linux, BSD and MacOS extension modules and shared libraries
+- Standalone: For Linux, BSD and macOS extension modules and shared libraries
   using their own ``$ORIGIN`` to find loaded DLLs resulted in those not being
   included in the distribution.
 
@@ -2110,7 +2110,7 @@ Bug Fixes
   wheels there now sometimes live important DLLs too.
 
 - Fix, the clang mode was regressed and didn't work anymore, breaking the
-  MacOS support entirely.
+  macOS support entirely.
 
 - Compatibility: For imports, we were passing for ``locals`` argument a real
   dictionary with actual values. That is not what CPython does, so stopped
@@ -2911,7 +2911,7 @@ Optimization
 
 - Standalone: Avoid inclusion of bytecode of ``unittest.test``,
   ``sqlite3.test``, ``distutils.test``, and ``ensurepip``. These are not needed,
-  but simply bloat the amount of bytecode used on e.g. MacOS. `Issue#272
+  but simply bloat the amount of bytecode used on e.g. macOS. `Issue#272
   <http://bugs.nuitka.net/issue272>`__.
 
 - Speed up compilation with Nuitka itself by avoid to copying and constructing
@@ -3325,7 +3325,7 @@ New Features
   ``PyQt5`` plug-in support. Experimental Windows ``multiprocessing`` support.
   Experimental PyLint warnings disable support. More to come.
 
-- Added support for AnaConda accelerated mode on MacOS by modifying the rpath
+- Added support for AnaConda accelerated mode on macOS by modifying the rpath
   to the Python DLL.
 
 - Added experimental support for ``multiprocessing`` on Windows, which needs
@@ -3735,7 +3735,7 @@ Bug Fixes
 
 - Standalone: Added missing dependency on ``QtGui`` by ``QtWidgets`` for PyQt5.
 
-- MacOS: Improved parsing of ``otool`` output to avoid duplicate entries, which
+- macOS: Improved parsing of ``otool`` output to avoid duplicate entries, which
   can also be entirely wrong in the case of Qt plugins at least.
 
 - Avoid relative paths for main program with file reference mode ``original``,
@@ -3928,7 +3928,7 @@ Bug Fixes
       # Inside "x.y" module:
       import x.y.types
 
-- Importing modules on Windows and MacOS was not properly checking the checking
+- Importing modules on Windows and macOS was not properly checking the checking
   the case, making it associate wrong modules from files with mismatching case.
   This corrects `Issue#188 <http://bugs.nuitka.net/issue188>`__.
 
@@ -3989,9 +3989,9 @@ Organizational
   not supported. Nuitka works fine with Python3, but a Python2 is required to
   execute scons.
 
-- Discover more kinds of Python2 installations on Linux/MacOS installations.
+- Discover more kinds of Python2 installations on Linux/macOS installations.
 
-- Added instructions for MacOS to the download page.
+- Added instructions for macOS to the download page.
 
 Cleanups
 --------
@@ -4089,7 +4089,7 @@ Bug Fixes
   supported, and rarely missing. Recent changes made it easy to expose, so now
   it was added. This corrects `Issue#45 <http://bugs.nuitka.net/issue45>`__.
 
-- MacOS: A linker warning about deprecated linker option ``-s`` was solved by
+- macOS: A linker warning about deprecated linker option ``-s`` was solved by
   removing the option.
 
 - Compatibility: Nuitka was enforcing that the ``__doc__`` attribute to be a
@@ -4397,13 +4397,13 @@ Bug Fixes
   raised, but only by the ``type`` call. This was not observable, but might have
   caused issues potentially.
 
-- Standalone MacOS: Shared libraries and extension modules didn't have their
+- Standalone macOS: Shared libraries and extension modules didn't have their
   DLL load paths updated, but only the main binary. This is not sufficient for
   more complex programs.
 
 - Standalone Linux: Shared libraries copied into the ``.dist`` folder were
   read-only and executing ``chrpath`` could potentially then fail. This has
-  not been observed, but is a conclusion of MacOS fix.
+  not been observed, but is a conclusion of macOS fix.
 
 - Standalone: When freezing standard library, the path of Nuitka and the
   current directory remained in the search path, which could lead to looking
@@ -4481,7 +4481,7 @@ mostly is a maintenance release, attacking long standing issues.
 Bug Fixes
 ---------
 
-- Compatibility Windows MacOS: Fix importing on case insensitive systems.
+- Compatibility Windows macOS: Fix importing on case insensitive systems.
 
   It was not always working properly, if there was both a package ``Something``
   and ``something``, by merit of having files ``Something/__init__.py`` and
@@ -5187,11 +5187,11 @@ New Features
 
 - Added experimental support for Python 3.4, which is still work in progress.
 
-- Added support for virtualenv on MacOS.
+- Added support for virtualenv on macOS.
 
 - Added support for virtualenv on Windows.
 
-- Added support for MacOS X standalone mode.
+- Added support for macOS X standalone mode.
 
 - The code generation uses no header files anymore, therefore adding a module
   doesn't invalidate all compiled object files from caches anymore.
@@ -5432,7 +5432,7 @@ Bug Fixes
   dependencies. When a shared library imports things, Nuitka cannot detect it
   easily.
 
-- Wasn't working on MacOS 64 bits due to using Linux 64 bits specific
+- Wasn't working on macOS 64 bits due to using Linux 64 bits specific
   code. `Issue#123 <http://bugs.nuitka.net/issue123>`__. Fixed in 0.5.0.2
   already.
 
@@ -6019,7 +6019,7 @@ Bug Fixes
   in case ``from x.y import z`` syntax was used. `Issue#100
   <http://bugs.nuitka.net/issue100>`__. Fixed in 0.4.4.2 already.
 
-- Python3 on MacOS: Corrected link time error. Fixed in 0.4.4.2 already.
+- Python3 on macOS: Corrected link time error. Fixed in 0.4.4.2 already.
 
 - Python3.3 on Windows: Fixed crash with too many arguments to a kwonly argument
   using function. Fixed in 0.4.4.2 already.
@@ -8073,7 +8073,7 @@ Nuitka Release 0.3.20
 
 This time there are a few bug fixes and some really major cleanups, lots of new
 optimization and preparations for more. And then there is a new compiler clang
-and a new platform supported. MacOS X appears to work mostly, thanks for the
+and a new platform supported. macOS X appears to work mostly, thanks for the
 patches from Pete Hunt.
 
 Bug fixes
@@ -8109,11 +8109,11 @@ New Features
 
 - Enhanced Python3 support for syntax errors, these are now also compatible.
 
-- Support for MacOS X was added.
+- Support for macOS X was added.
 
 - Support for using the clang compiler was added, it can be enforced via
   ``--clang`` option. Currently this option is mainly intended to allow testing
-  the "MacOS X" support as good as possible under Linux.
+  the "macOS X" support as good as possible under Linux.
 
 New Optimization
 ----------------

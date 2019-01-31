@@ -385,7 +385,7 @@ for filename in sorted(os.listdir('.')):
         )):
             continue
 
-        # Loaded by dtruss on MacOS X.
+        # Loaded by dtruss on macOS X.
         if loaded_filename.startswith("/usr/lib/dtrace/"):
             continue
 

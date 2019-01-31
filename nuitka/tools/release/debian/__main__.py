@@ -19,6 +19,9 @@ from nuitka.Version import getNuitkaVersion
 def main():
     # Complex stuff, pylint: disable=too-many-branches,too-many-statements
 
+    # Make sure error messages are in English.
+    os.environ["LANG"] = "C"
+
     parser = OptionParser()
 
     parser.add_option(

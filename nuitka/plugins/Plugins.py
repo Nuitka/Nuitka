@@ -38,19 +38,19 @@ from nuitka.ModuleRegistry import addUsedModule
 from nuitka.PythonVersions import python_version
 
 from .PluginBase import UserPluginBase, post_modules, pre_modules
-from .standard.DataFileCollectorPlugin import NuitkaPluginDataFileCollector
-from .standard.ImplicitImports import NuitkaPluginPopularImplicitImports
-from .standard.PmwPlugin import NuitkaPluginDetectorPmw, NuitkaPluginPmw
-
-from .standard.ConsiderPyLintAnnotationsPlugin import (  # isort:skip
+from .standard.ConsiderPyLintAnnotationsPlugin import (
     NuitkaPluginDetectorPylintEclipseAnnotations,
     NuitkaPluginPylintEclipseAnnotations
 )
-from .standard.MultiprocessingPlugin import (  # isort:skip
+from .standard.DataFileCollectorPlugin import NuitkaPluginDataFileCollector
+from .standard.ImplicitImports import NuitkaPluginPopularImplicitImports
+from .standard.MultiprocessingPlugin import (
     NuitkaPluginDetectorMultiprocessingWorkarounds,
     NuitkaPluginMultiprocessingWorkarounds
 )
-from .standard.PySidePyQtPlugin import (  # isort:skip
+from .standard.NumpyPlugin import NumpyPlugin, NumpyPluginDetector
+from .standard.PmwPlugin import NuitkaPluginDetectorPmw, NuitkaPluginPmw
+from .standard.PySidePyQtPlugin import (
     NuitkaPluginDetectorPyQtPySidePlugins,
     NuitkaPluginPyQtPySidePlugins
 )
@@ -62,6 +62,7 @@ from .user.NumpyPlugin import (
     NumpyPluginDetector,
     NumpyPlugin
 )
+
 # The standard plug-ins have their list hard-coded here. User plug-ins will
 # be scanned later, TODO.
 
@@ -283,9 +284,10 @@ def importFilePy2(filename):
 def importFile(filename):
     if python_version < 300:
         return importFilePy2(filename)
-    if python_version < 350:
+    elif python_version < 350:
         return importFilePy3OldWay(filename)
-    return importFilePy3NewWay(filename)
+    else:
+        return importFilePy3NewWay(filename)
 
 
 def importUserPlugins():
