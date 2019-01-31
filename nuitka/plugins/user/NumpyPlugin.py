@@ -102,18 +102,18 @@ def get_numpy_core_binaries():
     # first look in numpy/.libs for binaries
     _, pkg_dir = get_package_paths('numpy')
     libdir = os.path.join(pkg_dir, ".libs")
-    if os.path.exists(libdir):
+    if os.path.isdir(libdir):
         dlls_pkg = [f for f in os.listdir(libdir)]
         binaries += [(os.path.join(libdir, f), '.') for f in dlls_pkg]
 
     # then look for libraries in numpy.core package path
-    # should already return MKLs in ordinary cases
+    # should already return the MKL DLLs in ordinary cases
     _, pkg_dir = get_package_paths('numpy.core')
     re_anylib = re.compile(r'\w+\.(?:dll|so|dylib)', re.IGNORECASE)
     dlls_pkg = [f for f in os.listdir(pkg_dir) if re_anylib.match(f)]
     binaries += [(os.path.join(pkg_dir, f), '.') for f in dlls_pkg]
 
-    # Also look for MKL libraries in pythons lib directory if present.
+    # Also look for MKL libraries in Python's lib directory if present.
     # Anything found here will have to land in the dist folder, because there
     # just is no logical other place, and hope for the best ...
     # TODO: not supported yet!
@@ -121,6 +121,7 @@ def get_numpy_core_binaries():
         lib_dir = os.path.join(base_prefix, "Library", "bin")
     else:
         lib_dir = os.path.join(base_prefix, "lib")
+
     if os.path.isdir(lib_dir):
         re_mkllib = re.compile(r'^(?:lib)?mkl\w+\.(?:dll|so|dylib)', re.IGNORECASE)
         dlls_mkl = [f for f in os.listdir(lib_dir) if re_mkllib.match(f)]
@@ -157,9 +158,9 @@ class NumpyPlugin(UserPluginBase):
 
         info(" Now copying extra binaries from 'numpy' installation:")
         for f in binaries:
-            bin_file = f[0].lower()
-            idx = bin_file.find("numpy")    # this will always work!
-            back_end = bin_file[idx:]
+            bin_file = f[0].lower()         # full binary file name
+            idx = bin_file.find("numpy")    # this will always work (idx > 0)
+            back_end = bin_file[idx:]       # => like 'numpy/core/file.so'
             tar_file = os.path.join(dist_dir, back_end)
             info(" " + bin_file)
 
