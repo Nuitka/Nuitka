@@ -200,6 +200,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "yaml", True
         elif full_name == "apt_inst":
             yield "apt_pkg", True
+        elif full_name == "numpy.core":
+            yield "numpy.core._dtype_ctypes", True
         elif full_name == "PIL._imagingtk":
             yield "PIL._tkinter_finder", True
         elif full_name == "pkg_resources.extern":
