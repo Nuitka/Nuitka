@@ -1197,12 +1197,16 @@ def getConstantsDefinitionCode(context):
 
     if Options.shallMakeModule():
         sys_executable = None
+        sys_prefix = None
     else:
         sys_executable = context.getConstantCode(sys.executable)
+        sys_prefix = context.getConstantCode(sys.prefix)
 
     return template_constants_reading % {
         "constant_declarations" : '\n'.join(constant_declarations),
         "constant_inits"        : indented(constant_inits),
         "constant_checks"       : indented(constant_checks),
-        "sys_executable"        : sys_executable
+        "sys_executable"        : sys_executable,
+        "sys_prefix"            : sys_prefix,
+
     }

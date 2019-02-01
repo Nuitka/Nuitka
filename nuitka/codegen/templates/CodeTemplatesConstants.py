@@ -48,6 +48,13 @@ static void _createGlobalConstants( void )
         (char *)"executable",
         %(sys_executable)s
     );
+
+    /* Set the "sys.executable" path to the original CPython executable. */
+    PySys_SetObject(
+        (char *)"prefix",
+        %(sys_prefix)s
+    );
+
 #endif
 }
 

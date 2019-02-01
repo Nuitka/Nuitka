@@ -753,9 +753,10 @@ def _getConstantDefaultPopulation():
         )
 
     if not Options.shallMakeModule():
-        result.append(
-            sys.executable
-        )
+        result += [
+            sys.executable,
+            sys.prefix,
+        ]
 
     if python_version >= 370:
         result.append(
