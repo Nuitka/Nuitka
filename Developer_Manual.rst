@@ -2259,13 +2259,6 @@ they might be affected. It represents the bit of ``exec`` in Python2, that
 treats ``None`` as the locals argument as an indication to copy back.
 
 
-Plan to replace "python-qt" for the GUI
-=======================================
-
-Porting the tree inspector available with ``--dump-gui`` to "wxWindows" is very
-much welcome as the "python-qt4" bindings are severely under documented.
-
-
 Plan to add "ctypes" support
 ============================
 
