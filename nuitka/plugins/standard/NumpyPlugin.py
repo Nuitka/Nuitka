@@ -33,12 +33,12 @@ from logging import info
 from nuitka import Options
 from nuitka.plugins.PluginBase import UserPluginBase
 
-
 #------------------------------------------------------------------------------
 # The following code is largely inspired by PyInstaller hook_numpy.core.py
 #------------------------------------------------------------------------------
 # START
 #------------------------------------------------------------------------------
+
 def remove_suffix(string, suffix):
     """
     This function removes the given suffix from a string, if the string
@@ -84,12 +84,13 @@ def get_package_paths(package):
     return pkg_base, pkg_dir
 
 def get_numpy_core_binaries():
-    """Return any binaries in numpy/core, whether or not actually used
-    by our script. This covers the special case of MKL binaries, which
-    cannot be detected by dependency managers.
+    """Return any binaries in numpy/core and/or numpy/.libs, whether
+    or not actually used by our script.
+    This covers the special case of MKL binaries, which cannot be detected
+    by dependency managers.
     """
     # covers/unifies cases, where sys.base_prefix does not deliver
-    # everything we need and / or is not an abspath.
+    # everything we need and/or is not an abspath.
     base_prefix = getattr(sys, "real_prefix",
                           getattr(sys, "base_prefix", sys.prefix)
                          )
@@ -98,24 +99,36 @@ def get_numpy_core_binaries():
 
     binaries = []
 
-    # look for libraries in numpy package path
-    # should already return MKLs in ordinary cases
+    # first look in numpy/.libs for binaries
+    _, pkg_dir = get_package_paths("numpy")
+    libdir = os.path.join(pkg_dir, ".libs")
+    if os.path.isdir(libdir):
+        dlls_pkg = [f for f in os.listdir(libdir)]
+        binaries += [(os.path.join(libdir, f), '.') for f in dlls_pkg]
+
+    # then look for libraries in numpy.core package path
+    # should already return the MKL DLLs in ordinary cases
     _, pkg_dir = get_package_paths("numpy.core")
     re_anylib = re.compile(r'\w+\.(?:dll|so|dylib)', re.IGNORECASE)
     dlls_pkg = [f for f in os.listdir(pkg_dir) if re_anylib.match(f)]
     binaries += [(os.path.join(pkg_dir, f), '.') for f in dlls_pkg]
 
-    # also look for MKL libraries in pythons lib directory if present
+    # Also look for MKL libraries in Python's lib directory if present.
+    # Anything found here will have to land in the dist folder, because there
+    # just is no logical other place, and hope for the best ...
+    # TODO: not supported yet!
     if is_win:
         lib_dir = os.path.join(base_prefix, "Library", "bin")
     else:
         lib_dir = os.path.join(base_prefix, "lib")
+
     if os.path.isdir(lib_dir):
         re_mkllib = re.compile(r'^(?:lib)?mkl\w+\.(?:dll|so|dylib)', re.IGNORECASE)
         dlls_mkl = [f for f in os.listdir(lib_dir) if re_mkllib.match(f)]
         if dlls_mkl:
-            info("MKL libraries found when importing numpy. Adding MKL to binaries")
-            binaries += [(os.path.join(lib_dir, f), '.') for f in dlls_mkl]
+            info(" Additional MKL libraries found.")
+            info(" Not copying MKL binaries in '%s' for numpy!" % libdir)
+            # binaries += [(os.path.join(lib_dir, f), '.') for f in dlls_mkl]
 
     return binaries
 #------------------------------------------------------------------------------
@@ -131,40 +144,37 @@ class NumpyPlugin(UserPluginBase):
     def __init__(self):
         self.files_copied = False      # ensure one-time action
 
-    def getImplicitImports(self, module):
-        full_name = module.getFullName()
-        if full_name == "numpy":
-            yield "numpy.core._dtype_ctypes", True
-
     def considerExtraDlls(self, dist_dir, module):
-        """Copy the binaries in 'numpy.core'.
+        """Copy the extra numpy binaries.
         """
         if self.files_copied:
             return ()
         self.files_copied = True
-
-        tar_dir  = os.path.join(dist_dir, "numpy", "core")
 
         binaries = get_numpy_core_binaries()
         bin_total = len(binaries)      # anything there at all?
         if bin_total == 0:
             return ()
 
-        info("Now copying binaries from 'numpy.core'.")
-        mkl_count = 0
-
+        info(" Now copying extra binaries from 'numpy' installation:")
         for f in binaries:
-            core_file = f[0].lower()
-            base_file = os.path.basename(core_file)
-            if base_file.startswith(("mkl", "tbb", "lib", "svml")):
-                mkl_count += 1
-            shutil.copy(core_file, tar_dir)
+            bin_file = f[0].lower()         # full binary file name
+            idx = bin_file.find("numpy")    # this will always work (idx > 0)
+            back_end = bin_file[idx:]       # => like 'numpy/core/file.so'
+            tar_file = os.path.join(dist_dir, back_end)
+            info(' ' + bin_file)
 
-        msg = "Copied %i 'numpy.core' binaries, of which %i are for MKL."
-        msg = msg % (bin_total, mkl_count)
+            # create any missing intermediate folders
+            if not os.path.exists(os.path.dirname(tar_file)):
+                os.makedirs(os.path.dirname(tar_file))
+
+            shutil.copy(bin_file, tar_file)
+
+        msg = " Copied %i %s."
+        msg = msg % (bin_total, "binary" if bin_total < 2 else "binaries")
         info(msg)
-
         return ()
+
 
 class NumpyPluginDetector(UserPluginBase):
     plugin_name = "numpy-plugin"

@@ -54,17 +54,10 @@ from .standard.PySidePyQtPlugin import (
     NuitkaPluginDetectorPyQtPySidePlugins,
     NuitkaPluginPyQtPySidePlugins
 )
-from .user.TkinterPlugin import (
-    TkinterPluginDetector,
-    TkinterPlugin
-)
-from .user.NumpyPlugin import (
-    NumpyPluginDetector,
-    NumpyPlugin
-)
+from .standard.TkinterPlugin import TkinterPlugin, TkinterPluginDetector
 
 # The standard plug-ins have their list hard-coded here. User plug-ins will
-# be scanned later, TODO.
+# be scanned later.
 
 active_plugin_list = [
     NuitkaPluginPopularImplicitImports(),
