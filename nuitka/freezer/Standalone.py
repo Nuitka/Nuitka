@@ -639,8 +639,8 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
             if python_version >= 300:
                 filename = filename.decode("utf-8")
 
-            # Sometimes might use stuff not found.
-            if filename == "not found":
+            # Sometimes might use stuff not found or supplied by ldd itself.
+            if filename in ("not found", "ldd"):
                 continue
 
             # pylint: disable=line-too-long
