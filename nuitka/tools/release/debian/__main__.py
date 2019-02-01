@@ -20,7 +20,7 @@ def main():
     # Complex stuff, pylint: disable=too-many-branches,too-many-statements
 
     # Make sure error messages are in English.
-    os.environ["LANG"] = "C"
+    os.environ["LANG"] = 'C'
 
     parser = OptionParser()
 
