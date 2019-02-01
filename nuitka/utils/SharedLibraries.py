@@ -27,6 +27,15 @@ from sys import getfilesystemencoding
 from nuitka.__past__ import unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.PythonVersions import python_version
 
+from .Utils import isAlpineLinux
+
+
+def localDLLFromFilesystem(name, paths):
+    for path in paths:
+        for root, _dirs, files in os.walk(path):
+            if name in files:
+                return os.path.join(root,name)
+
 
 def locateDLL(dll_name):
     dll_name = ctypes.util.find_library(dll_name)
@@ -44,6 +53,12 @@ def locateDLL(dll_name):
             )
         else:
             return dll_name
+
+    if isAlpineLinux():
+        return localDLLFromFilesystem(
+            name  = dll_name,
+            paths = ["/lib","/usr/lib","/usr/local/lib"]
+        )
 
     import subprocess
     process = subprocess.Popen(

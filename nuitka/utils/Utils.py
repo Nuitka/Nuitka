@@ -54,6 +54,20 @@ def isPosixWindows():
     """
     return os.name == "posix" and getOS() == "Windows"
 
+_is_alpine = None
+
+def isAlpineLinux():
+    if os.name == "posix":
+
+        # Avoid repeated file system lookup, pylint: disable=global-statement
+        global _is_alpine
+        if _is_alpine is None:
+            _is_alpine = os.path.isfile("/etc/alpine-release")
+
+        return _is_alpine
+    else:
+        return False
+
 
 def getArchitecture():
     if getOS() == "Windows":
