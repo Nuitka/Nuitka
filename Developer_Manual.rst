@@ -334,14 +334,20 @@ The "git flow" model
   those changes.
 
 
+API documentation
+=================
+
+There is API documentation generated with ``doxygen``, available at `this
+location <http://nuitka.net/apidoc>`__ .
+
 Checking the Source
 ===================
 
-The static checking for errors is currently done with "PyLint". In the future,
+The static checking for errors is currently done with ``PyLint``. In the future,
 Nuitka itself will gain the ability to present its findings in a similar way,
 but this is not a priority, and we are not there yet.
 
-So, we currently use "PyLint" with options defined in a script.
+So, we currently use ``PyLint`` with options defined in a script.
 
 .. code-block:: sh
 
