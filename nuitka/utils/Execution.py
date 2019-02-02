@@ -26,7 +26,7 @@ import os
 import subprocess
 from contextlib import contextmanager
 
-from .Utils import getArchitecture, getOS
+from .Utils import getArchitecture, getOS, isWin32Windows
 
 
 def callExec(args):
@@ -37,10 +37,7 @@ def callExec(args):
     """
 
     # On Windows os.execl does not work properly
-    if getOS() != "Windows":
-        # The star arguments is the API of execl
-        os.execl(*args)
-    else:
+    if isWin32Windows():
         args = list(args)
         del args[1]
 
@@ -60,6 +57,9 @@ def callExec(args):
             # There was a more relevant stack trace already, so abort this
             # right here, pylint: disable=protected-access
             os._exit(2)
+    else:
+        # The star arguments is the API of execl
+        os.execl(*args)
 
 
 def getExecutablePath(filename):

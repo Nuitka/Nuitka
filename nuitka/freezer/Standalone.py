@@ -598,7 +598,7 @@ def _detectBinaryPathDLLsLinuxBSD(dll_filename):
     # loading the other DLLs too. This happens at least for Python installs
     # on Travis. pylint: disable=global-statement
     global _detected_python_rpath
-    if _detected_python_rpath is None:
+    if _detected_python_rpath is None and not Utils.isPosixWindows():
         _detected_python_rpath = getSharedLibraryRPATH(sys.executable) or False
 
         if _detected_python_rpath:
@@ -1208,7 +1208,11 @@ def detectBinaryDLLs(is_main_executable, source_dir, original_filename,
         return _detectBinaryPathDLLsLinuxBSD(
             dll_filename = original_filename
         )
-    elif Utils.getOS() == "Windows":
+    elif Utils.isPosixWindows():
+        return _detectBinaryPathDLLsLinuxBSD(
+            dll_filename = original_filename
+        )
+    elif Utils.isWin32Windows():
         if Options.isExperimental("use_pefile"):
             with TimerReport("Running internal dependency walker for %s took %%.2f seconds" % binary_filename):
                 return _detectBinaryPathDLLsWindowsPE(

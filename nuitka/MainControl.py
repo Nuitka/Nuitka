@@ -417,11 +417,7 @@ def makeSourceDirectory(main_module):
                 getStandaloneDirectoryPath(main_module),
                 *module.getFullName().split('.')
             )
-
-            if Utils.getOS() == "Windows":
-                target_filename += ".pyd"
-            else:
-                target_filename += ".so"
+            target_filename += Utils.getSharedLibrarySuffix()
 
             target_dir = os.path.dirname(target_filename)
 
