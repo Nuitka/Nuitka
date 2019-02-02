@@ -226,10 +226,22 @@ def convertUsing2to3(path, force = False):
     ]
 
     with open(os.devnull, 'w') as devnull:
-        check_output(
-            command,
-            stderr = devnull
-        )
+        try:
+            check_output(
+                command,
+                stderr = devnull
+            )
+
+        except subprocess.CalledProcessError:
+            if os.name == "nt":
+                raise
+
+            command[0:3] = ["2to3"]
+
+            check_output(
+                command,
+                stderr = devnull
+            )
 
     with open(new_path) as result_file:
         data = result_file.read()
