@@ -550,6 +550,7 @@ setExpressionDispatchDict(
         "EXPRESSION_BUILTIN_TUPLE"                    : generateBuiltinTupleCode,
         "EXPRESSION_BUILTIN_LIST"                     : generateBuiltinListCode,
         "EXPRESSION_BUILTIN_SET"                      : generateBuiltinSetCode,
+        "EXPRESSION_BUILTIN_ANY"                      : generateBuiltinAnyCode,
         "EXPRESSION_BUILTIN_FROZENSET"                : generateBuiltinFrozensetCode,
         "EXPRESSION_BUILTIN_DICT"                     : generateBuiltinDictCode,
         "EXPRESSION_BUILTIN_LOCALS_COPY"              : generateBuiltinLocalsCode,

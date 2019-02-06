@@ -267,6 +267,7 @@ else:
 builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), 0)
 builtin_dict_spec = BuiltinParameterSpec("dict", (), 0, "list_args", "dict_args")
 builtin_len_spec = BuiltinParameterSpecNoKeywords("len", ("object",), 0)
+builtin_any_spec = BuiltinParameterSpecNoKeywords("any", ("object",), 0)
 
 if python_version < 370:
     builtin_tuple_spec = BuiltinParameterSpec("tuple", ("sequence",), 1)
