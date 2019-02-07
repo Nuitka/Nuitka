@@ -1,4 +1,5 @@
 #     Copyright 2019, Kay Hayen, mailto:kay.hayen@gmail.com
+#                     Batakrishna Sahu, mailto:batakrishna.sahu@suiit.ac.in
 #
 #     Part of "Nuitka", an optimizing Python compiler that is compatible and
 #     integrates with CPython, but also works on its own.
@@ -29,14 +30,6 @@ class ExpressionBuiltinAny(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_BUILTIN_ANY"
 
     builtin_spec = BuiltinParameterSpecs.builtin_any_spec
-
-    def getIntegerValue(self):
-        value = self.getValue()
-
-        if value.hasShapeSlotAny():
-            return value.getIterationLength()
-        else:
-            return None
 
     def computeExpression(self, trace_collection):
         return self.getValue().computeExpressionAny(

@@ -166,6 +166,7 @@ from .IteratorCodes import (
     generateBuiltinIter2Code,
     generateBuiltinIterForUnpackCode,
     generateBuiltinLenCode,
+    generateBuiltinAnyCode,
     generateBuiltinNext1Code,
     generateBuiltinNext2Code,
     generateSpecialUnpackCode,

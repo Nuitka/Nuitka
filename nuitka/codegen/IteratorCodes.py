@@ -298,3 +298,17 @@ def generateBuiltinLenCode(to_name, expression, emit, context):
         emit             = emit,
         context          = context
     )
+
+def generateBuiltinAnyCode(to_name, expression, emit, context):
+    generateCAPIObjectCode(
+        to_name          = to_name,
+        capi             = "BUILTIN_ANY",
+        arg_desc         = (
+            ("any_arg", expression.getValue()),
+        ),
+        may_raise        = expression.mayRaiseException(BaseException),
+        conversion_check = decideConversionCheckNeeded(to_name, expression),
+        source_ref       = expression.getCompatibleSourceReference(),
+        emit             = emit,
+        context          = context
+    )
