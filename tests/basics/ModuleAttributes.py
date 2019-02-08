@@ -47,6 +47,10 @@ def checkFromFunction():
             d = dict(d)
             d["__file__"] = "<__file__ removed>"
 
+        if "__compiled__" in d:
+            d = dict(d)
+            del d["__compiled__"]
+
         import pprint
         return pprint.pformat(d)
 

@@ -30,6 +30,9 @@ def displayDict(d):
     if "__file__" in d:
         d["__file__"] = "<__file__ removed>"
 
+    if "__compiled__" in d:
+        del d["__compiled__"]
+
     import pprint
     return pprint.pformat(d)
 

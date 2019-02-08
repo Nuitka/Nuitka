@@ -17,11 +17,11 @@
 #
 print( "some_package.star_importing, doing the star import" )
 
-print("Before", sorted(dir()))
+print("Before", sorted(x for x in dir() if x != "__compiled__"))
 
-from .pyexpat import *
+from .pyexpat import *  # @UnusedWildImport
 
 lala = 1
-print("After", sorted(dir()))
+print("After", sorted(x for x in dir() if x != "__compiled__"))
 
 print( "Finished" )

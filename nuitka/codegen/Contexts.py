@@ -619,6 +619,9 @@ def _getConstantDefaultPopulation():
         "__cmp__",
         "__iter__",
 
+        # Nuitka specific
+        "__compiled__",
+
         # Patched module name.
         "inspect",
 

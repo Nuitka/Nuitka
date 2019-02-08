@@ -53,6 +53,7 @@ from .BlobCodes import StreamData
 from .Emission import SourceCodeCollector
 from .Indentation import indented
 from .templates.CodeTemplatesConstants import template_constants_reading
+from nuitka.Version import getNuitkaVersion
 
 
 def generateConstantReferenceCode(to_name, expression, emit, context):
@@ -1202,11 +1203,22 @@ def getConstantsDefinitionCode(context):
         sys_executable = context.getConstantCode(sys.executable)
         sys_prefix = context.getConstantCode(sys.prefix)
 
+    major, minor, micro = getNuitkaVersion().split(".")
+
+    if "rc" in micro:
+        micro = micro[:micro.find("rc")]
+        level = "candidate"
+    else:
+        level = "release"
+
     return template_constants_reading % {
         "constant_declarations" : '\n'.join(constant_declarations),
         "constant_inits"        : indented(constant_inits),
         "constant_checks"       : indented(constant_checks),
         "sys_executable"        : sys_executable,
         "sys_prefix"            : sys_prefix,
-
+        "nuitka_version_major"  : major,
+        "nuitka_version_minor"  : minor,
+        "nuitka_version_micro"  : micro,
+        "nuitka_version_level"  : level,
     }
