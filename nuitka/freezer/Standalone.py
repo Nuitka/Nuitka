@@ -426,6 +426,7 @@ def scanStandardLibraryPath(stdlib_dir):
                 dirs
                 if not dirname.startswith("lib-")
                 if dirname != "Tools"
+                if not dirname.startswith("plat-")
             ]
 
         if import_path in ("tkinter", "importlib", "ctypes", "unittest",
