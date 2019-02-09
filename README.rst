@@ -1059,7 +1059,7 @@ Projects used by Nuitka
   refactoring Python. This has allows us to automatically format my Python
   code according to preferences and make global changes easily.
 
-* The `isort project <http://http://timothycrosley.github.io/isort/>`__
+* The `isort project <http://timothycrosley.github.io/isort/>`__
 
   Thanks for making nice import ordering so easy. This makes it so easy to let
   your IDE do it and clean up afterwards.
