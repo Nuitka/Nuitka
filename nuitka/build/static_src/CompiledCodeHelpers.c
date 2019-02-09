@@ -541,6 +541,18 @@ PyObject *BUILTIN_LEN(PyObject *value) {
     return PyInt_FromSsize_t(res);
 }
 
+PyObject *BUILTIN_ANY(PyObject *value) {
+    CHECK_OBJECT(value);
+
+    Py_ssize_t res = PyObject_Size(value);
+
+    if (unlikely(res < 0 && ERROR_OCCURRED())) {
+        return NULL;
+    }
+
+    return PyInt_FromSsize_t(res);
+}
+
 NUITKA_DEFINE_BUILTIN(format);
 
 PyObject *BUILTIN_FORMAT(PyObject *value, PyObject *format_spec) {
