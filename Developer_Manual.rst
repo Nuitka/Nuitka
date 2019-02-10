@@ -2313,7 +2313,7 @@ things are not affectable by aliasing in any way.
 .. code-block:: python
 
    a = 3
-   b = b
+   b = a
 
    b += 4 # a is not changed
 
