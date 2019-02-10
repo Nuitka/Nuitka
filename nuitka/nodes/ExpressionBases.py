@@ -385,7 +385,42 @@ class ExpressionBase(NodeBase):
     def computeExpressionAny(self, any_node, trace_collection):
         shape = self.getTypeShape()
 
-        has_len = shape.hasShapeSlotAny()    
+        has_any = shape.hasShapeSlotAny()
+
+        if has_any is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template      = "object of type '%s' has no any()",
+                operation     = "any",
+                original_node = any_node,
+                value_node    = self
+            )
+        elif has_any is True:
+            iter_any = self.getTruthValue()
+
+            if iter_any is not None:
+                from .ConstantRefNodes import makeConstantRefNode
+
+                result = makeConstantRefNode(
+                    constant   = bool(iter_any), # make sure to downcast long
+                    source_ref = any_node.getSourceReference()
+                )
+
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node = result,
+                    old_node = self
+                )
+
+                return result, "new_constant", "Predicted 'any' result from value shape."
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return any_node, None, None
 
     def computeExpressionInt(self, int_node, trace_collection):
         shape = self.getTypeShape()
