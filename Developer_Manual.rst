@@ -1152,7 +1152,7 @@ Every helper function that contains code that might raise needs these
 variables. After a failed call, our variant of ``PyErr_Fetch`` called
 ``FETCH_ERROR_OCCURRED`` must be used to catch the defined error, unless some
 quick exception cases apply. The quick exception means, ``NULL`` return from
-C-API without a set exception means means e.g. ``StopIteration``.
+C-API without a set exception means e.g. ``StopIteration``.
 
 As an optimization, functions that raise exceptions, but are known not to do so,
 for whatever reason, could only be asserted to not do so.
@@ -1236,7 +1236,7 @@ Problems were
 
 The current approach is as follows. Code generation detects constants used in
 only one module, and declared ``static`` there, if the module is the only user,
-or ``extern`` if it is not. Some values or forced to be global, as they are
+or ``extern`` if it is not. Some values are forced to be global, as they are
 used pre-main or in helpers.
 
 These ``extern`` values are globally created before anything is used. The
@@ -2313,7 +2313,7 @@ things are not affectable by aliasing in any way.
 .. code-block:: python
 
    a = 3
-   b = 3
+   b = a
 
    b += 4 # a is not changed
 
