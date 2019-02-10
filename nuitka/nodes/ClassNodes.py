@@ -29,19 +29,18 @@ from .LocalsScopes import getLocalsDictHandle, setLocalsDictType
 from .OutlineNodes import ExpressionOutlineFunction
 
 
-class ExpressionClassBody(MarkNeedsAnnotationsMixin,
-                          ExpressionOutlineFunction):
+class ExpressionClassBody(MarkNeedsAnnotationsMixin, ExpressionOutlineFunction):
 
     kind = "EXPRESSION_CLASS_BODY"
 
     def __init__(self, provider, name, doc, source_ref):
         ExpressionOutlineFunction.__init__(
             self,
-            provider    = provider,
-            name        = name,
+            provider=provider,
+            name=name,
             # TODO: Not used, right?
-            code_prefix = "class",
-            source_ref  = source_ref
+            code_prefix="class",
+            source_ref=source_ref,
         )
 
         MarkNeedsAnnotationsMixin.__init__(self)
@@ -50,7 +49,7 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin,
 
         self.locals_dict_name = "locals_%s_%d" % (
             self.getCodeName(),
-            source_ref.getLineNumber()
+            source_ref.getLineNumber(),
         )
 
         # Force creation with proper type.
@@ -64,19 +63,17 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin,
 
     def getDetails(self):
         return {
-            "name"       : self.getFunctionName(),
-            "provider"   : self.provider.getCodeName(),
-            "doc"        : self.doc,
-            "flags"      : self.flags
+            "name": self.getFunctionName(),
+            "provider": self.provider.getCodeName(),
+            "doc": self.doc,
+            "flags": self.flags,
         }
 
     def getDetailsForDisplay(self):
         result = {
-            "name"       : self.getFunctionName(),
-            "provider"   : self.provider.getCodeName(),
-            "flags"      : ""
-                             if self.flags is None else
-                           ','.join(sorted(self.flags))
+            "name": self.getFunctionName(),
+            "provider": self.provider.getCodeName(),
+            "flags": "" if self.flags is None else ",".join(sorted(self.flags)),
         }
 
         if self.doc is not None:
@@ -86,11 +83,7 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin,
 
     @classmethod
     def fromXML(cls, provider, source_ref, **args):
-        return cls(
-            provider   = provider,
-            source_ref = source_ref,
-            **args
-        )
+        return cls(provider=provider, source_ref=source_ref, **args)
 
     def getDoc(self):
         return self.doc
@@ -107,13 +100,10 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin,
 
         if variable_name == "__class__":
             if python_version < 300:
-                return self.provider.getVariableForClosure(
-                    "__class__"
-                )
+                return self.provider.getVariableForClosure("__class__")
             else:
                 return ExpressionOutlineFunction.getVariableForClosure(
-                    self,
-                    variable_name = "__class__"
+                    self, variable_name="__class__"
                 )
         else:
             result = self.provider.getVariableForClosure(variable_name)
@@ -142,19 +132,11 @@ class ExpressionClassBody(MarkNeedsAnnotationsMixin,
 class ExpressionSelectMetaclass(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_SELECT_METACLASS"
 
-    named_children = (
-        "metaclass",
-        "bases"
-    )
+    named_children = ("metaclass", "bases")
 
     def __init__(self, metaclass, bases, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "metaclass" : metaclass,
-                "bases"     : bases
-            },
-            source_ref = source_ref
+            self, values={"metaclass": metaclass, "bases": bases}, source_ref=source_ref
         )
 
     def computeExpression(self, trace_collection):
@@ -173,12 +155,8 @@ class ExpressionBuiltinType3(ExpressionChildrenHavingBase):
     def __init__(self, type_name, bases, type_dict, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "type_name" : type_name,
-                "bases"     : bases,
-                "dict"      : type_dict
-            },
-            source_ref = source_ref
+            values={"type_name": type_name, "bases": bases, "dict": type_dict},
+            source_ref=source_ref,
         )
 
     getTypeName = ExpressionChildrenHavingBase.childGetter("type_name")

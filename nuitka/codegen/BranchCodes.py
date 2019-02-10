@@ -37,9 +37,7 @@ def generateBranchCode(statement, emit, context):
     context.setFalseBranchTarget(false_target)
 
     generateConditionCode(
-        condition = statement.getCondition(),
-        emit      = emit,
-        context   = context
+        condition=statement.getCondition(), emit=emit, context=context
     )
 
     context.setTrueBranchTarget(old_true_target)
@@ -48,9 +46,7 @@ def generateBranchCode(statement, emit, context):
     getLabelCode(true_target, emit)
 
     generateStatementSequenceCode(
-        statement_sequence = statement.getBranchYes(),
-        emit               = emit,
-        context            = context
+        statement_sequence=statement.getBranchYes(), emit=emit, context=context
     )
 
     if statement.getBranchNo() is not None:
@@ -58,9 +54,7 @@ def generateBranchCode(statement, emit, context):
         getLabelCode(false_target, emit)
 
         generateStatementSequenceCode(
-            statement_sequence = statement.getBranchNo(),
-            emit               = emit,
-            context            = context
+            statement_sequence=statement.getBranchNo(), emit=emit, context=context
         )
 
         getLabelCode(end_target, emit)

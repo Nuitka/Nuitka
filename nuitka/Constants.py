@@ -30,16 +30,17 @@ from .__past__ import (  # pylint: disable=I0021,redefined-builtin
     iterItems,
     long,
     unicode,
-    xrange
+    xrange,
 )
 from .Builtins import (
     builtin_anon_names,
     builtin_anon_value_list,
     builtin_exception_values_list,
-    builtin_named_values_list
+    builtin_named_values_list,
 )
 
 NoneType = type(None)
+
 
 def compareConstants(a, b):
     # Many many cases to deal with, pylint: disable=too-many-branches,too-many-return-statements
@@ -51,8 +52,7 @@ def compareConstants(a, b):
     # Now it's either not the same, or it is a container that contains NaN or it
     # is a complex or float that is NaN, the other cases can use == at the end.
     if type(a) is complex:
-        return compareConstants(a.imag, b.imag) and \
-               compareConstants(a.real, b.real)
+        return compareConstants(a.imag, b.imag) and compareConstants(a.real, b.real)
 
     if type(a) is float:
         # Check sign first, -0.0 is not 0.0, or -nan is not nan, it has a
@@ -80,8 +80,7 @@ def compareConstants(a, b):
 
         for ea1, ea2 in iterItems(a):
             for eb1, eb2 in iterItems(b):
-                if compareConstants(ea1, eb1) and \
-                   compareConstants(ea2, eb2):
+                if compareConstants(ea1, eb1) and compareConstants(ea2, eb2):
                     break
             else:
                 return False
@@ -109,6 +108,7 @@ def compareConstants(a, b):
     # constants are built in the same way, therefore above checks.
     return a == b
 
+
 # These built-in type references are kind of constant too. The list should be
 # complete.
 constant_builtin_types = (
@@ -126,15 +126,13 @@ constant_builtin_types = (
 )
 
 if python_version >= 300:
-    constant_builtin_types += (
-        bytes,
-    )
+    constant_builtin_types += (bytes,)
 else:
     constant_builtin_types += (
         unicode,
         long,
         # This has no name in Python, but the natural one in C-API.
-        builtin_anon_names["instance"]
+        builtin_anon_names["instance"],
     )
 
 
@@ -157,15 +155,30 @@ def isConstant(constant):
                 return False
         return True
     elif constant_type is slice:
-        if not isConstant(constant.start) or \
-           not isConstant(constant.stop) or \
-           not isConstant(constant.step):
+        if (
+            not isConstant(constant.start)
+            or not isConstant(constant.stop)
+            or not isConstant(constant.step)
+        ):
             return False
 
         return True
-    elif constant_type in (str, unicode, complex, int, long, bool, float,
-                           NoneType, range, bytes, set, frozenset, xrange,
-                           bytearray):
+    elif constant_type in (
+        str,
+        unicode,
+        complex,
+        int,
+        long,
+        bool,
+        float,
+        NoneType,
+        range,
+        bytes,
+        set,
+        frozenset,
+        xrange,
+        bytearray,
+    ):
         return True
     elif constant in (Ellipsis, NoneType, NotImplemented):
         return True
@@ -173,8 +186,10 @@ def isConstant(constant):
         return True
     elif constant_type is type:
         # Maybe pre-build this as a set for quicker testing.
-        return constant.__name__ in builtin_type_names or \
-               constant in builtin_exception_values_list
+        return (
+            constant.__name__ in builtin_type_names
+            or constant in builtin_exception_values_list
+        )
     elif constant_type is BuiltinFunctionType and constant in builtin_named_values_list:
         # TODO: Some others could also be usable and even interesting, but
         # then probably should go into other node types, e.g. str.join is
@@ -195,9 +210,22 @@ def isMutable(constant):
 
     constant_type = type(constant)
 
-    if constant_type in (str, unicode, complex, int, long, bool, float,
-                         NoneType, range, bytes, slice, xrange, type,
-                         BuiltinFunctionType):
+    if constant_type in (
+        str,
+        unicode,
+        complex,
+        int,
+        long,
+        bool,
+        float,
+        NoneType,
+        range,
+        bytes,
+        slice,
+        xrange,
+        type,
+        BuiltinFunctionType,
+    ):
         return False
     elif constant_type in (dict, list, set, bytearray):
         return True
@@ -231,8 +259,20 @@ def isHashable(constant):
 
     constant_type = type(constant)
 
-    if constant_type in (str, unicode, complex, int, long, bool, float,
-                         NoneType, xrange, bytes, type, BuiltinFunctionType):
+    if constant_type in (
+        str,
+        unicode,
+        complex,
+        int,
+        long,
+        bool,
+        float,
+        NoneType,
+        xrange,
+        bytes,
+        type,
+        BuiltinFunctionType,
+    ):
         return True
     elif constant_type in (dict, list, set, slice, bytearray):
         return False
@@ -258,8 +298,20 @@ def getUnhashableConstant(constant):
 
     constant_type = type(constant)
 
-    if constant_type in (str, unicode, complex, int, long, bool, float,
-                         NoneType, xrange, bytes, type, BuiltinFunctionType):
+    if constant_type in (
+        str,
+        unicode,
+        complex,
+        int,
+        long,
+        bool,
+        float,
+        NoneType,
+        xrange,
+        bytes,
+        type,
+        BuiltinFunctionType,
+    ):
         return None
     elif constant_type in (dict, list, set):
         return constant
@@ -281,7 +333,16 @@ def getUnhashableConstant(constant):
 
 def isIterableConstant(constant):
     return type(constant) in (
-        str, unicode, list, tuple, set, frozenset, dict, xrange, bytes, bytearray
+        str,
+        unicode,
+        list,
+        tuple,
+        set,
+        frozenset,
+        dict,
+        xrange,
+        bytes,
+        bytearray,
     )
 
 
@@ -301,10 +362,7 @@ def isIndexConstant(constant):
 
 def createConstantDict(keys, values):
     # Create it proper size immediately.
-    constant_value = dict.fromkeys(
-        keys,
-        None
-    )
+    constant_value = dict.fromkeys(keys, None)
 
     for key, value in zip(keys, values):
         constant_value[key] = value

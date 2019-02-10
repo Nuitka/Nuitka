@@ -35,8 +35,8 @@ def printIndented(level, *what):
     print("    " * level, *what)
 
 
-def printSeparator(level = 0):
-    print("    " * level, '*' * 10)
+def printSeparator(level=0):
+    print("    " * level, "*" * 10)
 
 
 def printLine(*what):
@@ -44,10 +44,7 @@ def printLine(*what):
 
 
 def printError(message):
-    print(
-        message,
-        file = sys.stderr
-    )
+    print(message, file=sys.stderr)
 
 
 def flushStdout():

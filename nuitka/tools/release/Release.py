@@ -38,7 +38,7 @@ def checkAtHome():
 
             assert line.startswith("gitdir:")
 
-            git_dir = line[ 8:]
+            git_dir = line[8:]
 
     git_description_filename = os.path.join(git_dir, "description")
 
@@ -46,14 +46,13 @@ def checkAtHome():
 
 
 def getBranchName():
-    branch_name = check_output(
-        "git symbolic-ref --short HEAD".split()
-    ).strip()
+    branch_name = check_output("git symbolic-ref --short HEAD".split()).strip()
 
     if str is not bytes:
         branch_name = branch_name.decode()
 
     return branch_name
+
 
 def checkBranchName():
     branch_name = getBranchName()
@@ -65,7 +64,7 @@ def checkBranchName():
         "develop",
         "factory",
         "release/" + nuitka_version,
-        "hotfix/" + nuitka_version
+        "hotfix/" + nuitka_version,
     ), branch_name
 
     return branch_name
@@ -76,9 +75,11 @@ def getBranchCategory(branch_name):
 
     """
 
-    if branch_name.startswith("release") or \
-       branch_name == "master" or \
-       branch_name.startswith("hotfix/"):
+    if (
+        branch_name.startswith("release")
+        or branch_name == "master"
+        or branch_name.startswith("hotfix/")
+    ):
         category = "stable"
     elif branch_name == "factory":
         category = "factory"

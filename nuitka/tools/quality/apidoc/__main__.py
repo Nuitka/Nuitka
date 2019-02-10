@@ -35,15 +35,9 @@ sys.path.insert(
     0,
     os.path.abspath(
         os.path.normpath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "..",
-                "..",
-                "..",
-                ".."
-            )
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
         )
-    )
+    ),
 )
 
 from nuitka.tools.Basics import goHome  # isort:skip
@@ -56,30 +50,28 @@ def main():
 
     parser.add_option(
         "--verbose",
-        action  = "store_true",
-        dest    = "verbose",
-        default = False,
-        help    = """\
-        Default is %default."""
+        action="store_true",
+        dest="verbose",
+        default=False,
+        help="""\
+        Default is %default.""",
     )
 
     # TODO: No actual options yet.
     _options, _positional_args = parser.parse_args()
 
-    shutil.rmtree("html", ignore_errors = True)
+    shutil.rmtree("html", ignore_errors=True)
 
     print("Running doxygen:")
-    subprocess.check_call(
-        [
-            "doxygen",
-            "doc/Doxyfile",
-        ]
-    )
+    subprocess.check_call(["doxygen", "doc/Doxyfile"])
 
     # Update the repository on the web site.
-    assert os.system(
-        "rsync -avz --delete html --chown www-data root@nuitka.net:/var/www/apidoc/"
-    ) == 0
+    assert (
+        os.system(
+            "rsync -avz --delete html --chown www-data root@nuitka.net:/var/www/apidoc/"
+        )
+        == 0
+    )
 
     print("Finished.")
 

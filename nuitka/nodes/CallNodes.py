@@ -31,9 +31,7 @@ from .ExpressionBases import ExpressionChildrenHavingBase
 class ExpressionCall(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL"
 
-    named_children = (
-        "called", "args", "kw"
-    )
+    named_children = ("called", "args", "kw")
 
     def __init__(self, called, args, kw, source_ref):
         assert called.isExpression()
@@ -42,12 +40,8 @@ class ExpressionCall(ExpressionChildrenHavingBase):
 
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "called" : called,
-                "args"   : args,
-                "kw"     : kw,
-            },
-            source_ref = source_ref
+            values={"called": called, "args": args, "kw": kw},
+            source_ref=source_ref,
         )
 
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
@@ -62,10 +56,10 @@ class ExpressionCall(ExpressionChildrenHavingBase):
         called = self.getCalled()
 
         return called.computeExpressionCall(
-            call_node        = self,
-            call_args        = self.getCallArgs(),
-            call_kw          = self.getCallKw(),
-            trace_collection = trace_collection
+            call_node=self,
+            call_args=self.getCallArgs(),
+            call_kw=self.getCallKw(),
+            trace_collection=trace_collection,
         )
 
     def extractSideEffectsPreCall(self):
@@ -78,22 +72,14 @@ class ExpressionCall(ExpressionChildrenHavingBase):
 class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL_NO_KEYWORDS"
 
-    named_children = (
-        "called",
-        "args"
-    )
+    named_children = ("called", "args")
 
     def __init__(self, called, args, source_ref):
         assert called.isExpression()
         assert args.isExpression()
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "called" : called,
-                "args"   : args
-            },
-            source_ref = source_ref
+            self, values={"called": called, "args": args}, source_ref=source_ref
         )
 
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
@@ -102,10 +88,10 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
 
     def computeExpression(self, trace_collection):
         return self.getCalled().computeExpressionCall(
-            call_node        = self,
-            call_args        = self.getCallArgs(),
-            call_kw          = None,
-            trace_collection = trace_collection
+            call_node=self,
+            call_args=self.getCallArgs(),
+            call_kw=None,
+            trace_collection=trace_collection,
         )
 
     @staticmethod
@@ -124,22 +110,14 @@ class ExpressionCallNoKeywords(ExpressionChildrenHavingBase):
 class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL_KEYWORDS_ONLY"
 
-    named_children = (
-        "called",
-        "kw"
-    )
+    named_children = ("called", "kw")
 
     def __init__(self, called, kw, source_ref):
         assert called.isExpression()
         assert kw.isExpression()
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "called" : called,
-                "kw"     : kw
-            },
-            source_ref = source_ref
+            self, values={"called": called, "kw": kw}, source_ref=source_ref
         )
 
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
@@ -150,10 +128,10 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
         called = self.getCalled()
 
         return called.computeExpressionCall(
-            call_node        = self,
-            call_args        = None,
-            call_kw          = self.getCallKw(),
-            trace_collection = trace_collection
+            call_node=self,
+            call_args=None,
+            call_kw=self.getCallKw(),
+            trace_collection=trace_collection,
         )
 
     @staticmethod
@@ -172,19 +150,13 @@ class ExpressionCallKeywordsOnly(ExpressionChildrenHavingBase):
 class ExpressionCallEmpty(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_CALL_EMPTY"
 
-    named_children = (
-        "called",
-    )
+    named_children = ("called",)
 
     def __init__(self, called, source_ref):
         assert called.isExpression()
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "called" : called,
-            },
-            source_ref = source_ref
+            self, values={"called": called}, source_ref=source_ref
         )
 
     getCalled = ExpressionChildrenHavingBase.childGetter("called")
@@ -194,12 +166,11 @@ class ExpressionCallEmpty(ExpressionChildrenHavingBase):
         called = self.getCalled()
 
         return called.computeExpressionCall(
-            call_node        = self,
-            call_args        = None,
-            call_kw          = None,
-            trace_collection = trace_collection
+            call_node=self,
+            call_args=None,
+            call_kw=None,
+            trace_collection=trace_collection,
         )
-
 
     @staticmethod
     def getCallKw():
@@ -223,10 +194,12 @@ def makeExpressionCall(called, args, kw, source_ref):
         By avoiding the more complex classes, we can achieve that there is
         less work to do for analysis.
     """
-    has_kw = kw is not None and \
-             (not kw.isExpressionConstantRef() or kw.getConstant() != {})
-    has_args = args is not None and \
-               (not args.isExpressionConstantRef() or args.getConstant() != ())
+    has_kw = kw is not None and (
+        not kw.isExpressionConstantRef() or kw.getConstant() != {}
+    )
+    has_args = args is not None and (
+        not args.isExpressionConstantRef() or args.getConstant() != ()
+    )
 
     if has_kw:
         if has_args:

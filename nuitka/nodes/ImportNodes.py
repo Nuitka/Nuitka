@@ -28,15 +28,9 @@ deeper that what it normally could. The import expression node can recurse.
 import os
 from logging import warning
 
-from nuitka.__past__ import (  # pylint: disable=I0021,redefined-builtin
-    long,
-    unicode
-)
+from nuitka.__past__ import long, unicode  # pylint: disable=I0021,redefined-builtin
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
-from nuitka.importing.Importing import (
-    findModule,
-    getModuleNameAndKindFromFilename
-)
+from nuitka.importing.Importing import findModule, getModuleNameAndKindFromFilename
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.importing.Whitelisting import getModuleWhiteList
 from nuitka.utils.FileOperations import relpath
@@ -44,7 +38,7 @@ from nuitka.utils.FileOperations import relpath
 from .ExpressionBases import (
     ExpressionBase,
     ExpressionChildHavingBase,
-    ExpressionChildrenHavingBase
+    ExpressionChildrenHavingBase,
 )
 from .LocalsScopes import GlobalsDictHandle
 from .NodeBases import StatementChildHavingBase
@@ -63,10 +57,7 @@ class ExpressionImportModuleHard(ExpressionBase):
     __slots__ = ("module_name",)
 
     def __init__(self, module_name, source_ref):
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         self.module_name = module_name
 
@@ -74,9 +65,7 @@ class ExpressionImportModuleHard(ExpressionBase):
         del self.parent
 
     def getDetails(self):
-        return {
-            "module_name" : self.module_name
-        }
+        return {"module_name": self.module_name}
 
     def getModuleName(self):
         return self.module_name
@@ -107,10 +96,7 @@ class ExpressionImportModuleNameHard(ExpressionBase):
     __slots__ = "module_name", "import_name"
 
     def __init__(self, module_name, import_name, source_ref):
-        ExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        ExpressionBase.__init__(self, source_ref=source_ref)
 
         self.module_name = module_name
         self.import_name = import_name
@@ -119,10 +105,7 @@ class ExpressionImportModuleNameHard(ExpressionBase):
         del self.parent
 
     def getDetails(self):
-        return {
-            "module_name" : self.module_name,
-            "import_name" : self.import_name
-        }
+        return {"module_name": self.module_name, "import_name": self.import_name}
 
     def getModuleName(self):
         return self.module_name
@@ -150,25 +133,22 @@ class ExpressionImportModuleNameHard(ExpressionBase):
 class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_IMPORT"
 
-    named_children = (
-        "name", "globals", "locals", "fromlist", "level"
-    )
+    named_children = ("name", "globals", "locals", "fromlist", "level")
 
     _warned_about = set()
 
     @calledWithBuiltinArgumentNamesDecorator
-    def __init__(self, name, globals_arg, locals_arg, fromlist, level,
-                source_ref):
+    def __init__(self, name, globals_arg, locals_arg, fromlist, level, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "name"     : name,
-                "globals"  : globals_arg,
-                "locals"   : locals_arg,
-                "fromlist" : fromlist,
-                "level"    : level
+            values={
+                "name": name,
+                "globals": globals_arg,
+                "locals": locals_arg,
+                "fromlist": fromlist,
+                "level": level,
             },
-            source_ref = source_ref
+            source_ref=source_ref,
         )
 
         self.recurse_attempted = False
@@ -197,8 +177,9 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
     getLevel = ExpressionChildrenHavingBase.childGetter("level")
 
     def _consider(self, trace_collection, module_filename, module_package):
-        assert module_package is None or \
-              (type(module_package) is str and module_package != ""), repr(module_package)
+        assert module_package is None or (
+            type(module_package) is str and module_package != ""
+        ), repr(module_package)
 
         module_filename = os.path.normpath(module_filename)
 
@@ -206,28 +187,28 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
 
         if module_kind is not None:
             decision, reason = decideRecursion(
-                module_filename = module_filename,
-                module_name     = module_name,
-                module_package  = module_package,
-                module_kind     = module_kind
+                module_filename=module_filename,
+                module_name=module_name,
+                module_package=module_package,
+                module_kind=module_kind,
             )
 
             if decision:
                 module_relpath = relpath(module_filename)
 
                 imported_module, added_flag = recurseTo(
-                    module_package  = module_package,
-                    module_filename = module_filename,
-                    module_relpath  = module_relpath,
-                    module_kind     = module_kind,
-                    reason          = reason
+                    module_package=module_package,
+                    module_filename=module_filename,
+                    module_relpath=module_relpath,
+                    module_kind=module_kind,
+                    reason=reason,
                 )
 
                 if added_flag:
                     trace_collection.signalChange(
                         "new_code",
                         imported_module.getSourceReference(),
-                        "Recursed to module."
+                        "Recursed to module.",
                     )
 
                 return imported_module
@@ -235,10 +216,12 @@ class ExpressionBuiltinImport(ExpressionChildrenHavingBase):
                 if module_package is None:
                     module_fullpath = module_name
                 else:
-                    module_fullpath = module_package + '.' + module_name
+                    module_fullpath = module_package + "." + module_name
 
-                if module_filename not in self._warned_about and \
-                   module_fullpath not in getModuleWhiteList():
+                if (
+                    module_filename not in self._warned_about
+                    and module_fullpath not in getModuleWhiteList()
+                ):
                     self._warned_about.add(module_filename)
 
                     warning(
@@ -247,10 +230,8 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 --nofollow-imports (do not warn), \
 --follow-imports (recurse to all), \
 --nofollow-import-to=%(full_path)s (ignore it), \
---follow-import-to=%(full_path)s (recurse to it) to change.""" % {
-                            "full_path" : module_fullpath,
-                            "filename"  : module_filename
-                        }
+--follow-import-to=%(full_path)s (recurse to it) to change."""
+                        % {"full_path": module_fullpath, "filename": module_filename}
                     )
 
     def _attemptRecursion(self, trace_collection, module_name):
@@ -277,24 +258,24 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
             return
 
         module_package, module_filename, self.finding = findModule(
-            importing      = self,
-            module_name    = module_name,
-            parent_package = parent_package,
-            level          = level,
-            warn           = True
+            importing=self,
+            module_name=module_name,
+            parent_package=parent_package,
+            level=level,
+            warn=True,
         )
 
         if module_filename is not None:
             imported_module = self._consider(
-                trace_collection = trace_collection,
-                module_filename  = module_filename,
-                module_package   = module_package
+                trace_collection=trace_collection,
+                module_filename=module_filename,
+                module_package=module_package,
             )
 
             if imported_module is not None:
                 self.imported_module_desc = (
                     imported_module.getFullName(),
-                    imported_module.getFilename()
+                    imported_module.getFilename(),
                 )
 
                 import_list = self.getFromList()
@@ -306,51 +287,50 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                     if type(import_list) not in (tuple, list):
                         import_list = None
 
-                if import_list and \
-                   imported_module.isCompiledPythonPackage():
+                if import_list and imported_module.isCompiledPythonPackage():
                     for import_item in import_list:
-                        if import_item == '*':
+                        if import_item == "*":
                             continue
 
                         module_package, module_filename, _finding = findModule(
-                            importing      = self,
-                            module_name    = import_item,
-                            parent_package = imported_module.getFullName(),
-                            level          = -1, # Relative import, so child is used.
-                            warn           = False
+                            importing=self,
+                            module_name=import_item,
+                            parent_package=imported_module.getFullName(),
+                            level=-1,  # Relative import, so child is used.
+                            warn=False,
                         )
 
                         if module_filename is not None:
                             sub_imported_module = self._consider(
-                                trace_collection = trace_collection,
-                                module_filename  = module_filename,
-                                module_package   = module_package
+                                trace_collection=trace_collection,
+                                module_filename=module_filename,
+                                module_package=module_package,
                             )
 
                             if sub_imported_module is not None:
                                 self.import_list_modules_desc.append(
                                     (
                                         sub_imported_module.getFullName(),
-                                        sub_imported_module.getFilename()
+                                        sub_imported_module.getFilename(),
                                     )
                                 )
         else:
-            while '.' in module_name:
-                module_name = '.'.join(module_name.split('.')[:-1])
+            while "." in module_name:
+                module_name = ".".join(module_name.split(".")[:-1])
 
                 module_package, module_filename, _finding = findModule(
-                    importing      = self,
-                    module_name    = module_name,
-                    parent_package = parent_package,
-                    level          = level,
-                    warn           = True
+                    importing=self,
+                    module_name=module_name,
+                    parent_package=parent_package,
+                    level=level,
+                    warn=True,
                 )
 
                 if module_filename is not None:
                     package_module = self._consider(
-                        trace_collection = trace_collection,
-                        module_filename  = module_filename,
-                        module_package   = module_package
+                        trace_collection=trace_collection,
+                        module_filename=module_filename,
+                        module_package=module_package,
                     )
 
                     if package_module is not None:
@@ -358,36 +338,28 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                             self.package_modules_desc = []
 
                         self.package_modules_desc.append(
-                            (
-                                package_module.getFullName(),
-                                package_module.getFilename()
-                            )
+                            (package_module.getFullName(), package_module.getFilename())
                         )
-
 
     def _addUsedModules(self, trace_collection):
         if self.finding != "not-found":
             if self.imported_module_desc is not None:
                 trace_collection.onUsedModule(
-                    module_name    = self.imported_module_desc[0],
-                    module_relpath = self.imported_module_desc[1]
+                    module_name=self.imported_module_desc[0],
+                    module_relpath=self.imported_module_desc[1],
                 )
 
             for import_list_module_desc in self.import_list_modules_desc:
                 trace_collection.onUsedModule(
-                    import_list_module_desc[0],
-                    import_list_module_desc[1]
+                    import_list_module_desc[0], import_list_module_desc[1]
                 )
 
         # These are added in any case.
         if self.package_modules_desc is not None:
             for package_module_desc in self.package_modules_desc:
                 trace_collection.onUsedModule(
-                    package_module_desc[0],
-                    package_module_desc[1]
+                    package_module_desc[0], package_module_desc[1]
                 )
-
-
 
     def computeExpression(self, trace_collection):
         # TODO: In fact, if the module is not a package, we don't have to insist
@@ -417,10 +389,8 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
                 if str is not unicode and type(imported_module_name) is unicode:
                     imported_module_name = str(imported_module_name)
 
-
                 self._attemptRecursion(
-                    trace_collection = trace_collection,
-                    module_name      = imported_module_name
+                    trace_collection=trace_collection, module_name=imported_module_name
                 )
 
                 self.recurse_attempted = True
@@ -435,9 +405,9 @@ Not recursing to '%(full_path)s' (%(filename)s), please specify \
 
                 # Non-strings is going to raise an error.
                 new_node, change_tags, message = trace_collection.getCompileTimeComputationResult(
-                    node        = self,
-                    computation = lambda : __import__(module_name.getConstant()),
-                    description = "Replaced '__import__' call with non-string module name argument."
+                    node=self,
+                    computation=lambda: __import__(module_name.getConstant()),
+                    description="Replaced '__import__' call with non-string module name argument.",
                 )
 
                 # Must fail, must not go on when it doesn't.
@@ -478,9 +448,7 @@ class StatementImportStar(StatementChildHavingBase):
 
     def __init__(self, target_scope, module_import, source_ref):
         StatementChildHavingBase.__init__(
-            self,
-            value      = module_import,
-            source_ref = source_ref
+            self, value=module_import, source_ref=source_ref
         )
 
         self.target_scope = target_scope
@@ -526,11 +494,7 @@ class ExpressionImportName(ExpressionChildHavingBase):
     __slots__ = ("import_name", "level")
 
     def __init__(self, module, import_name, level, source_ref):
-        ExpressionChildHavingBase.__init__(
-            self,
-            value      = module,
-            source_ref = source_ref
-        )
+        ExpressionChildHavingBase.__init__(self, value=module, source_ref=source_ref)
 
         self.import_name = import_name
         self.level = level
@@ -544,28 +508,24 @@ class ExpressionImportName(ExpressionChildHavingBase):
         return self.level
 
     def getDetails(self):
-        return {
-            "import_name" : self.getImportName(),
-            "level"       : self.level
-        }
+        return {"import_name": self.getImportName(), "level": self.level}
 
     def getDetail(self):
         return "import %s from %s" % (
             self.getImportName(),
-            self.getModule().getModuleName()
+            self.getModule().getModuleName(),
         )
 
     getModule = ExpressionChildrenHavingBase.childGetter("module")
 
     def computeExpression(self, trace_collection):
         return self.getModule().computeExpressionImportName(
-            import_node      = self,
-            import_name      = self.import_name,
-            trace_collection = trace_collection
+            import_node=self,
+            import_name=self.import_name,
+            trace_collection=trace_collection,
         )
 
     def mayRaiseException(self, exception_type):
         return self.getModule().mayRaiseExceptionImportName(
-            exception_type = exception_type,
-            import_name    = self.import_name
+            exception_type=exception_type, import_name=self.import_name
         )

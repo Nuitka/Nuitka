@@ -100,10 +100,7 @@ class SourceCodeReference(object):
         """ Make a copy it itself.
 
         """
-        return self.fromFilenameAndLine(
-            filename = self.filename,
-            line     = line
-        )
+        return self.fromFilenameAndLine(filename=self.filename, line=line)
 
     def atInternal(self):
         """ Make a copy it itself but mark as internal code.
@@ -117,7 +114,6 @@ class SourceCodeReference(object):
             return result
         else:
             return self
-
 
     def atLineNumber(self, line):
         """ Make a reference to the same file, but different line.
@@ -175,7 +171,4 @@ class SourceCodeReferenceInternal(SourceCodeReference):
 
 
 def fromFilename(filename):
-    return SourceCodeReference.fromFilenameAndLine(
-        filename = filename,
-        line     = 1
-    )
+    return SourceCodeReference.fromFilenameAndLine(filename=filename, line=1)

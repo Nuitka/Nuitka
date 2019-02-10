@@ -35,9 +35,7 @@ def convertFunctionCallToOutline(provider, function_ref, values):
     function_source_ref = function_body.getSourceReference()
 
     outline_body = ExpressionOutlineBody(
-        provider   = provider,
-        name       = "inline",
-        source_ref = function_source_ref
+        provider=provider, name="inline", source_ref=function_source_ref
     )
 
     clone = function_body.getBody().makeClone()
@@ -51,16 +49,11 @@ def convertFunctionCallToOutline(provider, function_ref, values):
         assert variable.isSharedTechnically() is False
 
         new_variable = outline_body.allocateTempVariable(
-            temp_scope = temp_scope,
-            name       = variable.getName()
+            temp_scope=temp_scope, name=variable.getName()
         )
 
         # TODO: Lets update all at once maybe, it would take less visits.
-        updateVariableUsage(
-            clone,
-            old_variable = variable,
-            new_variable = new_variable
-        )
+        updateVariableUsage(clone, old_variable=variable, new_variable=new_variable)
 
         translation[variable.getName()] = new_variable
 
@@ -76,16 +69,14 @@ def convertFunctionCallToOutline(provider, function_ref, values):
     for argument_name, value in zip(argument_names, values):
         statements.append(
             StatementAssignmentVariable(
-                variable   = translation[argument_name],
-                source     = value,
-                source_ref = call_source_ref,
+                variable=translation[argument_name],
+                source=value,
+                source_ref=call_source_ref,
             )
         )
 
     body = makeStatementsSequence(
-        statements = (statements, clone),
-        allow_none = False,
-        source_ref = function_source_ref
+        statements=(statements, clone), allow_none=False, source_ref=function_source_ref
     )
     outline_body.setBody(body)
 

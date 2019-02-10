@@ -32,7 +32,6 @@ to grow both.
 """
 
 
-
 import re
 
 from nuitka.__past__ import intern  # pylint: disable=I0021,redefined-builtin
@@ -48,20 +47,18 @@ class NuitkaPluginPylintEclipseAnnotations(NuitkaPluginBase):
     def onModuleSourceCode(self, module_name, source_code):
         annotations = {}
 
-        for count, line in enumerate(source_code.split('\n')):
+        for count, line in enumerate(source_code.split("\n")):
             match = re.search(r"#.*pylint:\s*disable=\s*([\w,-]+)", line)
 
             if match:
-                comment_only = line[:line.find('#')-1].strip() == ""
+                comment_only = line[: line.find("#") - 1].strip() == ""
 
                 if comment_only:
                     # TODO: Parse block wide annotations too.
                     pass
                 else:
-                    annotations[count+1] = set(
-                        intern(match.strip())
-                        for match in
-                        match.group(1).split(',')
+                    annotations[count + 1] = set(
+                        intern(match.strip()) for match in match.group(1).split(",")
                     )
 
         # Only remember them if there were any.

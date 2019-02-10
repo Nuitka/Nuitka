@@ -54,7 +54,6 @@ except ImportError:
 
     missing = object()
 
-
     class OrderedDict(dict):
         def __init__(self, *args, **kwargs):
             dict.__init__(self)
@@ -70,7 +69,7 @@ except ImportError:
                 self._keys.append(key)
             dict.__setitem__(self, key, item)
 
-        def __deepcopy__(self, memo = None):
+        def __deepcopy__(self, memo=None):
             if memo is None:
                 memo = {}
             d = memo.get(id(self), missing)
@@ -109,7 +108,7 @@ except ImportError:
             return NotImplemented
 
         @classmethod
-        def fromkeys(cls, iterable, default = None):
+        def fromkeys(cls, iterable, default=None):
             return cls((key, default) for key in iterable)
 
         def clear(self):
@@ -131,7 +130,7 @@ except ImportError:
         def iterkeys(self):
             return iter(self._keys)
 
-        def pop(self, key, default = missing):
+        def pop(self, key, default=missing):
             if default is missing:
                 return dict.pop(self, key)
             elif key not in self:
@@ -143,7 +142,7 @@ except ImportError:
             self._keys.remove(key)
             return dict.popitem(key)
 
-        def setdefault(self, key, default = None):
+        def setdefault(self, key, default=None):
             if key not in self:
                 self._keys.append(key)
             dict.setdefault(self, key, default)

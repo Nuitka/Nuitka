@@ -45,8 +45,7 @@ class ExpressionBuiltinLen(ExpressionBuiltinSingleArgBase):
 
     def computeExpression(self, trace_collection):
         return self.getValue().computeExpressionLen(
-            len_node         = self,
-            trace_collection = trace_collection
+            len_node=self, trace_collection=trace_collection
         )
 
     def getTypeShape(self):

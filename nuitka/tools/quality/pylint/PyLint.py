@@ -31,6 +31,7 @@ from nuitka.utils import Execution
 
 pylint_version = None
 
+
 def checkVersion():
     # pylint: disable=global-statement
     global pylint_version
@@ -41,13 +42,13 @@ def checkVersion():
     if pylint_version is None:
         pylint_version = Execution.check_output(
             [os.environ["PYTHON"], "-m", "pylint", "--version"],
-            stderr = open(os.devnull, 'w')
+            stderr=open(os.devnull, "w"),
         )
 
         if str is not bytes:
             pylint_version = pylint_version.decode("utf8")
 
-        pylint_version = pylint_version.split('\n')[0].split()[-1].strip(',')
+        pylint_version = pylint_version.split("\n")[0].split()[-1].strip(",")
 
     if pylint_version < "1.6.5":
         sys.exit("Error, needs PyLint 1.6.5 or higher not %r." % pylint_version)
@@ -124,6 +125,7 @@ def checkVersion():
 # Overloaded functions are not detected, default value returns are all
 # warned about, not worth it.
 
+
 def getOptions():
     checkVersion()
 
@@ -142,7 +144,7 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
 --argument-rgx=.*
 --dummy-variables-rgx=_.*|trace_collection
 --const-rgx=.*
---max-line-length=120
+--max-line-length=125
 --no-docstring-rgx=.*
 --max-module-lines=5000
 --min-public-methods=0
@@ -152,64 +154,70 @@ similar-code,cyclic-import,duplicate-code,deprecated-module,assignment-from-none
 --max-statements=50
 --max-nested-blocks=10
 --max-bool-expr=10\
-""".split('\n')
+""".split(
+        "\n"
+    )
 
     if pylint_version >= "1.7":
         default_pylint_options += """\
 --score=no
 --ignored-argument-names=_.*|trace_collection
 --disable=no-else-return\
-""".split('\n')
+""".split(
+            "\n"
+        )
 
     if pylint_version >= "1.8":
         default_pylint_options += """\
 --disable=c-extension-no-member,inconsistent-return-statements\
-""".split('\n')
+""".split(
+            "\n"
+        )
 
     if pylint_version >= "2.0":
         default_pylint_options += """\
 --disable=useless-object-inheritance,useless-return,assignment-from-no-return\
-""".split('\n')
+""".split(
+            "\n"
+        )
 
     # Workaround for wrong reports in that version that will hopefully be fixed
     # in PyLint.
     if pylint_version == "2.0.0":
         default_pylint_options += """\
 --disable=bad-continuation,C0330,chained-comparison\
-""".split('\n')
-
-    if os.name != "nt":
-        default_pylint_options.append(
-            "--rcfile=%s" % os.devnull
+""".split(
+            "\n"
         )
 
+    if os.name != "nt":
+        default_pylint_options.append("--rcfile=%s" % os.devnull)
 
     return default_pylint_options
 
+
 our_exit_code = 0
+
 
 def _cleanupPylintOutput(output):
     if str is not bytes:
         output = output.decode("utf8")
 
     # Normalize from Windows newlines potentially
-    output = output.replace("\r\n", '\n')
+    output = output.replace("\r\n", "\n")
 
-    lines = output.split('\n')
+    lines = output.split("\n")
 
     lines = [
         line
-        for line in
-        lines
+        for line in lines
         if "Using config file" not in line
         if "Unable to import 'resource'" not in line
         if line
     ]
 
     try:
-        error_line = lines.index(
-            "No config file found, using default configuration"
-        )
+        error_line = lines.index("No config file found, using default configuration")
         del lines[error_line]
 
         if error_line < len(lines):
@@ -224,15 +232,16 @@ def _executePylint(filenames, pylint_options, extra_options):
     # This is kind of a singleton module, pylint: disable=global-statement
     global our_exit_code
 
-    command = [os.environ["PYTHON"], "-m", "pylint"] + pylint_options + extra_options + filenames
-
-    process = subprocess.Popen(
-        args   = command,
-        stdout = subprocess.PIPE,
-        stderr = subprocess.PIPE,
-        shell  = False
+    command = (
+        [os.environ["PYTHON"], "-m", "pylint"]
+        + pylint_options
+        + extra_options
+        + filenames
     )
 
+    process = subprocess.Popen(
+        args=command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False
+    )
 
     stdout, stderr = process.communicate()
     exit_code = process.returncode
@@ -279,24 +288,18 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
         if pylint_version < "2.0.0":
             if os.path.basename(filename) in (
                 "ReformulationContractionExpressions.py",
-                "TreeHelpers.py"
+                "TreeHelpers.py",
             ):
                 return True
 
         if pylint_version == "2.0.0":
-            if os.path.basename(filename) in (
-                "LocalsDictCodes.py",
-                "FrameCodes.py"
-            ):
+            if os.path.basename(filename) in ("LocalsDictCodes.py", "FrameCodes.py"):
                 return True
 
         return False
 
     filenames = [
-        filename
-        for filename in
-        filenames
-        if not hasPyLintBugTrigger(filename)
+        filename for filename in filenames if not hasPyLintBugTrigger(filename)
     ]
 
     extra_options = os.environ.get("PYLINT_EXTRA_OPTIONS", "").split()
@@ -305,7 +308,7 @@ def executePyLint(filenames, show_todos, verbose, one_by_one):
 
     if one_by_one:
         for filename in filenames:
-            my_print("Checking", filename, ':')
+            my_print("Checking", filename, ":")
             _executePylint([filename], pylint_options, extra_options)
     else:
         _executePylint(filenames, pylint_options, extra_options)

@@ -24,20 +24,26 @@ does not thread at all.
 from threading import Lock
 
 try:
-    from concurrent.futures import ThreadPoolExecutor, wait, as_completed, FIRST_EXCEPTION # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module,unused-import
+    from concurrent.futures import (
+        ThreadPoolExecutor,
+        wait,
+        as_completed,
+        FIRST_EXCEPTION,
+    )  # @UnresolvedImport pylint: disable=I0021,import-error,no-name-in-module,unused-import
 
     def waitWorkers(workers):
-        wait(workers, return_when = FIRST_EXCEPTION)
+        wait(workers, return_when=FIRST_EXCEPTION)
 
         for future in as_completed(workers):
             yield future.result()
+
 
 except ImportError:
     # No backport installed, use stub for at least Python 2.6, and potentially
     # also Python 2.7, we might want to tell the user about it though, that
     # we think it should be installed.
     class ThreadPoolExecutor(object):
-        def __init__(self, max_workers = None):
+        def __init__(self, max_workers=None):
             # This stub ignores max_workers, pylint: disable=unused-argument
 
             self.results = []
@@ -57,6 +63,7 @@ except ImportError:
     def waitWorkers(workers):
         if workers:
             return iter(workers[0].results)
+
 
 assert Lock
 assert ThreadPoolExecutor

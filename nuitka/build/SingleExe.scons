@@ -525,18 +525,31 @@ def setupSpawn(env):
         if cmd == "windres":
             cmdline = re.sub('--include-dir ".*?"', "", cmdline)
 
-        proc = subprocess.Popen(
-            cmdline,
-            stdin  = subprocess.PIPE,
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE,
-            shell  = False,
-            env    = env
-        )
+        for retry in range(5):
+            if retry:
+                os.environ["CCACHE_RECACHE"] = "1"
 
-        data, err = proc.communicate()
+            proc = subprocess.Popen(
+                cmdline,
+                stdin  = subprocess.PIPE,
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE,
+                shell  = False,
+                env    = env
+            )
 
-        rv = proc.wait()
+            if retry:
+                del os.environ["CCACHE_RECACHE"]
+
+            data, err = proc.communicate()
+            rv = proc.wait()
+
+            if rv != 0 and b"collect2.exe: error: ld returned 5 exit status" in err:
+                print("Scons: retry", retry, ':', cmdline)
+                continue
+            else:
+                break
+
 
         if cmd == "rc":
             data = data[data.find(b"reserved.\r") + 13:]

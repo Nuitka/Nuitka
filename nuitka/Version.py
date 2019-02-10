@@ -23,8 +23,10 @@ version_string = """\
 Nuitka V0.6.2rc4
 Copyright (C) 2019 Kay Hayen."""
 
+
 def getNuitkaVersion():
     return version_string.split()[1][1:]
+
 
 def getNuitkaVersionYear():
     return int(version_string.split()[4])

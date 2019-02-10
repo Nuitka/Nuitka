@@ -29,6 +29,7 @@ from nuitka.SourceCodeReferences import fromFilename
 
 internal_source_ref = fromFilename("internal").atInternal()
 
+
 def once_decorator(func):
     """ Cache result of a function call without arguments.
 
@@ -61,11 +62,11 @@ def getInternalModule():
 
 def makeInternalHelperFunctionBody(name, parameters):
     return ExpressionFunctionBody(
-        provider    = getInternalModule(),
-        name        = name,
-        code_object = None,
-        doc         = None,
-        parameters  = parameters,
-        flags       = set(),
-        source_ref  = internal_source_ref
+        provider=getInternalModule(),
+        name=name,
+        code_object=None,
+        doc=None,
+        parameters=parameters,
+        flags=set(),
+        source_ref=internal_source_ref,
     )

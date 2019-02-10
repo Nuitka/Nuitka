@@ -32,16 +32,17 @@ from .ParameterSpecs import ParameterSpec, TooManyArguments, matchCall
 class BuiltinParameterSpec(ParameterSpec):
     __slots__ = ("builtin",)
 
-    def __init__(self, name, arg_names, default_count, list_star_arg = None,
-                 dict_star_arg = None):
+    def __init__(
+        self, name, arg_names, default_count, list_star_arg=None, dict_star_arg=None
+    ):
         ParameterSpec.__init__(
             self,
-            ps_name          = name,
-            ps_normal_args   = arg_names,
-            ps_list_star_arg = list_star_arg,
-            ps_dict_star_arg = dict_star_arg,
-            ps_default_count = default_count,
-            ps_kw_only_args  = ()
+            ps_name=name,
+            ps_normal_args=arg_names,
+            ps_list_star_arg=list_star_arg,
+            ps_dict_star_arg=dict_star_arg,
+            ps_default_count=default_count,
+            ps_kw_only_args=(),
         )
 
         self.builtin = getattr(builtins, name)
@@ -70,7 +71,7 @@ class BuiltinParameterSpec(ParameterSpec):
         # fatal, pylint: disable=broad-except,too-many-branches
 
         try:
-            given_normal_args = given_values[:len(self.normal_args)]
+            given_normal_args = given_values[: len(self.normal_args)]
 
             if self.list_star_arg:
                 given_list_star_args = given_values[len(self.normal_args)]
@@ -78,18 +79,20 @@ class BuiltinParameterSpec(ParameterSpec):
                 given_list_star_args = None
 
             if self.dict_star_arg:
-                given_dict_star_args = given_values[ -1 ]
+                given_dict_star_args = given_values[-1]
             else:
                 given_dict_star_args = None
 
             arg_dict = {}
 
             for arg_name, given_value in zip(self.normal_args, given_normal_args):
-                assert type(given_value) not in (tuple, list), \
-                  ("do not like a tuple %s" % (given_value,))
+                assert type(given_value) not in (
+                    tuple,
+                    list,
+                ), "do not like a tuple %s" % (given_value,)
 
                 if given_value is not None:
-                    arg_dict[ arg_name ] = given_value.getCompileTimeConstant()
+                    arg_dict[arg_name] = given_value.getCompileTimeConstant()
 
             if given_dict_star_args:
                 for given_dict_star_arg in reversed(given_dict_star_args):
@@ -100,7 +103,7 @@ class BuiltinParameterSpec(ParameterSpec):
 
             arg_list = []
 
-            for arg_name in self.normal_args[:self.getPositionalOnlyCount()]:
+            for arg_name in self.normal_args[: self.getPositionalOnlyCount()]:
                 if arg_name in arg_dict:
                     arg_list.append(arg_dict[arg_name])
                     del arg_dict[arg_name]
@@ -108,17 +111,18 @@ class BuiltinParameterSpec(ParameterSpec):
         except Exception as e:
             sys.exit("Fatal problem: %r" % e)
 
-
         if given_list_star_args:
             return self.builtin(
-                *(arg_list + list(value.getCompileTimeConstant() for value in given_list_star_args)),
+                *(
+                    arg_list
+                    + list(
+                        value.getCompileTimeConstant() for value in given_list_star_args
+                    )
+                ),
                 **arg_dict
             )
         else:
-            return self.builtin(
-                *arg_list,
-                **arg_dict
-            )
+            return self.builtin(*arg_list, **arg_dict)
 
 
 class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
@@ -133,7 +137,7 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
 
         try:
             if self.list_star_arg:
-                given_list_star_arg = given_values[ len(self.normal_args) ]
+                given_list_star_arg = given_values[len(self.normal_args)]
             else:
                 given_list_star_arg = None
 
@@ -141,7 +145,10 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
             refuse_more = False
 
             for _arg_name, given_value in zip(self.normal_args, given_values):
-                assert type(given_value) not in (tuple, list), ("do not like tuple %s" % (given_value,))
+                assert type(given_value) not in (
+                    tuple,
+                    list,
+                ), "do not like tuple %s" % (given_value,)
 
                 if given_value is not None:
                     if not refuse_more:
@@ -152,10 +159,13 @@ class BuiltinParameterSpecNoKeywords(BuiltinParameterSpec):
                     refuse_more = True
 
             if given_list_star_arg is not None:
-                arg_list += [ value.getCompileTimeConstant() for value in given_list_star_arg ]
+                arg_list += [
+                    value.getCompileTimeConstant() for value in given_list_star_arg
+                ]
         except Exception as e:
-            print("Fatal error: ", end = ' ', file = sys.stderr)
+            print("Fatal error: ", end=" ", file=sys.stderr)
             import traceback
+
             traceback.print_exc()
             sys.exit(repr(e))
 
@@ -167,10 +177,10 @@ class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
         # TODO: Parameter default_count makes no sense for exceptions probably.
         BuiltinParameterSpec.__init__(
             self,
-            name          = exception_name,
-            arg_names     = (),
-            default_count = 0,
-            list_star_arg = "args"
+            name=exception_name,
+            arg_names=(),
+            default_count=0,
+            list_star_arg="args",
         )
 
     def allowsKeywords(self):
@@ -186,15 +196,22 @@ class BuiltinParameterSpecExceptions(BuiltinParameterSpec):
 class BuiltinParameterSpecPosArgs(BuiltinParameterSpec):
     __slots__ = ("positional_only",)
 
-    def __init__(self, name, arg_names, default_count, positional_only,
-                 list_star_arg = None, dict_star_arg = None, ):
+    def __init__(
+        self,
+        name,
+        arg_names,
+        default_count,
+        positional_only,
+        list_star_arg=None,
+        dict_star_arg=None,
+    ):
         BuiltinParameterSpec.__init__(
             self,
-            name          = name,
-            arg_names     = arg_names,
-            default_count = default_count,
-            list_star_arg = list_star_arg,
-            dict_star_arg = dict_star_arg
+            name=name,
+            arg_names=arg_names,
+            default_count=default_count,
+            list_star_arg=list_star_arg,
+            dict_star_arg=dict_star_arg,
         )
 
         # Kind of the point of this class.
@@ -211,50 +228,39 @@ def makeBuiltinExceptionParameterSpec(exception_name):
         # currently user of this function must take care to not have them.
         pass
 
-    return BuiltinParameterSpecExceptions(
-        exception_name = exception_name
-    )
+    return BuiltinParameterSpecExceptions(exception_name=exception_name)
+
 
 if python_version < 370:
-    builtin_int_spec = BuiltinParameterSpec("int", ('x', "base"), 2)
+    builtin_int_spec = BuiltinParameterSpec("int", ("x", "base"), 2)
 else:
-    builtin_int_spec = BuiltinParameterSpecPosArgs("int", ('x', "base"), 2, 1)
+    builtin_int_spec = BuiltinParameterSpecPosArgs("int", ("x", "base"), 2, 1)
 
 
 # These builtins are only available for Python2
 if python_version < 300:
-    builtin_long_spec = BuiltinParameterSpec(
-        "long",
-        ('x', "base"),
-        2
-    )
+    builtin_long_spec = BuiltinParameterSpec("long", ("x", "base"), 2)
     builtin_execfile_spec = BuiltinParameterSpecNoKeywords(
-        "execfile",
-        ("filename", "globals", "locals"),
-        2
+        "execfile", ("filename", "globals", "locals"), 2
     )
     builtin_unicode_spec = BuiltinParameterSpec(
-        "unicode",
-        ("string", "encoding", "errors"),
-        3
+        "unicode", ("string", "encoding", "errors"), 3
     )
 
 builtin_xrange_spec = BuiltinParameterSpecNoKeywords(
-    "xrange" if python_version < 300 else "range",
-    ("start", "stop", "step"),
-    2
+    "xrange" if python_version < 300 else "range", ("start", "stop", "step"), 2
 )
 
 
 if python_version < 370:
-    builtin_bool_spec = BuiltinParameterSpec("bool", ('x',), 1)
+    builtin_bool_spec = BuiltinParameterSpec("bool", ("x",), 1)
 else:
-    builtin_bool_spec = BuiltinParameterSpecNoKeywords("bool", ('x',), 1)
+    builtin_bool_spec = BuiltinParameterSpecNoKeywords("bool", ("x",), 1)
 
 if python_version < 370:
-    builtin_float_spec = BuiltinParameterSpec("float", ('x',), 1)
+    builtin_float_spec = BuiltinParameterSpec("float", ("x",), 1)
 else:
-    builtin_float_spec = BuiltinParameterSpecNoKeywords("float", ('x',), 1)
+    builtin_float_spec = BuiltinParameterSpecNoKeywords("float", ("x",), 1)
 
 builtin_complex_spec = BuiltinParameterSpec("complex", ("real", "imag"), 2)
 
@@ -278,17 +284,30 @@ else:
 builtin_set_spec = BuiltinParameterSpecNoKeywords("set", ("iterable",), 1)
 builtin_frozenset_spec = BuiltinParameterSpecNoKeywords("frozenset", ("iterable",), 1)
 
-builtin_import_spec = BuiltinParameterSpec("__import__", ("name", "globals", "locals", "fromlist", "level"), 4)
+builtin_import_spec = BuiltinParameterSpec(
+    "__import__", ("name", "globals", "locals", "fromlist", "level"), 4
+)
 
 if python_version < 300:
     builtin_open_spec = BuiltinParameterSpec("open", ("name", "mode", "buffering"), 3)
 else:
-    builtin_open_spec = BuiltinParameterSpec("open", ("name", "mode", "buffering",
-                                                      "encoding", "errors", "newline",
-                                                      "closefd", "opener"), 7)
+    builtin_open_spec = BuiltinParameterSpec(
+        "open",
+        (
+            "name",
+            "mode",
+            "buffering",
+            "encoding",
+            "errors",
+            "newline",
+            "closefd",
+            "opener",
+        ),
+        7,
+    )
 
-builtin_chr_spec = BuiltinParameterSpecNoKeywords("chr", ('i',), 0)
-builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ('c',), 0)
+builtin_chr_spec = BuiltinParameterSpecNoKeywords("chr", ("i",), 0)
+builtin_ord_spec = BuiltinParameterSpecNoKeywords("ord", ("c",), 0)
 builtin_bin_spec = BuiltinParameterSpecNoKeywords("bin", ("number",), 0)
 builtin_oct_spec = BuiltinParameterSpecNoKeywords("oct", ("number",), 0)
 builtin_hex_spec = BuiltinParameterSpecNoKeywords("hex", ("number",), 0)
@@ -300,24 +319,22 @@ builtin_vars_spec = BuiltinParameterSpecNoKeywords("vars", ("object",), 1)
 
 builtin_locals_spec = BuiltinParameterSpecNoKeywords("locals", (), 0)
 builtin_globals_spec = BuiltinParameterSpecNoKeywords("globals", (), 0)
-builtin_eval_spec = BuiltinParameterSpecNoKeywords("eval", ("source", "globals", "locals"), 2)
+builtin_eval_spec = BuiltinParameterSpecNoKeywords(
+    "eval", ("source", "globals", "locals"), 2
+)
 if python_version < 300:
     builtin_compile_spec = BuiltinParameterSpec(
-        "compile",
-        ("source", "filename", "mode", "flags", "dont_inherit"),
-        2
+        "compile", ("source", "filename", "mode", "flags", "dont_inherit"), 2
     )
 else:
     builtin_compile_spec = BuiltinParameterSpec(
         "compile",
         ("source", "filename", "mode", "flags", "dont_inherit", "optimize"),
-        3
+        3,
     )
 if python_version >= 300:
     builtin_exec_spec = BuiltinParameterSpecNoKeywords(
-        "exec",
-        ("source", "globals", "locals"),
-        2
+        "exec", ("source", "globals", "locals"), 2
     )
 
 # Note: Iter in fact names its first argument if the default applies
@@ -327,25 +344,33 @@ builtin_next_spec = BuiltinParameterSpecNoKeywords("next", ("iterator", "default
 
 # Note: type with 1 and type with 3 arguments are too different.
 builtin_type1_spec = BuiltinParameterSpecNoKeywords("type", ("object",), 0)
-builtin_type3_spec = BuiltinParameterSpecNoKeywords("type", ("name", "bases", "dict"), 0)
+builtin_type3_spec = BuiltinParameterSpecNoKeywords(
+    "type", ("name", "bases", "dict"), 0
+)
 
-builtin_super_spec = BuiltinParameterSpecNoKeywords("super", ("type", "object"), 1 if python_version < 300 else 2)
+builtin_super_spec = BuiltinParameterSpecNoKeywords(
+    "super", ("type", "object"), 1 if python_version < 300 else 2
+)
 
 builtin_hasattr_spec = BuiltinParameterSpecNoKeywords("hasattr", ("object", "name"), 0)
-builtin_getattr_spec = BuiltinParameterSpecNoKeywords("getattr", ("object", "name", "default"), 1)
-builtin_setattr_spec = BuiltinParameterSpecNoKeywords("setattr", ("object", "name", "value"), 0)
+builtin_getattr_spec = BuiltinParameterSpecNoKeywords(
+    "getattr", ("object", "name", "default"), 1
+)
+builtin_setattr_spec = BuiltinParameterSpecNoKeywords(
+    "setattr", ("object", "name", "value"), 0
+)
 
-builtin_isinstance_spec = BuiltinParameterSpecNoKeywords("isinstance", ("instance", "classes"), 0)
+builtin_isinstance_spec = BuiltinParameterSpecNoKeywords(
+    "isinstance", ("instance", "classes"), 0
+)
+
 
 class BuiltinBytearraySpec(BuiltinParameterSpecPosArgs):
     def isCompileTimeComputable(self, values):
         # For bytearrays, we need to avoid the case of large bytearray
         # construction from an integer at compile time.
 
-        result = BuiltinParameterSpec.isCompileTimeComputable(
-            self,
-            values = values
-        )
+        result = BuiltinParameterSpec.isCompileTimeComputable(self, values=values)
 
         if result and len(values) == 1:
             index_value = values[0].getIndexValue()
@@ -357,28 +382,45 @@ class BuiltinBytearraySpec(BuiltinParameterSpecPosArgs):
         else:
             return result
 
-builtin_bytearray_spec = BuiltinBytearraySpec("bytearray", ("string", "encoding", "errors"), 2, 1)
+
+builtin_bytearray_spec = BuiltinBytearraySpec(
+    "bytearray", ("string", "encoding", "errors"), 2, 1
+)
 
 if python_version >= 300:
-    builtin_bytes_spec = BuiltinBytearraySpec("bytes", ("string", "encoding", "errors"), 3, 1)
+    builtin_bytes_spec = BuiltinBytearraySpec(
+        "bytes", ("string", "encoding", "errors"), 3, 1
+    )
 
 
 # Beware: One argument version defines "stop", not "start".
-builtin_slice_spec = BuiltinParameterSpecNoKeywords("slice", ("start", "stop", "step"), 2)
+builtin_slice_spec = BuiltinParameterSpecNoKeywords(
+    "slice", ("start", "stop", "step"), 2
+)
 
 builtin_hash_spec = BuiltinParameterSpecNoKeywords("hash", ("object",), 0)
 
-builtin_format_spec = BuiltinParameterSpecNoKeywords("format", ("value", "format_spec"), 1)
+builtin_format_spec = BuiltinParameterSpecNoKeywords(
+    "format", ("value", "format_spec"), 1
+)
 
 builtin_sum_spec = BuiltinParameterSpecNoKeywords("sum", ("sequence", "start"), 1)
 
-builtin_staticmethod_spec = BuiltinParameterSpecNoKeywords("staticmethod", ("function",), 0)
-builtin_classmethod_spec = BuiltinParameterSpecNoKeywords("classmethod", ("function",), 0)
+builtin_staticmethod_spec = BuiltinParameterSpecNoKeywords(
+    "staticmethod", ("function",), 0
+)
+builtin_classmethod_spec = BuiltinParameterSpecNoKeywords(
+    "classmethod", ("function",), 0
+)
 
 if python_version < 300:
-    builtin_sorted_spec = BuiltinParameterSpecNoKeywords("sorted", ("iterable", "cmp", "key", "reverse"), 2)
+    builtin_sorted_spec = BuiltinParameterSpecNoKeywords(
+        "sorted", ("iterable", "cmp", "key", "reverse"), 2
+    )
 else:
-    builtin_sorted_spec = BuiltinParameterSpecNoKeywords("sorted", ("iterable", "key", "reverse"), 2)
+    builtin_sorted_spec = BuiltinParameterSpecNoKeywords(
+        "sorted", ("iterable", "key", "reverse"), 2
+    )
 
 builtin_reversed_spec = BuiltinParameterSpecNoKeywords("reversed", ("object",), 0)
 
@@ -396,8 +438,7 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
         # to pre-compute, pylint: disable=too-many-branches,too-many-return-statements
 
         result = BuiltinParameterSpecNoKeywords.isCompileTimeComputable(
-            self,
-            values = values
+            self, values=values
         )
 
         if result:
@@ -424,9 +465,11 @@ class BuiltinRangeSpec(BuiltinParameterSpecNoKeywords):
             elif arg_count == 3:
                 low, high, step = values
 
-                if not low.isNumberConstant() or \
-                   not high.isNumberConstant() or \
-                   not step.isNumberConstant():
+                if (
+                    not low.isNumberConstant()
+                    or not high.isNumberConstant()
+                    or not step.isNumberConstant()
+                ):
                     return True
 
                 low = low.getConstant()
@@ -462,8 +505,7 @@ if python_version >= 300:
 builtin_divmod_spec = BuiltinParameterSpecNoKeywords("divmod", ("left", "right"), 0)
 
 
-def extractBuiltinArgs(node, builtin_spec, builtin_class,
-                       empty_special_class = None):
+def extractBuiltinArgs(node, builtin_spec, builtin_class, empty_special_class=None):
     try:
         kw = node.getCallKw()
 
@@ -476,9 +518,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
             pairs = kw.getMappingStringKeyPairs()
 
             if pairs and not builtin_spec.allowsKeywords():
-                raise TooManyArguments(
-                    TypeError(builtin_spec.getKeywordRefusalText())
-                )
+                raise TooManyArguments(TypeError(builtin_spec.getKeywordRefusalText()))
         else:
             pairs = ()
 
@@ -493,31 +533,30 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
             positional = ()
 
         if not positional and not pairs and empty_special_class is not None:
-            return empty_special_class(source_ref = node.getSourceReference())
+            return empty_special_class(source_ref=node.getSourceReference())
 
         args_dict = matchCall(
-            func_name     = builtin_spec.getName(),
-            args          = builtin_spec.getArgumentNames(),
-            star_list_arg = builtin_spec.getStarListArgumentName(),
-            star_dict_arg = builtin_spec.getStarDictArgumentName(),
-            num_defaults  = builtin_spec.getDefaultCount(),
-            num_posonly   = builtin_spec.getPositionalOnlyCount(),
-            positional    = positional,
-            pairs         = pairs
+            func_name=builtin_spec.getName(),
+            args=builtin_spec.getArgumentNames(),
+            star_list_arg=builtin_spec.getStarListArgumentName(),
+            star_dict_arg=builtin_spec.getStarDictArgumentName(),
+            num_defaults=builtin_spec.getDefaultCount(),
+            num_posonly=builtin_spec.getPositionalOnlyCount(),
+            positional=positional,
+            pairs=pairs,
         )
     except TooManyArguments as e:
         from nuitka.nodes.NodeMakingHelpers import (
             makeRaiseExceptionReplacementExpressionFromInstance,
-            wrapExpressionWithSideEffects
+            wrapExpressionWithSideEffects,
         )
 
         return wrapExpressionWithSideEffects(
-            new_node     = makeRaiseExceptionReplacementExpressionFromInstance(
-                expression = node,
-                exception  = e.getRealException()
+            new_node=makeRaiseExceptionReplacementExpressionFromInstance(
+                expression=node, exception=e.getRealException()
             ),
-            old_node     = node,
-            side_effects = node.extractSideEffectsPreCall()
+            old_node=node,
+            side_effects=node.extractSideEffectsPreCall(),
         )
 
     args_list = []
@@ -532,10 +571,7 @@ def extractBuiltinArgs(node, builtin_spec, builtin_class,
         args_list.append(args_dict[builtin_spec.getStarDictArgumentName()])
 
     # Using list reference for passing the arguments without names,
-    result = builtin_class(
-        *args_list,
-        source_ref = node.getSourceReference()
-    )
+    result = builtin_class(*args_list, source_ref=node.getSourceReference())
     result.setCompatibleSourceReference(node.getCompatibleSourceReference())
 
     return result

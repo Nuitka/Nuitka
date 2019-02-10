@@ -47,7 +47,7 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
                 yield used_module[0], False
 
         # TODO: Move this out to some kind of configuration format.
-        elements = full_name.split('.')
+        elements = full_name.split(".")
 
         if elements[0] in ("PyQt4", "PyQt5"):
             if python_version < 300:
@@ -61,38 +61,92 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
             child = elements[1] if len(elements) > 1 else None
 
-            if child in ("QtGui", "QtAssistant", "QtDBus", "QtDeclarative",
-                         "QtSql", "QtDesigner", "QtHelp", "QtNetwork",
-                         "QtScript", "QtQml", "QtScriptTools", "QtSvg",
-                         "QtTest", "QtWebKit", "QtOpenGL", "QtXml",
-                         "QtXmlPatterns", "QtPrintSupport", "QtNfc",
-                         "QtWebKitWidgets", "QtBluetooth", "QtMultimediaWidgets",
-                         "QtQuick", "QtWebChannel", "QtWebSockets", "QtX11Extras",
-                         "_QOpenGLFunctions_2_0", "_QOpenGLFunctions_2_1",
-                         "_QOpenGLFunctions_4_1_Core"):
+            if child in (
+                "QtGui",
+                "QtAssistant",
+                "QtDBus",
+                "QtDeclarative",
+                "QtSql",
+                "QtDesigner",
+                "QtHelp",
+                "QtNetwork",
+                "QtScript",
+                "QtQml",
+                "QtScriptTools",
+                "QtSvg",
+                "QtTest",
+                "QtWebKit",
+                "QtOpenGL",
+                "QtXml",
+                "QtXmlPatterns",
+                "QtPrintSupport",
+                "QtNfc",
+                "QtWebKitWidgets",
+                "QtBluetooth",
+                "QtMultimediaWidgets",
+                "QtQuick",
+                "QtWebChannel",
+                "QtWebSockets",
+                "QtX11Extras",
+                "_QOpenGLFunctions_2_0",
+                "_QOpenGLFunctions_2_1",
+                "_QOpenGLFunctions_4_1_Core",
+            ):
                 yield elements[0] + ".QtCore", True
 
-            if child in ("QtDeclarative", "QtWebKit", "QtXmlPatterns", "QtQml",
-                         "QtPrintSupport", "QtWebKitWidgets", "QtMultimedia",
-                         "QtMultimediaWidgets", "QtQuick", "QtQuickWidgets",
-                         "QtWebSockets"):
+            if child in (
+                "QtDeclarative",
+                "QtWebKit",
+                "QtXmlPatterns",
+                "QtQml",
+                "QtPrintSupport",
+                "QtWebKitWidgets",
+                "QtMultimedia",
+                "QtMultimediaWidgets",
+                "QtQuick",
+                "QtQuickWidgets",
+                "QtWebSockets",
+            ):
                 yield elements[0] + ".QtNetwork", True
 
             if child == "QtScriptTools":
                 yield elements[0] + ".QtScript", True
 
-            if child in ("QtWidgets", "QtDeclarative", "QtDesigner", "QtHelp",
-                         "QtScriptTools", "QtSvg", "QtTest", "QtWebKit",
-                         "QtPrintSupport", "QtWebKitWidgets", "QtMultimedia",
-                         "QtMultimediaWidgets", "QtOpenGL", "QtQuick",
-                         "QtQuickWidgets", "QtSql", "_QOpenGLFunctions_2_0",
-                         "_QOpenGLFunctions_2_1", "_QOpenGLFunctions_4_1_Core"):
+            if child in (
+                "QtWidgets",
+                "QtDeclarative",
+                "QtDesigner",
+                "QtHelp",
+                "QtScriptTools",
+                "QtSvg",
+                "QtTest",
+                "QtWebKit",
+                "QtPrintSupport",
+                "QtWebKitWidgets",
+                "QtMultimedia",
+                "QtMultimediaWidgets",
+                "QtOpenGL",
+                "QtQuick",
+                "QtQuickWidgets",
+                "QtSql",
+                "_QOpenGLFunctions_2_0",
+                "_QOpenGLFunctions_2_1",
+                "_QOpenGLFunctions_4_1_Core",
+            ):
                 yield elements[0] + ".QtGui", True
 
-            if full_name in ("PyQt5.QtDesigner", "PyQt5.QtHelp", "PyQt5.QtTest",
-                             "PyQt5.QtPrintSupport", "PyQt5.QtSvg", "PyQt5.QtOpenGL",
-                             "PyQt5.QtWebKitWidgets", "PyQt5.QtMultimediaWidgets",
-                             "PyQt5.QtQuickWidgets", "PyQt5.QtSql"):
+            if full_name in (
+                "PyQt5.QtDesigner",
+                "PyQt5.QtHelp",
+                "PyQt5.QtTest",
+                "PyQt5.QtPrintSupport",
+                "PyQt5.QtSvg",
+                "PyQt5.QtOpenGL",
+                "PyQt5.QtWebKitWidgets",
+                "PyQt5.QtMultimediaWidgets",
+                "PyQt5.QtQuickWidgets",
+                "PyQt5.QtSql",
+            ):
                 yield "PyQt5.QtWidgets", True
 
             if full_name in ("PyQt5.QtPrintSupport",):
@@ -180,9 +234,11 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "gi._gobject", False
         elif full_name in ("Tkinter", "tkinter"):
             yield "_tkinter", False
-        elif full_name in ("cryptography.hazmat.bindings._openssl",
-                           "cryptography.hazmat.bindings._constant_time",
-                           "cryptography.hazmat.bindings._padding"):
+        elif full_name in (
+            "cryptography.hazmat.bindings._openssl",
+            "cryptography.hazmat.bindings._constant_time",
+            "cryptography.hazmat.bindings._padding",
+        ):
             yield "_cffi_backend", True
         elif full_name.startswith("cryptography._Cryptography_cffi_"):
             yield "_cffi_backend", True
@@ -208,14 +264,10 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             if self.pkg_utils_externals is None:
                 for line in open(module.getCompileTimeFilename()):
                     if line.startswith("names"):
-                        line = line.split('=')[-1].strip()
-                        parts = line.split(',')
+                        line = line.split("=")[-1].strip()
+                        parts = line.split(",")
 
-                        self.pkg_utils_externals = [
-                            part.strip("' ")
-                            for part in
-                            parts
-                        ]
+                        self.pkg_utils_externals = [part.strip("' ") for part in parts]
 
                         break
                 else:
@@ -244,10 +296,12 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
                 for line in open(module.getCompileTimeFilename()):
                     if line.startswith("PlatformPlugin("):
-                        os_part, plugin_name_part = line[15:-1].split(',')
+                        os_part, plugin_name_part = line[15:-1].split(",")
                         os_part = os_part.strip("' ")
                         plugin_name_part = plugin_name_part.strip(") '")
-                        plugin_name_part = plugin_name_part[:plugin_name_part.rfind('.')]
+                        plugin_name_part = plugin_name_part[
+                            : plugin_name_part.rfind(".")
+                        ]
                         if os_part == "nt":
                             if getOS() == "Windows":
                                 self.opengl_plugins.append(plugin_name_part)
@@ -266,82 +320,132 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             for opengl_plugin in self.opengl_plugins:
                 yield opengl_plugin, True
 
-
     # We don't care about line length here, pylint: disable=line-too-long
 
     module_aliases = {
-        "six.moves.builtins" : "__builtin__" if python_version < 300 else "builtins",
-        "six.moves.configparser" : "ConfigParser" if python_version < 300 else "configparser",
-        "six.moves.copyreg" : "copy_reg" if python_version < 300 else "copyreg",
-        "six.moves.dbm_gnu" : "gdbm" if python_version < 300 else "dbm.gnu",
-        "six.moves._dummy_thread" : "dummy_thread" if python_version < 300 else "_dummy_thread",
-        "six.moves.http_cookiejar" : "cookielib"  if python_version < 300 else "http.cookiejar",
-        "six.moves.http_cookies" : "Cookie" if python_version < 300 else "http.cookies",
-        "six.moves.html_entities" : "htmlentitydefs" if python_version < 300 else "html.entities",
-        "six.moves.html_parser" : "HTMLParser" if python_version < 300 else "html.parser",
-        "six.moves.http_client" : "httplib"  if python_version < 300 else "http.client",
-        "six.moves.email_mime_multipart" : "email.MIMEMultipart" if python_version < 300 else "email.mime.multipart",
-        "six.moves.email_mime_nonmultipart" : "email.MIMENonMultipart"  if python_version < 300 else "email.mime.nonmultipart",
-        "six.moves.email_mime_text" : "email.MIMEText" if python_version < 300 else "email.mime.text",
-        "six.moves.email_mime_base" : "email.MIMEBase" if python_version < 300 else "email.mime.base",
-        "six.moves.BaseHTTPServer" : "BaseHTTPServer" if python_version < 300 else "http.server",
-        "six.moves.CGIHTTPServer" : "CGIHTTPServer" if python_version < 300 else "http.server",
-        "six.moves.SimpleHTTPServer" : "SimpleHTTPServer" if python_version < 300 else "http.server",
-        "six.moves.cPickle" : "cPickle" if python_version < 300 else "pickle",
-        "six.moves.queue" : "Queue" if python_version < 300 else "queue",
-        "six.moves.reprlib" :"repr" if python_version < 300 else "reprlib",
-        "six.moves.socketserver" : "SocketServer" if python_version < 300 else "socketserver",
-        "six.moves._thread" : "thread" if python_version < 300 else "_thread",
-        "six.moves.tkinter" :"Tkinter" if python_version < 300 else "tkinter",
-        "six.moves.tkinter_dialog" : "Dialog" if python_version < 300 else "tkinter.dialog",
-        "six.moves.tkinter_filedialog" : "FileDialog" if python_version < 300 else "tkinter.filedialog",
-        "six.moves.tkinter_scrolledtext" : "ScrolledText" if python_version < 300 else "tkinter.scrolledtext",
-        "six.moves.tkinter_simpledialog" : "SimpleDialog" if python_version < 300 else "tkinter.simpledialog",
-        "six.moves.tkinter_tix" : "Tix" if python_version < 300 else "tkinter.tix",
-        "six.moves.tkinter_ttk" :"ttk" if python_version < 300 else "tkinter.ttk",
-        "six.moves.tkinter_constants" :"Tkconstants" if python_version < 300 else "tkinter.constants",
-        "six.moves.tkinter_dnd" : "Tkdnd" if python_version < 300 else "tkinter.dnd",
-        "six.moves.tkinter_colorchooser" : "tkColorChooser" if python_version < 300 else "tkinter_colorchooser",
-        "six.moves.tkinter_commondialog" : "tkCommonDialog" if python_version < 300 else "tkinter_commondialog",
-        "six.moves.tkinter_tkfiledialog" : "tkFileDialog" if python_version < 300 else "tkinter.filedialog",
-        "six.moves.tkinter_font" : "tkFont" if python_version < 300 else "tkinter.font",
-        "six.moves.tkinter_messagebox" : "tkMessageBox" if python_version < 300 else "tkinter.messagebox",
-        "six.moves.tkinter_tksimpledialog" :"tkSimpleDialog" if python_version < 300 else "tkinter_tksimpledialog",
-        "six.moves.urllib_parse" : None if python_version < 300 else "urllib.parse",
-        "six.moves.urllib_error" : None if python_version < 300 else "urllib.error",
-        "six.moves.urllib_robotparser" :"robotparser" if python_version < 300 else "urllib.robotparser",
-        "six.moves.xmlrpc_client" :"xmlrpclib" if python_version < 300 else "xmlrpc.client",
-        "six.moves.xmlrpc_server" :"SimpleXMLRPCServer" if python_version < 300 else "xmlrpc.server",
-        "six.moves.winreg" : "_winreg" if python_version < 300 else "winreg",
-
-        "requests.packages.urllib3" : "urllib3",
-        "requests.packages.urllib3.contrib" : "urllib3.contrib",
-        "requests.packages.urllib3.contrib.pyopenssl" : "urllib3.contrib.pyopenssl",
-        "requests.packages.urllib3.contrib.ntlmpool" : "urllib3.contrib.ntlmpool",
-        "requests.packages.urllib3.contrib.socks" : "urllib3.contrib.socks",
-        "requests.packages.urllib3.exceptions" : "urllib3.exceptions",
-        "requests.packages.urllib3._collections" : "urllib3._collections",
-        "requests.packages.chardet" : "chardet",
-        "requests.packages.idna"    : "idna",
-        "requests.packages.urllib3.packages" : "urllib3.packages",
-        "requests.packages.urllib3.packages.ordered_dict" : "urllib3.packages.ordered_dict",
-        "requests.packages.urllib3.packages.ssl_match_hostname" : "urllib3.packages.ssl_match_hostname",
-        "requests.packages.urllib3.packages.ssl_match_hostname._implementation" : "urllib3.packages.ssl_match_hostname._implementation",
-        "requests.packages.urllib3.connectionpool" : "urllib3.connectionpool",
-        "requests.packages.urllib3.connection" : "urllib3.connection",
-        "requests.packages.urllib3.filepost" : "urllib3.filepost",
-        "requests.packages.urllib3.request" : "urllib3.request",
-        "requests.packages.urllib3.response" : "urllib3.response",
-        "requests.packages.urllib3.fields" : "urllib3.fields",
-        "requests.packages.urllib3.poolmanager" : "urllib3.poolmanager",
-        "requests.packages.urllib3.util" : "urllib3.util",
-        "requests.packages.urllib3.util.connection" : "urllib3.util.connection",
-        "requests.packages.urllib3.util.request" : "urllib3.util.request",
-        "requests.packages.urllib3.util.response" : "urllib3.util.response",
-        "requests.packages.urllib3.util.retry" : "urllib3.util.retry",
-        "requests.packages.urllib3.util.ssl_" : "urllib3.util.ssl_",
-        "requests.packages.urllib3.util.timeout" : "urllib3.util.timeout",
-        "requests.packages.urllib3.util.url" : "urllib3.util.url",
+        "six.moves.builtins": "__builtin__" if python_version < 300 else "builtins",
+        "six.moves.configparser": "ConfigParser"
+        if python_version < 300
+        else "configparser",
+        "six.moves.copyreg": "copy_reg" if python_version < 300 else "copyreg",
+        "six.moves.dbm_gnu": "gdbm" if python_version < 300 else "dbm.gnu",
+        "six.moves._dummy_thread": "dummy_thread"
+        if python_version < 300
+        else "_dummy_thread",
+        "six.moves.http_cookiejar": "cookielib"
+        if python_version < 300
+        else "http.cookiejar",
+        "six.moves.http_cookies": "Cookie" if python_version < 300 else "http.cookies",
+        "six.moves.html_entities": "htmlentitydefs"
+        if python_version < 300
+        else "html.entities",
+        "six.moves.html_parser": "HTMLParser"
+        if python_version < 300
+        else "html.parser",
+        "six.moves.http_client": "httplib" if python_version < 300 else "http.client",
+        "six.moves.email_mime_multipart": "email.MIMEMultipart"
+        if python_version < 300
+        else "email.mime.multipart",
+        "six.moves.email_mime_nonmultipart": "email.MIMENonMultipart"
+        if python_version < 300
+        else "email.mime.nonmultipart",
+        "six.moves.email_mime_text": "email.MIMEText"
+        if python_version < 300
+        else "email.mime.text",
+        "six.moves.email_mime_base": "email.MIMEBase"
+        if python_version < 300
+        else "email.mime.base",
+        "six.moves.BaseHTTPServer": "BaseHTTPServer"
+        if python_version < 300
+        else "http.server",
+        "six.moves.CGIHTTPServer": "CGIHTTPServer"
+        if python_version < 300
+        else "http.server",
+        "six.moves.SimpleHTTPServer": "SimpleHTTPServer"
+        if python_version < 300
+        else "http.server",
+        "six.moves.cPickle": "cPickle" if python_version < 300 else "pickle",
+        "six.moves.queue": "Queue" if python_version < 300 else "queue",
+        "six.moves.reprlib": "repr" if python_version < 300 else "reprlib",
+        "six.moves.socketserver": "SocketServer"
+        if python_version < 300
+        else "socketserver",
+        "six.moves._thread": "thread" if python_version < 300 else "_thread",
+        "six.moves.tkinter": "Tkinter" if python_version < 300 else "tkinter",
+        "six.moves.tkinter_dialog": "Dialog"
+        if python_version < 300
+        else "tkinter.dialog",
+        "six.moves.tkinter_filedialog": "FileDialog"
+        if python_version < 300
+        else "tkinter.filedialog",
+        "six.moves.tkinter_scrolledtext": "ScrolledText"
+        if python_version < 300
+        else "tkinter.scrolledtext",
+        "six.moves.tkinter_simpledialog": "SimpleDialog"
+        if python_version < 300
+        else "tkinter.simpledialog",
+        "six.moves.tkinter_tix": "Tix" if python_version < 300 else "tkinter.tix",
+        "six.moves.tkinter_ttk": "ttk" if python_version < 300 else "tkinter.ttk",
+        "six.moves.tkinter_constants": "Tkconstants"
+        if python_version < 300
+        else "tkinter.constants",
+        "six.moves.tkinter_dnd": "Tkdnd" if python_version < 300 else "tkinter.dnd",
+        "six.moves.tkinter_colorchooser": "tkColorChooser"
+        if python_version < 300
+        else "tkinter_colorchooser",
+        "six.moves.tkinter_commondialog": "tkCommonDialog"
+        if python_version < 300
+        else "tkinter_commondialog",
+        "six.moves.tkinter_tkfiledialog": "tkFileDialog"
+        if python_version < 300
+        else "tkinter.filedialog",
+        "six.moves.tkinter_font": "tkFont" if python_version < 300 else "tkinter.font",
+        "six.moves.tkinter_messagebox": "tkMessageBox"
+        if python_version < 300
+        else "tkinter.messagebox",
+        "six.moves.tkinter_tksimpledialog": "tkSimpleDialog"
+        if python_version < 300
+        else "tkinter_tksimpledialog",
+        "six.moves.urllib_parse": None if python_version < 300 else "urllib.parse",
+        "six.moves.urllib_error": None if python_version < 300 else "urllib.error",
+        "six.moves.urllib_robotparser": "robotparser"
+        if python_version < 300
+        else "urllib.robotparser",
+        "six.moves.xmlrpc_client": "xmlrpclib"
+        if python_version < 300
+        else "xmlrpc.client",
+        "six.moves.xmlrpc_server": "SimpleXMLRPCServer"
+        if python_version < 300
+        else "xmlrpc.server",
+        "six.moves.winreg": "_winreg" if python_version < 300 else "winreg",
+        "requests.packages.urllib3": "urllib3",
+        "requests.packages.urllib3.contrib": "urllib3.contrib",
+        "requests.packages.urllib3.contrib.pyopenssl": "urllib3.contrib.pyopenssl",
+        "requests.packages.urllib3.contrib.ntlmpool": "urllib3.contrib.ntlmpool",
+        "requests.packages.urllib3.contrib.socks": "urllib3.contrib.socks",
+        "requests.packages.urllib3.exceptions": "urllib3.exceptions",
+        "requests.packages.urllib3._collections": "urllib3._collections",
+        "requests.packages.chardet": "chardet",
+        "requests.packages.idna": "idna",
+        "requests.packages.urllib3.packages": "urllib3.packages",
+        "requests.packages.urllib3.packages.ordered_dict": "urllib3.packages.ordered_dict",
+        "requests.packages.urllib3.packages.ssl_match_hostname": "urllib3.packages.ssl_match_hostname",
+        "requests.packages.urllib3.packages.ssl_match_hostname._implementation": "urllib3.packages.ssl_match_hostname._implementation",
+        "requests.packages.urllib3.connectionpool": "urllib3.connectionpool",
+        "requests.packages.urllib3.connection": "urllib3.connection",
+        "requests.packages.urllib3.filepost": "urllib3.filepost",
+        "requests.packages.urllib3.request": "urllib3.request",
+        "requests.packages.urllib3.response": "urllib3.response",
+        "requests.packages.urllib3.fields": "urllib3.fields",
+        "requests.packages.urllib3.poolmanager": "urllib3.poolmanager",
+        "requests.packages.urllib3.util": "urllib3.util",
+        "requests.packages.urllib3.util.connection": "urllib3.util.connection",
+        "requests.packages.urllib3.util.request": "urllib3.util.request",
+        "requests.packages.urllib3.util.response": "urllib3.util.response",
+        "requests.packages.urllib3.util.retry": "urllib3.util.retry",
+        "requests.packages.urllib3.util.ssl_": "urllib3.util.ssl_",
+        "requests.packages.urllib3.util.timeout": "urllib3.util.timeout",
+        "requests.packages.urllib3.util.url": "urllib3.util.url",
     }
 
     def onModuleSourceCode(self, module_name, source_code):
@@ -353,10 +457,8 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             # hand size of the "is" argument well enough to allow for our
             # type too.
             return source_code.replace(
-                "type(attr) is types.MethodType",
-                "isinstance(attr, types.MethodType)"
+                "type(attr) is types.MethodType", "isinstance(attr, types.MethodType)"
             )
-
 
         # Do nothing by default.
         return source_code
@@ -376,33 +478,32 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
 
             shutil.copy(uuid_dll_path, dist_dll_path)
 
-            return (
-                (uuid_dll_path, dist_dll_path, None),
-            )
+            return ((uuid_dll_path, dist_dll_path, None),)
 
         return ()
 
     unworthy_namespaces = (
-        "setuptools",      # Not performance relevant.
-        "distutils",       # Not performance relevant.
-        "wheel",           # Not performance relevant.
-        "pkg_resources",   # Not performance relevant.
-        "numpy.distutils", # Largely unused, and a lot of modules.
-        "numpy.f2py",      # Mostly unused, only numpy.distutils import it.
-        "numpy.testing",   # Useless.
-        "nose",            # Not performance relevant.
-        "coverage",        # Not performance relevant.
-        "docutils",        # Not performance relevant.
-        "pexpect",         # Not performance relevant.
-        "Cython",          # Mostly unused, and a lot of modules.
+        "setuptools",  # Not performance relevant.
+        "distutils",  # Not performance relevant.
+        "wheel",  # Not performance relevant.
+        "pkg_resources",  # Not performance relevant.
+        "numpy.distutils",  # Largely unused, and a lot of modules.
+        "numpy.f2py",  # Mostly unused, only numpy.distutils import it.
+        "numpy.testing",  # Useless.
+        "nose",  # Not performance relevant.
+        "coverage",  # Not performance relevant.
+        "docutils",  # Not performance relevant.
+        "pexpect",  # Not performance relevant.
+        "Cython",  # Mostly unused, and a lot of modules.
         "cython",
         "pyximport",
-        "IPython",         # Mostly unused, and a lot of modules.
-        "wx._core",        # Too large generated code
+        "IPython",  # Mostly unused, and a lot of modules.
+        "wx._core",  # Too large generated code
     )
 
     def decideCompilation(self, module_name, source_ref):
         for unworthy_namespace in self.unworthy_namespaces:
-            if module_name == unworthy_namespace or \
-               module_name.startswith(unworthy_namespace + '.'):
+            if module_name == unworthy_namespace or module_name.startswith(
+                unworthy_namespace + "."
+            ):
                 return "bytecode"

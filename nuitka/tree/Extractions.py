@@ -29,12 +29,12 @@ class VariableWriteExtractor(VisitorNoopMixin):
     """ Extract variables written to.
 
     """
+
     def __init__(self):
         self.written_to = set()
 
     def onEnterNode(self, node):
-        if node.isStatementAssignmentVariable() or \
-           node.isStatementDelVariable():
+        if node.isStatementAssignmentVariable() or node.isStatementDelVariable():
             self.written_to.add(node.getVariable())
 
     def getResult(self):
@@ -54,17 +54,16 @@ class VariableUsageUpdater(VisitorNoopMixin):
         self.new_variable = new_variable
 
     def onEnterNode(self, node):
-        if node.isStatementAssignmentVariable() or \
-           node.isStatementDelVariable() or \
-           node.isStatementReleaseVariable():
+        if (
+            node.isStatementAssignmentVariable()
+            or node.isStatementDelVariable()
+            or node.isStatementReleaseVariable()
+        ):
             if node.getVariable() is self.old_variable:
                 node.setVariable(self.new_variable)
 
 
 def updateVariableUsage(provider, old_variable, new_variable):
-    visitor = VariableUsageUpdater(
-        old_variable = old_variable,
-        new_variable = new_variable
-    )
+    visitor = VariableUsageUpdater(old_variable=old_variable, new_variable=new_variable)
 
     visitTree(provider, visitor)

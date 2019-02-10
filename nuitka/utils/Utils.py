@@ -41,6 +41,7 @@ def getOS():
     else:
         assert False, os.name
 
+
 def isWin32Windows():
     """ The Win32 variants of Python does have win32 only, not posix.
 
@@ -54,7 +55,9 @@ def isPosixWindows():
     """
     return os.name == "posix" and getOS() == "Windows"
 
+
 _is_alpine = None
+
 
 def isAlpineLinux():
     if os.name == "posix":
@@ -118,6 +121,7 @@ def getCoreCount():
 
     if not cpu_count:
         import multiprocessing
+
         cpu_count = multiprocessing.cpu_count()
 
     return cpu_count
@@ -139,7 +143,7 @@ def encodeNonAscii(var_name):
         var_name = var_name.encode("ascii", "xmlcharrefreplace")
         var_name = var_name.decode("ascii")
 
-        return var_name.replace("&#", "$$").replace(';', "")
+        return var_name.replace("&#", "$$").replace(";", "")
 
 
 def isExecutableCommand(command):

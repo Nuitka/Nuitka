@@ -26,6 +26,7 @@ from .shapes.StandardShapes import ShapeUnknown
 
 locals_dict_handles = {}
 
+
 def setLocalsDictType(locals_dict_name, kind):
     assert locals_dict_name not in locals_dict_handles, locals_dict_name
 
@@ -44,6 +45,7 @@ def setLocalsDictType(locals_dict_name, kind):
 
     locals_dict_handles[locals_dict_name] = locals_scope
 
+
 def getLocalsDictHandle(locals_dict_name):
     return locals_dict_handles[locals_dict_name]
 
@@ -53,12 +55,7 @@ def getLocalsDictHandles():
 
 
 class LocalsDictHandle(object):
-    __slots__ = (
-        "locals_name",
-        "variables",
-        "mark_for_propagation",
-        "propagation"
-    )
+    __slots__ = ("locals_name", "variables", "mark_for_propagation", "propagation")
 
     @counted_init
     def __init__(self, locals_name):
@@ -75,10 +72,7 @@ class LocalsDictHandle(object):
     __del__ = counted_del()
 
     def __repr__(self):
-        return "<%s of %s>" % (
-            self.__class__.__name__,
-            self.locals_name
-        )
+        return "<%s of %s>" % (self.__class__.__name__, self.locals_name)
 
     def getName(self):
         return self.locals_name
@@ -93,14 +87,12 @@ class LocalsDictHandle(object):
     def getLocalsDictVariable(self, variable_name):
         if variable_name not in self.variables:
             result = Variables.LocalsDictVariable(
-                owner         = self,
-                variable_name = variable_name
+                owner=self, variable_name=variable_name
             )
 
             self.variables[variable_name] = result
 
         return self.variables[variable_name]
-
 
     def markForLocalsDictPropagation(self):
         self.mark_for_propagation = True
@@ -116,8 +108,7 @@ class LocalsDictHandle(object):
             provider = trace_collection.getOwner()
 
             self.propagation[variable_name] = provider.allocateTempVariable(
-                temp_scope = None,
-                name       = self.getCodeName() + "_key_" + variable_name
+                temp_scope=None, name=self.getCodeName() + "_key_" + variable_name
             )
 
         return self.propagation[variable_name]
@@ -152,6 +143,7 @@ class LocalsMappingHandle(LocalsDictHandle):
     """ Locals dict of a Python3 class with a mapping.
 
     """
+
     @staticmethod
     def getTypeShape():
         # TODO: Make mapping available for this.
@@ -159,11 +151,7 @@ class LocalsMappingHandle(LocalsDictHandle):
 
 
 class GlobalsDictHandle(object):
-    __slots__ = (
-        "locals_name",
-        "variables",
-        "escaped"
-    )
+    __slots__ = ("locals_name", "variables", "escaped")
 
     @counted_init
     def __init__(self, locals_name):

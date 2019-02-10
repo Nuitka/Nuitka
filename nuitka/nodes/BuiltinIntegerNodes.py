@@ -31,13 +31,13 @@ from nuitka.specs import BuiltinParameterSpecs
 from .ConstantRefNodes import makeConstantRefNode
 from .ExpressionBases import (
     ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationBase
+    ExpressionSpecBasedComputationBase,
 )
 from .shapes.BuiltinTypeShapes import (
     ShapeTypeIntOrLong,
     ShapeTypeIntOrLongDerived,
     ShapeTypeLong,
-    ShapeTypeLongDerived
+    ShapeTypeLongDerived,
 )
 
 
@@ -48,11 +48,7 @@ class ExpressionBuiltinInt1(ExpressionChildrenHavingBase):
 
     def __init__(self, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "value" : value
-            },
-            source_ref = source_ref
+            self, values={"value": value}, source_ref=source_ref
         )
 
     def getTypeShape(self):
@@ -63,8 +59,7 @@ class ExpressionBuiltinInt1(ExpressionChildrenHavingBase):
         value = self.getValue()
 
         return value.computeExpressionInt(
-            int_node         = self,
-            trace_collection = trace_collection
+            int_node=self, trace_collection=trace_collection
         )
 
     getValue = ExpressionChildrenHavingBase.childGetter("value")
@@ -75,7 +70,7 @@ class ExpressionBuiltinIntLong2Base(ExpressionSpecBasedComputationBase):
 
     # Note: Version specific, may be allowed or not.
     try:
-        int(base = 2)
+        int(base=2)
     except TypeError:
         base_only_value = False
     else:
@@ -87,18 +82,11 @@ class ExpressionBuiltinIntLong2Base(ExpressionSpecBasedComputationBase):
     def __init__(self, value, base, source_ref):
         if value is None and self.base_only_value:
             value = makeConstantRefNode(
-                constant      = '0',
-                source_ref    = source_ref,
-                user_provided = True
+                constant="0", source_ref=source_ref, user_provided=True
             )
 
         ExpressionSpecBasedComputationBase.__init__(
-            self,
-            values     = {
-                "value" : value,
-                "base"  : base
-            },
-            source_ref = source_ref
+            self, values={"value": value, "base": base}, source_ref=source_ref
         )
 
     getValue = ExpressionSpecBasedComputationBase.childGetter("value")
@@ -112,10 +100,11 @@ class ExpressionBuiltinIntLong2Base(ExpressionSpecBasedComputationBase):
             if base is not None:
                 if not self.base_only_value:
                     return trace_collection.getCompileTimeComputationResult(
-                        node        = self,
-                        computation = lambda : self.builtin(base = 2),
-                        description = """\
-%s built-in call with only base argument""" % self.builtin.__name__
+                        node=self,
+                        computation=lambda: self.builtin(base=2),
+                        description="""\
+%s built-in call with only base argument"""
+                        % self.builtin.__name__,
                     )
 
             given_values = ()
@@ -123,8 +112,7 @@ class ExpressionBuiltinIntLong2Base(ExpressionSpecBasedComputationBase):
             given_values = (value, base)
 
         return self.computeBuiltinSpec(
-            trace_collection = trace_collection,
-            given_values     = given_values
+            trace_collection=trace_collection, given_values=given_values
         )
 
 
@@ -147,11 +135,7 @@ if python_version < 300:
 
         def __init__(self, value, source_ref):
             ExpressionChildrenHavingBase.__init__(
-                self,
-                values     = {
-                    "value" : value
-                },
-                source_ref = source_ref
+                self, values={"value": value}, source_ref=source_ref
             )
 
         def getTypeShape(self):
@@ -160,15 +144,13 @@ if python_version < 300:
 
         def computeExpression(self, trace_collection):
             return self.subnode_value.computeExpressionLong(
-                long_node        = self,
-                trace_collection = trace_collection
+                long_node=self, trace_collection=trace_collection
             )
 
         getValue = ExpressionChildrenHavingBase.childGetter("value")
 
         def mayRaiseException(self, exception_type):
             return self.subnode_value.mayRaiseExceptionLong(exception_type)
-
 
     class ExpressionBuiltinLong2(ExpressionBuiltinIntLong2Base):
         kind = "EXPRESSION_BUILTIN_LONG2"

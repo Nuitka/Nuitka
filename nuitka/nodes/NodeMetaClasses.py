@@ -50,7 +50,7 @@ class NodeCheckMetaClass(ABCMeta):
     # should be "mcs" for one and "cls" for the other.
     # pylint: disable=I0021,bad-mcs-classmethod-argument
 
-    def __new__(cls, name, bases, dictionary): # pylint: disable=I0021,arguments-differ
+    def __new__(cls, name, bases, dictionary):  # pylint: disable=I0021,arguments-differ
         _checkBases(name, bases)
 
         if "__slots__" not in dictionary:
@@ -69,7 +69,7 @@ class NodeCheckMetaClass(ABCMeta):
     def __init__(cls, name, bases, dictionary):  # @NoSelf
 
         if not name.endswith("Base"):
-            assert ("kind" in dictionary), name
+            assert "kind" in dictionary, name
             kind = dictionary["kind"]
 
             assert type(kind) is str, name
@@ -84,11 +84,8 @@ class NodeCheckMetaClass(ABCMeta):
                 else:
                     return value.title()
 
-            kind_to_name_part = "".join(
-                [convert(x) for x in kind.split('_')]
-            )
-            assert name.endswith(kind_to_name_part), \
-              (name, kind_to_name_part)
+            kind_to_name_part = "".join([convert(x) for x in kind.split("_")])
+            assert name.endswith(kind_to_name_part), (name, kind_to_name_part)
 
             # Automatically add checker methods for everything to the common
             # base class
@@ -108,14 +105,11 @@ class NodeCheckMetaClass(ABCMeta):
 
         ABCMeta.__init__(cls, name, bases, dictionary)
 
+
 # For every node type, there is a test, and then some more members,
 
 # For Python2/3 compatible source, we create a base class that has the metaclass
 # used and doesn't require making a syntax choice.
 NodeMetaClassBase = NodeCheckMetaClass(
-    "NodeMetaClassBase",
-    (object,),
-    {
-        "__slots__" : ()
-    }
+    "NodeMetaClassBase", (object,), {"__slots__": ()}
 )

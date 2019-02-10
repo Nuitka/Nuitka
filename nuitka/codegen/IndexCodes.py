@@ -27,36 +27,20 @@ from .ErrorCodes import getErrorExitBoolCode
 
 
 def getMaxIndexCode(to_name, emit):
-    emit(
-        "%s = PY_SSIZE_T_MAX;" % to_name
-    )
+    emit("%s = PY_SSIZE_T_MAX;" % to_name)
 
 
 def getMinIndexCode(to_name, emit):
-    emit(
-        "%s = 0;" % to_name
-    )
+    emit("%s = 0;" % to_name)
 
 
 def getIndexCode(to_name, value_name, emit, context):
-    emit(
-        "%s = CONVERT_TO_INDEX( %s );" % (
-            to_name,
-            value_name,
-        )
-    )
+    emit("%s = CONVERT_TO_INDEX( %s );" % (to_name, value_name))
 
     getErrorExitBoolCode(
-        condition = "%s == -1 && ERROR_OCCURRED()" % to_name,
-        emit      = emit,
-        context   = context
+        condition="%s == -1 && ERROR_OCCURRED()" % to_name, emit=emit, context=context
     )
 
 
 def getIndexValueCode(to_name, value, emit):
-    emit(
-        "%s = %d;" % (
-            to_name,
-            value
-        )
-    )
+    emit("%s = %d;" % (to_name, value))

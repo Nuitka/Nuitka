@@ -61,5 +61,6 @@ void setupMetaPathBasedLoader( void )
 }
 """
 
-from . import TemplateDebugWrapper # isort:skip
+from . import TemplateDebugWrapper  # isort:skip
+
 TemplateDebugWrapper.checkDebug(globals())

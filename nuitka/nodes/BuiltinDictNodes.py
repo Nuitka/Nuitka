@@ -31,10 +31,7 @@ from .NodeMakingHelpers import wrapExpressionWithNodeSideEffects
 class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_DICT"
 
-    named_children = (
-        "pos_arg",
-        "pairs"
-    )
+    named_children = ("pos_arg", "pairs")
 
     def __init__(self, pos_arg, pairs, source_ref):
         assert type(pos_arg) not in (tuple, list), source_ref
@@ -42,19 +39,18 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
 
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "pos_arg" : pos_arg,
-                "pairs"   : tuple(
+            values={
+                "pos_arg": pos_arg,
+                "pairs": tuple(
                     ExpressionKeyValuePair(
                         makeConstantRefNode(key, source_ref),
                         value,
-                        value.getSourceReference()
+                        value.getSourceReference(),
                     )
-                    for key, value in
-                    pairs
-                )
+                    for key, value in pairs
+                ),
             },
-            source_ref = source_ref
+            source_ref=source_ref,
         )
 
     getPositionalArgument = ExpressionChildrenHavingBase.childGetter("pos_arg")
@@ -80,8 +76,7 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
 
         if pos_arg is None:
             new_node = ExpressionMakeDict(
-                pairs      = self.getNamedArgumentPairs(),
-                source_ref = self.source_ref
+                pairs=self.getNamedArgumentPairs(), source_ref=self.source_ref
             )
 
             # This cannot raise anymore than its arguments, as the keys will
@@ -90,24 +85,22 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             return (
                 new_node,
                 "new_expression",
-                "Replace 'dict' built-in call dictionary creation from arguments."
+                "Replace 'dict' built-in call dictionary creation from arguments.",
             )
 
         pos_iteration_length = pos_arg.getIterationLength()
 
         if pos_iteration_length == 0:
             new_node = ExpressionMakeDict(
-                pairs      = self.getNamedArgumentPairs(),
-                source_ref = self.source_ref
+                pairs=self.getNamedArgumentPairs(), source_ref=self.source_ref
             )
 
             # Maintain potential side effects from the positional arguments.
             new_node = wrapExpressionWithNodeSideEffects(
-                old_node = ExpressionBuiltinIter1(
-                    value      = pos_arg,
-                    source_ref = self.source_ref
+                old_node=ExpressionBuiltinIter1(
+                    value=pos_arg, source_ref=self.source_ref
                 ),
-                new_node = new_node
+                new_node=new_node,
             )
 
             # Just in case, the iteration may do that.
@@ -117,25 +110,25 @@ class ExpressionBuiltinDict(ExpressionChildrenHavingBase):
             return (
                 new_node,
                 "new_expression",
-                "Replace 'dict' built-in call dictionary creation from arguments."
+                "Replace 'dict' built-in call dictionary creation from arguments.",
             )
 
-        if pos_iteration_length is not None and \
-           pos_iteration_length + len(pairs) < 256 and \
-           self.hasOnlyConstantArguments():
+        if (
+            pos_iteration_length is not None
+            and pos_iteration_length + len(pairs) < 256
+            and self.hasOnlyConstantArguments()
+        ):
             if pos_arg is not None:
-                pos_args = (
-                    pos_arg,
-                )
+                pos_args = (pos_arg,)
             else:
                 pos_args = None
 
             return trace_collection.getCompileTimeComputationResult(
-                node        = self,
-                computation = lambda : builtin_dict_spec.simulateCall(
+                node=self,
+                computation=lambda: builtin_dict_spec.simulateCall(
                     (pos_args, self.getNamedArgumentPairs())
                 ),
-                description = "Replace 'dict' call with constant arguments."
+                description="Replace 'dict' call with constant arguments.",
             )
         else:
             trace_collection.onExceptionRaiseExit(BaseException)

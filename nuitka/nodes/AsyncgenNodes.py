@@ -29,9 +29,7 @@ from .FunctionNodes import ExpressionFunctionEntryPointBase
 class ExpressionMakeAsyncgenObject(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_MAKE_ASYNCGEN_OBJECT"
 
-    named_children = (
-        "asyncgen_ref",
-    )
+    named_children = ("asyncgen_ref",)
 
     getAsyncgenRef = ExpressionChildrenHavingBase.childGetter("asyncgen_ref")
 
@@ -39,30 +37,24 @@ class ExpressionMakeAsyncgenObject(ExpressionChildrenHavingBase):
         assert asyncgen_ref.getFunctionBody().isExpressionAsyncgenObjectBody()
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "asyncgen_ref" : asyncgen_ref,
-            },
-            source_ref = source_ref
+            self, values={"asyncgen_ref": asyncgen_ref}, source_ref=source_ref
         )
 
         self.variable_closure_traces = []
 
     def getDetailsForDisplay(self):
-        return {
-            "asyncgen" : self.getAsyncgenRef().getFunctionBody().getCodeName()
-        }
+        return {"asyncgen": self.getAsyncgenRef().getFunctionBody().getCodeName()}
 
     def computeExpression(self, trace_collection):
         self.variable_closure_traces = []
 
-        for closure_variable in self.getAsyncgenRef().getFunctionBody().getClosureVariables():
+        for closure_variable in (
+            self.getAsyncgenRef().getFunctionBody().getClosureVariables()
+        ):
             trace = trace_collection.getVariableCurrentTrace(closure_variable)
             trace.addClosureUsage()
 
-            self.variable_closure_traces.append(
-                (closure_variable, trace)
-            )
+            self.variable_closure_traces.append((closure_variable, trace))
 
         # TODO: Asyncgen body may know something too.
         return self, None, None
@@ -85,12 +77,12 @@ class ExpressionAsyncgenObjectBody(ExpressionFunctionEntryPointBase):
     def __init__(self, provider, name, code_object, flags, source_ref):
         ExpressionFunctionEntryPointBase.__init__(
             self,
-            provider    = provider,
-            name        = name,
-            code_object = code_object,
-            code_prefix = "asyncgen",
-            flags       = flags,
-            source_ref  = source_ref
+            provider=provider,
+            name=name,
+            code_object=code_object,
+            code_prefix="asyncgen",
+            flags=flags,
+            source_ref=source_ref,
         )
 
         self.needs_generator_return_exit = False
@@ -99,10 +91,7 @@ class ExpressionAsyncgenObjectBody(ExpressionFunctionEntryPointBase):
         return self.name
 
     def markAsNeedsGeneratorReturnHandling(self, value):
-        self.needs_generator_return_exit = max(
-            self.needs_generator_return_exit,
-            value
-        )
+        self.needs_generator_return_exit = max(self.needs_generator_return_exit, value)
 
     def needsGeneratorReturnHandling(self):
         return self.needs_generator_return_exit == 2

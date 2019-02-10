@@ -34,7 +34,7 @@ def main():
 
     for line in open("Developer_Manual.rst"):
         if not quoting:
-            print(line, end = "")
+            print(line, end="")
 
         if not quoting:
             match = quote_start_re.search(line)
@@ -42,15 +42,15 @@ def main():
             if match:
                 quoting = match.group(1)
 
-                if '.' in quoting:
-                    import_from, import_value = quoting.rsplit('.', 1)
+                if "." in quoting:
+                    import_from, import_value = quoting.rsplit(".", 1)
 
                     # Hopefully OK for us, pylint: disable=W0122
-                    exec("from %s import %s" % (import_from, import_value) )
+                    exec("from %s import %s" % (import_from, import_value))
                     item = getattr(sys.modules[import_from], import_value)
 
                     # Should potentially be derived from quoting line.
-                    indentation = ' ' * line.find("Quoting")
+                    indentation = " " * line.find("Quoting")
 
                     # Empty line to separate
                     print()
@@ -72,11 +72,11 @@ def main():
                 assert quoting == match.group(1)
                 quoting = False
 
-                print(line, end = "")
-
+                print(line, end="")
 
     if quoting:
         sys.exit("Error, waiting for end of quote for %s failed" % quoting)
+
 
 if __name__ == "__main__":
     main()

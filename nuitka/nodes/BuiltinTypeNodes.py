@@ -27,11 +27,11 @@ from nuitka.specs import BuiltinParameterSpecs
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
     ExpressionChildrenHavingBase,
-    ExpressionSpecBasedComputationBase
+    ExpressionSpecBasedComputationBase,
 )
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
-    wrapExpressionWithNodeSideEffects
+    wrapExpressionWithNodeSideEffects,
 )
 from .shapes.BuiltinTypeShapes import (
     ShapeTypeBool,
@@ -40,7 +40,7 @@ from .shapes.BuiltinTypeShapes import (
     ShapeTypeBytesDerived,
     ShapeTypeFloatDerived,
     ShapeTypeStrDerived,
-    ShapeTypeUnicodeDerived
+    ShapeTypeUnicodeDerived,
 )
 
 
@@ -52,43 +52,32 @@ class ExpressionBuiltinContainerBase(ExpressionSpecBasedComputationBase):
 
     builtin_spec = None
 
-    named_children = (
-        "value",
-    )
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
         ExpressionSpecBasedComputationBase.__init__(
-            self,
-            values     = {
-                "value" : value,
-            },
-            source_ref = source_ref
+            self, values={"value": value}, source_ref=source_ref
         )
 
-    getValue = ExpressionSpecBasedComputationBase.childGetter(
-        "value"
-    )
+    getValue = ExpressionSpecBasedComputationBase.childGetter("value")
 
     def computeExpression(self, trace_collection):
         value = self.getValue()
 
         if value is None:
             return self.computeBuiltinSpec(
-                trace_collection = trace_collection,
-                given_values     = ()
+                trace_collection=trace_collection, given_values=()
             )
         elif value.isExpressionConstantXrangeRef():
             if value.getIterationLength() <= 256:
                 return self.computeBuiltinSpec(
-                    trace_collection = trace_collection,
-                    given_values     = (value,)
+                    trace_collection=trace_collection, given_values=(value,)
                 )
             else:
                 return self, None, None
         else:
             return self.computeBuiltinSpec(
-                trace_collection = trace_collection,
-                given_values     = (value,)
+                trace_collection=trace_collection, given_values=(value,)
             )
 
 
@@ -116,7 +105,6 @@ class ExpressionBuiltinFrozenset(ExpressionBuiltinContainerBase):
     builtin_spec = BuiltinParameterSpecs.builtin_frozenset_spec
 
 
-
 class ExpressionBuiltinFloat(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_FLOAT"
 
@@ -124,11 +112,7 @@ class ExpressionBuiltinFloat(ExpressionChildrenHavingBase):
 
     def __init__(self, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "value" : value
-            },
-            source_ref = source_ref
+            self, values={"value": value}, source_ref=source_ref
         )
 
     def getTypeShape(self):
@@ -137,8 +121,7 @@ class ExpressionBuiltinFloat(ExpressionChildrenHavingBase):
 
     def computeExpression(self, trace_collection):
         return self.subnode_value.computeExpressionFloat(
-            float_node       = self,
-            trace_collection = trace_collection
+            float_node=self, trace_collection=trace_collection
         )
 
     def mayRaiseException(self, exception_type):
@@ -160,17 +143,16 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
 
             if truth_value is not None:
                 result = wrapExpressionWithNodeSideEffects(
-                    new_node = makeConstantReplacementNode(
-                        constant = truth_value,
-                        node     = self,
+                    new_node=makeConstantReplacementNode(
+                        constant=truth_value, node=self
                     ),
-                    old_node = self.getValue()
+                    old_node=self.getValue(),
                 )
 
                 return (
                     result,
                     "new_constant",
-                    "Predicted truth value of built-in bool argument"
+                    "Predicted truth value of built-in bool argument",
                 )
 
         return ExpressionBuiltinTypeBase.computeExpression(self, trace_collection)
@@ -181,21 +163,13 @@ class ExpressionBuiltinBool(ExpressionBuiltinTypeBase):
 
 
 class ExpressionBuiltinUnicodeBase(ExpressionSpecBasedComputationBase):
-    named_children = (
-        "value",
-        "encoding",
-        "errors"
-    )
+    named_children = ("value", "encoding", "errors")
 
     def __init__(self, value, encoding, errors, source_ref):
         ExpressionSpecBasedComputationBase.__init__(
             self,
-            values     = {
-                "value"    : value,
-                "encoding" : encoding,
-                "errors"   : errors
-            },
-            source_ref = source_ref
+            values={"value": value, "encoding": encoding, "errors": errors},
+            source_ref=source_ref,
         )
 
     getValue = ExpressionSpecBasedComputationBase.childGetter("value")
@@ -203,11 +177,7 @@ class ExpressionBuiltinUnicodeBase(ExpressionSpecBasedComputationBase):
     getErrors = ExpressionSpecBasedComputationBase.childGetter("errors")
 
     def computeExpression(self, trace_collection):
-        args = [
-            self.getValue(),
-            self.getEncoding(),
-            self.getErrors()
-        ]
+        args = [self.getValue(), self.getEncoding(), self.getErrors()]
 
         while args and args[-1] is None:
             del args[-1]
@@ -220,12 +190,12 @@ class ExpressionBuiltinUnicodeBase(ExpressionSpecBasedComputationBase):
         trace_collection.onControlFlowEscape(self)
 
         return self.computeBuiltinSpec(
-            trace_collection = trace_collection,
-            given_values     = tuple(args)
+            trace_collection=trace_collection, given_values=tuple(args)
         )
 
 
 if python_version < 300:
+
     class ExpressionBuiltinStr(ExpressionBuiltinTypeBase):
         kind = "EXPRESSION_BUILTIN_STR"
 
@@ -233,8 +203,7 @@ if python_version < 300:
 
         def computeExpression(self, trace_collection):
             new_node, change_tags, change_desc = ExpressionBuiltinTypeBase.computeExpression(
-                self,
-                trace_collection
+                self, trace_collection
             )
 
             if new_node is self:
@@ -242,8 +211,7 @@ if python_version < 300:
 
                 if str_value is not None:
                     new_node = wrapExpressionWithNodeSideEffects(
-                        new_node = str_value,
-                        old_node = self.getValue()
+                        new_node=str_value, old_node=self.getValue()
                     )
 
                     change_tags = "new_expression"
@@ -254,7 +222,6 @@ if python_version < 300:
         def getTypeShape(self):
             return ShapeTypeStrDerived
 
-
     class ExpressionBuiltinUnicode(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_UNICODE"
 
@@ -263,7 +230,9 @@ if python_version < 300:
         def getTypeShape(self):
             return ShapeTypeUnicodeDerived
 
+
 else:
+
     class ExpressionBuiltinStr(ExpressionBuiltinUnicodeBase):
         kind = "EXPRESSION_BUILTIN_STR"
 
@@ -280,7 +249,6 @@ else:
         def getTypeShape(self):
             return ShapeTypeBytes
 
-
     class ExpressionBuiltinBytes1(ExpressionChildrenHavingBase):
         kind = "EXPRESSION_BUILTIN_BYTES1"
 
@@ -288,11 +256,7 @@ else:
 
         def __init__(self, value, source_ref):
             ExpressionChildrenHavingBase.__init__(
-                self,
-                values     = {
-                    "value" : value
-                },
-                source_ref = source_ref
+                self, values={"value": value}, source_ref=source_ref
             )
 
         def getTypeShape(self):
@@ -301,8 +265,7 @@ else:
 
         def computeExpression(self, trace_collection):
             return self.subnode_value.computeExpressionBytes(
-                bytes_node       = self,
-                trace_collection = trace_collection
+                bytes_node=self, trace_collection=trace_collection
             )
 
         def mayRaiseException(self, exception_type):
@@ -317,11 +280,7 @@ class ExpressionBuiltinBytearray1(ExpressionBuiltinTypeBase):
     builtin_spec = BuiltinParameterSpecs.builtin_bytearray_spec
 
     def __init__(self, value, source_ref):
-        ExpressionBuiltinTypeBase.__init__(
-            self,
-            value      = value,
-            source_ref = source_ref
-        )
+        ExpressionBuiltinTypeBase.__init__(self, value=value, source_ref=source_ref)
 
     def getTypeShape(self):
         return ShapeTypeBytearray
@@ -337,13 +296,8 @@ class ExpressionBuiltinBytearray3(ExpressionChildrenHavingBase):
     def __init__(self, string, encoding, errors, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "string"   : string,
-                "encoding" : encoding,
-                "errors"   : errors
-
-            },
-            source_ref = source_ref
+            values={"string": string, "encoding": encoding, "errors": errors},
+            source_ref=source_ref,
         )
 
     getStringArg = ExpressionChildrenHavingBase.childGetter("string")

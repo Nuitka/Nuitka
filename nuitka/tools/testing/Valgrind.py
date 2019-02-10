@@ -30,26 +30,17 @@ from nuitka.utils.Execution import check_output
 from nuitka.utils.FileOperations import withTemporaryFilename
 
 
-def runValgrind(descr, tool, args, include_startup, save_logfilename = None):
+def runValgrind(descr, tool, args, include_startup, save_logfilename=None):
     if descr:
-        my_print(descr, tool, file = sys.stderr, end = "... ")
+        my_print(descr, tool, file=sys.stderr, end="... ")
 
     with withTemporaryFilename() as log_filename:
-        command = [
-            "valgrind",
-            "-q",
-        ]
+        command = ["valgrind", "-q"]
 
         if tool == "callgrind":
-            command += [
-                "--tool=callgrind",
-                "--callgrind-out-file=%s" % log_filename
-            ]
+            command += ["--tool=callgrind", "--callgrind-out-file=%s" % log_filename]
         elif tool == "massif":
-            command += [
-                "--tool=massif",
-                "--massif-out-file=%s" % log_filename
-            ]
+            command += ["--tool=massif", "--massif-out-file=%s" % log_filename]
         else:
             sys.exit("Error, no support for tool '%s' yet." % tool)
 
@@ -59,15 +50,13 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename = None):
                 "--zero-before=init__main__()",
                 "--zero-before=init__main__",
                 "--zero-before=PyInit___main__",
-                "--zero-before=PyInit___main__()"
+                "--zero-before=PyInit___main__()",
             ]
 
         command.extend(args)
 
         process = subprocess.Popen(
-            args   = command,
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE
+            args=command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
         _stdout_valgrind, stderr_valgrind = process.communicate()
@@ -75,7 +64,7 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename = None):
 
         assert exit_valgrind == 0, stderr_valgrind
         if descr:
-            my_print("OK", file = sys.stderr)
+            my_print("OK", file=sys.stderr)
 
         if save_logfilename is not None:
             shutil.copyfile(log_filename, save_logfilename)
@@ -86,7 +75,7 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename = None):
             if tool == "callgrind" and line.startswith("summary:"):
                 return int(line.split()[1])
             elif tool == "massif" and line.startswith("mem_heap_B="):
-                mem = int(line.split('=')[1])
+                mem = int(line.split("=")[1])
 
                 if max_mem is None:
                     max_mem = 0
@@ -96,16 +85,12 @@ def runValgrind(descr, tool, args, include_startup, save_logfilename = None):
         if tool == "massif" and max_mem is not None:
             return max_mem
 
-
         sys.exit("Error, didn't parse Valgrind log file successfully.")
 
 
 def getBinarySizes(filename):
-    command = [
-        "size",
-        filename
-    ]
+    command = ["size", filename]
     sizes = check_output(command).strip()
-    sizes = sizes.split(b'\n')[-1].replace(b'\t', b"").split()
+    sizes = sizes.split(b"\n")[-1].replace(b"\t", b"").split()
 
     return int(sizes[0]), int(sizes[1])

@@ -30,40 +30,33 @@ from nuitka.Tracing import my_print
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
 sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            ".."
-        )
-    )
+    0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 )
 
-from nuitka.tools.Basics import goHome # isort:skip
-from nuitka.tools.quality.ScanSources import scanTargets # isort:skip
-from .Autoformat import autoformat # isort:skip
+from nuitka.tools.Basics import goHome  # isort:skip
+from nuitka.tools.quality.ScanSources import scanTargets  # isort:skip
+from .Autoformat import autoformat  # isort:skip
+
 
 def main():
     parser = OptionParser()
 
     parser.add_option(
         "--verbose",
-        action  = "store_true",
-        dest    = "verbose",
-        default = False,
-        help    = """\
-        Default is %default."""
+        action="store_true",
+        dest="verbose",
+        default=False,
+        help="""\
+        Default is %default.""",
     )
 
     parser.add_option(
         "--abort-on-parsing-error",
-        action  = "store_true",
-        dest    = "abort",
-        default = False,
-        help    = """\
-        Default is %default."""
+        action="store_true",
+        dest="abort",
+        default=False,
+        help="""\
+        Default is %default.""",
     )
 
     options, positional_args = parser.parse_args()
@@ -74,14 +67,13 @@ def main():
     my_print("Working on:", positional_args)
 
     positional_args = [
-        os.path.abspath(positional_arg)
-        for positional_arg in positional_args
+        os.path.abspath(positional_arg) for positional_arg in positional_args
     ]
     goHome()
 
     found = False
     for filename in scanTargets(positional_args, (".py", ".scons")):
-        autoformat(filename, abort = options.abort)
+        autoformat(filename, abort=options.abort)
         found = True
 
     if not found:

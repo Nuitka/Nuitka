@@ -28,46 +28,31 @@ from .ErrorCodes import getReleaseCode
 
 def generateExpressionOnlyCode(statement, emit, context):
     return getStatementOnlyCode(
-        value   = statement.getExpression(),
-        emit    = emit,
-        context = context
+        value=statement.getExpression(), emit=emit, context=context
     )
 
 
 def getStatementOnlyCode(value, emit, context):
     tmp_name = context.allocateTempName(
-        base_name = "unused",
-        type_name = "void",
-        unique    = True
+        base_name="unused", type_name="void", unique=True
     )
 
     generateExpressionCode(
-        expression = value,
-        to_name    = tmp_name,
-        emit       = emit,
-        context    = context
+        expression=value, to_name=tmp_name, emit=emit, context=context
     )
 
     # An error of the expression is dealt inside of this, not necessary here,
     # but we have to release non-error value if it has a reference.
-    getReleaseCode(
-        release_name = tmp_name,
-        emit         = emit,
-        context      = context
-    )
+    getReleaseCode(release_name=tmp_name, emit=emit, context=context)
 
 
 def generateSideEffectsCode(to_name, expression, emit, context):
     for side_effect in expression.getSideEffects():
-        getStatementOnlyCode(
-            value   = side_effect,
-            emit    = emit,
-            context = context
-        )
+        getStatementOnlyCode(value=side_effect, emit=emit, context=context)
 
     generateExpressionCode(
-        to_name    = to_name,
-        expression = expression.getExpression(),
-        emit       = emit,
-        context    = context
+        to_name=to_name,
+        expression=expression.getExpression(),
+        emit=emit,
+        context=context,
     )

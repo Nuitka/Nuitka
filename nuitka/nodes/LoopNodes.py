@@ -32,20 +32,14 @@ from .NodeBases import StatementBase, StatementChildHavingBase
 class StatementLoop(StatementChildHavingBase):
     kind = "STATEMENT_LOOP"
 
-    named_child = (
-        "body"
-    )
+    named_child = "body"
 
     checker = checkStatementsSequenceOrNone
 
     __slots__ = ("loop_variables", "loop_memory")
 
     def __init__(self, body, source_ref):
-        StatementChildHavingBase.__init__(
-            self,
-            value      = body,
-            source_ref = source_ref
-        )
+        StatementChildHavingBase.__init__(self, value=body, source_ref=source_ref)
 
         self.loop_variables = None
         self.loop_memory = None
@@ -88,10 +82,10 @@ class StatementLoop(StatementChildHavingBase):
     def computeLoopBody(self, trace_collection):
         # Rather complex stuff, pylint: disable=too-many-branches,too-many-locals,too-many-statements
         abort_context = trace_collection.makeAbortStackContext(
-            catch_breaks     = True,
-            catch_continues  = True,
-            catch_returns    = False,
-            catch_exceptions = False,
+            catch_breaks=True,
+            catch_continues=True,
+            catch_returns=False,
+            catch_exceptions=False,
         )
 
         has_initial = False
@@ -106,9 +100,7 @@ class StatementLoop(StatementChildHavingBase):
                 if self.loop_variables is None:
                     early = True
 
-                    loop_variables = getVariablesWritten(
-                        loop_body
-                    )
+                    loop_variables = getVariablesWritten(loop_body)
 
                     self.loop_variables = {}
                     self.loop_memory = {}
@@ -138,23 +130,28 @@ class StatementLoop(StatementChildHavingBase):
                     last_ones = self.loop_memory[loop_variable]
 
                     if last_ones is not True:
-                        last_ones = self.loop_memory[loop_variable] == self.loop_variables[loop_variable]
+                        last_ones = (
+                            self.loop_memory[loop_variable]
+                            == self.loop_variables[loop_variable]
+                        )
 
                     loop_entry_traces.add(
                         (
                             loop_variable,
                             trace_collection.markActiveVariableAsLoopMerge(
-                                variable = loop_variable,
-                                shapes   = self.loop_variables[loop_variable],
-                                initial  = last_ones is not True
-                            )
+                                variable=loop_variable,
+                                shapes=self.loop_variables[loop_variable],
+                                initial=last_ones is not True,
+                            ),
                         )
                     )
 
                     has_initial = has_initial or last_ones is not True
 
                     if last_ones is not True:
-                        self.loop_memory[loop_variable] = set(self.loop_variables[loop_variable])
+                        self.loop_memory[loop_variable] = set(
+                            self.loop_variables[loop_variable]
+                        )
 
                 if to_remove is not None:
                     for loop_variable in to_remove:
@@ -165,7 +162,7 @@ class StatementLoop(StatementChildHavingBase):
                 trace_collection.resetValueStates()
 
                 result = loop_body.computeStatementsSequence(
-                    trace_collection = trace_collection
+                    trace_collection=trace_collection
                 )
 
                 # Might be changed.
@@ -184,7 +181,9 @@ class StatementLoop(StatementChildHavingBase):
                     loop_end_traces = set()
 
                     for continue_collection in continue_collections:
-                        loop_end_trace = continue_collection.getVariableCurrentTrace(variable)
+                        loop_end_trace = continue_collection.getVariableCurrentTrace(
+                            variable
+                        )
 
                         if loop_end_trace is not loop_entry_trace:
                             loop_end_trace.getTypeShape().emitAlternatives(
@@ -198,22 +197,20 @@ class StatementLoop(StatementChildHavingBase):
                     else:
                         loop_entry_trace.markLoopTraceComplete()
 
-
             # If we break, the outer collections becomes a merge of all those breaks
             # or just the one, if there is only one.
             break_collections = trace_collection.getLoopBreakCollections()
 
         if has_initial:
-            trace_collection.signalChange("new_expression", self.source_ref, "Loop has incomplete variable types.")
+            trace_collection.signalChange(
+                "new_expression", self.source_ref, "Loop has incomplete variable types."
+            )
 
         return loop_body, break_collections
 
     def computeStatement(self, trace_collection):
         outer_trace_collection = trace_collection
-        trace_collection = TraceCollectionBranch(
-            parent = trace_collection,
-            name   = "loop"
-        )
+        trace_collection = TraceCollectionBranch(parent=trace_collection, name="loop")
 
         loop_body, break_collections = self.computeLoopBody(trace_collection)
 
@@ -223,7 +220,7 @@ class StatementLoop(StatementChildHavingBase):
             assert loop_body.isStatementsSequence()
 
             statements = loop_body.getStatements()
-            assert statements # Cannot be empty
+            assert statements  # Cannot be empty
 
             # If the last statement is a "continue" statement, it can simply
             # be discarded.
@@ -242,7 +239,7 @@ class StatementLoop(StatementChildHavingBase):
                     "new_statements",
                     last_statement.getSourceReference(),
                     """\
-Removed useless terminal 'continue' as last statement of loop."""
+Removed useless terminal 'continue' as last statement of loop.""",
                 )
 
         if break_collections:
@@ -257,11 +254,15 @@ Removed useless terminal 'continue' as last statement of loop."""
             assert loop_body.isStatementsSequence()
 
             statements = loop_body.getStatements()
-            assert statements # Cannot be empty
+            assert statements  # Cannot be empty
 
             if len(statements) == 1 and statements[-1].isStatementLoopBreak():
-                return None, "new_statements", """\
-Removed useless loop with immediate 'break' statement."""
+                return (
+                    None,
+                    "new_statements",
+                    """\
+Removed useless loop with immediate 'break' statement.""",
+                )
 
         # Also consider the threading intermission. TODO: We ought to make it
         # explicit, so we can see it potentially disrupting and changing the
@@ -278,7 +279,7 @@ class StatementLoopContinue(StatementBase):
     kind = "STATEMENT_LOOP_CONTINUE"
 
     def __init__(self, source_ref):
-        StatementBase.__init__(self, source_ref = source_ref)
+        StatementBase.__init__(self, source_ref=source_ref)
 
     def finalize(self):
         del self.parent
@@ -306,7 +307,7 @@ class StatementLoopBreak(StatementBase):
     kind = "STATEMENT_LOOP_BREAK"
 
     def __init__(self, source_ref):
-        StatementBase.__init__(self, source_ref = source_ref)
+        StatementBase.__init__(self, source_ref=source_ref)
 
     def finalize(self):
         del self.parent

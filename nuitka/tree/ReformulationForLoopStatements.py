@@ -24,12 +24,12 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementReleaseVariable
+    StatementReleaseVariable,
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionAsyncIter,
     ExpressionAsyncNext,
-    ExpressionBuiltinIter1
+    ExpressionBuiltinIter1,
 )
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
@@ -49,7 +49,7 @@ from .TreeHelpers import (
     makeStatementsSequence,
     makeStatementsSequenceFromStatements,
     popBuildContext,
-    pushBuildContext
+    pushBuildContext,
 )
 
 
@@ -68,129 +68,97 @@ def _buildForLoopNode(provider, node, sync, source_ref):
     temp_scope = provider.allocateTempScope("for_loop")
 
     tmp_iter_variable = provider.allocateTempVariable(
-        temp_scope = temp_scope,
-        name       = "for_iterator"
+        temp_scope=temp_scope, name="for_iterator"
     )
     tmp_value_variable = provider.allocateTempVariable(
-        temp_scope = temp_scope,
-        name       = "iter_value"
+        temp_scope=temp_scope, name="iter_value"
     )
 
     else_block = buildStatementsNode(
-        provider   = provider,
-        nodes      = node.orelse if node.orelse else None,
-        source_ref = source_ref
+        provider=provider,
+        nodes=node.orelse if node.orelse else None,
+        source_ref=source_ref,
     )
 
     if else_block is not None:
         tmp_break_indicator = provider.allocateTempVariable(
-            temp_scope = temp_scope,
-            name       = "break_indicator"
+            temp_scope=temp_scope, name="break_indicator"
         )
 
         statements = [
             StatementAssignmentVariable(
-                variable   = tmp_break_indicator,
-                source     = makeConstantRefNode(
-                    constant   = True,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
+                variable=tmp_break_indicator,
+                source=makeConstantRefNode(constant=True, source_ref=source_ref),
+                source_ref=source_ref,
             )
         ]
     else:
         statements = []
 
-    statements.append(
-        StatementLoopBreak(
-            source_ref = source_ref
-        )
-    )
+    statements.append(StatementLoopBreak(source_ref=source_ref))
 
     handler_body = makeStatementsSequence(
-        statements = statements,
-        allow_none = False,
-        source_ref = source_ref
+        statements=statements, allow_none=False, source_ref=source_ref
     )
 
     if sync:
         next_node = ExpressionBuiltinNext1(
-            value      = ExpressionTempVariableRef(
-                variable   = tmp_iter_variable,
-                source_ref = source_ref
+            value=ExpressionTempVariableRef(
+                variable=tmp_iter_variable, source_ref=source_ref
             ),
-            source_ref = source_ref
+            source_ref=source_ref,
         )
     else:
         next_node = ExpressionYieldFromWaitable(
-            expression = ExpressionAsyncNext(
-                value      = ExpressionTempVariableRef(
-                    variable   = tmp_iter_variable,
-                    source_ref = source_ref
+            expression=ExpressionAsyncNext(
+                value=ExpressionTempVariableRef(
+                    variable=tmp_iter_variable, source_ref=source_ref
                 ),
-                source_ref = source_ref
+                source_ref=source_ref,
             ),
-            source_ref = source_ref
+            source_ref=source_ref,
         )
 
     statements = (
         makeTryExceptSingleHandlerNode(
-            tried          = StatementAssignmentVariable(
-                variable   = tmp_value_variable,
-                source     = next_node,
-                source_ref = source_ref
+            tried=StatementAssignmentVariable(
+                variable=tmp_value_variable, source=next_node, source_ref=source_ref
             ),
-            exception_name = "StopIteration" if sync else "StopAsyncIteration",
-            handler_body   = handler_body,
-            source_ref     = source_ref
+            exception_name="StopIteration" if sync else "StopAsyncIteration",
+            handler_body=handler_body,
+            source_ref=source_ref,
         ),
         buildAssignmentStatements(
-            provider   = provider,
-            node       = node.target,
-            source     = ExpressionTempVariableRef(
-                variable   = tmp_value_variable,
-                source_ref = source_ref
+            provider=provider,
+            node=node.target,
+            source=ExpressionTempVariableRef(
+                variable=tmp_value_variable, source_ref=source_ref
             ),
-            source_ref = source_ref
-        )
+            source_ref=source_ref,
+        ),
     )
 
     pushBuildContext("loop_body")
     statements += (
-        buildStatementsNode(
-            provider   = provider,
-            nodes      = node.body,
-            source_ref = source_ref
-        ),
+        buildStatementsNode(provider=provider, nodes=node.body, source_ref=source_ref),
     )
     popBuildContext()
 
     loop_body = makeStatementsSequence(
-        statements = statements,
-        allow_none = True,
-        source_ref = source_ref
+        statements=statements, allow_none=True, source_ref=source_ref
     )
 
     cleanup_statements = [
-        StatementReleaseVariable(
-            variable   = tmp_value_variable,
-            source_ref = source_ref
-        ),
-        StatementReleaseVariable(
-            variable   = tmp_iter_variable,
-            source_ref = source_ref
-        )
+        StatementReleaseVariable(variable=tmp_value_variable, source_ref=source_ref),
+        StatementReleaseVariable(variable=tmp_iter_variable, source_ref=source_ref),
     ]
 
     if else_block is not None:
         statements = [
             StatementAssignmentVariable(
-                variable   = tmp_break_indicator,
-                source     = makeConstantRefNode(
-                    constant   = False,
-                    source_ref = source_ref
-                ),
-                source_ref = source_ref
+                variable=tmp_break_indicator,
+                source=makeConstantRefNode(constant=False, source_ref=source_ref),
+                source_ref=source_ref,
             )
         ]
     else:
@@ -198,74 +166,59 @@ def _buildForLoopNode(provider, node, sync, source_ref):
 
     if sync:
         iter_source = ExpressionBuiltinIter1(
-            value      = source,
-            source_ref = source.getSourceReference()
+            value=source, source_ref=source.getSourceReference()
         )
     else:
         iter_source = ExpressionYieldFromWaitable(
-            expression = ExpressionAsyncIter(
-                value      = source,
-                source_ref = source.getSourceReference()
+            expression=ExpressionAsyncIter(
+                value=source, source_ref=source.getSourceReference()
             ),
-            source_ref = source.getSourceReference()
+            source_ref=source.getSourceReference(),
         )
 
     statements += [
         # First create the iterator and store it.
         StatementAssignmentVariable(
-            variable   = tmp_iter_variable,
-            source     = iter_source,
-            source_ref = source_ref
+            variable=tmp_iter_variable, source=iter_source, source_ref=source_ref
         ),
         makeTryFinallyStatement(
-            provider   = provider,
-            tried      = StatementLoop(
-                body       = loop_body,
-                source_ref = source_ref
+            provider=provider,
+            tried=StatementLoop(body=loop_body, source_ref=source_ref),
+            final=StatementsSequence(
+                statements=cleanup_statements, source_ref=source_ref
             ),
-            final      = StatementsSequence(
-                statements = cleanup_statements,
-                source_ref = source_ref
-            ),
-            source_ref = source_ref
-        )
+            source_ref=source_ref,
+        ),
     ]
 
     if else_block is not None:
         statements += [
             makeStatementConditional(
-                condition  = ExpressionComparisonIs(
-                    left       = ExpressionTempVariableRef(
-                        variable   = tmp_break_indicator,
-                        source_ref = source_ref
+                condition=ExpressionComparisonIs(
+                    left=ExpressionTempVariableRef(
+                        variable=tmp_break_indicator, source_ref=source_ref
                     ),
-                    right      = makeConstantRefNode(
-                        constant   = True,
-                        source_ref = source_ref
-                    ),
-                    source_ref = source_ref
+                    right=makeConstantRefNode(constant=True, source_ref=source_ref),
+                    source_ref=source_ref,
                 ),
-                yes_branch = else_block,
-                no_branch  = None,
-                source_ref = source_ref
+                yes_branch=else_block,
+                no_branch=None,
+                source_ref=source_ref,
             )
         ]
 
         statements = (
             makeTryFinallyStatement(
-                provider   = provider,
-                tried      = statements,
-                final      = StatementReleaseVariable(
-                    variable   = tmp_break_indicator,
-                    source_ref = source_ref
+                provider=provider,
+                tried=statements,
+                final=StatementReleaseVariable(
+                    variable=tmp_break_indicator, source_ref=source_ref
                 ),
-                source_ref = source_ref
+                source_ref=source_ref,
             ),
         )
 
-    return makeStatementsSequenceFromStatements(
-        *statements
-    )
+    return makeStatementsSequenceFromStatements(*statements)
 
 
 def buildForLoopNode(provider, node, source_ref):

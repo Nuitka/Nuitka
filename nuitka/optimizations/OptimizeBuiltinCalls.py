@@ -25,27 +25,21 @@ from logging import warning
 
 from nuitka.Builtins import calledWithBuiltinArgumentNamesDecorator
 from nuitka.Errors import NuitkaAssumptionError
-from nuitka.nodes.AssignNodes import (
-    StatementAssignmentVariable,
-    StatementDelVariable
-)
+from nuitka.nodes.AssignNodes import StatementAssignmentVariable, StatementDelVariable
 from nuitka.nodes.AttributeNodes import (
     ExpressionAttributeLookup,
     ExpressionBuiltinGetattr,
     ExpressionBuiltinHasattr,
-    ExpressionBuiltinSetattr
+    ExpressionBuiltinSetattr,
 )
 from nuitka.nodes.BuiltinComplexNodes import (
     ExpressionBuiltinComplex1,
-    ExpressionBuiltinComplex2
+    ExpressionBuiltinComplex2,
 )
-from nuitka.nodes.BuiltinDecodingNodes import (
-    ExpressionBuiltinChr,
-    ExpressionBuiltinOrd
-)
+from nuitka.nodes.BuiltinDecodingNodes import ExpressionBuiltinChr, ExpressionBuiltinOrd
 from nuitka.nodes.BuiltinDecoratorNodes import (
     ExpressionBuiltinClassmethod,
-    ExpressionBuiltinStaticmethod
+    ExpressionBuiltinStaticmethod,
 )
 from nuitka.nodes.BuiltinDictNodes import ExpressionBuiltinDict
 from nuitka.nodes.BuiltinFormatNodes import (
@@ -54,22 +48,19 @@ from nuitka.nodes.BuiltinFormatNodes import (
     ExpressionBuiltinFormat,
     ExpressionBuiltinHex,
     ExpressionBuiltinId,
-    ExpressionBuiltinOct
+    ExpressionBuiltinOct,
 )
 from nuitka.nodes.BuiltinHashNodes import ExpressionBuiltinHash
 from nuitka.nodes.BuiltinIntegerNodes import (
     ExpressionBuiltinInt1,
-    ExpressionBuiltinInt2
+    ExpressionBuiltinInt2,
 )
 from nuitka.nodes.BuiltinIteratorNodes import (
     ExpressionBuiltinIter1,
-    ExpressionBuiltinIter2
+    ExpressionBuiltinIter2,
 )
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
-from nuitka.nodes.BuiltinNextNodes import (
-    ExpressionBuiltinNext1,
-    ExpressionBuiltinNext2
-)
+from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1, ExpressionBuiltinNext2
 from nuitka.nodes.BuiltinOpenNodes import ExpressionBuiltinOpen
 from nuitka.nodes.BuiltinRangeNodes import (
     ExpressionBuiltinRange1,
@@ -77,16 +68,13 @@ from nuitka.nodes.BuiltinRangeNodes import (
     ExpressionBuiltinRange3,
     ExpressionBuiltinXrange1,
     ExpressionBuiltinXrange2,
-    ExpressionBuiltinXrange3
+    ExpressionBuiltinXrange3,
 )
 from nuitka.nodes.BuiltinRefNodes import (
     ExpressionBuiltinAnonymousRef,
-    makeExpressionBuiltinRef
+    makeExpressionBuiltinRef,
 )
-from nuitka.nodes.BuiltinSumNodes import (
-    ExpressionBuiltinSum1,
-    ExpressionBuiltinSum2
-)
+from nuitka.nodes.BuiltinSumNodes import ExpressionBuiltinSum1, ExpressionBuiltinSum2
 from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinBool,
     ExpressionBuiltinBytearray1,
@@ -96,7 +84,7 @@ from nuitka.nodes.BuiltinTypeNodes import (
     ExpressionBuiltinList,
     ExpressionBuiltinSet,
     ExpressionBuiltinStr,
-    ExpressionBuiltinTuple
+    ExpressionBuiltinTuple,
 )
 from nuitka.nodes.BuiltinVarsNodes import ExpressionBuiltinVars
 from nuitka.nodes.CallNodes import makeExpressionCall
@@ -104,16 +92,13 @@ from nuitka.nodes.ClassNodes import ExpressionBuiltinType3
 from nuitka.nodes.ComparisonNodes import ExpressionComparisonIs
 from nuitka.nodes.ConditionalNodes import (
     ExpressionConditional,
-    makeStatementConditional
+    makeStatementConditional,
 )
 from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
-from nuitka.nodes.ExecEvalNodes import (
-    ExpressionBuiltinCompile,
-    ExpressionBuiltinEval
-)
+from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinCompile, ExpressionBuiltinEval
 from nuitka.nodes.GlobalsLocalsNodes import (
     ExpressionBuiltinDir1,
-    ExpressionBuiltinGlobals
+    ExpressionBuiltinGlobals,
 )
 from nuitka.nodes.ImportNodes import ExpressionBuiltinImport
 from nuitka.nodes.NodeMakingHelpers import (
@@ -121,12 +106,12 @@ from nuitka.nodes.NodeMakingHelpers import (
     makeExpressionBuiltinLocals,
     makeRaiseExceptionReplacementExpression,
     makeRaiseExceptionReplacementExpressionFromInstance,
-    wrapExpressionWithSideEffects
+    wrapExpressionWithSideEffects,
 )
 from nuitka.nodes.OperatorNodes import (
     ExpressionOperationBinaryDivmod,
     ExpressionOperationNOT,
-    ExpressionOperationUnary
+    ExpressionOperationUnary,
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -134,81 +119,71 @@ from nuitka.nodes.SliceNodes import ExpressionBuiltinSlice
 from nuitka.nodes.TypeNodes import (
     ExpressionBuiltinIsinstance,
     ExpressionBuiltinSuper,
-    ExpressionBuiltinType1
+    ExpressionBuiltinType1,
 )
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableRef
+    ExpressionVariableRef,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.specs import BuiltinParameterSpecs
 from nuitka.tree.ReformulationExecStatements import wrapEvalGlobalsAndLocals
-from nuitka.tree.ReformulationTryFinallyStatements import (
-    makeTryFinallyStatement
-)
+from nuitka.tree.ReformulationTryFinallyStatements import makeTryFinallyStatement
 from nuitka.tree.TreeHelpers import (
     makeCallNode,
     makeSequenceCreationOrConstant,
     makeStatementsSequence,
-    makeStatementsSequenceFromStatement
+    makeStatementsSequenceFromStatement,
 )
 
 
 def dir_extractor(node):
     def buildDirEmptyCase(source_ref):
         source = makeExpressionBuiltinLocals(
-            provider   = node.getParentVariableProvider(),
-            source_ref = source_ref
+            provider=node.getParentVariableProvider(), source_ref=source_ref
         )
 
         result = makeCallNode(
             ExpressionAttributeLookup(
-                source         = source,
-                attribute_name = "keys",
-                source_ref     = source_ref
+                source=source, attribute_name="keys", source_ref=source_ref
             ),
-            source_ref
+            source_ref,
         )
 
         # For Python3, keys doesn't really return values, but instead a handle
         # only, but we want it to be a list.
         if python_version >= 300:
-            result = ExpressionBuiltinList(
-                value      = result,
-                source_ref = source_ref
-            )
+            result = ExpressionBuiltinList(value=result, source_ref=source_ref)
 
         return result
 
-
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = ExpressionBuiltinDir1,
-        builtin_spec        = BuiltinParameterSpecs.builtin_dir_spec,
-        empty_special_class = buildDirEmptyCase
+        node=node,
+        builtin_class=ExpressionBuiltinDir1,
+        builtin_spec=BuiltinParameterSpecs.builtin_dir_spec,
+        empty_special_class=buildDirEmptyCase,
     )
 
 
 def vars_extractor(node):
     def selectVarsEmptyClass(source_ref):
         return makeExpressionBuiltinLocals(
-            provider   = node.getParentVariableProvider(),
-            source_ref = source_ref
+            provider=node.getParentVariableProvider(), source_ref=source_ref
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = ExpressionBuiltinVars,
-        builtin_spec        = BuiltinParameterSpecs.builtin_vars_spec,
-        empty_special_class = selectVarsEmptyClass
+        node=node,
+        builtin_class=ExpressionBuiltinVars,
+        builtin_spec=BuiltinParameterSpecs.builtin_vars_spec,
+        empty_special_class=selectVarsEmptyClass,
     )
 
 
 def import_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinImport,
-        builtin_spec  = BuiltinParameterSpecs.builtin_import_spec
+        node=node,
+        builtin_class=ExpressionBuiltinImport,
+        builtin_spec=BuiltinParameterSpecs.builtin_import_spec,
     )
 
 
@@ -222,41 +197,36 @@ def type_extractor(node):
 
     if iter_length == 1:
         return BuiltinParameterSpecs.extractBuiltinArgs(
-            node          = node,
-            builtin_class = ExpressionBuiltinType1,
-            builtin_spec  = BuiltinParameterSpecs.builtin_type1_spec
+            node=node,
+            builtin_class=ExpressionBuiltinType1,
+            builtin_spec=BuiltinParameterSpecs.builtin_type1_spec,
         )
     elif iter_length == 3:
         return BuiltinParameterSpecs.extractBuiltinArgs(
-            node          = node,
-            builtin_class = ExpressionBuiltinType3,
-            builtin_spec  = BuiltinParameterSpecs.builtin_type3_spec
+            node=node,
+            builtin_class=ExpressionBuiltinType3,
+            builtin_spec=BuiltinParameterSpecs.builtin_type3_spec,
         )
     else:
         return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression = node,
-            exception  = TypeError("type() takes 1 or 3 arguments")
+            expression=node, exception=TypeError("type() takes 1 or 3 arguments")
         )
+
 
 def iter_extractor(node):
     @calledWithBuiltinArgumentNamesDecorator
     def wrapIterCreation(callable_arg, sentinel, source_ref):
         if sentinel is None:
-            return ExpressionBuiltinIter1(
-                value      = callable_arg,
-                source_ref = source_ref
-            )
+            return ExpressionBuiltinIter1(value=callable_arg, source_ref=source_ref)
         else:
             return ExpressionBuiltinIter2(
-                callable_arg = callable_arg,
-                sentinel     = sentinel,
-                source_ref   = source_ref
+                callable_arg=callable_arg, sentinel=sentinel, source_ref=source_ref
             )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = wrapIterCreation,
-        builtin_spec  = BuiltinParameterSpecs.builtin_iter_spec
+        node=node,
+        builtin_class=wrapIterCreation,
+        builtin_spec=BuiltinParameterSpecs.builtin_iter_spec,
     )
 
 
@@ -265,21 +235,16 @@ def next_extractor(node):
     # really very similar.
     def selectNextBuiltinClass(iterator, default, source_ref):
         if default is None:
-            return ExpressionBuiltinNext1(
-                value      = iterator,
-                source_ref = source_ref
-            )
+            return ExpressionBuiltinNext1(value=iterator, source_ref=source_ref)
         else:
             return ExpressionBuiltinNext2(
-                iterator   = iterator,
-                default    = default,
-                source_ref = source_ref
+                iterator=iterator, default=default, source_ref=source_ref
             )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = selectNextBuiltinClass,
-        builtin_spec  = BuiltinParameterSpecs.builtin_next_spec
+        node=node,
+        builtin_class=selectNextBuiltinClass,
+        builtin_spec=BuiltinParameterSpecs.builtin_next_spec,
     )
 
 
@@ -287,83 +252,70 @@ def sum_extractor(node):
     # Split up sumwith and without start value, one is much easier.
     def selectSumBuiltinClass(sequence, start, source_ref):
         if start is None:
-            return ExpressionBuiltinSum1(
-                sequence   = sequence,
-                source_ref = source_ref
-            )
+            return ExpressionBuiltinSum1(sequence=sequence, source_ref=source_ref)
         else:
             return ExpressionBuiltinSum2(
-                sequence   = sequence,
-                start      = start,
-                source_ref = source_ref
+                sequence=sequence, start=start, source_ref=source_ref
             )
 
     def makeSum0(source_ref):
         # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression = node,
-            exception  = TypeError("sum expected at least 1 arguments, got 0")
+            expression=node,
+            exception=TypeError("sum expected at least 1 arguments, got 0"),
         )
 
-
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = selectSumBuiltinClass,
-        builtin_spec        = BuiltinParameterSpecs.builtin_sum_spec,
-        empty_special_class = makeSum0
+        node=node,
+        builtin_class=selectSumBuiltinClass,
+        builtin_spec=BuiltinParameterSpecs.builtin_sum_spec,
+        empty_special_class=makeSum0,
     )
 
 
 def dict_extractor(node):
     # The "dict" built-in is a bit strange in that it accepts a position
     # parameter, or not, but won't have a default value.
-    def wrapExpressionBuiltinDictCreation(positional_args, dict_star_arg,
-                                          source_ref):
+    def wrapExpressionBuiltinDictCreation(positional_args, dict_star_arg, source_ref):
         if len(positional_args) > 1:
 
             result = makeRaiseExceptionReplacementExpressionFromInstance(
-                expression = node,
-                exception  = TypeError(
-                    "dict expected at most 1 arguments, got %d" % (
-                        len(positional_args)
-                    )
-                )
+                expression=node,
+                exception=TypeError(
+                    "dict expected at most 1 arguments, got %d" % (len(positional_args))
+                ),
             )
 
             result = wrapExpressionWithSideEffects(
-                side_effects = positional_args,
-                old_node     = node,
-                new_node     = result
+                side_effects=positional_args, old_node=node, new_node=result
             )
 
             if dict_star_arg:
                 result = wrapExpressionWithSideEffects(
-                    side_effects = dict_star_arg,
-                    old_node     = node,
-                    new_node     = result
+                    side_effects=dict_star_arg, old_node=node, new_node=result
                 )
 
             return result
 
         return ExpressionBuiltinDict(
-            pos_arg    = positional_args[0] if positional_args else None,
-            pairs      = dict_star_arg,
-            source_ref = source_ref
+            pos_arg=positional_args[0] if positional_args else None,
+            pairs=dict_star_arg,
+            source_ref=source_ref,
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = wrapExpressionBuiltinDictCreation,
-        builtin_spec  = BuiltinParameterSpecs.builtin_dict_spec
+        node=node,
+        builtin_class=wrapExpressionBuiltinDictCreation,
+        builtin_spec=BuiltinParameterSpecs.builtin_dict_spec,
     )
 
 
 def chr_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinChr,
-        builtin_spec  = BuiltinParameterSpecs.builtin_chr_spec
+        node=node,
+        builtin_class=ExpressionBuiltinChr,
+        builtin_spec=BuiltinParameterSpecs.builtin_chr_spec,
     )
 
 
@@ -372,190 +324,168 @@ def ord_extractor(node):
         # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression = node,
-            exception  = TypeError("ord() takes exactly one argument (0 given)")
+            expression=node,
+            exception=TypeError("ord() takes exactly one argument (0 given)"),
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = ExpressionBuiltinOrd,
-        builtin_spec        = BuiltinParameterSpecs.builtin_ord_spec,
-        empty_special_class = makeOrd0
+        node=node,
+        builtin_class=ExpressionBuiltinOrd,
+        builtin_spec=BuiltinParameterSpecs.builtin_ord_spec,
+        empty_special_class=makeOrd0,
     )
 
 
 def bin_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinBin,
-        builtin_spec  = BuiltinParameterSpecs.builtin_bin_spec
+        node=node,
+        builtin_class=ExpressionBuiltinBin,
+        builtin_spec=BuiltinParameterSpecs.builtin_bin_spec,
     )
 
 
 def oct_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinOct,
-        builtin_spec  = BuiltinParameterSpecs.builtin_oct_spec
+        node=node,
+        builtin_class=ExpressionBuiltinOct,
+        builtin_spec=BuiltinParameterSpecs.builtin_oct_spec,
     )
 
 
 def hex_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinHex,
-        builtin_spec  = BuiltinParameterSpecs.builtin_hex_spec
+        node=node,
+        builtin_class=ExpressionBuiltinHex,
+        builtin_spec=BuiltinParameterSpecs.builtin_hex_spec,
     )
 
 
 def id_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinId,
-        builtin_spec  = BuiltinParameterSpecs.builtin_id_spec
+        node=node,
+        builtin_class=ExpressionBuiltinId,
+        builtin_spec=BuiltinParameterSpecs.builtin_id_spec,
     )
 
 
 def repr_extractor(node):
     def makeReprOperator(operand, source_ref):
         return ExpressionOperationUnary(
-            operator   = "Repr",
-            operand    = operand,
-            source_ref = source_ref
+            operator="Repr", operand=operand, source_ref=source_ref
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = makeReprOperator,
-        builtin_spec  = BuiltinParameterSpecs.builtin_repr_spec
+        node=node,
+        builtin_class=makeReprOperator,
+        builtin_spec=BuiltinParameterSpecs.builtin_repr_spec,
     )
 
 
 if python_version >= 300:
+
     def ascii_extractor(node):
         return BuiltinParameterSpecs.extractBuiltinArgs(
-            node          = node,
-            builtin_class = ExpressionBuiltinAscii,
-            builtin_spec  = BuiltinParameterSpecs.builtin_repr_spec
+            node=node,
+            builtin_class=ExpressionBuiltinAscii,
+            builtin_spec=BuiltinParameterSpecs.builtin_repr_spec,
         )
 
 
 def range_extractor(node):
     def selectRangeBuiltin(low, high, step, source_ref):
         if high is None:
-            return ExpressionBuiltinRange1(
-                low        = low,
-                source_ref = source_ref
-            )
+            return ExpressionBuiltinRange1(low=low, source_ref=source_ref)
         elif step is None:
-            return ExpressionBuiltinRange2(
-                low        = low,
-                high       = high,
-                source_ref = source_ref
-            )
+            return ExpressionBuiltinRange2(low=low, high=high, source_ref=source_ref)
         else:
             return ExpressionBuiltinRange3(
-                low        = low,
-                high       = high,
-                step       = step,
-                source_ref = source_ref
+                low=low, high=high, step=step, source_ref=source_ref
             )
 
     def makeRange0(source_ref):
         # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression = node,
-            exception  = TypeError("range expected at least 1 arguments, got 0")
+            expression=node,
+            exception=TypeError("range expected at least 1 arguments, got 0"),
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = selectRangeBuiltin,
-        builtin_spec        = BuiltinParameterSpecs.builtin_range_spec,
-        empty_special_class = makeRange0
+        node=node,
+        builtin_class=selectRangeBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_range_spec,
+        empty_special_class=makeRange0,
     )
-
 
 
 def xrange_extractor(node):
     def selectXrangeBuiltin(low, high, step, source_ref):
         if high is None:
-            return ExpressionBuiltinXrange1(
-                low        = low,
-                source_ref = source_ref
-            )
+            return ExpressionBuiltinXrange1(low=low, source_ref=source_ref)
         elif step is None:
-            return ExpressionBuiltinXrange2(
-                low        = low,
-                high       = high,
-                source_ref = source_ref
-            )
+            return ExpressionBuiltinXrange2(low=low, high=high, source_ref=source_ref)
         else:
             return ExpressionBuiltinXrange3(
-                low        = low,
-                high       = high,
-                step       = step,
-                source_ref = source_ref
+                low=low, high=high, step=step, source_ref=source_ref
             )
 
     def makeXrange0(source_ref):
         # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression = node,
-            exception  = TypeError(
+            expression=node,
+            exception=TypeError(
                 "xrange requires 1-3 int arguments"
-                    if python_version < 300 else
-                "range expected 1 arguments, got 0"
-            )
+                if python_version < 300
+                else "range expected 1 arguments, got 0"
+            ),
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = selectXrangeBuiltin,
-        builtin_spec        = BuiltinParameterSpecs.builtin_xrange_spec,
-        empty_special_class = makeXrange0
+        node=node,
+        builtin_class=selectXrangeBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_xrange_spec,
+        empty_special_class=makeXrange0,
     )
 
 
 def len_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinLen,
-        builtin_spec  = BuiltinParameterSpecs.builtin_len_spec
+        node=node,
+        builtin_class=ExpressionBuiltinLen,
+        builtin_spec=BuiltinParameterSpecs.builtin_len_spec,
     )
 
 
 def tuple_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinTuple,
-        builtin_spec  = BuiltinParameterSpecs.builtin_tuple_spec
+        node=node,
+        builtin_class=ExpressionBuiltinTuple,
+        builtin_spec=BuiltinParameterSpecs.builtin_tuple_spec,
     )
 
 
 def list_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinList,
-        builtin_spec  = BuiltinParameterSpecs.builtin_list_spec
+        node=node,
+        builtin_class=ExpressionBuiltinList,
+        builtin_spec=BuiltinParameterSpecs.builtin_list_spec,
     )
 
 
 def set_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinSet,
-        builtin_spec  = BuiltinParameterSpecs.builtin_set_spec
+        node=node,
+        builtin_class=ExpressionBuiltinSet,
+        builtin_spec=BuiltinParameterSpecs.builtin_set_spec,
     )
 
 
 def frozenset_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinFrozenset,
-        builtin_spec  = BuiltinParameterSpecs.builtin_frozenset_spec
+        node=node,
+        builtin_class=ExpressionBuiltinFrozenset,
+        builtin_spec=BuiltinParameterSpecs.builtin_frozenset_spec,
     )
 
 
@@ -563,16 +493,13 @@ def float_extractor(node):
     def makeFloat0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(
-            constant = float(),
-            node     = node
-        )
+        return makeConstantReplacementNode(constant=float(), node=node)
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = ExpressionBuiltinFloat,
-        builtin_spec        = BuiltinParameterSpecs.builtin_float_spec,
-        empty_special_class = makeFloat0
+        node=node,
+        builtin_class=ExpressionBuiltinFloat,
+        builtin_spec=BuiltinParameterSpecs.builtin_float_spec,
+        empty_special_class=makeFloat0,
     )
 
 
@@ -580,91 +507,79 @@ def complex_extractor(node):
     def makeComplex0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(
-            constant = complex(),
-            node     = node
-        )
+        return makeConstantReplacementNode(constant=complex(), node=node)
 
     def selectComplexBuiltin(real, imag, source_ref):
         if imag is None:
-            return ExpressionBuiltinComplex1(
-                value      = real,
-                source_ref = source_ref
-            )
+            return ExpressionBuiltinComplex1(value=real, source_ref=source_ref)
         else:
             return ExpressionBuiltinComplex2(
-                real       = real,
-                imag       = imag,
-                source_ref = source_ref
+                real=real, imag=imag, source_ref=source_ref
             )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = selectComplexBuiltin,
-        builtin_spec        = BuiltinParameterSpecs.builtin_complex_spec,
-        empty_special_class = makeComplex0
+        node=node,
+        builtin_class=selectComplexBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_complex_spec,
+        empty_special_class=makeComplex0,
     )
 
 
 def str_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinStr,
-        builtin_spec  = BuiltinParameterSpecs.builtin_str_spec
+        node=node,
+        builtin_class=ExpressionBuiltinStr,
+        builtin_spec=BuiltinParameterSpecs.builtin_str_spec,
     )
+
 
 if python_version < 300:
     from nuitka.nodes.BuiltinTypeNodes import ExpressionBuiltinUnicode
 
     def unicode_extractor(node):
         return BuiltinParameterSpecs.extractBuiltinArgs(
-            node          = node,
-            builtin_class = ExpressionBuiltinUnicode,
-            builtin_spec  = BuiltinParameterSpecs.builtin_unicode_spec
+            node=node,
+            builtin_class=ExpressionBuiltinUnicode,
+            builtin_spec=BuiltinParameterSpecs.builtin_unicode_spec,
         )
+
 
 else:
     from nuitka.nodes.BuiltinTypeNodes import (
         ExpressionBuiltinBytes1,
-        ExpressionBuiltinBytes3
+        ExpressionBuiltinBytes3,
     )
 
     def bytes_extractor(node):
         def makeBytes0(source_ref):
             # pylint: disable=unused-argument
 
-            return makeConstantReplacementNode(
-                constant = bytes(),
-                node     = node
-            )
+            return makeConstantReplacementNode(constant=bytes(), node=node)
 
         def selectBytesBuiltin(string, encoding, errors, source_ref):
             if encoding is None and errors is None:
-                return ExpressionBuiltinBytes1(
-                    value      = string,
-                    source_ref = source_ref
-                )
+                return ExpressionBuiltinBytes1(value=string, source_ref=source_ref)
             else:
                 return ExpressionBuiltinBytes3(
-                    value      = string,
-                    encoding   = encoding,
-                    errors     = errors,
-                    source_ref = source_ref
+                    value=string,
+                    encoding=encoding,
+                    errors=errors,
+                    source_ref=source_ref,
                 )
 
         return BuiltinParameterSpecs.extractBuiltinArgs(
-            node                = node,
-            builtin_class       = selectBytesBuiltin,
-            builtin_spec        = BuiltinParameterSpecs.builtin_bytes_spec,
-            empty_special_class = makeBytes0
+            node=node,
+            builtin_class=selectBytesBuiltin,
+            builtin_spec=BuiltinParameterSpecs.builtin_bytes_spec,
+            empty_special_class=makeBytes0,
         )
 
 
 def bool_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinBool,
-        builtin_spec  = BuiltinParameterSpecs.builtin_bool_spec
+        node=node,
+        builtin_class=ExpressionBuiltinBool,
+        builtin_spec=BuiltinParameterSpecs.builtin_bool_spec,
     )
 
 
@@ -672,70 +587,55 @@ def int_extractor(node):
     def makeInt0(source_ref):
         # pylint: disable=unused-argument
 
-        return makeConstantReplacementNode(
-            constant = int(),
-            node     = node,
-        )
+        return makeConstantReplacementNode(constant=int(), node=node)
 
     def selectIntBuiltin(value, base, source_ref):
         if base is None:
-            return ExpressionBuiltinInt1(
-                value      = value,
-                source_ref = source_ref
-            )
+            return ExpressionBuiltinInt1(value=value, source_ref=source_ref)
         else:
-            return ExpressionBuiltinInt2(
-                value      = value,
-                base       = base,
-                source_ref = source_ref
-            )
+            return ExpressionBuiltinInt2(value=value, base=base, source_ref=source_ref)
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = selectIntBuiltin,
-        builtin_spec        = BuiltinParameterSpecs.builtin_int_spec,
-        empty_special_class = makeInt0
+        node=node,
+        builtin_class=selectIntBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_int_spec,
+        empty_special_class=makeInt0,
     )
 
 
 if python_version < 300:
-    from nuitka.nodes.BuiltinIntegerNodes import ExpressionBuiltinLong1, ExpressionBuiltinLong2
+    from nuitka.nodes.BuiltinIntegerNodes import (
+        ExpressionBuiltinLong1,
+        ExpressionBuiltinLong2,
+    )
 
     def long_extractor(node):
         def makeLong0(source_ref):
             # pylint: disable=unused-argument
 
-            return makeConstantReplacementNode(
-                constant = int(),
-                node     = node,
-            )
+            return makeConstantReplacementNode(constant=int(), node=node)
 
         def selectIntBuiltin(value, base, source_ref):
             if base is None:
-                return ExpressionBuiltinLong1(
-                    value      = value,
-                    source_ref = source_ref
-                )
+                return ExpressionBuiltinLong1(value=value, source_ref=source_ref)
             else:
                 return ExpressionBuiltinLong2(
-                    value      = value,
-                    base       = base,
-                    source_ref = source_ref
+                    value=value, base=base, source_ref=source_ref
                 )
 
         return BuiltinParameterSpecs.extractBuiltinArgs(
-            node                = node,
-            builtin_class       = selectIntBuiltin,
-            builtin_spec        = BuiltinParameterSpecs.builtin_int_spec,
-            empty_special_class = makeLong0
+            node=node,
+            builtin_class=selectIntBuiltin,
+            builtin_spec=BuiltinParameterSpecs.builtin_int_spec,
+            empty_special_class=makeLong0,
         )
 
 
 def globals_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinGlobals,
-        builtin_spec  = BuiltinParameterSpecs.builtin_globals_spec
+        node=node,
+        builtin_class=ExpressionBuiltinGlobals,
+        builtin_spec=BuiltinParameterSpecs.builtin_globals_spec,
     )
 
 
@@ -744,84 +644,82 @@ def locals_extractor(node):
     provider = node.getParentVariableProvider()
 
     def makeLocalsNode(source_ref):
-        return makeExpressionBuiltinLocals(
-            provider   = provider,
-            source_ref = source_ref
-        )
+        return makeExpressionBuiltinLocals(provider=provider, source_ref=source_ref)
 
     if provider.isCompiledPythonModule():
         return BuiltinParameterSpecs.extractBuiltinArgs(
-            node          = node,
-            builtin_class = ExpressionBuiltinGlobals,
-            builtin_spec  = BuiltinParameterSpecs.builtin_globals_spec
+            node=node,
+            builtin_class=ExpressionBuiltinGlobals,
+            builtin_spec=BuiltinParameterSpecs.builtin_globals_spec,
         )
     else:
         return BuiltinParameterSpecs.extractBuiltinArgs(
-            node          = node,
-            builtin_class = makeLocalsNode,
-            builtin_spec  = BuiltinParameterSpecs.builtin_locals_spec
+            node=node,
+            builtin_class=makeLocalsNode,
+            builtin_spec=BuiltinParameterSpecs.builtin_locals_spec,
         )
+
 
 if python_version < 300:
     from nuitka.nodes.ExecEvalNodes import ExpressionBuiltinExecfile
 
     def execfile_extractor(node):
         @calledWithBuiltinArgumentNamesDecorator
-        def wrapExpressionBuiltinExecfileCreation(filename, globals_arg,
-                                                  locals_arg, source_ref):
+        def wrapExpressionBuiltinExecfileCreation(
+            filename, globals_arg, locals_arg, source_ref
+        ):
             outline_body = ExpressionOutlineBody(
-                provider   = node.getParentVariableProvider(),
-                name       = "execfile_call",
-                source_ref = source_ref
+                provider=node.getParentVariableProvider(),
+                name="execfile_call",
+                source_ref=source_ref,
             )
 
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-                provider     = node.getParentVariableProvider(),
-                globals_node = globals_arg,
-                locals_node  = locals_arg,
-                temp_scope   = outline_body.getOutlineTempScope(),
-                source_ref   = source_ref
+                provider=node.getParentVariableProvider(),
+                globals_node=globals_arg,
+                locals_node=locals_arg,
+                temp_scope=outline_body.getOutlineTempScope(),
+                source_ref=source_ref,
             )
 
             tried = makeStatementsSequence(
-                statements = (
+                statements=(
                     tried,
                     StatementReturn(
-                        expression = ExpressionBuiltinExecfile(
-                            source_code = makeCallNode(
+                        expression=ExpressionBuiltinExecfile(
+                            source_code=makeCallNode(
                                 ExpressionAttributeLookup(
-                                    source         = ExpressionBuiltinOpen(
-                                        filename   = filename,
-                                        mode       = makeConstantRefNode(
-                                            constant   = "rU",
-                                            source_ref = source_ref
+                                    source=ExpressionBuiltinOpen(
+                                        filename=filename,
+                                        mode=makeConstantRefNode(
+                                            constant="rU", source_ref=source_ref
                                         ),
-                                        buffering  = None,
-                                        source_ref = source_ref
+                                        buffering=None,
+                                        source_ref=source_ref,
                                     ),
-                                    attribute_name = "read",
-                                    source_ref     = source_ref
+                                    attribute_name="read",
+                                    source_ref=source_ref,
                                 ),
-                                source_ref
+                                source_ref,
                             ),
-                            globals_arg = globals_ref,
-                            locals_arg  = locals_ref,
-                            source_ref  = source_ref
+                            globals_arg=globals_ref,
+                            locals_arg=locals_ref,
+                            source_ref=source_ref,
                         ),
-                        source_ref = source_ref
-                    )
+                        source_ref=source_ref,
+                    ),
                 ),
-                allow_none = False,
-                source_ref = source_ref
+                allow_none=False,
+                source_ref=source_ref,
             )
 
             outline_body.setBody(
                 makeStatementsSequenceFromStatement(
-                    statement = makeTryFinallyStatement(
-                        provider   = outline_body,
-                        tried      = tried,
-                        final      = final,
-                        source_ref = source_ref
+                    statement=makeTryFinallyStatement(
+                        provider=outline_body,
+                        tried=tried,
+                        final=final,
+                        source_ref=source_ref,
                     )
                 )
             )
@@ -829,9 +727,9 @@ if python_version < 300:
             return outline_body
 
         return BuiltinParameterSpecs.extractBuiltinArgs(
-            node          = node,
-            builtin_class = wrapExpressionBuiltinExecfileCreation,
-            builtin_spec  = BuiltinParameterSpecs.builtin_execfile_spec
+            node=node,
+            builtin_class=wrapExpressionBuiltinExecfileCreation,
+            builtin_spec=BuiltinParameterSpecs.builtin_execfile_spec,
         )
 
 
@@ -841,162 +739,142 @@ def eval_extractor(node):
         provider = node.getParentVariableProvider()
 
         outline_body = ExpressionOutlineBody(
-            provider   = node.getParentVariableProvider(),
-            name       = "eval_call",
-            source_ref = source_ref
+            provider=node.getParentVariableProvider(),
+            name="eval_call",
+            source_ref=source_ref,
         )
 
         globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-            provider     = provider,
-            globals_node = globals_arg,
-            locals_node  = locals_arg,
-            temp_scope   = outline_body.getOutlineTempScope(),
-            source_ref   = source_ref
+            provider=provider,
+            globals_node=globals_arg,
+            locals_node=locals_arg,
+            temp_scope=outline_body.getOutlineTempScope(),
+            source_ref=source_ref,
         )
 
         # The wrapping should not relocate to the "source_ref".
-        assert globals_arg is None or \
-               globals_ref.getSourceReference() == \
-               globals_arg.getSourceReference()
-        assert locals_arg is None or \
-               locals_ref.getSourceReference() == \
-               locals_arg.getSourceReference()
+        assert (
+            globals_arg is None
+            or globals_ref.getSourceReference() == globals_arg.getSourceReference()
+        )
+        assert (
+            locals_arg is None
+            or locals_ref.getSourceReference() == locals_arg.getSourceReference()
+        )
 
         source_variable = outline_body.allocateTempVariable(
-            temp_scope = None,
-            name       = "source"
+            temp_scope=None, name="source"
         )
 
         final.setStatements(
-            final.getStatements() + (
+            final.getStatements()
+            + (
                 StatementDelVariable(
-                    variable   = source_variable,
-                    tolerant   = True,
-                    source_ref = source_ref
+                    variable=source_variable, tolerant=True, source_ref=source_ref
                 ),
             )
         )
 
-        strip_choice =  makeConstantRefNode(
-            constant   = (" \t",),
-            source_ref = source_ref
-        )
+        strip_choice = makeConstantRefNode(constant=(" \t",), source_ref=source_ref)
 
         if python_version >= 300:
             strip_choice = ExpressionConditional(
-                condition      = ExpressionComparisonIs(
-                    left       = ExpressionBuiltinType1(
-                        value      = ExpressionTempVariableRef(
-                            variable   = source_variable,
-                            source_ref = source_ref
+                condition=ExpressionComparisonIs(
+                    left=ExpressionBuiltinType1(
+                        value=ExpressionTempVariableRef(
+                            variable=source_variable, source_ref=source_ref
                         ),
-                        source_ref = source_ref
+                        source_ref=source_ref,
                     ),
-                    right      = makeExpressionBuiltinRef(
-                        builtin_name = "bytes",
-                        source_ref   = source_ref
+                    right=makeExpressionBuiltinRef(
+                        builtin_name="bytes", source_ref=source_ref
                     ),
-                    source_ref = source_ref
+                    source_ref=source_ref,
                 ),
-                expression_yes = makeConstantRefNode(
-                    constant   = (b" \t",),
-                    source_ref = source_ref
+                expression_yes=makeConstantRefNode(
+                    constant=(b" \t",), source_ref=source_ref
                 ),
-                expression_no  = strip_choice,
-                source_ref     = source_ref
+                expression_no=strip_choice,
+                source_ref=source_ref,
             )
-
 
         # Source needs some special treatment for eval, if it's a string, it
         # must be stripped.
         string_fixup = StatementAssignmentVariable(
-            variable   = source_variable,
-            source     = makeExpressionCall(
-                called     = ExpressionAttributeLookup(
-                    source         = ExpressionTempVariableRef(
-                        variable   = source_variable,
-                        source_ref = source_ref
+            variable=source_variable,
+            source=makeExpressionCall(
+                called=ExpressionAttributeLookup(
+                    source=ExpressionTempVariableRef(
+                        variable=source_variable, source_ref=source_ref
                     ),
-                    attribute_name = "strip",
-                    source_ref     = source_ref
+                    attribute_name="strip",
+                    source_ref=source_ref,
                 ),
-                args       = strip_choice, # This is a tuple
-                kw         = None,
-                source_ref = source_ref
+                args=strip_choice,  # This is a tuple
+                kw=None,
+                source_ref=source_ref,
             ),
-            source_ref = source_ref
+            source_ref=source_ref,
         )
 
         acceptable_builtin_types = [
-            ExpressionBuiltinAnonymousRef(
-                builtin_name = "code",
-                source_ref   = source_ref,
-            )
+            ExpressionBuiltinAnonymousRef(builtin_name="code", source_ref=source_ref)
         ]
 
         if python_version >= 270:
             acceptable_builtin_types.append(
                 makeExpressionBuiltinRef(
-                    builtin_name = "memoryview",
-                    source_ref   = source_ref,
+                    builtin_name="memoryview", source_ref=source_ref
                 )
             )
 
         statements = (
             StatementAssignmentVariable(
-                variable   = source_variable,
-                source     = source,
-                source_ref = source_ref,
+                variable=source_variable, source=source, source_ref=source_ref
             ),
             makeStatementConditional(
-                condition  = ExpressionOperationNOT(
-                    operand    = ExpressionBuiltinIsinstance(
-                        instance   = ExpressionTempVariableRef(
-                            variable   = source_variable,
-                            source_ref = source_ref
+                condition=ExpressionOperationNOT(
+                    operand=ExpressionBuiltinIsinstance(
+                        instance=ExpressionTempVariableRef(
+                            variable=source_variable, source_ref=source_ref
                         ),
-                        classes    = makeSequenceCreationOrConstant(
-                            sequence_kind = "tuple",
-                            elements      = acceptable_builtin_types,
-                            source_ref    = source_ref
+                        classes=makeSequenceCreationOrConstant(
+                            sequence_kind="tuple",
+                            elements=acceptable_builtin_types,
+                            source_ref=source_ref,
                         ),
-                        source_ref = source_ref
+                        source_ref=source_ref,
                     ),
-                    source_ref = source_ref
+                    source_ref=source_ref,
                 ),
-                yes_branch = string_fixup,
-                no_branch  = None,
-                source_ref = source_ref
+                yes_branch=string_fixup,
+                no_branch=None,
+                source_ref=source_ref,
             ),
             StatementReturn(
-                expression = ExpressionBuiltinEval(
-                    source_code = ExpressionTempVariableRef(
-                        variable   = source_variable,
-                        source_ref = source_ref
+                expression=ExpressionBuiltinEval(
+                    source_code=ExpressionTempVariableRef(
+                        variable=source_variable, source_ref=source_ref
                     ),
-                    globals_arg = globals_ref,
-                    locals_arg  = locals_ref,
-                    source_ref  = source_ref
+                    globals_arg=globals_ref,
+                    locals_arg=locals_ref,
+                    source_ref=source_ref,
                 ),
-                source_ref = source_ref
-            )
+                source_ref=source_ref,
+            ),
         )
 
         tried = makeStatementsSequence(
-            statements = (
-                tried,
-            ) + statements,
-            allow_none = False,
-            source_ref = source_ref
+            statements=(tried,) + statements, allow_none=False, source_ref=source_ref
         )
 
         outline_body.setBody(
             makeStatementsSequenceFromStatement(
-                statement = makeTryFinallyStatement(
-                    provider   = outline_body,
-                    tried      = tried,
-                    final      = final,
-                    source_ref = source_ref
+                statement=makeTryFinallyStatement(
+                    provider=outline_body,
+                    tried=tried,
+                    final=final,
+                    source_ref=source_ref,
                 )
             )
         )
@@ -1004,9 +882,9 @@ def eval_extractor(node):
         return outline_body
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = wrapEvalBuiltin,
-        builtin_spec  = BuiltinParameterSpecs.builtin_eval_spec
+        node=node,
+        builtin_class=wrapEvalBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_eval_spec,
     )
 
 
@@ -1015,39 +893,38 @@ if python_version >= 300:
 
     def exec_extractor(node):
         @calledWithBuiltinArgumentNamesDecorator
-        def wrapExpressionBuiltinExecCreation(source, globals_arg, locals_arg,
-                                              source_ref):
+        def wrapExpressionBuiltinExecCreation(
+            source, globals_arg, locals_arg, source_ref
+        ):
             provider = node.getParentVariableProvider()
 
             outline_body = ExpressionOutlineBody(
-                provider   = provider,
-                name       = "exec_call",
-                source_ref = source_ref
+                provider=provider, name="exec_call", source_ref=source_ref
             )
 
             globals_ref, locals_ref, tried, final = wrapEvalGlobalsAndLocals(
-                provider     = provider,
-                globals_node = globals_arg,
-                locals_node  = locals_arg,
-                temp_scope   = outline_body.getOutlineTempScope(),
-                source_ref   = source_ref
+                provider=provider,
+                globals_node=globals_arg,
+                locals_node=locals_arg,
+                temp_scope=outline_body.getOutlineTempScope(),
+                source_ref=source_ref,
             )
 
             tried = makeStatementsSequence(
-                statements = (
+                statements=(
                     tried,
                     StatementReturn(
-                        expression = ExpressionBuiltinExec(
-                            source_code = source,
-                            globals_arg = globals_ref,
-                            locals_arg  = locals_ref,
-                            source_ref  = source_ref
+                        expression=ExpressionBuiltinExec(
+                            source_code=source,
+                            globals_arg=globals_ref,
+                            locals_arg=locals_ref,
+                            source_ref=source_ref,
                         ),
-                        source_ref = source_ref
+                        source_ref=source_ref,
                     ),
                 ),
-                allow_none = False,
-                source_ref = source_ref
+                allow_none=False,
+                source_ref=source_ref,
             )
 
             # Hack: Allow some APIs to work already
@@ -1055,11 +932,11 @@ if python_version >= 300:
 
             outline_body.setBody(
                 makeStatementsSequenceFromStatement(
-                    statement = makeTryFinallyStatement(
-                        provider   = provider,
-                        tried      = tried,
-                        final      = final,
-                        source_ref = source_ref
+                    statement=makeTryFinallyStatement(
+                        provider=provider,
+                        tried=tried,
+                        final=final,
+                        source_ref=source_ref,
                     )
                 )
             )
@@ -1067,30 +944,30 @@ if python_version >= 300:
             return outline_body
 
         return BuiltinParameterSpecs.extractBuiltinArgs(
-            node          = node,
-            builtin_class = wrapExpressionBuiltinExecCreation,
-            builtin_spec  = BuiltinParameterSpecs.builtin_eval_spec
+            node=node,
+            builtin_class=wrapExpressionBuiltinExecCreation,
+            builtin_spec=BuiltinParameterSpecs.builtin_eval_spec,
         )
 
 
 def compile_extractor(node):
-    def wrapExpressionBuiltinCompileCreation(source_code, filename, mode, flags,
-                                             dont_inherit, optimize = None,
-                                             source_ref = None):
+    def wrapExpressionBuiltinCompileCreation(
+        source_code, filename, mode, flags, dont_inherit, optimize=None, source_ref=None
+    ):
         return ExpressionBuiltinCompile(
-            source_code  = source_code,
-            filename     = filename,
-            mode         = mode,
-            flags        = flags,
-            dont_inherit = dont_inherit,
-            optimize     = optimize,
-            source_ref   = source_ref
+            source_code=source_code,
+            filename=filename,
+            mode=mode,
+            flags=flags,
+            dont_inherit=dont_inherit,
+            optimize=optimize,
+            source_ref=source_ref,
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = wrapExpressionBuiltinCompileCreation,
-        builtin_spec  = BuiltinParameterSpecs.builtin_compile_spec
+        node=node,
+        builtin_class=wrapExpressionBuiltinCompileCreation,
+        builtin_spec=BuiltinParameterSpecs.builtin_compile_spec,
     )
 
 
@@ -1101,17 +978,16 @@ def open_extractor(node):
             open()
         except Exception as e:  # We want to broad here, pylint: disable=broad-except
             return makeRaiseExceptionReplacementExpressionFromInstance(
-                expression = node,
-                exception  = e
+                expression=node, exception=e
             )
         else:
             raise NuitkaAssumptionError("open without argument is expected to raise")
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = ExpressionBuiltinOpen,
-        builtin_spec        = BuiltinParameterSpecs.builtin_open_spec,
-        empty_special_class = makeOpen0
+        node=node,
+        builtin_class=ExpressionBuiltinOpen,
+        builtin_spec=BuiltinParameterSpecs.builtin_open_spec,
+        empty_special_class=makeOpen0,
     )
 
 
@@ -1121,45 +997,46 @@ def super_extractor(node):
         if type_arg is None and python_version >= 300:
             if provider.isCompiledPythonModule():
                 return makeRaiseExceptionReplacementExpression(
-                    expression      = node,
-                    exception_type  = "RuntimeError",
-                    exception_value = "super(): no arguments",
+                    expression=node,
+                    exception_type="RuntimeError",
+                    exception_value="super(): no arguments",
                 )
 
-            class_variable = provider.getVariableForReference(
-                variable_name = "__class__"
-            )
+            class_variable = provider.getVariableForReference(variable_name="__class__")
 
             provider.trace_collection.getVariableCurrentTrace(class_variable).addUsage()
 
             type_arg = ExpressionVariableRef(
                 # Ought to be already closure taken due to "super" flag in
                 # tree building.
-                variable   = class_variable,
-                source_ref = source_ref
+                variable=class_variable,
+                source_ref=source_ref,
             )
 
             # If we already have this as a local variable, then use that
             # instead.
             type_arg_owner = type_arg.getVariable().getOwner()
-            if type_arg_owner is provider or \
-            not (type_arg_owner.isExpressionFunctionBody() or \
-                 type_arg_owner.isExpressionClassBody()):
+            if type_arg_owner is provider or not (
+                type_arg_owner.isExpressionFunctionBody()
+                or type_arg_owner.isExpressionClassBody()
+            ):
                 type_arg = None
 
             if type_arg is None:
                 return makeRaiseExceptionReplacementExpression(
-                    expression      = node,
-                    exception_type  = "SystemError"
-                                        if python_version < 331 else
-                                      "RuntimeError",
-                    exception_value = "super(): __class__ cell not found",
+                    expression=node,
+                    exception_type="SystemError"
+                    if python_version < 331
+                    else "RuntimeError",
+                    exception_value="super(): __class__ cell not found",
                 )
 
             if object_arg is None:
-                if provider.isExpressionGeneratorObjectBody() or \
-                   provider.isExpressionCoroutineObjectBody() or \
-                   provider.isExpressionAsyncgenObjectBody():
+                if (
+                    provider.isExpressionGeneratorObjectBody()
+                    or provider.isExpressionCoroutineObjectBody()
+                    or provider.isExpressionAsyncgenObjectBody()
+                ):
                     parameter_provider = provider.getParentVariableProvider()
                 else:
                     parameter_provider = provider
@@ -1168,35 +1045,34 @@ def super_extractor(node):
                     par1_name = parameter_provider.getParameters().getArgumentNames()[0]
 
                     object_variable = provider.getVariableForReference(
-                        variable_name = par1_name
+                        variable_name=par1_name
                     )
 
-                    provider.trace_collection.getVariableCurrentTrace(object_variable).addUsage()
+                    provider.trace_collection.getVariableCurrentTrace(
+                        object_variable
+                    ).addUsage()
 
                     object_arg = ExpressionVariableRef(
-                        variable   = object_variable,
-                        source_ref = source_ref
+                        variable=object_variable, source_ref=source_ref
                     )
 
                     if not object_arg.getVariable().isParameterVariable():
                         return makeRaiseExceptionReplacementExpression(
-                            expression      = node,
-                            exception_type  = "SystemError"
-                                                if python_version < 300 else
-                                              "RuntimeError",
-                            exception_value = "super(): __class__ cell not found",
+                            expression=node,
+                            exception_type="SystemError"
+                            if python_version < 300
+                            else "RuntimeError",
+                            exception_value="super(): __class__ cell not found",
                         )
                 else:
                     return makeRaiseExceptionReplacementExpression(
-                        expression      = node,
-                        exception_type  = "RuntimeError",
-                        exception_value = "super(): no arguments"
+                        expression=node,
+                        exception_type="RuntimeError",
+                        exception_value="super(): no arguments",
                     )
 
         return ExpressionBuiltinSuper(
-            super_type   = type_arg,
-            super_object = object_arg,
-            source_ref   = source_ref
+            super_type=type_arg, super_object=object_arg, source_ref=source_ref
         )
 
     provider = node.getParentVariableProvider().getEntryPoint()
@@ -1205,71 +1081,61 @@ def super_extractor(node):
         provider.discardFlag("has_super")
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = wrapSuperBuiltin,
-        builtin_spec  = BuiltinParameterSpecs.builtin_super_spec
+        node=node,
+        builtin_class=wrapSuperBuiltin,
+        builtin_spec=BuiltinParameterSpecs.builtin_super_spec,
     )
 
 
 def hasattr_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinHasattr,
-        builtin_spec  = BuiltinParameterSpecs.builtin_hasattr_spec
+        node=node,
+        builtin_class=ExpressionBuiltinHasattr,
+        builtin_spec=BuiltinParameterSpecs.builtin_hasattr_spec,
     )
 
 
 def getattr_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinGetattr,
-        builtin_spec  = BuiltinParameterSpecs.builtin_getattr_spec
+        node=node,
+        builtin_class=ExpressionBuiltinGetattr,
+        builtin_spec=BuiltinParameterSpecs.builtin_getattr_spec,
     )
 
 
 def setattr_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinSetattr,
-        builtin_spec  = BuiltinParameterSpecs.builtin_setattr_spec
+        node=node,
+        builtin_class=ExpressionBuiltinSetattr,
+        builtin_spec=BuiltinParameterSpecs.builtin_setattr_spec,
     )
 
 
 def isinstance_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinIsinstance,
-        builtin_spec  = BuiltinParameterSpecs.builtin_isinstance_spec
+        node=node,
+        builtin_class=ExpressionBuiltinIsinstance,
+        builtin_spec=BuiltinParameterSpecs.builtin_isinstance_spec,
     )
 
 
 def bytearray_extractor(node):
     def makeBytearray0(source_ref):
-        return makeConstantRefNode(
-            constant   = bytearray(),
-            source_ref = source_ref,
-        )
+        return makeConstantRefNode(constant=bytearray(), source_ref=source_ref)
 
     def selectNextBuiltinClass(string, encoding, errors, source_ref):
         if encoding is None:
-            return ExpressionBuiltinBytearray1(
-                value      = string,
-                source_ref = source_ref
-            )
+            return ExpressionBuiltinBytearray1(value=string, source_ref=source_ref)
         else:
             return ExpressionBuiltinBytearray3(
-                string     = string,
-                encoding   = encoding,
-                errors     = errors,
-                source_ref = source_ref
+                string=string, encoding=encoding, errors=errors, source_ref=source_ref
             )
 
-
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = selectNextBuiltinClass,
-        builtin_spec        = BuiltinParameterSpecs.builtin_bytearray_spec,
-        empty_special_class = makeBytearray0
+        node=node,
+        builtin_class=selectNextBuiltinClass,
+        builtin_spec=BuiltinParameterSpecs.builtin_bytearray_spec,
+        empty_special_class=makeBytearray0,
     )
 
 
@@ -1282,39 +1148,38 @@ def slice_extractor(node):
             start = None
 
         return ExpressionBuiltinSlice(
-            start      = start,
-            stop       = stop,
-            step       = step,
-            source_ref = source_ref
+            start=start, stop=stop, step=step, source_ref=source_ref
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = wrapSlice,
-        builtin_spec  = BuiltinParameterSpecs.builtin_slice_spec
+        node=node,
+        builtin_class=wrapSlice,
+        builtin_spec=BuiltinParameterSpecs.builtin_slice_spec,
     )
+
 
 def hash_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionBuiltinHash,
-        builtin_spec  = BuiltinParameterSpecs.builtin_hash_spec
+        node=node,
+        builtin_class=ExpressionBuiltinHash,
+        builtin_spec=BuiltinParameterSpecs.builtin_hash_spec,
     )
+
 
 def format_extractor(node):
     def makeFormat0(source_ref):
         # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression = node,
-            exception  = TypeError("format() takes at least 1 argument (0 given)")
+            expression=node,
+            exception=TypeError("format() takes at least 1 argument (0 given)"),
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = ExpressionBuiltinFormat,
-        builtin_spec        = BuiltinParameterSpecs.builtin_format_spec,
-        empty_special_class = makeFormat0
+        node=node,
+        builtin_class=ExpressionBuiltinFormat,
+        builtin_spec=BuiltinParameterSpecs.builtin_format_spec,
+        empty_special_class=makeFormat0,
     )
 
 
@@ -1323,15 +1188,15 @@ def staticmethod_extractor(node):
         # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression = node,
-            exception  = TypeError("staticmethod expected 1 arguments, got 0")
+            expression=node,
+            exception=TypeError("staticmethod expected 1 arguments, got 0"),
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = ExpressionBuiltinStaticmethod,
-        builtin_spec        = BuiltinParameterSpecs.builtin_staticmethod_spec,
-        empty_special_class = makeStaticmethod0
+        node=node,
+        builtin_class=ExpressionBuiltinStaticmethod,
+        builtin_spec=BuiltinParameterSpecs.builtin_staticmethod_spec,
+        empty_special_class=makeStaticmethod0,
     )
 
 
@@ -1340,69 +1205,69 @@ def classmethod_extractor(node):
         # pylint: disable=unused-argument
 
         return makeRaiseExceptionReplacementExpressionFromInstance(
-            expression = node,
-            exception  = TypeError("classmethod expected 1 arguments, got 0")
+            expression=node,
+            exception=TypeError("classmethod expected 1 arguments, got 0"),
         )
 
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node                = node,
-        builtin_class       = ExpressionBuiltinClassmethod,
-        builtin_spec        = BuiltinParameterSpecs.builtin_classmethod_spec,
-        empty_special_class = makeStaticmethod0
+        node=node,
+        builtin_class=ExpressionBuiltinClassmethod,
+        builtin_spec=BuiltinParameterSpecs.builtin_classmethod_spec,
+        empty_special_class=makeStaticmethod0,
     )
 
 
 def divmod_extractor(node):
     return BuiltinParameterSpecs.extractBuiltinArgs(
-        node          = node,
-        builtin_class = ExpressionOperationBinaryDivmod,
-        builtin_spec  = BuiltinParameterSpecs.builtin_divmod_spec,
+        node=node,
+        builtin_class=ExpressionOperationBinaryDivmod,
+        builtin_spec=BuiltinParameterSpecs.builtin_divmod_spec,
     )
 
 
 _dispatch_dict = {
-    "compile"      : compile_extractor,
-    "globals"      : globals_extractor,
-    "locals"       : locals_extractor,
-    "eval"         : eval_extractor,
-    "dir"          : dir_extractor,
-    "vars"         : vars_extractor,
-    "__import__"   : import_extractor,
-    "chr"          : chr_extractor,
-    "ord"          : ord_extractor,
-    "bin"          : bin_extractor,
-    "oct"          : oct_extractor,
-    "hex"          : hex_extractor,
-    "id"           : id_extractor,
-    "type"         : type_extractor,
-    "iter"         : iter_extractor,
-    "next"         : next_extractor,
-    "sum"          : sum_extractor,
-    "tuple"        : tuple_extractor,
-    "list"         : list_extractor,
-    "dict"         : dict_extractor,
-    "set"          : set_extractor,
-    "frozenset"    : frozenset_extractor,
-    "float"        : float_extractor,
-    "complex"      : complex_extractor,
-    "str"          : str_extractor,
-    "bool"         : bool_extractor,
-    "int"          : int_extractor,
-    "repr"         : repr_extractor,
-    "len"          : len_extractor,
-    "super"        : super_extractor,
-    "hasattr"      : hasattr_extractor,
-    "getattr"      : getattr_extractor,
-    "setattr"      : setattr_extractor,
-    "isinstance"   : isinstance_extractor,
-    "bytearray"    : bytearray_extractor,
-    "slice"        : slice_extractor,
-    "hash"         : hash_extractor,
-    "format"       : format_extractor,
-    "open"         : open_extractor,
-    "staticmethod" : staticmethod_extractor,
-    "classmethod"  : classmethod_extractor,
-    "divmod"       : divmod_extractor
+    "compile": compile_extractor,
+    "globals": globals_extractor,
+    "locals": locals_extractor,
+    "eval": eval_extractor,
+    "dir": dir_extractor,
+    "vars": vars_extractor,
+    "__import__": import_extractor,
+    "chr": chr_extractor,
+    "ord": ord_extractor,
+    "bin": bin_extractor,
+    "oct": oct_extractor,
+    "hex": hex_extractor,
+    "id": id_extractor,
+    "type": type_extractor,
+    "iter": iter_extractor,
+    "next": next_extractor,
+    "sum": sum_extractor,
+    "tuple": tuple_extractor,
+    "list": list_extractor,
+    "dict": dict_extractor,
+    "set": set_extractor,
+    "frozenset": frozenset_extractor,
+    "float": float_extractor,
+    "complex": complex_extractor,
+    "str": str_extractor,
+    "bool": bool_extractor,
+    "int": int_extractor,
+    "repr": repr_extractor,
+    "len": len_extractor,
+    "super": super_extractor,
+    "hasattr": hasattr_extractor,
+    "getattr": getattr_extractor,
+    "setattr": setattr_extractor,
+    "isinstance": isinstance_extractor,
+    "bytearray": bytearray_extractor,
+    "slice": slice_extractor,
+    "hash": hash_extractor,
+    "format": format_extractor,
+    "open": open_extractor,
+    "staticmethod": staticmethod_extractor,
+    "classmethod": classmethod_extractor,
+    "divmod": divmod_extractor,
 }
 
 if python_version < 300:
@@ -1422,11 +1287,13 @@ else:
     # The Python3 range is really an xrange, use that.
     _dispatch_dict["range"] = xrange_extractor
 
+
 def check():
     from nuitka.Builtins import builtin_names
 
     for builtin_name in _dispatch_dict:
         assert builtin_name in builtin_names, builtin_name
+
 
 check()
 
@@ -1434,21 +1301,16 @@ _builtin_white_list = (
     # Not supporting 'print', because it could be replaced, and is not
     # worth the effort yet.
     "print",
-
     # TODO: This could, and should be supported, as we could e.g. lower
     # types easily for it.
     "sorted",
-
     # TODO: This would be very worthwhile, as it could easily optimize
     # its iteration away.
     "zip",
-
     # TODO: This would be most precious due to the type hint it gives
     "enumerate",
-
     # TODO: Also worthwhile for known values.
     "reversed",
-
     # TODO: Not sure what this really is about.
     "memoryview",
 )
@@ -1463,11 +1325,10 @@ def _describeNewNode(builtin_name, inspect_node):
         inspect_node = inspect_node.getExpression()
 
     if inspect_node.isExpressionBuiltinImport():
-        tags    = "new_import"
+        tags = "new_import"
         message = """\
 Replaced dynamic "__import__" call with static built-in call."""
-    elif inspect_node.isExpressionBuiltin() or \
-         inspect_node.isStatementExec():
+    elif inspect_node.isExpressionBuiltin() or inspect_node.isStatementExec():
         tags = "new_builtin"
         message = "Replaced call to built-in '%s' with built-in call '%s'." % (
             builtin_name,
@@ -1484,14 +1345,14 @@ Replaced call to built-in '%s' with exception raise.""" % (
         message = """\
 Replaced call to built-in '%s' with binary operation '%s'.""" % (
             builtin_name,
-            inspect_node.getOperator()
+            inspect_node.getOperator(),
         )
     elif inspect_node.isExpressionOperationUnary():
         tags = "new_expression"
         message = """\
 Replaced call to built-in '%s' with unary operation '%s'.""" % (
             builtin_name,
-            inspect_node.getOperator()
+            inspect_node.getOperator(),
         )
     elif inspect_node.isExpressionCall():
         tags = "new_expression"
@@ -1501,12 +1362,18 @@ Replaced call to built-in '%s' with call.""" % (
         )
     elif inspect_node.isExpressionOutlineBody():
         tags = "new_expression"
-        message = """\
-Replaced call to built-in '%s' with outlined call.""" % builtin_name
+        message = (
+            """\
+Replaced call to built-in '%s' with outlined call."""
+            % builtin_name
+        )
     elif inspect_node.isExpressionConstantRef():
         tags = "new_expression"
-        message = """\
-Replaced call to built-in '%s' with constant value.""" % builtin_name
+        message = (
+            """\
+Replaced call to built-in '%s' with constant value."""
+            % builtin_name
+        )
     else:
         assert False, (builtin_name, "->", inspect_node)
 
@@ -1529,8 +1396,6 @@ def computeBuiltinCall(builtin_name, call_node):
         return new_node, tags, message
     else:
         if False and builtin_name not in _builtin_white_list:
-            warning(
-                "Not handling built-in '%s', consider support." % builtin_name
-            )
+            warning("Not handling built-in '%s', consider support." % builtin_name)
 
         return call_node, None, None

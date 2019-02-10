@@ -30,19 +30,13 @@ from .shapes.BuiltinTypeShapes import ShapeTypeStrOrUnicode
 class ExpressionStringConcatenation(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_STRING_CONCATENATION"
 
-    named_children = (
-        "values",
-    )
+    named_children = ("values",)
 
     def __init__(self, values, source_ref):
         assert values
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "values" : tuple(values),
-            },
-            source_ref = source_ref
+            self, values={"values": tuple(values)}, source_ref=source_ref
         )
 
     def getTypeShape(self):
@@ -70,7 +64,7 @@ class ExpressionStringConcatenation(ExpressionChildrenHavingBase):
 
         # Catch final one too.
         if start is not None:
-            if start != len(values)-1:
+            if start != len(values) - 1:
                 streaks.append((start, len(values)))
 
         if streaks:
@@ -78,24 +72,30 @@ class ExpressionStringConcatenation(ExpressionChildrenHavingBase):
 
             for streak in reversed(streaks):
                 new_element = makeConstantRefNode(
-                    constant   = "".join(
+                    constant="".join(
                         value.getCompileTimeConstant()
-                        for value in
-                        values[streak[0]:streak[1]]
+                        for value in values[streak[0] : streak[1]]
                     ),
-                    source_ref = values[streak[0]].source_ref
+                    source_ref=values[streak[0]].source_ref,
                 )
 
-                values[streak[0]:streak[1]] = (new_element,)
+                values[streak[0] : streak[1]] = (new_element,)
 
             if len(values) > 1:
                 self.setChild("values", values)
-                return self, "new_constant", "Partially combined strings for concatenation"
+                return (
+                    self,
+                    "new_constant",
+                    "Partially combined strings for concatenation",
+                )
 
         if len(values) == 1 and values[0].hasShapeUnicodeExact():
-            return values[0], "new_constant", "Removed strings concatenation of one value."
+            return (
+                values[0],
+                "new_constant",
+                "Removed strings concatenation of one value.",
+            )
 
         return self, None, None
-
 
     getValues = ExpressionChildrenHavingBase.childGetter("values")

@@ -30,18 +30,19 @@ from .ControlFlowEscapeDescriptions import (
     ControlFlowDescriptionComparisonUnorderable,
     ControlFlowDescriptionElementBasedEscape,
     ControlFlowDescriptionFullEscape,
-    ControlFlowDescriptionNoEscape
+    ControlFlowDescriptionNoEscape,
 )
 from .StandardShapes import (
     ShapeBase,
     ShapeIterator,
     ShapeLoopCompleteAlternative,
     ShapeLoopInitialAlternative,
-    ShapeUnknown
+    ShapeUnknown,
 )
 
 # Very many cases when deciding shapes
 # pylint: disable=too-many-return-statements
+
 
 def _getOperationBinaryAddShapeGeneric(cls, right_shape):
     if type(right_shape) is ShapeLoopCompleteAlternative:
@@ -114,6 +115,7 @@ class ShapeTypeNoneType(ShapeBase):
         return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
     if python_version < 300:
+
         @classmethod
         def getComparisonLtShape(cls, right_shape):
             if right_shape is ShapeUnknown:
@@ -123,7 +125,9 @@ class ShapeTypeNoneType(ShapeBase):
                 return operation_result_bool_noescape
 
             return _getComparisonLtShapeGeneric(cls, right_shape)
+
     else:
+
         @classmethod
         def getComparisonLtShape(cls, right_shape):
             if right_shape is ShapeUnknown:
@@ -137,7 +141,6 @@ class ShapeTypeNoneType(ShapeBase):
                 return operation_result_unknown
 
             return _getComparisonLtShapeGeneric(cls, right_shape)
-
 
 
 class ShapeTypeBool(ShapeBase):
@@ -204,8 +207,13 @@ class ShapeTypeBool(ShapeBase):
         if right_shape is ShapeUnknown:
             return operation_result_unknown
 
-        if right_shape in (ShapeTypeInt, ShapeTypeLong, ShapeTypeIntOrLong,
-                           ShapeTypeBool, ShapeTypeFloat):
+        if right_shape in (
+            ShapeTypeInt,
+            ShapeTypeLong,
+            ShapeTypeIntOrLong,
+            ShapeTypeBool,
+            ShapeTypeFloat,
+        ):
             return operation_result_bool_noescape
 
         if right_shape is ShapeTypeIntOrLongDerived:
@@ -260,8 +268,7 @@ class ShapeTypeInt(ShapeBase):
 
         # Int might turn into long when adding anything due to possible
         # overflow.
-        if right_shape in (ShapeTypeInt, ShapeTypeIntOrLong,
-                           ShapeTypeBool):
+        if right_shape in (ShapeTypeInt, ShapeTypeIntOrLong, ShapeTypeBool):
             return operation_result_intorlong_noescape
 
         if right_shape is ShapeTypeLong:
@@ -284,8 +291,13 @@ class ShapeTypeInt(ShapeBase):
         if right_shape is ShapeUnknown:
             return operation_result_unknown
 
-        if right_shape in (ShapeTypeInt, ShapeTypeLong, ShapeTypeIntOrLong,
-                           ShapeTypeBool, ShapeTypeFloat):
+        if right_shape in (
+            ShapeTypeInt,
+            ShapeTypeLong,
+            ShapeTypeIntOrLong,
+            ShapeTypeBool,
+            ShapeTypeFloat,
+        ):
             return operation_result_bool_noescape
 
         if right_shape in (ShapeTypeLongDerived, ShapeTypeIntOrLongDerived):
@@ -339,8 +351,12 @@ class ShapeTypeLong(ShapeBase):
             return operation_result_unknown
 
         # Long remains long when adding anything to it.
-        if right_shape in (ShapeTypeLong, ShapeTypeInt, ShapeTypeIntOrLong,
-                           ShapeTypeBool):
+        if right_shape in (
+            ShapeTypeLong,
+            ShapeTypeInt,
+            ShapeTypeIntOrLong,
+            ShapeTypeBool,
+        ):
             return operation_result_long_noescape
 
         if right_shape in (ShapeTypeLongDerived, ShapeTypeIntOrLongDerived):
@@ -353,8 +369,13 @@ class ShapeTypeLong(ShapeBase):
         if right_shape is ShapeUnknown:
             return operation_result_unknown
 
-        if right_shape in (ShapeTypeInt, ShapeTypeLong, ShapeTypeIntOrLong,
-                           ShapeTypeBool, ShapeTypeFloat):
+        if right_shape in (
+            ShapeTypeInt,
+            ShapeTypeLong,
+            ShapeTypeIntOrLong,
+            ShapeTypeBool,
+            ShapeTypeFloat,
+        ):
             return operation_result_bool_noescape
 
         if right_shape in (ShapeTypeLongDerived, ShapeTypeIntOrLongDerived):
@@ -370,8 +391,10 @@ class ShapeTypeLongDerived(ShapeUnknown):
 
 
 if python_version < 300:
+
     class ShapeTypeIntOrLong(ShapeBase):
         if isExperimental("nuitka_ilong"):
+
             @staticmethod
             def getCType():
                 return CTypeNuitkaIntOrLongStruct
@@ -424,14 +447,18 @@ if python_version < 300:
 
             return _getOperationBinaryAddShapeGeneric(cls, right_shape)
 
-
         @classmethod
         def getComparisonLtShape(cls, right_shape):
             if right_shape is ShapeUnknown:
                 return operation_result_unknown
 
-            if right_shape in (ShapeTypeInt, ShapeTypeLong, ShapeTypeIntOrLong,
-                               ShapeTypeBool, ShapeTypeFloat):
+            if right_shape in (
+                ShapeTypeInt,
+                ShapeTypeLong,
+                ShapeTypeIntOrLong,
+                ShapeTypeBool,
+                ShapeTypeFloat,
+            ):
                 return operation_result_bool_noescape
 
             if right_shape is ShapeTypeIntOrLongDerived:
@@ -492,8 +519,13 @@ class ShapeTypeFloat(ShapeBase):
         if right_shape is ShapeUnknown:
             return operation_result_unknown
 
-        if right_shape in (ShapeTypeFloat, ShapeTypeLong, ShapeTypeInt,
-                           ShapeTypeIntOrLong, ShapeTypeBool):
+        if right_shape in (
+            ShapeTypeFloat,
+            ShapeTypeLong,
+            ShapeTypeInt,
+            ShapeTypeIntOrLong,
+            ShapeTypeBool,
+        ):
             return operation_result_float_noescape
 
         if right_shape is ShapeTypeFloatDerived:
@@ -506,8 +538,13 @@ class ShapeTypeFloat(ShapeBase):
         if right_shape is ShapeUnknown:
             return operation_result_unknown
 
-        if right_shape in (ShapeTypeFloat, ShapeTypeLong, ShapeTypeInt,
-                          ShapeTypeIntOrLong, ShapeTypeBool):
+        if right_shape in (
+            ShapeTypeFloat,
+            ShapeTypeLong,
+            ShapeTypeInt,
+            ShapeTypeIntOrLong,
+            ShapeTypeBool,
+        ):
             return operation_result_bool_noescape
 
         if right_shape is ShapeTypeFloatDerived:
@@ -562,8 +599,13 @@ class ShapeTypeComplex(ShapeBase):
         if right_shape is ShapeUnknown:
             return operation_result_unknown
 
-        if right_shape in (ShapeTypeFloat, ShapeTypeLong, ShapeTypeInt,
-                           ShapeTypeIntOrLong, ShapeTypeBool):
+        if right_shape in (
+            ShapeTypeFloat,
+            ShapeTypeLong,
+            ShapeTypeInt,
+            ShapeTypeIntOrLong,
+            ShapeTypeBool,
+        ):
             return operation_result_complex_noescape
 
         if right_shape is ShapeTypeFloatDerived:
@@ -955,8 +997,12 @@ class ShapeTypeStr(ShapeBase):
                 # TODO: Exception actually for static optimization.
                 return operation_result_unknown
 
-        if right_shape in (ShapeTypeNoneType, ShapeTypeInt, ShapeTypeLong,
-                           ShapeTypeIntOrLong):
+        if right_shape in (
+            ShapeTypeNoneType,
+            ShapeTypeInt,
+            ShapeTypeLong,
+            ShapeTypeIntOrLong,
+        ):
             return operation_result_unsupported_add
 
         return _getOperationBinaryAddShapeGeneric(cls, right_shape)
@@ -996,6 +1042,7 @@ class ShapeTypeStrIterator(ShapeIterator):
 
 
 if python_version < 300:
+
     class ShapeTypeUnicode(ShapeBase):
         @staticmethod
         def getTypeName():
@@ -1065,7 +1112,6 @@ if python_version < 300:
 
             return _getComparisonLtShapeGeneric(cls, right_shape)
 
-
     class ShapeTypeUnicodeDerived(ShapeUnknown):
         pass
 
@@ -1077,6 +1123,8 @@ if python_version < 300:
         @staticmethod
         def hasShapeSlotLen():
             return False
+
+
 else:
     ShapeTypeUnicode = ShapeTypeStr
     ShapeTypeUnicodeIterator = ShapeTypeStrIterator
@@ -1084,6 +1132,7 @@ else:
 
 
 if python_version < 300:
+
     class ShapeTypeStrOrUnicode(ShapeBase):
         @staticmethod
         def hasShapeSlotLen():
@@ -1116,11 +1165,14 @@ if python_version < 300:
         @staticmethod
         def hasShapeSlotContains():
             return True
+
+
 else:
     ShapeTypeStrOrUnicode = ShapeTypeStr
 
 
 if python_version >= 300:
+
     class ShapeTypeBytes(ShapeBase):
         @staticmethod
         def getTypeName():
@@ -1190,10 +1242,8 @@ if python_version >= 300:
 
             return _getComparisonLtShapeGeneric(cls, right_shape)
 
-
     class ShapeTypeBytesDerived(ShapeUnknown):
         pass
-
 
     class ShapeTypeBytesIterator(ShapeIterator):
         @staticmethod
@@ -1204,12 +1254,14 @@ if python_version >= 300:
         def hasShapeSlotLen():
             return False
 
+
 else:
     ShapeTypeBytes = ShapeTypeStr
     ShapeTypeBytesIterator = ShapeTypeStrIterator
 
     # Shoudln't happen with Python2
     ShapeTypeBytesDerived = None
+
 
 class ShapeTypeBytearray(ShapeBase):
     @staticmethod
@@ -1656,6 +1708,7 @@ class ShapeTypeClassmethod(ShapeBase):
     def hasShapeSlotContains():
         return False
 
+
 # Precanned tuples to save creating return value tuples:
 operation_result_unknown = ShapeUnknown, ControlFlowDescriptionFullEscape
 operation_result_bool_noescape = ShapeTypeBool, ControlFlowDescriptionNoEscape
@@ -1670,8 +1723,14 @@ operation_result_unicode_noescape = ShapeTypeUnicode, ControlFlowDescriptionNoEs
 operation_result_bytes_noescape = ShapeTypeBytes, ControlFlowDescriptionNoEscape
 operation_result_bytearray_noescape = ShapeTypeBytearray, ControlFlowDescriptionNoEscape
 
-operation_result_bool_elementbased = ShapeTypeBool, ControlFlowDescriptionElementBasedEscape
+operation_result_bool_elementbased = (
+    ShapeTypeBool,
+    ControlFlowDescriptionElementBasedEscape,
+)
 
-operation_result_unorderable_comparison = ShapeUnknown, ControlFlowDescriptionComparisonUnorderable
+operation_result_unorderable_comparison = (
+    ShapeUnknown,
+    ControlFlowDescriptionComparisonUnorderable,
+)
 
 operation_result_unsupported_add = ShapeUnknown, ControlFlowDescriptionAddUnsupported

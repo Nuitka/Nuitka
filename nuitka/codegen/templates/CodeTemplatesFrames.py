@@ -215,7 +215,6 @@ goto %(no_exception_exit)s;
 """
 
 
-
 # TODO: This cannot happen, can it?
 template_frame_guard_generator_return_handler = """\
 %(frame_return_exit)s:;
@@ -278,5 +277,6 @@ Py_DECREF( %(frame_identifier)s );
 goto %(parent_exception_exit)s;
 """
 
-from . import TemplateDebugWrapper # isort:skip
+from . import TemplateDebugWrapper  # isort:skip
+
 TemplateDebugWrapper.checkDebug(globals())

@@ -30,7 +30,7 @@ from nuitka.Builtins import (
     builtin_exception_names,
     builtin_exception_values,
     builtin_names,
-    builtin_type_names
+    builtin_type_names,
 )
 from nuitka.Options import getPythonFlags
 from nuitka.PythonVersions import python_version
@@ -47,10 +47,7 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
     __slots__ = ("builtin_name",)
 
     def __init__(self, builtin_name, source_ref):
-        CompileTimeConstantExpressionBase.__init__(
-            self,
-            source_ref = source_ref
-        )
+        CompileTimeConstantExpressionBase.__init__(self, source_ref=source_ref)
 
         self.builtin_name = builtin_name
 
@@ -58,9 +55,7 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
         del self.parent
 
     def getDetails(self):
-        return {
-            "builtin_name" : self.builtin_name
-        }
+        return {"builtin_name": self.builtin_name}
 
     def getBuiltinName(self):
         return self.builtin_name
@@ -76,39 +71,36 @@ class ExpressionBuiltinRefBase(CompileTimeConstantExpressionBase):
 
     def getStrValue(self):
         return makeConstantRefNode(
-            constant      = str(self.getCompileTimeConstant()),
-            user_provided = True,
-            source_ref    = self.getSourceReference(),
+            constant=str(self.getCompileTimeConstant()),
+            user_provided=True,
+            source_ref=self.getSourceReference(),
         )
 
+
 _debug_value = "no_asserts" not in getPythonFlags()
+
 
 def makeExpressionBuiltinRef(builtin_name, source_ref):
     assert builtin_name in builtin_names, builtin_name
 
     quick_names = {
-        "None"      : None,
-        "True"      : True,
-        "False"     : False,
-        "__debug__" : _debug_value,
-        "Ellipsis"  : Ellipsis,
+        "None": None,
+        "True": True,
+        "False": False,
+        "__debug__": _debug_value,
+        "Ellipsis": Ellipsis,
     }
 
     if builtin_name in quick_names:
         return makeConstantRefNode(
-            constant   = quick_names[builtin_name],
-            source_ref = source_ref
+            constant=quick_names[builtin_name], source_ref=source_ref
         )
     elif builtin_name in builtin_type_names:
         return makeConstantRefNode(
-            constant   = __builtins__[builtin_name],
-            source_ref = source_ref
+            constant=__builtins__[builtin_name], source_ref=source_ref
         )
     else:
-        return ExpressionBuiltinRef(
-            builtin_name = builtin_name,
-            source_ref   = source_ref
-        )
+        return ExpressionBuiltinRef(builtin_name=builtin_name, source_ref=source_ref)
 
 
 class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
@@ -118,9 +110,7 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
 
     def __init__(self, builtin_name, source_ref):
         ExpressionBuiltinRefBase.__init__(
-            self,
-            builtin_name = builtin_name,
-            source_ref   = source_ref
+            self, builtin_name=builtin_name, source_ref=source_ref
         )
 
     def isCompileTimeConstant(self):
@@ -132,8 +122,7 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
     def computeExpressionRaw(self, trace_collection):
         return self, None, None
 
-    def computeExpressionCall(self, call_node, call_args, call_kw,
-                              trace_collection):
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         from nuitka.optimizations.OptimizeBuiltinCalls import computeBuiltinCall
 
         # Anything may happen. On next pass, if replaced, we might be better
@@ -141,8 +130,7 @@ class ExpressionBuiltinRef(ExpressionBuiltinRefBase):
         trace_collection.onExceptionRaiseExit(BaseException)
 
         new_node, tags, message = computeBuiltinCall(
-            builtin_name = self.builtin_name,
-            call_node    = call_node
+            builtin_name=self.builtin_name, call_node=call_node
         )
 
         if self.builtin_name in ("dir", "eval", "exec", "execfile", "locals", "vars"):
@@ -168,9 +156,7 @@ class ExpressionBuiltinAnonymousRef(ExpressionBuiltinRefBase):
         assert builtin_name in builtin_anon_names, builtin_name
 
         ExpressionBuiltinRefBase.__init__(
-            self,
-            builtin_name = builtin_name,
-            source_ref   = source_ref
+            self, builtin_name=builtin_name, source_ref=source_ref
         )
 
     def isCompileTimeConstant(self):
@@ -195,15 +181,11 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         assert exception_name in builtin_exception_names, exception_name
 
         ExpressionBuiltinRefBase.__init__(
-            self,
-            builtin_name = exception_name,
-            source_ref   = source_ref
+            self, builtin_name=exception_name, source_ref=source_ref
         )
 
     def getDetails(self):
-        return {
-            "exception_name" : self.builtin_name
-        }
+        return {"exception_name": self.builtin_name}
 
     getExceptionName = ExpressionBuiltinRefBase.getBuiltinName
 
@@ -220,30 +202,28 @@ class ExpressionBuiltinExceptionRef(ExpressionBuiltinRefBase):
         # Not much that can be done here.
         return self, None, None
 
-    def computeExpressionCall(self, call_node, call_args, call_kw,
-                              trace_collection):
+    def computeExpressionCall(self, call_node, call_args, call_kw, trace_collection):
         exception_name = self.getExceptionName()
 
         # TODO: Keyword only arguments of it, are not properly handled yet by
         # the built-in call code.
         if exception_name == "ImportError" and python_version >= 300:
-            if call_kw is not None and \
-               (not call_kw.isExpressionConstantRef() or call_kw.getConstant() != {}):
+            if call_kw is not None and (
+                not call_kw.isExpressionConstantRef() or call_kw.getConstant() != {}
+            ):
                 return call_node, None, None
 
         def createBuiltinMakeException(args, source_ref):
             return ExpressionBuiltinMakeException(
-                exception_name = exception_name,
-                args           = args,
-                source_ref     = source_ref
+                exception_name=exception_name, args=args, source_ref=source_ref
             )
 
         new_node = BuiltinParameterSpecs.extractBuiltinArgs(
-            node          = call_node,
-            builtin_class = createBuiltinMakeException,
-            builtin_spec  = BuiltinParameterSpecs.makeBuiltinExceptionParameterSpec(
-                exception_name = exception_name
-            )
+            node=call_node,
+            builtin_class=createBuiltinMakeException,
+            builtin_spec=BuiltinParameterSpecs.makeBuiltinExceptionParameterSpec(
+                exception_name=exception_name
+            ),
         )
 
         # TODO: Don't allow this to happen.

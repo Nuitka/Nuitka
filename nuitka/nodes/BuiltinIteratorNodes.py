@@ -29,12 +29,12 @@ from nuitka.PythonVersions import python_version
 
 from .ExpressionBases import (
     ExpressionBuiltinSingleArgBase,
-    ExpressionChildrenHavingBase
+    ExpressionChildrenHavingBase,
 )
 from .NodeBases import StatementChildHavingBase
 from .NodeMakingHelpers import (
     makeRaiseExceptionReplacementStatement,
-    wrapExpressionWithSideEffects
+    wrapExpressionWithSideEffects,
 )
 from .shapes.StandardShapes import ShapeIterator
 
@@ -49,18 +49,13 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
         value = self.getValue()
 
         return value.computeExpressionIter1(
-            iter_node        = self,
-            trace_collection = trace_collection
+            iter_node=self, trace_collection=trace_collection
         )
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         # Iteration over an iterator is that iterator.
 
-        return (
-            self,
-            "new_builtin",
-            "Eliminated useless iterator creation."
-        )
+        return (self, "new_builtin", "Eliminated useless iterator creation.")
 
     def getTypeShape(self):
         return self.getValue().getTypeShape().getShapeIter()
@@ -68,12 +63,11 @@ class ExpressionBuiltinIter1(ExpressionBuiltinSingleArgBase):
     def computeExpressionNext1(self, next_node, trace_collection):
         value = self.getValue()
 
-        if value.isKnownToBeIterableAtMin(1) and \
-           value.canPredictIterationValues():
+        if value.isKnownToBeIterableAtMin(1) and value.canPredictIterationValues():
             result = wrapExpressionWithSideEffects(
-                new_node     = value.getIterationValue(0),
-                old_node     = value,
-                side_effects = value.getIterationValueRange(1,None)
+                new_node=value.getIterationValue(0),
+                old_node=value,
+                side_effects=value.getIterationValueRange(1, None),
             )
 
             return result, "new_expression", "Pridicted 'next' value from iteration."
@@ -156,9 +150,7 @@ class ExpressionBuiltinIterForUnpack(ExpressionBuiltinIter1):
             return iter(value)
         except TypeError:
             raise TypeError(
-                "cannot unpack non-iterable %s object" % (
-                    type(value).__name__
-                )
+                "cannot unpack non-iterable %s object" % (type(value).__name__)
             )
 
 
@@ -170,18 +162,12 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
     __slots__ = ("count",)
 
     def __init__(self, iterator, count, source_ref):
-        StatementChildHavingBase.__init__(
-            self,
-            value      = iterator,
-            source_ref = source_ref
-        )
+        StatementChildHavingBase.__init__(self, value=iterator, source_ref=source_ref)
 
         self.count = int(count)
 
     def getDetails(self):
-        return {
-            "count" : self.getCount(),
-        }
+        return {"count": self.getCount()}
 
     def getCount(self):
         return self.count
@@ -193,24 +179,26 @@ class StatementSpecialUnpackCheck(StatementChildHavingBase):
         iterator = self.getIterator()
 
         if iterator.mayRaiseException(BaseException):
-            trace_collection.onExceptionRaiseExit(
-                BaseException
-            )
+            trace_collection.onExceptionRaiseExit(BaseException)
 
         if iterator.willRaiseException(BaseException):
-            from .NodeMakingHelpers import \
-              makeStatementExpressionOnlyReplacementNode
+            from .NodeMakingHelpers import makeStatementExpressionOnlyReplacementNode
 
             result = makeStatementExpressionOnlyReplacementNode(
-                expression = iterator,
-                node       = self
+                expression=iterator, node=self
             )
 
-            return result, "new_raise", """\
-Explicit raise already raises implicitly building exception type."""
+            return (
+                result,
+                "new_raise",
+                """\
+Explicit raise already raises implicitly building exception type.""",
+            )
 
-        if iterator.isExpressionTempVariableRef() and \
-           iterator.variable_trace.isAssignTrace():
+        if (
+            iterator.isExpressionTempVariableRef()
+            and iterator.variable_trace.isAssignTrace()
+        ):
 
             iterator = iterator.variable_trace.getAssignNode().getAssignSource()
 
@@ -224,27 +212,32 @@ Explicit raise already raises implicitly building exception type."""
             if iter_length is not None:
                 # Remove the check if it can be decided at compile time.
                 if current_index == iter_length:
-                    return None, "new_statements", """\
-Determined iteration end check to be always true."""
+                    return (
+                        None,
+                        "new_statements",
+                        """\
+Determined iteration end check to be always true.""",
+                    )
                 else:
                     result = makeRaiseExceptionReplacementStatement(
-                        statement       = self,
-                        exception_type  = "ValueError",
-                        exception_value = "too many values to unpack"
-                                            if python_version < 300 else
-                                          "too many values to unpack (expected %d)" % self.getCount()
+                        statement=self,
+                        exception_type="ValueError",
+                        exception_value="too many values to unpack"
+                        if python_version < 300
+                        else "too many values to unpack (expected %d)"
+                        % self.getCount(),
                     )
 
-                    trace_collection.onExceptionRaiseExit(
-                        TypeError
+                    trace_collection.onExceptionRaiseExit(TypeError)
+
+                    return (
+                        result,
+                        "new_raise",
+                        """\
+Determined iteration end check to always raise.""",
                     )
 
-                    return result, "new_raise", """\
-Determined iteration end check to always raise."""
-
-        trace_collection.onExceptionRaiseExit(
-            BaseException
-        )
+        trace_collection.onExceptionRaiseExit(BaseException)
 
         return self, None, None
 
@@ -255,20 +248,14 @@ Determined iteration end check to always raise."""
 class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_ITER2"
 
-    named_children = (
-        "callable",
-        "sentinel",
-    )
+    named_children = ("callable", "sentinel")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, callable_arg, sentinel, source_ref):
         ExpressionChildrenHavingBase.__init__(
             self,
-            values     = {
-                "callable" : callable_arg,
-                "sentinel" : sentinel,
-            },
-            source_ref = source_ref
+            values={"callable": callable_arg, "sentinel": sentinel},
+            source_ref=source_ref,
         )
 
     getCallable = ExpressionChildrenHavingBase.childGetter("callable")
@@ -288,7 +275,6 @@ class ExpressionBuiltinIter2(ExpressionChildrenHavingBase):
         return self, "new_builtin", "Eliminated useless iterator creation."
 
 
-
 class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
     kind = "EXPRESSION_ASYNC_ITER"
 
@@ -296,8 +282,7 @@ class ExpressionAsyncIter(ExpressionBuiltinSingleArgBase):
         value = self.getValue()
 
         return value.computeExpressionAsyncIter(
-            iter_node        = self,
-            trace_collection = trace_collection
+            iter_node=self, trace_collection=trace_collection
         )
 
     def isKnownToBeIterable(self, count):
@@ -357,9 +342,7 @@ class ExpressionAsyncNext(ExpressionBuiltinSingleArgBase):
 
     def __init__(self, value, source_ref):
         ExpressionBuiltinSingleArgBase.__init__(
-            self,
-            value      = value,
-            source_ref = source_ref
+            self, value=value, source_ref=source_ref
         )
 
     def computeExpression(self, trace_collection):
