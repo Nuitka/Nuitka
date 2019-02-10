@@ -382,6 +382,11 @@ class ExpressionBase(NodeBase):
 
         return len_node, None, None
 
+    def computeExpressionAny(self, any_node, trace_collection):
+        shape = self.getTypeShape()
+
+        has_len = shape.hasShapeSlotAny()    
+
     def computeExpressionInt(self, int_node, trace_collection):
         shape = self.getTypeShape()
 
@@ -810,6 +815,14 @@ Compile time constant negation truth value pre-computed."""
             computation = lambda : len(self.getCompileTimeConstant()),
             description = """\
 Compile time constant len value pre-computed."""
+        )
+
+    def computeExpressionAny(self, any_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node        = any_node,
+            computation = lambda : any(self.getCompileTimeConstant()),
+            description = """\
+Compile time constant any value pre-computed."""
         )
 
     def computeExpressionInt(self, int_node, trace_collection):
