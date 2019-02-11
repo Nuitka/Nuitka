@@ -213,7 +213,7 @@ Contractions should span across multiple lines for increased readability:
 Module/Package Names
 --------------------
 
-Normal modules are named in camel case with leading upper case, because their of
+Normal modules are named in camel case with leading upper case, because of their
 role as singleton classes. The difference between a module and a class is small
 enough and in the source code they are also used similarly.
 
@@ -227,7 +227,7 @@ generation packages are located, while the main interface is
 imports. There is no code in packages themselves.
 
 Names of modules should be plurals if they contain classes. Example is that a
-``Nodes`` module that contain a ``Node`` class.
+``Nodes`` module that contains a ``Node`` class.
 
 
 Prefer list contractions over built-ins
@@ -278,9 +278,9 @@ cannot be overloaded without re-declaring them.
 Overloading is then not at all obvious anymore. Now imagine having a setter and
 only overloading the getter. How to update the property easily?
 
-So, that's not likeable about them. And then we are also for clarity in these
+So, that's not likable about them. And then we are also for clarity in these
 internal APIs too. Properties try and hide the fact that code needs to run and
-may do things. So lets not use them.
+may do things. So let's not use them.
 
 For an external API you may exactly want to hide things, but internally that has
 no use, and in Nuitka, every API is internal API. One exception may be the
@@ -353,7 +353,7 @@ So, we currently use ``PyLint`` with options defined in a script.
 
    ./bin/check-nuitka-with-pylint
 
-Ideally the above command gives no warnings. This is currently the case.
+Ideally, the above command gives no warnings. This is currently the case.
 
 If you submit a patch, it would be good if you checked that it doesn't introduce
 new warnings, but that is not strictly required. it will happen before release,
@@ -614,7 +614,7 @@ where in other languages, I need to check myself.
 _`5`:: One can use a C++03 compiler as a C11 compiler for the largest part,
 e.g. with MSVC.
 
-The *decision for C11* is ultimately:
+The *decision for C11* is ultimate:
 
 * for portability
 * for language knowledge
@@ -725,7 +725,7 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
   Full compatibility, even where it's stupid, i.e. do not provide information,
   even if available, in order to assert maximum compatibility. Intended to
-  control level of compatibility to absurd.
+  control the level of compatibility to absurd.
 
 * ``experimental_mode``
 
@@ -793,7 +793,7 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 Locating Modules and Packages
 -----------------------------
 
-The search for of modules used is driven by ``nuitka.importing.Importing``
+The search for modules used is driven by ``nuitka.importing.Importing``
 module.
 
 * Quoting the ``nuitka.importing.Importing`` documentation:
@@ -827,7 +827,7 @@ module.
 The decision making and caching are located in the ``nuitka.tree`` package, in
 modules ``nuitka.tree.Recursion`` and ``nuitka.tree.ImportCache``. Each module
 is only considered once (then cached), and we need to obey lots of user choices,
-e.g. to compile standard library or not.
+e.g. to compile a standard library or not.
 
 
 Hooking for module ``import`` process
@@ -842,7 +842,7 @@ imported even when imported by non-compiled code.
 
 .. note::
 
-   Of course it would make sense to compile time detect which module it is that
+   Of course, it would make sense to compile time detect which module it is that
    is being imported and then to make it directly. At this time, we don't have
    this inter-module optimization yet, mid-term it should become easy to add.
 
@@ -925,7 +925,7 @@ Frame Stack
 -----------
 
 In Python, every function, class, and module has a frame. It creates created
-when the scope it entered, and there is a stack of these at run time, which
+when the scope is entered, and there is a stack of these at run time, which
 becomes visible in tracebacks in case of exceptions.
 
 The choice of Nuitka is to make this an explicit element of the node tree, that
@@ -982,9 +982,9 @@ extra care.
 Parameter Parsing
 -----------------
 
-The parsing of parameters is very convoluted in Python, and doing it in an
+The parsing of parameters is very convoluted in Python, and doing it in a
 compatible way is not that easy. This is a description of the required process,
-for easier overview.
+for an easier overview.
 
 Input
 +++++
@@ -998,7 +998,7 @@ Keyword dictionary
 ++++++++++++++++++
 
 The keyword argument dictionary is checked first. Anything in there, that cannot
-be associated, either raises an error, or is added to a potentially given star
+be associated, either raise an error, or is added to a potentially given star
 dict argument. So there are two major cases.
 
 * No star dict argument: Iterate over dictionary, and assign or raise errors.
@@ -1011,7 +1011,7 @@ dict argument. So there are two major cases.
   is needed, and the keyword argument dictionary could be used as the star
   argument. Should it change, a copy is needed though.
 
-What's noteworthy here, is that in comparison of the keywords, we can hope that
+What's noteworthy here, is that in comparison to the keywords, we can hope that
 they are the same value as we use. The interning of strings increases chances
 for non-compiled code to do that, esp. for short names.
 
@@ -1043,7 +1043,7 @@ collections builds up traces. These are facts about how this works:
    * Assignments draw from a counter unique for the variable, which becomes the
      variable version. This happens during tree building phase.
 
-   * References are associated to the version of the variable active. This can be
+   * References are associated with the version of the variable active. This can be
      a merge of branches. Trace collection does do that and provides nodes with
      the currently active trace for a variable.
 
@@ -1111,7 +1111,7 @@ Trace structure, there are different kinds of traces.
 
  * Initial write of the version
 
-   There may be a initial write for each version. It can only occur at the
+   There may be an initial write for each version. It can only occur at the
    start of the scope, but not later, and there is only one. This might be
    known to be "initialized" (parameter variables of functions are like that)
    or "uninitialized", or "unknown".
@@ -1843,7 +1843,7 @@ interact with its body. The body starts with a dictionary provided by the
 metaclass, so that is different, because it can ``__prepare__`` a non-empty
 locals for it, which is hidden away in "prepare_class_dict" below.
 
-What's noteworthy, is that this dictionary, could e.g. be a ``OrderDict``. I am
+What's noteworthy, is that this dictionary, could e.g. be an ``OrderDict``. I am
 not sure, what ``__prepare__`` is allowed to return.
 
 .. code-block:: python
