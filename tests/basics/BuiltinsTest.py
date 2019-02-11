@@ -520,3 +520,7 @@ elif isinstance(v, complex):
     print("Oops, must not happen.")
 else:
     print("Oops, must not happen.")
+
+# Test for any builtins
+print(any([None, None, None]))
+print(any([None, 4, None]))
