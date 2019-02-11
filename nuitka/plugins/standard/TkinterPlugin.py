@@ -29,6 +29,7 @@ import sys
 from logging import info
 
 from nuitka import Options
+from nuitka.utils.Utils import isWin32Windows
 from nuitka.plugins.PluginBase import UserPluginBase, pre_modules
 
 
@@ -139,10 +140,11 @@ class TkinterPluginDetector(UserPluginBase):
 
     @staticmethod
     def isRelevant():
-        return Options.isStandaloneMode() and os.name == "nt"
+        return Options.isStandaloneMode() and isWin32Windows()
 
-    def onModuleDiscovered(self, module):
-        full_name = module.getFullName().split(".")
-        if full_name[0].lower() == "tkinter":
-            # self.warnUnusedPlugin("tkinter support.")
-            pass
+    def onModuleSourceCode(self, module_name, source_code):
+        if module_name == "__main__":
+            if "tkinter" in source_code or "Tkinter" in source_code:
+                self.warnUnusedPlugin("Tkinter needs TCL included.")
+
+        return source_code
