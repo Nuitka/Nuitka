@@ -68,7 +68,7 @@ def main():
     # Update the repository on the web site.
     assert (
         os.system(
-            "rsync -avz --delete html --chown www-data root@nuitka.net:/var/www/apidoc/"
+            "rsync -avz --delete html/ --chown www-data root@nuitka.net:/var/www/apidoc/"
         )
         == 0
     )
