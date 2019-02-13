@@ -27,10 +27,7 @@ source code comments with developer manual sections.
 """
 
 from nuitka.nodes.ConstantRefNodes import ExpressionConstantEllipsisRef
-from nuitka.nodes.SliceNodes import (
-    ExpressionBuiltinSlice,
-    ExpressionSliceLookup
-)
+from nuitka.nodes.SliceNodes import ExpressionBuiltinSlice, ExpressionSliceLookup
 from nuitka.nodes.SubscriptNodes import ExpressionSubscriptLookup
 from nuitka.PythonVersions import python_version
 
@@ -55,30 +52,29 @@ def buildSubscriptNode(provider, node, source_ref):
 
     if kind == "Index":
         return ExpressionSubscriptLookup(
-            subscribed = buildNode(provider, node.value, source_ref),
-            subscript  = buildNode(provider, node.slice.value, source_ref),
-            source_ref = source_ref
+            subscribed=buildNode(provider, node.value, source_ref),
+            subscript=buildNode(provider, node.slice.value, source_ref),
+            source_ref=source_ref,
         )
     elif kind == "Slice":
         lower = buildNode(
-            provider   = provider,
-            node       = node.slice.lower,
-            source_ref = source_ref,
-            allow_none = True
+            provider=provider,
+            node=node.slice.lower,
+            source_ref=source_ref,
+            allow_none=True,
         )
         upper = buildNode(
-            provider   = provider,
-            node       = node.slice.upper,
-            source_ref = source_ref,
-            allow_none = True
+            provider=provider,
+            node=node.slice.upper,
+            source_ref=source_ref,
+            allow_none=True,
         )
         step = buildNode(
-            provider   = provider,
-            node       = node.slice.step,
-            source_ref = source_ref,
-            allow_none = True
+            provider=provider,
+            node=node.slice.step,
+            source_ref=source_ref,
+            allow_none=True,
         )
-
 
         # For Python3 there is no slicing operation, this is always done
         # with subscript using a slice object. For Python2, it is only done
@@ -87,35 +83,30 @@ def buildSubscriptNode(provider, node, source_ref):
 
         if use_sliceobj:
             return ExpressionSubscriptLookup(
-                subscribed = buildNode(provider, node.value, source_ref),
-                subscript  = ExpressionBuiltinSlice(
-                    start      = lower,
-                    stop       = upper,
-                    step       = step,
-                    source_ref = source_ref
+                subscribed=buildNode(provider, node.value, source_ref),
+                subscript=ExpressionBuiltinSlice(
+                    start=lower, stop=upper, step=step, source_ref=source_ref
                 ),
-                source_ref = source_ref
+                source_ref=source_ref,
             )
         else:
             return ExpressionSliceLookup(
-                expression = buildNode(provider, node.value, source_ref),
-                lower      = lower,
-                upper      = upper,
-                source_ref = source_ref
+                expression=buildNode(provider, node.value, source_ref),
+                lower=lower,
+                upper=upper,
+                source_ref=source_ref,
             )
     elif kind == "ExtSlice":
         return ExpressionSubscriptLookup(
-            subscribed = buildNode(provider, node.value, source_ref),
-            subscript  = buildExtSliceNode(provider, node, source_ref),
-            source_ref = source_ref
+            subscribed=buildNode(provider, node.value, source_ref),
+            subscript=buildExtSliceNode(provider, node, source_ref),
+            source_ref=source_ref,
         )
     elif kind == "Ellipsis":
         return ExpressionSubscriptLookup(
-            subscribed = buildNode(provider, node.value, source_ref),
-            subscript  = ExpressionConstantEllipsisRef(
-                source_ref = source_ref
-            ),
-            source_ref = source_ref
+            subscribed=buildNode(provider, node.value, source_ref),
+            subscript=ExpressionConstantEllipsisRef(source_ref=source_ref),
+            source_ref=source_ref,
         )
     else:
         assert False, kind

@@ -54,27 +54,24 @@ def buildAssertNode(provider, node, source_ref):
 
     if exception_value is not None and python_version > 272:
         exception_value = ExpressionMakeTuple(
-            elements   = (exception_value,),
-            source_ref = source_ref
+            elements=(exception_value,), source_ref=source_ref
         )
 
     raise_statement = StatementRaiseException(
-        exception_type  = ExpressionBuiltinExceptionRef(
-            exception_name = "AssertionError",
-            source_ref     = source_ref
+        exception_type=ExpressionBuiltinExceptionRef(
+            exception_name="AssertionError", source_ref=source_ref
         ),
-        exception_value = exception_value,
-        exception_trace = None,
-        exception_cause = None,
-        source_ref      = source_ref
+        exception_value=exception_value,
+        exception_trace=None,
+        exception_cause=None,
+        source_ref=source_ref,
     )
 
     return makeStatementConditional(
-        condition  = ExpressionOperationNOT(
-            operand    = buildNode(provider, node.test, source_ref),
-            source_ref = source_ref
+        condition=ExpressionOperationNOT(
+            operand=buildNode(provider, node.test, source_ref), source_ref=source_ref
         ),
-        yes_branch = raise_statement,
-        no_branch  = None,
-        source_ref = source_ref
+        yes_branch=raise_statement,
+        no_branch=None,
+        source_ref=source_ref,
     )

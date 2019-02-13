@@ -112,5 +112,6 @@ function_direct_body_template = """\
 }
 """
 
-from . import TemplateDebugWrapper # isort:skip
+from . import TemplateDebugWrapper  # isort:skip
+
 TemplateDebugWrapper.checkDebug(globals())

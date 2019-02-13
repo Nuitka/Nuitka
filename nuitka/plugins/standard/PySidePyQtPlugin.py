@@ -29,11 +29,7 @@ from logging import info
 from nuitka import Options
 from nuitka.plugins.PluginBase import NuitkaPluginBase
 from nuitka.utils import Execution
-from nuitka.utils.FileOperations import (
-    getFileList,
-    getSubDirectories,
-    removeDirectory
-)
+from nuitka.utils.FileOperations import getFileList, getSubDirectories, removeDirectory
 
 
 class NuitkaPluginPyQtPySidePlugins(NuitkaPluginBase):
@@ -63,7 +59,7 @@ guess_path = os.path.join(os.path.dirname(PyQt%(qt_version)d.__file__), "plugins
 if os.path.exists(guess_path):
     print("GUESS:", guess_path)
 """ % {
-           "qt_version" : qt_version
+            "qt_version": qt_version
         }
 
         output = Execution.check_output([sys.executable, "-c", command])
@@ -75,7 +71,7 @@ if os.path.exists(guess_path):
 
         result = []
 
-        for line in output.replace('\r', "").split('\n'):
+        for line in output.replace("\r", "").split("\n"):
             if not line:
                 continue
 
@@ -84,7 +80,7 @@ if os.path.exists(guess_path):
                 if result:
                     continue
 
-                line = line[len("GUESS: "):]
+                line = line[len("GUESS: ") :]
 
             result.append(os.path.normpath(line))
 
@@ -109,11 +105,7 @@ if os.path.exists(guess_path):
 
             plugin_dir, = self.getPyQtPluginDirs(qt_version)
 
-            target_plugin_dir = os.path.join(
-                dist_dir,
-                full_name,
-                "qt-plugins"
-            )
+            target_plugin_dir = os.path.join(dist_dir, full_name, "qt-plugins")
 
             plugin_options = self.getPluginOptions()
             plugin_options = set(plugin_options)
@@ -130,7 +122,7 @@ if os.path.exists(guess_path):
                             "imageformats",
                             "iconengines",
                             "mediaservice",
-                            "printsupport"
+                            "printsupport",
                         )
                         if self.hasPluginFamily(plugin_dir, family)
                     )
@@ -147,85 +139,79 @@ if os.path.exists(guess_path):
                     plugin_options.add("platforms")
 
             info(
-                "Copying Qt plug-ins '%s' to '%s'." % (
-                    ','.join(sorted(x for x in plugin_options if x != "xml")),
-                    target_plugin_dir
+                "Copying Qt plug-ins '%s' to '%s'."
+                % (
+                    ",".join(sorted(x for x in plugin_options if x != "xml")),
+                    target_plugin_dir,
                 )
             )
 
-            shutil.copytree(
-                plugin_dir,
-                target_plugin_dir
-            )
+            shutil.copytree(plugin_dir, target_plugin_dir)
 
             if "all" not in plugin_options:
                 for plugin_candidate in getSubDirectories(target_plugin_dir):
                     if os.path.basename(plugin_candidate) not in plugin_options:
-                        removeDirectory(plugin_candidate, ignore_errors = False)
+                        removeDirectory(plugin_candidate, ignore_errors=False)
 
                 for plugin_candidate in plugin_options:
                     if plugin_candidate == "qml":
                         continue
 
-                    if not os.path.isdir(os.path.join(target_plugin_dir, plugin_candidate)):
-                        sys.exit("Error, no such Qt plugin family: %s" % plugin_candidate)
+                    if not os.path.isdir(
+                        os.path.join(target_plugin_dir, plugin_candidate)
+                    ):
+                        sys.exit(
+                            "Error, no such Qt plugin family: %s" % plugin_candidate
+                        )
 
             result = [
                 (
                     filename,
-                    os.path.join(target_plugin_dir, os.path.relpath(filename, plugin_dir)),
-                    full_name
+                    os.path.join(
+                        target_plugin_dir, os.path.relpath(filename, plugin_dir)
+                    ),
+                    full_name,
                 )
-                for filename in
-                getFileList(plugin_dir)
+                for filename in getFileList(plugin_dir)
                 if not filename.endswith(".qml")
-                if os.path.exists(os.path.join(target_plugin_dir, os.path.relpath(filename, plugin_dir)))
+                if os.path.exists(
+                    os.path.join(
+                        target_plugin_dir, os.path.relpath(filename, plugin_dir)
+                    )
+                )
             ]
 
             if "qml" in plugin_options or "all" in plugin_options:
-                qml_plugin_dir = os.path.normpath(
-                    os.path.join(
-                        plugin_dir,
-                        "..",
-                        "qml"
-                    )
-                )
+                qml_plugin_dir = os.path.normpath(os.path.join(plugin_dir, "..", "qml"))
 
                 qml_target_dir = os.path.normpath(
-                    os.path.join(
-                        target_plugin_dir,
-                        "..",
-                        "Qt",
-                        "qml"
-                    )
+                    os.path.join(target_plugin_dir, "..", "Qt", "qml")
                 )
 
-                info(
-                    "Copying Qt plug-ins 'xml' to '%s'." % (
-                        qml_target_dir
-                    )
-                )
+                info("Copying Qt plug-ins 'xml' to '%s'." % (qml_target_dir))
 
-                shutil.copytree(
-                    qml_plugin_dir,
-                    qml_target_dir
-                )
+                shutil.copytree(qml_plugin_dir, qml_target_dir)
 
                 # We try to filter here, not for DLLs.
                 result += [
                     (
                         filename,
-                        os.path.join(qml_target_dir, os.path.relpath(filename, qml_plugin_dir)),
-                        full_name
+                        os.path.join(
+                            qml_target_dir, os.path.relpath(filename, qml_plugin_dir)
+                        ),
+                        full_name,
                     )
-                    for filename in
-                    getFileList(qml_plugin_dir)
+                    for filename in getFileList(qml_plugin_dir)
                     if not filename.endswith(
                         (
-                            ".qml", ".qmlc", ".qmltypes",
-                            ".js", ".jsc",
-                            ".png", ".ttf",
-                            ".metainfo"
+                            ".qml",
+                            ".qmlc",
+                            ".qmltypes",
+                            ".js",
+                            ".jsc",
+                            ".png",
+                            ".ttf",
+                            ".metainfo",
                         )
                     )
                     if not os.path.isdir(filename)
@@ -242,14 +228,27 @@ if os.path.exists(guess_path):
                 if dll_filename.startswith(value):
                     for sub_dll_filename in dll_filenames:
                         for badword in (
-                            "libKF5", "libkfontinst", "libkorganizer", "libplasma",
-                            "libakregator", "libdolphin", "libnoteshared", "libknotes",
-                            "libsystemsettings", "libkerfuffle", "libkaddressbook",
-                            "libkworkspace", "libkmail", "libmilou", "libtaskmanager",
-                            "libkonsole", "libgwenview", "libweather_ion"):
+                            "libKF5",
+                            "libkfontinst",
+                            "libkorganizer",
+                            "libplasma",
+                            "libakregator",
+                            "libdolphin",
+                            "libnoteshared",
+                            "libknotes",
+                            "libsystemsettings",
+                            "libkerfuffle",
+                            "libkaddressbook",
+                            "libkworkspace",
+                            "libkmail",
+                            "libmilou",
+                            "libtaskmanager",
+                            "libkonsole",
+                            "libgwenview",
+                            "libweather_ion",
+                        ):
                             if os.path.basename(sub_dll_filename).startswith(badword):
                                 yield sub_dll_filename
-
 
     @staticmethod
     def createPostModuleLoadCode(module):
@@ -263,7 +262,7 @@ if os.path.exists(guess_path):
         full_name = module.getFullName()
 
         if full_name in ("PyQt4.QtCore", "PyQt5.QtCore"):
-            qt_version = int(full_name.split('.')[0][-1])
+            qt_version = int(full_name.split(".")[0][-1])
 
             code = """\
 from PyQt%(qt_version)d.QtCore import QCoreApplication
@@ -278,12 +277,15 @@ QCoreApplication.setLibraryPaths(
     ]
 )
 """ % {
-                "qt_version" : qt_version
+                "qt_version": qt_version
             }
 
-            return code, """\
+            return (
+                code,
+                """\
 Setting Qt library path to distribution folder. Need to avoid loading target
-system Qt plug-ins, which may be from another Qt version."""
+system Qt plug-ins, which may be from another Qt version.""",
+            )
 
         return None, None
 

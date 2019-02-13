@@ -32,6 +32,7 @@ _missing_operations = OrderedSet()
 # _error_for_missing = True
 _error_for_missing = False
 
+
 def doMissingOptimizationReport():
     level = error if _error_for_missing else info
 

@@ -39,7 +39,7 @@ from nuitka.tools.testing.Common import (
     convertUsing2to3,
     getTempDir,
     my_print,
-    setup
+    setup,
 )
 from nuitka.tools.testing.Constructs import generateConstructCases
 from nuitka.tools.testing.Valgrind import runValgrind
@@ -52,33 +52,19 @@ def main():
     parser = OptionParser()
 
     parser.add_option(
-        "--nuitka",
-        action  = "store",
-        dest    = "nuitka",
-        default = os.environ.get("NUITKA", ""),
+        "--nuitka", action="store", dest="nuitka", default=os.environ.get("NUITKA", "")
     )
 
     parser.add_option(
         "--cpython",
-        action  = "store",
-        dest    = "cpython",
-        default = os.environ.get("PYTHON", sys.executable),
+        action="store",
+        dest="cpython",
+        default=os.environ.get("PYTHON", sys.executable),
     )
 
-    parser.add_option(
-        "--code-diff",
-        action  = "store",
-        dest    = "diff_filename",
-        default = "",
-    )
+    parser.add_option("--code-diff", action="store", dest="diff_filename", default="")
 
-    parser.add_option(
-        "--copy-source-to",
-        action  = "store",
-        dest    = "target_dir",
-        default = "",
-    )
-
+    parser.add_option("--copy-source-to", action="store", dest="target_dir", default="")
 
     options, positional_args = parser.parse_args()
 
@@ -100,57 +86,50 @@ def main():
     elif nuitka:
         sys.exit("Error, nuitka binary '%s' not found." % nuitka)
 
-    python_version = setup(silent = True, go_main = False)
+    python_version = setup(silent=True, go_main=False)
 
     assert os.path.exists(test_case), (test_case, os.getcwd())
 
     my_print("PYTHON='%s'" % python_version)
     my_print("PYTHON_BINARY='%s'" % os.environ["PYTHON"])
-    my_print("TEST_CASE_HASH='%s'" % hashlib.md5(open(test_case, "rb").read()).hexdigest())
+    my_print(
+        "TEST_CASE_HASH='%s'" % hashlib.md5(open(test_case, "rb").read()).hexdigest()
+    )
 
-
-    needs_2to3 = python_version.startswith('3') and \
-                 not test_case.endswith("32.py") and \
-                 not test_case.endswith("33.py")
+    needs_2to3 = (
+        python_version.startswith("3")
+        and not test_case.endswith("32.py")
+        and not test_case.endswith("33.py")
+    )
 
     if options.target_dir:
         shutil.copyfile(
-            test_case,
-            os.path.join(options.target_dir, os.path.basename(test_case))
+            test_case, os.path.join(options.target_dir, os.path.basename(test_case))
         )
-
-
 
     # First produce two variants.
     temp_dir = getTempDir()
 
-    test_case_1 = os.path.join(
-        temp_dir,
-        "Variant1_" + os.path.basename(test_case)
-    )
-    test_case_2 = os.path.join(
-        temp_dir,
-        "Variant2_" + os.path.basename(test_case)
-    )
+    test_case_1 = os.path.join(temp_dir, "Variant1_" + os.path.basename(test_case))
+    test_case_2 = os.path.join(temp_dir, "Variant2_" + os.path.basename(test_case))
 
     case_1_source, case_2_source = generateConstructCases(open(test_case).read())
 
-    with open(test_case_1, 'w') as case_1_file:
+    with open(test_case_1, "w") as case_1_file:
         case_1_file.write(case_1_source)
 
-    with open(test_case_2, 'w') as case_2_file:
+    with open(test_case_2, "w") as case_2_file:
         case_2_file.write(case_2_source)
 
     if needs_2to3:
         test_case_1, _needs_delete = convertUsing2to3(test_case_1)
         test_case_2, _needs_delete = convertUsing2to3(test_case_2)
 
-    os.environ["PYTHONHASHSEED"] = '0'
+    os.environ["PYTHONHASHSEED"] = "0"
 
     if nuitka:
         nuitka_id = check_output(
-            "cd %s; git rev-parse HEAD" % os.path.dirname(nuitka),
-            shell = True
+            "cd %s; git rev-parse HEAD" % os.path.dirname(nuitka), shell=True
         )
         nuitka_id = nuitka_id.strip()
 
@@ -166,10 +145,9 @@ def main():
             os.environ["PYTHON"],
             nuitka,
             "--python-flag=-S",
-            os.path.basename(test_case)
+            os.path.basename(test_case),
         ]
         nuitka_call.extend(os.environ.get("NUITKA_EXTRA_OPTIONS", "").split())
-
 
         # We want to compile under the same filename to minimize differences, and
         # then copy the resulting files afterwards.
@@ -184,11 +162,11 @@ def main():
 
         os.rename(
             os.path.basename(test_case).replace(".py", ".build"),
-            os.path.basename(test_case_1).replace(".py", ".build")
+            os.path.basename(test_case_1).replace(".py", ".build"),
         )
         os.rename(
             os.path.basename(test_case).replace(".py", exe_suffix),
-            os.path.basename(test_case_1).replace(".py", exe_suffix)
+            os.path.basename(test_case_1).replace(".py", exe_suffix),
         )
 
         shutil.copyfile(test_case_2, os.path.basename(test_case))
@@ -197,11 +175,11 @@ def main():
 
         os.rename(
             os.path.basename(test_case).replace(".py", ".build"),
-            os.path.basename(test_case_2).replace(".py", ".build")
+            os.path.basename(test_case_2).replace(".py", ".build"),
         )
         os.rename(
             os.path.basename(test_case).replace(".py", exe_suffix),
-            os.path.basename(test_case_2).replace(".py", exe_suffix)
+            os.path.basename(test_case_2).replace(".py", exe_suffix),
         )
 
         if options.diff_filename:
@@ -209,8 +187,7 @@ def main():
 
             for suffix in suffixes:
                 cpp_1 = os.path.join(
-                    test_case_1.replace(".py", ".build"),
-                    "module.__main__" + suffix,
+                    test_case_1.replace(".py", ".build"), "module.__main__" + suffix
                 )
 
                 if os.path.exists(cpp_1):
@@ -220,8 +197,7 @@ def main():
 
             for suffix in suffixes:
                 cpp_2 = os.path.join(
-                    test_case_2.replace(".py", ".build"),
-                    "module.__main__" + suffix,
+                    test_case_2.replace(".py", ".build"), "module.__main__" + suffix
                 )
                 if os.path.exists(cpp_2):
                     break
@@ -229,13 +205,14 @@ def main():
                 assert False
 
             import difflib
-            open(options.diff_filename,'w').write(
+
+            open(options.diff_filename, "w").write(
                 difflib.HtmlDiff().make_table(
                     open(cpp_1).readlines(),
                     open(cpp_2).readlines(),
                     "Construct",
                     "Baseline",
-                    True
+                    True,
                 )
             )
 
@@ -243,19 +220,19 @@ def main():
             "Nuitka construct",
             "callgrind",
             (test_case_1.replace(".py", exe_suffix),),
-            include_startup = True
+            include_startup=True,
         )
 
         nuitka_2 = runValgrind(
             "Nuitka baseline",
             "callgrind",
             (test_case_2.replace(".py", exe_suffix),),
-            include_startup = True
+            include_startup=True,
         )
 
         nuitka_diff = nuitka_1 - nuitka_2
 
-        my_print("NUITKA_COMMAND='%s'" % ' '.join(nuitka_call), file = sys.stderr)
+        my_print("NUITKA_COMMAND='%s'" % " ".join(nuitka_call), file=sys.stderr)
         my_print("NUITKA_RAW=%s" % nuitka_1)
         my_print("NUITKA_BASE=%s" % nuitka_2)
         my_print("NUITKA_CONSTRUCT=%s" % nuitka_diff)
@@ -265,13 +242,13 @@ def main():
             "CPython construct",
             "callgrind",
             (os.environ["PYTHON"], "-S", test_case_1),
-            include_startup = True
+            include_startup=True,
         )
         cpython_2 = runValgrind(
             "CPython baseline",
             "callgrind",
             (os.environ["PYTHON"], "-S", test_case_2),
-            include_startup = True
+            include_startup=True,
         )
 
         cpython_diff = cpython_1 - cpython_2
@@ -286,19 +263,10 @@ def main():
         else:
             nuitka_gain = float(100 * cpython_diff) / nuitka_diff
 
-        my_print(
-            "NUITKA_GAIN=%.3f" % nuitka_gain
-        )
-        my_print(
-            "RAW_GAIN=%.3f" % (
-                float(100 * cpython_1) / nuitka_1
-            )
-        )
-        my_print(
-            "BASE_GAIN=%.3f" % (
-                float(100 * cpython_2) / nuitka_2
-            )
-        )
+        my_print("NUITKA_GAIN=%.3f" % nuitka_gain)
+        my_print("RAW_GAIN=%.3f" % (float(100 * cpython_1) / nuitka_1))
+        my_print("BASE_GAIN=%.3f" % (float(100 * cpython_2) / nuitka_2))
+
 
 if __name__ == "__main__":
     main()

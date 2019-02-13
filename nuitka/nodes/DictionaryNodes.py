@@ -30,42 +30,29 @@ from nuitka.PythonVersions import python_version
 from .AttributeNodes import ExpressionAttributeLookup
 from .BuiltinHashNodes import ExpressionBuiltinHash
 from .ExpressionBases import ExpressionChildrenHavingBase
-from .NodeBases import (
-    SideEffectsFromChildrenMixin,
-    StatementChildrenHavingBase
-)
+from .NodeBases import SideEffectsFromChildrenMixin, StatementChildrenHavingBase
 from .NodeMakingHelpers import (
     makeConstantReplacementNode,
     makeRaiseExceptionExpressionFromTemplate,
     makeStatementOnlyNodesFromExpressions,
-    wrapExpressionWithSideEffects
+    wrapExpressionWithSideEffects,
 )
 from .TypeNodes import ExpressionBuiltinType1
 
 
-class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
-                             ExpressionChildrenHavingBase):
+class ExpressionKeyValuePair(
+    SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase
+):
     kind = "EXPRESSION_KEY_VALUE_PAIR"
 
     if python_version < 350:
-        named_children = (
-            "value",
-            "key"
-        )
+        named_children = ("value", "key")
     else:
-        named_children = (
-            "key",
-            "value"
-        )
+        named_children = ("key", "value")
 
     def __init__(self, key, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "key"   : key,
-                "value" : value
-            },
-            source_ref = source_ref
+            self, values={"key": key, "value": value}, source_ref=source_ref
         )
 
     getKey = ExpressionChildrenHavingBase.childGetter("key")
@@ -78,9 +65,7 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
 
         # If not known to be hashable, that can raise an exception.
         if not hashable:
-            trace_collection.onExceptionRaiseExit(
-                TypeError
-            )
+            trace_collection.onExceptionRaiseExit(TypeError)
 
         if hashable is False:
             # TODO: If it's not hashable, we should turn it into a raise, it's
@@ -93,9 +78,11 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
     def mayRaiseException(self, exception_type):
         key = self.getKey()
 
-        return key.mayRaiseException(exception_type) or \
-               key.isKnownToBeHashable() is not True or \
-               self.getValue().mayRaiseException(exception_type)
+        return (
+            key.mayRaiseException(exception_type)
+            or key.isKnownToBeHashable() is not True
+            or self.getValue().mayRaiseException(exception_type)
+        )
 
     def extractSideEffects(self):
         if self.subnode_key.isKnownToBeHashable() is True:
@@ -103,8 +90,7 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
         else:
             key_part = (
                 ExpressionBuiltinHash(
-                    value      = self.subnode_key,
-                    source_ref = self.subnode_key.source_ref
+                    value=self.subnode_key, source_ref=self.subnode_key.source_ref
                 ),
             )
 
@@ -114,21 +100,14 @@ class ExpressionKeyValuePair(SideEffectsFromChildrenMixin,
             return key_part + self.subnode_value.extractSideEffects()
 
 
-class ExpressionMakeDict(SideEffectsFromChildrenMixin,
-                         ExpressionChildrenHavingBase):
+class ExpressionMakeDict(SideEffectsFromChildrenMixin, ExpressionChildrenHavingBase):
     kind = "EXPRESSION_MAKE_DICT"
 
-    named_children = (
-        "pairs",
-    )
+    named_children = ("pairs",)
 
     def __init__(self, pairs, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "pairs" : tuple(pairs),
-            },
-            source_ref = source_ref
+            self, values={"pairs": tuple(pairs)}, source_ref=source_ref
         )
 
     getPairs = ExpressionChildrenHavingBase.childGetter("pairs")
@@ -151,28 +130,25 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
                         break
 
                 result = makeRaiseExceptionExpressionFromTemplate(
-                    exception_type = "TypeError",
-                    template       = "unhashable type: '%s'",
-                    template_args  = ExpressionAttributeLookup(
-                        source         = ExpressionBuiltinType1(
-                            value      = key.extractUnhashableNode(),
-                            source_ref = key.source_ref
+                    exception_type="TypeError",
+                    template="unhashable type: '%s'",
+                    template_args=ExpressionAttributeLookup(
+                        source=ExpressionBuiltinType1(
+                            value=key.extractUnhashableNode(), source_ref=key.source_ref
                         ),
-                        attribute_name = "__name__",
-                        source_ref     = key.source_ref
+                        attribute_name="__name__",
+                        source_ref=key.source_ref,
                     ),
-                    source_ref     = key.source_ref
+                    source_ref=key.source_ref,
                 )
                 result = wrapExpressionWithSideEffects(
-                    side_effects = side_effects,
-                    old_node     = key,
-                    new_node     = result
+                    side_effects=side_effects, old_node=key, new_node=result
                 )
 
                 return (
                     result,
                     "new_raise",
-                    "Dictionary key is known to not be hashable."
+                    "Dictionary key is known to not be hashable.",
                 )
 
             if is_constant:
@@ -188,25 +164,18 @@ class ExpressionMakeDict(SideEffectsFromChildrenMixin,
             return self, None, None
 
         constant_value = Constants.createConstantDict(
-            keys   = [
-                pair.getKey().getConstant()
-                for pair in
-                pairs
-            ],
-            values = [
-                pair.getValue().getConstant()
-                for pair in
-                pairs
-            ]
+            keys=[pair.getKey().getConstant() for pair in pairs],
+            values=[pair.getValue().getConstant() for pair in pairs],
         )
 
-        new_node = makeConstantReplacementNode(
-            constant = constant_value,
-            node     = self
-        )
+        new_node = makeConstantReplacementNode(constant=constant_value, node=self)
 
-        return new_node, "new_constant", """\
-Created dictionary found to be constant."""
+        return (
+            new_node,
+            "new_constant",
+            """\
+Created dictionary found to be constant.""",
+        )
 
     def mayRaiseException(self, exception_type):
         for pair in self.getPairs():
@@ -269,12 +238,7 @@ Created dictionary found to be constant."""
 
     def getMappingStringKeyPairs(self):
         return [
-            (
-                pair.getKey().getConstant(),
-                pair.getValue()
-            )
-            for pair in
-            self.getPairs()
+            (pair.getKey().getConstant(), pair.getValue()) for pair in self.getPairs()
         ]
 
     def getMappingPairs(self):
@@ -294,14 +258,16 @@ Created dictionary found to be constant."""
         for pair in self.getPairs():
             expressions.extend(pair.extractSideEffects())
 
-        result = makeStatementOnlyNodesFromExpressions(
-            expressions = expressions
-        )
+        result = makeStatementOnlyNodesFromExpressions(expressions=expressions)
 
         del self.parent
 
-        return result, "new_statements", """\
-Removed sequence creation for unused sequence."""
+        return (
+            result,
+            "new_statements",
+            """\
+Removed sequence creation for unused sequence.""",
+        )
 
     def computeExpressionIter1(self, iter_node, trace_collection):
         return iter_node, None, None
@@ -313,11 +279,7 @@ Removed sequence creation for unused sequence."""
 class StatementDictOperationSet(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_SET"
 
-    named_children = (
-        "value",
-        "dict",
-        "key",
-    )
+    named_children = ("value", "dict", "key")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, value, source_ref):
@@ -327,12 +289,8 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
 
         StatementChildrenHavingBase.__init__(
             self,
-            values     = {
-                "dict"  : dict_arg,
-                "key"   : key,
-                "value" : value
-            },
-            source_ref = source_ref
+            values={"dict": dict_arg, "key": key, "value": value},
+            source_ref=source_ref,
         )
 
     getDict = StatementChildrenHavingBase.childGetter("dict")
@@ -341,7 +299,7 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection = trace_collection
+            trace_collection=trace_collection
         )
 
         if result is not self:
@@ -375,10 +333,7 @@ class StatementDictOperationSet(StatementChildrenHavingBase):
 class StatementDictOperationRemove(StatementChildrenHavingBase):
     kind = "STATEMENT_DICT_OPERATION_REMOVE"
 
-    named_children = (
-        "dict",
-        "key"
-    )
+    named_children = ("dict", "key")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, source_ref):
@@ -386,12 +341,7 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
         assert key is not None
 
         StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "dict"    : dict_arg,
-                "key"     : key,
-            },
-            source_ref = source_ref
+            self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
         )
 
     getDict = StatementChildrenHavingBase.childGetter("dict")
@@ -399,7 +349,7 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection = trace_collection
+            trace_collection=trace_collection
         )
 
         if result is not self:
@@ -425,10 +375,7 @@ class StatementDictOperationRemove(StatementChildrenHavingBase):
 class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_DICT_OPERATION_GET"
 
-    named_children = (
-        "dict",
-        "key"
-    )
+    named_children = ("dict", "key")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, key, source_ref):
@@ -436,12 +383,7 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
         assert key is not None
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "dict" : dict_arg,
-                "key"  : key,
-            },
-            source_ref = source_ref
+            self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
         )
 
     getDict = ExpressionChildrenHavingBase.childGetter("dict")
@@ -454,12 +396,16 @@ class ExpressionDictOperationGet(ExpressionChildrenHavingBase):
 
 
 class StatementDictOperationUpdate(StatementChildrenHavingBase):
+    """ Update dict value.
+
+        This is mainly used for re-formulations, where a dictionary
+        update will be performed on what is known not to be a
+        general mapping.
+    """
+
     kind = "STATEMENT_DICT_OPERATION_UPDATE"
 
-    named_children = (
-        "dict",
-        "value"
-    )
+    named_children = ("dict", "value")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, dict_arg, value, source_ref):
@@ -467,24 +413,15 @@ class StatementDictOperationUpdate(StatementChildrenHavingBase):
         assert value is not None
 
         StatementChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "dict"  : dict_arg,
-                "value" : value
-            },
-            source_ref = source_ref
+            self, values={"dict": dict_arg, "value": value}, source_ref=source_ref
         )
 
-    getDict = StatementChildrenHavingBase.childGetter(
-        "dict"
-    )
-    getValue = StatementChildrenHavingBase.childGetter(
-        "value"
-    )
+    getDict = StatementChildrenHavingBase.childGetter("dict")
+    getValue = StatementChildrenHavingBase.childGetter("value")
 
     def computeStatement(self, trace_collection):
         result, change_tags, change_desc = self.computeStatementSubExpressions(
-            trace_collection = trace_collection
+            trace_collection=trace_collection
         )
 
         if result is not self:
@@ -500,10 +437,7 @@ class ExpressionDictOperationIn(ExpressionChildrenHavingBase):
 
     # Follow the reversed nature of "in", with the dictionary on the right
     # side of things.
-    named_children = (
-        "key",
-        "dict"
-    )
+    named_children = ("key", "dict")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, key, dict_arg, source_ref):
@@ -511,12 +445,7 @@ class ExpressionDictOperationIn(ExpressionChildrenHavingBase):
         assert key is not None
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "dict" : dict_arg,
-                "key"  : key,
-            },
-            source_ref = source_ref
+            self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
         )
 
     getDict = ExpressionChildrenHavingBase.childGetter("dict")
@@ -533,10 +462,7 @@ class ExpressionDictOperationNOTIn(ExpressionChildrenHavingBase):
 
     # Follow the reversed nature of "in", with the dictionary on the right
     # side of things.
-    named_children = (
-        "key",
-        "dict"
-    )
+    named_children = ("key", "dict")
 
     @calledWithBuiltinArgumentNamesDecorator
     def __init__(self, key, dict_arg, source_ref):
@@ -544,12 +470,7 @@ class ExpressionDictOperationNOTIn(ExpressionChildrenHavingBase):
         assert key is not None
 
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "dict" : dict_arg,
-                "key"  : key,
-            },
-            source_ref = source_ref
+            self, values={"dict": dict_arg, "key": key}, source_ref=source_ref
         )
 
     getDict = ExpressionChildrenHavingBase.childGetter("dict")

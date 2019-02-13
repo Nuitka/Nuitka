@@ -30,20 +30,12 @@ known_data_files = {
     # the target path can be specified (None is just default, i.e. the
     # package directory) and the filename relative to the source package
     # directory
-
-    "nose.core" : (
-        (None, "usage.txt"),
-    ),
-    "scrapy"    : (
-        (None, "VERSION"),
-    ),
-    "requests"  : (
-        ("certifi", "../certifi/cacert.pem"),
-    ),
-    "importlib_resources" : (
-        (None, "version.txt"),
-    )
+    "nose.core": ((None, "usage.txt"),),
+    "scrapy": ((None, "VERSION"),),
+    "requests": (("certifi", "../certifi/cacert.pem"),),
+    "importlib_resources": ((None, "version.txt"),),
 }
+
 
 class NuitkaPluginDataFileCollector(NuitkaPluginBase):
     plugin_name = "data-files"
@@ -56,20 +48,14 @@ class NuitkaPluginDataFileCollector(NuitkaPluginBase):
         if module.getFullName() in known_data_files:
             for target_dir, filename in known_data_files[module.getFullName()]:
                 source_path = os.path.join(
-                    os.path.dirname(module.getCompileTimeFilename()),
-                    filename
+                    os.path.dirname(module.getCompileTimeFilename()), filename
                 )
 
                 if os.path.isfile(source_path):
                     if target_dir is None:
-                        target_dir = module.getFullName().replace('.', os.path.sep)
+                        target_dir = module.getFullName().replace(".", os.path.sep)
 
                     yield (
                         source_path,
-                        os.path.normpath(
-                            os.path.join(
-                                target_dir,
-                                filename
-                            )
-                        )
+                        os.path.normpath(os.path.join(target_dir, filename)),
                     )

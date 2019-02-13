@@ -35,11 +35,10 @@ import collections
 
 
 class OrderedSet(collections.MutableSet):
-
-    def __init__(self, iterable = None):
+    def __init__(self, iterable=None):
         self.end = end = []
-        end += [None, end, end]         # sentinel node for doubly linked list
-        self.map = {}                   # key --> [key, prev, next]
+        end += [None, end, end]  # sentinel node for doubly linked list
+        self.map = {}  # key --> [key, prev, next]
         if iterable is not None:
             self |= iterable
 
@@ -75,7 +74,7 @@ class OrderedSet(collections.MutableSet):
             yield curr[0]
             curr = curr[1]
 
-    def pop(self, last = True):
+    def pop(self, last=True):
         if not self:
             raise KeyError("set is empty")
         key = self.end[1][0] if last else self.end[2][0]

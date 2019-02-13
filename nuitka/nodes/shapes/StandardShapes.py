@@ -145,6 +145,7 @@ class ValueShapeUnknown(ValueShapeBase):
     def getTypeShape():
         return ShapeUnknown
 
+
 # Singleton value for sharing.
 vshape_unknown = ValueShapeUnknown()
 
@@ -216,7 +217,6 @@ class ShapeIterator(ShapeBase):
         return True
 
 
-
 class ShapeLoopInitialAlternative(ShapeBase):
     """ Merge of loop wrap around with loop start value.
 
@@ -261,9 +261,11 @@ class ShapeLoopInitialAlternative(ShapeBase):
         else:
             return (
                 self._collectInitialShape(
-                    operation = lambda left_shape: left_shape.getOperationBinaryAddShape(right_shape)
+                    operation=lambda left_shape: left_shape.getOperationBinaryAddShape(
+                        right_shape
+                    )
                 ),
-                ControlFlowDescriptionFullEscape
+                ControlFlowDescriptionFullEscape,
             )
 
     def getComparisonLtShape(self, right_shape):
@@ -272,9 +274,11 @@ class ShapeLoopInitialAlternative(ShapeBase):
         else:
             return (
                 self._collectInitialShape(
-                    operation = lambda left_shape: left_shape.getComparisonLtShape(right_shape),
+                    operation=lambda left_shape: left_shape.getComparisonLtShape(
+                        right_shape
+                    )
                 ),
-                ControlFlowDescriptionFullEscape
+                ControlFlowDescriptionFullEscape,
             )
 
     def getComparisonLteShape(self, right_shape):
@@ -335,13 +339,9 @@ class ShapeLoopCompleteAlternative(ShapeBase):
                     # Second entry, not the same, convert to set.
                     if result is not entry:
                         single = False
-                        result = set(
-                            (result, entry)
-                        )
+                        result = set((result, entry))
 
-                        escape_description = set(
-                            (escape_description, description)
-                        )
+                        escape_description = set((escape_description, description))
             else:
                 result.add(entry)
                 escape_description.add(description)
@@ -365,7 +365,9 @@ class ShapeLoopCompleteAlternative(ShapeBase):
             return ShapeUnknown, ControlFlowDescriptionFullEscape
 
         return self._collectShapeOperation(
-            operation = lambda left_shape: left_shape.getOperationBinaryAddShape(right_shape),
+            operation=lambda left_shape: left_shape.getOperationBinaryAddShape(
+                right_shape
+            )
         )
 
     # Special method to be called by other shapes encountering this type on
@@ -374,7 +376,7 @@ class ShapeLoopCompleteAlternative(ShapeBase):
         assert left_shape is not ShapeUnknown
 
         return self._collectShapeOperation(
-            operation = left_shape.getOperationBinaryAddShape,
+            operation=left_shape.getOperationBinaryAddShape
         )
 
     def getComparisonLtShape(self, right_shape):
@@ -382,7 +384,7 @@ class ShapeLoopCompleteAlternative(ShapeBase):
             return ShapeUnknown, ControlFlowDescriptionFullEscape
 
         return self._collectShapeOperation(
-            operation = lambda left_shape: left_shape.getComparisonLtShape(right_shape),
+            operation=lambda left_shape: left_shape.getComparisonLtShape(right_shape)
         )
 
     # Special method to be called by other shapes encountering this type on
@@ -390,9 +392,7 @@ class ShapeLoopCompleteAlternative(ShapeBase):
     def getComparisonLtLShape(self, left_shape):
         assert left_shape is not ShapeUnknown
 
-        return self._collectShapeOperation(
-            operation = left_shape.getComparisonLtShape,
-        )
+        return self._collectShapeOperation(operation=left_shape.getComparisonLtShape)
 
     def getComparisonLteShape(self, right_shape):
         return self.getComparisonLtShape(right_shape)
@@ -408,7 +408,6 @@ class ShapeLoopCompleteAlternative(ShapeBase):
 
     def getComparisonNeqShape(self, right_shape):
         return self.getComparisonLtShape(right_shape)
-
 
     def _delegatedCheck(self, check):
         result = None

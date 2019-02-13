@@ -31,7 +31,7 @@ source code comments with developer manual sections.
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
     StatementDelVariable,
-    StatementReleaseVariable
+    StatementReleaseVariable,
 )
 from nuitka.nodes.AttributeNodes import ExpressionAttributeLookup
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
@@ -41,16 +41,16 @@ from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.DictionaryNodes import (
     ExpressionKeyValuePair,
     ExpressionMakeDict,
-    StatementDictOperationUpdate
+    StatementDictOperationUpdate,
 )
 from nuitka.nodes.ExceptionNodes import (
     ExpressionBuiltinMakeException,
-    StatementRaiseException
+    StatementRaiseException,
 )
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef
+    ExpressionFunctionRef,
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.OperatorNodes import makeBinaryOperationNode
@@ -58,7 +58,7 @@ from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.TypeNodes import ExpressionBuiltinType1
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableRef
+    ExpressionVariableRef,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
@@ -66,7 +66,7 @@ from nuitka.specs.ParameterSpecs import ParameterSpec
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
-    once_decorator
+    once_decorator,
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
@@ -75,7 +75,7 @@ from .TreeHelpers import (
     buildNodeList,
     makeDictCreationOrConstant,
     makeStatementsSequenceFromStatement,
-    makeStatementsSequenceFromStatements
+    makeStatementsSequenceFromStatements,
 )
 
 
@@ -84,31 +84,30 @@ def buildDictionaryNode(provider, node, source_ref):
         for key in node.keys:
             if key is None:
                 return buildDictionaryUnpacking(
-                    provider   = provider,
-                    node       = node,
-                    source_ref = source_ref
+                    provider=provider, node=node, source_ref=source_ref
                 )
 
     return makeDictCreationOrConstant(
-        keys       = buildNodeList(provider, node.keys, source_ref),
-        values     = buildNodeList(provider, node.values, source_ref),
-        source_ref = source_ref
+        keys=buildNodeList(provider, node.keys, source_ref),
+        values=buildNodeList(provider, node.values, source_ref),
+        source_ref=source_ref,
     )
+
 
 @once_decorator
 def getDictUnpackingHelper():
     helper_name = "_unpack_dict"
 
     result = makeInternalHelperFunctionBody(
-        name       = helper_name,
-        parameters = ParameterSpec(
-            ps_name          = helper_name,
-            ps_normal_args   = (),
-            ps_list_star_arg = "args",
-            ps_dict_star_arg = None,
-            ps_default_count = 0,
-            ps_kw_only_args  = ()
-        )
+        name=helper_name,
+        parameters=ParameterSpec(
+            ps_name=helper_name,
+            ps_normal_args=(),
+            ps_list_star_arg="args",
+            ps_dict_star_arg=None,
+            ps_default_count=0,
+            ps_kw_only_args=(),
+        ),
     )
 
     temp_scope = None
@@ -119,143 +118,123 @@ def getDictUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried          = StatementAssignmentVariable(
-                variable   = tmp_item_variable,
-                source     = ExpressionBuiltinNext1(
-                    value      = ExpressionTempVariableRef(
-                        variable   = tmp_iter_variable,
-                        source_ref = internal_source_ref
+            tried=StatementAssignmentVariable(
+                variable=tmp_item_variable,
+                source=ExpressionBuiltinNext1(
+                    value=ExpressionTempVariableRef(
+                        variable=tmp_iter_variable, source_ref=internal_source_ref
                     ),
-                    source_ref = internal_source_ref
+                    source_ref=internal_source_ref,
                 ),
-                source_ref = internal_source_ref
+                source_ref=internal_source_ref,
             ),
-            exception_name = "StopIteration",
-            handler_body   = StatementLoopBreak(
-                source_ref = internal_source_ref
-            ),
-            source_ref     = internal_source_ref
+            exception_name="StopIteration",
+            handler_body=StatementLoopBreak(source_ref=internal_source_ref),
+            source_ref=internal_source_ref,
         ),
         makeTryExceptSingleHandlerNode(
-            tried          = StatementDictOperationUpdate(
-                dict_arg   = ExpressionTempVariableRef(
-                    variable   = tmp_result_variable,
-                    source_ref = internal_source_ref
+            tried=StatementDictOperationUpdate(
+                dict_arg=ExpressionTempVariableRef(
+                    variable=tmp_result_variable, source_ref=internal_source_ref
                 ),
-                value      = ExpressionTempVariableRef(
-                    variable   = tmp_item_variable,
-                    source_ref = internal_source_ref
+                value=ExpressionTempVariableRef(
+                    variable=tmp_item_variable, source_ref=internal_source_ref
                 ),
-                source_ref = internal_source_ref
+                source_ref=internal_source_ref,
             ),
-            exception_name = "AttributeError",
-            handler_body   = StatementRaiseException(
-                exception_type  = ExpressionBuiltinMakeException(
-                    exception_name = "TypeError",
-                    args           = (
+            exception_name="AttributeError",
+            handler_body=StatementRaiseException(
+                exception_type=ExpressionBuiltinMakeException(
+                    exception_name="TypeError",
+                    args=(
                         makeBinaryOperationNode(
-                            operator   = "Mod",
-                            left       =  makeConstantRefNode(
-                                constant      = """\
+                            operator="Mod",
+                            left=makeConstantRefNode(
+                                constant="""\
 '%s' object is not a mapping""",
-                                source_ref    = internal_source_ref,
-                                user_provided = True
+                                source_ref=internal_source_ref,
+                                user_provided=True,
                             ),
-                            right      = ExpressionMakeTuple(
-                                elements   = (
+                            right=ExpressionMakeTuple(
+                                elements=(
                                     ExpressionAttributeLookup(
-                                        source         = ExpressionBuiltinType1(
-                                            value      = ExpressionTempVariableRef(
-                                                variable   = tmp_item_variable,
-                                                source_ref = internal_source_ref
+                                        source=ExpressionBuiltinType1(
+                                            value=ExpressionTempVariableRef(
+                                                variable=tmp_item_variable,
+                                                source_ref=internal_source_ref,
                                             ),
-                                            source_ref = internal_source_ref
+                                            source_ref=internal_source_ref,
                                         ),
-                                        attribute_name = "__name__",
-                                        source_ref     = internal_source_ref
+                                        attribute_name="__name__",
+                                        source_ref=internal_source_ref,
                                     ),
                                 ),
-                                source_ref = internal_source_ref
+                                source_ref=internal_source_ref,
                             ),
-                            source_ref = internal_source_ref
+                            source_ref=internal_source_ref,
                         ),
                     ),
-                    source_ref     = internal_source_ref
+                    source_ref=internal_source_ref,
                 ),
-                exception_value = None,
-                exception_trace = None,
-                exception_cause = None,
-                source_ref      = internal_source_ref
+                exception_value=None,
+                exception_trace=None,
+                exception_cause=None,
+                source_ref=internal_source_ref,
             ),
-            source_ref     = internal_source_ref
-        )
+            source_ref=internal_source_ref,
+        ),
     )
 
-    args_variable = result.getVariableForAssignment(
-        variable_name = "args"
-    )
+    args_variable = result.getVariableForAssignment(variable_name="args")
 
     final = (
         StatementReleaseVariable(
-            variable   = tmp_result_variable,
-            source_ref = internal_source_ref
+            variable=tmp_result_variable, source_ref=internal_source_ref
         ),
         StatementReleaseVariable(
-            variable   = tmp_iter_variable,
-            source_ref = internal_source_ref
+            variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
         StatementReleaseVariable(
-            variable   = tmp_item_variable,
-            source_ref = internal_source_ref
+            variable=tmp_item_variable, source_ref=internal_source_ref
         ),
         # We get handed our args responsibility.
         StatementDelVariable(
-            variable   = args_variable,
-            tolerant   = False,
-            source_ref = internal_source_ref
-        )
+            variable=args_variable, tolerant=False, source_ref=internal_source_ref
+        ),
     )
 
     tried = makeStatementsSequenceFromStatements(
         StatementAssignmentVariable(
-            variable   = tmp_iter_variable,
-            source     = ExpressionBuiltinIter1(
-                value      = ExpressionVariableRef(
-                    variable   = args_variable,
-                    source_ref = internal_source_ref
+            variable=tmp_iter_variable,
+            source=ExpressionBuiltinIter1(
+                value=ExpressionVariableRef(
+                    variable=args_variable, source_ref=internal_source_ref
                 ),
-                source_ref = internal_source_ref
+                source_ref=internal_source_ref,
             ),
-            source_ref = internal_source_ref
+            source_ref=internal_source_ref,
         ),
         StatementAssignmentVariable(
-            variable   = tmp_result_variable,
-            source     = makeConstantRefNode(
-                constant   = {},
-                source_ref = internal_source_ref
-            ),
-            source_ref = internal_source_ref
+            variable=tmp_result_variable,
+            source=makeConstantRefNode(constant={}, source_ref=internal_source_ref),
+            source_ref=internal_source_ref,
         ),
-        StatementLoop(
-            body       = loop_body,
-            source_ref = internal_source_ref
-        ),
+        StatementLoop(body=loop_body, source_ref=internal_source_ref),
         StatementReturn(
-            expression = ExpressionTempVariableRef(
-                variable   = tmp_result_variable,
-                source_ref = internal_source_ref
+            expression=ExpressionTempVariableRef(
+                variable=tmp_result_variable, source_ref=internal_source_ref
             ),
-            source_ref = internal_source_ref
-        )
+            source_ref=internal_source_ref,
+        ),
     )
 
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
-                provider   = result,
-                tried      = tried,
-                final      = final,
-                source_ref = internal_source_ref
+                provider=result,
+                tried=tried,
+                final=final,
+                source_ref=internal_source_ref,
             )
         )
     )
@@ -270,36 +249,33 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
         # TODO: We could be a lot cleverer about the dictionaries for non-starred
         # arguments, but lets get this to work first.
         if key is None:
-            result.append(
-                buildNode(provider, value, source_ref),
-            )
+            result.append(buildNode(provider, value, source_ref))
         elif type(key) is str:
             result.append(
                 ExpressionMakeDict(
-                    pairs      = (
+                    pairs=(
                         ExpressionKeyValuePair(
-                            key        = makeConstantRefNode(
-                                constant   = key,
-                                source_ref = source_ref
+                            key=makeConstantRefNode(
+                                constant=key, source_ref=source_ref
                             ),
-                            value      = buildNode(provider, value, source_ref),
-                            source_ref = source_ref
+                            value=buildNode(provider, value, source_ref),
+                            source_ref=source_ref,
                         ),
                     ),
-                    source_ref = source_ref
+                    source_ref=source_ref,
                 )
             )
         else:
             result.append(
                 ExpressionMakeDict(
-                    pairs      = (
+                    pairs=(
                         ExpressionKeyValuePair(
-                            key        = buildNode(provider, key, source_ref),
-                            value      = buildNode(provider, value, source_ref),
-                            source_ref = source_ref
+                            key=buildNode(provider, key, source_ref),
+                            value=buildNode(provider, value, source_ref),
+                            source_ref=source_ref,
                         ),
                     ),
-                    source_ref = source_ref
+                    source_ref=source_ref,
                 )
             )
 
@@ -307,26 +283,22 @@ def buildDictionaryUnpackingArgs(provider, keys, values, source_ref):
 
 
 def buildDictionaryUnpacking(provider, node, source_ref):
-    helper_args = buildDictionaryUnpackingArgs(provider, node.keys, node.values, source_ref)
+    helper_args = buildDictionaryUnpackingArgs(
+        provider, node.keys, node.values, source_ref
+    )
 
     result = ExpressionFunctionCall(
-        function   = ExpressionFunctionCreation(
-            function_ref = ExpressionFunctionRef(
-                function_body = getDictUnpackingHelper(),
-                source_ref    = source_ref
+        function=ExpressionFunctionCreation(
+            function_ref=ExpressionFunctionRef(
+                function_body=getDictUnpackingHelper(), source_ref=source_ref
             ),
-            defaults     = (),
-            kw_defaults  = None,
-            annotations  = None,
-            source_ref   = source_ref
+            defaults=(),
+            kw_defaults=None,
+            annotations=None,
+            source_ref=source_ref,
         ),
-        values     = (
-            ExpressionMakeTuple(
-                helper_args,
-                source_ref
-            ),
-        ),
-        source_ref = source_ref,
+        values=(ExpressionMakeTuple(helper_args, source_ref),),
+        source_ref=source_ref,
     )
 
     result.setCompatibleSourceReference(helper_args[-1].getCompatibleSourceReference())

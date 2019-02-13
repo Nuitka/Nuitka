@@ -35,6 +35,7 @@ from .Utils import getOS
 # lock name.
 file_lock = None
 
+
 @contextmanager
 def _with_file_Lock():
     # This is a singleton, pylint: disable=global-statement
@@ -47,6 +48,7 @@ def _with_file_Lock():
     yield
     if file_lock is not None:
         file_lock.release()
+
 
 def areSamePaths(path1, path2):
     """ Are two paths the same.
@@ -87,14 +89,7 @@ def listDir(path):
     """ Give a sorted path, base filename pairs of a directory."""
 
     return sorted(
-        [
-            (
-                os.path.join(path, filename),
-                filename
-            )
-            for filename in
-            os.listdir(path)
-        ]
+        [(os.path.join(path, filename), filename) for filename in os.listdir(path)]
     )
 
 
@@ -113,9 +108,7 @@ def getSubDirectories(path):
 
     for root, dirnames, _filenames in os.walk(path):
         for dirname in dirnames:
-            result.append(
-                os.path.join(root, dirname)
-            )
+            result.append(os.path.join(root, dirname))
 
     result.sort()
     return result
@@ -129,12 +122,7 @@ def deleteFile(path, must_exist):
 
 def splitPath(path):
     """ Split path, skipping empty elements. """
-    return tuple(
-        element
-        for element in
-        os.path.split(path)
-        if element
-    )
+    return tuple(element for element in os.path.split(path) if element)
 
 
 def hasFilenameExtension(path, extensions):
@@ -166,19 +154,13 @@ def removeDirectory(path, ignore_errors):
     with _with_file_Lock():
         if os.path.exists(path):
             try:
-                shutil.rmtree(
-                    path,
-                    ignore_errors = False,
-                    onerror       = onError
-                )
+                shutil.rmtree(path, ignore_errors=False, onerror=onError)
             except OSError:
                 if ignore_errors:
-                    shutil.rmtree(
-                        path,
-                        ignore_errors = ignore_errors
-                    )
+                    shutil.rmtree(path, ignore_errors=ignore_errors)
                 else:
                     raise
+
 
 @contextmanager
 def withTemporaryFilename():

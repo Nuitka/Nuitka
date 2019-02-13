@@ -266,6 +266,9 @@ extern PyThreadState *_PyThreadState_Current;
 /* Sentinel PyObject to be used for all our call iterator endings. */
 extern PyObject *_sentinel_value;
 
+/* Value to use for __compiled__ value of all modules. */
+extern PyObject *Nuitka_dunder_compiled_value;
+
 #include "nuitka/compiled_generator.h"
 
 #include "nuitka/compiled_method.h"

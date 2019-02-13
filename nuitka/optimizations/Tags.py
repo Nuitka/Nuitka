@@ -28,31 +28,22 @@ allowed_tags = (
     # New code means new statements.
     # Could be a new module, or an inlined exec statement.
     "new_code",
-
     # Added new import.
     "new_import",
-
     # New statements added, removed.
     "new_statements",
-
     # New expression added.
     "new_expression",
-
     # TODO: A bit unclear what this it, potentially a changed variable.
     "var_usage",
-
     # Detected module variable to be read only.
     "read_only_mvar",
-
     # New built-in reference detected.
     "new_builtin_ref",
-
     # New built-in call detected.
     "new_builtin",
-
     # New raise statement detected.
     "new_raise",
-
     # New constant introduced.
     "new_constant",
 )

@@ -105,6 +105,6 @@ template_generator_return_exit = """\
 """
 
 
+from . import TemplateDebugWrapper  # isort:skip
 
-from . import TemplateDebugWrapper # isort:skip
 TemplateDebugWrapper.checkDebug(globals())

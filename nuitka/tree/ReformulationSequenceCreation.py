@@ -30,7 +30,7 @@ source code comments with developer manual sections.
 
 from nuitka.nodes.AssignNodes import (
     StatementAssignmentVariable,
-    StatementReleaseVariable
+    StatementReleaseVariable,
 )
 from nuitka.nodes.BuiltinIteratorNodes import ExpressionBuiltinIter1
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1
@@ -39,19 +39,19 @@ from nuitka.nodes.ConstantRefNodes import makeConstantRefNode
 from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.ContainerOperationNodes import (
     ExpressionListOperationExtend,
-    ExpressionSetOperationUpdate
+    ExpressionSetOperationUpdate,
 )
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef
+    ExpressionFunctionRef,
 )
 from nuitka.nodes.LoopNodes import StatementLoop, StatementLoopBreak
 from nuitka.nodes.ReturnNodes import StatementReturn
 from nuitka.nodes.StatementNodes import StatementExpressionOnly
 from nuitka.nodes.VariableRefNodes import (
     ExpressionTempVariableRef,
-    ExpressionVariableRef
+    ExpressionVariableRef,
 )
 from nuitka.PythonVersions import python_version
 from nuitka.specs.ParameterSpecs import ParameterSpec
@@ -60,7 +60,7 @@ from . import SyntaxErrors
 from .InternalModule import (
     internal_source_ref,
     makeInternalHelperFunctionBody,
-    once_decorator
+    once_decorator,
 )
 from .ReformulationTryExceptStatements import makeTryExceptSingleHandlerNode
 from .ReformulationTryFinallyStatements import makeTryFinallyStatement
@@ -70,7 +70,7 @@ from .TreeHelpers import (
     getKind,
     makeSequenceCreationOrConstant,
     makeStatementsSequenceFromStatement,
-    makeStatementsSequenceFromStatements
+    makeStatementsSequenceFromStatements,
 )
 
 
@@ -82,15 +82,13 @@ def buildTupleCreationNode(provider, elements, source_ref):
     for element in elements:
         if getKind(element) == "Starred":
             return _buildTupleUnpacking(
-                provider   = provider,
-                elements   = elements,
-                source_ref = source_ref
+                provider=provider, elements=elements, source_ref=source_ref
             )
 
     return makeSequenceCreationOrConstant(
-        sequence_kind = "TUPLE",
-        elements      = buildNodeList(provider, elements, source_ref),
-        source_ref    = source_ref
+        sequence_kind="TUPLE",
+        elements=buildNodeList(provider, elements, source_ref),
+        source_ref=source_ref,
     )
 
 
@@ -105,17 +103,14 @@ def buildSequenceCreationNode(provider, node, source_ref):
                     )
                 else:
                     return _buildSequenceUnpacking(
-                        provider   = provider,
-                        node       = node,
-                        source_ref = source_ref
+                        provider=provider, node=node, source_ref=source_ref
                     )
 
     return makeSequenceCreationOrConstant(
-        sequence_kind = getKind(node).upper(),
-        elements      = buildNodeList(provider, node.elts, source_ref),
-        source_ref    = source_ref
+        sequence_kind=getKind(node).upper(),
+        elements=buildNodeList(provider, node.elts, source_ref),
+        source_ref=source_ref,
     )
-
 
 
 @once_decorator
@@ -123,15 +118,15 @@ def getListUnpackingHelper():
     helper_name = "_unpack_list"
 
     result = makeInternalHelperFunctionBody(
-        name       = helper_name,
-        parameters = ParameterSpec(
-            ps_name          = helper_name,
-            ps_normal_args   = (),
-            ps_list_star_arg = "args",
-            ps_dict_star_arg = None,
-            ps_default_count = 0,
-            ps_kw_only_args  = ()
-        )
+        name=helper_name,
+        parameters=ParameterSpec(
+            ps_name=helper_name,
+            ps_normal_args=(),
+            ps_list_star_arg="args",
+            ps_dict_star_arg=None,
+            ps_default_count=0,
+            ps_kw_only_args=(),
+        ),
     )
 
     temp_scope = None
@@ -142,98 +137,80 @@ def getListUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried          = StatementAssignmentVariable(
-                variable   = tmp_item_variable,
-                source     = ExpressionBuiltinNext1(
-                    value      = ExpressionTempVariableRef(
-                        variable   = tmp_iter_variable,
-                        source_ref = internal_source_ref
+            tried=StatementAssignmentVariable(
+                variable=tmp_item_variable,
+                source=ExpressionBuiltinNext1(
+                    value=ExpressionTempVariableRef(
+                        variable=tmp_iter_variable, source_ref=internal_source_ref
                     ),
-                    source_ref = internal_source_ref
+                    source_ref=internal_source_ref,
                 ),
-                source_ref = internal_source_ref
+                source_ref=internal_source_ref,
             ),
-            exception_name = "StopIteration",
-            handler_body   = StatementLoopBreak(
-                source_ref = internal_source_ref
-            ),
-            source_ref     = internal_source_ref
+            exception_name="StopIteration",
+            handler_body=StatementLoopBreak(source_ref=internal_source_ref),
+            source_ref=internal_source_ref,
         ),
         StatementExpressionOnly(
-            expression = ExpressionListOperationExtend(
-                list_arg   = ExpressionTempVariableRef(
-                    variable   = tmp_result_variable,
-                    source_ref = internal_source_ref
+            expression=ExpressionListOperationExtend(
+                list_arg=ExpressionTempVariableRef(
+                    variable=tmp_result_variable, source_ref=internal_source_ref
                 ),
-                value      = ExpressionTempVariableRef(
-                    variable   = tmp_item_variable,
-                    source_ref = internal_source_ref
+                value=ExpressionTempVariableRef(
+                    variable=tmp_item_variable, source_ref=internal_source_ref
                 ),
-                source_ref = internal_source_ref
+                source_ref=internal_source_ref,
             ),
-            source_ref = internal_source_ref
-        )
+            source_ref=internal_source_ref,
+        ),
     )
 
-    args_variable = result.getVariableForAssignment(
-        variable_name = "args"
-    )
+    args_variable = result.getVariableForAssignment(variable_name="args")
 
     final = (
         StatementReleaseVariable(
-            variable   = tmp_result_variable,
-            source_ref = internal_source_ref
+            variable=tmp_result_variable, source_ref=internal_source_ref
         ),
         StatementReleaseVariable(
-            variable   = tmp_iter_variable,
-            source_ref = internal_source_ref
+            variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
         StatementReleaseVariable(
-            variable   = tmp_item_variable,
-            source_ref = internal_source_ref
+            variable=tmp_item_variable, source_ref=internal_source_ref
         ),
     )
 
     tried = makeStatementsSequenceFromStatements(
         StatementAssignmentVariable(
-            variable   = tmp_iter_variable,
-            source     = ExpressionBuiltinIter1(
-                value      = ExpressionVariableRef(
-                    variable   = args_variable,
-                    source_ref = internal_source_ref
+            variable=tmp_iter_variable,
+            source=ExpressionBuiltinIter1(
+                value=ExpressionVariableRef(
+                    variable=args_variable, source_ref=internal_source_ref
                 ),
-                source_ref = internal_source_ref
+                source_ref=internal_source_ref,
             ),
-            source_ref = internal_source_ref
+            source_ref=internal_source_ref,
         ),
         StatementAssignmentVariable(
-            variable   = tmp_result_variable,
-            source     = makeConstantRefNode(
-                constant   = [],
-                source_ref = internal_source_ref
-            ),
-            source_ref = internal_source_ref
+            variable=tmp_result_variable,
+            source=makeConstantRefNode(constant=[], source_ref=internal_source_ref),
+            source_ref=internal_source_ref,
         ),
-        StatementLoop(
-            body       = loop_body,
-            source_ref = internal_source_ref
-        ),
+        StatementLoop(body=loop_body, source_ref=internal_source_ref),
         StatementReturn(
-            expression = ExpressionTempVariableRef(
-                variable   = tmp_result_variable,
-                source_ref = internal_source_ref
+            expression=ExpressionTempVariableRef(
+                variable=tmp_result_variable, source_ref=internal_source_ref
             ),
-            source_ref = internal_source_ref
-        )
+            source_ref=internal_source_ref,
+        ),
     )
 
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
-                provider   = result,
-                tried      = tried,
-                final      = final,
-                source_ref = internal_source_ref
+                provider=result,
+                tried=tried,
+                final=final,
+                source_ref=internal_source_ref,
             )
         )
     )
@@ -246,15 +223,15 @@ def getSetUnpackingHelper():
     helper_name = "_unpack_set"
 
     result = makeInternalHelperFunctionBody(
-        name       = helper_name,
-        parameters = ParameterSpec(
-            ps_name          = helper_name,
-            ps_normal_args   = (),
-            ps_list_star_arg = "args",
-            ps_dict_star_arg = None,
-            ps_default_count = 0,
-            ps_kw_only_args  = ()
-        )
+        name=helper_name,
+        parameters=ParameterSpec(
+            ps_name=helper_name,
+            ps_normal_args=(),
+            ps_list_star_arg="args",
+            ps_dict_star_arg=None,
+            ps_default_count=0,
+            ps_kw_only_args=(),
+        ),
     )
 
     temp_scope = None
@@ -265,98 +242,80 @@ def getSetUnpackingHelper():
 
     loop_body = makeStatementsSequenceFromStatements(
         makeTryExceptSingleHandlerNode(
-            tried          = StatementAssignmentVariable(
-                variable   = tmp_item_variable,
-                source     = ExpressionBuiltinNext1(
-                    value      = ExpressionTempVariableRef(
-                        variable   = tmp_iter_variable,
-                        source_ref = internal_source_ref
+            tried=StatementAssignmentVariable(
+                variable=tmp_item_variable,
+                source=ExpressionBuiltinNext1(
+                    value=ExpressionTempVariableRef(
+                        variable=tmp_iter_variable, source_ref=internal_source_ref
                     ),
-                    source_ref = internal_source_ref
+                    source_ref=internal_source_ref,
                 ),
-                source_ref = internal_source_ref
+                source_ref=internal_source_ref,
             ),
-            exception_name = "StopIteration",
-            handler_body   = StatementLoopBreak(
-                source_ref = internal_source_ref
-            ),
-            source_ref     = internal_source_ref
+            exception_name="StopIteration",
+            handler_body=StatementLoopBreak(source_ref=internal_source_ref),
+            source_ref=internal_source_ref,
         ),
         StatementExpressionOnly(
-            expression = ExpressionSetOperationUpdate(
-                set_arg    = ExpressionTempVariableRef(
-                    variable   = tmp_result_variable,
-                    source_ref = internal_source_ref
+            expression=ExpressionSetOperationUpdate(
+                set_arg=ExpressionTempVariableRef(
+                    variable=tmp_result_variable, source_ref=internal_source_ref
                 ),
-                value      = ExpressionTempVariableRef(
-                    variable   = tmp_item_variable,
-                    source_ref = internal_source_ref
+                value=ExpressionTempVariableRef(
+                    variable=tmp_item_variable, source_ref=internal_source_ref
                 ),
-                source_ref = internal_source_ref
+                source_ref=internal_source_ref,
             ),
-            source_ref = internal_source_ref
-        )
+            source_ref=internal_source_ref,
+        ),
     )
 
-    args_variable = result.getVariableForAssignment(
-        variable_name = "args"
-    )
+    args_variable = result.getVariableForAssignment(variable_name="args")
 
     final = (
         StatementReleaseVariable(
-            variable   = tmp_result_variable,
-            source_ref = internal_source_ref
+            variable=tmp_result_variable, source_ref=internal_source_ref
         ),
         StatementReleaseVariable(
-            variable   = tmp_iter_variable,
-            source_ref = internal_source_ref
+            variable=tmp_iter_variable, source_ref=internal_source_ref
         ),
         StatementReleaseVariable(
-            variable   = tmp_item_variable,
-            source_ref = internal_source_ref
+            variable=tmp_item_variable, source_ref=internal_source_ref
         ),
     )
 
     tried = makeStatementsSequenceFromStatements(
         StatementAssignmentVariable(
-            variable   = tmp_iter_variable,
-            source     = ExpressionBuiltinIter1(
-                value      = ExpressionVariableRef(
-                    variable   = args_variable,
-                    source_ref = internal_source_ref
+            variable=tmp_iter_variable,
+            source=ExpressionBuiltinIter1(
+                value=ExpressionVariableRef(
+                    variable=args_variable, source_ref=internal_source_ref
                 ),
-                source_ref = internal_source_ref
+                source_ref=internal_source_ref,
             ),
-            source_ref = internal_source_ref
+            source_ref=internal_source_ref,
         ),
         StatementAssignmentVariable(
-            variable   = tmp_result_variable,
-            source     = makeConstantRefNode(
-                constant   = set(),
-                source_ref = internal_source_ref
-            ),
-            source_ref = internal_source_ref
+            variable=tmp_result_variable,
+            source=makeConstantRefNode(constant=set(), source_ref=internal_source_ref),
+            source_ref=internal_source_ref,
         ),
-        StatementLoop(
-            body       = loop_body,
-            source_ref = internal_source_ref
-        ),
+        StatementLoop(body=loop_body, source_ref=internal_source_ref),
         StatementReturn(
-            expression = ExpressionTempVariableRef(
-                variable   = tmp_result_variable,
-                source_ref = internal_source_ref
+            expression=ExpressionTempVariableRef(
+                variable=tmp_result_variable, source_ref=internal_source_ref
             ),
-            source_ref = internal_source_ref
-        )
+            source_ref=internal_source_ref,
+        ),
     )
 
     result.setBody(
         makeStatementsSequenceFromStatement(
             makeTryFinallyStatement(
-                provider   = result,
-                tried      = tried,
-                final      = final,
-                source_ref = internal_source_ref
+                provider=result,
+                tried=tried,
+                final=final,
+                source_ref=internal_source_ref,
             )
         )
     )
@@ -374,37 +333,27 @@ def buildListUnpacking(provider, elements, source_ref):
         # future optimization to inline the list unpacking helper in a
         # way that has the same effect.
         if getKind(element) == "Starred":
-            helper_args.append(
-                buildNode(provider, element.value, source_ref),
-            )
+            helper_args.append(buildNode(provider, element.value, source_ref))
         else:
             helper_args.append(
                 ExpressionMakeTuple(
-                    elements   = (
-                        buildNode(provider, element, source_ref),
-                    ),
-                    source_ref = source_ref
+                    elements=(buildNode(provider, element, source_ref),),
+                    source_ref=source_ref,
                 )
             )
 
     result = ExpressionFunctionCall(
-        function   = ExpressionFunctionCreation(
-            function_ref = ExpressionFunctionRef(
-                function_body = getListUnpackingHelper(),
-                source_ref    = source_ref
+        function=ExpressionFunctionCreation(
+            function_ref=ExpressionFunctionRef(
+                function_body=getListUnpackingHelper(), source_ref=source_ref
             ),
-            defaults     = (),
-            kw_defaults  = None,
-            annotations  = None,
-            source_ref   = source_ref
+            defaults=(),
+            kw_defaults=None,
+            annotations=None,
+            source_ref=source_ref,
         ),
-        values     = (
-            ExpressionMakeTuple(
-                helper_args,
-                source_ref
-            ),
-        ),
-        source_ref = source_ref,
+        values=(ExpressionMakeTuple(helper_args, source_ref),),
+        source_ref=source_ref,
     )
 
     result.setCompatibleSourceReference(helper_args[-1].getCompatibleSourceReference())
@@ -414,8 +363,7 @@ def buildListUnpacking(provider, elements, source_ref):
 
 def _buildTupleUnpacking(provider, elements, source_ref):
     return ExpressionBuiltinTuple(
-        value      = buildListUnpacking(provider, elements, source_ref),
-        source_ref = source_ref
+        value=buildListUnpacking(provider, elements, source_ref), source_ref=source_ref
     )
 
 
@@ -429,42 +377,33 @@ def _buildSetUnpacking(provider, elements, source_ref):
         # future optimization to inline the list unpacking helper in a
         # way that has the same effect.
         if getKind(element) == "Starred":
-            helper_args.append(
-                buildNode(provider, element.value, source_ref),
-            )
+            helper_args.append(buildNode(provider, element.value, source_ref))
         else:
             helper_args.append(
                 ExpressionMakeTuple(
-                    elements   = (
-                        buildNode(provider, element, source_ref),
-                    ),
-                    source_ref = source_ref
+                    elements=(buildNode(provider, element, source_ref),),
+                    source_ref=source_ref,
                 )
             )
 
     result = ExpressionFunctionCall(
-        function   = ExpressionFunctionCreation(
-            function_ref = ExpressionFunctionRef(
-                function_body = getSetUnpackingHelper(),
-                source_ref    = source_ref
+        function=ExpressionFunctionCreation(
+            function_ref=ExpressionFunctionRef(
+                function_body=getSetUnpackingHelper(), source_ref=source_ref
             ),
-            defaults     = (),
-            kw_defaults  = None,
-            annotations  = None,
-            source_ref   = source_ref
+            defaults=(),
+            kw_defaults=None,
+            annotations=None,
+            source_ref=source_ref,
         ),
-        values     = (
-            ExpressionMakeTuple(
-                helper_args,
-                source_ref
-            ),
-        ),
-        source_ref = source_ref,
+        values=(ExpressionMakeTuple(helper_args, source_ref),),
+        source_ref=source_ref,
     )
 
     result.setCompatibleSourceReference(helper_args[-1].getCompatibleSourceReference())
 
     return result
+
 
 def _buildSequenceUnpacking(provider, node, source_ref):
     kind = getKind(node)

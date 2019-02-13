@@ -42,9 +42,7 @@ def callExec(args):
         del args[1]
 
         try:
-            process = subprocess.Popen(
-                args = args,
-            )
+            process = subprocess.Popen(args=args)
             process.communicate()
             # No point in cleaning up, pylint: disable=protected-access
             try:
@@ -52,7 +50,7 @@ def callExec(args):
             except OverflowError:
                 # Seems negative values go wrong otherwise,
                 # see https://bugs.python.org/issue28474
-                os._exit(process.returncode - 2**32)
+                os._exit(process.returncode - 2 ** 32)
         except KeyboardInterrupt:
             # There was a more relevant stack trace already, so abort this
             # right here, pylint: disable=protected-access
@@ -120,13 +118,10 @@ def getPythonExePathWindows(search, arch):
                     hkey_branch,
                     r"SOFTWARE\Python\PythonCore\%s\InstallPath" % search,
                     0,
-                    winreg.KEY_READ | arch_key
+                    winreg.KEY_READ | arch_key,
                 )
 
-                candidate = os.path.join(
-                    winreg.QueryValue(key, ""),
-                    "python.exe"
-                )
+                candidate = os.path.join(winreg.QueryValue(key, ""), "python.exe")
             except WindowsError:  # @UndefinedVariable
                 continue
 
@@ -144,11 +139,7 @@ def check_output(*popenargs, **kwargs):
     if "stdout" in kwargs:
         raise ValueError("stdout argument not allowed, it will be overridden.")
 
-    process = subprocess.Popen(
-        stdout = subprocess.PIPE,
-        *popenargs,
-        **kwargs
-    )
+    process = subprocess.Popen(stdout=subprocess.PIPE, *popenargs, **kwargs)
     output, _unused_err = process.communicate()
     retcode = process.poll()
 
@@ -157,7 +148,7 @@ def check_output(*popenargs, **kwargs):
         if cmd is None:
             cmd = popenargs[0]
 
-        raise subprocess.CalledProcessError(retcode, cmd, output = output)
+        raise subprocess.CalledProcessError(retcode, cmd, output=output)
 
     return output
 
@@ -185,6 +176,7 @@ def withEnvironmentPathAdded(env_var_name, path):
             del os.environ[env_var_name]
         else:
             os.environ[env_var_name] = old_path
+
 
 @contextmanager
 def withEnvironmentVarOverriden(env_var_name, value):

@@ -3,3 +3,5 @@
 pylint == 1.9.3 ; python_version == '2.7'
 pylint == 2.2.2 ; python_version >= '3.6'
 astroid == 2.1.0 ; python_version >= '3.6'
+
+black == 18.9b0 ; python_version >= '3.6'

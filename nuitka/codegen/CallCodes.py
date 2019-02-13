@@ -26,7 +26,7 @@ able to execute them without creating the argument dictionary at all.
 from .CodeHelpers import (
     generateChildExpressionCode,
     generateExpressionCode,
-    withObjectCodeTemporaryAssignment
+    withObjectCodeTemporaryAssignment,
 )
 from .ConstantCodes import getConstantAccess
 from .ErrorCodes import getErrorExitCode
@@ -35,16 +35,17 @@ from .templates.CodeTemplatesCalls import (
     template_call_function_with_args_decl,
     template_call_function_with_args_impl,
     template_call_method_with_args_decl,
-    template_call_method_with_args_impl
+    template_call_method_with_args_impl,
 )
 from .templates.CodeTemplatesModules import (
     template_header_guard,
-    template_helper_impl_decl
+    template_helper_impl_decl,
 )
 
 
-def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_name,
-                             emit, context):
+def _generateCallCodePosOnly(
+    to_name, expression, called_name, called_attribute_name, emit, context
+):
     # We have many variants for this to deal with, pylint: disable=too-many-branches
 
     assert called_name is not None
@@ -54,9 +55,7 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
     call_args = expression.getCallArgs()
 
     if call_args is None or call_args.isExpressionConstantRef():
-        context.setCurrentSourceCodeReference(
-            expression.getCompatibleSourceReference()
-        )
+        context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
 
         if call_args is not None:
             call_args_value = call_args.getConstant()
@@ -72,167 +71,154 @@ def _generateCallCodePosOnly(to_name, expression, called_name, called_attribute_
                 call_arg_name = context.allocateTempName("call_arg_element")
 
                 getConstantAccess(
-                    to_name  = call_arg_name,
-                    constant = call_arg_element,
-                    emit     = emit,
-                    context  = context,
+                    to_name=call_arg_name,
+                    constant=call_arg_element,
+                    emit=emit,
+                    context=context,
                 )
 
                 call_arg_names.append(call_arg_name)
 
             if called_attribute_name is None:
                 getCallCodePosArgsQuick(
-                    to_name     = to_name,
-                    called_name = called_name,
-                    arg_names   = call_arg_names,
-                    needs_check = expression.mayRaiseException(BaseException),
-                    emit        = emit,
-                    context     = context
+                    to_name=to_name,
+                    called_name=called_name,
+                    arg_names=call_arg_names,
+                    needs_check=expression.mayRaiseException(BaseException),
+                    emit=emit,
+                    context=context,
                 )
             else:
                 _getInstanceCallCodePosArgsQuick(
-                    to_name               = to_name,
-                    called_name           = called_name,
-                    called_attribute_name = called_attribute_name,
-                    arg_names             = call_arg_names,
-                    needs_check           = expression.mayRaiseException(BaseException),
-                    emit                  = emit,
-                    context               = context
+                    to_name=to_name,
+                    called_name=called_name,
+                    called_attribute_name=called_attribute_name,
+                    arg_names=call_arg_names,
+                    needs_check=expression.mayRaiseException(BaseException),
+                    emit=emit,
+                    context=context,
                 )
         elif call_args_value:
             if called_attribute_name is None:
                 _getCallCodeFromTuple(
-                    to_name     = to_name,
-                    called_name = called_name,
-                    arg_tuple   = context.getConstantCode(
-                        constant = call_args_value
-                    ),
-                    arg_size    = len(call_args_value),
-                    needs_check = expression.mayRaiseException(BaseException),
-                    emit        = emit,
-                    context     = context
+                    to_name=to_name,
+                    called_name=called_name,
+                    arg_tuple=context.getConstantCode(constant=call_args_value),
+                    arg_size=len(call_args_value),
+                    needs_check=expression.mayRaiseException(BaseException),
+                    emit=emit,
+                    context=context,
                 )
             else:
                 _getInstanceCallCodeFromTuple(
-                    to_name               = to_name,
-                    called_name           = called_name,
-                    called_attribute_name = called_attribute_name,
-                    arg_tuple             = context.getConstantCode(
-                        constant = call_args_value
-                    ),
-                    arg_size              = len(call_args_value),
-                    needs_check           = expression.mayRaiseException(BaseException),
-                    emit                  = emit,
-                    context               = context
+                    to_name=to_name,
+                    called_name=called_name,
+                    called_attribute_name=called_attribute_name,
+                    arg_tuple=context.getConstantCode(constant=call_args_value),
+                    arg_size=len(call_args_value),
+                    needs_check=expression.mayRaiseException(BaseException),
+                    emit=emit,
+                    context=context,
                 )
         else:
             if called_attribute_name is None:
                 getCallCodeNoArgs(
-                    to_name     = to_name,
-                    called_name = called_name,
-                    needs_check = expression.mayRaiseException(BaseException),
-                    emit        = emit,
-                    context     = context
+                    to_name=to_name,
+                    called_name=called_name,
+                    needs_check=expression.mayRaiseException(BaseException),
+                    emit=emit,
+                    context=context,
                 )
             else:
                 _getInstanceCallCodeNoArgs(
-                    to_name               = to_name,
-                    called_name           = called_name,
-                    called_attribute_name = called_attribute_name,
-                    needs_check           = expression.mayRaiseException(BaseException),
-                    emit                  = emit,
-                    context               = context
+                    to_name=to_name,
+                    called_name=called_name,
+                    called_attribute_name=called_attribute_name,
+                    needs_check=expression.mayRaiseException(BaseException),
+                    emit=emit,
+                    context=context,
                 )
     elif call_args.isExpressionMakeTuple():
         call_arg_names = []
 
         for call_arg_element in call_args.getElements():
             call_arg_name = generateChildExpressionCode(
-                child_name = call_args.getChildName() + "_element",
-                expression = call_arg_element,
-                emit       = emit,
-                context    = context,
+                child_name=call_args.getChildName() + "_element",
+                expression=call_arg_element,
+                emit=emit,
+                context=context,
             )
 
             call_arg_names.append(call_arg_name)
 
-        context.setCurrentSourceCodeReference(
-            expression.getCompatibleSourceReference()
-        )
+        context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
 
         if called_attribute_name is None:
             getCallCodePosArgsQuick(
-                to_name     = to_name,
-                called_name = called_name,
-                arg_names   = call_arg_names,
-                needs_check = expression.mayRaiseException(BaseException),
-                emit        = emit,
-                context     = context
+                to_name=to_name,
+                called_name=called_name,
+                arg_names=call_arg_names,
+                needs_check=expression.mayRaiseException(BaseException),
+                emit=emit,
+                context=context,
             )
         else:
             _getInstanceCallCodePosArgsQuick(
-                to_name               = to_name,
-                called_name           = called_name,
-                called_attribute_name = called_attribute_name,
-                arg_names             = call_arg_names,
-                needs_check           = expression.mayRaiseException(BaseException),
-                emit                  = emit,
-                context               = context
+                to_name=to_name,
+                called_name=called_name,
+                called_attribute_name=called_attribute_name,
+                arg_names=call_arg_names,
+                needs_check=expression.mayRaiseException(BaseException),
+                emit=emit,
+                context=context,
             )
     else:
         args_name = generateChildExpressionCode(
-            expression = call_args,
-            emit       = emit,
-            context    = context
+            expression=call_args, emit=emit, context=context
         )
 
-        context.setCurrentSourceCodeReference(
-            expression.getCompatibleSourceReference()
-        )
+        context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
 
         if called_attribute_name is None:
             _getCallCodePosArgs(
-                to_name     = to_name,
-                called_name = called_name,
-                args_name   = args_name,
-                needs_check = expression.mayRaiseException(BaseException),
-                emit        = emit,
-                context     = context
+                to_name=to_name,
+                called_name=called_name,
+                args_name=args_name,
+                needs_check=expression.mayRaiseException(BaseException),
+                emit=emit,
+                context=context,
             )
         else:
             _getInstanceCallCodePosArgs(
-                to_name               = to_name,
-                called_name           = called_name,
-                called_attribute_name = called_attribute_name,
-                args_name             = args_name,
-                needs_check           = expression.mayRaiseException(BaseException),
-                emit                  = emit,
-                context               = context
+                to_name=to_name,
+                called_name=called_name,
+                called_attribute_name=called_attribute_name,
+                args_name=args_name,
+                needs_check=expression.mayRaiseException(BaseException),
+                emit=emit,
+                context=context,
             )
 
 
-def _generateCallCodeKwOnly(to_name, expression, call_kw, called_name,
-                            called_attribute_name, emit, context):
+def _generateCallCodeKwOnly(
+    to_name, expression, call_kw, called_name, called_attribute_name, emit, context
+):
     # TODO: Not yet specialized for method calls.
     assert called_name is not None
     assert called_attribute_name is None
 
     call_kw_name = generateChildExpressionCode(
-        expression = call_kw,
-        emit       = emit,
-        context    = context
+        expression=call_kw, emit=emit, context=context
     )
 
-    context.setCurrentSourceCodeReference(
-        expression.getCompatibleSourceReference()
-    )
+    context.setCurrentSourceCodeReference(expression.getCompatibleSourceReference())
 
     _getCallCodeKeywordArgs(
-        to_name      = to_name,
-        called_name  = called_name,
-        call_kw_name = call_kw_name,
-        emit         = emit,
-        context      = context
+        to_name=to_name,
+        called_name=called_name,
+        call_kw_name=call_kw_name,
+        emit=emit,
+        context=context,
     )
 
 
@@ -248,73 +234,72 @@ def generateCallCode(to_name, expression, emit, context):
     # TODO: Make this work for all cases. Currently, the method calls that do
     # a combined lookup and call, do a re-ordering of things, and therefore it
     # must be disabled until this is solved.
-    if called.isExpressionAttributeLookup() and \
-       not called.isExpressionAttributeLookupSpecial() and \
-       called.getAttributeName() not in ("__class__", "__dict__") and \
-       (call_args is None or \
-        not call_args.mayHaveSideEffects() or \
-        not called.mayHaveSideEffects()
-       ) and \
-       call_kw is None:
+    if (
+        called.isExpressionAttributeLookup()
+        and not called.isExpressionAttributeLookupSpecial()
+        and called.getAttributeName() not in ("__class__", "__dict__")
+        and (
+            call_args is None
+            or not call_args.mayHaveSideEffects()
+            or not called.mayHaveSideEffects()
+        )
+        and call_kw is None
+    ):
         called_name = context.allocateTempName("called_instance")
         generateExpressionCode(
-            to_name    = called_name,
-            expression = called.getLookupSource(),
-            emit       = emit,
-            context    = context
+            to_name=called_name,
+            expression=called.getLookupSource(),
+            emit=emit,
+            context=context,
         )
 
         called_attribute_name = context.getConstantCode(
-            constant = called.getAttributeName()
+            constant=called.getAttributeName()
         )
     else:
         called_attribute_name = None
 
         called_name = generateChildExpressionCode(
-            expression = called,
-            emit       = emit,
-            context    = context
+            expression=called, emit=emit, context=context
         )
 
-    with withObjectCodeTemporaryAssignment(to_name, "call_result", expression, emit, context) \
-      as result_name:
+    with withObjectCodeTemporaryAssignment(
+        to_name, "call_result", expression, emit, context
+    ) as result_name:
 
-        if call_kw is None or \
-           (call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}):
+        if call_kw is None or (
+            call_kw.isExpressionConstantRef() and call_kw.getConstant() == {}
+        ):
             _generateCallCodePosOnly(
-                to_name               = result_name,
-                called_name           = called_name,
-                called_attribute_name = called_attribute_name,
-                expression            = expression,
-                emit                  = emit,
-                context               = context
+                to_name=result_name,
+                called_name=called_name,
+                called_attribute_name=called_attribute_name,
+                expression=expression,
+                emit=emit,
+                context=context,
             )
         else:
             call_args = expression.getCallArgs()
 
-            if call_args is None or \
-               (call_args.isExpressionConstantRef() and \
-                call_args.getConstant() == ()):
+            if call_args is None or (
+                call_args.isExpressionConstantRef() and call_args.getConstant() == ()
+            ):
                 _generateCallCodeKwOnly(
-                    to_name               = result_name,
-                    called_name           = called_name,
-                    called_attribute_name = called_attribute_name,
-                    expression            = expression,
-                    call_kw               = call_kw,
-                    emit                  = emit,
-                    context               = context
+                    to_name=result_name,
+                    called_name=called_name,
+                    called_attribute_name=called_attribute_name,
+                    expression=expression,
+                    call_kw=call_kw,
+                    emit=emit,
+                    context=context,
                 )
             else:
                 call_args_name = generateChildExpressionCode(
-                    expression = call_args,
-                    emit       = emit,
-                    context    = context
+                    expression=call_args, emit=emit, context=context
                 )
 
                 call_kw_name = generateChildExpressionCode(
-                    expression = call_kw,
-                    emit       = emit,
-                    context    = context
+                    expression=call_kw, emit=emit, context=context
                 )
 
                 context.setCurrentSourceCodeReference(
@@ -322,57 +307,47 @@ def generateCallCode(to_name, expression, emit, context):
                 )
 
                 _getCallCodePosKeywordArgs(
-                    to_name        = result_name,
-                    called_name    = called_name,
-                    call_args_name = call_args_name,
-                    call_kw_name   = call_kw_name,
-                    emit           = emit,
-                    context        = context
+                    to_name=result_name,
+                    called_name=called_name,
+                    call_args_name=call_args_name,
+                    call_kw_name=call_kw_name,
+                    emit=emit,
+                    context=context,
                 )
 
 
 def getCallCodeNoArgs(to_name, called_name, needs_check, emit, context):
     emitLineNumberUpdateCode(emit, context)
 
-    emit(
-        "%s = CALL_FUNCTION_NO_ARGS( %s );" % (
-            to_name,
-            called_name
-        )
-    )
+    emit("%s = CALL_FUNCTION_NO_ARGS( %s );" % (to_name, called_name))
 
     getErrorExitCode(
-        check_name   = to_name,
-        release_name = called_name,
-        emit         = emit,
-        needs_check  = needs_check,
-        context      = context
+        check_name=to_name,
+        release_name=called_name,
+        emit=emit,
+        needs_check=needs_check,
+        context=context,
     )
 
     context.addCleanupTempName(to_name)
 
 
-def _getInstanceCallCodeNoArgs(to_name, called_name, called_attribute_name,
-                              needs_check, emit, context):
+def _getInstanceCallCodeNoArgs(
+    to_name, called_name, called_attribute_name, needs_check, emit, context
+):
     emitLineNumberUpdateCode(emit, context)
 
     emit(
-        "%s = CALL_METHOD_NO_ARGS( %s, %s );" % (
-            to_name,
-            called_name,
-            called_attribute_name
-        )
+        "%s = CALL_METHOD_NO_ARGS( %s, %s );"
+        % (to_name, called_name, called_attribute_name)
     )
 
     getErrorExitCode(
-        check_name    = to_name,
-        release_names = (
-            called_name,
-            called_attribute_name
-        ),
-        emit          = emit,
-        needs_check   = needs_check,
-        context       = context
+        check_name=to_name,
+        release_names=(called_name, called_attribute_name),
+        emit=emit,
+        needs_check=needs_check,
+        context=context,
     )
 
     context.addCleanupTempName(to_name)
@@ -383,8 +358,9 @@ quick_calls_used = set([1, 2, 3, 4, 5])
 quick_instance_calls_used = set()
 
 
-def _getInstanceCallCodePosArgsQuick(to_name, called_name, called_attribute_name,
-                                     arg_names, needs_check, emit, context):
+def _getInstanceCallCodePosArgsQuick(
+    to_name, called_name, called_attribute_name, arg_names, needs_check, emit, context
+):
     arg_size = len(arg_names)
     quick_instance_calls_used.add(arg_size)
 
@@ -399,32 +375,30 @@ def _getInstanceCallCodePosArgsQuick(to_name, called_name, called_attribute_name
     PyObject *call_args[] = { %s };
     %s = CALL_METHOD_WITH_ARGS%d( %s, %s, call_args );
 }
-""" % (
-            ", ".join(
-                str(arg_name)
-                for arg_name in
-                arg_names
-            ),
+"""
+        % (
+            ", ".join(str(arg_name) for arg_name in arg_names),
             to_name,
             arg_size,
             called_name,
-            called_attribute_name
+            called_attribute_name,
         )
     )
 
     getErrorExitCode(
-        check_name    = to_name,
-        release_names = [called_name] + arg_names,
-        needs_check   = needs_check,
-        emit          = emit,
-        context       = context
+        check_name=to_name,
+        release_names=[called_name] + arg_names,
+        needs_check=needs_check,
+        emit=emit,
+        context=context,
     )
 
     context.addCleanupTempName(to_name)
 
 
-def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
-                            emit, context):
+def getCallCodePosArgsQuick(
+    to_name, called_name, arg_names, needs_check, emit, context
+):
 
     arg_size = len(arg_names)
     quick_calls_used.add(arg_size)
@@ -440,12 +414,9 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
     PyObject *call_args[] = { %s };
     %s = CALL_FUNCTION_WITH_ARGS%d( %s, call_args );
 }
-""" % (
-            ", ".join(
-                str(arg_name)
-                for arg_name in
-                arg_names
-            ),
+"""
+        % (
+            ", ".join(str(arg_name) for arg_name in arg_names),
             to_name,
             arg_size,
             called_name,
@@ -453,19 +424,26 @@ def getCallCodePosArgsQuick(to_name, called_name, arg_names, needs_check,
     )
 
     getErrorExitCode(
-        check_name    = to_name,
-        release_names = [called_name] + arg_names,
-        needs_check   = needs_check,
-        emit          = emit,
-        context       = context
+        check_name=to_name,
+        release_names=[called_name] + arg_names,
+        needs_check=needs_check,
+        emit=emit,
+        context=context,
     )
 
     context.addCleanupTempName(to_name)
 
 
-def _getInstanceCallCodeFromTuple(to_name, called_name, called_attribute_name,
-                                  arg_tuple, arg_size, needs_check,
-                                  emit, context):
+def _getInstanceCallCodeFromTuple(
+    to_name,
+    called_name,
+    called_attribute_name,
+    arg_tuple,
+    arg_size,
+    needs_check,
+    emit,
+    context,
+):
     quick_instance_calls_used.add(arg_size)
 
     # For 0 arguments, NOARGS is supposed to be used.
@@ -476,31 +454,24 @@ def _getInstanceCallCodeFromTuple(to_name, called_name, called_attribute_name,
     emit(
         """\
 %s = CALL_METHOD_WITH_ARGS%d( %s, %s, &PyTuple_GET_ITEM( %s, 0 ) );
-""" % (
-            to_name,
-            arg_size,
-            called_name,
-            called_attribute_name,
-            arg_tuple,
-        )
+"""
+        % (to_name, arg_size, called_name, called_attribute_name, arg_tuple)
     )
 
     getErrorExitCode(
-        check_name    = to_name,
-        release_names = (
-            called_name,
-            called_attribute_name
-        ),
-        needs_check   = needs_check,
-        emit          = emit,
-        context       = context
+        check_name=to_name,
+        release_names=(called_name, called_attribute_name),
+        needs_check=needs_check,
+        emit=emit,
+        context=context,
     )
 
     context.addCleanupTempName(to_name)
 
 
-def _getCallCodeFromTuple(to_name, called_name, arg_tuple, arg_size,
-                         needs_check, emit, context):
+def _getCallCodeFromTuple(
+    to_name, called_name, arg_tuple, arg_size, needs_check, emit, context
+):
     quick_calls_used.add(arg_size)
 
     # For 0 arguments, NOARGS is supposed to be used.
@@ -511,67 +482,55 @@ def _getCallCodeFromTuple(to_name, called_name, arg_tuple, arg_size,
     emit(
         """\
 %s = CALL_FUNCTION_WITH_ARGS%d( %s, &PyTuple_GET_ITEM( %s, 0 ) );
-""" % (
-            to_name,
-            arg_size,
-            called_name,
-            arg_tuple,
-        )
+"""
+        % (to_name, arg_size, called_name, arg_tuple)
     )
 
     getErrorExitCode(
-        check_name   = to_name,
-        release_name = called_name,
-        needs_check  = needs_check,
-        emit         = emit,
-        context      = context
+        check_name=to_name,
+        release_name=called_name,
+        needs_check=needs_check,
+        emit=emit,
+        context=context,
     )
 
     context.addCleanupTempName(to_name)
 
 
-def _getInstanceCallCodePosArgs(to_name, called_name, called_attribute_name,
-                                args_name, needs_check, emit, context):
+def _getInstanceCallCodePosArgs(
+    to_name, called_name, called_attribute_name, args_name, needs_check, emit, context
+):
     emitLineNumberUpdateCode(emit, context)
 
     emit(
-        "%s = CALL_METHOD_WITH_POSARGS( %s, %s, %s );" % (
-            to_name,
-            called_name,
-            called_attribute_name,
-            args_name
-        )
+        "%s = CALL_METHOD_WITH_POSARGS( %s, %s, %s );"
+        % (to_name, called_name, called_attribute_name, args_name)
     )
 
     getErrorExitCode(
-        check_name    = to_name,
-        release_names = (called_name, args_name),
-        needs_check   = needs_check,
-        emit          = emit,
-        context       = context
+        check_name=to_name,
+        release_names=(called_name, args_name),
+        needs_check=needs_check,
+        emit=emit,
+        context=context,
     )
 
     context.addCleanupTempName(to_name)
 
 
-def _getCallCodePosArgs(to_name, called_name, args_name, needs_check,
-                        emit, context):
+def _getCallCodePosArgs(to_name, called_name, args_name, needs_check, emit, context):
     emitLineNumberUpdateCode(emit, context)
 
     emit(
-        "%s = CALL_FUNCTION_WITH_POSARGS( %s, %s );" % (
-            to_name,
-            called_name,
-            args_name
-        )
+        "%s = CALL_FUNCTION_WITH_POSARGS( %s, %s );" % (to_name, called_name, args_name)
     )
 
     getErrorExitCode(
-        check_name    = to_name,
-        release_names = (called_name, args_name),
-        needs_check   = needs_check,
-        emit          = emit,
-        context       = context
+        check_name=to_name,
+        release_names=(called_name, args_name),
+        needs_check=needs_check,
+        emit=emit,
+        context=context,
     )
 
     context.addCleanupTempName(to_name)
@@ -581,41 +540,35 @@ def _getCallCodeKeywordArgs(to_name, called_name, call_kw_name, emit, context):
     emitLineNumberUpdateCode(emit, context)
 
     emit(
-        "%s = CALL_FUNCTION_WITH_KEYARGS( %s, %s );" % (
-            to_name,
-            called_name,
-            call_kw_name
-        )
+        "%s = CALL_FUNCTION_WITH_KEYARGS( %s, %s );"
+        % (to_name, called_name, call_kw_name)
     )
 
     getErrorExitCode(
-        check_name    = to_name,
-        release_names = (called_name, call_kw_name),
-        emit          = emit,
-        context       = context
+        check_name=to_name,
+        release_names=(called_name, call_kw_name),
+        emit=emit,
+        context=context,
     )
 
     context.addCleanupTempName(to_name)
 
 
-def _getCallCodePosKeywordArgs(to_name, called_name, call_args_name,
-                               call_kw_name, emit, context):
+def _getCallCodePosKeywordArgs(
+    to_name, called_name, call_args_name, call_kw_name, emit, context
+):
     emitLineNumberUpdateCode(emit, context)
 
     emit(
-        "%s = CALL_FUNCTION( %s, %s, %s );" % (
-            to_name,
-            called_name,
-            call_args_name,
-            call_kw_name
-        )
+        "%s = CALL_FUNCTION( %s, %s, %s );"
+        % (to_name, called_name, call_args_name, call_kw_name)
     )
 
     getErrorExitCode(
-        check_name    = to_name,
-        release_names = (called_name, call_args_name, call_kw_name),
-        emit          = emit,
-        context       = context
+        check_name=to_name,
+        release_names=(called_name, call_args_name, call_kw_name),
+        emit=emit,
+        context=context,
     )
 
     context.addCleanupTempName(to_name)
@@ -626,43 +579,33 @@ def getCallsDecls():
 
     for quick_call_used in sorted(quick_calls_used.union(quick_instance_calls_used)):
         result.append(
-            template_call_function_with_args_decl % {
-                "args_count" : quick_call_used
-            }
+            template_call_function_with_args_decl % {"args_count": quick_call_used}
         )
 
     for quick_call_used in sorted(quick_instance_calls_used):
         result.append(
-            template_call_method_with_args_decl % {
-                "args_count" : quick_call_used
-            }
+            template_call_method_with_args_decl % {"args_count": quick_call_used}
         )
 
     return template_header_guard % {
-        "header_guard_name" : "__NUITKA_CALLS_H__",
-        "header_body"       : '\n'.join(result)
+        "header_guard_name": "__NUITKA_CALLS_H__",
+        "header_body": "\n".join(result),
     }
 
 
 def getCallsCode():
     result = []
 
-    result.append(
-        template_helper_impl_decl % {}
-    )
+    result.append(template_helper_impl_decl % {})
 
     for quick_call_used in sorted(quick_calls_used.union(quick_instance_calls_used)):
         result.append(
-            template_call_function_with_args_impl % {
-                "args_count" : quick_call_used
-            }
+            template_call_function_with_args_impl % {"args_count": quick_call_used}
         )
 
     for quick_call_used in sorted(quick_instance_calls_used):
         result.append(
-            template_call_method_with_args_impl % {
-                "args_count" : quick_call_used
-            }
+            template_call_method_with_args_impl % {"args_count": quick_call_used}
         )
 
-    return '\n'.join(result)
+    return "\n".join(result)

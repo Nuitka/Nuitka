@@ -9,8 +9,16 @@ Bug Fixes
 - Fix, the python flag ``-O`` was removing doc strings, but that should only
   be done with ``-OO`` which was added too.
 
+- Fix, accelerated binaries failed to load packages from the ``virtualenv``
+  (not ``venv``) that they were created and ran with, due to not propagating
+  ``sys.prefix``.
+
 New Features
 ------------
+
+- Added support for Alpine Linux.
+
+- Added support for MSYS2 based Python on Windows.
 
 - Added support for Python flag ``-OO``, which allows to remove doc strings.
 

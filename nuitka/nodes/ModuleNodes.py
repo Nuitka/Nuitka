@@ -25,10 +25,7 @@ import os
 
 from nuitka import Options, Variables
 from nuitka.containers.oset import OrderedSet
-from nuitka.importing.Importing import (
-    findModule,
-    getModuleNameAndKindFromFilename
-)
+from nuitka.importing.Importing import findModule, getModuleNameAndKindFromFilename
 from nuitka.importing.Recursion import decideRecursion, recurseTo
 from nuitka.ModuleRegistry import getModuleByName, getOwnerFromCodeName
 from nuitka.optimizations.TraceCollections import TraceCollectionModule
@@ -46,7 +43,7 @@ from .NodeBases import (
     ClosureGiverNodeMixin,
     NodeBase,
     extractKindAndArgsFromXML,
-    fromXML
+    fromXML,
 )
 
 
@@ -57,23 +54,19 @@ class PythonModuleBase(NodeBase):
 
     def __init__(self, name, package_name, source_ref):
         assert type(name) is str, type(name)
-        assert '.' not in name, name
-        assert package_name is None or \
-               (type(package_name) is str and package_name != "")
-
-        NodeBase.__init__(
-            self,
-            source_ref = source_ref
+        assert "." not in name, name
+        assert package_name is None or (
+            type(package_name) is str and package_name != ""
         )
+
+        NodeBase.__init__(self, source_ref=source_ref)
 
         self.name = name
         self.package_name = package_name
         self.package = None
 
     def getDetails(self):
-        return {
-            "name" : self.name
-        }
+        return {"name": self.name}
 
     def getName(self):
         return self.name
@@ -83,7 +76,7 @@ class PythonModuleBase(NodeBase):
 
     def getFullName(self):
         if self.package_name:
-            return self.package_name + '.' + self.getName()
+            return self.package_name + "." + self.getName()
         else:
             return self.getName()
 
@@ -110,11 +103,11 @@ class PythonModuleBase(NodeBase):
 
         if self.package_name is not None and self.package is None:
             package_package, package_filename, finding = findModule(
-                importing      = self,
-                module_name    = self.package_name,
-                parent_package = None,
-                level          = 1,
-                warn           = python_version < 300
+                importing=self,
+                module_name=self.package_name,
+                parent_package=None,
+                level=1,
+                warn=python_version < 300,
             )
 
             # TODO: Temporary, if we can't find the package for Python3.3 that
@@ -127,23 +120,26 @@ class PythonModuleBase(NodeBase):
 
             assert package_filename is not None, (self.package_name, finding)
 
-            _package_name, package_kind = getModuleNameAndKindFromFilename(package_filename)
+            _package_name, package_kind = getModuleNameAndKindFromFilename(
+                package_filename
+            )
             # assert _package_name == self.package_name, (package_filename, _package_name, self.package_name)
 
             decision, _reason = decideRecursion(
-                module_filename = package_filename,
-                module_name     = self.package_name,
-                module_package  = package_package,
-                module_kind     = package_kind
+                module_filename=package_filename,
+                module_name=self.package_name,
+                module_package=package_package,
+                module_kind=package_kind,
             )
 
             if decision is not None:
                 self.package, is_added = recurseTo(
-                    module_package  = package_package,
-                    module_filename = package_filename,
-                    module_relpath  = relpath(package_filename),
-                    module_kind     = "py",
-                    reason          = "Containing package of recursed module '%s'." % self.getFullName(),
+                    module_package=package_package,
+                    module_filename=package_filename,
+                    module_relpath=relpath(package_filename),
+                    module_kind="py",
+                    reason="Containing package of recursed module '%s'."
+                    % self.getFullName(),
                 )
 
                 if is_added:
@@ -154,7 +150,7 @@ class PythonModuleBase(NodeBase):
 
             addUsedModule(self.package)
 
-#            print "Recursed to package", self.package_name
+            #            print "Recursed to package", self.package_name
             result.extend(self.package.attemptRecursion())
 
         return result
@@ -182,24 +178,25 @@ class PythonModuleBase(NodeBase):
             result = os.path.basename(filename)
             current = filename
 
-            levels = full_name.count('.')
+            levels = full_name.count(".")
             if self.isCompiledPythonPackage():
                 levels += 1
 
             for _i in range(levels):
                 current = os.path.dirname(current)
 
-                result = os.path.join(
-                    os.path.basename(current),
-                    result
-                )
+                result = os.path.join(os.path.basename(current), result)
 
             return result
 
 
-class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
-                           MarkNeedsAnnotationsMixin, EntryPointMixin,
-                           PythonModuleBase):
+class CompiledPythonModule(
+    ChildrenHavingMixin,
+    ClosureGiverNodeMixin,
+    MarkNeedsAnnotationsMixin,
+    EntryPointMixin,
+    PythonModuleBase,
+):
     """ Compiled Python Module
 
     """
@@ -208,35 +205,19 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
     kind = "COMPILED_PYTHON_MODULE"
 
-    named_children = (
-        "body",
-        "functions"
-    )
+    named_children = ("body", "functions")
 
-    checkers = {
-        "body": checkStatementsSequenceOrNone
-    }
+    checkers = {"body": checkStatementsSequenceOrNone}
 
     def __init__(self, name, package_name, is_top, mode, future_spec, source_ref):
         PythonModuleBase.__init__(
-            self,
-            name         = name,
-            package_name = package_name,
-            source_ref   = source_ref
+            self, name=name, package_name=package_name, source_ref=source_ref
         )
 
-        ClosureGiverNodeMixin.__init__(
-            self,
-            name        = name,
-            code_prefix = "module"
-        )
+        ClosureGiverNodeMixin.__init__(self, name=name, code_prefix="module")
 
         ChildrenHavingMixin.__init__(
-            self,
-            values = {
-                "body" : None, # delayed
-                "functions" : (),
-            },
+            self, values={"body": None, "functions": ()}  # delayed
         )
 
         MarkNeedsAnnotationsMixin.__init__(self)
@@ -255,23 +236,21 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         # Often "None" until tree building finishes its part.
         self.future_spec = future_spec
 
-        self.module_dict_name = "globals_%s" % (
-            self.getCodeName(),
-        )
+        self.module_dict_name = "globals_%s" % (self.getCodeName(),)
         setLocalsDictType(self.module_dict_name, "module_dict")
 
     def getDetails(self):
         return {
-            "filename" : self.source_ref.getFilename(),
-            "package"  : self.package_name,
-            "name"     : self.name
+            "filename": self.source_ref.getFilename(),
+            "package": self.package_name,
+            "name": self.name,
         }
 
     def getDetailsForDisplay(self):
         result = self.getDetails()
 
         if self.future_spec is not None:
-            result["code_flags"] = ','.join(self.future_spec.asFlags())
+            result["code_flags"] = ",".join(self.future_spec.asFlags())
 
         return result
 
@@ -288,21 +267,19 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
     def asGraph(self, graph, desc):
         graph = graph.add_subgraph(
-            name    = "cluster_%s" % desc,
-            comment = "Graph for %s" % self.getName()
+            name="cluster_%s" % desc, comment="Graph for %s" % self.getName()
         )
 
-#        graph.body.append("style=filled")
-#        graph.body.append("color=lightgrey")
-#        graph.body.append("label=Iteration_%d" % desc)
-
+        #        graph.body.append("style=filled")
+        #        graph.body.append("color=lightgrey")
+        #        graph.body.append("label=Iteration_%d" % desc)
 
         def makeTraceNodeName(variable, version, variable_trace):
             return "%s/ %s %s %s" % (
                 desc,
                 variable.getName(),
                 version,
-                variable_trace.__class__.__name__
+                variable_trace.__class__.__name__,
             )
 
         for function_body in self.active_functions:
@@ -310,19 +287,23 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
             node_names = {}
 
-            for (variable, version), variable_trace in trace_collection.getVariableTracesAll().items():
+            for (
+                (variable, version),
+                variable_trace,
+            ) in trace_collection.getVariableTracesAll().items():
                 node_name = makeTraceNodeName(variable, version, variable_trace)
 
                 node_names[variable_trace] = node_name
 
-            for (variable, version), variable_trace in trace_collection.getVariableTracesAll().items():
+            for (
+                (variable, version),
+                variable_trace,
+            ) in trace_collection.getVariableTracesAll().items():
                 node_name = node_names[variable_trace]
 
                 previous = variable_trace.getPrevious()
 
-                attrs = {
-                    "style" : "filled",
-                }
+                attrs = {"style": "filled"}
 
                 if variable_trace.hasDefiniteUsages():
                     attrs["color"] = "blue"
@@ -379,17 +360,12 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
         return self.getProvidedVariable(variable_name)
 
     def getVariableForClosure(self, variable_name):
-        return self.getProvidedVariable(
-            variable_name = variable_name
-        )
+        return self.getProvidedVariable(variable_name=variable_name)
 
     def createProvidedVariable(self, variable_name):
         assert variable_name not in self.variables
 
-        result = Variables.ModuleVariable(
-            module        = self,
-            variable_name = variable_name
-        )
+        result = Variables.ModuleVariable(module=self, variable_name=variable_name)
 
         self.variables[variable_name] = result
 
@@ -425,11 +401,13 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
     def addUsedFunction(self, function_body):
         assert function_body in self.getFunctions()
 
-        assert function_body.isExpressionFunctionBody() or \
-               function_body.isExpressionClassBody() or \
-               function_body.isExpressionGeneratorObjectBody() or \
-               function_body.isExpressionCoroutineObjectBody() or \
-               function_body.isExpressionAsyncgenObjectBody()
+        assert (
+            function_body.isExpressionFunctionBody()
+            or function_body.isExpressionClassBody()
+            or function_body.isExpressionGeneratorObjectBody()
+            or function_body.isExpressionCoroutineObjectBody()
+            or function_body.isExpressionAsyncgenObjectBody()
+        )
 
         result = function_body not in self.active_functions
         if result:
@@ -469,7 +447,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
         # There are some characters that somehow are passed to shell, by
         # Scons or unknown, so lets avoid them for now.
-        return result.replace(')',"").replace('(',"")
+        return result.replace(")", "").replace("(", "")
 
     def computeModule(self):
         old_collection = self.trace_collection
@@ -480,7 +458,7 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
         if module_body is not None:
             result = module_body.computeStatementsSequence(
-                trace_collection = self.trace_collection
+                trace_collection=self.trace_collection
             )
 
             if result is not module_body:
@@ -490,9 +468,9 @@ class CompiledPythonModule(ChildrenHavingMixin, ClosureGiverNodeMixin,
 
         for new_module in new_modules:
             self.trace_collection.signalChange(
-                source_ref = new_module.getSourceReference(),
-                tags       = "new_code",
-                message    = "Recursed to module package."
+                source_ref=new_module.getSourceReference(),
+                tags="new_code",
+                message="Recursed to module package.",
             )
 
         self.trace_collection.updateVariablesFromCollection(old_collection)
@@ -559,12 +537,12 @@ class CompiledPythonPackage(CompiledPythonModule):
 
         CompiledPythonModule.__init__(
             self,
-            name         = name,
-            package_name = package_name,
-            is_top       = is_top,
-            mode         = mode,
-            future_spec  = future_spec,
-            source_ref   = source_ref
+            name=name,
+            package_name=package_name,
+            is_top=is_top,
+            mode=mode,
+            future_spec=future_spec,
+            source_ref=source_ref,
         )
 
     def getOutputFilename(self):
@@ -580,9 +558,10 @@ class CompiledPythonPackage(CompiledPythonModule):
         return True
 
 
-def makeUncompiledPythonModule(module_name, filename, bytecode, is_package,
-                               user_provided, technical):
-    parts = module_name.rsplit('.', 1)
+def makeUncompiledPythonModule(
+    module_name, filename, bytecode, is_package, user_provided, technical
+):
+    parts = module_name.rsplit(".", 1)
     name = parts[-1]
 
     package_name = parts[0] if len(parts) == 2 else None
@@ -590,23 +569,23 @@ def makeUncompiledPythonModule(module_name, filename, bytecode, is_package,
 
     if is_package:
         return UncompiledPythonPackage(
-            name          = name,
-            package_name  = package_name,
-            bytecode      = bytecode,
-            filename      = filename,
-            user_provided = user_provided,
-            technical     = technical,
-            source_ref    = source_ref
+            name=name,
+            package_name=package_name,
+            bytecode=bytecode,
+            filename=filename,
+            user_provided=user_provided,
+            technical=technical,
+            source_ref=source_ref,
         )
     else:
         return UncompiledPythonModule(
-            name          = name,
-            package_name  = package_name,
-            bytecode      = bytecode,
-            filename      = filename,
-            user_provided = user_provided,
-            technical     = technical,
-            source_ref    = source_ref
+            name=name,
+            package_name=package_name,
+            bytecode=bytecode,
+            filename=filename,
+            user_provided=user_provided,
+            technical=technical,
+            source_ref=source_ref,
         )
 
 
@@ -619,13 +598,18 @@ class UncompiledPythonModule(PythonModuleBase):
 
     __slots__ = "bytecode", "filename", "user_provided", "technical", "used_modules"
 
-    def __init__(self, name, package_name, bytecode, filename, user_provided,
-                 technical, source_ref):
+    def __init__(
+        self,
+        name,
+        package_name,
+        bytecode,
+        filename,
+        user_provided,
+        technical,
+        source_ref,
+    ):
         PythonModuleBase.__init__(
-            self,
-            name         = name,
-            package_name = package_name,
-            source_ref   = source_ref
+            self, name=name, package_name=package_name, source_ref=source_ref
         )
 
         self.bytecode = bytecode
@@ -677,21 +661,21 @@ class PythonMainModule(CompiledPythonModule):
     def __init__(self, main_added, mode, future_spec, source_ref):
         CompiledPythonModule.__init__(
             self,
-            name         = "__main__",
-            package_name = None,
-            is_top       = True,
-            mode         = mode,
-            future_spec  = future_spec,
-            source_ref   = source_ref
+            name="__main__",
+            package_name=None,
+            is_top=True,
+            mode=mode,
+            future_spec=future_spec,
+            source_ref=source_ref,
         )
 
         self.main_added = main_added
 
     def getDetails(self):
         return {
-            "filename"   : self.source_ref.getFilename(),
-            "main_added" : self.main_added,
-            "mode"       : self.mode
+            "filename": self.source_ref.getFilename(),
+            "main_added": self.main_added,
+            "mode": self.mode,
         }
 
     @classmethod
@@ -700,19 +684,22 @@ class PythonMainModule(CompiledPythonModule):
             future_spec = fromFlags(args["code_flags"])
 
         result = cls(
-            main_added  = args["main_added"] == "True",
-            mode        = args["mode"],
-            future_spec = future_spec,
-            source_ref  = source_ref
+            main_added=args["main_added"] == "True",
+            mode=args["mode"],
+            future_spec=future_spec,
+            source_ref=source_ref,
         )
 
         from nuitka.ModuleRegistry import addRootModule
+
         addRootModule(result)
 
         function_work = []
 
         for xml in args["functions"]:
-            _kind, node_class, func_args, source_ref = extractKindAndArgsFromXML(xml, source_ref)
+            _kind, node_class, func_args, source_ref = extractKindAndArgsFromXML(
+                xml, source_ref
+            )
 
             if "provider" in func_args:
                 func_args["provider"] = getOwnerFromCodeName(func_args["provider"])
@@ -720,38 +707,26 @@ class PythonMainModule(CompiledPythonModule):
                 func_args["provider"] = result
 
             if "flags" in args:
-                func_args["flags"] = set(func_args["flags"].split(','))
+                func_args["flags"] = set(func_args["flags"].split(","))
 
             if "doc" not in args:
                 func_args["doc"] = None
 
-            function = node_class.fromXML(
-                source_ref = source_ref,
-                **func_args
-            )
+            function = node_class.fromXML(source_ref=source_ref, **func_args)
 
             # Could do more checks for look up of body here, but so what...
-            function_work.append(
-                (function, iter(iter(xml).next()).next())
-            )
+            function_work.append((function, iter(iter(xml).next()).next()))
 
         for function, xml in function_work:
             function.setChild(
                 "body",
                 fromXML(
-                    provider   = function,
-                    xml        = xml,
-                    source_ref = function.getSourceReference()
-                )
+                    provider=function, xml=xml, source_ref=function.getSourceReference()
+                ),
             )
 
         result.setChild(
-            "body",
-            fromXML(
-                provider   = result,
-                xml        = args["body"][0],
-                source_ref = source_ref
-            )
+            "body", fromXML(provider=result, xml=args["body"][0], source_ref=source_ref)
         )
 
         return result
@@ -768,20 +743,29 @@ class PythonMainModule(CompiledPythonModule):
 
 
 class PythonInternalModule(CompiledPythonModule):
+    """ The internal module is the parent for Python helpers.
+
+        For some operations, e.g. merging star arguments with
+        normal keyword arguments for a function call, there are
+        Python helpers.
+
+        This module is the home for these functions to live in,
+        but has no own module code.
+    """
+
     kind = "PYTHON_INTERNAL_MODULE"
 
     def __init__(self):
         CompiledPythonModule.__init__(
             self,
-            name         = "__internal__",
-            package_name = None,
-            is_top       = False,
-            mode         = "compiled",
-            source_ref   = SourceCodeReference.fromFilenameAndLine(
-                filename = "internal",
-                line     = 0
+            name="__internal__",
+            package_name=None,
+            is_top=False,
+            mode="compiled",
+            source_ref=SourceCodeReference.fromFilenameAndLine(
+                filename="internal", line=0
             ),
-            future_spec  = FutureSpec()
+            future_spec=FutureSpec(),
         )
 
     @staticmethod
@@ -801,10 +785,7 @@ class PythonShlibModule(PythonModuleBase):
 
     def __init__(self, name, package_name, source_ref):
         PythonModuleBase.__init__(
-            self,
-            name         = name,
-            package_name = package_name,
-            source_ref   = source_ref
+            self, name=name, package_name=package_name, source_ref=source_ref
         )
 
         # That would be a mistake we just made.
@@ -824,10 +805,7 @@ class PythonShlibModule(PythonModuleBase):
         del self.used_modules
 
     def getDetails(self):
-        return {
-            "name"         : self.name,
-            "package_name" : self.package_name
-        }
+        return {"name": self.name, "package_name": self.package_name}
 
     def getFilename(self):
         return self.getSourceReference().getFilename()
@@ -842,7 +820,7 @@ class PythonShlibModule(PythonModuleBase):
         filename = os.path.basename(path)
         dirname = os.path.dirname(path)
 
-        return os.path.join(dirname, filename.split('.')[0]) + ".pyi"
+        return os.path.join(dirname, filename.split(".")[0]) + ".pyi"
 
     def _readPyPIFile(self):
         """ Read the .pyi file if present and scan for dependencies. """
@@ -871,29 +849,25 @@ class PythonShlibModule(PythonModuleBase):
                         pyi_deps.add(parts[1])
 
                         imported = parts[3]
-                        if imported.startswith('('):
+                        if imported.startswith("("):
                             # No multiline imports please
-                            assert imported.endswith(')')
+                            assert imported.endswith(")")
                             imported = imported[1:-1]
 
                             assert imported
 
-                        if imported == '*':
+                        if imported == "*":
                             continue
 
-                        for name in imported.split(','):
+                        for name in imported.split(","):
                             name = name.strip()
 
-                            pyi_deps.add(parts[1] + '.' + name)
+                            pyi_deps.add(parts[1] + "." + name)
 
                 if "typing" in pyi_deps:
                     pyi_deps.discard("typing")
 
-                self.used_modules = tuple(
-                    (pyi_dep, None)
-                    for pyi_dep in
-                    pyi_deps
-                )
+                self.used_modules = tuple((pyi_dep, None) for pyi_dep in pyi_deps)
             else:
                 self.used_modules = ()
 

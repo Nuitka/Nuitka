@@ -29,55 +29,46 @@ import re
 
 from nuitka.Tracing import my_print
 
-ran_tests_re                 = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
-instance_re                  = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
-thread_re                    = re.compile(r"[Tt]hread 0x[0-9a-fA-F]+")
-compiled_types_re            = re.compile(
+ran_tests_re = re.compile(r"^(Ran \d+ tests? in )\-?\d+\.\d+s$")
+instance_re = re.compile(r"at (?:0x)?[0-9a-fA-F]+(;?\s|\>)")
+thread_re = re.compile(r"[Tt]hread 0x[0-9a-fA-F]+")
+compiled_types_re = re.compile(
     r"compiled_(module|function|generator|method|frame|coroutine|async_generator|cell)"
 )
-module_repr_re               = re.compile(r"(\<module '.*?' from ').*?('\>)")
+module_repr_re = re.compile(r"(\<module '.*?' from ').*?('\>)")
 
-global_name_error_re         = re.compile(
-    r"global (name ')(.*?)(' is not defined)"
-)
-non_ascii_error_rt           = re.compile(
-    r"(SyntaxError: Non-ASCII character.*? on line) \d+"
-)
-python_win_lib_re            = re.compile(
-    r"[a-zA-Z]:\\\\?[Pp]ython(.*?\\\\?)[Ll]ib"
-)
-local_port_re = re.compile(
-    r"(127\.0\.0\.1):\d{2,5}"
-)
+global_name_error_re = re.compile(r"global (name ')(.*?)(' is not defined)")
+non_ascii_error_rt = re.compile(r"(SyntaxError: Non-ASCII character.*? on line) \d+")
+python_win_lib_re = re.compile(r"[a-zA-Z]:\\\\?[Pp]ython(.*?\\\\?)[Ll]ib")
+local_port_re = re.compile(r"(127\.0\.0\.1):\d{2,5}")
 
 
-traceback_re                 = re.compile(
-    r'(F|f)ile "(.*?)", line (\d+)'
-)
+traceback_re = re.compile(r'(F|f)ile "(.*?)", line (\d+)')
+
 
 def traceback_re_callback(match):
     return r'%sile "%s", line %s' % (
         match.group(1),
         os.path.realpath(os.path.abspath(match.group(2))),
-        match.group(3)
+        match.group(3),
     )
 
-importerror_re               = re.compile(
+
+importerror_re = re.compile(
     r"""(ImportError(?:\("|: )cannot import name '\w+' from '.*?' )\((.*?)\)"""
 )
 
-def import_re_callback(match):
-#    print (match.groups(), os.path.abspath(match.group(2)))
 
-    return r'%s( >> %s)' % (
+def import_re_callback(match):
+    #    print (match.groups(), os.path.abspath(match.group(2)))
+
+    return r"%s( >> %s)" % (
         match.group(1),
-        os.path.realpath(os.path.abspath(match.group(2)))
+        os.path.realpath(os.path.abspath(match.group(2))),
     )
 
 
-tempfile_re                  = re.compile(
-    r'/tmp/tmp[a-z0-9_]*'
-)
+tempfile_re = re.compile(r"/tmp/tmp[a-z0-9_]*")
 
 
 def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
@@ -87,9 +78,9 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
     result = []
 
     # Fix import "readline" because output sometimes starts with "\x1b[?1034h"
-    m = re.match(b'\\x1b\\[[^h]+h', output)
+    m = re.match(b"\\x1b\\[[^h]+h", output)
     if m:
-        output = output[len(m.group()):]
+        output = output[len(m.group()) :]
 
     lines = output.split(b"\n")
     if syntax_errors:
@@ -103,17 +94,15 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
         if type(line) is not str:
             line = line.decode("utf-8" if os.name != "nt" else "cp850")
 
-        if line.endswith('\r'):
+        if line.endswith("\r"):
             line = line[:-1]
 
         if line.startswith("REFCOUNTS"):
-            first_value = line[line.find('[')+1:line.find(',')]
-            last_value = line[line.rfind(' ')+1:line.rfind(']')]
-            line = line.\
-              replace(first_value, "xxxxx").\
-              replace(last_value, "xxxxx")
+            first_value = line[line.find("[") + 1 : line.find(",")]
+            last_value = line[line.rfind(" ") + 1 : line.rfind("]")]
+            line = line.replace(first_value, "xxxxx").replace(last_value, "xxxxx")
 
-        if line.startswith('[') and line.endswith("refs]"):
+        if line.startswith("[") and line.endswith("refs]"):
             continue
 
         if ignore_warnings and line.startswith("Nuitka:WARNING"):
@@ -152,10 +141,13 @@ def makeDiffable(output, ignore_warnings, ignore_infos, syntax_errors):
 
         # This is a bug potentially, occurs only for CPython when re-directed,
         # we are going to ignore the issue as Nuitka is fine.
-        if line == """\
+        if (
+            line
+            == """\
 Exception RuntimeError: 'maximum recursion depth \
 exceeded while calling a Python object' in \
-<type 'exceptions.AttributeError'> ignored""":
+<type 'exceptions.AttributeError'> ignored"""
+        ):
             continue
 
         # TODO: Harmonize exception ignored in function or method.
@@ -175,8 +167,7 @@ exceeded while calling a Python object' in \
 
         # This is for NetBSD and OpenBSD, which seems to build "libpython" so
         # that it gives such warnings.
-        if "() possibly used unsafely" in line or \
-           "() is almost always misused" in line:
+        if "() possibly used unsafely" in line or "() is almost always misused" in line:
             continue
 
         # This is for CentOS5, where the linker says this, and it's hard to
@@ -186,9 +177,11 @@ exceeded while calling a Python object' in \
 
         # This is for self compiled Python with default options, gives this
         # harmless option for every time we link to "libpython".
-        if "is dangerous, better use `mkstemp'" in line or \
-           "In function `posix_tempnam'" in line or \
-           "In function `posix_tmpnam'" in line:
+        if (
+            "is dangerous, better use `mkstemp'" in line
+            or "In function `posix_tempnam'" in line
+            or "In function `posix_tmpnam'" in line
+        ):
             continue
 
         # Ignore spurios clcache warning.
@@ -200,32 +193,27 @@ exceeded while calling a Python object' in \
     return result
 
 
-def compareOutput(kind, out_cpython, out_nuitka, ignore_warnings, ignore_infos,
-                  syntax_errors):
+def compareOutput(
+    kind, out_cpython, out_nuitka, ignore_warnings, ignore_infos, syntax_errors
+):
     fromdate = ""
     todate = ""
 
     diff = difflib.unified_diff(
         makeDiffable(out_cpython, ignore_warnings, ignore_infos, syntax_errors),
         makeDiffable(out_nuitka, ignore_warnings, ignore_infos, syntax_errors),
-        "{program} ({detail})".format(
-            program = os.environ["PYTHON"],
-            detail  = kind
-        ),
-        "{program} ({detail})".format(
-            program = "nuitka",
-            detail  = kind
-        ),
+        "{program} ({detail})".format(program=os.environ["PYTHON"], detail=kind),
+        "{program} ({detail})".format(program="nuitka", detail=kind),
         fromdate,
         todate,
-        n = 3
+        n=3,
     )
 
     result = list(diff)
 
     if result:
         for line in result:
-            my_print(line, end = '\n' if not line.startswith("---") else "")
+            my_print(line, end="\n" if not line.startswith("---") else "")
 
         return 1
     else:

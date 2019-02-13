@@ -44,26 +44,18 @@ def checkFrameStatements(value):
     assert None not in value
 
     for statement in value:
-        assert statement.isStatement() or statement.isStatementsFrame(), \
-          statement
+        assert statement.isStatement() or statement.isStatementsFrame(), statement
 
     return tuple(value)
 
 
-
 class StatementsFrameBase(StatementsSequence):
-    checkers = {
-        "statements" : checkFrameStatements
-    }
+    checkers = {"statements": checkFrameStatements}
 
     __slots__ = ("guard_mode", "code_object", "needs_frame_exception_preserve")
 
     def __init__(self, statements, guard_mode, code_object, source_ref):
-        StatementsSequence.__init__(
-            self,
-            statements = statements,
-            source_ref = source_ref
-        )
+        StatementsSequence.__init__(self, statements=statements, source_ref=source_ref)
 
         # TODO: Why not have multiple classes for this.
         self.guard_mode = guard_mode
@@ -76,9 +68,7 @@ class StatementsFrameBase(StatementsSequence):
         return True
 
     def getDetails(self):
-        result = {
-            "code_object" : self.code_object
-        }
+        result = {"code_object": self.code_object}
 
         result.update(StatementsSequence.getDetails(self))
 
@@ -107,11 +97,7 @@ class StatementsFrameBase(StatementsSequence):
 
         code_object = CodeObjectSpec(**code_object_args)
 
-        return cls(
-            code_object = code_object,
-            source_ref  = source_ref,
-            **other_args
-        )
+        return cls(code_object=code_object, source_ref=source_ref, **other_args)
 
     def getGuardMode(self):
         return self.guard_mode
@@ -133,38 +119,40 @@ class StatementsFrameBase(StatementsSequence):
 
         if not provider.isCompiledPythonModule():
             self.code_object.updateLocalNames(
-                [
-                    variable.getName() for
-                    variable in
-                    provider.getLocalVariables()
-                ]
+                [variable.getName() for variable in provider.getLocalVariables()]
             )
 
         entry_point = provider.getEntryPoint()
 
-        is_optimized = not entry_point.isCompiledPythonModule() and \
-                       not entry_point.isExpressionClassBody() and \
-                       not entry_point.isUnoptimized()
+        is_optimized = (
+            not entry_point.isCompiledPythonModule()
+            and not entry_point.isExpressionClassBody()
+            and not entry_point.isUnoptimized()
+        )
 
         self.code_object.setFlagIsOptimizedValue(is_optimized)
 
-        new_locals = not provider.isCompiledPythonModule() and \
-                     (python_version < 340 or (
-                     not provider.isExpressionClassBody() and \
-                     not provider.isUnoptimized()))
+        new_locals = not provider.isCompiledPythonModule() and (
+            python_version < 340
+            or (not provider.isExpressionClassBody() and not provider.isUnoptimized())
+        )
 
         self.code_object.setFlagNewLocalsValue(new_locals)
 
-        if provider.isExpressionGeneratorObjectBody() or \
-           provider.isExpressionCoroutineObjectBody() or \
-           provider.isExpressionAsyncgenObjectBody():
+        if (
+            provider.isExpressionGeneratorObjectBody()
+            or provider.isExpressionCoroutineObjectBody()
+            or provider.isExpressionAsyncgenObjectBody()
+        ):
             closure_provider = provider.getParentVariableProvider()
         else:
             closure_provider = provider
 
-        has_closure  = closure_provider.isExpressionFunctionBody() and \
-                       closure_provider.getClosureVariables() != () and \
-                       not closure_provider.isExpressionClassBody()
+        has_closure = (
+            closure_provider.isExpressionFunctionBody()
+            and closure_provider.getClosureVariables() != ()
+            and not closure_provider.isExpressionClassBody()
+        )
 
         self.code_object.setFlagHasClosureValue(has_closure)
 
@@ -188,26 +176,28 @@ class StatementsFrameBase(StatementsSequence):
             # May be frames embedded.
             if statement.isStatementsFrame():
                 new_statement = statement.computeStatementsSequence(
-                    trace_collection = trace_collection
+                    trace_collection=trace_collection
                 )
             else:
-                new_statement = trace_collection.onStatement(
-                    statement = statement
-                )
+                new_statement = trace_collection.onStatement(statement=statement)
 
             if new_statement is not None:
-                if new_statement.isStatementsSequence() and \
-                   not new_statement.isStatementsFrame():
+                if (
+                    new_statement.isStatementsSequence()
+                    and not new_statement.isStatementsFrame()
+                ):
                     new_statements.extend(new_statement.getStatements())
                 else:
                     new_statements.append(new_statement)
 
-                if statement is not statements[-1] and \
-                   new_statement.isStatementAborting():
+                if (
+                    statement is not statements[-1]
+                    and new_statement.isStatementAborting()
+                ):
                     trace_collection.signalChange(
                         "new_statements",
-                        statements[count+1].getSourceReference(),
-                        "Removed dead statements."
+                        statements[count + 1].getSourceReference(),
+                        "Removed dead statements.",
                     )
 
                     break
@@ -216,7 +206,8 @@ class StatementsFrameBase(StatementsSequence):
             trace_collection.signalChange(
                 "new_statements",
                 self.getSourceReference(),
-                "Removed empty frame object of '%s'." % self.code_object.getCodeObjectName()
+                "Removed empty frame object of '%s'."
+                % self.code_object.getCodeObjectName(),
             )
 
             return None
@@ -231,14 +222,12 @@ class StatementsFrameBase(StatementsSequence):
         # Determine statements inside the frame, that need not be in a frame,
         # because they wouldn't raise an exception.
         outside_pre = []
-        while new_statements and \
-              not new_statements[0].needsFrame():
+        while new_statements and not new_statements[0].needsFrame():
             outside_pre.append(new_statements[0])
             del new_statements[0]
 
         outside_post = []
-        while new_statements and \
-              not new_statements[-1].needsFrame():
+        while new_statements and not new_statements[-1].needsFrame():
             outside_post.insert(0, new_statements[-1])
             del new_statements[-1]
 
@@ -249,20 +238,18 @@ class StatementsFrameBase(StatementsSequence):
                 self.setStatements(new_statements)
 
                 return makeStatementsSequenceReplacementNode(
-                    statements = outside_pre + [self] + \
-                                 outside_post,
-                    node       = self
+                    statements=outside_pre + [self] + outside_post, node=self
                 )
             else:
                 trace_collection.signalChange(
                     "new_statements",
                     self.getSourceReference(),
-                    "Removed useless frame object of '%s'." % self.code_object.getCodeObjectName()
+                    "Removed useless frame object of '%s'."
+                    % self.code_object.getCodeObjectName(),
                 )
 
                 return makeStatementsSequenceReplacementNode(
-                    statements = outside_pre + outside_post,
-                    node       = self
+                    statements=outside_pre + outside_post, node=self
                 )
         else:
             if statements != new_statements:
@@ -271,17 +258,16 @@ class StatementsFrameBase(StatementsSequence):
             return self
 
 
-
 class StatementsFrameModule(StatementsFrameBase):
     kind = "STATEMENTS_FRAME_MODULE"
 
     def __init__(self, statements, code_object, source_ref):
         StatementsFrameBase.__init__(
             self,
-            statements  = statements,
-            code_object = code_object,
-            guard_mode  = "once",
-            source_ref  = source_ref
+            statements=statements,
+            code_object=code_object,
+            guard_mode="once",
+            source_ref=source_ref,
         )
 
     @staticmethod
@@ -295,10 +281,10 @@ class StatementsFrameFunction(StatementsFrameBase):
     def __init__(self, statements, code_object, source_ref):
         StatementsFrameBase.__init__(
             self,
-            statements  = statements,
-            code_object = code_object,
-            guard_mode  = "full",
-            source_ref  = source_ref
+            statements=statements,
+            code_object=code_object,
+            guard_mode="full",
+            source_ref=source_ref,
         )
 
     @staticmethod
@@ -312,10 +298,10 @@ class StatementsFrameGenerator(StatementsFrameBase):
     def __init__(self, statements, code_object, source_ref):
         StatementsFrameBase.__init__(
             self,
-            statements  = statements,
-            code_object = code_object,
-            guard_mode  = "generator",
-            source_ref  = source_ref
+            statements=statements,
+            code_object=code_object,
+            guard_mode="generator",
+            source_ref=source_ref,
         )
 
     @staticmethod
@@ -329,10 +315,10 @@ class StatementsFrameCoroutine(StatementsFrameBase):
     def __init__(self, statements, code_object, source_ref):
         StatementsFrameBase.__init__(
             self,
-            statements  = statements,
-            code_object = code_object,
-            guard_mode  = "generator",
-            source_ref  = source_ref
+            statements=statements,
+            code_object=code_object,
+            guard_mode="generator",
+            source_ref=source_ref,
         )
 
     @staticmethod
@@ -346,10 +332,10 @@ class StatementsFrameAsyncgen(StatementsFrameBase):
     def __init__(self, statements, code_object, source_ref):
         StatementsFrameBase.__init__(
             self,
-            statements  = statements,
-            code_object = code_object,
-            guard_mode  = "generator",
-            source_ref  = source_ref
+            statements=statements,
+            code_object=code_object,
+            guard_mode="generator",
+            source_ref=source_ref,
         )
 
     @staticmethod

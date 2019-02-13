@@ -63,7 +63,7 @@ def addFromDirectory(path, suffixes, blacklist):
             yield fullpath
 
 
-def scanTargets(positional_args, suffixes, blacklist = ()):
+def scanTargets(positional_args, suffixes, blacklist=()):
     for positional_arg in positional_args:
         positional_arg = os.path.normpath(positional_arg)
 

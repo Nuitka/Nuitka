@@ -34,19 +34,11 @@ from nuitka.tools.quality.autoformat.Autoformat import cleanupWindowsNewlines
 # Unchanged, running from checkout, use the parent directory, the nuitka
 # package ought be there.
 sys.path.insert(
-    0,
-    os.path.normpath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            ".."
-        )
-    )
+    0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 )
 
-from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH # isort:skip
-from nuitka.tools.quality.ScanSources import scanTargets # isort:skip
+from nuitka.tools.Basics import goHome, addPYTHONPATH, setupPATH  # isort:skip
+from nuitka.tools.quality.ScanSources import scanTargets  # isort:skip
 
 
 def main():
@@ -59,21 +51,17 @@ def main():
 
     parser.add_option(
         "--verbose",
-        action  = "store_true",
-        dest    = "verbose",
-        default = False,
-        help    = """\
-        Default is %default."""
+        action="store_true",
+        dest="verbose",
+        default=False,
+        help="""\
+        Default is %default.""",
     )
 
     _options, positional_args = parser.parse_args()
 
     if not positional_args:
-        positional_args = [
-            "bin",
-            "nuitka",
-            "tests/reflected/compile_itself.py"
-        ]
+        positional_args = ["bin", "nuitka", "tests/reflected/compile_itself.py"]
 
     target_files = []
     for filename in scanTargets(positional_args, (".py", ".scons")):
@@ -85,16 +73,17 @@ def main():
 
         # Make imports local if possible.
         if package_name.startswith("nuitka" + os.path.sep):
-            package_name = package_name.replace(os.path.sep, '.')
+            package_name = package_name.replace(os.path.sep, ".")
 
             source_code = open(filename).read()
-            updated_code = re.sub(r"from %s import" % package_name, "from . import", source_code)
+            updated_code = re.sub(
+                r"from %s import" % package_name, "from . import", source_code
+            )
             updated_code = re.sub(r"from %s\." % package_name, "from .", source_code)
 
             if source_code != updated_code:
-                with open(filename, 'w') as out_file:
+                with open(filename, "w") as out_file:
                     out_file.write(updated_code)
-
 
         target_files.append(filename)
 
@@ -102,18 +91,20 @@ def main():
     subprocess.check_call(
         [
             "isort",
-            "-ot", # Order imports by type in addition to alphabetically
-            "-m3", # "vert-hanging"
-            "-up", # Prefer braces () over \ for line continuation.
-            "-ns", # Do not ignore those:
-            "__init__.py"
-        ] + target_files
+            "-ot",  # Order imports by type in addition to alphabetically
+            "-m3",  # "vert-hanging"
+            "-up",  # Prefer braces () over \ for line continuation.
+            "-ns",  # Do not ignore those:
+            "__init__.py",
+        ]
+        + target_files
     )
 
     # For Windows, work around that isort changes encoding.
     if os.name == "nt":
         for filename in target_files:
             cleanupWindowsNewlines(filename)
+
 
 if __name__ == "__main__":
     main()

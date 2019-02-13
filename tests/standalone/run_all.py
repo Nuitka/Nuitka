@@ -22,12 +22,13 @@
 import os
 import sys
 
-# Find nuitka package relative to us.
+# Find nuitka package relative to us. The replacement is for POSIX python
+# and Windows paths on command line.
 sys.path.insert(
     0,
     os.path.normpath(
         os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
+            os.path.dirname(os.path.abspath(__file__.replace("\\", os.sep))),
             "..",
             ".."
         )

@@ -32,8 +32,8 @@ class SourceCodeCollector(object):
     def __call__(self, code):
         self.emit(code)
 
-    def emit(self,code):
-        for line in code.split('\n'):
+    def emit(self, code):
+        for line in code.split("\n"):
             self.codes.append(line)
 
     def emitTo(self, emit, level):

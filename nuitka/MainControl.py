@@ -39,7 +39,7 @@ from nuitka.PythonVersions import (
     getSupportedPythonVersions,
     isUninstalledPython,
     python_version,
-    python_version_str
+    python_version_str,
 )
 from nuitka.tree import SyntaxErrors
 from nuitka.utils import Execution, InstanceCounters, MemoryUsage, Utils
@@ -49,7 +49,7 @@ from nuitka.utils.FileOperations import (
     hasFilenameExtension,
     listDir,
     makePath,
-    removeDirectory
+    removeDirectory,
 )
 
 from . import ModuleRegistry, Options, TreeXML
@@ -73,10 +73,10 @@ def createNodeTree(filename):
 
     # First, build the raw node tree from the source code.
     main_module = Building.buildModuleTree(
-        filename = filename,
-        package  = None,
-        is_top   = True,
-        is_main  = not Options.shallMakeModule()
+        filename=filename,
+        package=None,
+        is_top=True,
+        is_main=not Options.shallMakeModule(),
     )
     ModuleRegistry.addRootModule(main_module)
 
@@ -91,61 +91,48 @@ def createNodeTree(filename):
     # Prepare the ".dist" directory, throwing away what was there before.
     if Options.isStandaloneMode():
         standalone_dir = getStandaloneDirectoryPath(main_module)
-        removeDirectory(
-            path          = standalone_dir,
-            ignore_errors = True
-        )
+        removeDirectory(path=standalone_dir, ignore_errors=True)
         makePath(standalone_dir)
 
-    deleteFile(
-        path       = getResultFullpath(main_module),
-        must_exist = False
-    )
+    deleteFile(path=getResultFullpath(main_module), must_exist=False)
 
     # Second, do it for the directories given.
     for plugin_filename in Options.getShallFollowExtra():
-        Recursion.checkPluginPath(
-            plugin_filename = plugin_filename,
-            module_package  = None
-        )
+        Recursion.checkPluginPath(plugin_filename=plugin_filename, module_package=None)
 
     for pattern in Options.getShallFollowExtraFilePatterns():
-        Recursion.checkPluginFilenamePattern(
-            pattern = pattern
-        )
+        Recursion.checkPluginFilenamePattern(pattern=pattern)
 
     for package_name in Options.getMustIncludePackages():
         package_package, package_directory, kind = Importing.findModule(
-            importing      = None,
-            module_name    = package_name,
-            parent_package = None,
-            level          = 0,
-            warn           = False
+            importing=None,
+            module_name=package_name,
+            parent_package=None,
+            level=0,
+            warn=False,
         )
 
         if kind != "absolute":
             sys.exit("Error, failed to locate package %r." % package_name)
 
         Recursion.checkPluginPath(
-            plugin_filename = package_directory,
-            module_package  = package_package
+            plugin_filename=package_directory, module_package=package_package
         )
 
     for module_name in Options.getMustIncludeModules():
         module_package, module_filename, kind = Importing.findModule(
-            importing      = None,
-            module_name    = module_name,
-            parent_package = None,
-            level          = 0,
-            warn           = False
+            importing=None,
+            module_name=module_name,
+            parent_package=None,
+            level=0,
+            warn=False,
         )
 
         if kind != "absolute":
             sys.exit("Error, failed to locate module %r." % module_name)
 
         Recursion.checkPluginSinglePath(
-            plugin_filename = module_filename,
-            module_package  = module_package
+            plugin_filename=module_filename, module_package=module_package
         )
 
     # Then optimize the tree and potentially recursed modules.
@@ -175,17 +162,13 @@ def getSourceDirectoryPath(main_module):
     assert main_module.isCompiledPythonModule()
 
     return Options.getOutputPath(
-        path = os.path.basename(
-            getTreeFilenameWithSuffix(main_module, ".build")
-        )
+        path=os.path.basename(getTreeFilenameWithSuffix(main_module, ".build"))
     )
 
 
 def getStandaloneDirectoryPath(main_module):
     return Options.getOutputPath(
-        path = os.path.basename(
-            getTreeFilenameWithSuffix(main_module, ".dist")
-        )
+        path=os.path.basename(getTreeFilenameWithSuffix(main_module, ".dist"))
     )
 
 
@@ -195,15 +178,11 @@ def getResultBasepath(main_module):
     if Options.isStandaloneMode():
         return os.path.join(
             getStandaloneDirectoryPath(main_module),
-            os.path.basename(
-                getTreeFilenameWithSuffix(main_module, "")
-            )
+            os.path.basename(getTreeFilenameWithSuffix(main_module, "")),
         )
     else:
         return Options.getOutputPath(
-            path = os.path.basename(
-                getTreeFilenameWithSuffix(main_module, "")
-            )
+            path=os.path.basename(getTreeFilenameWithSuffix(main_module, ""))
         )
 
 
@@ -229,15 +208,26 @@ def getResultFullpath(main_module):
 
 def cleanSourceDirectory(source_dir):
     extensions = (
-        ".bin", ".c", ".cpp", ".exp", ".h",
-        ".lib", ".manifest", ".o", ".obj",
-        ".os", ".rc", ".res", ".S", ".txt"
+        ".bin",
+        ".c",
+        ".cpp",
+        ".exp",
+        ".h",
+        ".lib",
+        ".manifest",
+        ".o",
+        ".obj",
+        ".os",
+        ".rc",
+        ".res",
+        ".S",
+        ".txt",
     )
 
     if os.path.isdir(source_dir):
         for path, _filename in listDir(source_dir):
             if hasFilenameExtension(path, extensions):
-                deleteFile(path, must_exist = True)
+                deleteFile(path, must_exist=True)
     else:
         makePath(source_dir)
 
@@ -250,11 +240,11 @@ def pickSourceFilenames(source_dir, modules):
     module_filenames = {}
 
     def getFilenames(module):
-        base_filename =  os.path.join(
+        base_filename = os.path.join(
             source_dir,
             "module." + module.getFullName()
-              if not module.isInternalModule() else
-            module.getFullName()
+            if not module.isInternalModule()
+            else module.getFullName(),
         )
 
         # Note: Could detect if the file system is cases sensitive in source_dir
@@ -281,16 +271,17 @@ def pickSourceFilenames(source_dir, modules):
 
     # Second pass, this time sorted, so we get deterministic results. We will
     # apply an @1/@2 to disambiguate the filenames.
-    for module in sorted(modules, key = lambda x : x.getFullName()):
+    for module in sorted(modules, key=lambda x: x.getFullName()):
         if module.isPythonShlibModule():
             continue
 
         base_filename = base_filename, collision_filename = getFilenames(module)
 
         if collision_filename in collision_filenames:
-            collision_counts[ collision_filename ] = \
-              collision_counts.get(collision_filename, 0) + 1
-            hash_suffix = "@%d" % collision_counts[ collision_filename ]
+            collision_counts[collision_filename] = (
+                collision_counts.get(collision_filename, 0) + 1
+            )
+            hash_suffix = "@%d" % collision_counts[collision_filename]
         else:
             hash_suffix = ""
 
@@ -327,8 +318,8 @@ def makeSourceDirectory(main_module):
     for module in ModuleRegistry.getDoneUserModules():
         if module.isCompiledPythonModule():
             uncompiled_module = ModuleRegistry.getUncompiledModule(
-                module_name     = module.getFullName(),
-                module_filename = module.getCompileTimeFilename()
+                module_name=module.getFullName(),
+                module_filename=module.getCompileTimeFilename(),
             )
 
             if uncompiled_module is not None:
@@ -336,8 +327,10 @@ def makeSourceDirectory(main_module):
                 # module. Some uncompiled modules may have been asked by the user
                 # or technically required. By default, frozen code if it exists
                 # is preferred, as it will be from standalone mode adding it.
-                if uncompiled_module.isUserProvided() or \
-                   uncompiled_module.isTechnical():
+                if (
+                    uncompiled_module.isUserProvided()
+                    or uncompiled_module.isTechnical()
+                ):
                     ModuleRegistry.removeDoneModule(module)
                 else:
                     ModuleRegistry.removeUncompiledModule(uncompiled_module)
@@ -345,17 +338,14 @@ def makeSourceDirectory(main_module):
     # Lets check if the recurse-to modules are actually present, and warn the
     # user if one of those was not found.
     for any_case_module in Options.getShallFollowModules():
-        if '*' in any_case_module or '{' in any_case_module:
+        if "*" in any_case_module or "{" in any_case_module:
             continue
 
         for module in ModuleRegistry.getDoneUserModules():
             if module.getFullName() == any_case_module:
                 break
         else:
-            warning(
-                "Didn't recurse to '%s', apparently not used." % \
-                any_case_module
-            )
+            warning("Didn't recurse to '%s', apparently not used." % any_case_module)
 
     # Prepare code generation, i.e. execute finalization for it.
     for module in ModuleRegistry.getDoneModules():
@@ -366,8 +356,7 @@ def makeSourceDirectory(main_module):
     source_dir = getSourceDirectoryPath(main_module)
 
     module_filenames = pickSourceFilenames(
-        source_dir = source_dir,
-        modules    = ModuleRegistry.getDoneModules()
+        source_dir=source_dir, modules=ModuleRegistry.getDoneModules()
     )
 
     # First pass, generate code and use constants doing so, but prepare the
@@ -381,9 +370,9 @@ def makeSourceDirectory(main_module):
 
             try:
                 prepared_modules[c_filename] = CodeGeneration.prepareModuleCode(
-                    global_context = global_context,
-                    module         = module,
-                    module_name    = module.getFullName(),
+                    global_context=global_context,
+                    module=module,
+                    module_name=module.getFullName(),
                 )
             except Exception:
                 warning("Problem creating code for module %r." % module)
@@ -401,21 +390,17 @@ def makeSourceDirectory(main_module):
             template_values, module_context = prepared_modules[c_filename]
 
             source_code = CodeGeneration.generateModuleCode(
-                module_context  = module_context,
-                template_values = template_values
+                module_context=module_context, template_values=template_values
             )
 
-            writeSourceCode(
-                filename    = c_filename,
-                source_code = source_code
-            )
+            writeSourceCode(filename=c_filename, source_code=source_code)
 
             if Options.isShowInclusion():
                 info("Included compiled module '%s'." % module.getFullName())
         elif module.isPythonShlibModule():
             target_filename = os.path.join(
                 getStandaloneDirectoryPath(main_module),
-                *module.getFullName().split('.')
+                *module.getFullName().split(".")
             )
             target_filename += Utils.getSharedLibrarySuffix()
 
@@ -424,17 +409,10 @@ def makeSourceDirectory(main_module):
             if not os.path.isdir(target_dir):
                 makePath(target_dir)
 
-            shutil.copyfile(
-                module.getFilename(),
-                target_filename
-            )
+            shutil.copyfile(module.getFilename(), target_filename)
 
             standalone_entry_points.append(
-                (
-                    module.getFilename(),
-                    target_filename,
-                    module.getPackage()
-                )
+                (module.getFilename(), target_filename, module.getPackage())
             )
         elif module.isUncompiledPythonModule():
             pass
@@ -442,13 +420,8 @@ def makeSourceDirectory(main_module):
             assert False, module
 
     writeSourceCode(
-        filename    = os.path.join(
-            source_dir,
-            "__constants.c"
-        ),
-        source_code = ConstantCodes.getConstantsDefinitionCode(
-            context = global_context
-        )
+        filename=os.path.join(source_dir, "__constants.c"),
+        source_code=ConstantCodes.getConstantsDefinitionCode(context=global_context),
     )
 
     helper_decl_code, helper_impl_code = CodeGeneration.generateHelpersCode(
@@ -456,19 +429,11 @@ def makeSourceDirectory(main_module):
     )
 
     writeSourceCode(
-        filename    = os.path.join(
-            source_dir,
-            "__helpers.h"
-        ),
-        source_code = helper_decl_code
+        filename=os.path.join(source_dir, "__helpers.h"), source_code=helper_decl_code
     )
 
     writeSourceCode(
-        filename    = os.path.join(
-            source_dir,
-            "__helpers.c"
-        ),
-        source_code = helper_impl_code
+        filename=os.path.join(source_dir, "__helpers.c"), source_code=helper_impl_code
     )
 
 
@@ -482,28 +447,27 @@ def runScons(main_module, quiet):
     # pylint: disable=too-many-branches,too-many-statements
 
     options = {
-        "name"            : os.path.basename(
-            getTreeFilenameWithSuffix(main_module, "")
+        "name": os.path.basename(getTreeFilenameWithSuffix(main_module, "")),
+        "result_name": getResultBasepath(main_module),
+        "source_dir": getSourceDirectoryPath(main_module),
+        "debug_mode": _asBoolStr(Options.isDebug()),
+        "python_debug": _asBoolStr(Options.isPythonDebug()),
+        "unstripped_mode": _asBoolStr(Options.isUnstripped()),
+        "module_mode": _asBoolStr(Options.shallMakeModule()),
+        "full_compat": _asBoolStr(Options.isFullCompat()),
+        "experimental": ",".join(Options.getExperimentalIndications()),
+        "trace_mode": _asBoolStr(Options.shallTraceExecution()),
+        "python_version": python_version_str,
+        "target_arch": Utils.getArchitecture(),
+        "python_prefix": sys.prefix,
+        "nuitka_src": SconsInterface.getSconsDataPath(),
+        "nuitka_cache": getCacheDir(),
+        "module_count": "%d"
+        % (
+            1
+            + len(ModuleRegistry.getDoneUserModules())
+            + len(ModuleRegistry.getUncompiledNonTechnicalModules())
         ),
-        "result_name"     : getResultBasepath(main_module),
-        "source_dir"      : getSourceDirectoryPath(main_module),
-        "debug_mode"      : _asBoolStr(Options.isDebug()),
-        "python_debug"    : _asBoolStr(Options.isPythonDebug()),
-        "unstripped_mode" : _asBoolStr(Options.isUnstripped()),
-        "module_mode"     : _asBoolStr(Options.shallMakeModule()),
-        "full_compat"     : _asBoolStr(Options.isFullCompat()),
-        "experimental"    : ','.join(Options.getExperimentalIndications()),
-        "trace_mode"      : _asBoolStr(Options.shallTraceExecution()),
-        "python_version"  : python_version_str,
-        "target_arch"     : Utils.getArchitecture(),
-        "python_prefix"   : sys.prefix,
-        "nuitka_src"      : SconsInterface.getSconsDataPath(),
-        "nuitka_cache"    : getCacheDir(),
-        "module_count"    : "%d" % (
-            1 + \
-            len(ModuleRegistry.getDoneUserModules()) + \
-            len(ModuleRegistry.getUncompiledNonTechnicalModules())
-        )
     }
 
     if not Options.shallMakeModule():
@@ -528,9 +492,11 @@ def runScons(main_module, quiet):
     if Options.isStandaloneMode():
         options["standalone_mode"] = "true"
 
-    if not Options.isStandaloneMode() and \
-       not Options.shallMakeModule() and \
-       isUninstalledPython():
+    if (
+        not Options.isStandaloneMode()
+        and not Options.shallMakeModule()
+        and isUninstalledPython()
+    ):
         options["uninstalled_python"] = "true"
 
     if ModuleRegistry.getUncompiledTechnicalModules():
@@ -548,7 +514,7 @@ def runScons(main_module, quiet):
         msvc_version = Options.getMsvcVersion()
 
         msvc_version = msvc_version.replace("exp", "Exp")
-        if '.' not in msvc_version:
+        if "." not in msvc_version:
             msvc_version += ".0"
 
         options["msvc_version"] = msvc_version
@@ -605,7 +571,7 @@ def writeSourceCode(filename, source_code):
         with open(filename, "wb") as output_file:
             output_file.write(source_code.encode("latin1"))
     else:
-        with open(filename, 'w') as output_file:
+        with open(filename, "w") as output_file:
             output_file.write(source_code)
 
 
@@ -628,7 +594,7 @@ def callExecPython(args, clean_path, add_path):
 
     if add_path:
         if "PYTHONPATH" in os.environ:
-            os.environ["PYTHONPATH"] += ':' + Options.getOutputDir()
+            os.environ["PYTHONPATH"] += ":" + Options.getOutputDir()
         else:
             os.environ["PYTHONPATH"] = Options.getOutputDir()
 
@@ -653,28 +619,15 @@ def executeMain(binary_filename, clean_path):
 
         args = (gdb_path, "gdb", "-ex=run", "-ex=where", "--args", binary_filename)
 
-    callExecPython(
-        clean_path = clean_path,
-        add_path   = False,
-        args       = args
-    )
+    callExecPython(clean_path=clean_path, add_path=False, args=args)
 
 
 def executeModule(tree, clean_path):
     python_command = "__import__('%s')" % tree.getName()
 
-    args = (
-        sys.executable,
-        "python",
-        "-c",
-        python_command,
-    )
+    args = (sys.executable, "python", "-c", python_command)
 
-    callExecPython(
-        clean_path = clean_path,
-        add_path   = True,
-        args       = args
-    )
+    callExecPython(clean_path=clean_path, add_path=True, args=args)
 
 
 def compileTree(main_module):
@@ -682,27 +635,18 @@ def compileTree(main_module):
 
     if not Options.shallOnlyExecCCompilerCall():
         # Now build the target language code for the whole tree.
-        makeSourceDirectory(
-            main_module = main_module
-        )
+        makeSourceDirectory(main_module=main_module)
 
         frozen_code = generateBytecodeFrozenCode()
 
         if frozen_code is not None:
             writeSourceCode(
-                filename    = os.path.join(
-                    source_dir,
-                    "__frozen.c"
-                ),
-                source_code = frozen_code
+                filename=os.path.join(source_dir, "__frozen.c"), source_code=frozen_code
             )
 
         writeBinaryData(
-            filename    = os.path.join(
-                source_dir,
-                "__constants.bin"
-            ),
-            binary_data = ConstantCodes.stream_data.getBytes()
+            filename=os.path.join(source_dir, "__constants.bin"),
+            binary_data=ConstantCodes.stream_data.getBytes(),
         )
     else:
         source_dir = getSourceDirectoryPath(main_module)
@@ -713,7 +657,7 @@ def compileTree(main_module):
     if Options.isShowProgress() or Options.isShowMemory():
         info(
             "Total memory usage before running scons: {memory}:".format(
-                memory = MemoryUsage.getHumanReadableProcessMemoryUsage()
+                memory=MemoryUsage.getHumanReadableProcessMemoryUsage()
             )
         )
 
@@ -727,10 +671,7 @@ def compileTree(main_module):
         return True, {}
 
     # Run the Scons to build things.
-    result, options = runScons(
-        main_module = main_module,
-        quiet       = not Options.isShowScons()
-    )
+    result, options = runScons(main_module=main_module, quiet=not Options.isShowScons())
 
     return result, options
 
@@ -753,12 +694,16 @@ Nuitka is very syntax compatible with standard Python. It is currently running
 with Python version '%s', you might want to specify more clearly with the use
 of the precise Python interpreter binary and '-m nuitka', e.g. use this
 'python%s -m nuitka' option, if that's not the one the program expects.
-""" % (python_version_str, suggested_python_version_str)
+""" % (
+            python_version_str,
+            suggested_python_version_str,
+        )
 
     sys.exit(error_message)
 
 
 data_files = []
+
 
 def main():
     """ Main program flow of Nuitka
@@ -778,7 +723,7 @@ def main():
     # Inform the importing layer about the main script directory, so it can use
     # it when attempting to follow imports.
     Importing.setMainScriptDirectory(
-        main_dir = os.path.dirname(os.path.abspath(filename))
+        main_dir=os.path.dirname(os.path.abspath(filename))
     )
 
     # Detect to be frozen modules if any, so we can consider to not recurse
@@ -789,20 +734,15 @@ def main():
 
             if module.getName() == "site":
                 origin_prefix_filename = os.path.join(
-                    os.path.dirname(module.getCompileTimeFilename()),
-                    "orig-prefix.txt"
+                    os.path.dirname(module.getCompileTimeFilename()), "orig-prefix.txt"
                 )
 
                 if os.path.isfile(origin_prefix_filename):
-                    data_files.append(
-                        (filename, "orig-prefix.txt")
-                    )
+                    data_files.append((filename, "orig-prefix.txt"))
 
     # Turn that source code into a node tree structure.
     try:
-        main_module = createNodeTree(
-            filename = filename
-        )
+        main_module = createNodeTree(filename=filename)
     except (SyntaxError, IndentationError) as e:
         handleSyntaxError(e)
 
@@ -812,9 +752,7 @@ def main():
             dumpTreeXML(module)
     else:
         # Make the actual compilation.
-        result, options = compileTree(
-            main_module = main_module
-        )
+        result, options = compileTree(main_module=main_module)
 
         # Exit if compilation failed.
         if not result:
@@ -829,10 +767,7 @@ def main():
         if Options.isStandaloneMode():
             binary_filename = options["result_exe"]
 
-            standalone_entry_points.insert(
-                0,
-                (binary_filename, binary_filename, None)
-            )
+            standalone_entry_points.insert(0, (binary_filename, binary_filename, None))
 
             dist_dir = getStandaloneDirectoryPath(main_module)
 
@@ -847,51 +782,38 @@ def main():
                 )
 
             copyUsedDLLs(
-                source_dir              = getSourceDirectoryPath(main_module),
-                dist_dir                = dist_dir,
-                standalone_entry_points = standalone_entry_points
+                source_dir=getSourceDirectoryPath(main_module),
+                dist_dir=dist_dir,
+                standalone_entry_points=standalone_entry_points,
             )
 
             for module in ModuleRegistry.getDoneModules():
-                data_files.extend(
-                    Plugins.considerDataFiles(module)
-                )
+                data_files.extend(Plugins.considerDataFiles(module))
 
             for source_filename, target_filename in data_files:
                 target_filename = os.path.join(
-                    getStandaloneDirectoryPath(main_module),
-                    target_filename
+                    getStandaloneDirectoryPath(main_module), target_filename
                 )
 
                 makePath(os.path.dirname(target_filename))
 
-                shutil.copy2(
-                    source_filename,
-                    target_filename
-                )
+                shutil.copy2(source_filename, target_filename)
 
         # Remove the source directory (now build directory too) if asked to.
         if Options.isRemoveBuildDir():
             removeDirectory(
-                path          = getSourceDirectoryPath(main_module),
-                ignore_errors = False
+                path=getSourceDirectoryPath(main_module), ignore_errors=False
             )
 
         # Modules should not be executable, but Scons creates them like it, fix
         # it up here. TODO: Move inside scons file and avoid subprocess call.
         if Utils.getOS() != "Windows" and Options.shallMakeModule():
-            subprocess.call(
-                (
-                    "chmod",
-                    "-x",
-                    getResultFullpath(main_module)
-                )
-            )
+            subprocess.call(("chmod", "-x", getResultFullpath(main_module)))
 
         if Options.shallMakeModule() and Options.shallCreatePyiFile():
             pyi_filename = getResultBasepath(main_module) + ".pyi"
 
-            with open(pyi_filename, 'w') as pyi_file:
+            with open(pyi_filename, "w") as pyi_file:
                 pyi_file.write(
                     """\
 # This file was generated by Nuitka and describes the types of the
@@ -912,26 +834,24 @@ def main():
 # now. This was decided by PEP 484 designers.
 __name__ = ...
 
-""" % {
-                        "imports" : '\n'.join(
+"""
+                    % {
+                        "imports": "\n".join(
                             "import %s" % module_name
-                            for module_name in
-                            getImportedNames()
+                            for module_name in getImportedNames()
                         )
-
                     }
                 )
-
 
         # Execute the module immediately if option was given.
         if Options.shallExecuteImmediately():
             if Options.shallMakeModule():
                 executeModule(
-                    tree       = main_module,
-                    clean_path = Options.shallClearPythonPathEnvironment()
+                    tree=main_module,
+                    clean_path=Options.shallClearPythonPathEnvironment(),
                 )
             else:
                 executeMain(
-                    binary_filename = getResultFullpath(main_module),
-                    clean_path      = Options.shallClearPythonPathEnvironment()
+                    binary_filename=getResultFullpath(main_module),
+                    clean_path=Options.shallClearPythonPathEnvironment(),
                 )

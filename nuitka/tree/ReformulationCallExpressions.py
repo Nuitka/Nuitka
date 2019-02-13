@@ -29,7 +29,7 @@ from nuitka.nodes.ContainerMakingNodes import ExpressionMakeTuple
 from nuitka.nodes.FunctionNodes import (
     ExpressionFunctionCall,
     ExpressionFunctionCreation,
-    ExpressionFunctionRef
+    ExpressionFunctionRef,
 )
 from nuitka.nodes.OutlineNodes import ExpressionOutlineBody
 from nuitka.nodes.ReturnNodes import StatementReturn
@@ -49,7 +49,7 @@ from .ComplexCallHelperFunctions import (
     getFunctionCallHelperPosStarListStarDict,
     getFunctionCallHelperStarDict,
     getFunctionCallHelperStarList,
-    getFunctionCallHelperStarListStarDict
+    getFunctionCallHelperStarListStarDict,
 )
 from .ReformulationDictionaryCreation import buildDictionaryUnpackingArgs
 from .ReformulationSequenceCreation import buildListUnpacking
@@ -59,7 +59,7 @@ from .TreeHelpers import (
     getKind,
     makeDictCreationOrConstant,
     makeSequenceCreationOrConstant,
-    makeStatementsSequenceFromStatements
+    makeStatementsSequenceFromStatements,
 )
 
 
@@ -90,7 +90,6 @@ def buildCallNode(provider, node, source_ref):
         else:
             positional_args = buildNodeList(provider, node.args, source_ref)
 
-
     # Only the values of keyword pairs have a real source ref, and those only
     # really matter, so that makes sense.
     keys = []
@@ -101,69 +100,60 @@ def buildCallNode(provider, node, source_ref):
             assert python_version >= 350
 
             outline_body = ExpressionOutlineBody(
-                provider   = provider,
-                name       = "dict_unpacking_call",
-                source_ref = source_ref
+                provider=provider, name="dict_unpacking_call", source_ref=source_ref
             )
 
             tmp_called = outline_body.allocateTempVariable(
-                temp_scope = None,
-                name       = "called"
+                temp_scope=None, name="called"
             )
 
             helper_args = [
-                ExpressionTempVariableRef(
-                    variable   = tmp_called,
-                    source_ref = source_ref
-                ),
+                ExpressionTempVariableRef(variable=tmp_called, source_ref=source_ref),
                 ExpressionMakeTuple(
-                    elements   = buildDictionaryUnpackingArgs(
-                        provider   = provider,
-                        keys       = (keyword.arg for keyword in node.keywords),
-                        values     = (keyword.value for keyword in node.keywords),
-                        source_ref = source_ref
+                    elements=buildDictionaryUnpackingArgs(
+                        provider=provider,
+                        keys=(keyword.arg for keyword in node.keywords),
+                        values=(keyword.value for keyword in node.keywords),
+                        source_ref=source_ref,
                     ),
-                    source_ref = source_ref
-                )
+                    source_ref=source_ref,
+                ),
             ]
 
             dict_star_arg = ExpressionFunctionCall(
-                function   = ExpressionFunctionCreation(
-                    function_ref = ExpressionFunctionRef(
-                        function_body = getFunctionCallHelperDictionaryUnpacking(),
-                        source_ref    = source_ref
+                function=ExpressionFunctionCreation(
+                    function_ref=ExpressionFunctionRef(
+                        function_body=getFunctionCallHelperDictionaryUnpacking(),
+                        source_ref=source_ref,
                     ),
-                    defaults     = (),
-                    kw_defaults  = None,
-                    annotations  = None,
-                    source_ref   = source_ref
+                    defaults=(),
+                    kw_defaults=None,
+                    annotations=None,
+                    source_ref=source_ref,
                 ),
-                values     = helper_args,
-                source_ref = source_ref,
+                values=helper_args,
+                source_ref=source_ref,
             )
 
             outline_body.setBody(
                 makeStatementsSequenceFromStatements(
                     StatementAssignmentVariable(
-                        variable   = tmp_called,
-                        source     = called,
-                        source_ref = source_ref
+                        variable=tmp_called, source=called, source_ref=source_ref
                     ),
                     StatementReturn(
-                        expression = _makeCallNode(
-                            called          = ExpressionTempVariableRef(
-                                variable   = tmp_called,
-                                source_ref = source_ref
+                        expression=_makeCallNode(
+                            called=ExpressionTempVariableRef(
+                                variable=tmp_called, source_ref=source_ref
                             ),
-                            positional_args = positional_args,
-                            keys            = keys,
-                            values          = values,
-                            list_star_arg   = list_star_arg,
-                            dict_star_arg   = dict_star_arg,
-                            source_ref      = source_ref,
+                            positional_args=positional_args,
+                            keys=keys,
+                            values=values,
+                            list_star_arg=list_star_arg,
+                            dict_star_arg=dict_star_arg,
+                            source_ref=source_ref,
                         ),
-                        source_ref = source_ref
-                    )
+                        source_ref=source_ref,
+                    ),
                 )
             )
 
@@ -184,57 +174,50 @@ def buildCallNode(provider, node, source_ref):
     for keyword in keywords:
         keys.append(
             makeConstantRefNode(
-                constant      = keyword.arg,
-                source_ref    = source_ref,
-                user_provided = True
+                constant=keyword.arg, source_ref=source_ref, user_provided=True
             )
         )
-        values.append(
-            buildNode(provider, keyword.value, source_ref)
-        )
+        values.append(buildNode(provider, keyword.value, source_ref))
 
     if python_version < 350:
         list_star_arg = buildNode(provider, node.starargs, source_ref, True)
         dict_star_arg = buildNode(provider, node.kwargs, source_ref, True)
 
     return _makeCallNode(
-        called          = called,
-        positional_args = positional_args,
-        keys            = keys,
-        values          = values,
-        list_star_arg   = list_star_arg,
-        dict_star_arg   = dict_star_arg,
-        source_ref      = source_ref,
+        called=called,
+        positional_args=positional_args,
+        keys=keys,
+        values=values,
+        list_star_arg=list_star_arg,
+        dict_star_arg=dict_star_arg,
+        source_ref=source_ref,
     )
 
 
-def _makeCallNode(called, positional_args, keys, values, list_star_arg,
-                  dict_star_arg, source_ref):
+def _makeCallNode(
+    called, positional_args, keys, values, list_star_arg, dict_star_arg, source_ref
+):
     # Many variables, but only to cover the many complex call cases.
 
     if list_star_arg is None and dict_star_arg is None:
         result = makeExpressionCall(
-            called     = called,
-            args       = makeSequenceCreationOrConstant(
-                sequence_kind = "tuple",
-                elements      = positional_args,
-                source_ref    = source_ref
+            called=called,
+            args=makeSequenceCreationOrConstant(
+                sequence_kind="tuple", elements=positional_args, source_ref=source_ref
             ),
-            kw         = makeDictCreationOrConstant(
-                keys       = keys,
-                values     = values,
-                source_ref = source_ref
+            kw=makeDictCreationOrConstant(
+                keys=keys, values=values, source_ref=source_ref
             ),
-            source_ref = source_ref,
+            source_ref=source_ref,
         )
 
         if values:
             result.setCompatibleSourceReference(
-                source_ref = values[-1].getCompatibleSourceReference()
+                source_ref=values[-1].getCompatibleSourceReference()
             )
         elif positional_args:
             result.setCompatibleSourceReference(
-                source_ref = positional_args[-1].getCompatibleSourceReference()
+                source_ref=positional_args[-1].getCompatibleSourceReference()
             )
 
         return result
@@ -246,34 +229,22 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
             bool(positional_args),
             bool(keys),
             list_star_arg is not None,
-            dict_star_arg is not None
+            dict_star_arg is not None,
         )
 
         table = {
-            (True,   True,  True, False) :
-                getFunctionCallHelperPosKeywordsStarList,
-            (True,  False,  True, False) :
-                getFunctionCallHelperPosStarList,
-            (False,   True,  True, False) :
-                getFunctionCallHelperKeywordsStarList,
-            (False,  False,  True, False) :
-                getFunctionCallHelperStarList,
-            (True,   True, False,  True) :
-                getFunctionCallHelperPosKeywordsStarDict,
-            (True,  False, False,  True) :
-                getFunctionCallHelperPosStarDict,
-            (False,   True, False,  True) :
-                getFunctionCallHelperKeywordsStarDict,
-            (False,  False, False,  True) :
-                getFunctionCallHelperStarDict,
-            (True,   True,  True,  True) :
-                getFunctionCallHelperPosKeywordsStarListStarDict,
-            (True,  False,  True,  True) :
-                getFunctionCallHelperPosStarListStarDict,
-            (False,   True,  True,  True) :
-                getFunctionCallHelperKeywordsStarListStarDict,
-            (False,  False,  True,  True) :
-                getFunctionCallHelperStarListStarDict,
+            (True, True, True, False): getFunctionCallHelperPosKeywordsStarList,
+            (True, False, True, False): getFunctionCallHelperPosStarList,
+            (False, True, True, False): getFunctionCallHelperKeywordsStarList,
+            (False, False, True, False): getFunctionCallHelperStarList,
+            (True, True, False, True): getFunctionCallHelperPosKeywordsStarDict,
+            (True, False, False, True): getFunctionCallHelperPosStarDict,
+            (False, True, False, True): getFunctionCallHelperKeywordsStarDict,
+            (False, False, False, True): getFunctionCallHelperStarDict,
+            (True, True, True, True): getFunctionCallHelperPosKeywordsStarListStarDict,
+            (True, False, True, True): getFunctionCallHelperPosStarListStarDict,
+            (False, True, True, True): getFunctionCallHelperKeywordsStarListStarDict,
+            (False, False, True, True): getFunctionCallHelperStarListStarDict,
         }
 
         get_helper = table[key]
@@ -283,9 +254,9 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
         if positional_args:
             helper_args.append(
                 makeSequenceCreationOrConstant(
-                    sequence_kind = "tuple",
-                    elements      = positional_args,
-                    source_ref    = source_ref
+                    sequence_kind="tuple",
+                    elements=positional_args,
+                    source_ref=source_ref,
                 )
             )
 
@@ -296,9 +267,7 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
         if keys:
             helper_args.append(
                 makeDictCreationOrConstant(
-                    keys       = keys,
-                    values     = values,
-                    source_ref = source_ref
+                    keys=keys, values=values, source_ref=source_ref
                 )
             )
 
@@ -310,22 +279,21 @@ def _makeCallNode(called, positional_args, keys, values, list_star_arg,
             helper_args.append(dict_star_arg)
 
         result = ExpressionFunctionCall(
-            function   = ExpressionFunctionCreation(
-                function_ref = ExpressionFunctionRef(
-                    function_body = get_helper(),
-                    source_ref    = source_ref
+            function=ExpressionFunctionCreation(
+                function_ref=ExpressionFunctionRef(
+                    function_body=get_helper(), source_ref=source_ref
                 ),
-                defaults     = (),
-                kw_defaults  = None,
-                annotations  = None,
-                source_ref   = source_ref
+                defaults=(),
+                kw_defaults=None,
+                annotations=None,
+                source_ref=source_ref,
             ),
-            values     = helper_args,
-            source_ref = source_ref,
+            values=helper_args,
+            source_ref=source_ref,
         )
 
         result.setCompatibleSourceReference(
-            source_ref = helper_args[-1].getCompatibleSourceReference()
+            source_ref=helper_args[-1].getCompatibleSourceReference()
         )
 
         return result

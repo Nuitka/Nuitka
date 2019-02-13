@@ -213,7 +213,7 @@ Contractions should span across multiple lines for increased readability:
 Module/Package Names
 --------------------
 
-Normal modules are named in camel case with leading upper case, because their of
+Normal modules are named in camel case with leading upper case, because of their
 role as singleton classes. The difference between a module and a class is small
 enough and in the source code they are also used similarly.
 
@@ -227,7 +227,7 @@ generation packages are located, while the main interface is
 imports. There is no code in packages themselves.
 
 Names of modules should be plurals if they contain classes. Example is that a
-``Nodes`` module that contain a ``Node`` class.
+``Nodes`` module that contains a ``Node`` class.
 
 
 Prefer list contractions over built-ins
@@ -278,9 +278,9 @@ cannot be overloaded without re-declaring them.
 Overloading is then not at all obvious anymore. Now imagine having a setter and
 only overloading the getter. How to update the property easily?
 
-So, that's not likeable about them. And then we are also for clarity in these
+So, that's not likable about them. And then we are also for clarity in these
 internal APIs too. Properties try and hide the fact that code needs to run and
-may do things. So lets not use them.
+may do things. So let's not use them.
 
 For an external API you may exactly want to hide things, but internally that has
 no use, and in Nuitka, every API is internal API. One exception may be the
@@ -353,7 +353,7 @@ So, we currently use ``PyLint`` with options defined in a script.
 
    ./bin/check-nuitka-with-pylint
 
-Ideally the above command gives no warnings. This is currently the case.
+Ideally, the above command gives no warnings. This is currently the case.
 
 If you submit a patch, it would be good if you checked that it doesn't introduce
 new warnings, but that is not strictly required. it will happen before release,
@@ -523,6 +523,22 @@ Nuitka uses a lot of packages and imports between them.
 
    ./tests/reflected/compile_itself.py
 
+Internal/plugin API
+===================
+
+The documentation from the source code for both the Python and the
+C parts are published as `Nuitka API <http://nuitka.net/apidoc>`__
+and argumently in a relatively bad shape as we started generating
+those with Doxygen only relatively late.
+
+.. code-block:: sh
+
+   doxygen ./doc/Doxyfile
+   xdg-open html
+
+There is going to be enhancements to this API documentation in the
+next releases though, hopefully making it useable for at least the
+Nuitka plugin development.
 
 Design Descriptions
 ===================
@@ -614,7 +630,7 @@ where in other languages, I need to check myself.
 _`5`:: One can use a C++03 compiler as a C11 compiler for the largest part,
 e.g. with MSVC.
 
-The *decision for C11* is ultimately:
+The *decision for C11* is ultimate:
 
 * for portability
 * for language knowledge
@@ -725,7 +741,7 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 
   Full compatibility, even where it's stupid, i.e. do not provide information,
   even if available, in order to assert maximum compatibility. Intended to
-  control level of compatibility to absurd.
+  control the level of compatibility to absurd.
 
 * ``experimental_mode``
 
@@ -793,7 +809,7 @@ What follows is the (lengthy) list of arguments that the scons file processes:
 Locating Modules and Packages
 -----------------------------
 
-The search for of modules used is driven by ``nuitka.importing.Importing``
+The search for modules used is driven by ``nuitka.importing.Importing``
 module.
 
 * Quoting the ``nuitka.importing.Importing`` documentation:
@@ -827,7 +843,7 @@ module.
 The decision making and caching are located in the ``nuitka.tree`` package, in
 modules ``nuitka.tree.Recursion`` and ``nuitka.tree.ImportCache``. Each module
 is only considered once (then cached), and we need to obey lots of user choices,
-e.g. to compile standard library or not.
+e.g. to compile a standard library or not.
 
 
 Hooking for module ``import`` process
@@ -842,7 +858,7 @@ imported even when imported by non-compiled code.
 
 .. note::
 
-   Of course it would make sense to compile time detect which module it is that
+   Of course, it would make sense to compile time detect which module it is that
    is being imported and then to make it directly. At this time, we don't have
    this inter-module optimization yet, mid-term it should become easy to add.
 
@@ -925,7 +941,7 @@ Frame Stack
 -----------
 
 In Python, every function, class, and module has a frame. It creates created
-when the scope it entered, and there is a stack of these at run time, which
+when the scope is entered, and there is a stack of these at run time, which
 becomes visible in tracebacks in case of exceptions.
 
 The choice of Nuitka is to make this an explicit element of the node tree, that
@@ -982,9 +998,9 @@ extra care.
 Parameter Parsing
 -----------------
 
-The parsing of parameters is very convoluted in Python, and doing it in an
+The parsing of parameters is very convoluted in Python, and doing it in a
 compatible way is not that easy. This is a description of the required process,
-for easier overview.
+for an easier overview.
 
 Input
 +++++
@@ -998,7 +1014,7 @@ Keyword dictionary
 ++++++++++++++++++
 
 The keyword argument dictionary is checked first. Anything in there, that cannot
-be associated, either raises an error, or is added to a potentially given star
+be associated, either raise an error, or is added to a potentially given star
 dict argument. So there are two major cases.
 
 * No star dict argument: Iterate over dictionary, and assign or raise errors.
@@ -1011,7 +1027,7 @@ dict argument. So there are two major cases.
   is needed, and the keyword argument dictionary could be used as the star
   argument. Should it change, a copy is needed though.
 
-What's noteworthy here, is that in comparison of the keywords, we can hope that
+What's noteworthy here, is that in comparison to the keywords, we can hope that
 they are the same value as we use. The interning of strings increases chances
 for non-compiled code to do that, esp. for short names.
 
@@ -1043,7 +1059,7 @@ collections builds up traces. These are facts about how this works:
    * Assignments draw from a counter unique for the variable, which becomes the
      variable version. This happens during tree building phase.
 
-   * References are associated to the version of the variable active. This can be
+   * References are associated with the version of the variable active. This can be
      a merge of branches. Trace collection does do that and provides nodes with
      the currently active trace for a variable.
 
@@ -1111,7 +1127,7 @@ Trace structure, there are different kinds of traces.
 
  * Initial write of the version
 
-   There may be a initial write for each version. It can only occur at the
+   There may be an initial write for each version. It can only occur at the
    start of the scope, but not later, and there is only one. This might be
    known to be "initialized" (parameter variables of functions are like that)
    or "uninitialized", or "unknown".
@@ -1133,6 +1149,251 @@ to query facts about the state of a variable in that trace. It's e.g. of some
 interest, if a variable must have a value or must not. This allows to e.g. omit
 checks, know what exceptions might raise.
 
+Python Slots in Optimization
+----------------------------
+
+Basic Slot Idea
++++++++++++++++
+
+For almost all the operations in Python, a form of overloading is
+available. That is what makes it so powerful.
+
+So when you write an expression like this one:
+
+.. code-block:: python
+
+   1.0 + something
+
+This something will not just blindly work when it's a float, but
+go through a slot mechanism, which then can be overloaded.
+
+.. code-block:: python
+
+   class SomeStrangeFloat:
+      def __float__(self):
+         return 3.14
+
+   something = SomeStrangeFloat()
+   ...
+   1.0 + something
+
+Here it is the case, that this is used by user code, but more often
+this is used internally. Not all types have all slots, e.g. `list`
+does not have ``__float__`` and therefore will refuse an addition to
+a `float` value, based on that.
+
+Another slot is working here, that we didn't mention yet, and that
+is ``__add__`` which for some times will be these kinds of conversions
+or it will not do that kind of thing, e.g. something do hard checks,
+which is why this fails to work:
+
+.. code-block:: python
+
+   [] + ()
+
+As a deliberate choice, there is no `__list__` slot used. The Python
+designers are aiming at solving many things with slots, but they
+also accept limitations.
+
+There are many slots that are frequently used, most often behind
+your back (``__iter__``, ``__next__``, ``__lt__``, etc.). The list
+is large, and tends to grow with Python releases, but it is not
+endless.
+
+Representation in Nuitka
+++++++++++++++++++++++++
+
+So a slot in Nuitka typically has an owning node. We use ``__len__``
+as an example here. In the ``computeExpression`` the ``len`` node
+named ``ExpressionBuiltinLen`` has to defer the decision what it
+computes to its argument.
+
+.. code-block:: python
+
+    def computeExpression(self, trace_collection):
+        return self.getValue().computeExpressionLen(
+            len_node=self, trace_collection=trace_collection
+        )
+
+That decision then, in the absence of any type knowledge, must be
+done absolutely carefully and conservative, as could see anything
+executing here.
+
+That examples this code in ``ExpressionBase`` which every expression
+by default uses:
+
+.. code-block:: python
+
+    def computeExpressionLen(self, len_node, trace_collection):
+        shape = self.getValueShape()
+
+        has_len = shape.hasShapeSlotLen()
+
+        if has_len is False:
+            return makeRaiseTypeErrorExceptionReplacementFromTemplateAndValue(
+                template="object of type '%s' has no len()",
+                operation="len",
+                original_node=len_node,
+                value_node=self,
+            )
+        elif has_len is True:
+            iter_length = self.getIterationLength()
+
+            if iter_length is not None:
+                from .ConstantRefNodes import makeConstantRefNode
+
+                result = makeConstantRefNode(
+                    constant=int(iter_length),  # make sure to downcast long
+                    source_ref=len_node.getSourceReference(),
+                )
+
+                result = wrapExpressionWithNodeSideEffects(
+                    new_node=result, old_node=self
+                )
+
+                return (
+                    result,
+                    "new_constant",
+                    "Predicted 'len' result from value shape.",
+                )
+
+        self.onContentEscapes(trace_collection)
+
+        # Any code could be run, note that.
+        trace_collection.onControlFlowEscape(self)
+
+        # Any exception may be raised.
+        trace_collection.onExceptionRaiseExit(BaseException)
+
+        return len_node, None, None
+
+Notice how by default, known ``__len__`` but unpredictable or even
+unknown if a ``__len__`` slot is there, the code indicates that
+its contents and the control flow escapes (could change things
+behind out back) and any exception could happen.
+
+Other expressions can know better, e.g. for compile time constants
+we can be a whole lot more certain:
+
+.. code-block:: python
+
+    def computeExpressionLen(self, len_node, trace_collection):
+        return trace_collection.getCompileTimeComputationResult(
+            node=len_node,
+            computation=lambda: len(self.getCompileTimeConstant()),
+            description="""Compile time constant len value pre-computed.""",
+        )
+
+In this case, we are using a function that will produce a concrete
+value or the exception that the `computation` function raised. In
+this case, we can let the Python interpreter that runs Nuitka do
+all the hard work. This lives in ``CompileTimeConstantExpressionBase``
+and is the base for all kinds of constant values, or even built-in
+references like the name ``len`` itself and would be used in case
+of doing ``len(len)`` which obviously gives an exception.
+
+Other overloads do not currently exist in Nuitka, but through the
+iteration length, most cases could be addressed, e.g. ``list``
+nodes typical know their element counts.
+
+The C side
+----------
+
+When a slot is not optimized away at compile time however, we need
+to generate actual code for it. We figure out what this could be
+by looking at the original CPython implementation.
+
+.. code-block:: C
+
+   PyObject *builtin_len(PyObject *self, PyObject *v)
+   {
+       Py_ssize_t res;
+
+       res = PyObject_Size(v);
+       if (res < 0 && PyErr_Occurred())
+           return NULL;
+       return PyInt_FromSsize_t(res);
+   }
+
+We find a pointer to ``PyObject_Size`` which is a generic Python
+C/API function used in the ``builtin_len`` implementation:
+
+.. code-block:: C
+
+   Py_ssize_t PyObject_Size(PyObject *o)
+   {
+       PySequenceMethods *m;
+
+       if (o == NULL) {
+           null_error();
+           return -1;
+       }
+
+       m = o->ob_type->tp_as_sequence;
+       if (m && m->sq_length)
+           return m->sq_length(o);
+
+       return PyMapping_Size(o);
+   }
+
+On the C level, every Python object (the ``PyObject *``) as a type
+named ``ob_type`` and most of its elements are slots. Sometimes
+they form a group, here ``tp_as_sequence`` and then it may or may
+not contain a function. This one is tried in preference. Then, if
+that fails, next up the mapping size is tried.
+
+.. code-block:: C
+
+   Py_ssize_t PyMapping_Size(PyObject *o)
+   {
+       PyMappingMethods *m;
+
+       if (o == NULL) {
+           null_error();
+           return -1;
+       }
+
+       m = o->ob_type->tp_as_mapping;
+       if (m && m->mp_length)
+           return m->mp_length(o);
+
+       type_error("object of type '%.200s' has no len()", o);
+       return -1;
+   }
+
+This is the same principle, except with ``tp_as_mapping`` and
+``mp_length`` used.
+
+So from this, we can tell how ``len`` gets at what could be a
+Python class ``__len__`` or other built-in types.
+
+In principle, every slot needs to be dealt with in Nuitka, and
+it is assumed that currently all slots are supported on at least
+a very defensive level, to avoid unnoticed escapes of control
+flow.
+
+Built-in call optimization
+--------------------------
+
+For calls to built-in names, there is typically a function in
+Python that delegates to the type constructor (e.g. when we talk
+about ``int`` that just creates an object passing the arguments
+of the call) or its own special implementation as we saw with the
+`len`.
+
+For each built-in called, we have a specialized node, that presents
+to optimization the actions of the built-in. What are the impact,
+what are the results. We have seen the resulting example for ``len``
+above, but how do we get there.
+
+In Python, built-in names are used only if there is no module
+level variable of the name, and of course no local variable of
+that name.
+
+Therefore, optimization of a built-in name is only done if it
+turns out the actually assigned in other code, and then when
+the call comes, arguments are checked and a relatively static
+node is created.
 
 Code Generation towards C
 -------------------------
@@ -1152,7 +1413,7 @@ Every helper function that contains code that might raise needs these
 variables. After a failed call, our variant of ``PyErr_Fetch`` called
 ``FETCH_ERROR_OCCURRED`` must be used to catch the defined error, unless some
 quick exception cases apply. The quick exception means, ``NULL`` return from
-C-API without a set exception means means e.g. ``StopIteration``.
+C-API without a set exception means e.g. ``StopIteration``.
 
 As an optimization, functions that raise exceptions, but are known not to do so,
 for whatever reason, could only be asserted to not do so.
@@ -1236,7 +1497,7 @@ Problems were
 
 The current approach is as follows. Code generation detects constants used in
 only one module, and declared ``static`` there, if the module is the only user,
-or ``extern`` if it is not. Some values or forced to be global, as they are
+or ``extern`` if it is not. Some values are forced to be global, as they are
 used pre-main or in helpers.
 
 These ``extern`` values are globally created before anything is used. The
@@ -1843,7 +2104,7 @@ interact with its body. The body starts with a dictionary provided by the
 metaclass, so that is different, because it can ``__prepare__`` a non-empty
 locals for it, which is hidden away in "prepare_class_dict" below.
 
-What's noteworthy, is that this dictionary, could e.g. be a ``OrderDict``. I am
+What's noteworthy, is that this dictionary, could e.g. be an ``OrderDict``. I am
 not sure, what ``__prepare__`` is allowed to return.
 
 .. code-block:: python
@@ -2313,7 +2574,7 @@ things are not affectable by aliasing in any way.
 .. code-block:: python
 
    a = 3
-   b = 3
+   b = a
 
    b += 4 # a is not changed
 

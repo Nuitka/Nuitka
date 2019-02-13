@@ -23,47 +23,31 @@ of the metaclass remains as specific.
 
 from nuitka.PythonVersions import python_version
 
-from .CodeHelpers import (
-    generateChildExpressionsCode,
-    withObjectCodeTemporaryAssignment
-)
+from .CodeHelpers import generateChildExpressionsCode, withObjectCodeTemporaryAssignment
 from .ErrorCodes import getErrorExitCode
 
 
 def generateSelectMetaclassCode(to_name, expression, emit, context):
     metaclass_name, bases_name = generateChildExpressionsCode(
-        expression = expression,
-        emit       = emit,
-        context    = context
+        expression=expression, emit=emit, context=context
     )
 
     # This is used for Python3 only.
     assert python_version >= 300
 
-    arg_names = [
-        metaclass_name,
-        bases_name
-    ]
+    arg_names = [metaclass_name, bases_name]
 
-    with withObjectCodeTemporaryAssignment(to_name, "metaclass_result", expression, emit, context) \
-      as value_name:
+    with withObjectCodeTemporaryAssignment(
+        to_name, "metaclass_result", expression, emit, context
+    ) as value_name:
 
         emit(
-            "%s = SELECT_METACLASS( %s );" % (
-                value_name,
-                ", ".join(
-                    str(arg_name)
-                    for arg_name in
-                    arg_names
-                )
-            )
+            "%s = SELECT_METACLASS( %s );"
+            % (value_name, ", ".join(str(arg_name) for arg_name in arg_names))
         )
 
         getErrorExitCode(
-            check_name    = value_name,
-            release_names = arg_names,
-            emit          = emit,
-            context       = context
+            check_name=value_name, release_names=arg_names, emit=emit, context=context
         )
 
         context.addCleanupTempName(value_name)
@@ -71,27 +55,27 @@ def generateSelectMetaclassCode(to_name, expression, emit, context):
 
 def generateBuiltinSuperCode(to_name, expression, emit, context):
     type_name, object_name = generateChildExpressionsCode(
-        expression = expression,
-        emit       = emit,
-        context    = context
+        expression=expression, emit=emit, context=context
     )
 
-    with withObjectCodeTemporaryAssignment(to_name, "super_value", expression, emit, context) \
-      as value_name:
+    with withObjectCodeTemporaryAssignment(
+        to_name, "super_value", expression, emit, context
+    ) as value_name:
 
         emit(
-            "%s = BUILTIN_SUPER( %s, %s );" % (
+            "%s = BUILTIN_SUPER( %s, %s );"
+            % (
                 value_name,
                 type_name if type_name is not None else "NULL",
-                object_name if object_name is not None else "NULL"
+                object_name if object_name is not None else "NULL",
             )
         )
 
         getErrorExitCode(
-            check_name    = value_name,
-            release_names = (type_name, object_name),
-            emit          = emit,
-            context       = context
+            check_name=value_name,
+            release_names=(type_name, object_name),
+            emit=emit,
+            context=context,
         )
 
         context.addCleanupTempName(value_name)

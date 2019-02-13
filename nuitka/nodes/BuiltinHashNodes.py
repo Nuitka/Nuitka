@@ -29,22 +29,14 @@ from .ExpressionBases import ExpressionChildrenHavingBase
 class ExpressionBuiltinHash(ExpressionChildrenHavingBase):
     kind = "EXPRESSION_BUILTIN_HASH"
 
-    named_children = (
-        "value",
-    )
+    named_children = ("value",)
 
     def __init__(self, value, source_ref):
         ExpressionChildrenHavingBase.__init__(
-            self,
-            values     = {
-                "value" : value,
-            },
-            source_ref = source_ref
+            self, values={"value": value}, source_ref=source_ref
         )
 
-    getValue = ExpressionChildrenHavingBase.childGetter(
-        "value"
-    )
+    getValue = ExpressionChildrenHavingBase.childGetter("value")
 
     def computeExpression(self, trace_collection):
         value = self.getValue()

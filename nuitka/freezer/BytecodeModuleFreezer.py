@@ -32,12 +32,11 @@ from logging import info
 from nuitka import Options
 from nuitka.codegen import ConstantCodes
 from nuitka.codegen.Indentation import indented
-from nuitka.codegen.templates.CodeTemplatesFreezer import (
-    template_frozen_modules
-)
+from nuitka.codegen.templates.CodeTemplatesFreezer import template_frozen_modules
 from nuitka.ModuleRegistry import getUncompiledTechnicalModules
 
 stream_data = ConstantCodes.stream_data
+
 
 def generateBytecodeFrozenCode():
     frozen_defs = []
@@ -56,15 +55,13 @@ def generateBytecodeFrozenCode():
         frozen_defs.append(
             """\
 {{ "{module_name}", {start}, {size} }},""".format(
-                module_name = module_name,
-                start       = stream_data.getStreamDataOffset(code_data),
-                size        = size
+                module_name=module_name,
+                start=stream_data.getStreamDataOffset(code_data),
+                size=size,
             )
         )
 
         if Options.isShowInclusion():
             info("Embedded as frozen module '%s'.", module_name)
 
-    return template_frozen_modules % {
-        "frozen_modules" : indented(frozen_defs, 2)
-    }
+    return template_frozen_modules % {"frozen_modules": indented(frozen_defs, 2)}

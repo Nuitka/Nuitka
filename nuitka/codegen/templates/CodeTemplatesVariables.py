@@ -329,5 +329,6 @@ if ( %(frame_identifier)s->f_locals == NULL )
 %(to_name)s = %(frame_identifier)s->f_locals;
 """
 
-from . import TemplateDebugWrapper # isort:skip
+from . import TemplateDebugWrapper  # isort:skip
+
 TemplateDebugWrapper.checkDebug(globals())
