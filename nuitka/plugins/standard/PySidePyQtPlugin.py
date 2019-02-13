@@ -137,6 +137,7 @@ if os.path.exists(guess_path):
                 # Seems platforms is required on Windows.
                 if os.name == "nt":
                     plugin_options.add("platforms")
+                    plugin_options.add("styles") # Makes Qt window look much better, than before
 
             info(
                 "Copying Qt plug-ins '%s' to '%s'."
