@@ -2,35 +2,62 @@
 language: python
 matrix:
   include:
-  - os: linux
-    sudo: required
-    python: 2.6
-    dist: trusty
-  - os: linux
-    sudo: required
-    python: 2.7
-    dist: trusty
-  - os: linux
-    sudo: required
-    python: 3.3
-    dist: trusty
-  - os: linux
-    sudo: required
-    python: 3.4
-    dist: trusty
-  - os: linux
-    sudo: required
-    python: 3.5
-    dist: trusty
-  - os: linux
-    sudo: required
-    python: 3.6
-    dist: trusty
-  - os: osx
+ # - os: linux
+ #   sudo: required
+ #   python: 2.6
+ #   dist: trusty
+ # - os: linux
+ #   sudo: required
+ #   python: 2.7
+ #   dist: trusty
+ # - os: linux
+ #   sudo: required
+ #   python: 3.3
+ #   dist: trusty
+ # - os: linux
+ #   sudo: required
+ #   python: 3.4
+ #   dist: trusty
+ # - os: linux
+ #   sudo: required
+ #   python: 3.5
+ #   dist: trusty
+ # - os: linux
+ #   sudo: required
+ #   python: 3.6
+ #   dist: trusty
+    - os: osx # Python 3.4
     language: generic
     before_install:
     - travis_wait brew update
-    - brew install python3
+    - brew uninstall python
+    - brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/bd43f59bd50bb49242259f327cb6ac7a8dd59478/Formula/python3.rb
+    - pip install virtualenv
+    - virtualenv env -p python3
+    - source env/bin/activate
+    - alias pip="pip3"
+   - os: osx # Python 3.5
+    language: generic
+    before_install:
+    - travis_wait brew update
+    - brew uninstall python
+    - brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/ec545d45d4512ace3570782283df4ecda6bb0044/Formula/python3.rb
+    - pip install virtualenv
+    - virtualenv env -p python3
+    - source env/bin/activate
+    - alias pip="pip3"
+  - os: osx # Python 3.6
+    language: generic
+    before_install:
+    - travis_wait brew update
+    - pip install virtualenv
+    - virtualenv env -p python3
+    - source env/bin/activate
+    - alias pip="pip3"
+ - os: osx # Python 3.7
+    language: generic
+    before_install:
+    - travis_wait brew update
     - brew upgrade python
     - pip install virtualenv
     - virtualenv env -p python3
