@@ -1,5 +1,6 @@
 # Python project, check against all supported things.
 language: python
+os: osx
 python:
   - "2.6"
   - "2.7"
