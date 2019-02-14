@@ -6,7 +6,7 @@ matrix:
     language: generic
     before_install:
     - travis_wait brew update
-    - brew uninstall python
+    - brew uninstall --ignore-dependencies python
     - brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/bd43f59bd50bb49242259f327cb6ac7a8dd59478/Formula/python3.rb
     - pip install virtualenv
     - virtualenv env -p python3
@@ -16,7 +16,7 @@ matrix:
     language: generic
     before_install:
     - travis_wait brew update
-    - brew uninstall python
+    - brew uninstall --ignore-dependencies python
     - brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/ec545d45d4512ace3570782283df4ecda6bb0044/Formula/python3.rb
     - pip install virtualenv
     - virtualenv env -p python3
