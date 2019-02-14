@@ -2,7 +2,7 @@
 language: python
 matrix:
   include:
-    - os: osx # Python 3.4
+   - os: osx # Python 3.4
     language: generic
     before_install:
     - travis_wait brew update
