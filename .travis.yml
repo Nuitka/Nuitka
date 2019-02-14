@@ -2,7 +2,7 @@
 language: python
 matrix:
   include:
-   - os: osx # Python 3.4
+ - os: osx # Python 3.4
     language: generic
     before_install:
     - travis_wait brew update
@@ -12,7 +12,7 @@ matrix:
     - virtualenv env -p python3
     - source env/bin/activate
     - alias pip="pip3"
-   - os: osx # Python 3.5
+ - os: osx # Python 3.5
     language: generic
     before_install:
     - travis_wait brew update
@@ -22,7 +22,7 @@ matrix:
     - virtualenv env -p python3
     - source env/bin/activate
     - alias pip="pip3"
-  - os: osx # Python 3.6
+ - os: osx # Python 3.6
     language: generic
     before_install:
     - travis_wait brew update
