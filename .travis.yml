@@ -2,30 +2,6 @@
 language: python
 matrix:
   include:
- # - os: linux
- #   sudo: required
- #   python: 2.6
- #   dist: trusty
- # - os: linux
- #   sudo: required
- #   python: 2.7
- #   dist: trusty
- # - os: linux
- #   sudo: required
- #   python: 3.3
- #   dist: trusty
- # - os: linux
- #   sudo: required
- #   python: 3.4
- #   dist: trusty
- # - os: linux
- #   sudo: required
- #   python: 3.5
- #   dist: trusty
- # - os: linux
- #   sudo: required
- #   python: 3.6
- #   dist: trusty
     - os: osx # Python 3.4
     language: generic
     before_install:
