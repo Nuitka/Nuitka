@@ -61,11 +61,6 @@ from nuitka.nodes.BuiltinIteratorNodes import (
 )
 from nuitka.nodes.BuiltinLenNodes import ExpressionBuiltinLen
 from nuitka.nodes.BuiltinAnyNodes import ExpressionBuiltinAny
-from nuitka.nodes.BuiltinNextNodes import (
-    ExpressionBuiltinNext1,
-    ExpressionBuiltinNext2
-)
-
 from nuitka.nodes.BuiltinNextNodes import ExpressionBuiltinNext1, ExpressionBuiltinNext2
 from nuitka.nodes.BuiltinOpenNodes import ExpressionBuiltinOpen
 from nuitka.nodes.BuiltinRangeNodes import (
