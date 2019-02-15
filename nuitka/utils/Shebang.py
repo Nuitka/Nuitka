@@ -35,7 +35,8 @@ def getShebangFromSource(source_code):
 
 
 def getShebangFromFile(filename):
-    return getShebangFromSource(open(filename).readline())
+    with open(filename) as f:
+        return getShebangFromSource(f.readline())
 
 
 def parseShebang(shebang):

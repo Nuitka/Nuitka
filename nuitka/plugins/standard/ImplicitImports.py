@@ -262,16 +262,17 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             yield "PIL._tkinter_finder", True
         elif full_name == "pkg_resources.extern":
             if self.pkg_utils_externals is None:
-                for line in open(module.getCompileTimeFilename()):
-                    if line.startswith("names"):
-                        line = line.split("=")[-1].strip()
-                        parts = line.split(",")
+                with open(module.getCompileTimeFilename()) as f:
+                    for line in f:
+                        if line.startswith("names"):
+                            line = line.split("=")[-1].strip()
+                            parts = line.split(",")
 
-                        self.pkg_utils_externals = [part.strip("' ") for part in parts]
+                            self.pkg_utils_externals = [part.strip("' ") for part in parts]
 
-                        break
-                else:
-                    self.pkg_utils_externals = ()
+                            break
+                    else:
+                        self.pkg_utils_externals = ()
 
             for pkg_util_external in self.pkg_utils_externals:
                 yield "pkg_resources._vendor." + pkg_util_external, False
@@ -294,28 +295,29 @@ class NuitkaPluginPopularImplicitImports(NuitkaPluginBase):
             if self.opengl_plugins is None:
                 self.opengl_plugins = []
 
-                for line in open(module.getCompileTimeFilename()):
-                    if line.startswith("PlatformPlugin("):
-                        os_part, plugin_name_part = line[15:-1].split(",")
-                        os_part = os_part.strip("' ")
-                        plugin_name_part = plugin_name_part.strip(") '")
-                        plugin_name_part = plugin_name_part[
-                            : plugin_name_part.rfind(".")
-                        ]
-                        if os_part == "nt":
-                            if getOS() == "Windows":
-                                self.opengl_plugins.append(plugin_name_part)
-                        elif os_part.startswith("linux"):
-                            if getOS() == "Linux":
-                                self.opengl_plugins.append(plugin_name_part)
-                        elif os_part.startswith("darwin"):
-                            if getOS() == "Darwin":
-                                self.opengl_plugins.append(plugin_name_part)
-                        elif os_part.startswith(("posix", "osmesa", "egl")):
-                            if getOS() != "Windows":
-                                self.opengl_plugins.append(plugin_name_part)
-                        else:
-                            assert False, os_part
+                with open(module.getCompileTimeFilename()) as f:
+                    for line in f:
+                        if line.startswith("PlatformPlugin("):
+                            os_part, plugin_name_part = line[15:-1].split(",")
+                            os_part = os_part.strip("' ")
+                            plugin_name_part = plugin_name_part.strip(") '")
+                            plugin_name_part = plugin_name_part[
+                                : plugin_name_part.rfind(".")
+                            ]
+                            if os_part == "nt":
+                                if getOS() == "Windows":
+                                    self.opengl_plugins.append(plugin_name_part)
+                            elif os_part.startswith("linux"):
+                                if getOS() == "Linux":
+                                    self.opengl_plugins.append(plugin_name_part)
+                            elif os_part.startswith("darwin"):
+                                if getOS() == "Darwin":
+                                    self.opengl_plugins.append(plugin_name_part)
+                            elif os_part.startswith(("posix", "osmesa", "egl")):
+                                if getOS() != "Windows":
+                                    self.opengl_plugins.append(plugin_name_part)
+                            else:
+                                assert False, os_part
 
             for opengl_plugin in self.opengl_plugins:
                 yield opengl_plugin, True

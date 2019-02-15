@@ -488,7 +488,8 @@ Error, needs 'strace' on your system to scan used libraries."""
                 my_print(stderr_strace, file=sys.stderr)
                 sys.exit("Failed to run strace.")
 
-            open(path + ".strace", "wb").write(stderr_strace)
+            with open(path + ".strace", "wb") as f:
+                f.write(stderr_strace)
 
             for line in stderr_strace.split(b"\n"):
                 if process.returncode != 0 and trace_error:
@@ -571,36 +572,37 @@ Error, needs 'strace' on your system to scan used libraries."""
         )
 
         inside = False
-        for line in open(path + ".depends"):
-            if "| Module Dependency Tree |" in line:
-                inside = True
-                continue
+        with open(path + ".depends") as f:
+            for line in f:
+                if "| Module Dependency Tree |" in line:
+                    inside = True
+                    continue
 
-            if not inside:
-                continue
+                if not inside:
+                    continue
 
-            if "| Module List |" in line:
-                break
+                if "| Module List |" in line:
+                    break
 
-            if "]" not in line:
-                continue
+                if "]" not in line:
+                    continue
 
-            # Skip missing DLLs, apparently not needed anyway.
-            if "?" in line[: line.find("]")]:
-                continue
+                # Skip missing DLLs, apparently not needed anyway.
+                if "?" in line[: line.find("]")]:
+                    continue
 
-            dll_filename = line[line.find("]") + 2 : -1]
-            assert os.path.isfile(dll_filename), dll_filename
+                dll_filename = line[line.find("]") + 2 : -1]
+                assert os.path.isfile(dll_filename), dll_filename
 
-            # The executable itself is of course exempted.
-            if os.path.normcase(dll_filename) == os.path.normcase(
-                os.path.abspath(path)
-            ):
-                continue
+                # The executable itself is of course exempted.
+                if os.path.normcase(dll_filename) == os.path.normcase(
+                    os.path.abspath(path)
+                ):
+                    continue
 
-            dll_filename = os.path.normcase(dll_filename)
+                dll_filename = os.path.normcase(dll_filename)
 
-            result.append(dll_filename)
+                result.append(dll_filename)
 
         os.unlink(path + ".depends")
 
