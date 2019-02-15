@@ -209,6 +209,76 @@ under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 CONDITIONS OF ANY KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations under the License.
 
+
+Tutorial Setup and build on Windows
+====================================
+
+This is basic steps if you have nothing installed, of course
+if you have any of the parts, just skip it.
+
+Setup
+-----
+
+1. Install a C compiler
+
+ - Download and install mingw64 from
+
+  `https://sourceforge.net/projects/mingw-w64/ <https://sourceforge.net/projects/mingw-w64/>`_
+
+ - Select destination folder to **c:\\MinGW64**
+ - verify using command  **gcc.exe --version**
+ - Set a environment variable pointing to **gcc.exe**
+    **CC=c:\\mingw64\bin\gcc.exe**
+
+2. Install Python 3.7 (64 Bits)
+
+ - Download and install from
+
+  `https://www.python.org/downloads/windows <https://www.python.org/downloads/windows>`_
+
+ - Select Windows x86-64 web-based installer **or**
+ - Select Windows x86-64 executable installer
+ - verify using command **python --version**
+
+3. Install Nuitka
+
+ - **pip install nuitka**
+ - verify using command **nuitka --version** 
+
+Write some code and testa
+-------------------------
+
+1. Make a folder for the python code
+
+ - mkdir HelloWorld
+ - make a python file named **hello.py**
+
+_____
+
+|      def talk(message):           
+|          return "Talk " + message     
+|                              
+|      def main():                  
+|          print( talk("Hello World"))  
+|                              
+|      if __name__ == "__main__":   
+|          main()
+                       
+____
+
+3. testa it using **python hello.py**
+
+4. build it using
+   
+  **python -m nuitka --standalone --mingw64 hello.py**
+
+If you like to have full output add **--show-progress** **--show-scons** 
+
+5. Run the **hello.exe** in the folder **hello.dist**
+
+6. To distribute copy the **hello.dist** folder
+
+
 Use Cases
 =========
 
