@@ -26,7 +26,5 @@ except ImportError:
 
 try:
     root = tkinter.Tk()  # this will fail in absence of TCL
-except:
-    root = None
-
-assert root
+except tkinter.TclError as e:
+    assert "connect to display" in str(e) or "no display" in str(e), str(e)
