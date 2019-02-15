@@ -184,6 +184,8 @@ for filename in sorted(os.listdir('.')):
             # For the warnings.
             extra_flags.append("ignore_stderr")
 
+        if os.name == "nt":
+            extra_flags.append("plugin_enable:tk-inter")
 
     if filename == "FlaskUsing.py":
         if not hasModule("flask"):
@@ -322,6 +324,15 @@ for filename in sorted(os.listdir('.')):
         if loaded_filename.startswith("/usr/share/themes"):
             continue
         if "gtk" in loaded_filename and "/engines/" in loaded_filename:
+            continue
+
+        if loaded_filename in ("/usr", "/usr/local", "/usr/local/lib", "/usr/share", "/usr/local/share"):
+            continue
+
+        # TCL/tk for tkinter
+        if loaded_filename.startswith(("/usr/lib/tcltk/", "/usr/share/tcltk/")):
+            continue
+        if loaded_filename in ("/usr/lib/tcltk", "/usr/share/tcltk"):
             continue
 
         # Taking these from system is harmless and desirable
