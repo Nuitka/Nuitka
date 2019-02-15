@@ -24,4 +24,9 @@ try:
 except ImportError:
     import tkinter
 
-assert tkinter
+try:
+    root = tkinter.Tk()  # this will fail in absence of TCL
+except:
+    root = None
+
+assert root
