@@ -1,5 +1,5 @@
-Nuitka Release 0.6.2 (Draft)
-============================
+Nuitka Release 0.6.2
+====================
 
 This release has a huge focus on organizational things. Nuitka is growing in
 terms of contributors and supported platforms.
