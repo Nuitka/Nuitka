@@ -63,7 +63,9 @@ Organisational
 
 - Nuitka is participating in the GSoC 2019 under the PSF umbrella. We hope to
   grow even further. Thanks to the mentors who volunteered for this important
-  task. http://nuitka.net/pages/gsoc2019.html#mentors
+  task. Check out the
+  `GSoC 2019 page <http://nuitka.net/pages/gsoc2019.html#mentors>`__ and thanks
+  to the students that are already helping out.
 
 - Added Nuitka internal `API documentation <http://nuitka.net/apidoc>`__ that
   will receive more love in the future. It got some for this release, but a
@@ -92,6 +94,10 @@ great times for Nuitka.
 This release has not much on the optimization side that is user visible, but
 the work that has begun is capable of producing glorious benchmarks once it
 will be finished.
+
+The focus on this and coming releases is definitely to open up the Nuitka
+development now that people are coming in as permanent or temporary
+contributors in (relatively) high numbers.
 
 
 Nuitka Release 0.6.1
