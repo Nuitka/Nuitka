@@ -24,4 +24,7 @@ try:
 except ImportError:
     import tkinter
 
-assert tkinter
+try:
+    root = tkinter.Tk()  # this will fail in absence of TCL
+except tkinter.TclError as e:
+    assert "connect to display" in str(e) or "no display" in str(e), str(e)

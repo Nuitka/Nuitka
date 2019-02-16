@@ -1075,6 +1075,13 @@ The order is sorted by time.
   distribution, saving size and improving robustness considering the
   various distributions.
 
+- Orsiris de Jong: Submitted github pull request to implement the dependency
+  walking with `pefile` under Windows.
+
+- Jorj X. McKie: Submitted github pull requests with NumPy plugin to retain
+  its accelerating libraries, and Tkinter to include the TCL distribution
+  on Windows.
+
 Projects used by Nuitka
 -----------------------
 
@@ -1123,17 +1130,15 @@ Projects used by Nuitka
   that also runs on Windows and is written and configured in Python code. This
   allows to run the Nuitka tests long before release time.
 
-* The `Redbaron project <https://github.com/PyCQA/redbaron>`__
-
-  Thanks for creating a white space preserving and easy to use toolwork for
-  refactoring Python. This has allows us to automatically format my Python
-  code according to preferences and make global changes easily.
-
 * The `isort project <http://timothycrosley.github.io/isort/>`__
 
   Thanks for making nice import ordering so easy. This makes it so easy to let
   your IDE do it and clean up afterwards.
 
+* The `black project <https://github.com/ambv/black>`__
+
+  Thanks for making a fast and reliable way for automatically formatting
+  the Nuitka source code.
 
 Updates for this Manual
 =======================
